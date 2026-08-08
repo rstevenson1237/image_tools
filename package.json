@@ -1,0 +1,30 @@
+{
+  "name": "game-asset-suite",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "vendor:opencv": "node scripts/vendor-opencv.mjs",
+    "postinstall": "node scripts/vendor-opencv.mjs",
+    "predev": "node scripts/vendor-opencv.mjs",
+    "dev": "vite",
+    "prebuild": "node scripts/vendor-opencv.mjs",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-check --tsconfig ./tsconfig.json"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^5.0.3",
+    "@tsconfig/svelte": "^5.0.4",
+    "@types/node": "^26.2.0",
+    "svelte": "^5.19.0",
+    "svelte-check": "^4.1.4",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.11"
+  },
+  "dependencies": {
+    "@techstark/opencv-js": "^4.10.0-release.1",
+    "comlink": "^4.4.2",
+    "fabric": "^6.5.4"
+  }
+}
