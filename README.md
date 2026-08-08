@@ -51,9 +51,13 @@ and everything else is transparent. Every `cv.Mat` is tracked in a `MatScope` an
 
 ## Two things worth knowing before you touch the worker
 
-**Cross-Origin isolation.** `vite.config.ts` sets `Cross-Origin-Opener-Policy: same-origin` and
-`Cross-Origin-Embedder-Policy: require-corp` on both the dev and preview servers. Production
-hosting needs the same two headers, or `crossOriginIsolated` will be false.
+**Cross-Origin isolation is set in dev, but is not required.** `vite.config.ts` sends
+`Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp` on the
+dev and preview servers. The current OpenCV.js build is single-threaded and contains no
+`SharedArrayBuffer` reference, so the app runs correctly on hosts that cannot set headers at all
+(verified end-to-end with `crossOriginIsolated === false`). The headers stay in dev so that
+switching to a threaded WASM build — which *would* need them — fails locally instead of in
+production.
 
 **Loading OpenCV.js is genuinely awkward**, and the two obvious approaches both fail silently:
 
@@ -71,6 +75,26 @@ The Emscripten module is also **thenable and resolves with itself**. Awaiting it
 it from an `async` function, which is the easy one to miss — makes the promise machinery re-chain
 forever and hang the worker with no error. The loader boxes it during init and then deletes
 `then` outright.
+
+## Deploying to GitHub Pages
+
+`.github/workflows/deploy.yml` builds and publishes on every push to `main`. To turn it on once:
+**Settings → Pages → Source → GitHub Actions**. The site then lands at
+`https://<user>.github.io/<repo>/`.
+
+Two details make this work:
+
+- **Sub-path.** Pages serves from `/<repo>/`, not the domain root, so the workflow passes
+  `BASE_PATH` and Vite builds for it. The OpenCV worker resolves its asset through
+  `import.meta.env.BASE_URL`, so it follows automatically.
+- **The 10 MB OpenCV asset is gitignored**, and produced in CI — `npm ci` runs the `postinstall`
+  vendor script, so `public/vendor/opencv.js` exists before the build. Nothing large is committed.
+
+Pages cannot set custom headers, so `crossOriginIsolated` is false there. That is fine — see the
+isolation note above. The whole pipeline was verified against a header-free static server on a
+sub-path, producing byte-identical output to the isolated run.
+
+Any static host works on the same terms (Netlify, Cloudflare Pages, S3); only `base` changes.
 
 ## Adding a tool
 

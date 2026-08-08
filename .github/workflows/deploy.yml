@@ -1,0 +1,58 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  # Allows a manual deploy from the Actions tab.
+  workflow_dispatch:
+
+# Allow the workflow to publish to Pages via OIDC.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let a running deploy finish rather than cancelling it mid-publish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # postinstall copies opencv.js into public/vendor, which is gitignored —
+      # so the asset is produced here rather than committed.
+      - run: npm ci
+
+      - run: npm run check
+
+      - name: Build
+        # Pages serves from https://<user>.github.io/<repo>/, so the bundle has
+        # to be built for that sub-path.
+        env:
+          BASE_PATH: /${{ github.event.repository.name }}/
+        run: npm run build
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
