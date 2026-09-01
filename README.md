@@ -107,7 +107,11 @@ Any static host works on the same terms (Netlify, Cloudflare Pages, S3); only `b
 
 ## Known advisories
 
-`npm audit` reports Fabric.js advisories concerning **SVG export** serialisation. This app exports
-PNGs via `canvas.toBlob` and never serialises SVG, so the affected code path is unused. The fix
-requires Fabric 7, a major upgrade. The critical `tar` advisory comes in through `canvas`, a
-Node-only optional dependency of Fabric that is never shipped to the browser.
+`npm audit` reports **0 vulnerabilities**. Fabric.js is on 7.4.0, which fixes the SVG-export
+serialisation advisories that affected the 6.x line, and whose optional `canvas` dependency no
+longer drags in the vulnerable `tar` chain.
+
+The SVG Tracer does serialise SVG, but through its own serializer in
+`src/tools/SvgTracer/svg.ts` — not `canvas.toSVG()` — so Fabric's SVG-export path stays unused.
+That serializer emits no user-supplied text: colours are validated against a hex regex and fall
+back to black, and path names are never written into the output.

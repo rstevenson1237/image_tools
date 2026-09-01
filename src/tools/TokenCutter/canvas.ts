@@ -22,6 +22,12 @@ export interface SelectionController {
 }
 
 const OUTLINE = {
+  // Fabric 7 defaults both origins to 'center'. The marquee sets left/top to the
+  // *corner* of the drag rectangle and reads them back for `rectToPolygon`, so it
+  // needs the v6 top-left semantics pinned explicitly. The lasso Polyline ignores
+  // these: its `setBoundingBox` positions the object from its points.
+  originX: 'left' as const,
+  originY: 'top' as const,
   stroke: '#6ea8fe',
   strokeWidth: 1.5,
   strokeDashArray: [6, 4],
