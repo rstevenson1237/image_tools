@@ -34,6 +34,8 @@ jobs:
 
       - run: npm run check
 
+      - run: npm test
+
       - name: Build
         # Pages serves from https://<user>.github.io/<repo>/, so the bundle has
         # to be built for that sub-path.

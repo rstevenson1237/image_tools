@@ -57,6 +57,11 @@
       backgroundColor: '#1c1f26',
       preserveObjectStacking: true,
       selection: false,
+      // Both default to true in Fabric 7, but the pan gesture depends on middle
+      // clicks firing `mouse:down` (they did not in v6, which left `isPanTrigger`'s
+      // middle-button branch dead), so state it rather than inherit it.
+      fireMiddleClick: true,
+      stopContextMenu: true,
     });
 
     fitToWrapper();
@@ -102,6 +107,9 @@
 
     canvas.on('object:moving', (opt) => {
       if (!snapToGrid || gridSize <= 0) return;
+      // Under Fabric 7's centre origin this snaps an object's centre, not its
+      // corner, to the grid — the better semantic for tokens. Inert today: the
+      // only object on the stage is the source image, which is not selectable.
       const target = opt.target;
       target.set({
         left: Math.round((target.left ?? 0) / gridSize) * gridSize,
@@ -126,7 +134,7 @@
     objectUrls.length = 0;
     if (canvas) {
       oncanvasteardown?.(canvas);
-      // Fabric v6 dispose is async; nothing else depends on it completing.
+      // Fabric's dispose is async; nothing else depends on it completing.
       void canvas.dispose();
       canvas = undefined;
     }
@@ -206,6 +214,12 @@
       const top = (canvas.getHeight() - naturalHeight * scale) / 2;
 
       image.set({
+        // `placement.left/top` is the image's top-left corner in scene units, and
+        // every sceneToImage conversion depends on that. Fabric 7 defaults the
+        // origins to 'center', which would both offset the image by half its size
+        // and silently skew those conversions, so pin the v6 semantics here.
+        originX: 'left',
+        originY: 'top',
         left,
         top,
         scaleX: scale,
