@@ -1,0 +1,44 @@
+name: CI
+
+# deploy.yml only runs on pushes to main, so without this nothing gates a pull
+# request — a regression would surface as a failed deploy rather than a failed
+# check on the PR that caused it.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# This workflow verifies; it must never be able to publish.
+permissions:
+  contents: read
+
+# Unlike the deploy's `pages` group, a superseded run here is worth cancelling.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # postinstall copies opencv.js into public/vendor, which is gitignored —
+      # so the asset is produced here rather than committed.
+      - run: npm ci
+
+      - run: npm run check
+
+      - run: npm test
+
+      # A branch can be type-clean and green on tests and still fail to build.
+      # Use the same sub-path the deploy uses so this catches it on the PR.
+      - name: Build
+        env:
+          BASE_PATH: /${{ github.event.repository.name }}/
+        run: npm run build
