@@ -3,8 +3,11 @@
 A client-side image manipulation suite for game developers and Virtual Table Top players.
 Everything runs in the browser — no image ever leaves the machine.
 
-The first tool is the **VTT Token Cutter**: lasso a figure in a piece of artwork and extract a
-mono-colour silhouette as a transparent, tightly-cropped PNG.
+Two tools ship today:
+
+- **VTT Token Cutter** — lasso a figure in a piece of artwork and extract a mono-colour
+  silhouette as a transparent, tightly-cropped PNG.
+- **SVG Tracer** — trace artwork to vector paths, fix the trace node by node, and export SVG.
 
 ## Getting started
 
@@ -12,6 +15,7 @@ mono-colour silhouette as a transparent, tightly-cropped PNG.
 npm install     # also copies opencv.js into public/vendor
 npm run dev     # http://localhost:5173
 npm run check   # svelte-check
+npm test        # vitest — the vector model and SVG serializer
 npm run build   # production bundle in dist/
 npm run preview # serve the production build
 ```
@@ -28,12 +32,13 @@ src/
 │   ├── canvas/             CanvasStage.svelte — zoom, pan, grid snap, dropzone
 │   ├── stores/             activeTool, generic Command-Pattern history
 │   ├── tools/registry.ts   The tool registry
-│   └── utils/              Geometry, ImageData/PNG helpers, pointer normalisation
+│   └── utils/              Geometry, ImageData helpers, downloads, pointer normalisation
 ├── tools/
-│   └── TokenCutter/        The MVP tool: UI, selection capture, store, export
+│   ├── TokenCutter/        UI, selection capture, store, export
+│   └── SvgTracer/          UI, node editor, vector model, SVG serializer, store
 └── workers/
     ├── workerRegistry.ts   Ref-counted Comlink worker pool
-    └── opencv.worker.ts    OpenCV pipeline (masking → threshold → silhouette)
+    └── opencv.worker.ts    OpenCV pipelines (silhouette extraction, contour tracing)
 ```
 
 Each tool is registered in `src/core/tools/registry.ts` with a lazy `load()` import, so its UI,
@@ -48,6 +53,28 @@ threshold (Otsu or manual) → morphological close → intersect with the source
 → optionally keep the largest filled blob → emit RGBA where the subject takes the chosen colour
 and everything else is transparent. Every `cv.Mat` is tracked in a `MatScope` and released in a
 `finally`, so a mid-pipeline exception cannot leak the WASM heap.
+
+### Tracing pipeline
+
+`traceContours` shares `binarize` with the extractor, then runs `findContours` with `RETR_CCOMP`
+— a strict two-level hierarchy — so each outer contour is grouped with its own holes before
+anything crosses back to the main thread. Contours are simplified with `approxPolyDP`, dropped
+below `minArea`, sorted largest-first and capped at `maxPaths`, and returned as flat
+`Float32Array` rings that are *transferred* rather than cloned. `RETR_CCOMP` deliberately
+flattens deeper nesting: an island inside a hole comes back as its own top-level shape, which is
+what even-odd filling wants.
+
+The SVG Tracer keeps a plain TypeScript document (`SvgTracer/model.ts`) as its source of truth
+and treats Fabric as a renderer. Fabric has no per-vertex editing API, and its geometry setters
+re-centre an object's origin, so a Fabric-owned model would move a shape every time you dragged
+one of its nodes. Keeping the model plain also keeps it free of runes and the DOM, which is what
+makes it and the serializer unit-testable — those two files are the whole of `npm test`.
+
+Two consequences worth knowing. Node handles are painted straight into the 2D context on
+`after:render`, for the selected path only, rather than becoming thousands of Fabric objects. And
+commands must never capture the document in a closure: `$state` hands back a *new* proxy when the
+same object is reassigned after a null — which is exactly what undoing and redoing a trace does —
+and writes through the stale proxy do not surface on the new one.
 
 ## Two things worth knowing before you touch the worker
 

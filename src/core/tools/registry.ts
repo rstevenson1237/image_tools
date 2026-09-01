@@ -32,6 +32,17 @@ export const tools: ToolDefinition[] = [
       }>,
     requiredWorkers: ['opencv'],
   },
+  {
+    id: 'svg-tracer',
+    name: 'SVG Tracer',
+    blurb: 'Trace artwork to vector paths, fix the nodes, export SVG.',
+    icon: '✧',
+    load: () =>
+      import('../../tools/SvgTracer/index.svelte') as Promise<{
+        default: Component<Record<string, never>>;
+      }>,
+    requiredWorkers: ['opencv'],
+  },
 ];
 
 export function getTool(id: string): ToolDefinition | undefined {
