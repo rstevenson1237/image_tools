@@ -193,6 +193,94 @@ function buildPolygonMask(cv: Cv, scope: MatScope, polygon: Point[], width: numb
   return mask;
 }
 
+export interface BinarizeOptions {
+  threshold: ThresholdMode;
+  /** Treat the *lighter* region as the subject instead of the darker one. */
+  invert: boolean;
+  /** Gaussian kernel size. 0 disables the blur. */
+  blur: number;
+  /** Morphological-close kernel that seals speckle. 0 disables it. */
+  smoothing: number;
+  /** Intersect with the source alpha so already-transparent art traces its shape. */
+  respectAlpha: boolean;
+}
+
+/**
+ * greyscale -> blur -> threshold -> morphological close -> optional alpha intersect.
+ *
+ * Shared by the silhouette extractor and the contour tracer, which differ only
+ * in what they do with the resulting mask. Returns the grey level actually
+ * applied, which is the only way to find out what Otsu chose.
+ */
+function binarize(
+  cv: Cv,
+  scope: MatScope,
+  src: Mat,
+  options: BinarizeOptions,
+): { binary: Mat; thresholdUsed: number } {
+  const gray = scope.track(new cv.Mat());
+  cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+
+  const blurred = scope.track(new cv.Mat());
+  if (options.blur > 0) {
+    const kernel = Math.max(3, options.blur | 1);
+    cv.GaussianBlur(gray, blurred, new cv.Size(kernel, kernel), 0, 0, cv.BORDER_DEFAULT);
+  } else {
+    gray.copyTo(blurred);
+  }
+
+  // Subjects are usually darker than their background, so BINARY_INV marks them
+  // as foreground; `invert` flips that for light-on-dark artwork.
+  const binary = scope.track(new cv.Mat());
+  const polarity = options.invert ? cv.THRESH_BINARY : cv.THRESH_BINARY_INV;
+  const thresholdUsed =
+    options.threshold === 'otsu'
+      ? cv.threshold(blurred, binary, 0, 255, polarity | cv.THRESH_OTSU)
+      : cv.threshold(blurred, binary, options.threshold, 255, polarity);
+
+  if (options.smoothing > 0) {
+    const kernelSize = Math.max(3, options.smoothing | 1);
+    const kernel = scope.track(
+      cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(kernelSize, kernelSize)),
+    );
+    cv.morphologyEx(binary, binary, cv.MORPH_CLOSE, kernel);
+  }
+
+  if (options.respectAlpha) {
+    const channels = scope.track(new cv.MatVector());
+    cv.split(src, channels);
+    const sourceAlpha = scope.track(channels.get(3));
+    const opaque = scope.track(new cv.Mat());
+    cv.threshold(sourceAlpha, opaque, 0, 255, cv.THRESH_BINARY);
+    cv.bitwise_and(binary, opaque, binary);
+  }
+
+  return { binary, thresholdUsed };
+}
+
+/**
+ * Simplifies a contour with approxPolyDP and copies it out as a flat
+ * `[x0, y0, x1, y1, ...]` buffer.
+ *
+ * The result owns a fresh ArrayBuffer so it can be transferred to the main
+ * thread rather than structured-cloned.
+ */
+function contourToPoints(cv: Cv, scope: MatScope, contour: Mat, epsilon: number): Float32Array {
+  let source = contour;
+  if (epsilon > 0) {
+    const simplified = scope.track(new cv.Mat());
+    cv.approxPolyDP(contour, simplified, epsilon, true);
+    // approxPolyDP can collapse a tiny contour below three points; the caller
+    // drops those, but keep the unsimplified ring rather than emit a degenerate.
+    if (simplified.rows >= 3) source = simplified;
+  }
+
+  const data = source.data32S as Int32Array;
+  const points = new Float32Array(source.rows * 2);
+  for (let i = 0; i < points.length; i++) points[i] = data[i];
+  return points;
+}
+
 /**
  * Replaces `binary` with only its largest external contour, drawn filled — this
  * both drops stray specks and closes interior holes (eyes, gaps between limbs)
@@ -224,6 +312,55 @@ function keepLargestFilledBlob(cv: Cv, scope: MatScope, binary: Mat): void {
   cv.drawContours(binary, contours, bestIndex, new cv.Scalar(255), cv.FILLED);
 }
 
+export interface TraceOptions {
+  threshold: ThresholdMode;
+  invert: boolean;
+  blur: number;
+  smoothing: number;
+  respectAlpha: boolean;
+  /** approxPolyDP epsilon, in source pixels. 0 keeps every contour point. */
+  simplifyTolerance: number;
+  /** Contours whose area falls below this (px²) are dropped. */
+  minArea: number;
+  /** Emit interior contours as holes. False traces outlines only. */
+  keepHoles: boolean;
+  /** Cap on outer contours returned, largest-area first. */
+  maxPaths: number;
+}
+
+export const defaultTraceOptions: TraceOptions = {
+  threshold: 'otsu',
+  invert: false,
+  blur: 3,
+  smoothing: 3,
+  respectAlpha: true,
+  simplifyTolerance: 1.5,
+  minArea: 24,
+  keepHoles: true,
+  maxPaths: 120,
+};
+
+/** One closed ring in source-image pixels, flat `[x, y, ...]`. */
+export interface TracedRing {
+  points: Float32Array;
+  area: number;
+}
+
+export interface TracedShape {
+  outer: TracedRing;
+  holes: TracedRing[];
+}
+
+export interface TraceResult {
+  width: number;
+  height: number;
+  shapes: TracedShape[];
+  /** Contours discarded by minArea or maxPaths, so the UI can say so. */
+  droppedCount: number;
+  /** The grey level actually applied — resolves 'otsu' to a number. */
+  thresholdUsed: number;
+}
+
 const api = {
   /** Warms the WASM runtime so the first real extraction isn't stalled by it. */
   async preload(): Promise<void> {
@@ -246,39 +383,16 @@ const api = {
       const src = scope.track(cv.matFromImageData(source));
       const lasso = buildPolygonMask(cv, scope, maskPoints, width, height);
 
-      const gray = scope.track(new cv.Mat());
-      cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+      const { binary } = binarize(cv, scope, src, {
+        threshold: settings.threshold,
+        invert: settings.invert,
+        blur: 3,
+        smoothing: settings.smoothing,
+        respectAlpha: true,
+      });
 
-      const blurred = scope.track(new cv.Mat());
-      cv.GaussianBlur(gray, blurred, new cv.Size(3, 3), 0, 0, cv.BORDER_DEFAULT);
-
-      // Subjects are usually darker than their background, so BINARY_INV marks
-      // them as foreground; `invert` flips that for light-on-dark artwork.
-      const binary = scope.track(new cv.Mat());
-      const polarity = settings.invert ? cv.THRESH_BINARY : cv.THRESH_BINARY_INV;
-      if (settings.threshold === 'otsu') {
-        cv.threshold(blurred, binary, 0, 255, polarity | cv.THRESH_OTSU);
-      } else {
-        cv.threshold(blurred, binary, settings.threshold, 255, polarity);
-      }
-
-      if (settings.smoothing > 0) {
-        const kernelSize = Math.max(3, settings.smoothing | 1);
-        const kernel = scope.track(
-          cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(kernelSize, kernelSize)),
-        );
-        cv.morphologyEx(binary, binary, cv.MORPH_CLOSE, kernel);
-      }
-
-      // Respect transparency already present in the source art, then clip to the
-      // lasso. Order matters: clipping last guarantees nothing escapes the
-      // user's selection.
-      const channels = scope.track(new cv.MatVector());
-      cv.split(src, channels);
-      const sourceAlpha = scope.track(channels.get(3));
-      const opaque = scope.track(new cv.Mat());
-      cv.threshold(sourceAlpha, opaque, 0, 255, cv.THRESH_BINARY);
-      cv.bitwise_and(binary, opaque, binary);
+      // Clip to the lasso *after* binarize has applied the source alpha. Order
+      // matters: clipping last guarantees nothing escapes the user's selection.
       cv.bitwise_and(binary, lasso, binary);
 
       if (settings.keepLargestBlob) {
@@ -299,6 +413,111 @@ const api = {
       }
 
       return Comlink.transfer(new ImageData(output, width, height), [output.buffer]);
+    } finally {
+      scope.dispose();
+    }
+  },
+
+  /**
+   * Traces the image to closed polygon rings for the SVG Tracer.
+   *
+   * Returns points rather than SVG `d` strings: the node editor needs point
+   * arrays anyway, Float32Arrays are transferable, and coordinate precision is a
+   * user-facing export decision that belongs with the serializer.
+   *
+   * `source` is cloned rather than transferred, so the caller can re-trace the
+   * same image at different settings without re-reading its pixels.
+   */
+  async traceContours(
+    source: ImageData,
+    options: Partial<TraceOptions> = {},
+  ): Promise<TraceResult> {
+    const cv = await loadOpenCv();
+    const settings = { ...defaultTraceOptions, ...options };
+    const { width, height } = source;
+
+    const scope = new MatScope();
+    try {
+      const src = scope.track(cv.matFromImageData(source));
+      const { binary, thresholdUsed } = binarize(cv, scope, src, settings);
+
+      const contours = scope.track(new cv.MatVector());
+      const hierarchy = scope.track(new cv.Mat());
+      // RETR_CCOMP gives a strict two-level hierarchy: top-level outlines and
+      // their immediate holes. It deliberately flattens deeper nesting — an
+      // island inside a hole becomes a new top-level shape rather than a third
+      // level — which is exactly right for even-odd fill, and surprising only if
+      // you expected a tree.
+      cv.findContours(
+        binary,
+        contours,
+        hierarchy,
+        settings.keepHoles ? cv.RETR_CCOMP : cv.RETR_EXTERNAL,
+        cv.CHAIN_APPROX_SIMPLE,
+      );
+
+      // Groups of four per contour: next, prev, firstChild, parent.
+      const tree = hierarchy.data32S as Int32Array;
+      const total = contours.size();
+      let droppedCount = 0;
+
+      /** Reads one contour into a ring, or null if it is too small to keep. */
+      const ringAt = (index: number): TracedRing | null => {
+        const contour = contours.get(index);
+        try {
+          const area = Math.abs(cv.contourArea(contour));
+          if (area < settings.minArea) return null;
+          const points = contourToPoints(cv, scope, contour, settings.simplifyTolerance);
+          if (points.length < 6) return null;
+          return { points, area };
+        } finally {
+          // MatVector.get() hands back a new Mat wrapper that the caller owns.
+          contour.delete();
+        }
+      };
+
+      const shapes: TracedShape[] = [];
+      for (let i = 0; i < total; i++) {
+        // Under RETR_EXTERNAL every contour is top-level and the hierarchy is
+        // still populated, so the parent test is correct for both modes.
+        if (tree[i * 4 + 3] !== -1) continue;
+
+        const outer = ringAt(i);
+        if (!outer) {
+          droppedCount++;
+          continue;
+        }
+
+        const holes: TracedRing[] = [];
+        if (settings.keepHoles) {
+          for (let child = tree[i * 4 + 2]; child !== -1; child = tree[child * 4]) {
+            const hole = ringAt(child);
+            if (hole) holes.push(hole);
+            else droppedCount++;
+          }
+        }
+        shapes.push({ outer, holes });
+      }
+
+      // Largest first, so capping at maxPaths keeps the shapes that matter.
+      shapes.sort((a, b) => b.outer.area - a.outer.area);
+      if (shapes.length > settings.maxPaths) {
+        droppedCount += shapes.length - settings.maxPaths;
+        shapes.length = settings.maxPaths;
+      }
+
+      // Every ring owns a fresh buffer (contourToPoints allocates per call), so
+      // this list can never contain a duplicate — which postMessage would reject.
+      const buffers: ArrayBufferLike[] = [];
+      for (const shape of shapes) {
+        buffers.push(shape.outer.points.buffer);
+        for (const hole of shape.holes) buffers.push(hole.points.buffer);
+      }
+
+      return Comlink.transfer(
+        { width, height, shapes, droppedCount, thresholdUsed },
+        buffers as Transferable[],
+      );
     } finally {
       scope.dispose();
     }
