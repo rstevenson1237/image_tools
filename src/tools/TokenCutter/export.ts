@@ -1,4 +1,5 @@
-import { croppedBoundsFromAlpha, imageDataToCanvas, downloadCanvasAsPng } from '../../core/utils/imageData';
+import { croppedBoundsFromAlpha, imageDataToCanvas } from '../../core/utils/imageData';
+import { downloadCanvasAsPng } from '../../core/utils/download';
 
 export interface ExportOptions {
   /** Transparent margin kept around the silhouette, in source pixels. */

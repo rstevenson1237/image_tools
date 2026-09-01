@@ -83,24 +83,3 @@ export function imageDataFromElement(
   ctx.drawImage(element, 0, 0, width, height);
   return ctx.getImageData(0, 0, width, height);
 }
-
-/** Triggers a browser download of a canvas as a PNG. */
-export async function downloadCanvasAsPng(
-  canvas: HTMLCanvasElement,
-  filename: string,
-): Promise<void> {
-  const blob = await new Promise<Blob | null>((resolve) =>
-    canvas.toBlob(resolve, 'image/png'),
-  );
-  if (!blob) throw new Error('Failed to encode PNG');
-
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  // Revoking synchronously can race the download in some browsers.
-  setTimeout(() => URL.revokeObjectURL(url), 10_000);
-}
