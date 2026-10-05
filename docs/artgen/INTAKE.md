@@ -116,7 +116,8 @@ exactly what `direction.json` locks.
 
 ## 7. Decisions needed from you
 
-Defaults are what SPEC and PLAN assume. Answer only what you want to change.
+Defaults are what SPEC and PLAN assume. Answer only what you want to change. Full explanation, friction points
+and alternatives for each: [DECISIONS.md](DECISIONS.md) (which also adds D16–D19).
 
 | # | Question | Recommended default | Alternatives |
 |---|---|---|---|
