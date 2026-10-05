@@ -65,6 +65,11 @@ docs/archive/artgen/             # P8: artlab + planning docs once superseded
 - Convert root `package.json` to an npm workspace; empty `packages/*` with tsconfig + vitest; CI runs workspace
   tests; app check/test/build and Pages deploy unchanged.
 - **Accept:** CI green; artlab reproduces its two final comparison sheets from its folder.
+- **Done.** Root is an npm workspace over `packages/*` with empty `artgen-core`, `-cli`, `-runtime` and `-mcp`
+  (shared `packages/tsconfig.base.json`; `artgen-core` and `-runtime` get no Node or DOM types). CI runs
+  `check:packages` and `test:packages` after the app steps; `deploy.yml` is unchanged. artlab (`npm ci`,
+  `node run.js all`, `report`, `report iso`, run on a copy so the frozen folder isn't rewritten) reproduces
+  both final comparison sheets pixel-identical (0 differing pixels).
 
 ### P1 — Engine core + direction model (M–L)
 - `artgen-core`: Grid, Palette (restrict, swap, `.hex`/`.gpl` import, hue-shift ramp generator, **extract from

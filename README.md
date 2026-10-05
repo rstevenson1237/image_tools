@@ -18,6 +18,9 @@ npm run check   # svelte-check
 npm test        # vitest — the vector model and SVG serializer
 npm run build   # production bundle in dist/
 npm run preview # serve the production build
+
+npm run check:packages  # typecheck the artgen workspace packages
+npm run test:packages   # vitest in each artgen workspace package
 ```
 
 `npm run dev` and `npm run build` both re-run `scripts/vendor-opencv.mjs` first, so the OpenCV
