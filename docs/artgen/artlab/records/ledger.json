@@ -1,0 +1,1288 @@
+[
+ {
+  "type": "code",
+  "asset": "hero",
+  "tech": "t1",
+  "ver": "v1",
+  "fullTokens": 515,
+  "diffTokens": 515,
+  "metrics": {
+   "fillPct": 52.8,
+   "colors": 18,
+   "aaPartialPct": 0,
+   "offPalettePct": 2,
+   "orphanPct": 3.3,
+   "outlinePct": 100,
+   "symmetryPct": 71,
+   "hygiene": 9.8,
+   "renderMs": 1
+  },
+  "notes": "Char-map sprite, mirrored half + overlays",
+  "visual": 7,
+  "reviewNote": "Reads well; flat face, shield hides pauldron"
+ },
+ {
+  "type": "code",
+  "asset": "ship",
+  "tech": "t1",
+  "ver": "v1",
+  "fullTokens": 616,
+  "diffTokens": 616,
+  "metrics": {
+   "fillPct": 40,
+   "colors": 7,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 0.1,
+   "outlinePct": 0,
+   "symmetryPct": 93.8,
+   "hygiene": 8,
+   "renderMs": 5
+  },
+  "notes": "Profile-function hull, plank rows, octagon turrets",
+  "visual": 4,
+  "reviewNote": "Stair-step bow, B barrels clip A, no outline, stripy deck"
+ },
+ {
+  "type": "code",
+  "asset": "tank",
+  "tech": "t1",
+  "ver": "v1",
+  "fullTokens": 449,
+  "diffTokens": 449,
+  "metrics": {
+   "fillPct": 60.2,
+   "colors": 8,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 0.1,
+   "outlinePct": 63.3,
+   "symmetryPct": 87.8,
+   "hygiene": 10,
+   "renderMs": 1
+  },
+  "notes": "Per-pixel math: pods, chamfer hull, shaded dome turret",
+  "visual": 4.5,
+  "reviewNote": "Readable but flat hull, harsh dome banding, thin barrels"
+ },
+ {
+  "type": "review",
+  "asset": "hero",
+  "tech": "t1",
+  "image": "review-hero-t1.png",
+  "tokens": 263
+ },
+ {
+  "type": "review",
+  "asset": "ship",
+  "tech": "t1",
+  "image": "review-ship-t1.png",
+  "tokens": 468
+ },
+ {
+  "type": "review",
+  "asset": "tank",
+  "tech": "t1",
+  "image": "review-tank-t1.png",
+  "tokens": 398
+ },
+ {
+  "type": "code",
+  "asset": "hero",
+  "tech": "t2",
+  "ver": "v1",
+  "fullTokens": 678,
+  "diffTokens": 678,
+  "metrics": {
+   "fillPct": 54.8,
+   "colors": 19,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 5.2,
+   "outlinePct": 100,
+   "symmetryPct": 44.9,
+   "hygiene": 9.7,
+   "renderMs": 5
+  },
+  "notes": "Shape list + auto bevel/sphere shading + auto outline; seed varies tunic",
+  "visual": 6,
+  "reviewNote": "Solid read; seed made tunic=cape red, no inner lines"
+ },
+ {
+  "type": "code",
+  "asset": "ship",
+  "tech": "t2",
+  "ver": "v1",
+  "fullTokens": 556,
+  "diffTokens": 556,
+  "metrics": {
+   "fillPct": 43.6,
+   "colors": 8,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 1.3,
+   "outlinePct": 100,
+   "symmetryPct": 37,
+   "hygiene": 10,
+   "renderMs": 55
+  },
+  "notes": "Parametric hull polygon + primitive fittings, auto outline + drop shadow",
+  "visual": 4.5,
+  "reviewNote": "Outline+shadow help; ball turrets, barrels hidden under turrets"
+ },
+ {
+  "type": "code",
+  "asset": "tank",
+  "tech": "t2",
+  "ver": "v1",
+  "fullTokens": 514,
+  "diffTokens": 514,
+  "metrics": {
+   "fillPct": 65.4,
+   "colors": 12,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 1.6,
+   "outlinePct": 100,
+   "symmetryPct": 76.1,
+   "hygiene": 10,
+   "renderMs": 16
+  },
+  "notes": "Mirrored shape list; bevel hull, sphere turret, pattern treads",
+  "visual": 4,
+  "reviewNote": "Sphere light inverted (lib bug), treads pattern lost, turret merges into deck"
+ },
+ {
+  "type": "review",
+  "asset": "hero",
+  "tech": "t2",
+  "image": "review-hero-t2.png",
+  "tokens": 263
+ },
+ {
+  "type": "review",
+  "asset": "ship",
+  "tech": "t2",
+  "image": "review-ship-t2.png",
+  "tokens": 468
+ },
+ {
+  "type": "review",
+  "asset": "tank",
+  "tech": "t2",
+  "image": "review-tank-t2.png",
+  "tokens": 398
+ },
+ {
+  "type": "code",
+  "asset": "hero",
+  "tech": "t3",
+  "ver": "v1",
+  "fullTokens": 466,
+  "diffTokens": 466,
+  "metrics": {
+   "fillPct": 53.4,
+   "colors": 170,
+   "aaPartialPct": 27.2,
+   "offPalettePct": 78.4,
+   "orphanPct": 36.9,
+   "outlinePct": 98.9,
+   "symmetryPct": 55.6,
+   "hygiene": 1,
+   "renderMs": 1
+  },
+  "notes": "Plain SVG, native-size AA raster (baseline)",
+  "visual": 2,
+  "reviewNote": "AA mush, face gradient rendered black, strokes too thick for 32px"
+ },
+ {
+  "type": "review",
+  "asset": "hero",
+  "tech": "t3",
+  "image": "review-hero-t3.png",
+  "tokens": 263
+ },
+ {
+  "type": "code",
+  "asset": "ship",
+  "tech": "t3",
+  "ver": "v1",
+  "fullTokens": 477,
+  "diffTokens": 477,
+  "metrics": {
+   "fillPct": 41.3,
+   "colors": 604,
+   "aaPartialPct": 21,
+   "offPalettePct": 86.8,
+   "orphanPct": 27.9,
+   "outlinePct": 98.1,
+   "symmetryPct": 22.3,
+   "hygiene": 1,
+   "renderMs": 1
+  },
+  "notes": "SVG paths + gradient deck, raw AA raster",
+  "visual": 5.5,
+  "reviewNote": "Best silhouette/curved bow; blurry, not pixel art"
+ },
+ {
+  "type": "review",
+  "asset": "ship",
+  "tech": "t3",
+  "image": "review-ship-t3.png",
+  "tokens": 468
+ },
+ {
+  "type": "code",
+  "asset": "tank",
+  "tech": "t3",
+  "ver": "v1",
+  "fullTokens": 431,
+  "diffTokens": 431,
+  "metrics": {
+   "fillPct": 65,
+   "colors": 542,
+   "aaPartialPct": 8,
+   "offPalettePct": 78.7,
+   "orphanPct": 49.6,
+   "outlinePct": 100,
+   "symmetryPct": 47.8,
+   "hygiene": 2.4,
+   "renderMs": 1
+  },
+  "notes": "SVG with gradients, raw AA raster",
+  "visual": 6,
+  "reviewNote": "Clean smooth read, nice dome; soft edges, 542 colours"
+ },
+ {
+  "type": "review",
+  "asset": "tank",
+  "tech": "t3",
+  "image": "review-tank-t3.png",
+  "tokens": 398
+ },
+ {
+  "type": "code",
+  "asset": "hero",
+  "tech": "t1",
+  "ver": "v2",
+  "fullTokens": 705,
+  "diffTokens": 422,
+  "metrics": {
+   "fillPct": 52.7,
+   "colors": 20,
+   "aaPartialPct": 0,
+   "offPalettePct": 2,
+   "orphanPct": 5.7,
+   "outlinePct": 100,
+   "symmetryPct": 67,
+   "hygiene": 9.4,
+   "renderMs": 2
+  },
+  "notes": "v1 + blush, smaller lowered shield, boots, right-side shade pass",
+  "visual": 7.5,
+  "reviewNote": "Blush, visible pauldron, directional shade; small polish gain"
+ },
+ {
+  "type": "code",
+  "asset": "ship",
+  "tech": "t1",
+  "ver": "v2",
+  "fullTokens": 1087,
+  "diffTokens": 989,
+  "metrics": {
+   "fillPct": 45.3,
+   "colors": 8,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 1.1,
+   "outlinePct": 100,
+   "symmetryPct": 88.8,
+   "hygiene": 10,
+   "renderMs": 7
+  },
+  "notes": "Manual AA taper, planks, layered superstructure, superfiring order, secondaries, outline+shadow",
+  "visual": 6,
+  "reviewNote": "Outline+gunwale+shadow big gain; breakwater spikes outside hull, turrets undersized"
+ },
+ {
+  "type": "code",
+  "asset": "tank",
+  "tech": "t1",
+  "ver": "v2",
+  "fullTokens": 955,
+  "diffTokens": 925,
+  "metrics": {
+   "fillPct": 68.8,
+   "colors": 11,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 4.6,
+   "outlinePct": 100,
+   "symmetryPct": 59.9,
+   "hygiene": 9.8,
+   "renderMs": 12
+  },
+  "notes": "Dithered dome, cleats, seams, skirts, muzzle brakes, outline+shadow",
+  "visual": 6.5,
+  "reviewNote": "Outline, cleats, shadow; dome dither noisy, hull too white, nose too pointed"
+ },
+ {
+  "type": "review",
+  "asset": "hero",
+  "tech": "t1",
+  "image": "review-hero-t1.png",
+  "tokens": 493
+ },
+ {
+  "type": "review",
+  "asset": "ship",
+  "tech": "t1",
+  "image": "review-ship-t1.png",
+  "tokens": 856
+ },
+ {
+  "type": "review",
+  "asset": "tank",
+  "tech": "t1",
+  "image": "review-tank-t1.png",
+  "tokens": 754
+ },
+ {
+  "type": "code",
+  "asset": "hero",
+  "tech": "t2",
+  "ver": "v2",
+  "fullTokens": 673,
+  "diffTokens": 619,
+  "metrics": {
+   "fillPct": 56.2,
+   "colors": 20,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 7.7,
+   "outlinePct": 100,
+   "symmetryPct": 60.2,
+   "hygiene": 9.1,
+   "renderMs": 6
+  },
+  "notes": "lib v2 fixes + ink inner lines, seeded hair/tunic, fringe",
+  "visual": 6.5,
+  "reviewNote": "Ink lines + seeded steel tunic; face/fringe heavy, sides read as helmet"
+ },
+ {
+  "type": "review",
+  "asset": "hero",
+  "tech": "t2",
+  "image": "review-hero-t2.png",
+  "tokens": 493
+ },
+ {
+  "type": "code",
+  "asset": "ship",
+  "tech": "t2",
+  "ver": "v2",
+  "fullTokens": 780,
+  "diffTokens": 681,
+  "metrics": {
+   "fillPct": 43.1,
+   "colors": 8,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 1.8,
+   "outlinePct": 100,
+   "symmetryPct": 85.9,
+   "hygiene": 10,
+   "renderMs": 99
+  },
+  "notes": "Inset deck, layered superstructure, capsule turrets, ordered barrels",
+  "visual": 5,
+  "reviewNote": "Gunwale/deck good; capsule turrets broken by ink, superstructure over-inked"
+ },
+ {
+  "type": "review",
+  "asset": "ship",
+  "tech": "t2",
+  "image": "review-ship-t2.png",
+  "tokens": 856
+ },
+ {
+  "type": "code",
+  "asset": "tank",
+  "tech": "t2",
+  "ver": "v2",
+  "fullTokens": 532,
+  "diffTokens": 470,
+  "metrics": {
+   "fillPct": 69.7,
+   "colors": 12,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 2.3,
+   "outlinePct": 100,
+   "symmetryPct": 84.8,
+   "hygiene": 10,
+   "renderMs": 35
+  },
+  "notes": "Cleat pattern, ink separation, rim dome, muzzle brakes, seams",
+  "visual": 6.5,
+  "reviewNote": "Cleats, ink separation, rim dome; muzzle brakes merge into a lump"
+ },
+ {
+  "type": "review",
+  "asset": "tank",
+  "tech": "t2",
+  "image": "review-tank-t2.png",
+  "tokens": 754
+ },
+ {
+  "type": "code",
+  "asset": "hero",
+  "tech": "t3",
+  "ver": "v2",
+  "fullTokens": 551,
+  "diffTokens": 516,
+  "metrics": {
+   "fillPct": 55.3,
+   "colors": 18,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 2.5,
+   "outlinePct": 100,
+   "symmetryPct": 37.5,
+   "hygiene": 10,
+   "renderMs": 59
+  },
+  "notes": "Pixel-aligned flat SVG, 8x supersample -> quantize -> mode downsample -> outline",
+  "visual": 6.5,
+  "reviewNote": "Huge gain: crisp, on-palette; eyes weak, belt/emblem softened"
+ },
+ {
+  "type": "review",
+  "asset": "hero",
+  "tech": "t3",
+  "image": "review-hero-t3.png",
+  "tokens": 493
+ },
+ {
+  "type": "code",
+  "asset": "ship",
+  "tech": "t3",
+  "ver": "v2",
+  "fullTokens": 192,
+  "diffTokens": 180,
+  "metrics": {
+   "fillPct": 39.4,
+   "colors": 9,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 0.2,
+   "outlinePct": 100,
+   "symmetryPct": 51.4,
+   "hygiene": 10,
+   "renderMs": 114
+  },
+  "notes": "v1 SVG minus strokes/shadow; ss=8 quantize+mode downsample, raster outline+shadow",
+  "visual": 4.5,
+  "reviewNote": "Crisp but turrets became blobs, gradient -> hard bands, stray colours"
+ },
+ {
+  "type": "review",
+  "asset": "ship",
+  "tech": "t3",
+  "image": "review-ship-t3.png",
+  "tokens": 856
+ },
+ {
+  "type": "code",
+  "asset": "tank",
+  "tech": "t3",
+  "ver": "v2",
+  "fullTokens": 144,
+  "diffTokens": 144,
+  "metrics": {
+   "fillPct": 65.3,
+   "colors": 14,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 1.9,
+   "outlinePct": 100,
+   "symmetryPct": 57.9,
+   "hygiene": 10,
+   "renderMs": 79
+  },
+  "notes": "v1 SVG minus strokes; ss=8 quantize+mode downsample, raster outline+shadow",
+  "visual": 5.5,
+  "reviewNote": "Crisp, on-palette; turret no longer separates from hull"
+ },
+ {
+  "type": "review",
+  "asset": "tank",
+  "tech": "t3",
+  "image": "review-tank-t3.png",
+  "tokens": 754
+ },
+ {
+  "type": "code",
+  "asset": "ship",
+  "tech": "t1",
+  "ver": "v3",
+  "fullTokens": 1145,
+  "diffTokens": 280,
+  "metrics": {
+   "fillPct": 45.2,
+   "colors": 8,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 1.4,
+   "outlinePct": 100,
+   "symmetryPct": 88.5,
+   "hygiene": 10,
+   "renderMs": 19
+  },
+  "notes": "v3: bigger turrets, clipped breakwater, softer planks; Manual AA taper, planks, layered superstructure, superfiring order, secondaries, outline+shadow",
+  "visual": 6.5,
+  "reviewNote": "Turrets now read at game zoom; bow still steppy"
+ },
+ {
+  "type": "code",
+  "asset": "tank",
+  "tech": "t1",
+  "ver": "v3",
+  "fullTokens": 1007,
+  "diffTokens": 179,
+  "metrics": {
+   "fillPct": 69.4,
+   "colors": 12,
+   "aaPartialPct": 0,
+   "offPalettePct": 0.8,
+   "orphanPct": 2.4,
+   "outlinePct": 100,
+   "symmetryPct": 60.1,
+   "hygiene": 9.9,
+   "renderMs": 4
+  },
+  "notes": "v3: banded dome, darker hull, blunt nose; Dithered dome, cleats, seams, skirts, muzzle brakes, outline+shadow",
+  "visual": 6.5,
+  "reviewNote": "Cleaner dome, but dome rim gaps and nose corner spikes (regressions)"
+ },
+ {
+  "type": "code",
+  "asset": "ship",
+  "tech": "t2",
+  "ver": "v3",
+  "fullTokens": 867,
+  "diffTokens": 374,
+  "metrics": {
+   "fillPct": 43.1,
+   "colors": 8,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 3.1,
+   "outlinePct": 100,
+   "symmetryPct": 83.8,
+   "hygiene": 10,
+   "renderMs": 64
+  },
+  "notes": "v3: poly turrets, less ink; Inset deck, layered superstructure, capsule turrets, ordered barrels",
+  "visual": 5.5,
+  "reviewNote": "Cleaner, but poly turrets read as arrowheads"
+ },
+ {
+  "type": "code",
+  "asset": "hero",
+  "tech": "t3",
+  "ver": "v3",
+  "fullTokens": 210,
+  "diffTokens": 197,
+  "metrics": {
+   "fillPct": 55.3,
+   "colors": 18,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 2.5,
+   "outlinePct": 100,
+   "symmetryPct": 37.5,
+   "hygiene": 10,
+   "renderMs": 13
+  },
+  "notes": "v2 + hero-restricted palette, eyes sized to survive downsample",
+  "visual": 7,
+  "reviewNote": "RE-SCORED after ss fix: crisp eyes, clean palette, no mush"
+ },
+ {
+  "type": "code",
+  "asset": "ship",
+  "tech": "t3",
+  "ver": "v3",
+  "fullTokens": 663,
+  "diffTokens": 651,
+  "metrics": {
+   "fillPct": 42.2,
+   "colors": 8,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 0.2,
+   "outlinePct": 100,
+   "symmetryPct": 74.1,
+   "hygiene": 10,
+   "renderMs": 66
+  },
+  "notes": "Underlay outlines, pattern planks, restricted palette, ss=8",
+  "visual": 7.5,
+  "reviewNote": "RE-SCORED after ss fix: crisp turrets + planks; best ship"
+ },
+ {
+  "type": "code",
+  "asset": "tank",
+  "tech": "t3",
+  "ver": "v3",
+  "fullTokens": 306,
+  "diffTokens": 292,
+  "metrics": {
+   "fillPct": 67.2,
+   "colors": 8,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 0.4,
+   "outlinePct": 100,
+   "symmetryPct": 67.8,
+   "hygiene": 10,
+   "renderMs": 59
+  },
+  "notes": "Underlay outlines for dome/barrels/hull, restricted palette, ss=8",
+  "visual": 7.5,
+  "reviewNote": "RE-SCORED after ss fix: tread stripes back, clean dome; best tank"
+ },
+ {
+  "type": "review",
+  "asset": "hero",
+  "tech": "all",
+  "image": "review-hero-latest.png",
+  "tokens": 724
+ },
+ {
+  "type": "review",
+  "asset": "ship",
+  "tech": "all",
+  "image": "review-ship-latest.png",
+  "tokens": 1244
+ },
+ {
+  "type": "review",
+  "asset": "tank",
+  "tech": "all",
+  "image": "review-tank-latest.png",
+  "tokens": 1111
+ },
+ {
+  "type": "code",
+  "asset": "isohero",
+  "tech": "t4",
+  "ver": "v1",
+  "fullTokens": 484,
+  "diffTokens": 484,
+  "metrics": {
+   "fillPct": 45.9,
+   "colors": 12,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 0,
+   "outlinePct": 100,
+   "symmetryPct": 13.6,
+   "hygiene": 10,
+   "renderMs": 1
+  },
+  "notes": "Box-built voxel hooded rogue (carved hood), 4px cubes, painter order, auto outline + ground shadow",
+  "visual": 3,
+  "reviewNote": "4px cubes too coarse: green box, face mostly hidden"
+ },
+ {
+  "type": "code",
+  "asset": "isospider",
+  "tech": "t4",
+  "ver": "v1",
+  "fullTokens": 299,
+  "diffTokens": 299,
+  "metrics": {
+   "fillPct": 50.2,
+   "colors": 6,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 0,
+   "outlinePct": 91.3,
+   "symmetryPct": 92.2,
+   "hygiene": 10,
+   "renderMs": 0
+  },
+  "notes": "Ellipsoids + 3D leg polylines mirrored x<->y",
+  "visual": 2.5,
+  "reviewNote": "Legs merge into a block; not a spider"
+ },
+ {
+  "type": "code",
+  "asset": "isochest",
+  "tech": "t4",
+  "ver": "v1",
+  "fullTokens": 257,
+  "diffTokens": 257,
+  "metrics": {
+   "fillPct": 43.9,
+   "colors": 9,
+   "aaPartialPct": 0,
+   "offPalettePct": 2.9,
+   "orphanPct": 2.7,
+   "outlinePct": 100,
+   "symmetryPct": 0,
+   "hygiene": 9.7,
+   "renderMs": 1
+  },
+  "notes": "Parametric open/closed voxel chest",
+  "visual": 7,
+  "reviewNote": "Best chest: clean faces, straps, clear open/closed"
+ },
+ {
+  "type": "review",
+  "asset": "isohero",
+  "tech": "t4",
+  "image": "review-isohero-t4.png",
+  "tokens": 228
+ },
+ {
+  "type": "review",
+  "asset": "isospider",
+  "tech": "t4",
+  "image": "review-isospider-t4.png",
+  "tokens": 167
+ },
+ {
+  "type": "review",
+  "asset": "isochest",
+  "tech": "t4",
+  "image": "review-isochest-t4.png",
+  "tokens": 312
+ },
+ {
+  "type": "code",
+  "asset": "isohero",
+  "tech": "t1",
+  "ver": "v1",
+  "fullTokens": 604,
+  "diffTokens": 604,
+  "metrics": {
+   "fillPct": 45.6,
+   "colors": 14,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 3.1,
+   "outlinePct": 90.7,
+   "symmetryPct": 85.4,
+   "hygiene": 10,
+   "renderMs": 0
+  },
+  "notes": "Mirrored char map, dagger overlay, shade pass, ground shadow",
+  "visual": 7,
+  "reviewNote": "Charming, clear hood/face/cloak; dagger hand slightly detached"
+ },
+ {
+  "type": "code",
+  "asset": "isospider",
+  "tech": "t1",
+  "ver": "v1",
+  "fullTokens": 590,
+  "diffTokens": 590,
+  "metrics": {
+   "fillPct": 58,
+   "colors": 6,
+   "aaPartialPct": 0,
+   "offPalettePct": 1,
+   "orphanPct": 5.4,
+   "outlinePct": 100,
+   "symmetryPct": 100,
+   "hygiene": 9.6,
+   "renderMs": 1
+  },
+  "notes": "Char-map body + mirrored Bresenham legs + outline pass",
+  "visual": 6.5,
+  "reviewNote": "Readable, menacing; legs thin/jagged"
+ },
+ {
+  "type": "code",
+  "asset": "isochest",
+  "tech": "t1",
+  "ver": "v1",
+  "fullTokens": 614,
+  "diffTokens": 614,
+  "metrics": {
+   "fillPct": 47.9,
+   "colors": 9,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 4.2,
+   "outlinePct": 98.7,
+   "symmetryPct": 0,
+   "hygiene": 9.9,
+   "renderMs": 3
+  },
+  "notes": "Edge-equation shader for iso box, two states",
+  "visual": 6.5,
+  "reviewNote": "Both states read; lock off-centre, odd lid seam line"
+ },
+ {
+  "type": "code",
+  "asset": "isohero",
+  "tech": "t2",
+  "ver": "v1",
+  "fullTokens": 460,
+  "diffTokens": 460,
+  "metrics": {
+   "fillPct": 41.3,
+   "colors": 15,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 3.5,
+   "outlinePct": 100,
+   "symmetryPct": 69.6,
+   "hygiene": 10,
+   "renderMs": 2
+  },
+  "notes": "Shape-list rogue, ink inner lines, shadow ellipse",
+  "visual": 6,
+  "reviewNote": "Clean; hood reads as hair/helmet, face cramped"
+ },
+ {
+  "type": "code",
+  "asset": "isospider",
+  "tech": "t2",
+  "ver": "v1",
+  "fullTokens": 400,
+  "diffTokens": 400,
+  "metrics": {
+   "fillPct": 51,
+   "colors": 7,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 8.2,
+   "outlinePct": 100,
+   "symmetryPct": 74.7,
+   "hygiene": 8.9,
+   "renderMs": 1
+  },
+  "notes": "Ellipses + mirrored line legs, ink, shadow",
+  "visual": 6.5,
+  "reviewNote": "Clean, same read as T1 at lower effort"
+ },
+ {
+  "type": "code",
+  "asset": "isochest",
+  "tech": "t2",
+  "ver": "v1",
+  "fullTokens": 428,
+  "diffTokens": 428,
+  "metrics": {
+   "fillPct": 45.4,
+   "colors": 10,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 1.5,
+   "outlinePct": 100,
+   "symmetryPct": 0,
+   "hygiene": 10,
+   "renderMs": 15
+  },
+  "notes": "boxFaces polygons, thin-box straps, two states",
+  "visual": 4,
+  "reviewNote": "Pixel-centre sampling gaps, gold top floods open state"
+ },
+ {
+  "type": "code",
+  "asset": "isohero",
+  "tech": "t3",
+  "ver": "v1",
+  "fullTokens": 630,
+  "diffTokens": 630,
+  "metrics": {
+   "fillPct": 49.4,
+   "colors": 9,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 0.3,
+   "outlinePct": 100,
+   "symmetryPct": 90.4,
+   "hygiene": 10,
+   "renderMs": 24
+  },
+  "notes": "paint-order strokes, ss=8, restricted palette, raster shadow",
+  "visual": 4.5,
+  "reviewNote": "Stroke 2 + raster outline = 3px black blobs; eyes blurred"
+ },
+ {
+  "type": "review",
+  "asset": "isohero",
+  "tech": "all",
+  "image": "review-isohero-latest.png",
+  "tokens": 833
+ },
+ {
+  "type": "code",
+  "asset": "isospider",
+  "tech": "t3",
+  "ver": "v1",
+  "fullTokens": 558,
+  "diffTokens": 558,
+  "metrics": {
+   "fillPct": 68.9,
+   "colors": 6,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 1.4,
+   "outlinePct": 97.9,
+   "symmetryPct": 95.5,
+   "hygiene": 10,
+   "renderMs": 12
+  },
+  "notes": "Quadratic stroked legs, paint-order body outlines, ss=8",
+  "visual": 7,
+  "reviewNote": "Post-fix: curved legs + clean body; best spider"
+ },
+ {
+  "type": "review",
+  "asset": "isospider",
+  "tech": "all",
+  "image": "review-isospider-latest.png",
+  "tokens": 589
+ },
+ {
+  "type": "code",
+  "asset": "isochest",
+  "tech": "t3",
+  "ver": "v1",
+  "fullTokens": 597,
+  "diffTokens": 597,
+  "metrics": {
+   "fillPct": 49.5,
+   "colors": 7,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 0.2,
+   "outlinePct": 100,
+   "symmetryPct": 0,
+   "hygiene": 10,
+   "renderMs": 19
+  },
+  "notes": "boxFaces->SVG polygons, arched lid curve, two states",
+  "visual": 2.5,
+  "reviewNote": "Arched-lid path bug (wrong control points): broken shape"
+ },
+ {
+  "type": "review",
+  "asset": "isochest",
+  "tech": "all",
+  "image": "review-isochest-latest.png",
+  "tokens": 1104
+ },
+ {
+  "type": "code",
+  "asset": "isohero",
+  "tech": "t3",
+  "ver": "v2",
+  "fullTokens": 219,
+  "diffTokens": 143,
+  "metrics": {
+   "fillPct": 46.5,
+   "colors": 10,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 0.4,
+   "outlinePct": 100,
+   "symmetryPct": 87.8,
+   "hygiene": 10,
+   "renderMs": 30
+  },
+  "notes": "v1 with thinner paint-order strokes",
+  "visual": 5.5,
+  "reviewNote": "Post-fix: clean face/eyes; outlines still 2px+, dagger lost in dark mass"
+ },
+ {
+  "type": "code",
+  "asset": "isohero",
+  "tech": "t4",
+  "ver": "v2",
+  "fullTokens": 520,
+  "diffTokens": 481,
+  "metrics": {
+   "fillPct": 45.5,
+   "colors": 13,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 3.9,
+   "outlinePct": 100,
+   "symmetryPct": 22.6,
+   "hygiene": 10,
+   "renderMs": 10
+  },
+  "notes": "k=2 voxels, ellipsoid hood, ss=2 downsample, final-res outline",
+  "visual": 4.5,
+  "reviewNote": "Fine voxels fix silhouette; edge-light speckle, face hidden"
+ },
+ {
+  "type": "review",
+  "asset": "isohero",
+  "tech": "all",
+  "image": "review-isohero-latest.png",
+  "tokens": 833
+ },
+ {
+  "type": "code",
+  "asset": "isospider",
+  "tech": "t4",
+  "ver": "v2",
+  "fullTokens": 384,
+  "diffTokens": 345,
+  "metrics": {
+   "fillPct": 46.1,
+   "colors": 7,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 12.1,
+   "outlinePct": 97.6,
+   "symmetryPct": 87.3,
+   "hygiene": 8,
+   "renderMs": 3
+  },
+  "notes": "k=2, thin legs, surface-painted marks, ss=2",
+  "visual": 4,
+  "reviewNote": "Legs visible but squat; speckle"
+ },
+ {
+  "type": "review",
+  "asset": "isospider",
+  "tech": "all",
+  "image": "review-isospider-latest.png",
+  "tokens": 589
+ },
+ {
+  "type": "code",
+  "asset": "isochest",
+  "tech": "t2",
+  "ver": "v2",
+  "fullTokens": 478,
+  "diffTokens": 182,
+  "metrics": {
+   "fillPct": 45.4,
+   "colors": 11,
+   "aaPartialPct": 0,
+   "offPalettePct": 0.6,
+   "orphanPct": 0.9,
+   "outlinePct": 100,
+   "symmetryPct": 0,
+   "hygiene": 9.9,
+   "renderMs": 3
+  },
+  "notes": "v2: no lid ink, dark interior, bevel; boxFaces polygons, thin-box straps, two states",
+  "visual": 5,
+  "reviewNote": "Interior/bevel better; same strap interpenetration notch"
+ },
+ {
+  "type": "code",
+  "asset": "isochest",
+  "tech": "t3",
+  "ver": "v2",
+  "fullTokens": 541,
+  "diffTokens": 174,
+  "metrics": {
+   "fillPct": 53.4,
+   "colors": 8,
+   "aaPartialPct": 0,
+   "offPalettePct": 1.6,
+   "orphanPct": 0.5,
+   "outlinePct": 100,
+   "symmetryPct": 0,
+   "hygiene": 9.8,
+   "renderMs": 20
+  },
+  "notes": "v2: lid box + bevel, dark interior rim",
+  "visual": 3,
+  "reviewNote": "Strap boxes interpenetrate body: painter draws their faces across front"
+ },
+ {
+  "type": "review",
+  "asset": "isochest",
+  "tech": "all",
+  "image": "review-isochest-latest.png",
+  "tokens": 1104
+ },
+ {
+  "type": "code",
+  "asset": "isohero",
+  "tech": "t4",
+  "ver": "v3",
+  "fullTokens": 577,
+  "diffTokens": 164,
+  "metrics": {
+   "fillPct": 45.5,
+   "colors": 13,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 4.7,
+   "outlinePct": 100,
+   "symmetryPct": 22,
+   "hygiene": 9.8,
+   "renderMs": 11
+  },
+  "notes": "v3: no edge-light, face forward; k=2 voxels, ellipsoid hood, ss=2 downsample, final-res outline",
+  "visual": 5,
+  "reviewNote": "Face now visible; hood surface speckle from ellipsoid stair-steps"
+ },
+ {
+  "type": "code",
+  "asset": "isospider",
+  "tech": "t4",
+  "ver": "v3",
+  "fullTokens": 424,
+  "diffTokens": 136,
+  "metrics": {
+   "fillPct": 47.5,
+   "colors": 7,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 10.9,
+   "outlinePct": 95.7,
+   "symmetryPct": 88.9,
+   "hygiene": 8.3,
+   "renderMs": 2
+  },
+  "notes": "v3: no edge-light, higher knees; k=2, thin legs, surface-painted marks, ss=2",
+  "visual": 4.5,
+  "reviewNote": "Leggier but still a speckled blob; voxel plateau for organic forms"
+ },
+ {
+  "type": "review",
+  "asset": "hero,tank",
+  "tech": "t3",
+  "image": "review-t3-hero-tank.png",
+  "tokens": 689
+ },
+ {
+  "type": "review",
+  "asset": "isohero,isospider",
+  "tech": "t4",
+  "image": "review-t4-isohero-isospider.png",
+  "tokens": 369
+ },
+ {
+  "type": "review",
+  "asset": "ship,isohero,isospider,isochest",
+  "tech": "t3",
+  "image": "review-t3-ship-isohero-isospider-isochest.png",
+  "tokens": 1992
+ },
+ {
+  "type": "code",
+  "asset": "isochest",
+  "tech": "t2",
+  "ver": "v3",
+  "fullTokens": 553,
+  "diffTokens": 163,
+  "metrics": {
+   "fillPct": 45.5,
+   "colors": 10,
+   "aaPartialPct": 0,
+   "offPalettePct": 3,
+   "orphanPct": 1.9,
+   "outlinePct": 100,
+   "symmetryPct": 0,
+   "hygiene": 9.7,
+   "renderMs": 3
+  },
+  "notes": "v3: surface strap slabs; v2: no lid ink, dark interior, bevel; boxFaces polygons, thin-box straps, two states",
+  "visual": 6.5,
+  "reviewNote": "Strap fix works: clean bands, bevel, clear states"
+ },
+ {
+  "type": "code",
+  "asset": "isochest",
+  "tech": "t3",
+  "ver": "v3",
+  "fullTokens": 621,
+  "diffTokens": 129,
+  "metrics": {
+   "fillPct": 53.4,
+   "colors": 7,
+   "aaPartialPct": 0,
+   "offPalettePct": 2.4,
+   "orphanPct": 0.9,
+   "outlinePct": 100,
+   "symmetryPct": 0,
+   "hygiene": 9.8,
+   "renderMs": 19
+  },
+  "notes": "v3: surface strap slabs; v2: lid box + bevel, dark interior rim",
+  "visual": 4.5,
+  "reviewNote": "Straps fixed but paint-order strokes darken whole front face"
+ },
+ {
+  "type": "code",
+  "asset": "isohero",
+  "tech": "t3",
+  "ver": "v3",
+  "fullTokens": 421,
+  "diffTokens": 249,
+  "metrics": {
+   "fillPct": 45.3,
+   "colors": 11,
+   "aaPartialPct": 0,
+   "offPalettePct": 0,
+   "orphanPct": 0.1,
+   "outlinePct": 100,
+   "symmetryPct": 84.8,
+   "hygiene": 10,
+   "renderMs": 14
+  },
+  "notes": "v3: strokes only on hood/cloak, wider dagger",
+  "visual": 6.5,
+  "reviewNote": "Clean face, readable dagger; cloak outline still a bit heavy"
+ },
+ {
+  "type": "review",
+  "asset": "isochest",
+  "tech": "all",
+  "image": "review-isochest-latest.png",
+  "tokens": 1104
+ },
+ {
+  "type": "review",
+  "asset": "isohero",
+  "tech": "t3",
+  "image": "review-t3-isohero.png",
+  "tokens": 228
+ },
+ {
+  "type": "code",
+  "asset": "isochest",
+  "tech": "t3",
+  "ver": "v4",
+  "fullTokens": 653,
+  "diffTokens": 90,
+  "metrics": {
+   "fillPct": 45.5,
+   "colors": 8,
+   "aaPartialPct": 0,
+   "offPalettePct": 2.8,
+   "orphanPct": 1.6,
+   "outlinePct": 100,
+   "symmetryPct": 0,
+   "hygiene": 9.7,
+   "renderMs": 17
+  },
+  "notes": "v4: no strokes; v3: surface strap slabs; v2: lid box + bevel, dark interior rim",
+  "visual": 6,
+  "reviewNote": "Clean faces and states; closed lid/body seam lost"
+ },
+ {
+  "type": "review",
+  "asset": "isochest",
+  "tech": "t3",
+  "image": "review-t3-isochest.png",
+  "tokens": 312
+ }
+]
