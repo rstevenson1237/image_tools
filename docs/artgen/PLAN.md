@@ -1,6 +1,6 @@
 # artgen — Implementation Plan
 
-Status: **draft for review, rev 3** · implements [SPEC.md](SPEC.md) under the defaults in [INTAKE §7](INTAKE.md#7-decisions-needed-from-you)
+Status: **rev 4** · implements [SPEC.md](SPEC.md) under the resolved decisions in [DECISIONS.md](DECISIONS.md)
 
 ## 1. Approach
 
@@ -12,9 +12,13 @@ Status: **draft for review, rev 3** · implements [SPEC.md](SPEC.md) under the d
   features land.
 - **Prove the pipeline before building on it.** T2+ must reach T3 parity on the artlab benchmark (P1b) before
   the workflows are built on it. If it falls short, we find out in week 2, not after the UI exists.
-- **Two fixture game projects** live in `examples/` and are the acceptance environment for every milestone:
-  `examples/swamp-topdown` (Canvas2D) and `examples/iso-dungeon` (Phaser). They start empty and are built *only*
-  through the plugin, exactly as a real user would.
+- **Three fixture game projects** live in `examples/` and are the acceptance environment for every milestone:
+  `swamp-topdown` (Pixi.js), `iso-dungeon` (Pixi.js) and `billboard-crawler` (three.js; 8-direction billboards,
+  grows into the first-person fixture in P6d). They start empty and are built *only* through the committed
+  install, exactly as a real user would — and each milestone is accepted in **both a local and a cloud
+  (claude.ai/code) session**.
+- **Autonomous by default.** The agent runs the whole generation pipeline without asking; the user sees finished
+  assets and approves or asks for revisions (D10). Analytics on every pass (D19) feed budget and model choices.
 - **One PR per phase** (L phases split into 2–3), each with tests, the fixture-project evidence (sheets,
   screenshots) and a findings note if quality numbers move.
 - Sizes: S ≈ 1–2 days, M ≈ 3–5 days, L ≈ 1–2 weeks of focused agent+review time.
@@ -26,15 +30,16 @@ package.json                     # npm workspace root; app unchanged
 packages/
   artgen-core/                   # engine (TS, ESM, no Node/DOM imports)
   artgen-cli/                    # CLI + Node I/O adapter
-  artgen-runtime/                # W3 runtime core + adapters (canvas2d, phaser, …)
+  artgen-runtime/                # W3 runtime core + adapters (pixi, three, canvas2d; more later)
   artgen-mcp/                    # MCP stdio server
 python/artgen/                   # Python client
-.claude-plugin/marketplace.json  # this repo is a plugin marketplace
-plugins/artgen/                  # skills, commands, agent, .mcp.json, bin/ (prebuilt bundles), templates
+packages/artgen-dist/            # builds the committed-install distribution + install.mjs (→ artgen-dist branch)
+                                 # also emits the same content in plugin layout for local /plugin users
 src/core/project/                # W4 shared: File System Access project store
 src/tools/{ArtDirection,AssetReview,AssetLab}/
-examples/{swamp-topdown,iso-dungeon}/   # fixture game repos (acceptance)
-docs/artgen/                     # INTAKE, SPEC, PLAN, artlab/ (frozen reference), findings
+examples/{swamp-topdown,iso-dungeon,billboard-crawler}/   # fixture game repos (acceptance)
+docs/artgen/                     # INTAKE, SPEC, PLAN, DECISIONS, artlab/ (reference until superseded), findings
+docs/archive/artgen/             # P8: artlab + planning docs once superseded
 ```
 
 ## 3. Milestones at a glance
@@ -44,18 +49,19 @@ docs/artgen/                     # INTAKE, SPEC, PLAN, artlab/ (frozen reference
 | **M0** Foundations | artlab imported, workspace + CI | P0 |
 | **M1** Engine + direction model | engine renders artlab assets driven by a `direction.json` | P1 |
 | **M1b** Pipeline proven | T2+ base → procedural → 3 revisions → finishing pass matches artlab's best on all six benchmark assets | P1b |
-| **M2** W1 usable | install plugin into a fixture repo → 3 style tiles → locked direction + anchors | P2 |
-| **M3** W2 usable | brief → pipeline (3 revisions + finish) → user feedback/approve → export pack; restyle works | P3 |
-| **M4** W3 usable | fixture games play exported assets via runtime (Canvas2D, Phaser) | P4 |
+| **M2** W1 usable | committed install into a fixture repo (local + cloud) → 3 style tiles → locked direction + anchors | P2 |
+| **M3** W2 usable | brief → autonomous pipeline (3 revisions + finish) → user approves/revises finished assets → export pack; restyle; analytics | P3 |
+| **M4** W3 usable | fixture games play exported assets via runtime (Pixi.js, three.js) | P4 |
 | **M5** W4 usable | Art Direction + Asset Review (+ Lab) in the image tools app | P5 |
 | **M6** Breadth | 2.5D + voxel raster/toon, textures/tiles, effects/animation, first-person | P6a–P6d |
 | **M7** Access | MCP server, Python client, release automation | P7 |
+| **M8** Wrap-up | artlab and planning docs archived once superseded | P8 |
 
 ## 4. Phases
 
 ### P0 — Foundations (S)
-- Import artlab to `docs/artgen/artlab/` (source, findings, reports; no `out/`, no `node_modules`) as the frozen
-  reference.
+- Import artlab to `docs/artgen/artlab/` (source, findings, reports, the final comparison sheets; no other
+  `out/` renders, no `node_modules`). It stays runnable and unchanged until superseded (D11).
 - Convert root `package.json` to an npm workspace; empty `packages/*` with tsconfig + vitest; CI runs workspace
   tests; app check/test/build and Pages deploy unchanged.
 - **Accept:** CI green; artlab reproduces its two final comparison sheets from its folder.
@@ -96,9 +102,10 @@ docs/artgen/                     # INTAKE, SPEC, PLAN, artlab/ (frozen reference
 - **If an asset misses:** close the specific gap in T2+ (one extra PR, up to 1 week), re-run. If still short,
   bring the result to you with the options (accept, add a primitive, or allow an SVG-authored base for that form).
 
-### P2 — W1: plugin + art direction workflow (M)
-- Plugin packaging: `.claude-plugin/marketplace.json`, `plugins/artgen` (plugin.json, `.mcp.json` stub, bin
-  bundles built by a CI job). Verify manifest format against current Claude Code plugin docs first.
+### P2 — W1: committed install + art direction workflow (M)
+- `artgen-dist`: single-file CLI and MCP bundles, `install.mjs` (`init` / `update` with VERSION + MANIFEST
+  hashes, `.mcp.json` merge, `CLAUDE.md` section), CI job publishing the `artgen-dist` branch; plugin-layout
+  output for local users. Settle command naming (skills are the primary interface).
 - CLI: `init`, `direction new|candidates|tile|lock|show`, `palette import|extract|ramp`, `new`, `render`,
   `review`, `score`, `pass`.
 - Skills `artgen` (the pipeline, rules R1–R12, pitfalls) and `art-direction` (interview → 3 candidates → style
@@ -107,22 +114,30 @@ docs/artgen/                     # INTAKE, SPEC, PLAN, artlab/ (frozen reference
   Style tiles use a **short pipeline** (1 revision + finish) per candidate to keep W1 fast; the full pipeline
   runs on the anchors once a direction is chosen.
 - Style sheet renderer (`art/direction.png`).
-- **Accept:** in both fixture repos, starting from a one-paragraph game pitch: plugin installs, 3 visibly
+- **Accept:** in the fixture repos, in a local session **and** a claude.ai/code cloud session, starting from a
+  one-paragraph game pitch: the committed install works with no further setup, 3 visibly
   distinct style tiles are produced, a mixed choice is locked, anchors saved, style sheet written — in one
   session, with the user's choices as the only manual input.
 
 ### P3 — W2: themed production + export (M–L)
-- Briefs (`briefs.yaml` schema), status lifecycle in ledger, `brief add|list`, `status`.
+- Briefs (`briefs.yaml` schema), status lifecycle in ledger (`in-pipeline → final → approved / revision`),
+  `brief add|list`, `status`.
+- **Autonomous run** (D10): `/artgen:make` drives every brief through v1–v3 + finish with the reviewer subagent
+  and gate, without user prompts; budget caps from `artgen.config.json` (D19); one extra autonomous revision
+  when the gate still fails, then `final` with open issues listed.
+- **Analytics v1** (D19): per-pass ledger records (model, effort, tokens, image tokens, time, score, delta,
+  gate); `artgen analytics` report; stage → model/effort mapping in config, run as subagents.
 - Skill `asset-production`; commands `/artgen:brief`, `/artgen:make` (runs the pipeline per brief, batchable),
-  `/artgen:review` (gallery sheet), `/artgen:feedback` (user notes → U-stage: new base or finish revision),
+  `/artgen:review` (gallery of finished assets), `/artgen:feedback` (user notes → U-stage: new base or finish revision),
   `/artgen:approve`, `/artgen:export`, `/artgen:restyle`.
 - Export: atlas packer (maxrects), `pack.json` (SPEC §12.1), Aseprite JSON, generated `assets.ts`.
 - `restyle` with before/after diff sheet; `stale` / `finish-stale` detection; `import-edit` (Aseprite PNG →
   finishing revision).
 - Animation finishing: global ops on all frames, key-frame patches following anchors (D15).
 - Mask-template variation as a procedural `detail` layer.
-- **Accept:** each fixture repo produces a 10-asset brief (≥ 2 kinds, ≥ 1 with 8 facings and a walk cycle),
-  all go through 3 revisions + finish, approved assets pass conformance and score ≥ 6.5, at least one user
+- **Accept:** each fixture repo produces a 10-asset brief (≥ 2 kinds, ≥ 1 with 8 facings and a walk cycle)
+  in one autonomous run with no mid-pipeline questions; all go through 3 revisions + finish; approved assets
+  pass conformance and score ≥ 6.5; the analytics report shows per-pass gains and cost per asset; at least one user
   feedback round is handled in each of the two U-stage routes (base and finish); direction v2 → `restyle`
   re-renders all and the diff sheet shows a consistent change; hand-edited PNG survives a restyle.
 
@@ -130,19 +145,23 @@ docs/artgen/                     # INTAKE, SPEC, PLAN, artlab/ (frozen reference
 - `artgen-runtime`: `loadPack`, sprite state machine (state × facing × frame, fps, loop, mirror-aware facing
   from angle), variants/palette swap, autotile resolver (16/47), effect player, iso/oblique coordinate + depth
   helpers.
-- Adapters: `canvas2d` (reference), `phaser`.
-- `artgen export --runtime` vendoring with version stamp + upgrade check.
-- Fixture games: `swamp-topdown` (Canvas2D) and `iso-dungeon` (Phaser) render a walking 8-dir character, a
-  tile map and an effect from the exported pack.
-- **Accept:** each fixture game's art code < 20 lines; typed ids autocomplete; runtime unit tests (frame
-  selection, facing math, autotile masks); bundle size < 8 KB min+gz without adapters.
+- `RuntimeAdapter` interface (SPEC §12.2) + shared adapter contract tests; adapters as separate entry points.
+- Adapters: **`pixi`**, **`three`** (billboards with camera-relative facing, `NearestFilter`, UV frames;
+  sprite-stack planes and `.glb` loading land with P6a), `canvas2d` (reference, used by the UI).
+- `artgen export --runtime` vendoring with version stamp + upgrade check; `artgen.config.json` selects adapters.
+- Fixture games: `swamp-topdown` and `iso-dungeon` (Pixi.js) render a walking 8-dir character, a tile map and an
+  effect; `billboard-crawler` (three.js) shows the same character as an 8-direction billboard walking around a
+  camera, on a textured floor.
+- **Accept:** each fixture game's art code < 20 lines; typed ids autocomplete; contract tests pass for all three
+  adapters; runtime unit tests (frame selection, facing math, autotile masks); core < 8 KB min+gz without
+  adapters; a stub fourth adapter can be added without touching the core (proves modularity).
 
 ### P5 — W4: UI in image tools (M–L)
 - Framework: `'artgen'` WorkerKind; `src/core/project/` File System Access store (persisted handle, schema
   validation via core, zip fallback); shared `PaletteRamp`, `PixelPreview`, `CompareView`, `StatusBadge`;
   integer-zoom mode in `CanvasStage`; registry tool groups.
-- Asset Review shows the pass timeline with scores; region-pinned feedback notes written to the ledger as U-stage
-  input.
+- Asset Review shows finished assets (with the pass timeline and scores one click away), region-pinned feedback
+  notes written to the ledger as U-stage input, and an **Analytics** panel (per-pass gains, cost, revision rate).
 - Tools: **Art Direction** (palette/ramps, settings, live style tile, candidate compare, lock), **Asset Review**
   (gallery by status, version compare, context preview, metrics/conformance, approve/request changes),
   **Asset Lab** (params/seed/facing/frame, animation playback through runtime canvas2d).
@@ -151,8 +170,9 @@ docs/artgen/                     # INTAKE, SPEC, PLAN, artlab/ (frozen reference
   behaviour unchanged.
 
 ### P6 — Breadth (four independent tracks, each M–L)
-Each track extends: direction schema → T2+ primitives / procedural layers / finishing ops → conformance → probe set/style tile → export/runtime →
-UI preview → skill reference → fixture asset(s) at ≥ 6.5.
+Each track extends: direction schema → T2+ primitives / procedural layers / finishing ops → conformance →
+probe set/style tile → export/runtime → UI preview → skill reference → fixture asset(s) at ≥ 6.5. Views are
+added as **view modules** (SPEC §8) so later targets follow the same path (D8).
 
 | Track | Adds | Benchmark |
 |---|---|---|
@@ -164,25 +184,35 @@ UI preview → skill reference → fixture asset(s) at ≥ 6.5.
 `.vox` read/write and greedy-mesh glTF export land with P6a.
 
 ### P7 — Access + release (M)
-- `artgen-mcp` (tools per SPEC §14, image content results, path sandbox to `art/`) wired into the plugin's
-  `.mcp.json`.
+- `artgen-mcp` (tools per SPEC §14, image content results, path sandbox to `art/`) wired into the committed
+  `.mcp.json` entry.
 - `python/artgen` client + pytest + notebook example; `pyproject.toml` ready (publish only on your go-ahead).
-- Release workflow: build plugin `bin/` bundles, version bump, changelog; optional npm publish of runtime (D4).
+- Release workflow: version bump, changelog, `artgen-dist` branch + tag; optional npm publish of runtime (D4).
+- Analytics v2: budget and model/effort recommendations from accumulated ledger data across fixture projects.
 - **Accept:** MCP inspector renders + reviews a benchmark asset; Python example generates a texture and a
-  sheet; tagging a release updates the plugin that fixture repos install.
+  sheet; tagging a release and running `update` in a fixture repo moves it to the new version with local
+  edits preserved.
+
+### P8 — Archive (S)
+- Trigger: artlab is fully superseded — P1b parity passed, the benchmark runs from the new engine, and nothing
+  in the suite imports artlab code (D11).
+- Move `docs/artgen/artlab/` and the planning docs (INTAKE, SPEC, PLAN, DECISIONS, findings) to
+  `docs/archive/artgen/`, with a short README pointing at the live docs (skill references + package READMEs).
+- **Accept:** no live docs or code link into the archive except the archive README.
 
 ## 5. Dependency graph
 
 ```
 P0 → P1 → P1b (gate) → P2 → P3 ─┬─► P4 ─► P5
-                   └─► P6a, P6b, P6c, P6d   (parallel; P6d uses P6b textures + P6c flashes)
-P2 ─────────────────► P7 (MCP can start once CLI exists; release after P4)
+                                 └─► P6a, P6b, P6c, P6d   (parallel; P6d uses P6b textures + P6c flashes)
+P2 ─────────────────────────────────► P7 (MCP can start once CLI exists; release after P4)
+P1b + all of the above ─────────────► P8 (archive)
 ```
 P4 and P5 can run in parallel with P6 once P3 lands.
 
 ## 6. Per-phase definition of done
 
-1. Typecheck, unit, stage, golden and plugin-smoke tests green; app check/test/build unaffected.
+1. Typecheck, unit, stage, golden and install-smoke tests green; app check/test/build unaffected.
 2. Fixture project evidence committed (review sheets, style sheet, screenshots of fixture games / UI).
 3. Benchmarks at or above target; ledger + report updated.
 4. Skill, command and reference docs updated so a fresh agent can use the capability without the findings.
@@ -198,7 +228,9 @@ P4 and P5 can run in parallel with P6 once P3 lands.
 | Finishing pass doesn't survive re-renders or animation | Medium | Medium | Ops not pixels; tokens not hexes; anchor-following patches; `finish-stale` check sends the asset back for review instead of shipping it broken |
 | Fixed 3 passes wastes effort on easy assets or is too few on hard ones | Medium | Low | `revisionPasses` is set in the direction; per-pass score data from P1b tells us whether 3 is right |
 | Voxel organics stay ~5 | Medium | Medium | `toon` + internal-res outlines in 3D mode, then the finishing pass; use 2D mode when facings aren't needed |
-| Plugin packaging/format changes | Medium | Medium | Verify against current docs in P2; smoke test installs into fixtures in CI; CLI usable without the plugin |
+| Committed copies drift between game repos | Medium | Low | VERSION + MANIFEST hashes; `update` shows the version change and protects local edits; fixture repos updated in CI |
+| Private repo blocks `npx github:` install in cloud sessions | Medium | Low | Install locally once and commit; or make the dist branch's repo public |
+| Autonomous runs ship weak assets or overspend | Medium | Medium | Gate + reviewer per pass, budget caps, open issues listed on `final`; the user still approves every asset; analytics flags kinds with high revision rates |
 | File System Access is Chromium-only | Certain | Low | Zip import/export fallback; optional `artgen ui` local server |
 | Runtime grows into a game engine | Medium | Medium | Runtime scope = load, select frame, draw via adapter; no physics, scenes or input |
 | resvg vs napi-canvas changes reference renders | Medium | Low | References are the artlab PNGs as shipped; the ported code only has to match them closely enough for parity scoring |

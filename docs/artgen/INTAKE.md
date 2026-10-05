@@ -1,6 +1,6 @@
 # artgen — Intake
 
-Status: **draft for review, rev 3** · Owner: rstevenson1237 · Date: 2026-10-05
+Status: **rev 4 — decisions resolved** · Owner: rstevenson1237 · Date: 2026-10-05
 Companion docs: [SPEC.md](SPEC.md) (what we build) · [PLAN.md](PLAN.md) (how and in what order)
 
 Rev 2 reframes the effort around four workflows (see §2). Rev 3 replaces "pick a technique per form" with
@@ -83,7 +83,8 @@ exactly what `direction.json` locks.
 
 ## 4. Goals
 
-1. **G1 — Portable toolset.** One install step puts skills, CLI and MCP tools into any Claude Code game repo.
+1. **G1 — Portable toolset.** One install step puts skills, CLI and MCP tools into any Claude Code game repo,
+   working the same in local and cloud (claude.ai/code) sessions.
 2. **G2 — Art direction as data.** Style, palette, camera/view, scale, outline, lighting, shading and
    proportion rules captured in a versioned file that every render reads and every review checks.
 3. **G3 — Consistent production.** Brief → the fixed pipeline (§3.1) → user review → approve → export for the
@@ -99,8 +100,9 @@ exactly what `direction.json` locks.
 
 ## 5. Non-goals (proposed)
 
-- Diffusion / external generative-image models (keeps output deterministic, licence-clean, palette-exact).
-- A pixel editor (hand edits stay in Aseprite; we import them back as finishing-pass patches — see SPEC §6.5).
+- Diffusion / external generative-image models in v1 (keeps output deterministic, licence-clean,
+  palette-exact). An extension point for them is designed but not built (D18).
+- A pixel editor (hand edits stay in Aseprite; we import them back as finishing-pass patches — see SPEC §6.6).
 - Non-voxel 3D meshes, painted high-res art, audio, UI kits, fonts (v1).
 - A hosted backend. The UI stays client-side, like the rest of image_tools.
 
@@ -110,32 +112,35 @@ exactly what `direction.json` locks.
 |---|---|
 | "Set up art for my top-down roguelike: grim swamp, 16-colour, 24 px characters" → three candidate style tiles → user picks B, tweaks palette in the UI → direction v1 locked | W1, W4 |
 | "Make the 14 enemies in `art/briefs.yaml`, 8 directions, idle + walk" → batch loop, gallery sheet, user approves 12, asks for 2 redos | W2, W4 |
-| Developer writes `sprites.play(Assets.goblin, 'walk', angle)` in Phaser with autocomplete | W3 |
+| Developer writes `sprites.play(Assets.goblin, 'walk', angle)` in Pixi.js, or places the same goblin as an 8-direction billboard in a three.js scene, with autocomplete | W3 |
 | Direction v2 changes palette and outline colour → `artgen restyle` re-renders all approved assets, diff sheet for sign-off | W1→W2 |
 | Python level-generator script calls `artgen.texture('swamp-mud', size=32)` | W2 (Python) |
 
-## 7. Decisions needed from you
+## 7. Decisions (resolved 2026-10-05)
 
-Defaults are what SPEC and PLAN assume. Answer only what you want to change. Full explanation, friction points
-and alternatives for each: [DECISIONS.md](DECISIONS.md) (which also adds D16–D19).
+Full reasoning, friction points and alternatives: [DECISIONS.md](DECISIONS.md).
 
-| # | Question | Recommended default | Alternatives |
-|---|---|---|---|
-| D1 | How does a game repo "import" the toolset? | **This repo is a Claude Code plugin marketplace**: `/plugin install artgen` brings skills, slash commands, agent and MCP server; `npx artgen init` scaffolds `art/`. Engine shipped prebuilt inside the plugin | git submodule; npm package only; copy-in script |
-| D2 | Where engine + UI code lives | **npm workspace in this repo** (`packages/*`), web tools in `src/tools/` | Separate repo |
-| D3 | Runtime targets (W3) | **Engine-agnostic TS runtime + Canvas2D and Phaser adapters first**; PixiJS, Godot importer next | Name your engine (Godot/Unity/Pixi/Three/pygame) |
-| D4 | Runtime distribution | **Vendored into the game repo by `artgen export --runtime`** (version-stamped, no registry needed); npm publish later | Publish to npm / GitHub Packages now |
-| D5 | How the UI reaches a game repo's files | **File System Access API** (open the game's `art/` folder; Chromium); zip import/export fallback; optional `artgen ui` local server | Upload/download only |
-| D6 | Art direction candidates | **3 candidate directions**, each rendered as a style tile (same probe set: character, prop, tile, effect) | 2 / 4+; single proposal |
-| D7 | Python's role | **Thin typed client** over the CLI JSON protocol; optional Blender adapter later | Python-native engine |
-| D8 | What "2.5D" means | **All three, in order:** 3/4 oblique, voxel sprite-stacking, side-view parallax | Pick one |
-| D9 | First-person target | **Retro raycaster/billboard** assets + `.vox`/glTF export for voxel-world engines | One of them |
-| D10 | Approval authority | **User approves**; Claude's 0–10 score + conformance gate recommend | Auto-approve ≥ threshold |
-| D11 | artlab | **Port to TS; its six assets become the regression benchmark** | Fresh start |
-| D12 | What "three pass revision" counts | **Three reviewed versions (v1, v2, v3)**: the first build plus two revisions, which matches where artlab's gains happened | v1 plus three revisions (v4) |
-| D13 | Where voxels sit | **T2+ 3D mode** (same primitives, voxel renderers) used for iso props, states, rotations, stacks and FP billboards | Drop voxels as a source; keep only `.vox` export |
-| D14 | Old T1/T3/T4 code | **Absorbed**: T1 → finishing-pass `patch`; T3 → T2+ `path` primitive + `ss` raster mode (SVG paths still import, including from the SVG Tracer); T4 → T2+ 3D mode. No separate authoring modes | Keep T3 as a fallback authoring mode |
-| D15 | Finishing on animations | **Global finish ops on every frame + patches on key frames that follow named anchor points** (e.g. `head`) through the other frames | Hand-finish every frame |
+| # | Decision | Resolution |
+|---|---|---|
+| D1 | How a game repo gets the toolset | **Install script that commits a built distribution** into the game repo (`.claude/skills`, agent, `.mcp.json`, `tools/artgen/`). Chosen because plugins don't load in Claude Code cloud sessions; committed files do. Plugin layout still published for local users |
+| D2 | Where code lives | npm workspace in this repo |
+| D3 | Runtime targets | **Pixi.js and three.js first**, via a modular adapter interface; Canvas2D as reference/preview adapter; more adapters over time |
+| D4 | Runtime distribution | Vendored into the game repo on export |
+| D5 | UI file access | File System Access API + zip fallback |
+| D6 | Direction candidates | 3, as style tiles |
+| D7 | Python | Thin typed client over the CLI |
+| D8 | 2.5D | Oblique → sprite stack → side/parallax, as **pluggable view modules** extended over time |
+| D9 | First-person | Raycaster/billboard assets + `.vox`/glTF export |
+| D10 | Approval | **Autonomous agent iteration**; the user sees the finished asset and approves or asks for revisions |
+| D11 | artlab | Keep until fully superseded, then **archive with these planning docs** |
+| D12 | Revision passes | v1, v2, v3 |
+| D13 | Voxels | T2+ 3D mode |
+| D14 | Old T1/T3/T4 code | Absorbed into T2+ and the finishing pass |
+| D15 | Finishing on animations | Global ops on all frames + anchor-following key-frame patches |
+| D16 | Export formats | PNG, atlas + `pack.json`, Aseprite JSON, normal maps, `.vox`, glTF |
+| D17 | Asset source format | Plain ESM JS modules |
+| D18 | Outside image models | **Extension point designed, not built** |
+| D19 | Budget | Per-project budget **plus pipeline analytics** to tune budgets and model/effort per stage |
 
 ## 8. Assumptions
 
@@ -151,7 +156,7 @@ and alternatives for each: [DECISIONS.md](DECISIONS.md) (which also adds D16–D
    conformance.
 2. **W2:** A 10-asset brief across ≥ 2 kinds is produced, reviewed and exported; every approved asset passes
    conformance and scores ≥ 6.5; a direction change re-renders the set with one command.
-3. **W3:** A sample Phaser and a Canvas2D game load the export and play a directional animation, a tile map
+3. **W3:** A sample Pixi.js game and a sample three.js scene load the export and play a directional animation, a tile map
    and an effect, with typed asset ids, in < 20 lines of game code each.
 4. **W4:** The image tools app opens a game's `art/` folder, edits the palette, approves assets, and Claude
    Code sees those changes on its next read. Existing tools unaffected.
@@ -162,5 +167,5 @@ and alternatives for each: [DECISIONS.md](DECISIONS.md) (which also adds D16–D
 ## 10. Risks (details in PLAN §7)
 
 Breadth (4 views × 3 categories × 2 media) vs depth; voxel organic quality; "consistency" being judged
-subjectively; File System Access API being Chromium-only; plugin packaging details; runtime scope creep into a
+subjectively; File System Access API being Chromium-only; keeping committed toolset copies up to date; runtime scope creep into a
 game engine.

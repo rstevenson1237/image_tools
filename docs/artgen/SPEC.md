@@ -1,6 +1,6 @@
 # artgen — Specification
 
-Status: **draft for review, rev 3** (rev 3: one generation pipeline, §6.3) · assumes the defaults in [INTAKE §7](INTAKE.md#7-decisions-needed-from-you)
+Status: **rev 4** — written against the resolved decisions in [INTAKE §7](INTAKE.md#7-decisions-resolved-2026-10-05) / [DECISIONS.md](DECISIONS.md)
 
 ## 1. Summary
 
@@ -8,8 +8,8 @@ Four deliverables share one engine:
 
 | Workflow | Deliverable | Section |
 |---|---|---|
-| W1 Adopt + art direction | Claude Code plugin + `direction.json` + direction workflow | §3, §4 |
-| W2 Themed production | Briefs, batch loop, conformance, approval, export | §5, §6–§11 |
+| W1 Adopt + art direction | Committed install + `direction.json` + direction workflow | §3, §4 |
+| W2 Themed production | Briefs, autonomous pipeline, conformance, user approval, export, analytics | §5, §6–§11 |
 | W3 Use the assets | `@artgen/runtime` + adapters + generated types | §12 |
 | W4 UI | New tools in image_tools + shared framework updates | §13 |
 
@@ -18,7 +18,7 @@ Four deliverables share one engine:
  │  art/direction.json   art/briefs.yaml   art/assets/**/<tech>.v<N>.js   ledger    │
  │        ▲    │                  │                 │                               │
  │        │    ▼                  ▼                 ▼                               │
- │  ┌─────┴────────── artgen plugin (skills · /commands · agent · MCP) ──────────┐  │
+ │  ┌─────┴──── committed toolset (.claude/skills · agent · .mcp.json · tools/) ─┐  │
  │  │                         artgen CLI  ──►  @artgen/core                       │  │
  │  └──────────────────────────────────────────────┬─────────────────────────────┘  │
  │                                export ▼         │                                │
@@ -51,25 +51,36 @@ Four deliverables share one engine:
 
 ## 3. Packaging and adoption (W1, part 1)
 
-### 3.1 This repo as a plugin marketplace
+### 3.1 Committed install (D1)
+Plugins don't load in Claude Code cloud sessions, but everything committed under `.claude/` and `.mcp.json`
+does (see DECISIONS D1). So the toolset is **installed by committing a built distribution into the game repo**.
+
+This repo's CI builds an `artgen-dist` branch containing only the distribution and `install.mjs`:
 ```
-.claude-plugin/marketplace.json          # lists the "artgen" plugin
-plugins/artgen/
-  .claude-plugin/plugin.json
-  skills/
-    artgen/                      # pipeline (S1→S2→R1–R3→F→U), rules, pitfalls (progressive disclosure)
-    art-direction/               # W1 interview → candidates → lock
-    asset-production/            # W2 brief → batch → review → approve → export
-  commands/                      # /artgen:init  /artgen:direction  /artgen:brief  /artgen:make
-                                 # /artgen:review  /artgen:feedback  /artgen:approve  /artgen:export  /artgen:restyle
-  agents/art-reviewer.md         # subagent: reviews a sheet against direction, returns score + issues
-  .mcp.json                      # artgen MCP server (stdio, ${CLAUDE_PLUGIN_ROOT}/bin/artgen-mcp.js)
-  bin/artgen.js, bin/artgen-mcp.js   # prebuilt single-file bundles of the CLI / MCP (built in CI)
-  templates/                     # base + finish templates per kind × view
+dist/
+  claude/skills/artgen/              # pipeline (S1→S2→R1–R3→F→U), rules, pitfalls (progressive disclosure)
+  claude/skills/art-direction/       # W1 interview → candidates → lock
+  claude/skills/asset-production/    # W2 brief → autonomous pipeline → final review → export
+  claude/agents/art-reviewer.md      # subagent: scores a sheet against the direction
+  claude/commands/                   # thin wrappers, if command names prove useful (settled in P2)
+  tools/artgen/artgen.js             # CLI, single-file bundle (Node 20+, no npm install)
+  tools/artgen/artgen-mcp.js         # MCP server, single-file bundle
+  tools/artgen/templates/            # base + finish templates per kind × view
+  install.mjs
+plugin/                              # the same content in plugin layout, for local `/plugin install` users
 ```
-Install in a game repo: `/plugin marketplace add rstevenson1237/image_tools` → `/plugin install artgen`
-→ `/artgen:init`. No npm publish needed; `bin/` bundles are rebuilt and committed by a release workflow so the
-plugin is self-contained. (Plugin manifest details are verified against current Claude Code docs in Phase 1.)
+Install or update in a game repo (local shell, or any session with network access), then commit:
+```
+npx -y github:rstevenson1237/image_tools#artgen-dist init     # first time: copy files + scaffold art/
+npx -y github:rstevenson1237/image_tools#artgen-dist update   # later: shows version change, protects local edits
+```
+- Copies `dist/claude/*` into `.claude/`, `dist/tools/artgen` into `tools/artgen/`, merges an `artgen` entry
+  into `.mcp.json` (`node tools/artgen/artgen-mcp.js`), appends the art section to `CLAUDE.md`.
+- `tools/artgen/VERSION` pins the version; `MANIFEST.json` stores file hashes so `update` refuses to overwrite
+  local edits without `--force`.
+- After install, sessions (local or cloud) need no network or npm: everything comes from the clone.
+- If this repo is private, `npx github:…` needs GitHub credentials (fine locally with `gh auth`); otherwise
+  run the install locally once and commit.
 
 ### 3.2 `artgen init` scaffolds the game repo
 ```
@@ -166,15 +177,20 @@ Plus hygiene metrics from artlab (`measure()`): gate thresholds in `artgen.confi
   priority: 1
 ```
 ### 5.2 Status lifecycle (tracked in ledger, shown in UI)
-`brief → draft (v1..vN) → review → approved → exported` (and `stale` when direction or source changes after
-export). Approval records direction version + source hash + sheet id.
+`brief → in-pipeline (v1..v3, finish) → final → approved → exported`, plus `revision` (user asked for changes,
+back in the pipeline) and `stale` (direction or source changed after export). The agent moves assets through
+the pipeline on its own; only `approved` and `revision` are set by the user (D10). Approval records direction
+version + source hash + sheet id.
 
 ### 5.3 Loop (skill `asset-production`, `/artgen:make <id|all>`)
 For each brief, the pipeline in §6.3: template → base + procedural (v1) → review → v2 → review → v3 → review →
-pick best (R12) → finishing pass → review → mark `review` for the user. Each review is a sheet (v(n−1), anchors,
-in-context) scored by the `art-reviewer` subagent against the direction, plus the conformance gate.
-`/artgen:review` builds a gallery of everything awaiting the user; the user approves or sends feedback via
-`/artgen:approve`, `/artgen:feedback` or the UI, which starts a user iteration (§6.3, stage U).
+pick best (R12) → finishing pass → review → mark `final`. All of this runs **autonomously** (D10): each review
+is a sheet (v(n−1), anchors, in-context) scored by the `art-reviewer` subagent against the direction, plus the
+conformance gate; no user input is requested mid-pipeline. An asset that fails the gate after the finishing
+pass gets one extra autonomous revision within budget (D19), then is marked `final` with its open issues listed.
+The user sees only finished assets: `/artgen:review` builds a gallery of `final` assets (final render, in-context
+preview, scores, open issues); the user approves or requests revisions via `/artgen:approve`,
+`/artgen:feedback` or the UI, which starts a user iteration (§6.3, stage U) that again runs autonomously.
 
 ### 5.4 Export (`/artgen:export`)
 Packs approved assets into the paths in `artgen.config.json`: atlas PNG(s) + `pack.json`, textures (+ normal
@@ -271,7 +287,20 @@ export function finish(g, ctx) {
 | `rotate` | RotSprite | rotations without a 3D model |
 Layers are ordered, seeded and parameterised; the direction's `pipeline.procedural` list supplies defaults.
 
-### 6.5 Hand-edit round trip
+### 6.5 External image sources (extension point, not built — D18)
+Reserved interface so outside image models (or other external art) can feed the pipeline later:
+```ts
+interface ImageSource {                      // registered like a view module or runtime adapter
+  id: string;                                // e.g. 'diffusion:<provider>'
+  generate(brief: Brief, dir: Direction, opts): Promise<RGBAImage[]>;   // candidates
+}
+```
+Planned path for a sourced image: candidate → resize to the brief's size (mode downsample) → quantize to the
+direction palette → finishing pass (F) → conformance → normal review. Sourced assets are marked
+`source: external` in the ledger and manifest, and **cannot be restyled** (no primitive scene to re-render);
+a restyle re-quantizes and re-finishes them instead. Nothing in v1 implements this interface.
+
+### 6.6 Hand-edit round trip
 A PNG edited in Aseprite is imported as a **finishing revision** (`artgen import-edit goblin edited.png`): diff
 against the current render → patch ops in `finish.vM+1.js`. Hand fixes survive restyles where they map to
 palette ramps.
@@ -286,6 +315,10 @@ T2+ 3D mode renders through this subsystem; authors write primitive specs, not v
 - Outputs: 4/8/16-direction sheets, sprite-stack slices, billboards; `.vox` read/write; greedy-mesh glTF.
 
 ## 8. Views and coverage
+
+Views are **pluggable modules** (D8). A view module bundles: projection + anchor/sort conventions, 3D-mode
+render settings, probe-set templates, review context preview, view-specific conformance checks, and the runtime
+helper (coordinate/depth functions). Adding a view later means adding one module; nothing else changes.
 
 | View | Projection | Anchor / sort | Review context |
 |---|---|---|---|
@@ -325,6 +358,20 @@ GIF/APNG previews.
   version; `report` reproduces artlab's cost/score tables per project.
 - Golden-image and stage tests in this repo's CI over the benchmark set.
 
+### 11.1 Pipeline analytics (D19)
+Every pass writes a ledger record: asset, kind, view, size, pass (`r1..r3`, `f`, `u1..`), **model and effort
+level**, input/output tokens (measured where Claude Code exposes them, e.g. via its OpenTelemetry export,
+otherwise estimated as in artlab), review-image tokens, wall time, reviewer score, gate results, and score
+delta vs the previous pass.
+- `artgen analytics` reports: score gained per pass and per stage (how much came from revisions vs finishing),
+  cost per asset by kind/size/view, passes that regressed, first-pass quality by template, user revision rate.
+- **Budget tuning:** suggests `revisionPasses` per kind (e.g. stop at v2 if v3 rarely adds), and per-project
+  caps, from accumulated data.
+- **Model/effort selection:** `artgen.config.json` maps pipeline stages to model + effort
+  (`{ base, revise, finish, review }`); stages run as subagents with that model. Analytics compares score per
+  dollar across mappings so the defaults can be tuned (e.g. a smaller model for the reviewer or for v2/v3).
+- Shown in the UI as an Analytics panel in Asset Review (W4).
+
 ## 12. Runtime component (W3) — `@artgen/runtime`
 
 ### 12.1 Export format (`pack.json`)
@@ -351,10 +398,26 @@ pack.tiles(Assets.mud).resolve(neighbourMask) → tileIndex        // 16/47 auto
 pack.effect(Assets.spark).spawn(x, y)
 isoToScreen / screenToIso / depthKey(x, y, z)                     // iso + oblique helpers
 ```
-Core is renderer-agnostic (frame rects + state machine); adapters draw:
-- `canvas2d` (reference, used by the docs examples and the UI preview)
-- `phaser` (texture atlas + animations registered from `pack.json`)
-- next: `pixi`, Godot importer (`SpriteFrames` `.tres` + `TileSet`), pygame (Python).
+Core is renderer-agnostic (frame rects + state machine + coordinate helpers). Adapters implement one small
+interface and are separate entry points, so new targets can be added without touching the core (D3):
+```ts
+interface RuntimeAdapter<Tex, Node> {
+  id: string;                                            // 'pixi' | 'three' | 'canvas2d' | …
+  loadTexture(atlas: AtlasImage): Promise<Tex>;          // nearest filtering, no mipmaps
+  createNode(tex: Tex): Node;                            // sprite / billboard / mesh
+  setFrame(node: Node, rect: FrameRect, flipX: boolean): void;
+  setAnchor(node: Node, anchor: [number, number]): void;
+  dispose(node: Node): void;
+}
+```
+- **`pixi`** (first): `Texture`/`Spritesheet` from `pack.json`, `AnimatedSprite`-compatible frames, palette
+  swap via a colour-map filter, iso/oblique depth sorting with `zIndex`.
+- **`three`** (first): pixel textures with `NearestFilter`; 8-direction **billboards** (`Sprite`/quad, facing
+  chosen from camera-relative angle), sprite-stack planes, FP wall/floor textures, and `.glb` voxel models
+  loaded with `GLTFLoader`; frame changes via UV offset/repeat.
+- **`canvas2d`** (reference): used by the image tools UI previews, docs and adapter contract tests.
+- Later: `phaser`, Godot importer (`SpriteFrames` `.tres` + `TileSet`), pygame. One shared contract test
+  suite runs against every adapter.
 
 ### 12.3 Delivery
 `artgen export --runtime` vendors `src/art/runtime/` (version-stamped) and `src/art/assets.ts` into the game
@@ -395,7 +458,7 @@ files on every run; nothing is cached across the boundary.
 `feedback`, `approve`, `status`, `variants`,
 `texture`, `fx`, `voxel`, `restyle`, `export [--runtime]`, `import-edit`, `report`, `bench`.
 
-**Skills / commands / agent**: §3.1. **MCP tools**: `direction_get`, `direction_tile`, `pass_status`, `render`, `finish`,
+**Skills / commands / agent**: §3.1. `artgen analytics` (§11.1). **MCP tools**: `direction_get`, `direction_tile`, `pass_status`, `render`, `finish`,
 `review`, `conformance`, `score`, `approve`, `texture`, `fx`, `export` — image results returned as MCP image
 content. **Python**: `artgen-py` client (`Artgen(project).render(...)`, `.texture(...)`, `.export(...)`)
 returning Pillow images + dicts.
@@ -404,7 +467,8 @@ returning Pillow images + dicts.
 - `@artgen/core` and `@artgen/runtime` have no Node/DOM imports; runtime adapters isolate I/O.
 - Deps: `@resvg/resvg-wasm`, pure-JS PNG, `gifenc`, `yaml`. Nothing native.
 - 64×64 sprite incl. ss=8 < 200 ms; 128 texture < 100 ms; 10-asset batch render < 10 s (excluding agent time).
-- Tests: vitest in the existing CI job; plugin smoke test installs into a fixture game repo.
+- Tests: vitest in the existing CI job; install smoke test runs `install.mjs` into a fixture game repo and
+  checks a session-equivalent run of the CLI and MCP server from the committed files.
 
 ## 16. Out of scope (v1)
-Diffusion/ML generation; pixel editor; non-voxel 3D; audio; UI kits; hosted backend; Unity importer.
+Diffusion/ML generation (extension point only, §6.5); pixel editor; non-voxel 3D; audio; UI kits; hosted backend; Unity importer.

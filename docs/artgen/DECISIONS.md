@@ -1,56 +1,92 @@
 # artgen — Decision Brief
 
 Companion to [INTAKE §7](INTAKE.md#7-decisions-needed-from-you). One entry per decision: what it decides, the
-recommended default (what SPEC and PLAN currently assume), the friction it causes, and the alternatives.
-**Blocks** names the first phase that can't start without an answer.
+recommended default, the friction it causes, and the alternatives. **Resolution** lines record the owner's
+answers (2026-10-05); SPEC and PLAN rev 4 are written against them.
 
-Ordered by when you need to answer:
+## Resolutions
 
-| Answer before | Decisions |
-|---|---|
-| P0 (now) | D2, D11 |
-| P1 / P1b (weeks 1–2) | D12, D13, D14, D17, D18 |
-| P2 (W1) | D1, D6, D10, D19 |
-| P3 (W2) | D15, D16 |
-| P4 (W3) | D3, D4 |
-| P5 (W4) | D5 |
-| P6 (breadth) | D7, D8, D9 |
-
----
-
-## D1 — How a game repo "imports" the toolset
-**Blocks:** P2 · **Recommended:** this repo serves as a Claude Code **plugin marketplace**; a game repo runs
-`/plugin marketplace add rstevenson1237/image_tools` → `/plugin install artgen` → `/artgen:init`. The plugin
-carries skills, slash commands, the reviewer subagent, the MCP config and prebuilt CLI bundles.
-
-**Why it matters:** this is the first thing a user touches in W1. It decides how updates reach game repos and
-whether the toolset works outside Claude Code.
-
-**Friction points**
-- The plugin needs a **prebuilt CLI bundle** (`plugins/artgen/bin/*.js`) committed to the repo, because plugins
-  are fetched as files, not `npm install`ed. That means a release workflow that builds and commits bundles, and
-  committed build output in git.
-- Node must exist in the game repo's environment. Fine for JS games; a Godot or Python-only project still needs
-  Node installed to run the CLI.
-- The plugin format is young and changes; the manifest details must be checked against current docs in P2 and
-  covered by a smoke test.
-- Version skew: a game repo can run an old plugin against assets made with a newer one. Needs a version stamp in
-  `direction.json` and `pack.json` with a compatibility check.
-- Works in Claude Code only. Other agents need the MCP server (D7/P7) or the CLI directly.
-
-**Alternatives**
-| Option | Pros | Cons |
+| # | Decision | Resolution |
 |---|---|---|
-| **Plugin marketplace** (rec.) | One-step install; skills + commands + MCP arrive together; updates via plugin update | Built output committed; tied to Claude Code |
-| npm package (`npx artgen init`) + skills copied into `.claude/skills/` by `init` | Standard JS distribution; works with any agent | Needs npm publishing; skills copied into each repo drift from upstream |
-| git submodule of this repo | No publishing at all; exact version pinned | Submodules are clumsy; drags the whole web app into every game repo |
-| Copy-in script (`curl … | sh`) | Simplest | No update path; worst for drift |
+| D1 | How a game repo gets the toolset | **Resolved after evaluation: committed install** (an install script vendors a built distribution into the game repo's `.claude/` + `tools/artgen/`). Plugins don't load in cloud sessions. The plugin stays available for local use. See D1 |
+| D2 | Where code lives | Approved: npm workspace in this repo |
+| D3 | Runtime targets | **Changed: Pixi.js and three.js first**, through a modular adapter interface so more targets can be added; Canvas2D stays as the reference/preview adapter; Phaser dropped from the first set |
+| D4 | Runtime distribution | Approved: vendored on export |
+| D5 | UI file access | Approved: File System Access + zip fallback |
+| D6 | Direction candidates | Approved: 3 |
+| D7 | Python | Approved: thin client |
+| D8 | 2.5D | Approved (oblique → stack → side), **built as pluggable view modules** so more targets can be added over time |
+| D9 | First-person | Approved: raycaster/billboard assets + voxel export |
+| D10 | Approval | **Changed: autonomous iteration by the agent**; the user sees only the finished asset and approves or asks for revisions |
+| D11 | artlab | **Changed: keep until fully superseded, then archive** together with these planning docs |
+| D12–D17 | Pipeline details, export formats, source format | Approved as recommended |
+| D18 | Outside image models | **Changed: design a pathway (extension point) but don't build it now** |
+| D19 | Budget | Approved, **plus analytics** to tune budgets and model/effort per stage |
 
----
+## D1 — How a game repo gets the toolset
+**Blocks:** P2 · **Resolution:** committed install via an install script (evaluated below). Submodule rejected;
+plugin kept as an optional extra for local use.
+
+### What we checked (Claude Code docs, 2026-10-05)
+| Question | Answer | Source |
+|---|---|---|
+| Does `/plugin` work in Claude Code on the web? | **No.** "Commands that only run in the terminal interface, such as `/plugin` or `/resume`, aren't available" in cloud sessions | code.claude.com/docs/en/claude-code-on-the-web |
+| Do plugins the repo turns on load in a cloud session? | **No.** "A cloud session doesn't install the plugins a repository turns on under `enabledPlugins`, including ones from the marketplaces it lists under `extraKnownMarketplaces`" | code.claude.com/docs/en/cloud-environments, *What carries over* |
+| What does load in a cloud session? | Everything **committed** to the repo: `CLAUDE.md`, `.claude/skills/`, `.claude/agents/`, `.claude/commands/`, `.claude/rules/`, hooks and permissions in `.claude/settings.json`, and `.mcp.json` servers (single-repo sessions) | same page |
+| Is Node available in cloud sessions? | Yes, Node 20/21/22 (22 on `PATH`) | same page, *Installed tools* |
+| Anything else? | Skills enabled on your claude.ai account load in cloud sessions automatically; SessionStart hooks run in cloud and locally | same page |
+
+So the only mechanism that works the same in **local and cloud** sessions is having the files committed in the
+game repo. Plugins work locally only; submodules work only if the cloud clone initialises them (not documented)
+and still don't put files where Claude Code looks (`.claude/` at the repo root).
+
+### Options compared
+| | **Install script → committed files** (chosen) | Git submodule | Plugin marketplace |
+|---|---|---|---|
+| Works in cloud sessions | **Yes** — all files are in the clone | Unclear: submodule init on clone isn't documented; private submodule needs separate GitHub access; skills must still be copied or symlinked into `.claude/` | **No** |
+| Works locally | Yes | Yes | Yes |
+| First install | One command, then commit | `git submodule add` + symlinks/copy step + commit | `/plugin marketplace add` + `/plugin install`, per machine |
+| Updates | Re-run `artgen update` (diff shown, local edits detected by hash) and commit | `git submodule update --remote` + re-link | Auto-update can be on; per machine |
+| Pins a version per game repo | Yes (`tools/artgen/VERSION`) | Yes (commit SHA) | No (per machine) |
+| Repo footprint | ~1–2 MB (skills, 2 JS bundles, templates) | Whole image_tools repo, including the web app, unless a slim dist repo is used | None |
+| Collaborators | Nothing to do | Must remember `--recurse-submodules` | Each installs it |
+| Simplicity of execution | **Highest** | Medium-low | High locally, n/a in cloud |
+
+### How the committed install works
+```
+# once, from a local shell or inside any Claude Code session with network access:
+npx -y github:rstevenson1237/image_tools#artgen-dist init      # or: node path/to/install.mjs init
+```
+Writes into the game repo (then you commit):
+```
+.claude/skills/artgen/, art-direction/, asset-production/   # skills (SKILL.md + references + templates)
+.claude/agents/art-reviewer.md
+.claude/commands/…                                          # thin command wrappers, if useful
+.mcp.json                                                   # merged entry: node tools/artgen/artgen-mcp.js
+tools/artgen/artgen.js, artgen-mcp.js                       # single-file bundles, no npm install needed
+tools/artgen/VERSION, MANIFEST.json                         # version + file hashes (detects local edits)
+art/ …                                                      # project scaffold (direction, briefs, ledger)
+CLAUDE.md                                                   # appended "art pipeline" section
+```
+- `artgen-dist` is a branch built by CI from this repo containing only the distribution and `install.mjs`.
+- After installation nothing needs network or npm: cloud sessions get everything from the clone.
+- `artgen update` compares `MANIFEST.json` hashes, refuses to overwrite locally edited files without `--force`,
+  and prints the version change.
+- The same build also publishes the plugin layout, so local users can still `/plugin install` if they prefer.
+
+### Remaining friction
+- **If this repo is private**, `npx github:…` needs credentials: fine locally with `gh auth`; in a cloud session
+  it depends on GitHub access for this repo. Workaround: run the install locally once and commit. If the repo
+  is public, there's no issue.
+- Files are copied into each game repo, so updates are a deliberate step per repo (that's also the version pin).
+- Command naming may differ between the committed and plugin forms (`/artgen:…` comes from the plugin
+  namespace). Skills are the primary interface; command names get settled in P2.
 
 ## D2 — Where engine and UI code live
 **Blocks:** P0 · **Recommended:** npm workspace in **this repo** (`packages/artgen-core`, `-cli`, `-runtime`,
 `-mcp`), web tools in `src/tools/`.
+
+**Resolution:** Approved.
 
 **Why it matters:** the UI (W4) must run the same engine as the CLI. Same repo means one change updates both.
 
@@ -73,6 +109,8 @@ whether the toolset works outside Claude Code.
 ## D3 — Runtime targets (W3)
 **Blocks:** P4 · **Recommended:** engine-agnostic TS runtime core + **Canvas2D** (reference) and **Phaser**
 adapters; PixiJS and a Godot importer next.
+
+**Resolution:** **Pixi.js and three.js first**, behind a modular adapter interface; Canvas2D stays as the reference adapter (also used by the UI). Phaser and others become later adapters.
 
 **Why it matters:** this is the only deliverable your game code touches directly. Building for the wrong
 engine means W3 doesn't help you at all.
@@ -98,6 +136,8 @@ engine means W3 doesn't help you at all.
 **Blocks:** P4 · **Recommended:** **vendored** — `artgen export --runtime` copies `src/art/runtime/` (version
 stamped) plus generated `src/art/assets.ts` into the game repo. npm publication later.
 
+**Resolution:** Approved.
+
 **Friction points**
 - Vendored code can be edited locally and then overwritten on the next export. The stamp detects local edits and
   refuses to overwrite without `--force`.
@@ -117,6 +157,8 @@ stamped) plus generated `src/art/assets.ts` into the game repo. npm publication 
 ## D5 — How the UI reaches a game repo's files (W4)
 **Blocks:** P5 · **Recommended:** **File System Access API** — the web app opens the game's `art/` folder
 directly (handle remembered in IndexedDB); zip import/export fallback; optional `artgen ui` local server later.
+
+**Resolution:** Approved — matches the existing tools.
 
 **Why it matters:** W4 only works if UI edits and Claude Code's edits land in the same files.
 
@@ -144,6 +186,8 @@ directly (handle remembered in IndexedDB); zip import/export fallback; optional 
 **Blocks:** P2 · **Recommended:** **3** candidates, each rendered as a style tile (character, prop, tile, effect)
 with a short pipeline (1 revision + finish), then mix-and-match.
 
+**Resolution:** Approved.
+
 **Friction points**
 - Cost and time: 3 candidates × 4 probe assets × (1 revision + finish) ≈ 24 render/review cycles before you see
   anything. Expect a long first session.
@@ -167,6 +211,8 @@ with a short pipeline (1 revision + finish), then mix-and-match.
 **Blocks:** P7 · **Recommended:** **thin typed client** (`pip install artgen`) that calls the CLI with `--json`
 and returns Pillow images + dicts. Optional Blender adapter later.
 
+**Resolution:** Approved.
+
 **Friction points**
 - Requires Node on the Python user's machine; the client is a wrapper, not standalone.
 - Subprocess per call is slow for bulk generation (hundreds of textures). A persistent `artgen serve --stdio`
@@ -187,6 +233,8 @@ and returns Pillow images + dicts. Optional Blender adapter later.
 **Blocks:** P6a · **Recommended:** all three, in this order: (a) **3/4 oblique** top-down (Zelda/Stardew),
 (b) **sprite-stacking** from voxel slices, (c) **side-view with parallax** layers.
 
+**Resolution:** Approved, with views built as **pluggable modules** (projection + probe set + context preview + conformance + runtime helper) so more targets can be added over time.
+
 **Friction points**
 - Three different projections means three probe sets, review contexts and runtime helpers. Doing all three
   spreads P6a thin.
@@ -202,6 +250,8 @@ as billboards in a 3D scene (shares work with D9); or defer 2.5D entirely until 
 ## D9 — First-person target
 **Blocks:** P6d · **Recommended:** **retro raycaster/billboard** assets (wall/floor/ceiling textures, 8-direction
 billboard sprites, weapon view-models, skies) **plus** `.vox`/glTF export for voxel-world engines.
+
+**Resolution:** Approved.
 
 **Friction points**
 - The raycaster preview renderer is only for review. It's a useful context view, but it's code we must write and
@@ -222,6 +272,8 @@ billboard sprites, weapon view-models, skies) **plus** `.vox`/glTF export for vo
 
 ## D10 — Who approves assets
 **Blocks:** P2 · **Recommended:** **you approve**; Claude's 0–10 score and the conformance gate recommend.
+
+**Resolution:** **Autonomous iteration**: the agent runs the whole pipeline (3 revisions + finish) with the reviewer subagent and the gate, and the user sees only the finished asset, then approves or asks for revisions. The style choice in W1 (D6) is still the user's.
 
 **Friction points**
 - You become the bottleneck: a 50-asset project is 50+ approval decisions, more with user iterations. Batch
@@ -245,6 +297,8 @@ billboard sprites, weapon view-models, skies) **plus** `.vox`/glTF export for vo
 **Blocks:** P0 · **Recommended:** import it as a **frozen reference** (`docs/artgen/artlab/`), port its libraries
 as engine internals, and use its six assets and scores as the **parity benchmark**.
 
+**Resolution:** **Keep artlab until completely superseded, then archive it together with these planning docs.** Superseded = P1b parity passed and the benchmark runs from the new engine.
+
 **Friction points**
 - Old JS code with `require` and `@napi-rs/canvas` sits next to the new TS engine. It's frozen, but it adds a
   native dependency if it's ever run in CI.
@@ -259,6 +313,8 @@ is lost); or start fresh (no benchmark — not recommended, since P1b depends on
 
 ## D12 — What "three pass revision" counts
 **Blocks:** P1b · **Recommended:** **three reviewed versions total**: v1 (first build), v2, v3.
+
+**Resolution:** Approved.
 
 **Why it matters:** sets cost per asset and when finishing starts. artlab trajectories gained most between v1 and
 v3 (T3 ship 5.5 → 7, T2 chest 4 → 6.5), with v4 rare.
@@ -285,6 +341,8 @@ default.
 **Blocks:** P1b · **Recommended:** **T2+ 3D mode**: authors write the same primitives in 3D, rendered by the voxel
 renderers. Used for iso props, states, rotations, sprite stacks and FP billboards.
 
+**Resolution:** Approved.
+
 **Friction points**
 - 3D authoring is harder for Claude than 2D (painter's order, interpenetration, E6); the 3D mode needs its own
   lint and templates.
@@ -307,6 +365,8 @@ renderers. Used for iso props, states, rotations, sprite stacks and FP billboard
 **Blocks:** P1b · **Recommended:** **absorbed**: T1 → finishing `patch`; T3's supersample path → T2+ `ss` mode,
 with SVG paths importable (including from the SVG Tracer); T4 → T2+ 3D mode. No separate authoring modes.
 
+**Resolution:** Approved.
+
 **Friction points**
 - If T2+ misses parity on some form (most likely organic curves like the spider's legs), there's no fallback
   authoring mode. P1b defines an escalation step for this.
@@ -325,6 +385,8 @@ with SVG paths importable (including from the SVG Tracer); T4 → T2+ 3D mode. N
 ## D15 — Finishing pass on animations
 **Blocks:** P3 · **Recommended:** **global finishing operations on every frame**, plus **patches on key frames that
 follow named anchor points** (e.g. `head`, `blade.tip`) through the other frames.
+
+**Resolution:** Approved.
 
 **Why it matters:** an 8-direction, 4-state character with 4–6 frames per state is 128–192 frames. Hand-finishing
 each one is not viable.
@@ -350,6 +412,8 @@ each one is not viable.
 **Blocks:** P3 · **Recommended:** palette-exact PNG, atlas + `pack.json` (artgen's own manifest), Aseprite-style
 JSON, normal-map PNG, and (P6) `.vox` + glTF.
 
+**Resolution:** Approved.
+
 **Friction points**
 - `pack.json` is our own format: the runtime reads it, but no engine does without an adapter (D3).
 - Aseprite and TexturePacker JSON variants differ slightly (hash vs array); we pick one and document it.
@@ -363,6 +427,8 @@ autotile metadata unless extended); or engine-native output only (once D3 is ans
 ## D17 — Asset source format *(new)*
 **Blocks:** P1 · **Recommended:** assets are **code modules** (plain ESM JavaScript): `base.vN.js` and
 `finish.vM.js`.
+
+**Resolution:** Approved.
 
 **Why it matters:** the findings came from code authoring; restyling, parameters and seeds rely on assets
 being functions.
@@ -385,6 +451,8 @@ being functions.
 ## D18 — Generative image models stay out *(new, confirming a non-goal)*
 **Blocks:** P1 · **Recommended:** **out of scope** — everything is procedural code written by Claude.
 
+**Resolution:** **Design a pathway, don't build it now**: SPEC defines an image-source extension point (external image → palette quantize → finishing pass → conformance) with no implementation.
+
 **Friction points**
 - Some looks (painterly textures, organic detail) are much easier for diffusion models.
 - Excluding them keeps outputs deterministic, palette-exact, restyleable and free of licence questions.
@@ -399,6 +467,8 @@ assets are no longer restyleable).
 **Blocks:** P2 · **Recommended:** default cadence as in D12, with a **per-project budget** in
 `artgen.config.json` (max passes, max review-sheet size, max user iterations before escalating) and cost reported
 per asset from the ledger.
+
+**Resolution:** Approved, **plus analytics**: record model, effort, tokens, time and score per pass so budgets and the model/effort per stage can be tuned from data.
 
 **Friction points**
 - The fixed pipeline is ~5 review cycles per asset (3 revisions, finish, user round) vs artlab's ~2–3. artlab's
