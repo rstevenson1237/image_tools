@@ -1,289 +1,344 @@
 # artgen — Specification
 
-Status: **draft for review** · assumes the recommended defaults in [INTAKE §7](INTAKE.md#7-decisions-needed-from-you)
+Status: **draft for review, rev 2** · assumes the defaults in [INTAKE §7](INTAKE.md#7-decisions-needed-from-you)
 
 ## 1. Summary
 
-`artgen` is a procedural game-art engine (TypeScript, runs in Node and the browser) plus three front-ends — a
-CLI, a Claude Code skill, an MCP server — and a Python client. Assets are small **code modules** authored by an
-agent or a human; the engine supplies techniques, projections, a voxel subsystem, texture and effect generators,
-post-processing passes, quality checks, review sheets and exporters.
+Four deliverables share one engine:
+
+| Workflow | Deliverable | Section |
+|---|---|---|
+| W1 Adopt + art direction | Claude Code plugin + `direction.json` + direction workflow | §3, §4 |
+| W2 Themed production | Briefs, batch loop, conformance, approval, export | §5, §6–§11 |
+| W3 Use the assets | `@artgen/runtime` + adapters + generated types | §12 |
+| W4 UI | New tools in image_tools + shared framework updates | §13 |
 
 ```
-            ┌──────────── front-ends ─────────────┐
- Claude ──► │ skill (.claude/skills/artgen)       │
- Code       │   └─ drives CLI                     │
- MCP    ──► │ artgen-mcp (stdio)                  │──┐
- Python ──► │ artgen-py  (subprocess, JSON)       │  │  all call
- Web app ─► │ ArtLab tool (worker, later)         │  │  the same API
-            └─────────────────────────────────────┘  ▼
- ┌──────────────────────────── @artgen/core ─────────────────────────────┐
- │ core: Grid · Palette · RNG · PNG · bitmap font                       │
- │ techniques: charmap(T1) · prim(T2) · svg(T3) · voxel(T4) ·           │
- │             mask(T5) · field/noise(T6) · particles(T7)               │
- │ proj: topdown · oblique · iso · stack · side · billboard · fp        │
- │ tex: noise · seamless · materials · autotile · wfc · normal          │
- │ fx: timeline · particles · palette-cycle · dither                    │
- │ post: outline · quantize · downsample · despeckle · shadow · rotsprite│
- │ qa: metrics · sheets · context previews (iso floor, tiled, raycaster) │
- │ pack: atlas · manifest · aseprite json · gif/apng · .vox · gltf      │
- └───────────────────────────────────────────────────────────────────────┘
+ ┌───────────────────────── game repo (Claude Code project) ─────────────────────────┐
+ │  art/direction.json   art/briefs.yaml   art/assets/**/<tech>.v<N>.js   ledger    │
+ │        ▲    │                  │                 │                               │
+ │        │    ▼                  ▼                 ▼                               │
+ │  ┌─────┴────────── artgen plugin (skills · /commands · agent · MCP) ──────────┐  │
+ │  │                         artgen CLI  ──►  @artgen/core                       │  │
+ │  └──────────────────────────────────────────────┬─────────────────────────────┘  │
+ │                                export ▼         │                                │
+ │  public/assets/<pack>/{atlas.png, pack.json} + src/art/{runtime/, assets.ts}     │
+ │        │                                                                         │
+ │        ▼  game code: Assets.goblin.play('walk', angle)  (W3)                     │
+ └──────────────────────────────────────────────────────────────────────────────────┘
+        ▲ File System Access (read/write the same art/ files)
+ ┌──────┴───── image_tools web app (W4): Art Direction · Asset Review · Asset Lab ────┐
+ │             core in a worker (same @artgen/core build)                            │
+ └───────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## 2. Design rules (from the findings)
+## 2. Design rules
 
 | Rule | Source | Enforced by |
 |---|---|---|
-| R1 Route by form: small character → T1; large hard-surface or organic curves → T3; boxy/stateful/rotating prop → T4; families/variants → T2/T5; surfaces → T6; effects → T7 | E1–E5 | `artgen route` command + skill table; asset `meta.technique` |
-| R2 Hybrid is the default for hero assets: base (T2/T3/T4) → T1 char-map overlay → post | E10 | `overlay()` pass + recipe templates |
-| R3 Supersampled vector path is fixed: render vector at `size×ss` natively, quantize to **asset palette**, mode-downsample, outline at final res | E3, E9 | `svg.render()` has no other ss path; stage-verification test |
-| R4 Outlines are underlays or raster passes, never vector strokes (strokes are linted) | E3, E6 | `svg` lint warns on `stroke` in ss mode |
-| R5 Iso/voxel decoration is a surface slab, not an interpenetrating volume | E6 | voxel `slab()` helper; prim iso lint for overlapping boxes |
-| R6 Metrics gate, review judges | E7 | `review` required before `score`; `score` requires a sheet id |
-| R7 Every review shows v(n) beside v(n−1) on checker **and** in-context background | E8 | sheet builder default |
-| R8 Every pipeline stage is inspectable (`--stages` dumps each intermediate) | E9 | stage dumps + tests |
-| R9 Determinism: seeded RNG, integer pixel math, no platform AA in final output | — | golden tests |
-| R10 Never edit a scored version; new idea = new version file | artlab CLAUDE.md | CLI `new` copies v(n) → v(n+1); ledger hashes source |
+| R1 Route by form (small character → T1; large hard-surface/organic curves → T3; boxy/stateful/rotating → T4; families → T2/T5; surfaces → T6; effects → T7) | E1–E5 | `artgen route`, skill table |
+| R2 Hero assets use the hybrid: base → T1 overlay → post | E10 | `overlay()` + templates |
+| R3 Vector path is fixed: native render at size×ss → quantize to **asset palette** → mode-downsample → final-res outline | E3, E9 | only ss path in `svg`; stage test |
+| R4 No vector strokes in ss mode (outlines are underlays or raster passes) | E3, E6 | svg lint |
+| R5 Iso/voxel decoration is a surface slab | E6 | `slab()`; overlap lint |
+| R6 Metrics + conformance gate; visual review judges; user approves | E7, D10 | `approve` requires sheet + passing gate |
+| R7 Review = v(n) beside v(n−1), checker + in-context + direction anchors | E8 | sheet builder |
+| R8 Every stage inspectable (`--stages`) | E9 | stage dumps + tests |
+| R9 Determinism: seeded RNG, integer pixel math, no platform AA in final pixels | — | golden tests |
+| R10 Never edit a scored version; a change is a new version | artlab | `new`, source hash in ledger |
+| R11 **Assets never hard-code direction values** (palette hexes, outline colour, light, pixel scale); they reference direction tokens | W1 | conformance lint on source + output |
 
-## 3. Coverage matrix
+## 3. Packaging and adoption (W1, part 1)
 
-Rows are deliverable categories, columns are views. Each cell lists the primary technique(s) and the context
-preview used in review.
+### 3.1 This repo as a plugin marketplace
+```
+.claude-plugin/marketplace.json          # lists the "artgen" plugin
+plugins/artgen/
+  .claude-plugin/plugin.json
+  skills/
+    artgen/                      # core loop, router, rules, pitfalls (progressive disclosure)
+    art-direction/               # W1 interview → candidates → lock
+    asset-production/            # W2 brief → batch → review → approve → export
+  commands/                      # /artgen:init  /artgen:direction  /artgen:brief  /artgen:make
+                                 # /artgen:review  /artgen:approve  /artgen:export  /artgen:restyle
+  agents/art-reviewer.md         # subagent: reviews a sheet against direction, returns score + issues
+  .mcp.json                      # artgen MCP server (stdio, ${CLAUDE_PLUGIN_ROOT}/bin/artgen-mcp.js)
+  bin/artgen.js, bin/artgen-mcp.js   # prebuilt single-file bundles of the CLI / MCP (built in CI)
+  templates/                     # asset module templates per kind × view × technique
+```
+Install in a game repo: `/plugin marketplace add rstevenson1237/image_tools` → `/plugin install artgen`
+→ `/artgen:init`. No npm publish needed; `bin/` bundles are rebuilt and committed by a release workflow so the
+plugin is self-contained. (Plugin manifest details are verified against current Claude Code docs in Phase 1.)
 
-| | Top-down | Isometric (2:1) | 2.5D | First-person |
-|---|---|---|---|---|
-| **Characters / creatures** | T1 (≤32), T3 (>32 or organic), T2 variants; 4/8 dirs by mirror + overlay | T1 / T3; T4 for rotations; ground shadow + pivot on tile | Oblique 3/4: T1/T2; stack: T4 slices | Billboard sprites, 8 dirs from T4 or authored front/side/back + mirror |
-| **Props / vehicles / buildings** | T3 hard-surface, T4 ortho render | **T4** (states, rotations), T2 boxFaces | Oblique: T4 oblique render; stack: T4 | Billboards (T4), weapon view-models (T3+T1) |
-| **Textures / tiles** | T6 seamless materials, autotile 16/47, WFC decor | Iso floor diamonds, wall blocks (T4/T6), edge transitions | Oblique wall-front tiles, parallax layers (side) | Wall/floor/ceiling 64/128 seamless + normal maps, sky panoramas, decals |
-| **Effects** | T7 particles (explosion, smoke, fire, sparks, magic), palette cycling (water/lava) | T7 with iso ground projection of splashes/shadows | Same as top-down / side | Muzzle flash, impacts, projectiles, screen-space hit sprites |
-| **Voxel output** | — | `.vox` + glTF of any T4 model | slice sheet (sprite stack) | `.vox` / greedy-mesh glTF for voxel-world engines |
-| **Context preview** | grass/water/dirt bg | iso floor grid | oblique room / stack rotation strip / parallax scroll strip | raycaster corridor render |
+### 3.2 `artgen init` scaffolds the game repo
+```
+art/
+  direction.json          # empty template until W1 locks it
+  briefs.yaml             # asset list (W2)
+  assets/                 # asset sources by kind
+  anchors/                # approved style anchors (W1)
+  sheets/                 # review sheets (gitignored except approved)
+  ledger.jsonl
+  artgen.config.json      # export paths, runtime adapter, pack names
+CLAUDE.md                 # appended section: "art lives in art/, use /artgen:* , never hard-code palette"
+```
 
-## 4. Core data model
+## 4. Art direction (W1, part 2)
 
-### 4.1 Grid
-RGBA `Uint8ClampedArray` buffer, as in artlab (`set/get/alpha/clone/stamp`), plus: `crop`, `pad`, `flipX/Y`,
-`trim() → {grid, offset}`, `toIndexed(palette)`/`fromIndexed`, `equals`, `hash()` (for golden tests). Colors are
-`#rrggbb` strings or palette refs (`'steel.1'`). Partial alpha is allowed only for colors tagged `shadow`.
-
-### 4.2 Palette
-```ts
-interface Palette {
-  id: string;
-  ramps: Record<string, string[]>;   // light → dark, e.g. steel: ['#eef2f5', ...]
-  singles: Record<string, string>;   // outline, ink, blush ...
-  shadow: { color: string; alpha: number };
+### 4.1 `direction.json` (the style bible as data)
+```jsonc
+{
+  "id": "swamp-roguelike", "version": 1, "status": "locked",          // draft | candidate | locked
+  "theme":   { "pitch": "grim swamp roguelike", "mood": ["damp","eerie","muted"], "era": "fantasy",
+               "notes": "rot greens, bone whites, lantern amber as the only warm accent" },
+  "camera":  { "view": "topdown",                   // topdown | oblique | iso | stack | side | fp
+               "oblique": { "frontRatio": 0.5 }, "iso": { "tile": [32,16] },
+               "light": [-1,-1,1], "directions": 8, "pixelScale": 3 },
+  "scale":   { "tile": 16, "character": [24,24], "large": [48,48], "prop": [16,16],
+               "texture": 32, "effect": [32,32], "proportions": { "headRatio": 0.4 } },
+  "palette": { "source": "lospec:resurrect-64|custom", "maxColors": 24,
+               "ramps": { "moss": ["#..","#..","#.."], "bone": [...], "amber": [...], "skin": [...] },
+               "outline": "#1a1423", "shadow": { "color": "#000000", "alpha": 0.35 },
+               "materials": { "metal": "bone", "foliage": "moss", "accent": "amber" },
+               "perKindMax": { "character": 12, "prop": 8, "effect": 6 } },
+  "line":    { "outer": "dark",                     // dark | selout | none
+               "inner": "selective", "weight": 1 },
+  "shading": { "bands": 3, "hueShift": 12, "dither": "none",  // none | bayer2 | bayer4 | noise
+               "highlight": "sparing", "aa": false },
+  "detail":  { "density": "medium", "minFeaturePx": 2 },
+  "techniques": { "preferred": { "character": "t1", "prop": "t4", "texture": "t6" }, "forbidden": [] },
+  "effects": { "fps": 12, "maxFrames": 8, "palette": ["amber","bone"] },
+  "anchors": ["anchors/hero.png", "anchors/crate.png", "anchors/mud-tile.png", "anchors/spark.png"],
+  "rules":   { "do": ["silhouettes readable at 1x on mud"], "dont": ["pure white", "saturated blue"] }
 }
 ```
-- Sources: built-in `artlab` master palette (default), Lospec `.hex`/`.gpl` import, generated hue-shifted ramps
-  (`ramp(base, steps, {hueShift, satShift})`).
-- `restrict(palette, ['armor','cyan','orange','outline'])` → asset-restricted sub-palette (R3).
-- Palette swap maps (`{ 'blue': 'red' }`) for variants and team colors.
+Every render receives the direction via `ctx.dir` (palette refs, sizes, outline, light, bands). Techniques
+consume it by default: `prim`/`voxel` shaders use `light` and `bands`; post passes use `outline`, `line`,
+`dither`; quantize uses the restricted palette for the asset's kind.
 
-### 4.3 Asset module (the authoring unit)
-Plain ESM file, one per version, written by agent or human. Layout: `art/<project>/<asset>/<tech>.v<N>.js`.
+### 4.2 Direction workflow (`/artgen:direction`, skill `art-direction`)
+1. **Interview** — game pitch, genre, view, target resolution/scale, mood words, references (described, or
+   images dropped into `art/refs/` for palette extraction), constraints (colour count, platform).
+2. **Candidates** — generate **3** `direction.json` drafts that differ meaningfully (palette family, outline
+   style, shading bands/dither, proportions). Palettes from Lospec import, ramp generator, or extracted from
+   reference images (median-cut → ramp sort).
+3. **Style tiles** — render the same **probe set** under each candidate: one character, one prop, one
+   ground tile (3×3 tiled), one effect strip, on the game's background, at 1× and display scale. One sheet,
+   three columns.
+4. **Choose/mix** — the user picks one or mixes ("A's palette, B's outlines"); iterate (versions of the
+   draft) until approved. W4's Art Direction tool can edit the palette and settings directly.
+5. **Lock** — status `locked`, version bumped, probe assets saved as **anchors**, style sheet PNG
+   (palette swatches with ramp names, scale ruler, light diagram, anchors, do/don't) written to
+   `art/direction.png`.
+6. **Restyle** — any later version change: `artgen restyle` re-renders every approved asset, writes a
+   before/after diff sheet; changed assets return to `review`.
 
+### 4.3 Conformance (gate, per asset)
+| Check | Rule |
+|---|---|
+| palette | 0 off-palette pixels; colours ⊆ ramps allowed for the kind; count ≤ `perKindMax` |
+| scale | frame size matches `scale` for the kind (or declared override) |
+| line | outer outline present/absent per `line.outer`, uses direction outline colour (or selout ramp) |
+| aa | no partial alpha except shadow colour |
+| light | luminance gradient across the sprite agrees with `light` (sign test on lit vs shaded edges) |
+| dither | none present if `dither: none` (checkerboard detector) |
+| source lint | no hex literals in asset source (R11) except via `ctx.dir` |
+| anchor similarity | colour-histogram and value-distribution distance to anchors of the same kind within tolerance (flag, not fail) |
+Plus hygiene metrics from artlab (`measure()`): gate thresholds in `artgen.config.json`.
+
+## 5. Production pipeline (W2)
+
+### 5.1 Briefs
+```yaml
+# art/briefs.yaml
+- id: goblin
+  kind: character        # character | creature | prop | tile | tileset | texture | effect | viewmodel | ui-icon
+  view: topdown          # defaults to direction.camera.view
+  size: character        # direction scale key or [w,h]
+  states: [idle, walk, attack, hurt]
+  directions: 8
+  anims: { walk: { frames: 4 }, attack: { frames: 3 } }
+  variants: 3            # seeded variants (palette swaps / mask variants)
+  notes: "hunched, oversized ears, rusty cleaver"
+  priority: 1
+```
+### 5.2 Status lifecycle (tracked in ledger, shown in UI)
+`brief → draft (v1..vN) → review → approved → exported` (and `stale` when direction or source changes after
+export). Approval records direction version + source hash + sheet id.
+
+### 5.3 Loop (skill `asset-production`, `/artgen:make <id|all>`)
+For each brief: `route` (technique from direction preference + R1) → `new` from template → edit → `render` →
+`review` sheet (v(n−1), anchors, in-context) → `art-reviewer` subagent scores vs direction → conformance gate →
+repeat until target score or 2 non-improving passes → mark `review`. `/artgen:review` builds a gallery sheet
+of everything awaiting approval; user approves via `/artgen:approve` or the UI.
+
+### 5.4 Export (`/artgen:export`)
+Packs approved assets into the paths in `artgen.config.json`: atlas PNG(s) + `pack.json`, textures (+ normal
+maps), voxel exports, generated `assets.ts` (typed ids), and the runtime (§12) if not present or outdated.
+
+## 6. Engine core
+
+### 6.1 Grid, Palette, RNG, I/O
+- Grid: RGBA buffer from artlab (`set/get/alpha/clone/stamp`) + `crop/pad/trim/flip/hash/toIndexed`.
+- Palette: ramps + singles + shadow; `restrict`, `swap`, Lospec `.hex`/`.gpl` import, hue-shifted ramp
+  generator, **extract from image** (median cut + ramp ordering) for W1.
+- seeded mulberry32; pure-JS PNG codec; bitmap pixel font for sheet labels.
+
+### 6.2 Asset module contract
 ```js
-// art/dungeon/chest/t4.v1.js — header comment: what changed vs previous version
-export const meta = {
-  view: 'iso',                 // topdown | oblique | iso | stack | side | fp
-  kind: 'prop',                // character | creature | prop | tile | texture | effect | viewmodel
-  size: [32, 32],              // per frame
-  palette: 'dungeon',          // project palette id, optionally .restrict([...])
-  anchor: [16, 24],            // pivot in px (feet / tile centre)
-  states: ['closed', 'open'],  // optional named frames
-  directions: 1,               // 1 | 4 | 8 | 16
-  anim: null,                  // { name: { frames, fps, loop } }
-  notes: 'Parametric open/closed voxel chest',
-};
-export function render(ctx) {   // ctx: { seed, params, pal, state, dir, frame, t, lib }
-  const v = ctx.lib.voxel.model();
-  /* ... */
-  return v.render({ proj: 'iso', ...});  // returns Grid (one frame); engine loops states × dirs × frames
+// art/assets/characters/goblin/t1.v3.js — header: what changed vs v2
+export const meta = { brief: 'goblin', technique: 't1', notes: '...' };   // size/view/states come from brief
+export const params = { earLen: 3, stoop: 0.2 };                           // overridable; t-driven for anims
+export function render(ctx) {
+  // ctx: { dir (direction tokens), brief, seed, params, state, facing, frame, t, lib }
+  const { pal, line } = ctx.dir;
+  ...
+  return grid;   // one frame; engine iterates state × facing × frame and assembles sheets
 }
 ```
 
-The engine calls `render` once per `(state, direction, frame)` and assembles sheets — authors never hand-pack.
-`params` are declared defaults (`export const params = { legAngle: 0.3 }`) that the CLI/MCP can override, which
-is also how animation is driven (`t` in 0..1).
-
-### 4.4 Manifest (per exported asset)
-```json
-{ "id": "dungeon/chest", "version": "t4.v1", "view": "iso", "size": [32,32], "anchor": [16,24],
-  "palette": "dungeon", "sheet": "chest.png", "layout": {"rows":"state","cols":"dir"},
-  "frames": [{"state":"closed","dir":0,"frame":0,"x":0,"y":0,"w":32,"h":32}],
-  "anims": {}, "normalMap": null, "score": 7, "hygiene": 9.7, "sourceHash": "…" }
-```
-
-### 4.5 Project
-`art/<project>/project.json`: palette, default sizes per kind, iso tile size, light direction, outline color,
-review backgrounds, export targets.
-
-## 5. Techniques
-
-| Id | Name | Library | Use when | Carries over from artlab |
-|---|---|---|---|---|
-| T1 | Char-map | `charmap` | ≤32 px characters, faces, emblems, finishing overlays | `blit`, mirrored half-maps, right-side shade pass (generalised to light direction) |
-| T2 | Primitives | `prim` | parametric families, quick props | `Scene`, `bevel/sphere/cyl/flat`, `rim`, `ink`, `inkAll`, mirror, `pattern`; **add** more seed axes (proportions, accessories, palette swaps) |
-| T3 | SVG → pixel | `svg` | >32 px hard-surface, organic curves | `doc`, `ss` pipeline (R3) via **resvg** (identical in Node and browser, renders natively at target size) |
-| T4 | Voxel | `voxel` | iso props, stateful objects, any multi-direction asset, sprite stacks, FP billboards | `Voxels` box/ellipsoid/line/paint, `k` fine voxels; **new** renderer (§7) |
-| T5 | Mask template | `mask` | mass variants of ships/creatures/items (Bollinger-style mirrored random masks) | new |
-| T6 | Field / noise | `tex` | textures, terrain, materials | new |
-| T7 | Particles | `fx` | effects | new |
-
-Cross-technique: `overlay(grid, charmap, at)` (R2), `compose(layers)` for paper-doll layering, `variants(render,
-seeds)`.
-
-### 5.1 Router
-`artgen route --kind creature --view iso --size 32x32 --traits organic,legs` returns ranked techniques with the
-reason and the matching recipe file, from a table seeded by the findings and updated from the ledger (mean final
-score per technique × kind × view × size bucket).
-
-## 6. Views and projections
-
-All projections take world coords (x right, y away/down-screen, z up) and return screen px. Light defaults to
-upper-left; one `light` setting per project feeds every shader.
-
-| View | Projection | Conventions | Review context |
+### 6.3 Techniques
+| Id | Name | Use when | From artlab |
 |---|---|---|---|
-| `topdown` | orthographic straight down | anchor = centre; facings by rotation (RotSprite) or authored | checker + project bg (grass/water/dirt) |
-| `oblique` (2.5D a) | top face + front face, front height ratio `r` (default 0.5) | anchor = base front centre; Y-sort by base | small oblique room tiles |
-| `iso` | 2:1 dimetric, `P(x,y,z) = ((x−y)·2, (x+y) − 2z)` per unit; tile 32×16 | anchor on tile diamond centre; ground shadow; painter order `x+y`, then `z` | iso floor grid (artlab `isoFloor`) |
-| `stack` (2.5D b) | z-slices of a voxel model, 1 slice per px of height | output = slice strip; preview = slices drawn rotated + offset 1 px/slice at 8 angles | rotation strip |
-| `side` (2.5D c) | orthographic side view | parallax layers with declared depth factors | horizontal scroll strip of layers |
-| `fp` | perspective raycaster for preview only; assets are flat textures and billboards | walls 64/128 square, power-of-two, seamless; billboards anchored at feet, N directions | raycaster corridor render with the textures and sprites in place |
+| T1 | Char-map | ≤32 px characters, faces, emblems, finishing overlays | blit, mirrored half-maps, light-side shade pass |
+| T2 | Primitives | parametric families, quick props | `Scene`, bevel/sphere/cyl/flat, rim, ink, mirror, pattern; **wider seed axes** |
+| T3 | SVG → pixel | >32 px hard-surface, organic curves | ss pipeline (R3) on **resvg** (same output Node/browser) |
+| T4 | Voxel | iso props, stateful, multi-direction, stacks, FP billboards | `Voxels` + new renderer (§7) |
+| T5 | Mask template | mass variants (ships, creatures, items) | new |
+| T6 | Field/noise | textures, terrain, materials | new |
+| T7 | Particles | effects | new |
+Cross-cutting: `overlay()` (hybrid), `compose()` paper-doll layers, `variants()`.
+
+### 6.4 Hand-edit round trip
+A PNG edited in Aseprite can be imported as a **T1 overlay version** (`artgen import-edit goblin edited.png`):
+diff against the render → char-map overlay file → new version. Hand fixes survive restyles where they map to
+palette ramps.
 
 ## 7. Voxel subsystem
+- Model: artlab `Voxels` (box/ellipsoid/line/paint, fine `k`) + `slab`, `mirror`, `sdf`, `carve`, `merge`,
+  named parts with transforms (states, animation).
+- Renderers: `cubes` (artlab 4×4 iso cube stamp — crisp boxy props); `raster` (z-buffer at ss, any yaw/pitch
+  and projection, depth/normal/ID buffers, internal-res outlines); `toon` (smooth normals → `direction.shading.bands`
+  bands) to address the E4 organic plateau.
+- Outputs: 4/8/16-direction sheets, sprite-stack slices, billboards; `.vox` read/write; greedy-mesh glTF.
 
-### 7.1 Model
-Sparse map `x,y,z → material` (artlab `Voxels`) plus: `slab(face, rect, mat)` for surface decoration (R5),
-`mirror(axis)`, `sdf(fn, mat)` for smooth organics, `carve`, `paint`, `merge(model, offset)`, palette materials as
-ramp refs, named parts for states/animation (`part('lid').rotate(axis, angle, pivot)`).
+## 8. Views and coverage
 
-### 7.2 Renderers
-| Renderer | How | Best for |
-|---|---|---|
-| `cubes` (artlab) | stamp exact 4×4 px iso cubes in painter order, 3-face shading | crisp boxy iso props (artlab chest 7/10) |
-| `raster` (new) | z-buffered point/face rasteriser at `ss×` for any yaw/pitch & any projection; depth + normal buffers | rotations (8/16 dirs), top-down/oblique/side, billboards |
-| `toon` shading (new) | smooth normals (SDF gradient or 3×3×3 neighbourhood average) → N quantized light bands on the material ramp | organics — the fix for the E4 plateau |
-| outlines | from depth/ID discontinuities **at internal res**, then 1 px final-res outer outline | guaranteed 1 px lines (FINDINGS research item) |
+| View | Projection | Anchor / sort | Review context |
+|---|---|---|---|
+| `topdown` | ortho down | centre | project ground texture |
+| `oblique` (2.5D) | top + front face, `frontRatio` | base-front centre, Y-sort | oblique room |
+| `iso` | 2:1, `P=((x−y)·2,(x+y)−2z)`, tile from direction | tile-diamond centre, x+y then z | iso floor of project tiles |
+| `stack` (2.5D) | voxel z-slices | centre | 8-angle rotation strip |
+| `side` (2.5D) | ortho side + parallax layers | feet | scroll strip |
+| `fp` | raycaster preview; assets are textures/billboards/view-models | feet (billboards) | raycaster corridor shot |
 
-All renders: optional `ss` → quantize to palette → mode-downsample → despeckle → outline → shadow (artlab order).
+| | Top-down | Iso | 2.5D | First-person |
+|---|---|---|---|---|
+| Characters/creatures | T1, T3, T2 variants | T1/T3, T4 dirs | T1/T2 oblique, T4 stack | billboards 8-dir (T4) |
+| Props/vehicles | T3, T4 | **T4**, T2 | T4 oblique/stack | billboards, view-models (T3+T1) |
+| Textures/tiles | T6 seamless, autotile 16/47, WFC | iso floor/wall/transitions | oblique wall-fronts, parallax layers | 64/128 walls/floors + normals, skies, decals |
+| Effects | T7 presets, palette cycling | T7 + ground projection | as top-down/side | muzzle flash, impacts, projectiles |
+| Voxel export | — | `.vox`, glTF | slice sheets | `.vox`, glTF |
 
-### 7.3 Voxel export
-MagicaVoxel `.vox` (read/write), glTF 2.0 via greedy meshing with palette texture, slice PNG strip.
+## 9. Textures (T6)
+Periodic noise (value/simplex/Worley/fBm) so tiles are seamless by construction; material recipes (stone, cobble,
+wood, metal, grass, dirt, sand, snow, water, lava, tech floor, carpet) banded to direction ramps with direction
+dither; `seam` metric + 3×3 tiled review; autotiles (16 Wang, 47 blob) and iso sets; WFC; L-systems; normal
+maps from height.
 
-## 8. Textures and tiles (T6)
+## 10. Effects and animation (T7)
+`t`-driven params; deterministic particles (life, velocity, drag, gravity, size curve, colour-by-life from
+direction effect ramps); presets (explosion, smoke, fire, sparks, magic, heal, muzzle flash, impact, splash,
+dust, trail); palette cycling; frame QA (bbox jitter, colour drift, loop seam); strip + onion-skin sheets,
+GIF/APNG previews.
 
-- **Noise**: value, Perlin/simplex, Worley, fBm — all **periodic** (wrap on the tile size) so tiles are seamless
-  by construction.
-- **Materials** (recipes with params + seed): stone brick, cobble, wood plank, metal panel/rivets, grass, dirt,
-  sand, snow, water, lava, tech floor, carpet. Output banded to the palette ramp, optional ordered/Bayer dither.
-- **Seamless check**: render 3×3 tiled, measure seam discontinuity vs interior (metric `seam`).
-- **Autotiles**: 16-tile (4-bit corner/Wang) and 47-tile blob sets generated from an edge/corner recipe;
-  iso variants (floor diamond, wall block, edge transitions).
-- **WFC**: overlapping-model WFC for decor/layout variation, seeded.
-- **L-systems**: foliage, roots, cracks.
-- **Normal maps** from height field (textures) or from the voxel normal buffer (sprites).
+## 11. Quality and records
+- Post passes: artlab `outline/quantize/modeDownsample/dropShadow/despeckle/groundShadow` + `selout`,
+  `innerOutline`, `dither`, `rotsprite`, `paletteSwap`, `overlay`, `trim`, `normalFromHeight`.
+- Gate = hygiene (artlab `measure()` + `seam`, `frameJitter`, `anchorOnTile`) + conformance (§4.3).
+- Review sheets ≤ 1568 px long edge; `art-reviewer` subagent scores 0–10 against direction + anchors.
+- `ledger.jsonl` append-only: source hash, tokens, metrics, conformance, sheet ids, scores, approvals, direction
+  version; `report` reproduces artlab's cost/score tables per project.
+- Golden-image and stage tests in this repo's CI over the benchmark set.
 
-## 9. Effects and animation (T7)
+## 12. Runtime component (W3) — `@artgen/runtime`
 
-- **Timeline**: `params` are functions of `t ∈ [0,1)`; engine samples N frames (also drives walk cycles via leg
-  angles etc. in T2/T3/T4).
-- **Particles**: deterministic seeded emitter → per-particle life, velocity, drag, gravity, size curve; colour
-  from a ramp by life; rendered as pixel discs/sprites into frames; optional iso ground projection.
-- **Presets**: explosion, smoke puff, fire loop, sparks, magic burst, heal, muzzle flash, bullet impact, water
-  splash, dust, projectile trail.
-- **Palette cycling**: index-range rotation for water/lava/conveyors — exported as frames and as a cycle spec.
-- Frame QA: bbox jitter, colour drift between frames, loop seam (last→first diff).
+### 12.1 Export format (`pack.json`)
+```jsonc
+{ "pack": "swamp", "direction": { "id": "swamp-roguelike", "version": 1 }, "runtime": "1.0.0",
+  "atlases": ["swamp-0.png"],
+  "assets": {
+    "goblin": { "kind": "character", "view": "topdown", "size": [24,24], "anchor": [12,21],
+      "directions": 8, "states": { "idle": { "frames": 1 }, "walk": { "frames": 4, "fps": 8, "loop": true } },
+      "frames": [[0,0,0,0,24,24, 0,"idle",0]],      // atlas, x, y, w, h, facing, state, frame (compact)
+      "variants": ["base","red","grey"], "swaps": { "red": { "moss.1": "#8a3a34" } } },
+    "mud": { "kind": "tileset", "tile": 16, "autotile": "blob47", "map": [ ... ] },
+    "spark": { "kind": "effect", "frames": 6, "fps": 12, "loop": false, "blend": "normal" } } }
+```
+Also emits Aseprite-compatible JSON per sheet for tools that expect it.
 
-## 10. Post-processing passes
+### 12.2 Runtime API (dependency-free TS, ~few KB)
+```ts
+const pack = await loadPack('/assets/swamp/pack.json');          // fetch + decode atlases
+const goblin = pack.sprite(Assets.goblin, { variant: 'red' });   // typed ids from generated assets.ts
+goblin.play('walk'); goblin.face(angleRad);                      // picks nearest of N facings (mirror-aware)
+goblin.update(dtMs); goblin.draw(ctx2d, x, y);                   // or adapter-specific
+pack.tiles(Assets.mud).resolve(neighbourMask) → tileIndex        // 16/47 autotile resolver
+pack.effect(Assets.spark).spawn(x, y)
+isoToScreen / screenToIso / depthKey(x, y, z)                     // iso + oblique helpers
+```
+Core is renderer-agnostic (frame rects + state machine); adapters draw:
+- `canvas2d` (reference, used by the docs examples and the UI preview)
+- `phaser` (texture atlas + animations registered from `pack.json`)
+- next: `pixi`, Godot importer (`SpriteFrames` `.tres` + `TileSet`), pygame (Python).
 
-From artlab (keep semantics): `outline(color, diag)`, `quantize(pal)`, `modeDownsample(f)`, `dropShadow`,
-`despeckle`, `groundShadow`.
-New: `selout` (outline coloured by the adjacent ramp), `innerOutline` (ID-boundary), `dither(bayer|noise)`,
-`hueShiftRamp`, `rotsprite(angle)`, `paletteSwap`, `overlay`, `trim`, `normalFromHeight`.
+### 12.3 Delivery
+`artgen export --runtime` vendors `src/art/runtime/` (version-stamped) and `src/art/assets.ts` into the game
+repo; re-export updates both. npm publication is a later option (D4).
 
-## 11. Quality assurance
+## 13. UI (W4) — inside image_tools
 
-| Layer | What |
+### 13.1 New tools (registered in `src/core/tools/registry.ts`)
+| Tool | Purpose |
 |---|---|
-| Hygiene metrics | artlab `measure()` (colours, AA%, off-palette%, orphan%, outline%, symmetry%) + `seam`, `frameJitter`, `anchorOnTile`, `silhouetteFill`. Used as a **gate** (default: hygiene ≥ 8.5, off-palette = 0, AA% = 0 except shadow) |
-| Review sheets | rows of `[1×] [n× on checker] [n× in context]`, v(n) beside v(n−1); animations as frame strip + onion skin; directions as a ring; textures 3×3 tiled; FP as raycaster shot. Labels drawn with a built-in pixel font. Sheet size kept under the 1568 px long edge (vision token budget) |
-| Score | 0–10 visual score + note, recorded against a sheet id (R6) |
-| Ledger | `art/ledger.jsonl`, append-only: source hash, full/edit tokens, metrics, sheet ids + image tokens, scores; `report` produces per-technique cost/score tables (artlab REPORT format) |
-| Golden tests | seeded render hash per benchmark asset; diffs surface as an image in CI artifacts |
-| Stage tests | each pipeline stage verified independently (e.g. svg ss stage actually renders `size×ss` pixels of new detail; downsample preserves 1 px lines) |
+| **Art Direction** | open a project's `art/`; palette editor (ramps, hue-shift, Lospec import, extract from reference image), camera/scale/line/shading settings, live style tile of anchors under the edited direction, compare candidates, save draft / lock |
+| **Asset Review** | gallery by status; per asset: versions side-by-side, in-context preview (iso floor, tiled, raycaster), metrics + conformance, score note, approve / request changes (writes ledger) |
+| **Asset Lab** | load an asset module, sliders for `params`/seed/variant/facing/frame, animation playback via the runtime's canvas2d adapter, export single asset |
+Existing tools gain small integrations: SVG Tracer output can become a T3 asset source; Token Cutter
+silhouettes can seed a T1 mask.
 
-## 12. Interfaces
+### 13.2 Shared framework updates
+- `WorkerKind` gains `'artgen'` (core bundle in a worker via the existing ref-counted pool).
+- `core/project/` — project store over the **File System Access API** (directory handle persisted in IndexedDB,
+  read/write `direction.json`, `briefs.yaml`, `ledger.jsonl`, asset sources); zip import/export fallback for
+  non-Chromium browsers. Image data never leaves the machine (unchanged principle).
+- Shared components: `PaletteRamp` editor, `PixelPreview` (nearest-neighbour zoom, checker/context bg),
+  `CompareView` (v(n) vs v(n−1)), `StatusBadge`.
+- `CanvasStage` gains an integer-zoom pixel mode.
+- Registry gains optional tool **groups** (sidebar sections: "Image tools", "Art pipeline").
 
-### 12.1 CLI (`artgen`)
-All commands accept `--json` (machine output) and `--project`.
+### 13.3 Claude Code ↔ UI contract
+Files are the API: UI writes the same files the CLI writes, through the same `@artgen/core` validators
+(schema-checked `direction.json`, append-only ledger entries with `by: "user"`). Claude Code commands re-read
+files on every run; nothing is cached across the boundary.
 
-| Command | Purpose |
-|---|---|
-| `init <project>` | scaffold `art/<project>/project.json` + palette |
-| `route --kind --view --size [--traits]` | ranked technique suggestion + recipe |
-| `new <asset> <tech> [--from vN]` | create v(n+1) by copying v(n) (or a recipe template) |
-| `render <asset> [<tech> <ver>] [--seed --params --stages]` | render frames, write PNGs, log metrics |
-| `review <asset> [tech\|latest\|compare a,b]` | build review sheet; prints path + image-token estimate |
-| `score <asset> <tech> <ver> <0-10> "note"` | record visual score |
-| `variants <asset> --n 8` | seeded variant sheet |
-| `texture <material> --size 64 [--seamless --normal --dither]` | one-shot texture generation |
-| `fx <preset> --size 32 --frames 12` | one-shot effect sheet |
-| `voxel <asset> --dirs 8 --proj iso\|topdown\|oblique\|stack\|billboard` | multi-direction render |
-| `export <asset\|project> --to png,aseprite,atlas,vox,gltf` | packaged output + manifests |
-| `report [project]` | REPORT.md + final comparison sheet |
-| `bench` | re-render benchmark set, compare to recorded finals |
+## 14. Interfaces
 
-### 12.2 Claude Code skill
-```
-.claude/skills/artgen/
-  SKILL.md                 # when to use, the loop, router table, gate, hard rules R1–R10
-  references/
-    techniques.md          # T1–T7 recipes with minimal working examples
-    topdown.md iso.md 2_5d.md first_person.md
-    textures.md effects.md voxel.md
-    pitfalls.md            # every regression in the findings, with the fix
-  templates/               # starter asset modules per (kind × view × technique)
-```
-The loop the skill prescribes: `route` → `new` → edit → `render` → `review` (open the PNG) → `score` → repeat
-until score ≥ target or 2 non-improving passes → `export`. Max iterations and target score are arguments.
+**CLI** (`artgen`, all with `--json`): `init`, `direction new|candidates|tile|lock|show`, `palette import|extract|ramp`,
+`brief add|list`, `route`, `new`, `render [--stages]`, `review`, `score`, `approve`, `status`, `variants`,
+`texture`, `fx`, `voxel`, `restyle`, `export [--runtime]`, `import-edit`, `report`, `bench`.
 
-### 12.3 MCP server (`artgen-mcp`, stdio)
-Tools mirror the CLI: `route`, `render`, `review`, `score`, `texture`, `fx`, `voxel_render`, `export`,
-`palette_import`, `measure`. `render`/`review`/`texture`/`fx` return the PNG as MCP image content plus metrics
-JSON, so a client sees the result without a separate file read. Asset source is passed as a string or path.
+**Skills / commands / agent**: §3.1. **MCP tools**: `direction_get`, `direction_tile`, `route`, `render`,
+`review`, `conformance`, `score`, `approve`, `texture`, `fx`, `export` — image results returned as MCP image
+content. **Python**: `artgen-py` client (`Artgen(project).render(...)`, `.texture(...)`, `.export(...)`)
+returning Pillow images + dicts.
 
-### 12.4 Python client (`artgen-py`)
-```python
-from artgen import Artgen
-ag = Artgen(project="dungeon")
-img, meta = ag.texture("stone-brick", size=64, seamless=True, normal=True)   # PIL.Image, dict
-ag.render("chest", tech="t4", ver="v1", seed=3).save("chest.png")
-```
-Subprocess to `artgen --json`, typed dataclasses, optional Pillow/numpy conversion. Optional `artgen.blender`
-adapter (later) for 3D→pixel renders from `.blend`/glTF.
+## 15. Non-functional
+- `@artgen/core` and `@artgen/runtime` have no Node/DOM imports; runtime adapters isolate I/O.
+- Deps: `@resvg/resvg-wasm`, pure-JS PNG, `gifenc`, `yaml`. Nothing native.
+- 64×64 sprite incl. ss=8 < 200 ms; 128 texture < 100 ms; 10-asset batch render < 10 s (excluding agent time).
+- Tests: vitest in the existing CI job; plugin smoke test installs into a fixture game repo.
 
-### 12.5 Web app (later)
-`ArtLab` tool in `src/tools/`: browse projects, tweak seed/params live (core in a worker), preview in context,
-export. Uses the existing tool registry and worker pool.
-
-## 13. Output formats
-
-PNG (palette-exact), sprite sheet + manifest JSON (§4.4), Aseprite-compatible JSON (`frames`/`meta.frameTags`),
-packed atlas + JSON, GIF/APNG previews, normal-map PNG, `.vox`, `.gltf/.glb`, `.hex`/`.gpl` palettes.
-
-## 14. Non-functional
-
-- **Portability**: `@artgen/core` has no Node or DOM imports; I/O adapters per runtime. Dependencies: `@resvg/resvg-wasm`
-  (SVG), a pure-JS PNG codec, `gifenc`; nothing native.
-- **Determinism**: seeded mulberry32 (artlab), integer pixel math, no canvas AA in final pixels.
-- **Performance**: a 64×64 sprite incl. ss=8 renders < 200 ms; a 128 texture < 100 ms; benchmark suite < 30 s.
-- **Testing**: vitest; runs in the repo's existing CI job.
-- **Docs**: README per package; the skill is the user-facing guide.
-
-## 15. Out of scope (v1)
-
-Diffusion/ML image generation; pixel editor; non-voxel 3D meshes; audio; UI kits; engine-specific importers
-(follow-up after D6).
+## 16. Out of scope (v1)
+Diffusion/ML generation; pixel editor; non-voxel 3D; audio; UI kits; hosted backend; Unity importer.

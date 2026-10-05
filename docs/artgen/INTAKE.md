@@ -1,7 +1,10 @@
 # artgen — Intake
 
-Status: **draft for review** · Owner: rstevenson1237 · Date: 2026-10-05
+Status: **draft for review, rev 2** · Owner: rstevenson1237 · Date: 2026-10-05
 Companion docs: [SPEC.md](SPEC.md) (what we build) · [PLAN.md](PLAN.md) (how and in what order)
+
+Rev 2 reframes the effort around four workflows (see §2). The engine work from rev 1 is unchanged in
+substance; it now serves those workflows instead of being the goal.
 
 ## 1. Request
 
@@ -9,108 +12,122 @@ Companion docs: [SPEC.md](SPEC.md) (what we build) · [PLAN.md](PLAN.md) (how an
 > voxel, for top down, isometric, 2.5d and first person views. Python/js utilities wrapped in skill or tool
 > interface.
 
-Inputs supplied with the request:
+Follow-up (defines the target):
 
-| Input | What it is |
-|---|---|
-| `artlab.zip` | Experiment harness: `lib/{core,post,prim,svg,iso,voxel,metrics}.js`, `run.js` (render → review sheet → score → report loop), 60 versioned technique files, token/score ledger |
-| `FINDINGS.md` | Top-down study: hero 32×32, battleship 160×41, sci-fi tank 64×64 × techniques T1–T3 |
-| `FINDINGS-iso.md`, `REPORT-iso.md` | Isometric study: hero 32×48, spider 32×32, chest 64×32 × T1–T4 (adds voxels) |
-| Two comparison sheets | Final iteration of every technique × asset, top-down and iso |
+> 1) import the repository into a claude code driven project and use the toolset to create a targeted art
+> direction for consistent output (art style, color palette, camera style etc) 2) using a defined theme create
+> assets with defined output styles etc for that specific project 3) have a reusable component to allow easy
+> usage of the assets in a project 4) if a ui presence is desirable we should work within the existing image
+> tools framework, though the framework can be updated to meet shared needs
 
-## 2. Problem statement
+Inputs supplied: `artlab.zip` (harness, libs, 60 technique versions, ledger), `FINDINGS.md`,
+`FINDINGS-iso.md`, `REPORT-iso.md`, two final-comparison sheets.
 
-Claude can author good pixel art as **code** (scores of 6.5–7.5/10 on first or second try), but only inside a
-throw-away experiment harness: one master palette, hard-coded asset table, two views, no textures, no effects,
-no animation, no export format, and the knowledge of *which technique to use when* lives in two Markdown files
-rather than in the tooling. We want a reusable, tested suite that an agent (Claude Code, or any MCP client) and
-a human can drive to produce shippable game art across four view types.
+## 2. The four workflows (the deliverables)
 
-## 3. What the evidence says (constraints the design must honour)
+| # | Workflow | Who drives | Input | Output in the game project |
+|---|---|---|---|---|
+| **W1** | **Adopt + art direction.** Install the toolset into a game repo, then establish a locked art direction | Claude Code (skill), user decides | Game concept, mood words, reference notes, view type | `art/direction.json` (machine-readable style bible), style sheet PNG, approved "style anchor" assets |
+| **W2** | **Themed asset production.** Produce the project's assets, all conforming to the direction | Claude Code, user approves | Direction + asset brief list | Versioned asset sources, review sheets, approved exports (sheets/atlases/textures/voxels + manifests) |
+| **W3** | **Use the assets.** A reusable runtime component that loads and plays exported assets | Game developer | Exported pack + manifest | `@artgen/runtime` (typed asset ids, sprites/animation/directions, tiles, effects, palette swap) + engine adapters |
+| **W4** | **UI where it helps.** Direction, review/approval and tweaking inside the existing image tools app | User | Game repo's `art/` folder | Edits written back to the same files Claude Code reads |
 
-Distilled from the findings; each becomes a design rule in SPEC §2.
+The connecting idea: **assets are code + a direction file.** Because every asset is a seeded render function
+that pulls palette, sizes, outline, light and camera from `direction.json`, a direction change re-renders the
+whole set consistently, and the UI and Claude Code cooperate through plain files.
+
+## 3. What the evidence says (design constraints)
 
 | # | Finding | Evidence |
 |---|---|---|
-| E1 | **No single technique wins.** Match technique to *form*, not to project. | T1 wins small characters (7.5, 7); T3 wins large hard-surface and leggy organics (7.5, 7.5, 7); T4 wins boxy iso props (7, first try) |
-| E2 | Small sprites (≤32 px): hand-authored char-maps (T1) are best and cheapest. | Hero 7 on v1; best visual-points-per-dollar (1.5) |
-| E3 | Large hard-surface: SVG → 8× supersample → asset-restricted palette quantize → majority downsample → 1 px raster outline. Outlines as dark **underlay shapes**, never strokes. | T3 v3 ship/tank 7.5; stroke-removal alone regressed |
-| E4 | Voxels: best for iso props, multi-state objects and re-rotation; plateau ~5 for organic shapes at small sizes (stair-step speckle). | T4 chest 7 vs hero 5, spider 4.5 |
-| E5 | Primitives (T2) are the **reuse** play: library fixes lift every sprite, seeds give variants — but variety was only 4 combos. | T2 averages 6.3–6.5, never best |
-| E6 | Iso-specific: no interpenetrating volumes (decoration = surface slabs); vector strokes do not compose in iso. | T2/T3 chest regressions v1–v3 |
-| E7 | Automated hygiene metrics **saturate** (9.7–10) and cannot rank quality. They are a gate; visual review is the judge. | Report tables |
-| E8 | ~1 in 4 refinement passes regress. Always review v(n) beside v(n−1). | T3 ship v2, T1 tank v3, T3 hero |
-| E9 | **Verify every pipeline stage**, not only the final sprite. The SVG supersample silently did nothing until fixed. | Orphans fell 2.6%→0.2% (ship), 3.8%→0.4% (tank) after fix |
-| E10 | Recommended production hybrid: silhouette/large forms in T3 or T2 → T1 char-map finishing pass (faces, emblems) → shared post passes. | FINDINGS §Recommended hybrid |
-| E11 | Cost per asset is low (~$0.03–0.04 visible tokens; real sessions several × that) and not the differentiator; review images are ~40% of it. | Report totals |
-| E12 | Research backlog worth adopting: mask-template generators, 3D→pixel with outline at internal res, WFC, L-systems, SDF banded shading, paper-doll + palette swap, normal maps, RotSprite, 8-direction voxel rotation, animation via parameters. | Both FINDINGS "next" sections |
+| E1 | **No single technique wins.** Match technique to *form*. | T1 wins small characters (7.5, 7); T3 large hard-surface & leggy organics (7.5, 7.5, 7); T4 boxy iso props (7, first try) |
+| E2 | ≤32 px sprites: hand-authored char-maps (T1) are best and cheapest. | Hero 7 on v1; best points per dollar (1.5) |
+| E3 | Large hard-surface: SVG → 8× supersample → **asset-restricted palette** quantize → majority downsample → 1 px raster outline; outlines as dark underlay shapes, never strokes. | T3 v3 ship/tank 7.5 |
+| E4 | Voxels: best for iso props, multi-state objects, re-rotation; plateau ~5 for small organics. | T4 chest 7 vs hero 5, spider 4.5 |
+| E5 | Primitives (T2) are the reuse play; seed variety was too narrow (4 combos). | T2 never best, 6.3–6.5 avg |
+| E6 | Iso: decoration as surface slabs, no interpenetrating volumes; strokes don't compose. | T2/T3 chest regressions |
+| E7 | Hygiene metrics saturate and can't rank quality — a gate, not a judge. | Finals 9.7–10 |
+| E8 | ~1 in 4 refinement passes regress; always compare v(n) with v(n−1). | T3 ship v2, T1 tank v3 |
+| E9 | Verify every pipeline stage — the SVG supersample silently did nothing until fixed. | Orphans 2.6→0.2%, 3.8→0.4% |
+| E10 | Production hybrid: T3/T2 base → T1 char-map finishing → shared post passes. | FINDINGS §hybrid |
+| E11 | Cost per asset is low and not the differentiator; review images are ~40% of it. | Report totals |
+| E12 | Backlog: mask templates, 3D→pixel with internal-res outlines, WFC, L-systems, SDF banding, paper-doll + palette swap, normal maps, RotSprite, 8-dir voxel rotation, parametric animation. | FINDINGS "next" |
+
+Implication for W1: the findings show **consistency comes from shared constraints** — the restricted palette,
+one outline rule, one light direction, fixed pixel scale — more than from the technique. Those constraints are
+exactly what `direction.json` locks.
 
 ## 4. Goals
 
-1. **G1 — Coverage matrix.** Produce *sprites/props*, *textures/tiles* and *effects* for *top-down*, *isometric*,
-   *2.5D* and *first-person* views, in *pixel* output and from *voxel* sources (plus voxel model export).
-2. **G2 — Encoded know-how.** The technique router, recipes and pitfalls (E1–E12) live in code defaults and in a
-   Claude skill, not only in prose.
-3. **G3 — Agent-drivable.** One CLI with JSON in/out, a Claude Code skill that runs the author → render →
-   review → score loop, and an MCP server so any MCP client can call the same operations.
-4. **G4 — Python and JS.** JS/TS is the engine; Python gets a first-class client so Python pipelines and
-   notebooks can generate assets.
-5. **G5 — Shippable output.** Sprite sheets/atlases with manifests (pivots, frames, directions), seamless
-   textures with normal maps, `.vox` / glTF for voxel models.
-6. **G6 — Quality is measured.** Deterministic renders, golden-image tests, hygiene gate, review sheets with
-   in-context previews, and a ledger of versions, scores and token cost.
+1. **G1 — Portable toolset.** One install step puts skills, CLI and MCP tools into any Claude Code game repo.
+2. **G2 — Art direction as data.** Style, palette, camera/view, scale, outline, lighting, shading and
+   proportion rules captured in a versioned file that every render reads and every review checks.
+3. **G3 — Consistent production.** Brief → generate → review → approve → export for the project's asset list,
+   with conformance checks against the direction and a regression benchmark.
+4. **G4 — Coverage.** Sprites/props, textures/tiles and effects for top-down, isometric, 2.5D and first-person,
+   pixel output from pixel and voxel sources, plus voxel model export.
+5. **G5 — Drop-in runtime.** A small typed component that makes exported assets one line to use in a game.
+6. **G6 — UI in the existing app.** New tools in image_tools for direction, review and tweaking; shared
+   framework changes made where they benefit all tools.
+7. **G7 — JS core, Python access.** TS engine; Python client for Python pipelines.
 
 ## 5. Non-goals (proposed)
 
-- Diffusion / external generative-image models. Everything is procedural or Claude-authored code (keeps
-  output deterministic, licence-clean, palette-exact).
-- A full sprite editor. The existing web app hosts viewing/tweaking later; pixel editing stays in Aseprite etc.
-- High-res painted or 3D-mesh (non-voxel) art.
-- Audio, UI kits, fonts (UI may come later; not in v1).
+- Diffusion / external generative-image models (keeps output deterministic, licence-clean, palette-exact).
+- A pixel editor (hand edits stay in Aseprite; we import them back as T1 overlays — see SPEC §6.4).
+- Non-voxel 3D meshes, painted high-res art, audio, UI kits, fonts (v1).
+- A hosted backend. The UI stays client-side, like the rest of image_tools.
 
-## 6. Users and usage scenarios
+## 6. Usage scenarios
 
-| User | Scenario |
+| Scenario | Workflow |
 |---|---|
-| Claude Code agent | "Make a 32×48 iso skeleton with 8 directions and a 4-frame walk" → skill picks T4+T1 overlay, iterates with review sheets, exports sheet + manifest |
-| Game developer (human) | Runs `artgen texture stone-brick --size 64 --seamless --normal` from a shell or a Python build script |
-| Other MCP clients | Call `artgen.render`, `artgen.review` tools; receive PNG + metrics as tool results |
-| Web app user (later) | Browses packs, nudges seeds/params, previews in context, downloads |
+| "Set up art for my top-down roguelike: grim swamp, 16-colour, 24 px characters" → three candidate style tiles → user picks B, tweaks palette in the UI → direction v1 locked | W1, W4 |
+| "Make the 14 enemies in `art/briefs.yaml`, 8 directions, idle + walk" → batch loop, gallery sheet, user approves 12, asks for 2 redos | W2, W4 |
+| Developer writes `sprites.play(Assets.goblin, 'walk', angle)` in Phaser with autocomplete | W3 |
+| Direction v2 changes palette and outline colour → `artgen restyle` re-renders all approved assets, diff sheet for sign-off | W1→W2 |
+| Python level-generator script calls `artgen.texture('swamp-mud', size=32)` | W2 (Python) |
 
 ## 7. Decisions needed from you
 
-Each has a recommended default; the spec and plan are written assuming the default. Answer only the ones you
-want to change.
+Defaults are what SPEC and PLAN assume. Answer only what you want to change.
 
 | # | Question | Recommended default | Alternatives |
 |---|---|---|---|
-| D1 | Where does it live? | **npm workspace in this repo** (`packages/artgen`, `packages/artgen-mcp`), so the web app can reuse the core | Separate repo |
-| D2 | Python's role | **Thin, typed Python client** over the CLI's JSON protocol (`pip install artgen`), plus an optional Blender adapter later | Python-native core (duplicate engine); Python-only |
-| D3 | What "2.5D" means | **All three, in this priority:** (a) 3/4 oblique top-down (Zelda/Stardew), (b) sprite-stacking from voxels, (c) side-view with parallax layers | Pick one |
-| D4 | First-person target | **Retro raycaster/billboard style** (Doom/Wolf-like): wall/floor/ceiling textures, 8-dir billboard sprites, weapon view-models, skies; plus voxel `.vox`/glTF export for voxel-world engines | Raycaster only; voxel-world only |
-| D5 | Interface priority | **CLI + Claude Code skill first**, MCP server second, Python client third, web UI last | MCP first |
-| D6 | Export targets | **Generic PNG + JSON manifest, Aseprite-compatible sheet JSON, `.vox`, glTF**; engine importers (Godot/Unity/Phaser) as follow-ups | Name a primary engine now |
-| D7 | Palette policy | **Per-project palettes** (Lospec `.hex`/`.gpl` import) with the artlab master palette as default; per-asset restricted sub-palettes | One fixed palette |
-| D8 | Canonical sizes | Sprites 16/24/32/48/64; iso tile 32×16 (64×32 option); FP textures 64 and 128; effects 32/64 | Other grid |
-| D9 | Carry artlab over? | **Port to TS, keep artlab's 6 assets as the regression benchmark** (re-render, re-score, must not drop below their finals) | Fresh start |
-| D10 | Review judge | **Claude visual review (0–10) recorded in ledger, human spot-checks**; metrics gate only | Human-only scoring |
+| D1 | How does a game repo "import" the toolset? | **This repo is a Claude Code plugin marketplace**: `/plugin install artgen` brings skills, slash commands, agent and MCP server; `npx artgen init` scaffolds `art/`. Engine shipped prebuilt inside the plugin | git submodule; npm package only; copy-in script |
+| D2 | Where engine + UI code lives | **npm workspace in this repo** (`packages/*`), web tools in `src/tools/` | Separate repo |
+| D3 | Runtime targets (W3) | **Engine-agnostic TS runtime + Canvas2D and Phaser adapters first**; PixiJS, Godot importer next | Name your engine (Godot/Unity/Pixi/Three/pygame) |
+| D4 | Runtime distribution | **Vendored into the game repo by `artgen export --runtime`** (version-stamped, no registry needed); npm publish later | Publish to npm / GitHub Packages now |
+| D5 | How the UI reaches a game repo's files | **File System Access API** (open the game's `art/` folder; Chromium); zip import/export fallback; optional `artgen ui` local server | Upload/download only |
+| D6 | Art direction candidates | **3 candidate directions**, each rendered as a style tile (same probe set: character, prop, tile, effect) | 2 / 4+; single proposal |
+| D7 | Python's role | **Thin typed client** over the CLI JSON protocol; optional Blender adapter later | Python-native engine |
+| D8 | What "2.5D" means | **All three, in order:** 3/4 oblique, voxel sprite-stacking, side-view parallax | Pick one |
+| D9 | First-person target | **Retro raycaster/billboard** assets + `.vox`/glTF export for voxel-world engines | One of them |
+| D10 | Approval authority | **User approves**; Claude's 0–10 score + conformance gate recommend | Auto-approve ≥ threshold |
+| D11 | artlab | **Port to TS; its six assets become the regression benchmark** | Fresh start |
 
 ## 8. Assumptions
 
-- Node 22 (matches CI). Python ≥ 3.10 for the client.
-- Agents have vision and can read PNG review sheets (the whole loop depends on it).
-- Output is palette-exact RGBA PNG; no partial alpha except deliberate shadows.
-- Determinism is defined per platform+dependency version (golden images pinned in CI on Linux).
+- Game projects are git repos opened in Claude Code; agents have vision (the review loop depends on it).
+- Node 22 available in game repos (the CLI needs it); Python ≥ 3.10 for the client.
+- Output is palette-exact RGBA PNG; partial alpha only for declared shadow colours.
+- Determinism is per platform + pinned dependency versions.
 
-## 9. Success criteria (for the whole effort)
+## 9. Success criteria
 
-1. Every cell of the coverage matrix (SPEC §3) has at least one recipe and one benchmark asset scoring ≥ 6.5.
-2. artlab benchmark assets re-rendered through the suite score ≥ their artlab finals.
-3. A fresh agent session, given only the skill, produces a reviewed, exported asset in each view without reading
-   the findings files.
-4. CI: typecheck, unit tests, golden-image tests, stage-verification tests green.
+1. **W1:** In a fresh game repo, install + `/artgen:direction` produces 3 style tiles, the user's choice is
+   locked to `direction.json` + style sheet in one session, and probe assets re-rendered under it pass
+   conformance.
+2. **W2:** A 10-asset brief across ≥ 2 kinds is produced, reviewed and exported; every approved asset passes
+   conformance and scores ≥ 6.5; a direction change re-renders the set with one command.
+3. **W3:** A sample Phaser and a Canvas2D game load the export and play a directional animation, a tile map
+   and an effect, with typed asset ids, in < 20 lines of game code each.
+4. **W4:** The image tools app opens a game's `art/` folder, edits the palette, approves assets, and Claude
+   Code sees those changes on its next read. Existing tools unaffected.
+5. Coverage matrix (SPEC §8) filled, each cell with a benchmark asset ≥ 6.5; artlab benchmark ≥ its finals.
 
-## 10. Risks (summary — details in PLAN §6)
+## 10. Risks (details in PLAN §7)
 
-Scope breadth (4 views × 3 categories × 2 media); voxel organic quality plateau; SVG rasteriser differences
-between Node and browser; visual-review cost growth with animation; metrics that cannot see quality.
+Breadth (4 views × 3 categories × 2 media) vs depth; voxel organic quality; "consistency" being judged
+subjectively; File System Access API being Chromium-only; plugin packaging details; runtime scope creep into a
+game engine.

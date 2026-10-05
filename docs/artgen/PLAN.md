@@ -1,168 +1,178 @@
 # artgen — Implementation Plan
 
-Status: **draft for review** · implements [SPEC.md](SPEC.md) under the defaults in [INTAKE §7](INTAKE.md#7-decisions-needed-from-you)
+Status: **draft for review, rev 2** · implements [SPEC.md](SPEC.md) under the defaults in [INTAKE §7](INTAKE.md#7-decisions-needed-from-you)
 
 ## 1. Approach
 
-- **Port, then extend.** artlab already scores 6.5–7.5; Phase 0–1 port it to TypeScript unchanged in behaviour
-  and lock it with golden images before anything new is added. Every later phase must keep the benchmark green.
-- **Vertical slices.** Each phase ends with something an agent can use end-to-end (CLI + skill section +
-  benchmark assets), not a library waiting on a later UI.
-- **One PR per phase** (larger phases split into 2–3 PRs), each with tests, benchmark sheet and a short
-  findings note when quality numbers move.
+- **Workflow-first thin slice, then breadth.** Get W1 → W2 → W3 → W4 working end-to-end for top-down and
+  isometric sprites (where artlab already scores 6.5–7.5), then widen to 2.5D, textures, effects and
+  first-person. Every breadth phase extends all four workflows at once (direction schema, conformance,
+  export/runtime, UI preview), so nothing is engine-only.
+- **Port, then extend.** artlab is ported to TS with behaviour unchanged and locked by golden images before new
+  features land.
+- **Two fixture game projects** live in `examples/` and are the acceptance environment for every milestone:
+  `examples/swamp-topdown` (Canvas2D) and `examples/iso-dungeon` (Phaser). They start empty and are built *only*
+  through the plugin, exactly as a real user would.
+- **One PR per phase** (L phases split into 2–3), each with tests, the fixture-project evidence (sheets,
+  screenshots) and a findings note if quality numbers move.
 - Sizes: S ≈ 1–2 days, M ≈ 3–5 days, L ≈ 1–2 weeks of focused agent+review time.
 
 ## 2. Repository layout (end state)
 
 ```
-package.json                    # becomes an npm workspace root; app unchanged
+package.json                     # npm workspace root; app unchanged
 packages/
-  artgen/                       # @artgen/core + CLI (TS, ESM)
-    src/{core,techniques,proj,voxel,tex,fx,post,qa,pack,cli}/
-    test/  bench/
-  artgen-mcp/                   # MCP stdio server over @artgen/core
-python/artgen/                  # Python client (pyproject.toml)
-.claude/skills/artgen/          # SKILL.md, references/, templates/
-art/                            # authored assets: <project>/<asset>/<tech>.v<N>.js, ledger.jsonl
-docs/artgen/                    # INTAKE, SPEC, PLAN, FINDINGS (imported), phase findings
-src/tools/ArtLab/               # web tool (Phase 9)
+  artgen-core/                   # engine (TS, ESM, no Node/DOM imports)
+  artgen-cli/                    # CLI + Node I/O adapter
+  artgen-runtime/                # W3 runtime core + adapters (canvas2d, phaser, …)
+  artgen-mcp/                    # MCP stdio server
+python/artgen/                   # Python client
+.claude-plugin/marketplace.json  # this repo is a plugin marketplace
+plugins/artgen/                  # skills, commands, agent, .mcp.json, bin/ (prebuilt bundles), templates
+src/core/project/                # W4 shared: File System Access project store
+src/tools/{ArtDirection,AssetReview,AssetLab}/
+examples/{swamp-topdown,iso-dungeon}/   # fixture game repos (acceptance)
+docs/artgen/                     # INTAKE, SPEC, PLAN, artlab/ (frozen reference), findings
 ```
 
-## 3. Benchmark set
+## 3. Milestones at a glance
 
-Grows per phase; every entry has a target score and is re-rendered by `artgen bench` in CI (hash) and reviewed
-visually at phase end.
-
-| Phase | Assets |
-|---|---|
-| 0 | artlab six: hero, ship, tank (top-down), isohero, isospider, isochest (iso) — targets = artlab finals |
-| 3 | 8-dir iso skeleton (T4+T1 overlay), oblique 3/4 house, stacked car (sprite stack), side-view parallax forest (3 layers) |
-| 4 | stone-brick 64, wood-plank 32, grass 16-autotile, iso floor + wall set, lava (cycling) |
-| 5 | explosion 32×12f, fire loop 16×8f, sparks, spider 4-frame walk (param-driven) |
-| 6 | FP wall set 64 (brick, metal, wood) + normals, imp billboard 8-dir, pistol view-model idle/fire, sky panorama |
+| Milestone | Workflow outcome | Phases |
+|---|---|---|
+| **M0** Foundations | artlab imported, workspace + CI | P0 |
+| **M1** Engine + direction model | engine renders artlab assets driven by a `direction.json` | P1 |
+| **M2** W1 usable | install plugin into a fixture repo → 3 style tiles → locked direction + anchors | P2 |
+| **M3** W2 usable | brief → batch loop → approve → export pack; restyle works | P3 |
+| **M4** W3 usable | fixture games play exported assets via runtime (Canvas2D, Phaser) | P4 |
+| **M5** W4 usable | Art Direction + Asset Review (+ Lab) in the image tools app | P5 |
+| **M6** Breadth | 2.5D + voxel raster/toon, textures/tiles, effects/animation, first-person | P6a–P6d |
+| **M7** Access | MCP server, Python client, release automation | P7 |
 
 ## 4. Phases
 
-### Phase 0 — Import and baseline (S)
-- Copy artlab into `docs/artgen/artlab/` (source, findings, reports; no `out/` renders, no `node_modules`) as the
-  frozen reference.
-- Convert root `package.json` to an npm workspace; create empty `packages/artgen` with vitest + tsconfig; make CI
-  run workspace tests. App build stays green.
-- **Accept:** CI green; artlab runs from its folder and reproduces the two final comparison sheets byte-for-byte
-  (or documented diff).
+### P0 — Foundations (S)
+- Import artlab to `docs/artgen/artlab/` (source, findings, reports; no `out/`, no `node_modules`) as the frozen
+  reference.
+- Convert root `package.json` to an npm workspace; empty `packages/*` with tsconfig + vitest; CI runs workspace
+  tests; app check/test/build and Pages deploy unchanged.
+- **Accept:** CI green; artlab reproduces its two final comparison sheets from its folder.
 
-### Phase 1 — Core engine port (M)
-- `core`: Grid (+ crop/pad/trim/flip/hash/indexed), Palette (ramps, restrict, swap, `.hex`/`.gpl` import, hue-shift
-  ramp generator), RNG, PNG codec, bitmap pixel font.
-- `post`: outline, quantize, modeDownsample, dropShadow, despeckle, groundShadow (+ tests per pass).
-- `techniques`: charmap (T1), prim (T2), svg (T3) on resvg with the fixed ss path, iso helpers, voxel `cubes`
-  renderer (T4).
-- `qa`: `measure()` port, sheet builder (checker + context bg + v(n−1) column), ledger (jsonl).
-- Port the six artlab finals to `art/benchmark/*` as asset modules (new `meta` + `render(ctx)` contract).
-- **Stage tests:** svg ss renders new detail (regression test for the E9 bug); downsample keeps 1 px lines;
-  quantize leaves 0 off-palette; outline is exactly 1 px.
-- **Accept:** six benchmark assets render; golden hashes recorded; visual re-review scores ≥ artlab finals
-  (resvg vs napi-canvas differences on T3 documented and, if lower, fixed before moving on).
+### P1 — Engine core + direction model (M–L)
+- `artgen-core`: Grid, Palette (restrict, swap, `.hex`/`.gpl` import, hue-shift ramp generator, **extract from
+  image**), RNG, PNG, pixel font; post passes (artlab set); T1 charmap, T2 prim (+ wider seed axes), T3 svg on
+  resvg with the fixed ss path, iso helpers, T4 voxel `cubes` renderer; `overlay()`.
+- **`direction.json` schema + validator**; `ctx.dir` threaded into every technique and post pass (light,
+  bands, outline, line, dither, restricted palettes per kind).
+- Sheet assembly over states × facings × frames (mirror-aware facings for 2D techniques).
+- QA: `measure()` port, **conformance checks** (SPEC §4.3), review sheet builder (v(n−1), anchors, context),
+  ledger (jsonl).
+- Port artlab's six finals as asset modules under a `benchmark` direction that reproduces artlab's master
+  palette.
+- Stage tests (svg ss detail, 1 px line preservation, 0 off-palette after quantize, exact 1 px outline).
+- **Accept:** six benchmark assets render under the benchmark direction; golden hashes recorded; re-review
+  scores ≥ artlab finals; swapping to a second direction re-renders all six with a different palette/outline
+  and they pass conformance.
 
-### Phase 2 — CLI, ledger, skill v1 (M)
-- CLI commands: `init, route, new, render, review, score, variants, report, bench` (+ `--json`, `--stages`).
-- `route` table seeded from findings (E1–E5).
-- Skill v1: `SKILL.md` (loop, router, gate, rules R1–R10), `references/{techniques,topdown,iso,pitfalls}.md`,
-  templates for each technique × {topdown, iso}.
-- T2 upgrade: more seed axes (proportions, accessories, palette swap) — fixes the "4 combos" limitation.
-- T5 mask-template generator (ships, creatures, items).
-- **Accept:** a fresh agent session with only the skill produces a new top-down item and a new iso prop to
-  score ≥ 6.5, ledger + report produced, without reading the findings; T2 `variants --n 16` shows ≥ 12
-  distinct sprites.
+### P2 — W1: plugin + art direction workflow (M)
+- Plugin packaging: `.claude-plugin/marketplace.json`, `plugins/artgen` (plugin.json, `.mcp.json` stub, bin
+  bundles built by a CI job). Verify manifest format against current Claude Code plugin docs first.
+- CLI: `init`, `direction new|candidates|tile|lock|show`, `palette import|extract|ramp`, `route`, `new`,
+  `render`, `review`, `score`.
+- Skills `artgen` (loop, router, rules R1–R11, pitfalls) and `art-direction` (interview → 3 candidates → style
+  tiles → choose/mix → lock); commands `/artgen:init`, `/artgen:direction`; `art-reviewer` subagent.
+- Probe set templates (character, prop, tile, effect-strip placeholder until P6c) per view (topdown, iso).
+- Style sheet renderer (`art/direction.png`).
+- **Accept:** in both fixture repos, starting from a one-paragraph game pitch: plugin installs, 3 visibly
+  distinct style tiles are produced, a mixed choice is locked, anchors saved, style sheet written — in one
+  session, with the user's choices as the only manual input.
 
-### Phase 3 — Views and the voxel renderer (L, 2–3 PRs)
-- `proj`: topdown, oblique (ratio param), iso (tile size param), side, stack, billboard; common anchor + Y-sort
-  conventions; context backgrounds per view.
-- Voxel model additions: `slab`, `mirror`, `sdf`, named parts with transforms (states/animation).
-- `raster` voxel renderer: z-buffer at ss, any yaw/pitch, depth/normal/ID buffers, internal-res outlines;
-  `toon` smooth-normal banded shading; 4/8/16-direction sheets; sprite-stack slice export + rotation preview.
-- `overlay()` hybrid pass (T1 char-map onto any base) with per-direction overlays.
-- Skill: `references/2_5d.md`, `voxel.md`; templates for oblique, stack, multi-dir.
-- **Accept:** 8-dir iso skeleton ≥ 6.5; artlab isohero/isospider re-done with `toon` shading beat their T4
-  scores (5 / 4.5) — target ≥ 6; oblique house, stacked car, parallax forest ≥ 6.5; isochest still ≥ 7.
+### P3 — W2: themed production + export (M–L)
+- Briefs (`briefs.yaml` schema), status lifecycle in ledger, `brief add|list`, `status`.
+- Skill `asset-production`; commands `/artgen:brief`, `/artgen:make`, `/artgen:review` (gallery sheet),
+  `/artgen:approve`, `/artgen:export`, `/artgen:restyle`.
+- Export: atlas packer (maxrects), `pack.json` (SPEC §12.1), Aseprite JSON, generated `assets.ts`.
+- `restyle` with before/after diff sheet; `stale` detection; `import-edit` (Aseprite PNG → T1 overlay version).
+- T5 mask-template generator for variants.
+- **Accept:** each fixture repo produces a 10-asset brief (≥ 2 kinds, ≥ 1 with 8 facings and a walk cycle),
+  all approved assets pass conformance and score ≥ 6.5; direction v2 → `restyle` re-renders all, diff sheet
+  shows consistent change; hand-edited PNG survives a restyle.
 
-### Phase 4 — Textures and tiles (M–L)
-- Periodic noise (value, simplex, Worley, fBm), material recipes (12, SPEC §8), ramp banding + dither.
-- `seam` metric + 3×3 tiled review sheet.
-- Autotile generators (16 Wang, 47 blob), iso floor/wall/transition sets.
-- WFC (overlapping) and L-systems; normal maps from height.
-- CLI `texture`; skill `references/textures.md`.
-- **Accept:** all benchmark textures seam-free by metric and on review; autotile set assembles a test map with
-  no visible breaks; normal maps validated in a lit preview.
+### P4 — W3: runtime component (M)
+- `artgen-runtime`: `loadPack`, sprite state machine (state × facing × frame, fps, loop, mirror-aware facing
+  from angle), variants/palette swap, autotile resolver (16/47), effect player, iso/oblique coordinate + depth
+  helpers.
+- Adapters: `canvas2d` (reference), `phaser`.
+- `artgen export --runtime` vendoring with version stamp + upgrade check.
+- Fixture games: `swamp-topdown` (Canvas2D) and `iso-dungeon` (Phaser) render a walking 8-dir character, a
+  tile map and an effect from the exported pack.
+- **Accept:** each fixture game's art code < 20 lines; typed ids autocomplete; runtime unit tests (frame
+  selection, facing math, autotile masks); bundle size < 8 KB min+gz without adapters.
 
-### Phase 5 — Effects and animation (M)
-- Timeline (`t`-driven params, N-frame sampling), particle system, 11 presets, palette cycling.
-- Frame QA metrics (jitter, drift, loop seam); review sheet: strip + onion skin; GIF/APNG preview.
-- Parameter-driven walk cycles for T2/T3/T4 (spider walk from findings).
-- CLI `fx`; skill `references/effects.md`.
-- **Accept:** benchmark effects ≥ 6.5, loops seamless by metric, spider walk reads at 1× in the strip.
+### P5 — W4: UI in image tools (M–L)
+- Framework: `'artgen'` WorkerKind; `src/core/project/` File System Access store (persisted handle, schema
+  validation via core, zip fallback); shared `PaletteRamp`, `PixelPreview`, `CompareView`, `StatusBadge`;
+  integer-zoom mode in `CanvasStage`; registry tool groups.
+- Tools: **Art Direction** (palette/ramps, settings, live style tile, candidate compare, lock), **Asset Review**
+  (gallery by status, version compare, context preview, metrics/conformance, approve/request changes),
+  **Asset Lab** (params/seed/facing/frame, animation playback through runtime canvas2d).
+- **Accept:** on the Pages build in Chromium, open a fixture repo's `art/`, change a ramp, approve an asset;
+  next `/artgen:status` in Claude Code reflects both; zip fallback works in Firefox; existing tools' tests and
+  behaviour unchanged.
 
-### Phase 6 — First-person (M)
-- Raycaster preview renderer (walls, floor/ceiling, billboards at 8 angles, distance shading) for review sheets.
-- FP wall/floor/ceiling sets at 64/128 (from Phase 4 recipes) + normals; sky panorama (horizontally seamless).
-- Billboard sprites from voxel `raster` at 8 dirs; view-model template (T3 base + T1 overlay, idle/fire frames
-  with muzzle flash from Phase 5).
-- Skill `references/first_person.md`.
-- **Accept:** FP benchmark ≥ 6.5 judged on the raycaster shot, not only flat tiles.
+### P6 — Breadth (four independent tracks, each M–L)
+Each track extends: direction schema → techniques → conformance → probe set/style tile → export/runtime →
+UI preview → skill reference → fixture asset(s) at ≥ 6.5.
 
-### Phase 7 — Export and packaging (M)
-- Sheet assembly from states × dirs × frames; atlas packer (maxrects); manifest (SPEC §4.4); Aseprite JSON;
-  `.vox` read/write; greedy-mesh glTF/GLB with palette texture.
-- CLI `export`.
-- **Accept:** exported Aseprite JSON opens in Aseprite with correct tags; `.vox` opens in MagicaVoxel; glb
-  validates with the Khronos validator; round-trip `.vox` → model → `.vox` identical.
+| Track | Adds | Benchmark |
+|---|---|---|
+| **P6a** Views + voxel | `oblique`, `stack`, `side` projections; voxel `raster` (any yaw, depth/normal/ID buffers, internal-res outlines) and `toon` shading; 4/8/16-dir voxel sheets; runtime stack/parallax helpers | 8-dir iso skeleton; oblique house; stacked car; parallax forest; artlab isohero/isospider ≥ 6 with `toon` (from 5/4.5) |
+| **P6b** Textures/tiles | periodic noise, 12 material recipes, `seam` metric + 3×3 sheet, 16/47 autotiles, iso tile sets, WFC, L-systems, normal maps | stone 64, plank 32, grass autotile, iso floor/wall set |
+| **P6c** Effects/animation | `t`-driven params, particle system + 11 presets, palette cycling, frame QA, onion-skin sheets, GIF/APNG | explosion, fire loop, sparks, spider walk |
+| **P6d** First-person | raycaster preview for review + UI; 64/128 wall/floor/ceiling sets + normals; skies; 8-dir billboards from voxel; view-model template | brick/metal/wood walls, imp billboard, pistol idle/fire |
 
-### Phase 8 — MCP server and Python client (M)
-- `artgen-mcp`: tools per SPEC §12.3, image content in results, path sandboxing to `art/`.
-- `python/artgen`: client, dataclasses, Pillow/numpy helpers, pytest against the CLI; publish-ready
-  `pyproject.toml` (not published without your go-ahead).
-- **Accept:** Claude Desktop (or MCP inspector) renders + reviews a benchmark asset via MCP; Python notebook
-  example generates a texture and a sprite sheet.
+`.vox` read/write and greedy-mesh glTF export land with P6a.
 
-### Phase 9 — Web ArtLab tool (optional, M)
-- `src/tools/ArtLab`: project browser, seed/param sliders, in-context preview, export; core runs in a worker
-  from the existing pool.
-- **Accept:** works on the GitHub Pages build; no regressions to existing tools.
+### P7 — Access + release (M)
+- `artgen-mcp` (tools per SPEC §14, image content results, path sandbox to `art/`) wired into the plugin's
+  `.mcp.json`.
+- `python/artgen` client + pytest + notebook example; `pyproject.toml` ready (publish only on your go-ahead).
+- Release workflow: build plugin `bin/` bundles, version bump, changelog; optional npm publish of runtime (D4).
+- **Accept:** MCP inspector renders + reviews a benchmark asset; Python example generates a texture and a
+  sheet; tagging a release updates the plugin that fixture repos install.
 
 ## 5. Dependency graph
 
 ```
-P0 → P1 → P2 ─┬─► P3 ─┬─► P6
-              ├─► P4 ─┤
-              └─► P5 ─┘
-P1 ─────────────────────► P7 (format work can start after P1; sheet assembly needs P3 dirs/P5 frames)
-P2 ─────────────────────► P8
-P7, P8 ─────────────────► P9
+P0 → P1 → P2 → P3 ─┬─► P4 ─► P5
+                   └─► P6a, P6b, P6c, P6d   (parallel; P6d uses P6b textures + P6c flashes)
+P2 ─────────────────► P7 (MCP can start once CLI exists; release after P4)
 ```
-P3, P4 and P5 are independent after P2 and can run in parallel.
+P4 and P5 can run in parallel with P6 once P3 lands.
 
-## 6. Risks and mitigations
+## 6. Per-phase definition of done
 
-| Risk | Likelihood | Impact | Mitigation |
+1. Typecheck, unit, stage, golden and plugin-smoke tests green; app check/test/build unaffected.
+2. Fixture project evidence committed (review sheets, style sheet, screenshots of fixture games / UI).
+3. Benchmarks at or above target; ledger + report updated.
+4. Skill, command and reference docs updated so a fresh agent can use the capability without the findings.
+5. Findings note appended when scores or recipes change.
+
+## 7. Risks and mitigations
+
+| Risk | L | I | Mitigation |
 |---|---|---|---|
-| Scope breadth (4 views × 3 categories × 2 media) dilutes quality | High | High | Coverage matrix is filled cell-by-cell with a benchmark asset each; a cell isn't "done" below 6.5 |
-| Voxel organics stay ~5 (E4) | Medium | Medium | `toon` smooth-normal shading + internal-res outlines + T1 overlay; fall back to T1/T3 per router if still < 6 |
-| resvg output differs from napi-canvas → T3 scores move | Medium | Medium | Phase 1 re-review gate; asset-palette quantize + mode-downsample make the pipeline robust to AA differences |
-| Metrics can't see quality (E7) | Certain | Medium | Visual review remains mandatory; new metrics (seam, jitter) target objective defects only |
-| Review cost grows with animation/directions | Medium | Low | Sheets capped at 1568 px long edge; `latest` and per-tech sheets; frame strips at 1× + one scaled row |
-| Silent stage bugs (E9) | Medium | High | `--stages` dumps + stage tests per pipeline, written before features |
-| Regressions on refinement (E8) | High | Low | v(n−1) column always in sheet; never edit scored versions; `bench` in CI |
-| Workspace conversion breaks the app CI/deploy | Low | High | Phase 0 alone; CI + Pages build verified before any engine code lands |
-
-## 7. Definition of done (per phase)
-
-1. Typecheck, unit, stage and golden tests green in CI; app build unaffected.
-2. Benchmark assets for the phase rendered, reviewed (sheet committed under `docs/artgen/sheets/`), scored in
-   the ledger at or above target.
-3. Skill and references updated so a fresh agent can use the new capability.
-4. Short findings note appended if scores or recipes changed.
+| Breadth dilutes quality | High | High | Thin slice first (M1–M5 top-down + iso only); a coverage cell isn't done below 6.5 |
+| "Consistency" judged subjectively | High | Medium | Direction tokens are mandatory in sources (R11); objective conformance checks; anchors shown in every review sheet; reviewer agent scores *against* the direction |
+| Voxel organics stay ~5 | Medium | Medium | `toon` + internal-res outlines + T1 overlay; router falls back to T1/T3 |
+| Plugin packaging/format changes | Medium | Medium | Verify against current docs in P2; smoke test installs into fixtures in CI; CLI usable without the plugin |
+| File System Access is Chromium-only | Certain | Low | Zip import/export fallback; optional `artgen ui` local server |
+| Runtime grows into a game engine | Medium | Medium | Runtime scope = load, select frame, draw via adapter; no physics, scenes or input |
+| resvg vs napi-canvas changes T3 results | Medium | Medium | P1 re-review gate; palette quantize + mode downsample absorb AA differences |
+| Silent stage bugs (E9) | Medium | High | `--stages` dumps; stage tests written before features |
+| Refinement regressions (E8) | High | Low | v(n−1) in every sheet; immutable versions; `bench` in CI |
+| Workspace conversion breaks app CI/deploy | Low | High | P0 isolated; verify CI + Pages before engine code |
 
 ## 8. First step after approval
 
-Phase 0: import artlab as the frozen reference, convert to a workspace, wire CI — one small PR, no behaviour
-change to the app.
+P0: import artlab as the frozen reference, convert to a workspace, wire CI — one small PR, no change to the
+app's behaviour.
