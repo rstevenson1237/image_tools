@@ -36,6 +36,12 @@ jobs:
 
       - run: npm test
 
+      # artgen workspace packages (packages/*). The app steps above and the
+      # Pages deploy don't depend on them, so they run as separate steps.
+      - run: npm run check:packages
+
+      - run: npm run test:packages
+
       # A branch can be type-clean and green on tests and still fail to build.
       # Use the same sub-path the deploy uses so this catches it on the PR.
       - name: Build
