@@ -60,8 +60,8 @@ docs/archive/artgen/             # P8: artlab + planning docs once superseded
 ## 4. Phases
 
 ### P0 — Foundations (S)
-- Import artlab to `docs/artgen/artlab/` (source, findings, reports, the final comparison sheets; no other
-  `out/` renders, no `node_modules`). It stays runnable and unchanged until superseded (D11).
+- artlab is already in `docs/artgen/artlab/` (imported with the planning docs: source, findings, reports, the
+  two final comparison sheets). P0 verifies it runs from there and stays unchanged until superseded (D11).
 - Convert root `package.json` to an npm workspace; empty `packages/*` with tsconfig + vitest; CI runs workspace
   tests; app check/test/build and Pages deploy unchanged.
 - **Accept:** CI green; artlab reproduces its two final comparison sheets from its folder.
@@ -229,7 +229,6 @@ P4 and P5 can run in parallel with P6 once P3 lands.
 | Fixed 3 passes wastes effort on easy assets or is too few on hard ones | Medium | Low | `revisionPasses` is set in the direction; per-pass score data from P1b tells us whether 3 is right |
 | Voxel organics stay ~5 | Medium | Medium | `toon` + internal-res outlines in 3D mode, then the finishing pass; use 2D mode when facings aren't needed |
 | Committed copies drift between game repos | Medium | Low | VERSION + MANIFEST hashes; `update` shows the version change and protects local edits; fixture repos updated in CI |
-| Private repo blocks `npx github:` install in cloud sessions | Medium | Low | Install locally once and commit; or make the dist branch's repo public |
 | Autonomous runs ship weak assets or overspend | Medium | Medium | Gate + reviewer per pass, budget caps, open issues listed on `final`; the user still approves every asset; analytics flags kinds with high revision rates |
 | File System Access is Chromium-only | Certain | Low | Zip import/export fallback; optional `artgen ui` local server |
 | Runtime grows into a game engine | Medium | Medium | Runtime scope = load, select frame, draw via adapter; no physics, scenes or input |

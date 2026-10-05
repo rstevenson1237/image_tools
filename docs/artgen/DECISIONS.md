@@ -75,9 +75,8 @@ CLAUDE.md                                                   # appended "art pipe
 - The same build also publishes the plugin layout, so local users can still `/plugin install` if they prefer.
 
 ### Remaining friction
-- **If this repo is private**, `npx github:…` needs credentials: fine locally with `gh auth`; in a cloud session
-  it depends on GitHub access for this repo. Workaround: run the install locally once and commit. If the repo
-  is public, there's no issue.
+- **Repo visibility:** resolved — the repo is public, so `npx github:…` needs no credentials locally or in
+  cloud sessions (network access to GitHub permitting).
 - Files are copied into each game repo, so updates are a deliberate step per repo (that's also the version pin).
 - Command naming may differ between the committed and plugin forms (`/artgen:…` comes from the plugin
   namespace). Skills are the primary interface; command names get settled in P2.

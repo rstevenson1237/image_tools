@@ -79,8 +79,7 @@ npx -y github:rstevenson1237/image_tools#artgen-dist update   # later: shows ver
 - `tools/artgen/VERSION` pins the version; `MANIFEST.json` stores file hashes so `update` refuses to overwrite
   local edits without `--force`.
 - After install, sessions (local or cloud) need no network or npm: everything comes from the clone.
-- If this repo is private, `npx github:…` needs GitHub credentials (fine locally with `gh auth`); otherwise
-  run the install locally once and commit.
+- The repo is public, so `npx github:…` needs no credentials.
 
 ### 3.2 `artgen init` scaffolds the game repo
 ```
