@@ -1,10 +1,11 @@
 # artgen — Intake
 
-Status: **draft for review, rev 2** · Owner: rstevenson1237 · Date: 2026-10-05
+Status: **draft for review, rev 3** · Owner: rstevenson1237 · Date: 2026-10-05
 Companion docs: [SPEC.md](SPEC.md) (what we build) · [PLAN.md](PLAN.md) (how and in what order)
 
-Rev 2 reframes the effort around four workflows (see §2). The engine work from rev 1 is unchanged in
-substance; it now serves those workflows instead of being the goal.
+Rev 2 reframes the effort around four workflows (see §2). Rev 3 replaces "pick a technique per form" with
+**one generation pipeline** (see §3.1): T2 primitives built out to T3 parity, a procedural second pass, three
+revision passes, one direct-pixel finishing pass, then user-review iterations.
 
 ## 1. Request
 
@@ -40,7 +41,7 @@ whole set consistently, and the UI and Claude Code cooperate through plain files
 
 | # | Finding | Evidence |
 |---|---|---|
-| E1 | **No single technique wins.** Match technique to *form*. | T1 wins small characters (7.5, 7); T3 large hard-surface & leggy organics (7.5, 7.5, 7); T4 boxy iso props (7, first try) |
+| E1 | **No single technique wins.** Match technique to *form*. *(Superseded by §3.1: one pipeline, with T2 brought up to T3.)* | T1 wins small characters (7.5, 7); T3 large hard-surface & leggy organics (7.5, 7.5, 7); T4 boxy iso props (7, first try) |
 | E2 | ≤32 px sprites: hand-authored char-maps (T1) are best and cheapest. | Hero 7 on v1; best points per dollar (1.5) |
 | E3 | Large hard-surface: SVG → 8× supersample → **asset-restricted palette** quantize → majority downsample → 1 px raster outline; outlines as dark underlay shapes, never strokes. | T3 v3 ship/tank 7.5 |
 | E4 | Voxels: best for iso props, multi-state objects, re-rotation; plateau ~5 for small organics. | T4 chest 7 vs hero 5, spider 4.5 |
@@ -53,6 +54,29 @@ whole set consistently, and the UI and Claude Code cooperate through plain files
 | E11 | Cost per asset is low and not the differentiator; review images are ~40% of it. | Report totals |
 | E12 | Backlog: mask templates, 3D→pixel with internal-res outlines, WFC, L-systems, SDF banding, paper-doll + palette swap, normal maps, RotSprite, 8-dir voxel rotation, parametric animation. | FINDINGS "next" |
 
+### 3.1 Technique decision (rev 3)
+
+Owner's conclusion from the findings:
+
+> build out t2 with primitives to bring it comparable with t3 + second pass procedural effects and special use
+> algorithms and then use a three pass revision followed by a single pass of direct pixel
+> manipulation/fixing/effects/lighting/outlining and then further iteration pending user review
+
+What this means for the suite:
+
+| Before (rev 1–2) | Now (rev 3) |
+|---|---|
+| Router picks T1, T2, T3 or T4 per asset by form (E1) | **Every asset uses one pipeline**; T2 is the only authoring technique |
+| T3 (SVG) wins large hard-surface and organic curves | T2 gains what made T3 win: curves (paths), sub-pixel geometry, the supersample → palette-quantize → majority-downsample path, underlay outlines (E3). Target: T2 matches the T3 finals |
+| T1 char-maps are a technique for small sprites | T1 becomes the **finishing pass**: one direct-pixel pass for fixes, pixel effects, lighting touches, outlines and face/emblem patches (the E10 hybrid, made mandatory) |
+| Effects, textures and special algorithms are separate techniques (T5–T7) | They make up the **procedural second pass** layered on the T2 scene (noise/material patterns, L-systems, WFC, mask variation, particles, banded lighting, dither, shadows) |
+| Iterate until the score stops improving | **Fixed cadence**: three reviewed revision passes, keep the best (regression guard for E8), finish once, then iterate only on user feedback |
+| T4 voxels are their own technique | Voxels become T2's **3D mode**: the same primitive and material specs, rendered through the voxel renderers. Still needed for iso props, states, rotations, sprite stacks and FP billboards (E4) |
+
+Why it holds up against the evidence: T2 already had the best reuse story (E5) and shading by material, and
+lost to T3 mainly on curves and the supersampling path. Both can be moved into T2. T1's strength (every pixel is
+a decision) is kept where it pays off most, as a final touch-up rather than as the way an asset is built.
+
 Implication for W1: the findings show **consistency comes from shared constraints** — the restricted palette,
 one outline rule, one light direction, fixed pixel scale — more than from the technique. Those constraints are
 exactly what `direction.json` locks.
@@ -62,8 +86,10 @@ exactly what `direction.json` locks.
 1. **G1 — Portable toolset.** One install step puts skills, CLI and MCP tools into any Claude Code game repo.
 2. **G2 — Art direction as data.** Style, palette, camera/view, scale, outline, lighting, shading and
    proportion rules captured in a versioned file that every render reads and every review checks.
-3. **G3 — Consistent production.** Brief → generate → review → approve → export for the project's asset list,
-   with conformance checks against the direction and a regression benchmark.
+3. **G3 — Consistent production.** Brief → the fixed pipeline (§3.1) → user review → approve → export for the
+   project's asset list, with conformance checks against the direction and a regression benchmark.
+8. **G8 — T2 parity.** The extended T2 ("T2+") matches or beats artlab's best final for every benchmark asset
+   (T1 hero 7.5, T3 ship/tank 7.5, T3 spider 7, T1 isohero 7, T4 chest 7) once the finishing pass is applied.
 4. **G4 — Coverage.** Sprites/props, textures/tiles and effects for top-down, isometric, 2.5D and first-person,
    pixel output from pixel and voxel sources, plus voxel model export.
 5. **G5 — Drop-in runtime.** A small typed component that makes exported assets one line to use in a game.
@@ -74,7 +100,7 @@ exactly what `direction.json` locks.
 ## 5. Non-goals (proposed)
 
 - Diffusion / external generative-image models (keeps output deterministic, licence-clean, palette-exact).
-- A pixel editor (hand edits stay in Aseprite; we import them back as T1 overlays — see SPEC §6.4).
+- A pixel editor (hand edits stay in Aseprite; we import them back as finishing-pass patches — see SPEC §6.5).
 - Non-voxel 3D meshes, painted high-res art, audio, UI kits, fonts (v1).
 - A hosted backend. The UI stays client-side, like the rest of image_tools.
 
@@ -105,6 +131,10 @@ Defaults are what SPEC and PLAN assume. Answer only what you want to change.
 | D9 | First-person target | **Retro raycaster/billboard** assets + `.vox`/glTF export for voxel-world engines | One of them |
 | D10 | Approval authority | **User approves**; Claude's 0–10 score + conformance gate recommend | Auto-approve ≥ threshold |
 | D11 | artlab | **Port to TS; its six assets become the regression benchmark** | Fresh start |
+| D12 | What "three pass revision" counts | **Three reviewed versions (v1, v2, v3)**: the first build plus two revisions, which matches where artlab's gains happened | v1 plus three revisions (v4) |
+| D13 | Where voxels sit | **T2+ 3D mode** (same primitives, voxel renderers) used for iso props, states, rotations, stacks and FP billboards | Drop voxels as a source; keep only `.vox` export |
+| D14 | Old T1/T3/T4 code | **Absorbed**: T1 → finishing-pass `patch`; T3 → T2+ `path` primitive + `ss` raster mode (SVG paths still import, including from the SVG Tracer); T4 → T2+ 3D mode. No separate authoring modes | Keep T3 as a fallback authoring mode |
+| D15 | Finishing on animations | **Global finish ops on every frame + patches on key frames that follow named anchor points** (e.g. `head`) through the other frames | Hand-finish every frame |
 
 ## 8. Assumptions
 
@@ -124,7 +154,9 @@ Defaults are what SPEC and PLAN assume. Answer only what you want to change.
    and an effect, with typed asset ids, in < 20 lines of game code each.
 4. **W4:** The image tools app opens a game's `art/` folder, edits the palette, approves assets, and Claude
    Code sees those changes on its next read. Existing tools unaffected.
-5. Coverage matrix (SPEC §8) filled, each cell with a benchmark asset ≥ 6.5; artlab benchmark ≥ its finals.
+5. **T2 parity (G8):** every artlab benchmark asset rebuilt through the pipeline scores ≥ artlab's best final
+   for that asset, by the end of the third revision plus finishing pass.
+6. Coverage matrix (SPEC §8) filled, each cell with a benchmark asset ≥ 6.5; artlab benchmark ≥ its finals.
 
 ## 10. Risks (details in PLAN §7)
 
