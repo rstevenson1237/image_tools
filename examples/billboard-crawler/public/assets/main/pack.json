@@ -1,12 +1,12 @@
 {
   "format": 1,
   "pack": "main",
-  "generator": "artgen 0.3.0",
+  "generator": "artgen 0.4.0",
   "direction": {
     "id": "hollow-ward",
     "version": 2
   },
-  "runtime": null,
+  "runtime": "1.0.0",
   "atlases": [
     "main-0.png"
   ],

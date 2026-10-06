@@ -200,6 +200,17 @@ docs/archive/artgen/             # P8: artlab + planning docs once superseded
 - **Accept:** each fixture game's art code < 20 lines; typed ids autocomplete; contract tests pass for all three
   adapters; runtime unit tests (frame selection, facing math, autotile masks); core < 8 KB min+gz without
   adapters; a stub fourth adapter can be added without touching the core (proves modularity).
+- **Built 2026-10-06; accepted in this cloud session (headless Chromium, SwiftShader WebGL), local session pending.**
+  `artgen-runtime` 1.0.0: `loadPack` / `createPack` (format + runtime-major check), `ArtSprite` (state × facing × frame,
+  fps, loop, mirror-aware `face` / `faceToward`), param variants + palette swaps (recoloured atlases), `TileSet`
+  (`wang16` / `blob47` resolver, per-cell variants), `EffectPlayer`, iso / oblique helpers + `depthKey`;
+  `RuntimeAdapter` with `pixi`, `three` (billboards, `billboardAngle`, `tileTexture`) and `canvas2d` entry points.
+  Core **3.7 KB** min+gz. One contract suite runs against all three adapters and a stub fourth written only against the
+  public API. `artgen export --runtime` vendors the core + configured adapters into `src/art/runtime/` with a
+  `runtime.json` stamp (upgrade on re-export, local edits kept unless `--force`); packs now carry `runtime: "1.0.0"`; the
+  dist ships the sources in `tools/artgen/runtime/` (0.4.0). Fixture games: swamp-topdown and iso-dungeon (Pixi.js)
+  and billboard-crawler (three.js) play their packs with **11–12 lines of art code** each, typecheck against the typed
+  ids, and render with no console errors. Details: [findings/P4-w3.md](findings/P4-w3.md).
 
 ### P5 — W4: UI in image tools (M–L)
 - Framework: `'artgen'` WorkerKind; `src/core/project/` File System Access store (persisted handle, schema

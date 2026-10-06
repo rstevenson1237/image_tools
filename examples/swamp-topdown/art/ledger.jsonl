@@ -162,3 +162,13 @@
 {"ts":"2026-10-06T13:55:00.276Z","type":"export","asset":"bone-pile","version":"finish.v1","sourceHash":"7b20b9f4d19367d3","pack":"main","direction":{"id":"bogwatch","version":2},"by":"agent"}
 {"ts":"2026-10-06T13:55:00.276Z","type":"export","asset":"mud","version":"finish.v1","sourceHash":"5efe0be28a36bf12","pack":"main","direction":{"id":"bogwatch","version":2},"by":"agent"}
 {"ts":"2026-10-06T13:55:00.276Z","type":"export","asset":"bog-water","version":"finish.v1","sourceHash":"0a9b4829c2d52388","pack":"main","direction":{"id":"bogwatch","version":2},"by":"agent"}
+{"ts":"2026-10-06T19:14:23.004Z","type":"export","asset":"lantern-bearer","version":"finish.v1","sourceHash":"a297c3e7571f5f18","pack":"main","direction":{"id":"bogwatch","version":2},"by":"agent"}
+{"ts":"2026-10-06T19:14:23.004Z","type":"export","asset":"bog-goblin","version":"finish.v2","sourceHash":"f040e2ff273c281a","pack":"main","direction":{"id":"bogwatch","version":2},"by":"agent"}
+{"ts":"2026-10-06T19:14:23.004Z","type":"export","asset":"leech","version":"finish.v1","sourceHash":"345fd496e061f240","pack":"main","direction":{"id":"bogwatch","version":2},"by":"agent"}
+{"ts":"2026-10-06T19:14:23.004Z","type":"export","asset":"wisp","version":"finish.v1","sourceHash":"6a52ceaf59e70b08","pack":"main","direction":{"id":"bogwatch","version":2},"by":"agent"}
+{"ts":"2026-10-06T19:14:23.004Z","type":"export","asset":"sunk-crate","version":"finish.v2","sourceHash":"820fbf5cfee179e6","pack":"main","direction":{"id":"bogwatch","version":2},"by":"agent"}
+{"ts":"2026-10-06T19:14:23.004Z","type":"export","asset":"lantern-post","version":"finish.v1","sourceHash":"6014be27ff114d3f","pack":"main","direction":{"id":"bogwatch","version":2},"by":"agent"}
+{"ts":"2026-10-06T19:14:23.004Z","type":"export","asset":"reeds","version":"finish.v2","sourceHash":"e376545f2df1f67d","pack":"main","direction":{"id":"bogwatch","version":2},"by":"agent"}
+{"ts":"2026-10-06T19:14:23.004Z","type":"export","asset":"bone-pile","version":"finish.v1","sourceHash":"7b20b9f4d19367d3","pack":"main","direction":{"id":"bogwatch","version":2},"by":"agent"}
+{"ts":"2026-10-06T19:14:23.005Z","type":"export","asset":"mud","version":"finish.v1","sourceHash":"5efe0be28a36bf12","pack":"main","direction":{"id":"bogwatch","version":2},"by":"agent"}
+{"ts":"2026-10-06T19:14:23.005Z","type":"export","asset":"bog-water","version":"finish.v1","sourceHash":"0a9b4829c2d52388","pack":"main","direction":{"id":"bogwatch","version":2},"by":"agent"}

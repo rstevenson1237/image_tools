@@ -1,6 +1,6 @@
 ---
 name: asset-production
-description: Produce the game's art assets with artgen (W2) — write briefs into art/briefs.yaml, run every brief through the full pipeline (v1–v3 + finish) autonomously with the art-reviewer subagent and the gate, show the user a gallery of finished assets, handle their approvals and feedback, export atlas packs for the game, and restyle after a direction change. Use when the user asks for sprites, props, tiles or effects for the game, wants to see or approve assets, export them, or change the look of existing assets.
+description: Produce the game's art assets with artgen (W2) — write briefs into art/briefs.yaml, run every brief through the full pipeline (v1–v3 + finish) autonomously with the art-reviewer subagent and the gate, show the user a gallery of finished assets, handle their approvals and feedback, export atlas packs and the W3 runtime (Pixi.js, three.js, Canvas 2D adapters) for the game code, and restyle after a direction change. Use when the user asks for sprites, props, tiles or effects for the game, wants to see or approve assets, export them, wire them into the game, or change the look of existing assets.
 ---
 
 # Asset production (W2)
@@ -82,6 +82,26 @@ user with a short line per asset (score, open issues). `node tools/artgen/artgen
 × variant, fps, loop, anchor, swaps), `<pack>-N.aseprite.json`, and `src/art/assets.ts` with typed ids. Packs choose
 assets with `include` patterns (`*`, `goblin*`, `kind:tile`) or a brief's `pack`. `--include-drafts` adds finished but
 unapproved assets flagged as drafts (for a test build; say so to the user).
+
+**Runtime (W3).** `node tools/artgen/artgen.js export --runtime` also vendors the artgen runtime into `export.runtimeDir`
+(`src/art/runtime/`: the engine-agnostic core + the adapters listed in `artgen.config.json` → `runtime.adapters`:
+`pixi`, `three`, `canvas2d`), stamped in `runtime.json`. Re-running it upgrades the runtime; files the game edited are
+kept and reported — tell the user, and only pass `--force` if they agree to lose those edits. Set the adapter to the
+game's engine before the first `--runtime` export. Game code then needs a handful of lines:
+
+```ts
+import { loadPack } from './art/runtime/index.js';
+import { pixiAdapter } from './art/runtime/adapters/pixi.js';     // or threeAdapter / canvas2dAdapter
+import { Assets, Packs } from './art/assets';
+const pack = await loadPack(Packs.main, pixiAdapter());
+const hero = pack.sprite(Assets.hero, { state: 'walk', parent: stage });   // states / variants are typed
+hero.faceToward(dx, dy).at(x, y, depth).update(dtMs);                      // nearest facing, mirror-aware
+pack.tiles(Assets.floor).node(x, y, { variant, parent });                    // tiles: autotile resolve + variants
+pack.effect(Assets.spark, { parent }).spawn(x, y);                           // effects (update them every frame)
+```
+Iso games use `isoToScreen` / `depthKey` for placement and draw order; three.js billboards use
+`face(billboardAngle(heading, sprite.node, camera))` and `tileTexture(pack, Assets.floor, { repeat })` for surfaces.
+Reference: `tools/artgen/runtime/` (the README-level docs are the comments at the top of each file).
 
 ## 6. Restyle (`/artgen-restyle`)
 After a new direction version is locked (art-direction skill → `direction new` → tile → lock):

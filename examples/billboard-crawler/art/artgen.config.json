@@ -7,7 +7,7 @@
   },
   "runtime": {
     "adapters": [
-      "canvas2d"
+      "three"
     ]
   },
   "packs": {

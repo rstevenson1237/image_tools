@@ -30,6 +30,7 @@ describe('artgen-dist', () => {
       'dist/claude/commands/artgen-init.md', 'dist/claude/commands/artgen-direction.md', 'dist/claude/skills/asset-production/SKILL.md',
       ...['brief', 'make', 'review', 'feedback', 'approve', 'export', 'restyle'].map(c => `dist/claude/commands/artgen-${c}.md`),
       'dist/tools/artgen/templates/topdown/character-walk/base.js', 'plugin/commands/make.md',
+      'dist/tools/artgen/runtime/index.ts', 'dist/tools/artgen/runtime/adapters/pixi.ts', 'dist/tools/artgen/runtime/adapters/three.ts',
       'plugin/.claude-plugin/plugin.json', 'plugin/.mcp.json', 'plugin/commands/direction.md', 'plugin/skills/artgen/SKILL.md', '.claude-plugin/marketplace.json'])
       expect(existsSync(join(OUT, f)), f).toBe(true);
     const skill = readFileSync(join(OUT, 'dist/claude/skills/art-direction/SKILL.md'), 'utf8');
@@ -77,6 +78,16 @@ describe('artgen-dist', () => {
     cli('review', 'wisp'); cli('score', 'wisp', 'base.v1', '6', '--note', 'smoke');
     expect(cli('status')).toMatch(/wisp\s+in-pipeline\s+write-base base\.v2/);
     expect(cli('export', '--include-drafts')).toMatch(/nothing approved to export yet/);
+  });
+
+  test('session-equivalent W3 vendoring from the committed files: export --runtime copies the runtime + adapters, stamped', () => {
+    const r = node(['tools/artgen/artgen.js', 'export', '--runtime', '--json']);
+    expect(r.status, r.stderr).toBe(0);
+    const rt = JSON.parse(r.stdout).runtime;
+    expect(rt).toMatchObject({ dir: 'src/art/runtime', version: '1.0.0', adapters: ['canvas2d'] });
+    expect(rt.written).toEqual(expect.arrayContaining(['pack.ts', 'adapters/canvas2d.ts']));
+    expect(existsSync(join(GAME, 'src/art/runtime/runtime.json'))).toBe(true);
+    expect(existsSync(join(OUT, 'dist/tools/artgen/runtime/testkit.ts')) || existsSync(join(OUT, 'dist/tools/artgen/runtime/runtime.test.ts'))).toBe(false);
   });
 
   test('MCP server from the committed files: initialize, tools/list, a render with an image result', () => {

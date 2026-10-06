@@ -1,0 +1,16 @@
+{
+  "runtime": "1.0.0",
+  "generator": "artgen 0.4.0",
+  "adapters": [
+    "pixi"
+  ],
+  "files": {
+    "autotile.ts": "7febef97eb71f114",
+    "coords.ts": "6a34e7cfdf283cc3",
+    "facing.ts": "463fa7f10eb55902",
+    "index.ts": "55aa72b02819a94c",
+    "pack.ts": "00f438a4c3af431e",
+    "types.ts": "56096900f19e8f96",
+    "adapters/pixi.ts": "541f8c5ee5fc1ac1"
+  }
+}

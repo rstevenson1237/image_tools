@@ -8,7 +8,7 @@
   states: [ idle, walk ]
 - id: bog-goblin
   kind: character
-  swaps: { pale: { skin: cloth } }
+  swaps: { pale: { cloth: skin } }
   priority: 2
   notes: hunched, oversized ears, rusty cleaver, mud-green skin
 - id: leech

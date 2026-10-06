@@ -1,12 +1,32 @@
 {
   "name": "artgen-runtime",
   "private": true,
-  "version": "0.0.0",
-  "description": "artgen W3 runtime core and engine adapters (P4).",
+  "version": "1.0.0",
+  "description": "artgen W3 runtime: loads exported packs (pack.json + atlases), sprite state machine, facing, autotiles, effects, iso/oblique helpers; engine adapters as separate entry points.",
   "type": "module",
-  "exports": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./canvas2d": "./src/adapters/canvas2d.ts",
+    "./pixi": "./src/adapters/pixi.ts",
+    "./three": "./src/adapters/three.ts"
+  },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run"
+  },
+  "peerDependencies": {
+    "pixi.js": ">=8",
+    "three": ">=0.160"
+  },
+  "peerDependenciesMeta": {
+    "pixi.js": { "optional": true },
+    "three": { "optional": true }
+  },
+  "devDependencies": {
+    "@types/three": "^0.186.0",
+    "artgen-core": "0.0.0",
+    "esbuild": "^0.25.12",
+    "pixi.js": "^8.22.0",
+    "three": "^0.186.1"
   }
 }

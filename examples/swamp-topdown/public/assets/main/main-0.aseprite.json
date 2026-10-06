@@ -1345,7 +1345,7 @@
   ],
   "meta": {
     "app": "artgen",
-    "version": "artgen 0.3.0",
+    "version": "artgen 0.4.0",
     "image": "main-0.png",
     "format": "RGBA8888",
     "size": {

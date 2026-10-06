@@ -1,21 +1,30 @@
 // The fixture game repos (examples/, PLAN §1) as W1 + W2 acceptance evidence: each went from a pitch to a locked direction
 // through the committed install (P2), then produced a 10-asset brief, took user feedback, restyled to direction v2 and
-// exported a pack (P3). Checks that the record is complete, that the anchors re-render exactly from the
+// exported a pack (P3), then became a small game that plays the pack through the vendored runtime (P4). Checks that the
+// record is complete, that the anchors re-render exactly from the
 // committed probe sources, and that the installed toolset matches the current distribution (fixtures are updated
 // with `npm run fixtures:install` whenever the distribution changes).
+import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { createRequire } from 'node:module';
 import { existsSync, mkdtempSync, readdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, test } from 'vitest';
 import { decodePNG, parseLedger, restyleDiff, type PackManifest } from 'artgen-core';
-import { candidateNames, directionVersion, lockedDirection, openAsset, projectStatus, readBriefs, readJson, renderProbes, renderVersion, type Project } from 'artgen-cli';
+import {
+  candidateNames, directionVersion, lockedDirection, openAsset, projectConfig, projectStatus, readBriefs, readJson, renderProbes, renderVersion,
+  runtimeFiles, vendoredSource, type Project, type RuntimeStamp,
+} from 'artgen-cli';
+import { RUNTIME_VERSION } from 'artgen-runtime';
 import { buildDist } from '../build.mjs';
 import { distFiles } from '../src/install.mjs';
 
 const EXAMPLES = fileURLToPath(new URL('../../../examples/', import.meta.url));
 const FIXTURES = ['swamp-topdown', 'iso-dungeon', 'billboard-crawler'];
+const ENGINE: Record<string, string> = { 'swamp-topdown': 'pixi', 'iso-dungeon': 'pixi', 'billboard-crawler': 'three' };
+const TSC = createRequire(import.meta.url).resolve('typescript/bin/tsc');
 const GENERATED = new Set(['tools/artgen/artgen.js', 'tools/artgen/artgen-mcp.js', 'tools/artgen/resvg.wasm']);
 const sha = (b: Buffer) => createHash('sha256').update(b).digest('hex').slice(0, 16);
 let dist = '';
@@ -96,6 +105,38 @@ describe.each(FIXTURES)('fixture %s', name => {
     const ts = readFileSync(join(root, 'src/art/assets.ts'), 'utf8');
     for (const id of Object.keys(pack.assets)) expect(ts).toContain(`id: "${id}"`);
   }, 120_000);
+
+  test('W3 game (PLAN P4): the art code is < 20 lines, all inside the `art` blocks', () => {
+    let inArt = false, art = 0;
+    const outside: string[] = [];
+    for (const line of readFileSync(join(root, 'src/main.ts'), 'utf8').split('\n')) {
+      const t = line.trim();
+      if (t === '// art' || t === '// /art') { inArt = t === '// art'; continue; }
+      if (!t || t.startsWith('//')) continue;
+      if (inArt) art++;
+      // scene layout tables may name assets by their typed id (`keyof typeof Assets`); anything else is art code
+      else if (/\b(Assets|Packs|pack|loadPack)\b|art\/runtime/.test(t.replace(/keyof typeof Assets/g, ''))) outside.push(t);
+    }
+    expect(art).toBeGreaterThan(5);
+    expect(art).toBeLessThan(20);
+    expect(outside).toEqual([]);
+  });
+
+  test('W3 game typechecks against its engine, the vendored runtime and the typed ids', () => {
+    const r = spawnSync(process.execPath, [TSC, '-p', join(root, 'tsconfig.json')], { encoding: 'utf8' });
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+  }, 120_000);
+
+  test('W3 vendoring: the runtime + configured adapter in src/art/runtime match this runtime version; the pack names it', () => {
+    const cfg = projectConfig(p), dir = join(root, cfg.export.runtimeDir), stamp = readJson<RuntimeStamp>(join(dir, 'runtime.json'));
+    expect(cfg.runtime.adapters).toEqual([ENGINE[name]]);
+    expect(stamp).toMatchObject({ runtime: RUNTIME_VERSION, adapters: [ENGINE[name]] });
+    const files = runtimeFiles(stamp.adapters);
+    expect(Object.keys(stamp.files).sort()).toEqual([...files].sort());
+    const stale = files.filter(f => readFileSync(join(dir, f), 'utf8') !== vendoredSource(f));
+    expect(stale, 're-run `node tools/artgen/artgen.js export --runtime` in the fixture').toEqual([]);
+    expect(readJson<PackManifest>(join(root, 'public/assets/main/pack.json')).runtime).toBe(RUNTIME_VERSION);
+  });
 
   test('the installed toolset matches the current distribution', () => {
     const stale: string[] = [];

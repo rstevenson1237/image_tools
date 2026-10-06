@@ -34,7 +34,9 @@
  *   artgen gallery [ids]                            sheet of finished assets for the user (score, open issues)
  *   artgen feedback <id> --route base|finish --note "…" [--region x,y,w,h] [--cell state/facing/frame]
  *   artgen approve <id> [--note "…"]                user approval (R6: passing gate + review sheet)
- *   artgen export [--pack name] [--include-drafts]  atlases + pack.json + Aseprite JSON + assets.ts
+ *   artgen export [--pack name] [--include-drafts] [--runtime [--force]]
+ *                                                   atlases + pack.json + Aseprite JSON + assets.ts; --runtime vendors the W3
+ *                                                   runtime + adapters (artgen.config.json `runtime.adapters`) into runtimeDir
  *   artgen restyle [--from N]                       re-render finished assets under the new direction + diff sheet
  *   artgen import-edit <id> <edited.png> [--cell state/facing/frame]   hand edit → next finish.vM.js
  *   artgen analytics [--out file.md]                per-pass gains, cost per asset, budget suggestions
@@ -99,7 +101,7 @@ const USAGE = `usage: artgen init
        artgen brief list | rm <id>
        artgen make [ids|all] | status [ids] | gallery [ids]
        artgen feedback <id> --route base|finish --note "..." [--region x,y,w,h] [--cell s/f/n] | approve <id> [--note "..."]
-       artgen export [--pack name] [--include-drafts] | restyle [--from N] | import-edit <id> <png> [--cell s/f/n]
+       artgen export [--pack name] [--include-drafts] [--runtime [--force]] | restyle [--from N] | import-edit <id> <png> [--cell s/f/n]
        artgen analytics [--out file.md]
        artgen bench [--direction benchmark|alt|<file>] [--out <dir>] [--stages] [--ledger <file>] [--update-golden]
        artgen --version`;
@@ -335,8 +337,17 @@ export async function main(argv: string[]): Promise<number> {
     return 0;
   }
   if (cmd === 'export') {
-    const r = await exportPacks(requireProject(flag(args, '--root')), { packs: list(args, '--pack'), includeDrafts: args.includes('--include-drafts'), generator: `artgen ${VERSION}` });
-    print([...r.packs.map(x => `pack ${x.pack}: ${x.assets.length} assets → ${x.atlases.join(', ')} + ${x.dir}/pack.json${x.drafts.length ? ` (drafts: ${x.drafts.join(', ')})` : ''}`), r.assetsTs ? `typed ids: ${r.assetsTs}` : 'nothing approved to export yet', ...(r.skipped.length ? [`not exported: ${r.skipped.map(s => `${s.id} (${s.status})`).join(', ')}`] : [])].join('\n'), r);
+    const r = await exportPacks(requireProject(flag(args, '--root')), { packs: list(args, '--pack'), includeDrafts: args.includes('--include-drafts'), generator: `artgen ${VERSION}`, runtime: args.includes('--runtime'), force: args.includes('--force') });
+    const rt = r.runtime;
+    print([
+      ...r.packs.map(x => `pack ${x.pack}: ${x.assets.length} assets → ${x.atlases.join(', ')} + ${x.dir}/pack.json${x.drafts.length ? ` (drafts: ${x.drafts.join(', ')})` : ''}`),
+      r.assetsTs ? `typed ids: ${r.assetsTs}` : 'nothing approved to export yet',
+      ...(r.skipped.length ? [`not exported: ${r.skipped.map(s => `${s.id} (${s.status})`).join(', ')}`] : []),
+      ...(rt ? [
+        `runtime ${rt.from && rt.from !== rt.version ? `${rt.from} → ` : ''}${rt.version} (${rt.adapters.join(', ')}) in ${rt.dir}: ${rt.written.length} written, ${rt.unchanged.length} unchanged${rt.removed.length ? `, ${rt.removed.length} removed` : ''}`,
+        ...(rt.kept.length ? [`kept locally edited runtime files (re-run with --force to overwrite): ${rt.kept.join(', ')}`] : []),
+      ] : []),
+    ].join('\n'), r);
     return 0;
   }
   if (cmd === 'restyle') {

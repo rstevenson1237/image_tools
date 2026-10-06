@@ -1,11 +1,11 @@
 {
-  "version": "0.3.0",
+  "version": "0.4.0",
   "files": {
     ".claude/agents/art-reviewer.md": "2da590b1be0a3b56",
     ".claude/commands/artgen-approve.md": "acd455a2d4a7b631",
     ".claude/commands/artgen-brief.md": "b466df003b9bae40",
     ".claude/commands/artgen-direction.md": "0da0d55f4db33896",
-    ".claude/commands/artgen-export.md": "dc71e6bcb500e94e",
+    ".claude/commands/artgen-export.md": "b01c930f5cefdc34",
     ".claude/commands/artgen-feedback.md": "cee94dd049697086",
     ".claude/commands/artgen-init.md": "588c91dd180debef",
     ".claude/commands/artgen-make.md": "c85cfd1f6770ad83",
@@ -17,12 +17,21 @@
     ".claude/skills/artgen/references/finishing.md": "664555d7e9be5be3",
     ".claude/skills/artgen/references/review.md": "c8cbbaf5c38b938e",
     ".claude/skills/artgen/references/t2.md": "30aae7fb64c025d3",
-    ".claude/skills/asset-production/SKILL.md": "ae028e2b0fe714e1",
-    "tools/artgen/VERSION": "d915cc95d6ca8f47",
-    "tools/artgen/artgen-mcp.js": "1e71c5489676c36c",
-    "tools/artgen/artgen.js": "925a6a2ec21f3db4",
-    "tools/artgen/package.json": "01b29c77ddd004e5",
+    ".claude/skills/asset-production/SKILL.md": "4ad6e1f89d424edf",
+    "tools/artgen/VERSION": "40b8eb4000a913a7",
+    "tools/artgen/artgen-mcp.js": "8051351b34f15ea4",
+    "tools/artgen/artgen.js": "d13443835f8835ac",
+    "tools/artgen/package.json": "349047185ed77ca0",
     "tools/artgen/resvg.wasm": "22bf6e9f9a100d97",
+    "tools/artgen/runtime/adapters/canvas2d.ts": "1f822373309cf0a5",
+    "tools/artgen/runtime/adapters/pixi.ts": "1cf4984b7ceda419",
+    "tools/artgen/runtime/adapters/three.ts": "2c5aaac9b4f46098",
+    "tools/artgen/runtime/autotile.ts": "b7412bb50a610ffc",
+    "tools/artgen/runtime/coords.ts": "83fc5d9a61b5fbcb",
+    "tools/artgen/runtime/facing.ts": "6a2df4af217f124b",
+    "tools/artgen/runtime/index.ts": "bdbef8a35bd4ec5a",
+    "tools/artgen/runtime/pack.ts": "4af09314e7378e8b",
+    "tools/artgen/runtime/types.ts": "78876db276c69363",
     "tools/artgen/templates/README.md": "f4f326b39f38419a",
     "tools/artgen/templates/finish.js": "781dcb542035693f",
     "tools/artgen/templates/iso/character/base.js": "23e8f32f61536c12",
@@ -44,5 +53,5 @@
     "tools/artgen/templates/topdown/tile/base.js": "d03869fc43501aad",
     "tools/artgen/templates/topdown/tile/brief.json": "54ca0954bc3873b6"
   },
-  "claudeMd": "e44ba5312fe8fd30"
+  "claudeMd": "fcda194eaeaa2f3b"
 }
