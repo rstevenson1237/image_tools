@@ -11,7 +11,8 @@ everything else. CLI: `{{ARTGEN}}`.
 
 ## 0. Check the project
 `{{ARTGEN}} direction show`. No `art/` yet → `{{ARTGEN}} init`. A locked direction already exists → this is a
-**direction change**: `{{ARTGEN}} direction new` starts a draft from it (restyling assets arrives with P3's `restyle`).
+**direction change**: `{{ARTGEN}} direction new` starts a draft from it; after locking the new version, run
+`{{ARTGEN}} restyle` (asset-production skill §6) so finished assets are re-rendered and shown to the user again.
 
 ## 1. Interview (ask in one message, accept short answers, fill gaps with sensible defaults)
 - the one-paragraph **pitch** (genre, setting, player fantasy)

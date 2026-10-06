@@ -13,7 +13,7 @@ import {
   projectStatus, scoreVersion, versionsIn, writeTile, type Project,
 } from 'artgen-cli';
 
-export const SERVER = { name: 'artgen', version: '0.2.0' };
+export const SERVER = { name: 'artgen', version: '0.3.0' };
 const PROTOCOLS = ['2025-06-18', '2025-03-26', '2024-11-05'];
 
 type Json = Record<string, unknown>;

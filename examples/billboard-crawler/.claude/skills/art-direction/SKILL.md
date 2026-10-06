@@ -11,7 +11,8 @@ everything else. CLI: `node tools/artgen/artgen.js`.
 
 ## 0. Check the project
 `node tools/artgen/artgen.js direction show`. No `art/` yet → `node tools/artgen/artgen.js init`. A locked direction already exists → this is a
-**direction change**: `node tools/artgen/artgen.js direction new` starts a draft from it (restyling assets arrives with P3's `restyle`).
+**direction change**: `node tools/artgen/artgen.js direction new` starts a draft from it; after locking the new version, run
+`node tools/artgen/artgen.js restyle` (asset-production skill §6) so finished assets are re-rendered and shown to the user again.
 
 ## 1. Interview (ask in one message, accept short answers, fill gaps with sensible defaults)
 - the one-paragraph **pitch** (genre, setting, player fantasy)

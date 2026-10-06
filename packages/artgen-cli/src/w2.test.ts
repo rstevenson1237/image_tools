@@ -59,7 +59,7 @@ describe('W2 production in a scratch game repo', () => {
     const m = await json('make', ...R);
     expect(m.scaffolded).toEqual(['art/assets/prop/crate/base.v1.js', 'art/assets/character/goblin/base.v1.js']);
     expect(m.next).toMatchObject({ id: 'crate', step: { action: 'review', version: 'base.v1' } });
-    expect(readJson<{ template: string }>(art('assets', 'character', 'goblin', 'brief.json')).template).toBe('topdown/character');
+    expect(readJson<{ template: string }>(art('assets', 'character', 'goblin', 'brief.json')).template).toBe('topdown/character-walk');
     expect((await json('status', ...R)).map((r: { status: string }) => r.status)).toEqual(['in-pipeline', 'in-pipeline']);
   });
 
