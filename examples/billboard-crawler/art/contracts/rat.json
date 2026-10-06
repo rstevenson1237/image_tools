@@ -1,0 +1,18 @@
+{
+  "format": 1,
+  "asset": "rat",
+  "facings": [
+    "s"
+  ],
+  "states": {
+    "idle": {
+      "frames": 2,
+      "durations": [
+        125,
+        125
+      ],
+      "loop": true
+    }
+  },
+  "anchors": []
+}

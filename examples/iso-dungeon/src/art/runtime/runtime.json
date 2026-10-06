@@ -1,16 +1,16 @@
 {
-  "runtime": "1.0.0",
-  "generator": "artgen 0.4.0",
+  "runtime": "1.1.0",
+  "generator": "artgen 0.5.0",
   "adapters": [
     "pixi"
   ],
   "files": {
-    "autotile.ts": "7febef97eb71f114",
-    "coords.ts": "6a34e7cfdf283cc3",
-    "facing.ts": "463fa7f10eb55902",
-    "index.ts": "55aa72b02819a94c",
-    "pack.ts": "00f438a4c3af431e",
-    "types.ts": "56096900f19e8f96",
-    "adapters/pixi.ts": "541f8c5ee5fc1ac1"
+    "autotile.ts": "b6ffa5e070bbd4c5",
+    "coords.ts": "aca9a16af0b6cbd3",
+    "facing.ts": "80d9ef73f55b0883",
+    "index.ts": "2e7f9ca4b9b654ab",
+    "pack.ts": "fb1b60a399c5243b",
+    "types.ts": "3855903314d0b20c",
+    "adapters/pixi.ts": "178b7f2a2608ba97"
   }
 }

@@ -13,22 +13,34 @@ export const params = {
 
 const YAW = { s: 0, se: 45, e: 90, ne: 135, n: 180, sw: -45, w: -90, nw: -135 };
 
-export function render(ctx) {
-  const { pal } = ctx.dir, P = ctx.params, [w, h] = ctx.size, s = ctx.lib.t2.scene(w, h);
-  const yaw = (YAW[ctx.facing] ?? 0) * Math.PI / 180, sx = Math.sin(yaw), front = Math.cos(yaw), side = Math.abs(sx);
+// Geometry shared by render() and anchors() (facing, walk phase and bob included), so the face and hand anchors sit
+// exactly on the drawn pixels in every cell.
+function layout(ctx) {
+  const [w, h] = ctx.size, yaw = (YAW[ctx.facing] ?? 0) * Math.PI / 180, sx = Math.sin(yaw), front = Math.cos(yaw), side = Math.abs(sx);
   const hr = ctx.dir.scale.proportions?.headRatio ?? 0.4, cx = w / 2, X = v => (v * w) / 32;
   const walk = ctx.state === 'walk', ph = ctx.t * Math.PI * 2, swing = walk ? Math.sin(ph) : 0;
   const bob = walk && Math.abs(Math.cos(ph)) > 0.7 ? -1 : 0;
   const top = h * 0.06 + bob, headH = h * hr * 0.92, headW = Math.min(w * 0.62, headH * 1.2) * (1 - 0.12 * side);
   const neck = top + headH * 0.92, foot = h * 0.95, legH = (foot - neck - bob) * 0.32, hip = foot - legH + bob;
-  const bodyW = Math.max(X(8), headW * 0.82) * (1 - 0.3 * side), cloth = pal[P.cloth];
+  const bodyW = Math.max(X(8), headW * 0.82) * (1 - 0.3 * side);
   const profile = side > 0.9, legW = bodyW * (profile ? 0.42 : 0.3);
+  const hand = cx + (profile ? sx * (headW / 2 + X(1.5)) : -(bodyW / 2 + X(3)) * front);
+  const fx = sx * headW * 0.24, fw = headW * (0.72 - 0.3 * side);
+  // the face is seen from the front and in profile, not from behind; eyes on whole pixels (the finish repaints them)
+  const showFace = front > -0.3, ey = Math.round(top + headH * 0.52), eh = Math.max(1, Math.round(X(2)));
+  const eyes = !showFace ? [] : (profile ? [cx + fx + fw * 0.15] : [cx + fx - fw * 0.28, cx + fx + fw * 0.2]).map(Math.round);
+  const mouth = showFace ? [Math.round(profile ? cx + fx + Math.sign(sx) * fw * 0.3 : cx + fx - 0.5), ey + eh] : null;
+  return { w, h, sx, front, side, cx, X, swing, top, headH, headW, neck, foot, legH, hip, bodyW, profile, legW, hand, fx, fw, showFace, eyes, ey, eh, mouth };
+}
+
+export function render(ctx) {
+  const { pal } = ctx.dir, P = ctx.params, s = ctx.lib.t2.scene(...ctx.size);
+  const { sx, front, cx, X, swing, top, headH, headW, neck, foot, legH, hip, bodyW, profile, legW, hand, fx, fw, showFace, eyes, ey, eh } = layout(ctx), cloth = pal[P.cloth];
   // legs: side-by-side lift facing the viewer or away; a stride in profile
   const legs = profile
     ? [-1, 1].map(k => ({ type: 'rect', x: cx - legW / 2 + k * swing * X(2.5), y: hip - 0.5, w: legW, h: legH + 0.5 - (k * swing > 0.3 ? 1 : 0) }))
     : [-1, 1].map(k => ({ type: 'rect', x: cx + (k < 0 ? -bodyW * 0.36 : bodyW * 0.06) + sx * X(1), y: hip - 0.5, w: legW, h: legH + 0.5 - (k * swing > 0.3 ? 1 : 0) }));
   s.add({ type: 'group', name: 'legs', underlay: true, mat: pal.leather, shade: 'bevel', children: legs });
-  const hand = cx + (profile ? sx * (headW / 2 + X(1.5)) : -(bodyW / 2 + X(3)) * front);
   const item = () => {
     if (P.item === 'blade') s.add({ type: 'group', name: 'blade', underlay: true, children: [
       { type: 'path', d: `M${hand - X(1)} ${hip} V${neck - X(4)} L${hand} ${neck - X(6)} L${hand + X(1)} ${neck - X(4)} V${hip} Z`, mat: pal.metal, shade: 'bevel' },
@@ -52,21 +64,22 @@ export function render(ctx) {
   ] });
   if (profile) s.add(arm(bodyW / 2 + X(1), -swing * X(2) * Math.sign(sx)));
   else s.add({ ...arm(0, 0), mirrorX: cx });
-  const hx = cx - headW / 2, hy = top, fx = sx * headW * 0.24, fw = headW * (0.72 - 0.3 * side);
+  const hy = top;
   s.add({ type: 'group', name: 'head', underlay: true, children: [
     { type: 'ellipse', name: 'hair', cx, cy: hy + headH * 0.48, rx: headW / 2, ry: headH * 0.5, mat: pal.hair, shade: 'sphere' },
-    ...(front > -0.3 ? [{ type: 'path', name: 'face', d: `M${cx + fx - fw / 2} ${hy + headH * 0.45} Q${cx + fx} ${hy + headH * 0.25} ${cx + fx + fw / 2} ${hy + headH * 0.45} V${hy + headH * 0.72} Q${cx + fx} ${hy + headH * 1.02} ${cx + fx - fw / 2} ${hy + headH * 0.72} Z`, mat: pal.skin, shade: 'normal', round: X(2) }] : []),
+    ...(showFace ? [{ type: 'path', name: 'face', d: `M${cx + fx - fw / 2} ${hy + headH * 0.45} Q${cx + fx} ${hy + headH * 0.25} ${cx + fx + fw / 2} ${hy + headH * 0.45} V${hy + headH * 0.72} Q${cx + fx} ${hy + headH * 1.02} ${cx + fx - fw / 2} ${hy + headH * 0.72} Z`, mat: pal.skin, shade: 'normal', round: X(2) }] : []),
     ...(P.hood ? [{ type: 'ellipse', name: 'hood', cx: cx - fx * 0.5, cy: hy + headH * 0.42, rx: headW / 2 + X(1), ry: headH * 0.48, mat: cloth, shade: 'sphere' }] : []),
   ] });
-  if (front > -0.3) {
-    const eyes = profile ? [cx + fx + fw * 0.15] : [cx + fx - fw * 0.28, cx + fx + fw * 0.2];
-    for (const ex of eyes) s.add({ type: 'rect', name: 'eye', x: Math.round(ex), y: hy + headH * 0.52, w: 1, h: Math.max(1, X(2)), color: 'outline' });
-  }
+  for (const ex of eyes) s.add({ type: 'rect', name: 'eye', x: ex, y: ey, w: 1, h: eh, color: 'outline' });
   if (front >= -0.2) item();
   return ctx.lib.proc(s).add('materialNoise', { part: 'torso', amount: 0.15 }).render();
 }
 
+// Named points per frame: the finishing pass paints the face at eye/eye2/mouth (only where the face is visible);
+// `hand` is exported in pack.json so effects and held props follow it in game (sprite.anchor('hand')).
 export const anchors = ctx => {
-  const yaw = (YAW[ctx.facing] ?? 0) * Math.PI / 180, hr = ctx.dir.scale.proportions?.headRatio ?? 0.4, [w, h] = ctx.size;
-  return { head: [Math.round(w / 2 + Math.sin(yaw) * w * 0.08), Math.round(h * 0.06 + h * hr * 0.5)] };
+  const L = layout(ctx), a = { head: [Math.round(L.cx + L.sx * L.w * 0.08), Math.round(L.top + L.headH * 0.5)], hand: [Math.round(L.hand), Math.round(L.hip)] };
+  L.eyes.forEach((x, i) => { a[i ? 'eye2' : 'eye'] = [x, L.ey]; });
+  if (L.mouth) a.mouth = L.mouth;
+  return a;
 };

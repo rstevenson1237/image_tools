@@ -1,0 +1,19 @@
+{
+  "format": 1,
+  "asset": "bog-goblin",
+  "facings": [
+    "s"
+  ],
+  "states": {
+    "idle": {
+      "frames": 1,
+      "durations": [
+        125
+      ],
+      "loop": true
+    }
+  },
+  "anchors": [
+    "head"
+  ]
+}

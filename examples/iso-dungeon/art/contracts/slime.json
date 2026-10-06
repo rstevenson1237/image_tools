@@ -1,0 +1,20 @@
+{
+  "format": 1,
+  "asset": "slime",
+  "facings": [
+    "s"
+  ],
+  "states": {
+    "idle": {
+      "frames": 4,
+      "durations": [
+        125,
+        125,
+        125,
+        125
+      ],
+      "loop": true
+    }
+  },
+  "anchors": []
+}

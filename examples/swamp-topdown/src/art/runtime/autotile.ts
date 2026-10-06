@@ -1,4 +1,4 @@
-// Vendored by `artgen export --runtime` (artgen-runtime 1.0.0). Local edits are detected and kept;
+// Vendored by `artgen export --runtime` (artgen-runtime 1.1.0). Local edits are detected and kept;
 // re-export with --force to overwrite them. Source: packages/artgen-runtime in rstevenson1237/image_tools.
 /**
  * Autotile resolver (16 and 47). Neighbour masks are 8-bit, clockwise from north: N=1, NE=2, E=4, SE=8, S=16, SW=32,

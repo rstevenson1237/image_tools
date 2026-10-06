@@ -26,6 +26,16 @@ Kinds: `character creature prop tile tileset texture effect viewmodel ui-icon`. 
 `WxH`. `--swaps red:cloth=accent` adds a palette-swap variant (ramp → ramp, exported for the runtime). `--importance
 hero|standard|filler` picks the pass budget tier. Editing `briefs.yaml` by hand is fine; the CLI validates it.
 
+**Timing.** `--durations attack=80/80/200/80` sets milliseconds per frame (one per frame in `--anims`) and overrides
+the state's fps. Give every attack a held contact frame (≥ 2× the others): without it the hit slides instead of
+landing. Attacks need at least anticipation, contact, follow-through and recovery — 4 frames, not 3.
+
+**Animation contract.** The first export of an asset freezes `art/contracts/<id>.json`: state names, logical frame
+counts, per-frame durations, loop, facings and anchor names — what game code indexes. Later versions may redraw every
+pixel but not change that: `brief add` refuses an edit that breaks it, and `export` refuses to write anything. Adding a
+state, facing or anchor just extends the contract. Only pass `--break-contract` (brief) / `--break-contract <id>`
+(export) when the user says the game code has been updated for the change — ask them first.
+
 ## 2. The autonomous run (`/artgen-make`)
 Loop until `make` says nothing is left — **do not stop to ask the user** between steps:
 ```
@@ -79,7 +89,9 @@ user with a short line per asset (score, open issues). `node tools/artgen/artgen
 ## 5. Export (`/artgen-export`)
 `node tools/artgen/artgen.js export [--pack main]` packs every **approved** asset into the paths in `artgen.config.json`:
 `<packDir>/<pack>/<pack>-N.png` atlases (MaxRects), `pack.json` (artgen's manifest: frames per state × facing × frame
-× variant, fps, loop, anchor, swaps), `<pack>-N.aseprite.json`, and `src/art/assets.ts` with typed ids. Packs choose
+× variant, fps or per-frame durations, loop, anchor, swaps, and per-frame named anchors), `<pack>-N.aseprite.json`, and
+`src/art/assets.ts` with typed ids (states, variants, anchor names). It checks and records each asset's animation
+contract (§1) and lists `contract <id>: created | extended | broken`. Packs choose
 assets with `include` patterns (`*`, `goblin*`, `kind:tile`) or a brief's `pack`. `--include-drafts` adds finished but
 unapproved assets flagged as drafts (for a test build; say so to the user).
 
@@ -98,6 +110,8 @@ const hero = pack.sprite(Assets.hero, { state: 'walk', parent: stage });   // st
 hero.faceToward(dx, dy).at(x, y, depth).update(dtMs);                      // nearest facing, mirror-aware
 pack.tiles(Assets.floor).node(x, y, { variant, parent });                    // tiles: autotile resolve + variants
 pack.effect(Assets.spark, { parent }).spawn(x, y);                           // effects (update them every frame)
+const h = hero.anchor('hand');                                               // this frame's hand, relative to the sprite
+if (h) sparks.spawn(x + h.x * scale, y + h.y * scale);                       // VFX and held props follow the drawing
 ```
 Iso games use `isoToScreen` / `depthKey` for placement and draw order; three.js billboards use
 `face(billboardAngle(heading, sprite.node, camera))` and `tileTexture(pack, Assets.floor, { repeat })` for surfaces.

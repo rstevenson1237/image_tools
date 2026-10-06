@@ -1,0 +1,19 @@
+{
+  "format": 1,
+  "asset": "lantern-post",
+  "facings": [
+    "s"
+  ],
+  "states": {
+    "idle": {
+      "frames": 1,
+      "durations": [
+        125
+      ],
+      "loop": true
+    }
+  },
+  "anchors": [
+    "flame"
+  ]
+}

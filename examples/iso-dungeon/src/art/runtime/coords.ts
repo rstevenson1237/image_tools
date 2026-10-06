@@ -1,4 +1,4 @@
-// Vendored by `artgen export --runtime` (artgen-runtime 1.0.0). Local edits are detected and kept;
+// Vendored by `artgen export --runtime` (artgen-runtime 1.1.0). Local edits are detected and kept;
 // re-export with --force to overwrite them. Source: packages/artgen-runtime in rstevenson1237/image_tools.
 /**
  * Iso and oblique coordinate helpers. World coordinates are in tiles (x, y on the ground, z up in pixels); screen

@@ -7,7 +7,8 @@
 /** One exported frame: [atlas, x, y, w, h, facing index, state, frame, variant]. */
 export type PackFrame = [number, number, number, number, number, number, string, number, number];
 
-export interface PackStateDef { frames: number; fps: number; loop: boolean }
+/** Playback of one state; `durations` (ms per frame, e.g. a held contact frame) overrides `fps` when present. */
+export interface PackStateDef { frames: number; fps: number; loop: boolean; durations?: number[] }
 
 export interface PackAsset {
   kind: string;
@@ -19,6 +20,8 @@ export interface PackAsset {
   facings: string[];
   states: Record<string, PackStateDef>;
   frames: PackFrame[];
+  /** Named points (hand, head, weapon tip…) in frame pixels, one entry per `frames` entry, null where a frame lacks it. */
+  anchors?: Record<string, ([number, number] | null)[]>;
   /** Param variants (`base`, `v1`, …) first, then palette swaps (keys of `swaps`). */
   variants: string[];
   /** Palette swap variants: hex → hex over the base frames. */
@@ -85,7 +88,8 @@ export interface RuntimeAdapter<Tex = unknown, Node = unknown, Parent = unknown>
 export type AssetRef = string | { readonly id: string };
 
 /** An entry of the generated `assets.ts`, used to type states and variants. */
-export interface AssetInfo { readonly id: string; readonly states: readonly string[]; readonly variants: readonly string[] }
+export interface AssetInfo { readonly id: string; readonly states: readonly string[]; readonly variants: readonly string[]; readonly anchors?: readonly string[] }
 
 export type StateOf<A> = A extends { readonly states: readonly (infer S)[] } ? S & string : string;
 export type VariantOf<A> = A extends { readonly variants: readonly (infer V)[] } ? V & string : string;
+export type AnchorOf<A> = A extends { readonly anchors: readonly (infer N)[] } ? N & string : string;

@@ -1,0 +1,24 @@
+{
+  "format": 1,
+  "asset": "chest",
+  "facings": [
+    "s"
+  ],
+  "states": {
+    "closed": {
+      "frames": 1,
+      "durations": [
+        125
+      ],
+      "loop": true
+    },
+    "open": {
+      "frames": 1,
+      "durations": [
+        125
+      ],
+      "loop": true
+    }
+  },
+  "anchors": []
+}

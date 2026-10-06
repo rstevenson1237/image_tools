@@ -1,0 +1,36 @@
+{
+  "format": 1,
+  "asset": "hero",
+  "facings": [
+    "s",
+    "sw",
+    "w",
+    "nw",
+    "n",
+    "ne",
+    "e",
+    "se"
+  ],
+  "states": {
+    "idle": {
+      "frames": 1,
+      "durations": [
+        125
+      ],
+      "loop": true
+    },
+    "walk": {
+      "frames": 4,
+      "durations": [
+        125,
+        125,
+        125,
+        125
+      ],
+      "loop": true
+    }
+  },
+  "anchors": [
+    "head"
+  ]
+}

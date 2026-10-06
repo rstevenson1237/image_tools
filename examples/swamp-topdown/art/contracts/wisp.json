@@ -1,0 +1,22 @@
+{
+  "format": 1,
+  "asset": "wisp",
+  "facings": [
+    "s"
+  ],
+  "states": {
+    "idle": {
+      "frames": 6,
+      "durations": [
+        83,
+        83,
+        83,
+        83,
+        83,
+        83
+      ],
+      "loop": false
+    }
+  },
+  "anchors": []
+}
