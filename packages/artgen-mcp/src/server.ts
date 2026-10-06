@@ -94,13 +94,13 @@ export const TOOLS: ToolDef[] = [
     async run(a, p) {
       const s = a.score as number;
       if (!(s >= 0 && s <= 10)) throw new Error('score must be 0-10');
-      return [text(await scoreVersion(asset(p, a), a.version as string, s, typeof a.note === 'string' ? a.note : ''))  {
+      return [text(await scoreVersion(asset(p, a), a.version as string, s, typeof a.note === 'string' ? a.note : ''))];
+    },
+  },
+  {
     name: 'status', description: 'W2 production status of every brief in art/briefs.yaml (brief, in-pipeline, final, approved, exported, revision, stale), with the final version, score, open issues and the next pipeline step.',
     inputSchema: obj({ ids: { type: 'array', items: str, description: 'brief ids; default all' } }),
     async run(a, p) { return [text(await projectStatus(p, Array.isArray(a.ids) ? (a.ids as string[]) : undefined))]; },
-  },
-];
-    },
   },
 ];
 
