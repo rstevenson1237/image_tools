@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "artgen": {
+      "command": "node",
+      "args": [
+        "tools/artgen/artgen-mcp.js"
+      ]
+    }
+  }
+}

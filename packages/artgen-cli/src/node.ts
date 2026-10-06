@@ -1,14 +1,19 @@
 /** Node I/O adapter for artgen-core: resvg wasm init, PNG files, ledger appends, asset source loading. */
-import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { decodePNG, encodePNG, formatLedgerLine, initSvg, type Grid, type LedgerEntry } from 'artgen-core';
 
 const require = createRequire(import.meta.url);
 
-/** Initialise the SVG rasteriser from the installed `@resvg/resvg-wasm` wasm file. */
+/**
+ * Initialise the SVG rasteriser: the committed install ships `resvg.wasm` next to the bundled `artgen.js`; in this
+ * repo it comes from the installed `@resvg/resvg-wasm` package.
+ */
 export function initNodeSvg(): Promise<void> {
-  return initSvg(readFileSync(require.resolve('@resvg/resvg-wasm/index_bg.wasm')));
+  const local = fileURLToPath(new URL('./resvg.wasm', import.meta.url));
+  return initSvg(readFileSync(existsSync(local) ? local : require.resolve('@resvg/resvg-wasm/index_bg.wasm')));
 }
 
 export function writeGrid(path: string, g: Grid): void {

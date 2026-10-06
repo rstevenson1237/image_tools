@@ -17,7 +17,9 @@
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run",
     "check:packages": "npm run typecheck --workspaces",
-    "test:packages": "npm test --workspaces"
+    "test:packages": "npm test --workspaces",
+    "build:dist": "npm run build -w artgen-dist",
+    "fixtures:install": "npm run build -w artgen-dist && node scripts/artgen-fixtures.mjs"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^5.0.3",

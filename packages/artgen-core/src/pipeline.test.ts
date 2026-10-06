@@ -43,3 +43,11 @@ describe('pass state machine', () => {
     expect(st.best).toEqual({ version: 'base.v1', score: 6 });
   });
 });
+
+describe('re-finish when a later base becomes the best', () => {
+  test('W1 probes finished early, then revised: the new best gets a new finish (R12)', () => {
+    const v = ['base.v1', 'base.v2', 'base.v3', 'finish.v1'], s: [string, number][] = [['base.v1', 5], ['base.v2', 6], ['finish.v1', 6.5], ['base.v3', 7]];
+    expect(plan(v, s, { finishBase: { 'finish.v1': 'base.v2' } })).toMatchObject({ action: 'write-finish', version: 'finish.v2', base: 'base.v3' });
+    expect(plan(v, [...s.slice(0, 3), ['base.v3', 5.5]], { finishBase: { 'finish.v1': 'base.v2' } })).toMatchObject({ action: 'ready', final: 'finish.v1' });
+  });
+});

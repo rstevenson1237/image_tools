@@ -140,6 +140,17 @@ docs/archive/artgen/             # P8: artlab + planning docs once superseded
   one-paragraph game pitch: the committed install works with no further setup, 3 visibly
   distinct style tiles are produced, a mixed choice is locked, anchors saved, style sheet written — in one
   session, with the user's choices as the only manual input.
+- **Built 2026-10-06; cloud-session acceptance done, local session pending.** `artgen-dist` builds single-file CLI
+  and MCP bundles + `resvg.wasm` + templates; `install.mjs init|update|status` (VERSION + MANIFEST hashes, `.mcp.json`
+  merge, managed `CLAUDE.md` section, `art/` scaffold); CI publishes the `artgen-dist` branch; plugin layout and
+  marketplace file for local users. Command naming settled: `/artgen-init`, `/artgen-direction` (committed),
+  `/artgen:init`, `/artgen:direction` (plugin). CLI: `init`, `direction candidates|tile|mix|lock|anchors|new|show|
+  validate`, `palette import|extract|ramp`, `new`, `finish`, plus the P1b pipeline commands. Skills `artgen` and
+  `art-direction`, agent `art-reviewer`, MCP server with the W1/pipeline tools. Probe templates for topdown and iso
+  (character, prop, tile, effect placeholder); style tile and style sheet renderers. The three fixture repos in
+  `examples/` each went from a pitch to a locked mixed direction with anchors and a style sheet through the committed
+  install, in this cloud session, with the user's choices **simulated**; a local session with the user's own choices
+  is still to run. Details: [findings/P2-w1.md](findings/P2-w1.md).
 
 ### P3 — W2: themed production + export (M–L)
 - Briefs (`briefs.yaml` schema), status lifecycle in ledger (`in-pipeline → final → approved / revision`),

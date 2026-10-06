@@ -1,6 +1,6 @@
 # artgen-core
 
-The artgen engine (PLAN P1, P1b). TypeScript, ESM, no Node or DOM imports: the CLI (`artgen-cli`) and, from P5, the
+The artgen engine (PLAN P1, P1b, P2). TypeScript, ESM, no Node or DOM imports: the CLI (`artgen-cli`) and, from P5, the
 image tools UI worker run the same build. Spec: [`docs/artgen/SPEC.md`](../../docs/artgen/SPEC.md) §4, §6, §11.
 
 ## Layout
@@ -25,7 +25,9 @@ image tools UI worker run the same build. Spec: [`docs/artgen/SPEC.md`](../../do
 | `src/t2/scene3d.ts` | T2+ 3D mode: box / slab / ellipsoid / capsule / sdf, groups, booleans → voxels → `cubes` renderer, 4 facings, R5 lint |
 | `src/t2/finish.ts` | finishing ops (`px.fix/fx/light/outline/patch`), `applyFinish`, anchor-following patches, `finishStale` |
 | `src/t2/params.ts` | param schema (`range`, `toggle`, `choice`, `swap`) and seeded variants |
-| `src/pipeline.ts` | pass state machine: v1 → v2 → v3 (from the best, R12) → finish → ready; ledger pass ids |
+| `src/pipeline.ts` | pass state machine: v1 → v2 → v3 (from the best, R12) → finish → ready (re-finish when a later base wins); ledger pass ids |
+| `src/w1/candidates.ts` | W1: interview → three candidate directions (A faithful, B bold, C muted) over the shared role ramps, `mixDirections`, `lockDirection` |
+| `src/w1/sheets.ts` | W1: `styleTile` (the probe set under each candidate, one column each) and `styleSheet` (`art/direction.png`) |
 | `bench/` | the artlab parity benchmark: six asset modules, `benchmark` + `alt` directions, artlab reference PNGs, golden hashes |
 | `bench/pipeline/` | the P1b parity experiment: the six assets rebuilt through the T2+ pipeline (briefs, `base.v1–3`, `finish.v1`, ledger) |
 
@@ -105,6 +107,27 @@ npx artgen direction validate <file>
 Output per direction: 1× and scaled PNGs, per-asset review sheets (artlab final beside the port), a comparison
 sheet, `parity.png` (benchmark only), `conformance.json`. The CLI runs TypeScript directly, so it needs Node ≥ 22.18.
 
+## Game projects and W1 (PLAN P2)
+
+In a game repo the CLI runs from the committed install (`node tools/artgen/artgen.js …`, see
+[`packages/artgen-dist`](../artgen-dist)); in this repo it is `npx artgen …`. Skills `art-direction` and `artgen`
+(`packages/artgen-dist/content/`) describe the workflow for the agent.
+
+```
+artgen init                                              # art/ scaffold (never overwrites)
+artgen direction candidates --pitch "…" [--view iso] [--mood a,b] [--scale small|medium|large] [--colors src]
+artgen direction tile [a b c]                            # art/candidates/style-tile-rN.png + gate per probe
+artgen finish art/probes/character                       # finish.vM.js from the template, bound to the right base
+artgen direction mix a --line b [--shading c]            # art/candidates/mixN.json
+artgen direction lock mix1 --note "…"                    # art/direction.json, art/anchors/*.png, art/direction.png
+artgen direction anchors | show | new [--from c] | validate <file>
+artgen palette import <.hex|.gpl> | extract <png> [--n 16] | ramp <#hex>   (--interview feeds candidate A)
+artgen new <id> --kind character|prop|tile|effect|…      # art/assets/<kind>/<id>/ from a template
+```
+
+Templates live in `packages/artgen-cli/templates/<view>/<kind>/` (topdown and iso; other views fall back to topdown)
+and use only role ramps and `ctx.size`-relative coordinates. The fixture game repos in `examples/` show the result.
+
 ## Pipeline (asset directories)
 
 An asset directory holds `brief.json`, `base.v<N>.js`, `finish.v<M>.js`; scores and reviews go to the nearest
@@ -119,6 +142,7 @@ npx artgen variants    <assetDir> [--n 8]
 npx artgen report packages/artgen-core/bench/pipeline --out REPORT.md
 ```
 
-Tests: `npm test -w artgen-core` (unit + stage tests, no wasm) and `npm test -w artgen-cli` (SVG stage tests,
+Tests: `npm test -w artgen-core` (unit + stage tests, no wasm), `npm test -w artgen-cli` (SVG stage tests,
 golden hashes, conformance under both directions, artlab parity, the P1b experiment's recorded hashes, restyle,
-variants and a full pass cycle).
+variants, a full pass cycle, and the W1 flow in a scratch project), `npm test -w artgen-mcp` (protocol, tools,
+sandbox) and `npm test -w artgen-dist` (install smoke test from a fresh build, update edit-protection, fixture repos).

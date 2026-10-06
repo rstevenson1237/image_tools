@@ -94,5 +94,8 @@ export function planPasses(input: PlanInput): PassState {
   const bound = input.finishBase?.[lastFinish.name];
   if (bound && latestBase.n > N && bound !== latestBase.name && (parseVersion(bound)?.n ?? 0) < latestBase.n)
     return state({ action: 'write-finish', version: `finish.v${lastFinish.n + 1}`, pass: passId(`finish.v${lastFinish.n + 1}`, N), base: latestBase.name, why: `a user iteration produced ${latestBase.name}; re-finish it` });
+  // a revision written after the finish beat its base (e.g. W1 probes finished early, then taken through the full pipeline)
+  if (bound && (parseVersion(bound)?.n ?? 0) < parseVersion(best.version)!.n)
+    return state({ action: 'write-finish', version: `finish.v${lastFinish.n + 1}`, pass: passId(`finish.v${lastFinish.n + 1}`, N), base: best.version, why: `${best.version} (${best.score}) now beats ${bound}, which ${lastFinish.name} finishes; re-finish the best — R12` });
   return state({ action: 'ready', final: lastFinish.name, best: best.version, why: 'pipeline complete: show the finished asset to the user (approve or give feedback)' });
 }

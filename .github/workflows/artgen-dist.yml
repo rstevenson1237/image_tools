@@ -1,0 +1,72 @@
+name: artgen-dist
+
+# Publishes the artgen committed-install distribution (packages/artgen-dist → out/) to the `artgen-dist` branch,
+# which game repos install from:
+#   npx -y github:rstevenson1237/image_tools#artgen-dist init | update
+# Runs only after the packages verify on main, so the branch never carries an untested build.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/**'
+      - 'package-lock.json'
+      - '.github/workflows/artgen-dist.yml'
+  workflow_dispatch:
+
+# Pushing the branch needs write access to repository contents; nothing else.
+permissions:
+  contents: write
+
+# Publishes must not interleave: each one commits on top of the previous branch head.
+concurrency:
+  group: artgen-dist
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run check:packages
+
+      # Includes the install smoke test (packages/artgen-dist/test): build, install into a scratch game repo,
+      # run the CLI and MCP server from the installed files, and the update/edit-protection cases.
+      - run: npm run test:packages
+
+      - run: npm run build -w artgen-dist
+
+      - name: Commit the build to the artgen-dist branch
+        run: |
+          set -euo pipefail
+          out=packages/artgen-dist/out
+          version=$(cat "$out/dist/tools/artgen/VERSION")
+          dir=$(mktemp -d)
+          trap 'git worktree remove --force "$dir" 2>/dev/null || true' EXIT
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git ls-remote --exit-code --heads origin artgen-dist >/dev/null; then
+            git fetch --depth=1 origin artgen-dist
+            git worktree add -B artgen-dist "$dir" FETCH_HEAD
+          else
+            git worktree add --detach "$dir"
+            git -C "$dir" checkout --orphan artgen-dist
+          fi
+          # the branch holds exactly the build: clear it, then copy the new one in
+          git -C "$dir" rm -rq --ignore-unmatch .
+          cp -a "$out/." "$dir/"
+          git -C "$dir" add -A
+          if git -C "$dir" diff --cached --quiet; then
+            echo "artgen-dist $version: no changes"
+            exit 0
+          fi
+          git -C "$dir" commit -qm "artgen-dist $version from ${GITHUB_SHA::7}"
+          git -C "$dir" push origin artgen-dist
+          echo "published artgen-dist $version"

@@ -1,0 +1,24 @@
+{
+  "pitch": "Hollow Ward - a retro first-person crawler through a haunted asylum ward at night. Ghouls and sleepwalking orderlies are 8-direction billboard sprites; rooms are lit by cold moonlight through barred windows and the player's flickering lamp.",
+  "id": "hollow-ward",
+  "view": "fp",
+  "scale": "large",
+  "mood": [
+    "night",
+    "haunted",
+    "cold",
+    "clinical"
+  ],
+  "era": "1920s",
+  "directions": 8,
+  "notes": "moonlight blue-greys, sick greens, the lamp's amber is the only warm light",
+  "rules": {
+    "do": [
+      "billboards read against dark corridors",
+      "big readable shapes at 32px"
+    ],
+    "dont": [
+      "bright saturated colours outside the lamp"
+    ]
+  }
+}

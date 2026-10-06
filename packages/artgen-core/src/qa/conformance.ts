@@ -44,6 +44,11 @@ const DEFAULT_THRESHOLDS: Thresholds = { lineMin: 0.85, lineNoneMax: 0.15, light
 
 const N4: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
+/** Kinds that repeat edge to edge: conformance wraps their borders. */
+export const TILE_KINDS = new Set(['tile', 'tileset', 'texture']);
+/** Kinds that emit light: the light-direction check doesn't apply. */
+export const EMISSIVE_KINDS = new Set(['effect']);
+
 /** Source lint (R11): hex/rgb colour literals are forbidden in asset source. Returns offending `line: text`. */
 export function lintSource(src: string): string[] {
   const out: string[] = [], re = /(#[0-9a-fA-F]{8}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3})(?![0-9a-zA-Z_-])|\brgba?\s*\(/;
@@ -89,7 +94,10 @@ export function conformance(input: ConformanceInput): ConformanceReport {
   const shadowRGBA = [...parseColor(dir.palette.shadow.color).slice(0, 3), Math.round(dir.palette.shadow.alpha * 255)];
   const shadowStr = `rgba(${shadowRGBA.slice(0, 3).join(',')},${dir.palette.shadow.alpha})`;
   const allowed = new Set(kindPalette(dir, kind)), outline = normHex(dir.palette.outline);
+  // tiles repeat, so their frame border wraps around instead of being a silhouette edge
+  const wraps = !!kind && TILE_KINDS.has(kind);
   const opaque = (g: Grid, x: number, y: number) => {
+    if (wraps) { x = ((x % g.w) + g.w) % g.w; y = ((y % g.h) + g.h) % g.h; }
     if (!g.inb(x, y)) return false;
     const i = (y * g.w + x) * 4;
     return g.d[i + 3] > 0 && !isShadowPixel(g.d, i, shadowRGBA);
@@ -135,19 +143,26 @@ export function conformance(input: ConformanceInput): ConformanceReport {
   else add('line', share >= th.lineMin ? 'pass' : 'fail', `${dir.line.outer} edge ${pctS} (min ${100 * th.lineMin}%)`);
 
   // light: edges facing the light are not darker than edges facing away (sign test)
+  // the line itself (outline colour, or selout's darkest ramp steps on the silhouette) is not lit or shaded surface
   const lx = Math.sign(dir.camera.light[0]), ly = Math.sign(dir.camera.light[1]);
+  const isLine = (g: Grid, x: number, y: number) => {
+    const c = g.get(x, y);
+    if (c === outline) return true;
+    return dir.line.outer === 'selout' && !!c && darkest.has(c) && N4.some(([dx, dy]) => !opaque(g, x + dx, y + dy));
+  };
   let litSum = 0, litN = 0, shSum = 0, shN = 0;
   for (const g of frames) for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) {
     if (!opaque(g, x, y)) continue;
-    const c = g.get(x, y)!;
-    if (c === outline) continue;
-    const exposed = (dx: number, dy: number) => !opaque(g, x + dx, y + dy) || g.get(x + dx, y + dy) === outline;
+    if (isLine(g, x, y)) continue;
+    const exposed = (dx: number, dy: number) => !opaque(g, x + dx, y + dy) || isLine(g, x + dx, y + dy);
     const lit = (!!lx && exposed(lx, 0)) || (!!ly && exposed(0, ly)), away = (!!lx && exposed(-lx, 0)) || (!!ly && exposed(0, -ly));
     if (lit === away) continue;
     const i = (y * g.w + x) * 4, L = luma(g.d[i], g.d[i + 1], g.d[i + 2]);
     if (lit) { litSum += L; litN++; } else { shSum += L; shN++; }
   }
-  if (litN < 4 || shN < 4) add('light', 'skip', 'too few lit/shaded edge pixels');
+  if (kind && EMISSIVE_KINDS.has(kind)) add('light', 'skip', `${kind}: emissive, no light direction`);
+  else if (wraps) add('light', 'skip', `${kind}: ground plane, no silhouette lighting`);
+  else if (litN < 4 || shN < 4) add('light', 'skip', 'too few lit/shaded edge pixels');
   else {
     const dl = litSum / litN - shSum / shN;
     add('light', dl >= -th.lightTolerance ? 'pass' : 'fail', `lit − shaded edge luma ${dl.toFixed(1)}`);

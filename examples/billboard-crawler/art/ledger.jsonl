@@ -1,0 +1,9 @@
+{"ts":"2026-10-06T01:52:11.879Z","type":"note","asset":"direction","note":"candidates a, b, c from interview","by":"agent"}
+{"ts":"2026-10-06T01:52:12.458Z","type":"review","asset":"direction","version":"tile-r1","sheet":"candidates/style-tile-r1.png","imageTokens":1600,"candidates":["a","b","c"],"by":"agent"}
+{"ts":"2026-10-06T01:52:44.296Z","type":"review","asset":"direction","version":"tile-r2","sheet":"candidates/style-tile-r2.png","imageTokens":1600,"candidates":["a","b","c"],"by":"agent"}
+{"ts":"2026-10-06T01:53:00.698Z","type":"review","asset":"direction","version":"tile-r3","sheet":"candidates/style-tile-r3.png","imageTokens":1600,"candidates":["a","b","c"],"by":"agent"}
+{"ts":"2026-10-06T01:53:10.605Z","type":"review","asset":"direction","version":"tile-r4","sheet":"candidates/style-tile-r4.png","imageTokens":1600,"candidates":["a","b","c"],"by":"agent"}
+{"ts":"2026-10-06T01:53:16.391Z","type":"note","asset":"direction","note":"mix mix1: B as the base, palette from C","by":"user"}
+{"ts":"2026-10-06T01:53:16.920Z","type":"review","asset":"direction","version":"tile-r5","sheet":"candidates/style-tile-r5.png","imageTokens":1600,"candidates":["mix1","b","c"],"by":"agent"}
+{"ts":"2026-10-06T01:53:16.981Z","type":"approve","asset":"direction","version":"v1","note":"locked mix1: user choice (simulated for the fixture): B's chunky selout style with C's darker palette","direction":{"id":"hollow-ward","version":1},"by":"user"}
+{"ts":"2026-10-06T01:53:17.304Z","type":"note","asset":"direction","version":"v1","note":"anchors from probes character finish.v1, prop finish.v1, tile finish.v1, effect finish.v1","by":"agent"}

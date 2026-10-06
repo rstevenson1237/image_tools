@@ -80,6 +80,12 @@ CLAUDE.md                                                   # appended "art pipe
 - Files are copied into each game repo, so updates are a deliberate step per repo (that's also the version pin).
 - Command naming may differ between the committed and plugin forms (`/artgen:…` comes from the plugin
   namespace). Skills are the primary interface; command names get settled in P2.
+  **Settled in P2:** committed install → `/artgen-init`, `/artgen-direction` (`.claude/commands/artgen-*.md`;
+  command files outside a plugin aren't namespaced); plugin layout → `/artgen:init`, `/artgen:direction`. The skills,
+  agent and CLI are identical in both, and the skills name the CLI path for their layout.
+- Found in P2: `.js` files are CommonJS in a game repo whose `package.json` says `"type": "commonjs"` (or, on older
+  Node, has no type). The install ships `tools/artgen/package.json` and `artgen init` writes `art/package.json`, both
+  `"type": "module"`, so the bundles and asset sources load as ESM everywhere.
 
 ## D2 — Where engine and UI code live
 **Blocks:** P0 · **Recommended:** npm workspace in **this repo** (`packages/artgen-core`, `-cli`, `-runtime`,

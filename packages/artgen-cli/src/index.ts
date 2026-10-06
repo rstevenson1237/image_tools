@@ -5,3 +5,6 @@ export * from './bench.ts';
 export * from './asset.ts';
 export * from './report.ts';
 export { main } from './cli.ts';
+export * from './project.ts';
+export * from './templates.ts';
+export * from './w1.ts';

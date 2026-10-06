@@ -6,3 +6,9 @@ dist/
 public/vendor/
 artgen-out/
 packages/artgen-core/bench/pipeline/*/out/
+packages/artgen-dist/out/
+# fixture game repos keep their committed install except the generated bundles and wasm (~2.7 MB each);
+# `npm run fixtures:install` restores them from packages/artgen-dist
+examples/*/tools/artgen/artgen.js
+examples/*/tools/artgen/artgen-mcp.js
+examples/*/tools/artgen/resvg.wasm

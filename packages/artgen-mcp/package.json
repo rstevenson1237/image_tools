@@ -2,11 +2,18 @@
   "name": "artgen-mcp",
   "private": true,
   "version": "0.0.0",
-  "description": "artgen MCP stdio server (P7).",
+  "description": "artgen MCP stdio server (P2: W1 + pipeline tools for the committed install; full tool set in P7).",
   "type": "module",
   "exports": "./src/index.ts",
+  "bin": {
+    "artgen-mcp": "./src/bin.ts"
+  },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run"
+  },
+  "dependencies": {
+    "artgen-cli": "0.0.0",
+    "artgen-core": "0.0.0"
   }
 }

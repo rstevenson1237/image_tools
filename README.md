@@ -21,7 +21,14 @@ npm run preview # serve the production build
 
 npm run check:packages  # typecheck the artgen workspace packages
 npm run test:packages   # vitest in each artgen workspace package
+npm run build:dist      # build the artgen committed-install distribution (packages/artgen-dist/out)
+npm run fixtures:install  # restore the generated tools in the examples/ fixture game repos
 ```
+
+**artgen** (`packages/`, `docs/artgen/`) is the pixel-art pipeline for game repos that lives alongside the app.
+Game repos install it by committing a built distribution (works in local and claude.ai/code sessions):
+`npx -y github:rstevenson1237/image_tools#artgen-dist init`. `examples/` holds the fixture game repos used for
+acceptance.
 
 `npm run dev` and `npm run build` both re-run `scripts/vendor-opencv.mjs` first, so the OpenCV
 asset is always in place.
