@@ -1,0 +1,184 @@
+{
+  "id": "ember-dusk",
+  "version": 1,
+  "status": "locked",
+  "theme": {
+    "pitch": "alternate benchmark direction",
+    "mood": [
+      "warm",
+      "muted",
+      "dusk"
+    ],
+    "notes": "Generated from the benchmark ramps with generateRamp (hue +18°, saturation ×0.8, hue shift 14°). Proves the six benchmark assets restyle from direction tokens alone."
+  },
+  "camera": {
+    "view": "topdown",
+    "iso": {
+      "tile": [
+        32,
+        16
+      ]
+    },
+    "light": [
+      -1,
+      -1,
+      1
+    ],
+    "directions": 1,
+    "pixelScale": 6
+  },
+  "scale": {
+    "character": [
+      32,
+      32
+    ],
+    "tall": [
+      32,
+      48
+    ],
+    "creature": [
+      32,
+      32
+    ],
+    "prop": [
+      32,
+      32
+    ],
+    "vehicle": [
+      64,
+      64
+    ],
+    "ship": [
+      160,
+      41
+    ]
+  },
+  "palette": {
+    "source": "generated",
+    "ramps": {
+      "skin": [
+        "#e8e5cc",
+        "#d3b476",
+        "#ae6730"
+      ],
+      "hair": [
+        "#a7a25e",
+        "#6b592f",
+        "#22170d"
+      ],
+      "steel": [
+        "#c7c4bb",
+        "#9f9486",
+        "#706257",
+        "#3c322e"
+      ],
+      "blue": [
+        "#919ec3",
+        "#474aa2",
+        "#24245a"
+      ],
+      "red": [
+        "#bc9a7c",
+        "#934f3a",
+        "#481a1a"
+      ],
+      "gold": [
+        "#d2d293",
+        "#c2c238",
+        "#735f1c"
+      ],
+      "leather": [
+        "#a4a05b",
+        "#66562e",
+        "#1d140c"
+      ],
+      "navy": [
+        "#bdb9b0",
+        "#9f9688",
+        "#7e7063",
+        "#574b44",
+        "#302825"
+      ],
+      "teak": [
+        "#ccccb0",
+        "#aaa067",
+        "#6d5939"
+      ],
+      "hullred": [
+        "#7a5139"
+      ],
+      "armor": [
+        "#bfbcb2",
+        "#a0998b",
+        "#807365",
+        "#594e46",
+        "#322a27"
+      ],
+      "cyan": [
+        "#c2e6f0",
+        "#5aaaed",
+        "#0d49cf"
+      ],
+      "orange": [
+        "#eae5a9",
+        "#eab63e",
+        "#b2580b"
+      ],
+      "blush": [
+        "#deab86"
+      ],
+      "green": [
+        "#84af7d",
+        "#427f48",
+        "#1c3a26"
+      ],
+      "purple": [
+        "#a47fa3",
+        "#694771",
+        "#281d30"
+      ],
+      "wood": [
+        "#b6b575",
+        "#877439",
+        "#3d2b17"
+      ],
+      "ink": [
+        "#2c222e"
+      ],
+      "white": [
+        "#fff4dc"
+      ]
+    },
+    "outline": "#2a160e",
+    "shadow": {
+      "color": "#140a1e",
+      "alpha": 0.4
+    },
+    "materials": {
+      "metal": "steel",
+      "cloth": "blue",
+      "foliage": "green",
+      "accent": "gold"
+    }
+  },
+  "line": {
+    "outer": "dark",
+    "inner": "selective",
+    "weight": 1
+  },
+  "shading": {
+    "bands": 5,
+    "hueShift": 14,
+    "dither": "none",
+    "highlight": "sparing",
+    "aa": false
+  },
+  "pipeline": {
+    "revisionPasses": 3,
+    "finishPass": true,
+    "raster": {
+      "directMaxPx": 32,
+      "ss": 8
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "id": "artlab-benchmark",
+  "version": 1,
+  "status": "locked",
+  "theme": {
+    "pitch": "artlab parity benchmark",
+    "notes": "Reproduces artlab's shared master palette (lib/core.js PAL) so the six artlab finals render as they were scored. Reference only, not an authoring style."
+  },
+  "camera": { "view": "topdown", "iso": { "tile": [32, 16] }, "light": [-1, -1, 1], "directions": 1, "pixelScale": 6 },
+  "scale": { "character": [32, 32], "tall": [32, 48], "creature": [32, 32], "prop": [32, 32], "vehicle": [64, 64], "ship": [160, 41] },
+  "palette": {
+    "source": "custom",
+    "ramps": {
+      "skin": ["#f6d2b0", "#e2a27c", "#b56e55"],
+      "hair": ["#b07a45", "#7a4a2a", "#4a2a1a"],
+      "steel": ["#eef2f5", "#b4bfc8", "#77838f", "#4a5460"],
+      "blue": ["#6b9be0", "#3f68b8", "#283f7a"],
+      "red": ["#e0574a", "#a8323a", "#6a1e2e"],
+      "gold": ["#ffe27a", "#d9a832", "#8f6418"],
+      "leather": ["#a8703c", "#74482a", "#4a2c1c"],
+      "navy": ["#c4ccd2", "#97a3ad", "#6c7883", "#47515b", "#2c333b"],
+      "teak": ["#d8b98a", "#b8956a", "#8c6c48"],
+      "hullred": ["#8a3a34"],
+      "armor": ["#e4e9ee", "#aab5bf", "#6e7a86", "#3e4650", "#262b32"],
+      "cyan": ["#c8ffff", "#5ce6ff", "#1aa0c8"],
+      "orange": ["#ffd27a", "#ff8a3c", "#c04a1e"],
+      "blush": ["#ec9a8f"],
+      "green": ["#8fcf5e", "#4e8f3e", "#2c5a2e"],
+      "purple": ["#9a72b8", "#62467e", "#3a2a50"],
+      "wood": ["#c98a4b", "#9a6232", "#6a3e22"],
+      "ink": ["#2b2233"],
+      "white": ["#ffffff"]
+    },
+    "outline": "#1a1423",
+    "shadow": { "color": "#000000", "alpha": 0.35 },
+    "materials": { "metal": "steel", "cloth": "blue", "foliage": "green", "accent": "gold" }
+  },
+  "line": { "outer": "dark", "inner": "selective", "weight": 1 },
+  "shading": { "bands": 5, "hueShift": 0, "dither": "none", "highlight": "sparing", "aa": false },
+  "pipeline": { "revisionPasses": 3, "finishPass": true, "raster": { "directMaxPx": 32, "ss": 8 } }
+}

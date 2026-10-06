@@ -1,5 +1,5 @@
 {
   "extends": "../tsconfig.base.json",
-  "compilerOptions": { "types": [] },
-  "include": ["src/**/*.ts", "vitest.config.ts"]
+  "compilerOptions": { "types": [], "allowJs": true, "checkJs": false },
+  "include": ["src/**/*.ts", "bench/**/*.ts", "bench/**/*.js", "bench/**/*.json", "vitest.config.ts"]
 }

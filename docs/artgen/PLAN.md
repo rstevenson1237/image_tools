@@ -87,6 +87,14 @@ docs/archive/artgen/             # P8: artlab + planning docs once superseded
 - **Accept:** six benchmark assets render under the benchmark direction; golden hashes recorded; re-review
   scores ≥ artlab finals; swapping to a second direction re-renders all six with a different palette/outline
   and they pass conformance.
+- **Done.** `artgen-core` holds the engine (grid, palette tools, PNG, pixel font, post passes, the T1/T2/T3/T4
+  internals with SVG on resvg-wasm), the `direction.json` validator and token context, `renderAsset` over
+  states × facings × frames with mirrored west facings, conformance, review sheets and ledger lines. The six
+  artlab finals live in `artgen-core/bench/` as token-only asset modules; `npx artgen bench` renders them. Golden
+  hashes are in `bench/golden.json`. T1 ports are pixel-identical to artlab, and the T3/T4 ports are within
+  0.2–1.7 % of artlab's pixels (Skia vs resvg; artlab's flattened chest shadow). Re-review scores held. A
+  generated second direction restyles all six, and they pass every conformance check. Details:
+  [findings/P1-engine-core.md](findings/P1-engine-core.md).
 
 ### P1b — T2+ parity and the pipeline (L, 2 PRs)
 - **T2+ primitives** (SPEC §6.3): `path` (SVG path data), `capsule/ring/arc/star`; groups with transforms,

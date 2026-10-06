@@ -1,0 +1,18 @@
+{
+  "benchmark": {
+    "hero": "168695967c376d",
+    "ship": "05891bb0338a47",
+    "tank": "1d915fe7119249",
+    "isohero": "1be7c2cfdd6f1b",
+    "isospider": "1129a96e24fea4",
+    "isochest": "0b4737cffb77ca"
+  },
+  "alt": {
+    "hero": "1d98be31732848",
+    "ship": "1c554a393ded47",
+    "tank": "0782162855393e",
+    "isohero": "0769f4301a05c8",
+    "isospider": "1283f440ac4bb8",
+    "isochest": "185be7ef4eb2f9"
+  }
+}

@@ -2,11 +2,18 @@
   "name": "artgen-core",
   "private": true,
   "version": "0.0.0",
-  "description": "artgen engine: TS, ESM, no Node or DOM imports (P1).",
+  "description": "artgen engine: TS, ESM, no Node or DOM imports.",
   "type": "module",
-  "exports": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./bench": "./bench/index.ts"
+  },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run"
+  },
+  "dependencies": {
+    "@resvg/resvg-wasm": "^2.6.2",
+    "fflate": "^0.8.3"
   }
 }
