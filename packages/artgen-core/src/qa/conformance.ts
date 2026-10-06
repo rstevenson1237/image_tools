@@ -20,6 +20,8 @@ export interface ConformanceInput {
   size?: Size;
   /** Asset source text, for the R11 lint. */
   source?: string;
+  /** T2+ scene lint messages (`RenderResult.lint`): R4/R11 violations fail, the rest flag. */
+  lint?: string[];
   /** Approved anchors of the same kind. */
   anchors?: Grid[];
   symAxis?: 'x' | 'y' | 'none';
@@ -161,6 +163,13 @@ export function conformance(input: ConformanceInput): ConformanceReport {
   else {
     const hits = lintSource(source);
     add('source', hits.length ? 'fail' : 'pass', hits.length ? `colour literals: ${hits.slice(0, 3).join(' | ')}` : 'no colour literals');
+  }
+
+  // T2+ scene lint
+  if (input.lint === undefined) add('lint', 'skip', 'no scene lint');
+  else {
+    const hard = input.lint.filter(m => /\((R4|R11)\)/.test(m));
+    add('lint', hard.length ? 'fail' : input.lint.length ? 'flag' : 'pass', input.lint.length ? input.lint.slice(0, 3).join(' | ') : 'clean');
   }
 
   // anchor similarity (flag only)

@@ -2,7 +2,7 @@
   "name": "artgen-cli",
   "private": true,
   "version": "0.0.0",
-  "description": "artgen CLI and Node I/O adapter (P1: bench + direction validate; full CLI in P2).",
+  "description": "artgen CLI and Node I/O adapter (P1b: bench, direction validate, pass pipeline, review/score/variants/report; full CLI in P2).",
   "type": "module",
   "exports": "./src/index.ts",
   "scripts": {

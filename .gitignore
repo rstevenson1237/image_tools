@@ -5,3 +5,4 @@ dist/
 .vite/
 public/vendor/
 artgen-out/
+packages/artgen-core/bench/pipeline/*/out/

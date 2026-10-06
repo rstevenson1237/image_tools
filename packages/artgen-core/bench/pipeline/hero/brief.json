@@ -1,0 +1,15 @@
+{
+  "id": "hero",
+  "kind": "character",
+  "view": "topdown",
+  "size": "character",
+  "direction": "../../directions/benchmark.json",
+  "reference": "../../reference/hero.png",
+  "target": 7.5,
+  "review": {
+    "scale": 8,
+    "bg": "#4f8a3c",
+    "sym": "x",
+    "label": "Fantasy hero 32x32 (RPG)"
+  }
+}

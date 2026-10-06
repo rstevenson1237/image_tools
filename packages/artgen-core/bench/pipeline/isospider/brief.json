@@ -1,0 +1,16 @@
+{
+  "id": "isospider",
+  "kind": "creature",
+  "view": "iso",
+  "size": "creature",
+  "direction": "../../directions/benchmark.json",
+  "reference": "../../reference/isospider.png",
+  "target": 7,
+  "review": {
+    "scale": 6,
+    "bg": "#2a2630",
+    "iso": true,
+    "sym": "x",
+    "label": "Iso creature: cave spider 32x32"
+  }
+}
