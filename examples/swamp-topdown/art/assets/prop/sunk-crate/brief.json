@@ -1,0 +1,8 @@
+{
+  "id": "sunk-crate",
+  "template": "topdown/prop",
+  "review": {
+    "scale": 6,
+    "sym": "x"
+  }
+}

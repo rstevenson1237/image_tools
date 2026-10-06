@@ -1,2 +1,51 @@
 # Asset briefs (W2, SPEC §5.1). One entry per asset: id, kind, view, size, states, directions, anims, notes.
-[]
+- id: lantern-bearer
+  kind: character
+  directions: 8
+  anims: { walk: { frames: 4 } }
+  priority: 1
+  notes: "the player: hooded wader in a long oilcloth coat, lantern held out on a pole-hand, the only warm light"
+  states: [ idle, walk ]
+- id: bog-goblin
+  kind: character
+  swaps: { pale: { skin: cloth } }
+  priority: 2
+  notes: hunched, oversized ears, rusty cleaver, mud-green skin
+- id: leech
+  kind: creature
+  anims: { idle: { frames: 4 } }
+  priority: 3
+  notes: fat segmented bog leech, wriggles in place, sucker mouth
+  states: [ idle ]
+- id: wisp
+  kind: effect
+  anims: { idle: { frames: 6 } }
+  priority: 4
+  notes: "will-o'-wisp: cold pale flame orb that pulses and sheds sparks"
+  states: [ idle ]
+- id: sunk-crate
+  kind: prop
+  variants: 3
+  priority: 5
+  notes: half-sunk crate, rotten planks, iron bands, waterline
+- id: lantern-post
+  kind: prop
+  priority: 6
+  notes: waymarker post with a hanging lantern (warm glow)
+- id: reeds
+  kind: prop
+  variants: 3
+  priority: 7
+  notes: clump of bulrushes and reeds
+- id: bone-pile
+  kind: prop
+  priority: 8
+  notes: scatter of bleached bones and a skull
+- id: mud
+  kind: tile
+  priority: 9
+  notes: wet bog mud, puddles
+- id: bog-water
+  kind: tile
+  priority: 10
+  notes: dark still water with scum and lily pads

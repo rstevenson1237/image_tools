@@ -62,7 +62,7 @@ export function resolveAssetArg(p: Project | null, arg: string): string {
 export function scaffoldAsset(p: Project, b: BriefEntry, dir: Direction): { path: string; created: boolean; template: string } {
   const path = assetPathOf(p, b), view = b.view ?? dir.camera.view;
   // figures that turn or walk start from the walker (facings + walk cycle)
-  const walker = ['character', 'creature'].includes(b.kind) && ((b.directions ?? 1) > 1 || Object.keys(b.anims ?? {}).length > 0);
+  const walker = ['character', 'creature'].includes(b.kind) && ((b.directions ?? 1) > 1 || !!b.anims?.walk);
   const t = walker ? findTemplate(view, 'character-walk') : findTemplate(view, b.kind), template = `${t.view}/${t.kind}`;
   if (existsSync(join(path, 'base.v1.js'))) return { path, created: false, template };
   mkdirSync(path, { recursive: true });

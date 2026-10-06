@@ -34,6 +34,8 @@ describe('geometry', () => {
     expect(sq[0]).toEqual([0, 0]); expect(sq[sq.length - 1]).toEqual([0, 0]); expect(sq).toContainEqual([10, 10]);
     const [c] = parsePath('M0 0 C0 10 10 10 10 0 S20 -10 20 0');
     expect(c[c.length - 1][0]).toBeCloseTo(20); expect(Math.max(...c.map(p => p[1]))).toBeGreaterThan(5);
+    // numbers from Math.sin/cos can come out in exponent notation (`${1e-16}` = '1e-16')
+    expect(parsePath(`M0 0 L${Math.sin(Math.PI)} 10 L1.5e1 2E0`)[0].slice(-2)).toEqual([[Math.sin(Math.PI), 10], [15, 2]]);
     const [q] = parsePath('M0 0 Q5 10 10 0 T20 0');
     expect(q[q.length - 1]).toEqual([20, 0]);
     const [a] = parsePath('M0 5 A5 5 0 0 1 10 5');

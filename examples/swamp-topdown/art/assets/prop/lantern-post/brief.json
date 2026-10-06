@@ -1,0 +1,8 @@
+{
+  "id": "lantern-post",
+  "template": "topdown/prop",
+  "review": {
+    "scale": 6,
+    "sym": "x"
+  }
+}

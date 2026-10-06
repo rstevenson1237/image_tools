@@ -173,8 +173,20 @@ export async function renderVersion(a: AssetDir, version: string, opts: { varian
   return { version: v.name, render, strip: s, grid, report, source, base, patches, stale };
 }
 
+/** The first facing's cells side by side (all states and frames). */
+export function firstFacing(r: RenderResult): Grid {
+  const f = r.facings[0];
+  return strip({ ...r, cells: r.cells.filter(c => c.facing === f) });
+}
+
 /** Review layout for big sheets (8 facings × walk cycles): rows per state × unique facing, columns per frame. */
 export function reviewGrid(r: RenderResult): Grid {
+  // tiles are judged tiled: each cell repeated 3×3, so seams show
+  if (['tile', 'tileset', 'texture'].includes(r.brief.kind) && r.cells.length <= 4) {
+    const [w, h] = r.size, g = new Grid((w * 3 + 1) * r.cells.length - 1, h * 3);
+    r.cells.forEach((c, k) => { for (let j = 0; j < 3; j++) for (let i = 0; i < 3; i++) g.blit(c.grid, k * (w * 3 + 1) + i * w, j * h); });
+    return g;
+  }
   if (r.cells.length <= 8) return strip(r);
   const facings = r.facings.filter(f => r.cells.some(c => c.facing === f && !c.mirrored));
   return assembleSheet({ ...r, facings, cells: r.cells.filter(c => facings.includes(c.facing)) }, 1).grid;
@@ -208,9 +220,11 @@ export async function reviewVersion(a: AssetDir, version: string): Promise<{ pat
   }
   const v = parseVersion(version)!, prev = v.kind === 'finish' ? cur.base : vs.filter(x => parseVersion(x)!.kind === 'base' && parseVersion(x)!.n < v.n).pop();
   const best = [...scores].filter(([k]) => parseVersion(k)?.kind === 'base' && k !== prev && k !== version).sort((x, y) => y[1] - x[1])[0]?.[0];
+  // big sheets (8 facings × walk): earlier versions show their first facing only, so the version under review stays legible
+  const big = cur.render.cells.length > 8;
   for (const other of [best, prev]) if (other) {
-    const r = await renderVersion(a, other);
-    rows.push({ label: rowLabel(r, scores.get(other)), grid: r.grid, scale: sc, bg: R.bg, context: ctx(r.grid) });
+    const r = await renderVersion(a, other), grid = big ? firstFacing(r.render) : r.grid;
+    rows.push({ label: rowLabel(r, scores.get(other)) + (big ? ' | first facing' : ''), grid, scale: sc, bg: R.bg ?? a.dir.background, context: ctx(grid) });
   }
   rows.push({ label: `>> ${rowLabel(cur)}`, grid: cur.grid, scale: sc, bg: R.bg ?? a.dir.background, context: ctx(cur.grid) });
   const sheet = reviewSheet({ title: `${R.label ?? a.brief.id} - ${version} (${passOf(a, version)})`, rows, anchors: anchorsFor(a), maxEdge: a.project ? projectConfig(a.project).budget?.maxSheetEdge : undefined });

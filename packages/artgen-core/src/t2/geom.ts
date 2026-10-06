@@ -72,7 +72,7 @@ export function parsePath(d: string, tol = 0.5): Pt[][] {
   let i = 0, cmd = '', cur: Pt = [0, 0], start: Pt = [0, 0], sub: Pt[] | null = null, lastCtrl: Pt | null = null, lastCmd = '';
   const num = () => {
     const t = toks[i++];
-    if (t === undefined || /[a-zA-Z]/.test(t)) throw new Error(`path: expected a number near token ${i} in "${d.slice(0, 40)}"`);
+    if (t === undefined || /^[a-zA-Z]$/.test(t)) throw new Error(`path: expected a number near token ${i} in "${d.slice(0, 40)}"`);
     return +t;
   };
   const pt = (rel: boolean): Pt => { const x = num(), y = num(); return rel ? [cur[0] + x, cur[1] + y] : [x, y]; };
