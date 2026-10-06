@@ -114,7 +114,7 @@ docs/archive/artgen/             # P8: artlab + planning docs once superseded
   finishing pass; the same assets as 8-variant sheets show ≥ 6 distinct designs each.
 - **If an asset misses:** close the specific gap in T2+ (one extra PR, up to 1 week), re-run. If still short,
   bring the result to you with the options (accept, add a primitive, or allow an SVG-authored base for that form).
-- **Result (awaiting your decision).** T2+ (`artgen-core/src/t2`: 2D scenes with `path/capsule/tube/ring/arc/star`,
+- **Done — accepted 2026-10-06 at 4/6** (the two misses were checked for engine bugs; none found). T2+ (`artgen-core/src/t2`: 2D scenes with `path/capsule/tube/ring/arc/star`,
   booleans, clip, `repeat`, transforms, underlay ink, `direct`/`ss` modes, `flat/bevel/sphere/cyl/normal/linear`
   shading, AO, cast shadows, param schema, lint; 3D mode over `cubes`; procedural pass v1; finishing ops with
   anchor-following patches and `finish-stale` snapshots) and the CLI pass machine (`pass next|status`, `render`,

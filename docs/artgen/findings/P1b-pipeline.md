@@ -4,6 +4,10 @@ Date: 2026-10-06 · Phase: [PLAN P1b](../PLAN.md#p1b--t2-parity-and-the-pipeline
 `src/pipeline.ts`, `packages/artgen-cli` (`asset.ts`, `report.ts`) · Experiment: `packages/artgen-core/bench/pipeline`
 · Full per-pass table: [p1b/REPORT.md](p1b/REPORT.md)
 
+**Decision (2026-10-06): accepted at 4/6.** The two misses were checked for a codepath bug before accepting:
+`normal` shading renders clean, even bands on thin shapes in both raster modes (the iso hero's blotchy cloak comes from
+overlapping panels and underlays in the asset), and the ship's turrets render exactly as their paths describe.
+
 **Gate result: 4 of 6 assets reach artlab's best after the finishing pass.** The ship (7 vs 7.5) and the iso hero
 (6.5 vs 7) miss by half a point. Per the plan, those two are brought to you with options (below) instead of
 starting P2 on top of them silently.
