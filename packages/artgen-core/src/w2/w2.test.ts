@@ -74,6 +74,7 @@ describe('status lifecycle', () => {
     expect(assetStatus({ ledger: [approve], next: ready, direction: D2, finalHash: 'h1' }).status).toBe('stale');
     expect(assetStatus({ ledger: [approve, e('restyle', { direction: D2, changedPct: 4 })], next: ready, direction: D2, finalHash: 'h1' }).status).toBe('final');
     expect(assetStatus({ ledger: [approve, e('restyle', { direction: D2, changedPct: 0 })], next: ready, direction: D2, finalHash: 'h1' }).status).toBe('approved');
+    expect(assetStatus({ ledger: [approve, e('restyle', { direction: D2, changedPct: 0 }), e('export', { version: 'finish.v1', direction: D2, pack: 'main' })], next: ready, direction: D2, finalHash: 'h1' }).status).toBe('exported');
     expect(assetStatus({ ledger: [approve], next: ready, direction: D, finalHash: 'changed' }).status).toBe('final');
   });
 });

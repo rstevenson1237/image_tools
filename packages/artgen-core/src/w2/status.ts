@@ -56,7 +56,11 @@ export function assetStatus({ ledger, next, direction, finalHash }: StatusInput)
     const iRestyle = lastIndex(ledger, e => e.type === 'restyle' && (e.direction as { version?: number } | undefined)?.version === direction.version);
     const restyled = iRestyle > iApprove;
     // a restyle that changed no pixel carries the approval over (nothing new for the user to see)
-    if (restyled && ledger[iRestyle].changedPct === 0) return { status: 'approved', final, issues, approval, why: `restyled to direction v${direction.version} with no pixel change; approval carried over` };
+    if (restyled && ledger[iRestyle].changedPct === 0) {
+      const iExp2 = lastIndex(ledger, e => e.type === 'export' && e.version === final && (e.direction as { version?: number } | undefined)?.version === direction.version);
+      if (iExp2 > iRestyle) return { status: 'exported', final, issues, approval, export: ledger[iExp2], why: `in pack ${String(ledger[iExp2].pack ?? '')} (approval carried over a no-change restyle)` };
+      return { status: 'approved', final, issues, approval, why: `restyled to direction v${direction.version} with no pixel change; approval carried over` };
+    }
     return restyled
       ? { status: 'final', final, issues, approval, why: `restyled to direction v${direction.version}; re-approve` }
       : { status: 'stale', final, issues, approval, export: exp, why: `approved under direction v${approval.direction?.version}, now v${direction.version}: run restyle` };
