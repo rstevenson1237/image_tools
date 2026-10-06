@@ -173,6 +173,18 @@ docs/archive/artgen/             # P8: artlab + planning docs once superseded
   pass conformance and score ≥ 6.5; the analytics report shows per-pass gains and cost per asset; at least one user
   feedback round is handled in each of the two U-stage routes (base and finish); direction v2 → `restyle`
   re-renders all and the diff sheet shows a consistent change; hand-edited PNG survives a restyle.
+- **Built 2026-10-06; cloud-session acceptance done with simulated user choices and self-scored reviews, local session
+  pending.** Core `w2/`: `briefs.yaml` parse/validate/edit (comments kept), the status lifecycle derived from the ledger
+  (`brief → in-pipeline → final → approved → exported`, `revision`, `stale`), MaxRects packer + `pack.json` + Aseprite JSON +
+  `assets.ts`, analytics v1, restyle token diff, hand-edit token ops; the pass machine gained the extra autonomous revision
+  (`x1`) and feedback-opened user iterations (`u1`, `f2`); `detail` (mask-template) procedural layer. CLI: `brief`, `make`,
+  `status`, `gallery`, `feedback`, `approve`, `export`, `restyle`, `import-edit`, `analytics`; budgets per kind / importance
+  tier and stage models from `artgen.config.json`, recorded with every score. Skill `asset-production`, commands
+  `/artgen-brief|make|review|feedback|approve|export|restyle`, walker template (facings + walk cycle), MCP `status`.
+  Fixtures: each produced a 10-asset brief (5–7 kinds, one 8-facing walker) in one autonomous run, took 2–4 feedback rounds
+  on both routes, a hand edit, a direction v2 restyle (30/30 assets kept 100 % of their tokens) and exported a pack; all 30
+  approved at 6.5–7 with a passing gate. Revisions +1.27 on average, finishing +0.13. Details:
+  [findings/P3-w2.md](findings/P3-w2.md).
 
 ### P4 — W3: runtime component (M)
 - `artgen-runtime`: `loadPack`, sprite state machine (state × facing × frame, fps, loop, mirror-aware facing

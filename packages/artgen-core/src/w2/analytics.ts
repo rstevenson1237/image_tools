@@ -161,6 +161,6 @@ export function analyticsMarkdown(r: AnalyticsReport, title = 'artgen pipeline a
   md += `\n## User revisions\n\n${u.feedback} feedback rounds over ${u.finals} finished assets (rate ${s(u.rate)})${Object.keys(u.byRoute).length ? `; by route: ${Object.entries(u.byRoute).map(([k, v]) => `${k} ${v}`).join(', ')}` : ''}.\n`;
   md += '\n## Model / effort per stage\n\n| Model | Effort | Passes | Mean Δ | Δ per 1k tok |\n|---|---|---|---|---|\n';
   for (const m of r.models) md += `| ${m.model} | ${m.effort} | ${m.n} | ${s(m.meanDelta, true)} | ${s(m.deltaPerKTok)} |\n`;
-  md += `\n## Budget suggestions\n\n${r.suggestions.length ? r.suggestions.map(x => `- ${x}`).join('\n') : '- none yet (needs ≥ 3 assets of a kind)'}\n`;
+  md += `\n## Budget suggestions\n\n${r.suggestions.length ? r.suggestions.map(x => `- ${x}`).join('\n') : '- none: no kind crosses a threshold (v3 adding ≤ 0.1 or ≥ 0.75 over ≥ 3 assets, v2 not improving, finish ≤ 0, > 30% regressions)'}\n`;
   return md;
 }

@@ -63,7 +63,9 @@ before an asset is shown to the user as finished.
 - Mirrored copies get their own underlay (`mirrorX`), so a mirrored hood gets an ink seam on the axis — draw symmetric masses once.
 - Adding detail or params often regresses a version (R12 catches it); change one thing per revision and say what.
 - The finishing pass adds ~+0.5 when a pixel-level problem is left (faces, hair tips, line weight) and ~0 on a clean
-  base. It does not fix a weak silhouette — that is a base revision.
+  base. It does not fix a weak silhouette — that is a base revision. Generic clean-up (`fix.orphans`, `jaggies`,
+  `corners`) rarely changes T2+ output (its speckle is material noise, which reads as texture): write ops that target
+  what the review named (an edge to light, a notch, a highlight run). P3 fixtures: revisions +1.27, finishing +0.13.
 - Style-tile probes run a short pipeline (v1 + finish), roughly a point below a fully revised asset.
 - Turning figures (`--directions 8`) start from the walker template: `ctx.facing` → yaw, `ctx.t` drives the walk.
   Draw s, se, e, ne, n; west facings are mirrors. Check every facing row on the sheet, not just the first.

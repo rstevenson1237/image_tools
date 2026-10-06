@@ -90,4 +90,4 @@ Totals: 14414 output tok, 40839 review-image tok, est. $0.452. Average gain from
 
 ## Budget suggestions
 
-- none yet (needs ≥ 3 assets of a kind)
+- none: no kind crosses a threshold (v3 adding ≤ 0.1 or ≥ 0.75 over ≥ 3 assets, v2 not improving, finish ≤ 0, > 30% regressions)
