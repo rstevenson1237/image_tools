@@ -6,7 +6,8 @@
  *   dist/claude/{skills,agents,commands}/     → .claude/ in the game repo (commands: /artgen-init, /artgen-direction,
  *                                               /artgen-brief, -make, -review, -feedback, -approve, -export, -restyle)
  *   dist/tools/artgen/                        → tools/artgen/: artgen.js + artgen-mcp.js (single-file bundles),
- *                                               resvg.wasm, templates/, VERSION
+ *                                               resvg.wasm, templates/, runtime/ (W3 sources `export --runtime`
+ *                                               vendors into the game), VERSION
  *   dist/claude-md.md                         the managed CLAUDE.md section
  *   plugin/ + .claude-plugin/marketplace.json the same content in plugin layout (/artgen:init, /artgen:direction)
  *
@@ -67,6 +68,9 @@ async function tools(dest) {
   await bundle(join(PKGS, 'artgen-mcp', 'src', 'bin.ts'), join(dest, 'artgen-mcp.js'));
   cpSync(require.resolve('@resvg/resvg-wasm/index_bg.wasm'), join(dest, 'resvg.wasm'));
   cpSync(join(PKGS, 'artgen-cli', 'templates'), join(dest, 'templates'), { recursive: true });
+  // runtime sources (core + adapters), without tests and test kits
+  const rt = join(PKGS, 'artgen-runtime', 'src');
+  cpSync(rt, join(dest, 'runtime'), { recursive: true, filter: f => statSync(f).isDirectory() || (f.endsWith('.ts') && !/\.test\.ts$|[\\/](testkit|contract)\.ts$/.test(f)) });
   writeFileSync(join(dest, 'VERSION'), VERSION + '\n');
   // the bundles are ESM; this keeps them ESM even in a game repo whose package.json says "type": "commonjs"
   writeFileSync(join(dest, 'package.json'), JSON.stringify({ name: 'artgen-tools', private: true, version: VERSION, type: 'module' }, null, 2) + '\n');

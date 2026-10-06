@@ -1,6 +1,6 @@
 # artgen — Specification
 
-Status: **rev 6** (P3: W2 production, export and restyle as built) — written against the resolved decisions in [INTAKE §7](INTAKE.md#7-decisions-resolved-2026-10-05) / [DECISIONS.md](DECISIONS.md)
+Status: **rev 7** (P4: W3 runtime, adapters and `export --runtime` as built) — written against the resolved decisions in [INTAKE §7](INTAKE.md#7-decisions-resolved-2026-10-05) / [DECISIONS.md](DECISIONS.md)
 
 ## 1. Summary
 
@@ -443,8 +443,8 @@ delta vs the previous pass.
     "spark": { "kind": "effect", "frames": 6, "fps": 12, "loop": false, "blend": "normal" } } }
 ```
 Also emits Aseprite-compatible JSON per atlas (array form; frames named `asset/state/facing/frame[#variant]`, one
-frame tag per strip). As built (P3) the manifest also carries `format: 1`, `generator`, `runtime: null` until P4, and
-`drafts`; tiles carry `tile` (autotile maps arrive with P6b).
+frame tag per strip). As built (P3) the manifest also carries `format: 1`, `generator`, `runtime` (null before P4,
+the runtime version since), and `drafts`; tiles carry `tile` (autotile maps arrive with P6b).
 
 ### 12.2 Runtime API (dependency-free TS, ~few KB)
 ```ts
@@ -476,10 +476,21 @@ interface RuntimeAdapter<Tex, Node> {
 - **`canvas2d`** (reference): used by the image tools UI previews, docs and adapter contract tests.
 - Later: `phaser`, Godot importer (`SpriteFrames` `.tres` + `TileSet`), pygame. One shared contract test
   suite runs against every adapter.
+- As built (P4, runtime 1.0.0): the interface gained `setPosition(node, x, y, z?)` (effects are spawned at a position;
+  z is `zIndex` in 2D, world z in 3D) and optional `attach(parent, node)` / `disposeTexture(tex)`; `setFrame` takes a
+  `FrameRect` carrying its atlas texture (frames may span atlases) and `setAnchor` the frame size. Angles are screen
+  angles (x right, y down, `s` = π/2). Palette swaps are recoloured atlas copies made at load, so `pixi` needs no
+  colour-map filter. `pixi` also exposes `pixiStrip` (textures for `AnimatedSprite`); `three` exposes
+  `billboardAngle(heading, node, camera)` and `tileTexture(pack, id, { repeat })`. Sprite-stack planes, FP wall sets and
+  `.glb` loading remain with P6a / P6d.
 
 ### 12.3 Delivery
 `artgen export --runtime` vendors `src/art/runtime/` (version-stamped) and `src/art/assets.ts` into the game
-repo; re-export updates both. npm publication is a later option (D4).
+repo; re-export updates both. npm publication is a later option (D4). As built (P4): the vendored set is the core plus
+`adapters/<name>.ts` for each entry of `artgen.config.json` → `runtime.adapters`; `runtime.json` records the runtime
+version, adapters and a hash per file, so a re-export upgrades untouched files, keeps (and reports) locally edited ones
+unless `--force`, and removes the files of adapters dropped from the config. `pack.json` carries the runtime version
+it was exported for; the runtime refuses a pack from another major version.
 
 ## 13. UI (W4) — inside image_tools
 

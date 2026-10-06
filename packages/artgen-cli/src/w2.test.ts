@@ -113,6 +113,35 @@ describe('W2 production in a scratch game repo', () => {
     expect((await json('status', ...R)).map((r: { status: string }) => r.status)).toEqual(['exported', 'exported']);
   }, 60_000);
 
+  test('export --runtime vendors the runtime + configured adapters (stamped); upgrades keep local edits unless --force', async () => {
+    const rt = (...p: string[]) => join(root, 'src/art/runtime', ...p);
+    const first = (await json('export', '--runtime', ...R)).runtime;
+    expect(first).toMatchObject({ dir: 'src/art/runtime', version: '1.0.0', from: null, adapters: ['canvas2d'], kept: [], removed: [] });
+    expect(first.written).toEqual(expect.arrayContaining(['index.ts', 'pack.ts', 'facing.ts', 'autotile.ts', 'coords.ts', 'types.ts', 'adapters/canvas2d.ts']));
+    expect(first.written.some((f: string) => /test|testkit|contract/.test(f))).toBe(false);
+    expect(readJson<PackManifest>(join(root, 'public/assets/main/pack.json')).runtime).toBe('1.0.0');
+    const stamp = readJson<{ runtime: string; files: Record<string, string> }>(rt('runtime.json'));
+    expect(Object.keys(stamp.files).sort()).toEqual([...first.written].sort());
+    expect(readFileSync(rt('pack.ts'), 'utf8')).toMatch(/^\/\/ Vendored by `artgen export --runtime` \(artgen-runtime 1\.0\.0/);
+    // a re-export is a no-op; a local edit is kept and reported; --force restores it
+    expect((await json('export', '--runtime', ...R)).runtime).toMatchObject({ written: [], kept: [] });
+    writeFileSync(rt('facing.ts'), readFileSync(rt('facing.ts'), 'utf8') + '\n// tuned for our game\n');
+    const kept = (await json('export', '--runtime', ...R)).runtime;
+    expect(kept).toMatchObject({ written: [], kept: ['facing.ts'] });
+    expect(readFileSync(rt('facing.ts'), 'utf8')).toContain('tuned for our game');
+    expect((await run('export', '--runtime', ...R)).out).toMatch(/kept locally edited runtime files .*: facing\.ts/);
+    expect((await json('export', '--runtime', '--force', ...R)).runtime).toMatchObject({ written: ['facing.ts'], kept: [] });
+    // switching adapters in artgen.config.json swaps the vendored adapter files
+    const cfgFile = art('artgen.config.json'), cfg = readJson<{ runtime: { adapters: string[] } }>(cfgFile);
+    writeJson(cfgFile, { ...cfg, runtime: { adapters: ['pixi', 'three'] } });
+    const sw = (await json('export', '--runtime', ...R)).runtime;
+    expect([sw.written.sort(), sw.removed]).toEqual([['adapters/pixi.ts', 'adapters/three.ts'], ['adapters/canvas2d.ts']]);
+    expect(existsSync(rt('adapters/canvas2d.ts'))).toBe(false);
+    writeJson(cfgFile, { ...cfg, runtime: { adapters: ['phaser'] } });
+    await expect(run('export', '--runtime', ...R)).rejects.toThrow(/unknown runtime adapter "phaser".*available: canvas2d, pixi, three/);
+    writeJson(cfgFile, cfg);
+  }, 60_000);
+
   test('a hand-edited PNG becomes token ops in the next finish; direction v2 → stale → restyle → final; the edit survives', async () => {
     const crate = openAsset(art('assets', 'prop', 'crate')), cur = await renderVersion(crate, 'finish.v1');
     const ed = cur.strip.clone(), [x, y] = (() => { for (let j = 0; j < ed.h; j++) for (let i = 0; i < ed.w; i++) if (ed.alpha(i, j) === 255 && ed.get(i, j) !== crate.dir.palette.outline) return [i, j]; return [0, 0]; })();

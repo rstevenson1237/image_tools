@@ -14,6 +14,7 @@
     "artgen": "./src/bin.ts"
   },
   "dependencies": {
-    "artgen-core": "0.0.0"
+    "artgen-core": "0.0.0",
+    "artgen-runtime": "1.0.0"
   }
 }

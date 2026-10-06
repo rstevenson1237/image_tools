@@ -104,6 +104,7 @@ export interface PackManifest {
   pack: string;
   generator: string;
   direction: { id: string; version: number };
+  /** Runtime version the pack is exported for (`artgen-runtime`'s RUNTIME_VERSION); a runtime with another major refuses it. */
   runtime: string | null;
   atlases: string[];
   assets: Record<string, PackAsset>;
@@ -139,7 +140,7 @@ export function swapMaps(dir: Direction, swaps: Record<string, Record<string, st
 export interface BuiltPack { manifest: PackManifest; atlases: Grid[]; aseprite: unknown[] }
 
 /** Pack assets into atlases + manifest. Identical frames (same pixels) are stored once. */
-export function buildPack(pack: string, dir: Direction, inputs: PackInput[], opts: { generator?: string; maxSize?: number; padding?: number } = {}): BuiltPack {
+export function buildPack(pack: string, dir: Direction, inputs: PackInput[], opts: { generator?: string; runtime?: string; maxSize?: number; padding?: number } = {}): BuiltPack {
   const uniq: Grid[] = [], byHash = new Map<string, number>();
   const refs: { asset: string; cell: Cell; variant: number; img: number; fi: number; si: string }[] = [];
   for (const inp of inputs) inp.renders.forEach((r, variant) => {
@@ -174,7 +175,7 @@ export function buildPack(pack: string, dir: Direction, inputs: PackInput[], opt
   }
   const drafts = inputs.filter(i => i.draft).map(i => i.brief.id);
   const manifest: PackManifest = {
-    format: 1, pack, generator: opts.generator ?? 'artgen', direction: { id: dir.id, version: dir.version }, runtime: null, atlases: names, assets,
+    format: 1, pack, generator: opts.generator ?? 'artgen', direction: { id: dir.id, version: dir.version }, runtime: opts.runtime ?? null, atlases: names, assets,
     ...(drafts.length && { drafts }),
   };
   const aseprite = atlases.map((g, bin) => asepriteJson(manifest, bin, g, names[bin]));

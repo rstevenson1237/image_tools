@@ -6,6 +6,8 @@
   skill (`/artgen-brief`, `/artgen-make`, `/artgen-review`, `/artgen-feedback`, `/artgen-approve`, `/artgen-export`,
   `/artgen-restyle`) to produce, show, approve and export assets, the **artgen** skill for authoring sprite, prop, tile
   or effect sources; the **art-reviewer** subagent scores versions.
+- Game code reads art through the vendored runtime in `src/art/runtime/` (`export --runtime`; never edit it by hand
+  unless you mean to keep a local fork) and the typed ids in `src/art/assets.ts` (generated — don't edit).
 - The pipeline runs autonomously: don't ask the user between passes; they see finished assets and approve or give
   feedback. Only the user approves (`artgen approve`).
 - Never hard-code palette colours, the outline colour, light or sizes in asset code: read them from `ctx.dir` (R11).

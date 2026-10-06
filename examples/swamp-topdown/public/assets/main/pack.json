@@ -1,12 +1,12 @@
 {
   "format": 1,
   "pack": "main",
-  "generator": "artgen 0.3.0",
+  "generator": "artgen 0.4.0",
   "direction": {
     "id": "bogwatch",
     "version": 2
   },
-  "runtime": null,
+  "runtime": "1.0.0",
   "atlases": [
     "main-0.png"
   ],
@@ -534,9 +534,9 @@
       ],
       "swaps": {
         "pale": {
-          "#cbc4b5": "#9ca68c",
-          "#a2856b": "#5d704f",
-          "#60443a": "#222d1f"
+          "#9ca68c": "#cbc4b5",
+          "#5d704f": "#a2856b",
+          "#222d1f": "#60443a"
         }
       },
       "version": "finish.v2",

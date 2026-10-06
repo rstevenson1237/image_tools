@@ -28,8 +28,9 @@ npm run fixtures:install  # restore the generated tools in the examples/ fixture
 **artgen** (`packages/`, `docs/artgen/`) is the pixel-art pipeline for game repos that lives alongside the app.
 Game repos install it by committing a built distribution (works in local and claude.ai/code sessions):
 `npx -y github:rstevenson1237/image_tools#artgen-dist init`, then `/artgen-direction` (W1) and `/artgen-brief` + `/artgen-make`
-(W2: briefs → autonomous pipeline → approve → export). `examples/` holds the fixture game repos used for
-acceptance.
+(W2: briefs → autonomous pipeline → approve → export), and `artgen export --runtime` (W3: vendors the runtime with a
+Pixi.js, three.js or Canvas 2D adapter, `packages/artgen-runtime`). `examples/` holds the fixture game repos used for
+acceptance — each is now a small game playing its exported pack.
 
 `npm run dev` and `npm run build` both re-run `scripts/vendor-opencv.mjs` first, so the OpenCV
 asset is always in place.

@@ -8,6 +8,7 @@
  *   art/sheets/restyle-vA-vB.png     before | after | token diff per asset (`restyle`)
  *   art/directions/v<N>.json         every locked direction version (written by lock)
  *   <packDir>/<pack>/                atlas PNGs, pack.json, Aseprite JSON; <assetsTs> typed ids (`export`)
+ *   <runtimeDir>/                    the vendored W3 runtime + selected adapters, stamped in runtime.json (`export --runtime`)
  */
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
@@ -20,7 +21,9 @@ import {
   feedbackOf, finalHash, ledgerFor, openAsset, passState, renderVersion, versionsIn, type AssetBrief, type AssetDir,
 } from './asset.ts';
 import { strip } from './bench.ts';
+import { RUNTIME_VERSION } from 'artgen-runtime';
 import { appendLedger, readGrid, writeGrid } from './node.ts';
+import { vendorRuntime, type VendorResult } from './runtime.ts';
 import { projectConfig, readJson, writeJson, type Project } from './project.ts';
 import { findTemplate } from './templates.ts';
 import { directionVersion, lockedDirection } from './w1.ts';
@@ -231,10 +234,13 @@ export function inPack(b: BriefEntry, pack: string, include: string[]): boolean 
   return include.some(pat => pat.startsWith('kind:') ? b.kind === pat.slice(5) : new RegExp(`^${pat.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*')}$`).test(b.id));
 }
 
-export interface ExportResult { packs: { pack: string; dir: string; atlases: string[]; assets: string[]; drafts: string[] }[]; assetsTs: string; skipped: { id: string; status: AssetStatus }[] }
+export interface ExportResult { packs: { pack: string; dir: string; atlases: string[]; assets: string[]; drafts: string[] }[]; assetsTs: string; skipped: { id: string; status: AssetStatus }[]; runtime?: VendorResult }
 
-/** Export approved assets into the configured packs: atlases + pack.json + Aseprite JSON, and the typed `assets.ts`. */
-export async function exportPacks(p: Project, o: { packs?: string[]; includeDrafts?: boolean; generator?: string } = {}): Promise<ExportResult> {
+/**
+ * Export approved assets into the configured packs: atlases + pack.json + Aseprite JSON, and the typed `assets.ts`;
+ * with `runtime`, also vendor the W3 runtime (`--force` overwrites locally edited runtime files).
+ */
+export async function exportPacks(p: Project, o: { packs?: string[]; includeDrafts?: boolean; generator?: string; runtime?: boolean; force?: boolean } = {}): Promise<ExportResult> {
   const dir = requireLocked(p), cfg = projectConfig(p), rows = await projectStatus(p), briefs = readBriefs(p);
   const ok = (s: AssetStatus) => s === 'approved' || s === 'exported' || (o.includeDrafts && s === 'final');
   const skipped = rows.filter(r => !ok(r.status)).map(r => ({ id: r.id, status: r.status }));
@@ -250,7 +256,7 @@ export async function exportPacks(p: Project, o: { packs?: string[]; includeDraf
       inputs.push({ brief: a.brief as AssetBrief, view: a.brief.view ?? dir.camera.view, renders, version: r.final!, sourceHash: finalHash(a, r.final!), draft: r.status === 'final' });
     }
     if (!inputs.length) continue;
-    const built = buildPack(pack, dir, inputs, { generator: o.generator, maxSize: cfg.export.maxAtlas, padding: cfg.export.padding });
+    const built = buildPack(pack, dir, inputs, { generator: o.generator, runtime: RUNTIME_VERSION, maxSize: cfg.export.maxAtlas, padding: cfg.export.padding });
     const pdir = join(p.root, cfg.export.packDir, pack);
     built.atlases.forEach((g, i) => { writeGrid(join(pdir, built.manifest.atlases[i]), g); writeJson(join(pdir, built.manifest.atlases[i].replace(/\.png$/, '.aseprite.json')), built.aseprite[i]); });
     writeJson(join(pdir, 'pack.json'), built.manifest);
@@ -261,7 +267,8 @@ export async function exportPacks(p: Project, o: { packs?: string[]; includeDraf
   }
   const tsFile = join(p.root, cfg.export.assetsTs);
   if (forTs.length) { mkdirSync(dirname(tsFile), { recursive: true }); writeFileSync(tsFile, assetsTs(forTs)); }
-  return { packs: out, assetsTs: forTs.length ? rel(p, tsFile) : '', skipped };
+  const runtime = o.runtime ? vendorRuntime(p, { force: o.force, generator: o.generator }) : undefined;
+  return { packs: out, assetsTs: forTs.length ? rel(p, tsFile) : '', skipped, ...(runtime && { runtime }) };
 }
 
 export interface RestyleResult { from: number; to: number; sheet: string; tokens: number; assets: { id: string; final: string; changedPct: number; tokenSame: number; consistent: boolean; gate: boolean; stale: string[] }[] }
