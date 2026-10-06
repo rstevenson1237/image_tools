@@ -9,7 +9,7 @@
  *   art/directions/v<N>.json         every locked direction version (written by lock)
  *   <packDir>/<pack>/                atlas PNGs, pack.json, Aseprite JSON; <assetsTs> typed ids (`export`)
  */
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import {
   analytics, analyticsMarkdown, assetsTs, assetStatus, briefDir, briefOrder, buildPack, contactSheet, editOps, Grid, imageTokens,
@@ -217,7 +217,10 @@ export async function approve(p: Project, id: string, note = ''): Promise<Ledger
   if (!r.report.pass) throw new Error(`${id} ${row.final}: the gate fails (${r.report.checks.filter(c => c.status === 'fail').map(c => c.id).join(', ')}) — give feedback instead (R6)`);
   const sheet = [...ledgerFor(a)].reverse().find(e => e.type === 'review' && e.version === row.final)?.sheet;
   if (!sheet) throw new Error(`${id} ${row.final}: no review sheet yet — artgen review first (R6)`);
-  const e = { type: 'approve' as const, asset: id, version: row.final, sourceHash: finalHash(a, row.final!), outputHash: r.strip.hash(), sheet, direction: { id: dir.id, version: dir.version }, note, by: 'user' as const };
+  // keep the sheet the user approved from (art/sheets/approved/ is the one sheets folder that is committed)
+  const kept = join(p.art, 'sheets', 'approved', `${id}-${row.final}.png`), src = resolve(dirname(ledgerFile(p)), String(sheet));
+  if (existsSync(src)) { mkdirSync(dirname(kept), { recursive: true }); copyFileSync(src, kept); }
+  const e = { type: 'approve' as const, asset: id, version: row.final, sourceHash: finalHash(a, row.final!), outputHash: r.strip.hash(), sheet: existsSync(kept) ? relative(p.art, kept).split('\\').join('/') : sheet, direction: { id: dir.id, version: dir.version }, note, by: 'user' as const };
   appendLedger(ledgerFile(p), e);
   return { ts: new Date().toISOString(), ...e };
 }

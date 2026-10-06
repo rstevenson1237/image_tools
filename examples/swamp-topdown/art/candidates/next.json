@@ -8,7 +8,7 @@
       "dusk"
     ],
     "era": "low fantasy",
-    "notes": "mix mix1: A as the base, line from B. user choice (simulated for the fixture): A's palette with B's outlines | v2 (simulated user): hotter lantern amber, olive greens. simulated user: hotter amber, olive greens"
+    "notes": "mix mix1: A as the base, line from B. user choice (simulated for the fixture): A's palette with B's outlines | v2 (simulated user): hotter lantern amber, olive greens"
   },
   "camera": {
     "light": [
@@ -229,7 +229,7 @@
     ]
   },
   "id": "bogwatch",
-  "version": 2,
-  "status": "locked",
+  "version": 1,
+  "status": "draft",
   "background": "#272621"
 }

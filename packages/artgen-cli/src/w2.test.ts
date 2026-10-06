@@ -101,6 +101,7 @@ describe('W2 production in a scratch game repo', () => {
   test('approve (gate + sheet) → export: atlas, pack.json, Aseprite JSON, assets.ts; exported status', async () => {
     await expect(run('approve', 'nope', ...R)).rejects.toThrow(/no brief/);
     await run('approve', 'goblin', '--note', 'user ok', ...R);
+    expect(existsSync(art('sheets', 'approved', 'goblin-finish.v3.png'))).toBe(true);
     expect((await json('status', ...R)).map((r: { status: string }) => r.status)).toEqual(['approved', 'approved']);
     const ex = await json('export', ...R);
     expect(ex.packs[0]).toMatchObject({ pack: 'main', assets: ['crate', 'goblin'] });

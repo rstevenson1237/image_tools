@@ -8,7 +8,7 @@
       "dusk"
     ],
     "era": "low fantasy",
-    "notes": "mix mix1: A as the base, line from B. user choice (simulated for the fixture): A's palette with B's outlines | v2 (simulated user): hotter lantern amber, olive greens. simulated user: hotter amber, olive greens"
+    "notes": "mix mix1: A as the base, line from B. user choice (simulated for the fixture): A's palette with B's outlines"
   },
   "camera": {
     "light": [
@@ -154,18 +154,18 @@
         "#0b0b09"
       ],
       "grass": [
-        "#9a9a72",
-        "#5a5c3c",
-        "#181a10"
+        "#8f957a",
+        "#505a42",
+        "#141811"
       ],
       "accent": [
-        "#f0c070",
-        "#e07a1c",
-        "#8a3008"
+        "#e3d57f",
+        "#dd9912",
+        "#783a04"
       ],
       "glow": [
-        "#fff0a8",
-        "#ff9a1e"
+        "#efef9c",
+        "#ffae0c"
       ]
     },
     "outline": "#171712"
@@ -229,7 +229,7 @@
     ]
   },
   "id": "bogwatch",
-  "version": 2,
+  "version": 1,
   "status": "locked",
   "background": "#272621"
 }

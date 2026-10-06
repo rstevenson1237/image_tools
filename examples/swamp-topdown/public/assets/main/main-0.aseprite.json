@@ -1,0 +1,1533 @@
+{
+  "frames": [
+    {
+      "filename": "lantern-bearer/idle/s/0",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/idle/sw/0",
+      "frame": {
+        "x": 25,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/idle/w/0",
+      "frame": {
+        "x": 50,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/idle/nw/0",
+      "frame": {
+        "x": 75,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/idle/n/0",
+      "frame": {
+        "x": 100,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/idle/ne/0",
+      "frame": {
+        "x": 125,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/idle/e/0",
+      "frame": {
+        "x": 150,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/idle/se/0",
+      "frame": {
+        "x": 175,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/walk/s/0",
+      "frame": {
+        "x": 200,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/walk/s/1",
+      "frame": {
+        "x": 225,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/walk/s/2",
+      "frame": {
+        "x": 200,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/walk/s/3",
+      "frame": {
+        "x": 0,
+        "y": 25,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/walk/sw/0",
+      "frame": {
+        "x": 0,
+        "y": 50,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/walk/sw/1",
+      "frame": {
+        "x": 0,
+        "y": 75,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/walk/sw/2",
+      "frame": {
+        "x": 0,
+        "y": 50,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/walk/sw/3",
+      "frame": {
+        "x": 0,
+        "y": 100,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/walk/w/0",
+      "frame": {
+        "x": 0,
+        "y": 125,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/walk/w/1",
+      "frame": {
+        "x": 0,
+        "y": 150,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/walk/w/2",
+      "frame": {
+        "x": 0,
+        "y": 125,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/walk/w/3",
+      "frame": {
+        "x": 0,
+        "y": 175,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/walk/nw/0",
+      "frame": {
+        "x": 0,
+        "y": 200,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/walk/nw/1",
+      "frame": {
+        "x": 0,
+        "y": 225,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/walk/nw/2",
+      "frame": {
+        "x": 0,
+        "y": 200,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/walk/nw/3",
+      "frame": {
+        "x": 25,
+        "y": 25,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/walk/n/0",
+      "frame": {
+        "x": 50,
+        "y": 25,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/walk/n/1",
+      "frame": {
+        "x": 75,
+        "y": 25,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/walk/n/2",
+      "frame": {
+        "x": 50,
+        "y": 25,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/walk/n/3",
+      "frame": {
+        "x": 100,
+        "y": 25,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/walk/ne/0",
+      "frame": {
+        "x": 125,
+        "y": 25,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/walk/ne/1",
+      "frame": {
+        "x": 150,
+        "y": 25,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/walk/ne/2",
+      "frame": {
+        "x": 125,
+        "y": 25,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/walk/ne/3",
+      "frame": {
+        "x": 175,
+        "y": 25,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/walk/e/0",
+      "frame": {
+        "x": 200,
+        "y": 25,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/walk/e/1",
+      "frame": {
+        "x": 225,
+        "y": 25,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/walk/e/2",
+      "frame": {
+        "x": 200,
+        "y": 25,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/walk/e/3",
+      "frame": {
+        "x": 25,
+        "y": 50,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/walk/se/0",
+      "frame": {
+        "x": 25,
+        "y": 75,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/walk/se/1",
+      "frame": {
+        "x": 25,
+        "y": 100,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/walk/se/2",
+      "frame": {
+        "x": 25,
+        "y": 75,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-bearer/walk/se/3",
+      "frame": {
+        "x": 25,
+        "y": 125,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "bog-goblin/idle/s/0",
+      "frame": {
+        "x": 25,
+        "y": 150,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "leech/idle/s/0",
+      "frame": {
+        "x": 25,
+        "y": 175,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "leech/idle/s/1",
+      "frame": {
+        "x": 25,
+        "y": 200,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "leech/idle/s/2",
+      "frame": {
+        "x": 25,
+        "y": 225,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "leech/idle/s/3",
+      "frame": {
+        "x": 50,
+        "y": 50,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "wisp/idle/s/0",
+      "frame": {
+        "x": 75,
+        "y": 50,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 83
+    },
+    {
+      "filename": "wisp/idle/s/1",
+      "frame": {
+        "x": 100,
+        "y": 50,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 83
+    },
+    {
+      "filename": "wisp/idle/s/2",
+      "frame": {
+        "x": 125,
+        "y": 50,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 83
+    },
+    {
+      "filename": "wisp/idle/s/3",
+      "frame": {
+        "x": 150,
+        "y": 50,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 83
+    },
+    {
+      "filename": "wisp/idle/s/4",
+      "frame": {
+        "x": 175,
+        "y": 50,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 83
+    },
+    {
+      "filename": "wisp/idle/s/5",
+      "frame": {
+        "x": 200,
+        "y": 50,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 83
+    },
+    {
+      "filename": "sunk-crate/idle/s/0",
+      "frame": {
+        "x": 225,
+        "y": 50,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "sunk-crate/idle/s/0#v1",
+      "frame": {
+        "x": 50,
+        "y": 75,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "sunk-crate/idle/s/0#v2",
+      "frame": {
+        "x": 50,
+        "y": 100,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "lantern-post/idle/s/0",
+      "frame": {
+        "x": 50,
+        "y": 125,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "reeds/idle/s/0",
+      "frame": {
+        "x": 50,
+        "y": 150,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "reeds/idle/s/0#v1",
+      "frame": {
+        "x": 50,
+        "y": 175,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "reeds/idle/s/0#v2",
+      "frame": {
+        "x": 50,
+        "y": 200,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "bone-pile/idle/s/0",
+      "frame": {
+        "x": 50,
+        "y": 225,
+        "w": 24,
+        "h": 24
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      "sourceSize": {
+        "w": 24,
+        "h": 24
+      },
+      "duration": 125
+    },
+    {
+      "filename": "mud/idle/s/0",
+      "frame": {
+        "x": 75,
+        "y": 75,
+        "w": 16,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 16,
+        "h": 16
+      },
+      "duration": 125
+    },
+    {
+      "filename": "bog-water/idle/s/0",
+      "frame": {
+        "x": 92,
+        "y": 75,
+        "w": 16,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 16,
+        "h": 16
+      },
+      "duration": 125
+    }
+  ],
+  "meta": {
+    "app": "artgen",
+    "version": "artgen 0.3.0",
+    "image": "main-0.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 256,
+      "h": 256
+    },
+    "scale": "1",
+    "frameTags": [
+      {
+        "name": "lantern-bearer/idle/s",
+        "from": 0,
+        "to": 0,
+        "direction": "forward"
+      },
+      {
+        "name": "lantern-bearer/idle/sw",
+        "from": 1,
+        "to": 1,
+        "direction": "forward"
+      },
+      {
+        "name": "lantern-bearer/idle/w",
+        "from": 2,
+        "to": 2,
+        "direction": "forward"
+      },
+      {
+        "name": "lantern-bearer/idle/nw",
+        "from": 3,
+        "to": 3,
+        "direction": "forward"
+      },
+      {
+        "name": "lantern-bearer/idle/n",
+        "from": 4,
+        "to": 4,
+        "direction": "forward"
+      },
+      {
+        "name": "lantern-bearer/idle/ne",
+        "from": 5,
+        "to": 5,
+        "direction": "forward"
+      },
+      {
+        "name": "lantern-bearer/idle/e",
+        "from": 6,
+        "to": 6,
+        "direction": "forward"
+      },
+      {
+        "name": "lantern-bearer/idle/se",
+        "from": 7,
+        "to": 7,
+        "direction": "forward"
+      },
+      {
+        "name": "lantern-bearer/walk/s",
+        "from": 8,
+        "to": 11,
+        "direction": "forward"
+      },
+      {
+        "name": "lantern-bearer/walk/sw",
+        "from": 12,
+        "to": 15,
+        "direction": "forward"
+      },
+      {
+        "name": "lantern-bearer/walk/w",
+        "from": 16,
+        "to": 19,
+        "direction": "forward"
+      },
+      {
+        "name": "lantern-bearer/walk/nw",
+        "from": 20,
+        "to": 23,
+        "direction": "forward"
+      },
+      {
+        "name": "lantern-bearer/walk/n",
+        "from": 24,
+        "to": 27,
+        "direction": "forward"
+      },
+      {
+        "name": "lantern-bearer/walk/ne",
+        "from": 28,
+        "to": 31,
+        "direction": "forward"
+      },
+      {
+        "name": "lantern-bearer/walk/e",
+        "from": 32,
+        "to": 35,
+        "direction": "forward"
+      },
+      {
+        "name": "lantern-bearer/walk/se",
+        "from": 36,
+        "to": 39,
+        "direction": "forward"
+      },
+      {
+        "name": "bog-goblin/idle/s",
+        "from": 40,
+        "to": 40,
+        "direction": "forward"
+      },
+      {
+        "name": "leech/idle/s",
+        "from": 41,
+        "to": 44,
+        "direction": "forward"
+      },
+      {
+        "name": "wisp/idle/s",
+        "from": 45,
+        "to": 50,
+        "direction": "forward"
+      },
+      {
+        "name": "sunk-crate/idle/s",
+        "from": 51,
+        "to": 51,
+        "direction": "forward"
+      },
+      {
+        "name": "sunk-crate/idle/s#v1",
+        "from": 52,
+        "to": 52,
+        "direction": "forward"
+      },
+      {
+        "name": "sunk-crate/idle/s#v2",
+        "from": 53,
+        "to": 53,
+        "direction": "forward"
+      },
+      {
+        "name": "lantern-post/idle/s",
+        "from": 54,
+        "to": 54,
+        "direction": "forward"
+      },
+      {
+        "name": "reeds/idle/s",
+        "from": 55,
+        "to": 55,
+        "direction": "forward"
+      },
+      {
+        "name": "reeds/idle/s#v1",
+        "from": 56,
+        "to": 56,
+        "direction": "forward"
+      },
+      {
+        "name": "reeds/idle/s#v2",
+        "from": 57,
+        "to": 57,
+        "direction": "forward"
+      },
+      {
+        "name": "bone-pile/idle/s",
+        "from": 58,
+        "to": 58,
+        "direction": "forward"
+      },
+      {
+        "name": "mud/idle/s",
+        "from": 59,
+        "to": 59,
+        "direction": "forward"
+      },
+      {
+        "name": "bog-water/idle/s",
+        "from": 60,
+        "to": 60,
+        "direction": "forward"
+      }
+    ]
+  }
+}
