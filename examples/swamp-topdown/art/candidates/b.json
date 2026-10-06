@@ -1,0 +1,242 @@
+{
+  "theme": {
+    "pitch": "Bogwatch - a top-down swamp roguelike. You are a lantern-bearer wading through a drowned marsh at dusk, fighting bog goblins, leeches and will-o'-wisps. The lantern is the only warm light: everything else is rot greens, bone whites and fog.",
+    "mood": [
+      "damp",
+      "eerie",
+      "muted",
+      "dusk"
+    ],
+    "era": "low fantasy",
+    "notes": "candidate B (bold): saturated, brighter and hue-rotated, coloured selective outline (selout), 4 bands, strong hue shift, chunky heads. lantern amber is the only warm accent"
+  },
+  "camera": {
+    "light": [
+      -1,
+      -1,
+      1
+    ],
+    "directions": 8,
+    "pixelScale": 3,
+    "view": "topdown"
+  },
+  "scale": {
+    "character": [
+      24,
+      24
+    ],
+    "prop": [
+      24,
+      24
+    ],
+    "tile": 16,
+    "effect": [
+      24,
+      24
+    ],
+    "large": [
+      48,
+      48
+    ],
+    "proportions": {
+      "headRatio": 0.5
+    }
+  },
+  "palette": {
+    "shadow": {
+      "color": "#0c1509",
+      "alpha": 0.35
+    },
+    "materials": {
+      "cloth": "cloth",
+      "skin": "skin",
+      "hair": "hair",
+      "leather": "leather",
+      "metal": "metal",
+      "steel": "metal",
+      "wood": "wood",
+      "stone": "stone",
+      "dirt": "dirt",
+      "ground": "dirt",
+      "grass": "grass",
+      "foliage": "grass",
+      "accent": "accent",
+      "gold": "accent",
+      "glow": "glow",
+      "fx": "glow"
+    },
+    "perKindMax": {
+      "character": 31,
+      "creature": 25,
+      "prop": 29,
+      "tile": 13,
+      "effect": 7
+    },
+    "perKind": {
+      "character": [
+        "skin",
+        "hair",
+        "cloth",
+        "leather",
+        "metal",
+        "accent",
+        "glow",
+        "dirt"
+      ],
+      "creature": [
+        "skin",
+        "hair",
+        "cloth",
+        "leather",
+        "grass",
+        "accent"
+      ],
+      "prop": [
+        "wood",
+        "metal",
+        "stone",
+        "leather",
+        "accent",
+        "grass",
+        "dirt"
+      ],
+      "tile": [
+        "dirt",
+        "grass",
+        "stone"
+      ],
+      "effect": [
+        "accent",
+        "glow"
+      ]
+    },
+    "source": "generated",
+    "maxColors": 42,
+    "ramps": {
+      "skin": [
+        "#e9e6d8",
+        "#ccb493",
+        "#b06d4b",
+        "#6d322c"
+      ],
+      "hair": [
+        "#a9a77d",
+        "#7a6b49",
+        "#3e2f23",
+        "#0d0807"
+      ],
+      "cloth": [
+        "#a8c5a4",
+        "#62a56a",
+        "#396b4c",
+        "#162b23"
+      ],
+      "leather": [
+        "#b6b28d",
+        "#8e7952",
+        "#523b2c",
+        "#120b09"
+      ],
+      "metal": [
+        "#dee2e3",
+        "#a8b1b6",
+        "#727c8a",
+        "#454754"
+      ],
+      "wood": [
+        "#c3c29d",
+        "#a49059",
+        "#674d33",
+        "#261712"
+      ],
+      "stone": [
+        "#bfc5c8",
+        "#89929c",
+        "#575c6a",
+        "#2b2b35"
+      ],
+      "dirt": [
+        "#a2a283",
+        "#737350",
+        "#363a27",
+        "#0a0c08"
+      ],
+      "grass": [
+        "#acb48f",
+        "#728c55",
+        "#37502d",
+        "#0a120a"
+      ],
+      "accent": [
+        "#f3f3ac",
+        "#f7f745",
+        "#dabf00",
+        "#774b00"
+      ],
+      "glow": [
+        "#f4f4b3",
+        "#86ff28"
+      ]
+    },
+    "outline": "#121910"
+  },
+  "line": {
+    "outer": "selout",
+    "inner": "selective",
+    "weight": 1
+  },
+  "shading": {
+    "bands": 4,
+    "hueShift": 22,
+    "dither": "none",
+    "highlight": "rich",
+    "aa": false
+  },
+  "detail": {
+    "density": "high",
+    "minFeaturePx": 2
+  },
+  "pipeline": {
+    "revisionPasses": 3,
+    "finishPass": true,
+    "raster": {
+      "directMaxPx": 32,
+      "ss": 8
+    },
+    "procedural": [
+      "rimLight"
+    ],
+    "finish": {
+      "allow": [
+        "patch",
+        "fix",
+        "fx",
+        "light",
+        "outline"
+      ]
+    }
+  },
+  "effects": {
+    "fps": 12,
+    "maxFrames": 8,
+    "palette": [
+      "glow",
+      "accent"
+    ]
+  },
+  "anchors": [],
+  "rules": {
+    "do": [
+      "silhouettes readable at 1x on mud",
+      "lantern amber only on light sources"
+    ],
+    "dont": [
+      "pure white",
+      "saturated blue"
+    ]
+  },
+  "id": "bogwatch-b",
+  "version": 1,
+  "status": "candidate",
+  "background": "#2d2d23"
+}

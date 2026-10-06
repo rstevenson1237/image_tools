@@ -1,0 +1,15 @@
+{
+  "id": "probe-prop",
+  "kind": "prop",
+  "size": "prop",
+  "states": [
+    "closed",
+    "open"
+  ],
+  "review": {
+    "scale": 6,
+    "sym": "none",
+    "iso": true
+  },
+  "view": "iso"
+}

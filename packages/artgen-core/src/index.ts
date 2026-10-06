@@ -27,3 +27,5 @@ export { Raster, bandIndices, type RasterItem } from './t2/raster.ts';
 export { Proc, LAYERS, valueNoise } from './t2/proc.ts';
 export { applyFinish, finishSnapshot, finishStale, makePx, type FinishModule, type FinishContext, type PatchRecord, type Px } from './t2/finish.ts';
 export { resolveParams, paramSchema, paramDefault, type ParamSpec } from './t2/params.ts';
+export * from './w1/candidates.ts';
+export { styleTile, styleSheet, wrap, paletteLuma, type ProbeImages, type StyleTileColumn } from './w1/sheets.ts';

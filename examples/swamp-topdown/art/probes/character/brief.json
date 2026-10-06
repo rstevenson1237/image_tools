@@ -1,0 +1,13 @@
+{
+  "id": "probe-character",
+  "kind": "character",
+  "size": "character",
+  "states": [
+    "idle"
+  ],
+  "review": {
+    "scale": 6,
+    "sym": "x"
+  },
+  "view": "topdown"
+}

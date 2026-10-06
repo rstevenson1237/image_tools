@@ -1,0 +1,25 @@
+{
+  "pitch": "Torchdeep - an isometric, turn-based dungeon crawler. A small party pushes down through torch-lit crypts, fighting skeleton knights in tight tactical rooms and looting iron-banded chests. Cold blue-grey stone, warm torchlight, glints of gold.",
+  "id": "torchdeep",
+  "view": "iso",
+  "scale": "medium",
+  "mood": [
+    "grim",
+    "torchlit",
+    "cold stone",
+    "tactical"
+  ],
+  "era": "dark fantasy",
+  "directions": 4,
+  "notes": "torch orange and gold are the only warm colours",
+  "rules": {
+    "do": [
+      "read the unit's facing at 1x",
+      "keep floor tiles low-contrast so units pop"
+    ],
+    "dont": [
+      "saturated greens",
+      "pure black fills"
+    ]
+  }
+}

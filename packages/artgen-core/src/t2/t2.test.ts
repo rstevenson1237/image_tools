@@ -222,6 +222,16 @@ describe('finishing ops', () => {
     expect(() => px.set(block(), [0, 0], 'nope.1')).toThrow('unknown colour token');
   });
 
+  test('with a selout direction the silhouette is the line: fill ops leave it alone', () => {
+    const sel = dirContext(make({ line: { outer: 'selout' } })), px = makePx(sel);
+    // a selout sprite: darkest stone on the silhouette, mid inside
+    const g = new Grid(10, 10).fill(1, 1, 8, 8, RAMPS.stone[3]).fill(2, 2, 6, 6, mid);
+    px.light.rim(g);
+    expect(g.get(1, 4)).toBe(RAMPS.stone[3]); // the line stays
+    expect(g.get(2, 4)).toBe(lt); // the lit edge inside it is rimmed
+    expect(g.get(7, 4)).toBe(mid);
+  });
+
   test('patches follow anchors into other frames; west facings mirror the finished east cells; snapshots catch stale finishes', () => {
     const mod: AssetModule = {
       render: ctx => { const g = new Grid(12, 12); g.fill(2, 2 + ctx.frame, 8, 8, ctx.dir.pal.stone[1]); return ctx.lib.line(g); },

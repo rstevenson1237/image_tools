@@ -1,6 +1,6 @@
 # artgen — Specification
 
-Status: **rev 4** — written against the resolved decisions in [INTAKE §7](INTAKE.md#7-decisions-resolved-2026-10-05) / [DECISIONS.md](DECISIONS.md)
+Status: **rev 5** (P2: packaging and W1 as built) — written against the resolved decisions in [INTAKE §7](INTAKE.md#7-decisions-resolved-2026-10-05) / [DECISIONS.md](DECISIONS.md)
 
 ## 1. Summary
 
@@ -62,36 +62,50 @@ dist/
   claude/skills/art-direction/       # W1 interview → candidates → lock
   claude/skills/asset-production/    # W2 brief → autonomous pipeline → final review → export
   claude/agents/art-reviewer.md      # subagent: scores a sheet against the direction
-  claude/commands/                   # thin wrappers, if command names prove useful (settled in P2)
+  claude/commands/artgen-init.md, artgen-direction.md   # thin wrappers: /artgen-init, /artgen-direction
   tools/artgen/artgen.js             # CLI, single-file bundle (Node 20+, no npm install)
   tools/artgen/artgen-mcp.js         # MCP server, single-file bundle
+  tools/artgen/resvg.wasm            # the SVG rasteriser the bundles load
   tools/artgen/templates/            # base + finish templates per kind × view
-  install.mjs
-plugin/                              # the same content in plugin layout, for local `/plugin install` users
+  tools/artgen/package.json          # "type": "module", so the bundles stay ESM in any game repo
+  claude-md.md                       # the managed CLAUDE.md section
+install.mjs, package.json            # `npx github:…#artgen-dist init|update|status`
+plugin/                              # the same content in plugin layout (/artgen:init, /artgen:direction)
+.claude-plugin/marketplace.json      # lists plugin/ for local `/plugin marketplace add`
 ```
+**Command names (settled in P2):** skills are the primary interface. Outside a plugin, command files can't be
+namespaced, so the committed install ships `/artgen-init` and `/artgen-direction`; the plugin layout gives
+`/artgen:init` and `/artgen:direction`. Skills and the CLI are identical in both.
 Install or update in a game repo (local shell, or any session with network access), then commit:
 ```
 npx -y github:rstevenson1237/image_tools#artgen-dist init     # first time: copy files + scaffold art/
 npx -y github:rstevenson1237/image_tools#artgen-dist update   # later: shows version change, protects local edits
 ```
 - Copies `dist/claude/*` into `.claude/`, `dist/tools/artgen` into `tools/artgen/`, merges an `artgen` entry
-  into `.mcp.json` (`node tools/artgen/artgen-mcp.js`), appends the art section to `CLAUDE.md`.
+  into `.mcp.json` (`node tools/artgen/artgen-mcp.js`), writes the art section into `CLAUDE.md` between
+  `artgen:begin`/`artgen:end` markers (`update` rewrites it unless it was edited), and runs `artgen init`.
 - `tools/artgen/VERSION` pins the version; `MANIFEST.json` stores file hashes so `update` refuses to overwrite
-  local edits without `--force`.
+  local edits without `--force`, and removes untouched files a new version no longer ships. `status` lists edits;
+  `--dry-run` shows the plan.
 - After install, sessions (local or cloud) need no network or npm: everything comes from the clone.
 - The repo is public, so `npx github:…` needs no credentials.
 
 ### 3.2 `artgen init` scaffolds the game repo
 ```
 art/
-  direction.json          # empty template until W1 locks it
+  direction.json          # placeholder (status draft, no palette) until W1 locks one
+  interview.json          # W1 interview answers (pitch, view, scale, mood, colours, rules)
+  candidates/             # W1: a.json, b.json, c.json, mixN.json, style-tile-rN.png
+  probes/                 # W1 probe set: character, prop, tile, effect asset dirs
   briefs.yaml             # asset list (W2)
   assets/                 # asset sources by kind
   anchors/                # approved style anchors (W1)
+  refs/                   # reference images for palette extraction
   sheets/                 # review sheets (gitignored except approved)
   ledger.jsonl
-  artgen.config.json      # export paths, runtime adapter, pack names
-CLAUDE.md                 # appended section: "art lives in art/, use /artgen:* , never hard-code palette"
+  artgen.config.json      # export paths, runtime adapter, packs, budget, stage models
+  package.json            # "type": "module": asset sources are ESM whatever the game's package.json says
+CLAUDE.md                 # managed section: "art lives in art/, use the skills, never hard-code palette"
 ```
 
 ## 4. Art direction (W1, part 2)
@@ -121,11 +135,14 @@ CLAUDE.md                 # appended section: "art lives in art/, use /artgen:* 
                  "procedural": ["materialNoise", "rimLight", "groundShadow"],   // default second-pass layers
                  "finish": { "allow": ["patch","fix","fx","light","outline"] } },
   "effects": { "fps": 12, "maxFrames": 8, "palette": ["amber","bone"] },
-  "anchors": ["anchors/hero.png", "anchors/crate.png", "anchors/mud-tile.png", "anchors/spark.png"],
+  "background": "#2b2a22",                          // the game's background (style tiles, context panels)
+  "anchors": ["anchors/character.png", "anchors/prop.png", "anchors/tile.png", "anchors/effect.png"],
   "rules":   { "do": ["silhouettes readable at 1x on mud"], "dont": ["pure white", "saturated blue"] }
 }
 ```
-Every render receives the direction via `ctx.dir` (palette refs, sizes, outline, light, bands). Techniques
+Generated directions (W1) always define the same **role ramps** — `skin hair cloth leather metal wood stone dirt
+grass accent glow` — with `materials` aliases (`steel` → metal, `gold` → accent, `foliage` → grass, `fx` → glow), so
+templates and probes work under any candidate. Every render receives the direction via `ctx.dir` (palette refs, sizes, outline, light, bands). Techniques
 consume it by default: `prim`/`voxel` shaders use `light` and `bands`; post passes use `outline`, `line`,
 `dither`; quantize uses the restricted palette for the asset's kind.
 
@@ -133,13 +150,17 @@ consume it by default: `prim`/`voxel` shaders use `light` and `bands`; post pass
 1. **Interview** — game pitch, genre, view, target resolution/scale, mood words, references (described, or
    images dropped into `art/refs/` for palette extraction), constraints (colour count, platform).
 2. **Candidates** — generate **3** `direction.json` drafts that differ meaningfully (palette family, outline
-   style, shading bands/dither, proportions). Palettes from Lospec import, ramp generator, or extracted from
-   reference images (median-cut → ramp sort).
+   style, shading bands/dither, proportions): A faithful (dark outline, 3 bands), B bold (saturated, selout,
+   4 bands, chunky heads), C muted (darker near-duotone, no inner lines, 2 bands + dither, slim figures). Mood and
+   setting words pick key/accent hues and ground/growth colours; palettes from Lospec import, ramp generator, or
+   extracted from reference images (median-cut → ramp sort) feed candidate A. The agent then tailors the drafts to
+   the pitch (signature colours, `perKind`, rules).
 3. **Style tiles** — render the same **probe set** under each candidate: one character, one prop, one
    ground tile (3×3 tiled), one effect strip, on the game's background, at 1× and display scale. One sheet,
    three columns.
-4. **Choose/mix** — the user picks one or mixes ("A's palette, B's outlines"); iterate (versions of the
-   draft) until approved. W4's Art Direction tool can edit the palette and settings directly.
+4. **Choose/mix** — the user picks one or mixes ("A's palette, B's outlines": `artgen direction mix a --line b`;
+   parts: palette, line, shading, scale, detail, camera, theme, pipeline, effects, rules); a mix gets its own tile
+   round. Iterate until approved. W4's Art Direction tool can edit the palette and settings directly.
 5. **Lock** — status `locked`, version bumped, probe assets saved as **anchors**, style sheet PNG
    (palette swatches with ramp names, scale ruler, light diagram, anchors, do/don't) written to
    `art/direction.png`.
@@ -153,11 +174,12 @@ consume it by default: `prim`/`voxel` shaders use `light` and `bands`; post pass
 | scale | frame size matches `scale` for the kind (or declared override) |
 | line | outer outline present/absent per `line.outer`, uses direction outline colour (or selout ramp) |
 | aa | no partial alpha except shadow colour |
-| light | luminance gradient across the sprite agrees with `light` (sign test on lit vs shaded edges) |
+| light | luminance gradient across the sprite agrees with `light` (sign test on lit vs shaded edges; the line itself excluded; skipped for effects and tiles) |
 | dither | none present if `dither: none` (checkerboard detector) |
 | source lint | no hex literals in asset source (R11) except via `ctx.dir` |
 | scene lint | T2+ scenes report strokes (R4) and colours outside the asset palette (R11) — fail; interpenetrating 3D solids (R5) and shapes that cover no pixels — flag |
 | anchor similarity | colour-histogram and value-distribution distance to anchors of the same kind within tolerance (flag, not fail) |
+Tile kinds (`tile`, `tileset`, `texture`) wrap at their borders, so a full-bleed tile has no silhouette edge.
 Plus hygiene metrics from artlab (`measure()`): gate thresholds in `artgen.config.json`.
 
 ## 5. Production pipeline (W2)
@@ -462,14 +484,15 @@ files on every run; nothing is cached across the boundary.
 
 ## 14. Interfaces
 
-**CLI** (`artgen`, all with `--json`): `init`, `direction new|candidates|tile|lock|show`, `palette import|extract|ramp`,
+**CLI** (`artgen`, all with `--json`): `init`, `direction new|candidates|tile|mix|lock|anchors|show|validate`, `palette import|extract|ramp`,
 `brief add|list`, `new`, `render [--stages]`, `review`, `score`, `pass next|status` (pipeline state), `finish`,
 `feedback`, `approve`, `status`, `variants`,
 `texture`, `fx`, `voxel`, `restyle`, `export [--runtime]`, `import-edit`, `report`, `bench`.
 
 **Skills / commands / agent**: §3.1. `artgen analytics` (§11.1). **MCP tools**: `direction_get`, `direction_tile`, `pass_status`, `render`, `finish`,
 `review`, `conformance`, `score`, `approve`, `texture`, `fx`, `export` — image results returned as MCP image
-content. **Python**: `artgen-py` client (`Artgen(project).render(...)`, `.texture(...)`, `.export(...)`)
+content; asset paths are sandboxed to `art/` (P2 serves `direction_get`, `direction_tile`, `pass_status`, `render`,
+`review`, `conformance`, `score`). **Python**: `artgen-py` client (`Artgen(project).render(...)`, `.texture(...)`, `.export(...)`)
 returning Pillow images + dicts.
 
 ## 15. Non-functional

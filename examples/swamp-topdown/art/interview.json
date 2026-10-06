@@ -1,0 +1,25 @@
+{
+  "pitch": "Bogwatch - a top-down swamp roguelike. You are a lantern-bearer wading through a drowned marsh at dusk, fighting bog goblins, leeches and will-o'-wisps. The lantern is the only warm light: everything else is rot greens, bone whites and fog.",
+  "id": "bogwatch",
+  "view": "topdown",
+  "scale": "medium",
+  "mood": [
+    "damp",
+    "eerie",
+    "muted",
+    "dusk"
+  ],
+  "era": "low fantasy",
+  "directions": 8,
+  "notes": "lantern amber is the only warm accent",
+  "rules": {
+    "do": [
+      "silhouettes readable at 1x on mud",
+      "lantern amber only on light sources"
+    ],
+    "dont": [
+      "pure white",
+      "saturated blue"
+    ]
+  }
+}

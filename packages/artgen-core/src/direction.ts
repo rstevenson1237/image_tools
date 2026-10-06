@@ -50,6 +50,8 @@ export interface Direction {
     finish: { allow: string[] };
   };
   effects: { fps: number; maxFrames: number; palette: string[] };
+  /** The game's background colour: style tiles and review context panels show assets on it. */
+  background?: string;
   anchors: string[];
   rules: { do: string[]; dont: string[] };
 }
@@ -173,6 +175,7 @@ export function validateDirection(input: unknown): ValidationResult {
   strs('pipeline.finish.allow', d.pipeline?.finish?.allow);
   num('effects.fps', d.effects?.fps, 1, 120, true);
   num('effects.maxFrames', d.effects?.maxFrames, 1, 256, true);
+  if (d.background !== undefined && (typeof d.background !== 'string' || !HEX.test(d.background))) err('background', 'must be #rrggbb');
   strs('anchors', d.anchors);
   strs('rules.do', d.rules?.do);
   strs('rules.dont', d.rules?.dont);

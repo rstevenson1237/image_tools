@@ -1,0 +1,20 @@
+{
+  "id": "probe-effect",
+  "kind": "effect",
+  "size": "effect",
+  "states": [
+    "play"
+  ],
+  "anims": {
+    "play": {
+      "frames": 4,
+      "fps": 12,
+      "loop": false
+    }
+  },
+  "review": {
+    "scale": 6,
+    "sym": "none"
+  },
+  "view": "fp"
+}

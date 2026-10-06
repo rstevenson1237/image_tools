@@ -1,0 +1,10 @@
+{"ts":"2026-10-06T01:50:46.162Z","type":"note","asset":"direction","note":"candidates a, b, c from interview","by":"agent"}
+{"ts":"2026-10-06T01:50:46.651Z","type":"review","asset":"direction","version":"tile-r1","sheet":"candidates/style-tile-r1.png","imageTokens":1716,"candidates":["a","b","c"],"by":"agent"}
+{"ts":"2026-10-06T01:51:21.365Z","type":"review","asset":"direction","version":"tile-r2","sheet":"candidates/style-tile-r2.png","imageTokens":1716,"candidates":["a","b","c"],"by":"agent"}
+{"ts":"2026-10-06T01:51:27.097Z","type":"review","asset":"direction","version":"tile-r3","sheet":"candidates/style-tile-r3.png","imageTokens":1716,"candidates":["a","b","c"],"by":"agent"}
+{"ts":"2026-10-06T01:51:45.513Z","type":"review","asset":"direction","version":"tile-r4","sheet":"candidates/style-tile-r4.png","imageTokens":1716,"candidates":["a","b","c"],"by":"agent"}
+{"ts":"2026-10-06T01:51:53.750Z","type":"review","asset":"direction","version":"tile-r5","sheet":"candidates/style-tile-r5.png","imageTokens":1716,"candidates":["a","b","c"],"by":"agent"}
+{"ts":"2026-10-06T01:52:00.896Z","type":"note","asset":"direction","note":"mix mix1: C as the base, line from A, shading from A","by":"user"}
+{"ts":"2026-10-06T01:52:01.384Z","type":"review","asset":"direction","version":"tile-r6","sheet":"candidates/style-tile-r6.png","imageTokens":1716,"candidates":["mix1","a","c"],"by":"agent"}
+{"ts":"2026-10-06T01:52:01.445Z","type":"approve","asset":"direction","version":"v1","note":"locked mix1: user choice (simulated for the fixture): C's cold stone palette with A's outline and 3-band shading","direction":{"id":"torchdeep","version":1},"by":"user"}
+{"ts":"2026-10-06T01:52:01.701Z","type":"note","asset":"direction","version":"v1","note":"anchors from probes character finish.v1, prop finish.v1, tile finish.v1, effect finish.v1","by":"agent"}

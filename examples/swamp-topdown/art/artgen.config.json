@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "export": {
+    "packDir": "public/assets",
+    "runtimeDir": "src/art/runtime",
+    "assetsTs": "src/art/assets.ts"
+  },
+  "runtime": {
+    "adapters": [
+      "canvas2d"
+    ]
+  },
+  "packs": {
+    "main": {
+      "include": [
+        "*"
+      ]
+    }
+  },
+  "budget": {
+    "revisionPasses": 3,
+    "maxSheetEdge": 1568,
+    "maxUserIterations": 3,
+    "extraAutonomousRevisions": 1
+  },
+  "models": {
+    "base": "default",
+    "revise": "default",
+    "finish": "default",
+    "review": "default"
+  },
+  "gate": {}
+}

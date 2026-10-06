@@ -1,0 +1,13 @@
+{
+  "id": "probe-tile",
+  "kind": "tile",
+  "size": "tile",
+  "states": [
+    "idle"
+  ],
+  "review": {
+    "scale": 6,
+    "sym": "none"
+  },
+  "view": "fp"
+}

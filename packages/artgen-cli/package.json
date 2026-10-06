@@ -2,16 +2,16 @@
   "name": "artgen-cli",
   "private": true,
   "version": "0.0.0",
-  "description": "artgen CLI and Node I/O adapter (P1b: bench, direction validate, pass pipeline, review/score/variants/report; full CLI in P2).",
+  "description": "artgen CLI and Node I/O adapter: project init, W1 art direction, palettes, asset pipeline, bench.",
   "type": "module",
   "exports": "./src/index.ts",
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "artgen": "node src/cli.ts"
+    "artgen": "node src/bin.ts"
   },
   "bin": {
-    "artgen": "./src/cli.ts"
+    "artgen": "./src/bin.ts"
   },
   "dependencies": {
     "artgen-core": "0.0.0"

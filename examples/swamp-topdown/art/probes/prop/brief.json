@@ -1,0 +1,13 @@
+{
+  "id": "probe-prop",
+  "kind": "prop",
+  "size": "prop",
+  "states": [
+    "idle"
+  ],
+  "review": {
+    "scale": 6,
+    "sym": "x"
+  },
+  "view": "topdown"
+}

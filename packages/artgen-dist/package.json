@@ -1,0 +1,19 @@
+{
+  "name": "artgen-dist",
+  "private": true,
+  "version": "0.2.0",
+  "description": "Builds the artgen committed-install distribution (artgen-dist branch) and the plugin layout; install.mjs installs it into a game repo.",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.12"
+  },
+  "dependencies": {
+    "artgen-cli": "0.0.0",
+    "artgen-mcp": "0.0.0"
+  }
+}

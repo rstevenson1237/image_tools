@@ -1,0 +1,4 @@
+# artgen: renders are rebuilt from sources; keep approved sheets and W1 records
+sheets/*
+!sheets/approved/
+**/out/

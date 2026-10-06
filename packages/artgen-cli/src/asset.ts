@@ -15,6 +15,7 @@ import {
 import { BENCH_DIRECTIONS } from 'artgen-core/bench';
 import { strip } from './bench.ts';
 import { appendLedger, initNodeSvg, readGrid, writeGrid } from './node.ts';
+import { isPlaceholderDirection } from './project.ts';
 
 export interface AssetBrief extends Brief {
   /** Direction file (relative to the asset dir) or a bench direction name. Default: nearest direction.json. */
@@ -58,13 +59,16 @@ export function openAsset(path: string, opts: { direction?: string; ledger?: str
   if (!existsSync(briefPath)) throw new Error(`${path}: no brief.json`);
   const brief = JSON.parse(readFileSync(briefPath, 'utf8')) as AssetBrief;
   if (!brief.id) brief.id = basename(resolve(path));
+  // --direction is relative to the working directory, brief.direction to the asset directory
   const dname = opts.direction ?? brief.direction;
   let dir: Direction;
   if (dname && BENCH_DIRECTIONS[dname]) dir = parseDirection(BENCH_DIRECTIONS[dname]);
   else {
-    const file = dname ? resolve(path, dname) : findUp(path, 'direction.json');
+    const file = opts.direction ? resolve(opts.direction) : dname ? resolve(path, dname) : findUp(path, 'direction.json');
     if (!file) throw new Error(`${path}: no direction (brief.direction, --direction or a direction.json up the tree)`);
-    dir = parseDirection(JSON.parse(readFileSync(file, 'utf8')));
+    const raw = JSON.parse(readFileSync(file, 'utf8'));
+    if (isPlaceholderDirection(raw)) throw new Error(`${file} is not locked yet — lock one with \`artgen direction lock <candidate>\`, or pass --direction art/candidates/<name>.json`);
+    dir = parseDirection(raw);
   }
   const ledgerPath = opts.ledger ?? findUp(path, 'ledger.jsonl') ?? join(dirname(resolve(path)), 'ledger.jsonl');
   return { path, brief, dir, ledgerPath };

@@ -101,8 +101,13 @@ export function makePx(dc: DirContext, record: (p: Omit<PatchRecord, 'cell'>) =>
     return hit ? `${hit[0]}.${hit[1]}` : c;
   };
   const opaque = (g: Grid, x: number, y: number) => g.alpha(x, y) === 255;
-  const fill = (g: Grid, x: number, y: number) => opaque(g, x, y) && g.get(x, y) !== outline;
-  const open = (g: Grid, x: number, y: number) => !opaque(g, x, y) || g.get(x, y) === outline;
+  // the outer line: outline-coloured pixels, or with `selout` every silhouette pixel (its colour is a ramp's darkest
+  // step, so without this, fill ops would recolour the line and break it)
+  const selout = dc.line.outer === 'selout';
+  const isLine = (g: Grid, x: number, y: number) =>
+    g.get(x, y) === outline || (selout && opaque(g, x, y) && N4.some(([dx, dy]) => !opaque(g, x + dx, y + dy)));
+  const fill = (g: Grid, x: number, y: number) => opaque(g, x, y) && !isLine(g, x, y);
+  const open = (g: Grid, x: number, y: number) => !opaque(g, x, y) || isLine(g, x, y);
   const inScope = (o: OpOptions | undefined, g: Grid, x: number, y: number) => {
     if (guard.has(`${x},${y}`)) return false;
     if (o?.region) { const [rx, ry, rw, rh] = o.region; if (x < rx || y < ry || x >= rx + rw || y >= ry + rh) return false; }
