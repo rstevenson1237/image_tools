@@ -57,10 +57,17 @@ export function newAsset(path: string, o: NewAssetOptions): { files: string[]; t
   return { files: [join(path, 'brief.json'), base], template: t };
 }
 
-/** Write `finish.v<n>.js` from the finish template, bound to `base`. */
-export function newFinish(path: string, n: number, base: string): string {
+/** Kinds whose finish starts from `finish-character.js` (clean-up, then a per-state face at the face anchors). */
+const FACE_KINDS = new Set(['character', 'creature']);
+
+/** Finish template for a kind: characters and creatures get the face-first one, everything else the generic one. */
+export const finishTemplate = (kind?: string): string => join(templatesRoot(), kind && FACE_KINDS.has(kind) ? 'finish-character.js' : 'finish.js');
+
+/** Write `finish.v<n>.js` from the finish template for `kind` (read from the asset's `brief.json` when omitted), bound to `base`. */
+export function newFinish(path: string, n: number, base: string, kind?: string): string {
   const file = join(path, `finish.v${n}.js`);
   if (existsSync(file)) throw new Error(`${file} exists`);
-  writeFileSync(file, fill(readFileSync(join(templatesRoot(), 'finish.js'), 'utf8'), { BASE: base, N: String(n) }));
+  if (kind === undefined && existsSync(join(path, 'brief.json'))) kind = (JSON.parse(readFileSync(join(path, 'brief.json'), 'utf8')) as { kind?: string }).kind;
+  writeFileSync(file, fill(readFileSync(finishTemplate(kind), 'utf8'), { BASE: base, N: String(n) }));
   return resolve(file);
 }

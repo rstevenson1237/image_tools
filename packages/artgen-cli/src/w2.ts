@@ -8,14 +8,15 @@
  *   art/sheets/restyle-vA-vB.png     before | after | token diff per asset (`restyle`)
  *   art/directions/v<N>.json         every locked direction version (written by lock)
  *   <packDir>/<pack>/                atlas PNGs, pack.json, Aseprite JSON; <assetsTs> typed ids (`export`)
+ *   art/contracts/<id>.json          frozen animation contract per exported asset (states, frames, durations, anchors)
  *   <runtimeDir>/                    the vendored W3 runtime + selected adapters, stamped in runtime.json (`export --runtime`)
  */
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import {
-  analytics, analyticsMarkdown, assetsTs, assetStatus, briefDir, briefOrder, buildPack, contactSheet, editOps, Grid, imageTokens,
-  mirrorFacing, parseBriefs, parseLedger, parseVersion, removeBrief, restyleDiff, restyleSheet, tokenDiffMask, upsertBrief,
-  type AssetMeta, type AssetStatus, type BriefEntry, type Direction, type LedgerEntry, type NextStep, type PackInput, type RenderResult,
+  analytics, analyticsMarkdown, assetsTs, assetStatus, briefContract, briefDir, briefOrder, buildPack, contactSheet, contractOf, diffContract,
+  editOps, Grid, imageTokens, mirrorFacing, parseBriefs, parseLedger, parseVersion, removeBrief, restyleDiff, restyleSheet, tokenDiffMask, upsertBrief,
+  type AnimContract, type AssetMeta, type AssetStatus, type BriefEntry, type Direction, type LedgerEntry, type NextStep, type PackInput, type RenderResult,
 } from 'artgen-core';
 import {
   feedbackOf, finalHash, ledgerFor, openAsset, passState, renderVersion, versionsIn, type AssetBrief, type AssetDir,
@@ -39,8 +40,26 @@ export function readBriefs(p: Project): BriefEntry[] {
   return r.briefs;
 }
 
-/** Add or replace a brief in `art/briefs.yaml` (comments kept). */
-export function addBrief(p: Project, b: BriefEntry): BriefEntry[] {
+const contractFile = (p: Project, id: string) => join(p.art, 'contracts', `${id}.json`);
+
+/** The frozen animation contract of an exported asset (`art/contracts/<id>.json`), if it has been exported. */
+export function readContract(p: Project, id: string): AnimContract | undefined {
+  return existsSync(contractFile(p, id)) ? readJson<AnimContract>(contractFile(p, id)) : undefined;
+}
+
+/** Does `id` match a `--break-contract` list (ids, or `*` for every asset)? */
+const allowed = (list: string[] | undefined, id: string) => !!list && (list.includes('*') || list.includes(id));
+
+/**
+ * Add or replace a brief in `art/briefs.yaml` (comments kept). An edit that would break the frozen animation contract
+ * of an already exported asset (states, frame counts, durations, loop, facings) is refused unless `breakContract`.
+ */
+export function addBrief(p: Project, b: BriefEntry, o: { breakContract?: boolean } = {}): BriefEntry[] {
+  const old = readContract(p, b.id), dir = old && lockedDirection(p);
+  if (old && dir && !o.breakContract) {
+    const d = diffContract(old, briefContract(b, dir, old));
+    if (d.breaking.length) throw new Error(`brief ${b.id} would break its exported animation contract (art/contracts/${b.id}.json):\n  ${d.breaking.join('\n  ')}\ngame code may depend on it; re-run with --break-contract if that is intended`);
+  }
   const text = existsSync(briefsFile(p)) ? readFileSync(briefsFile(p), 'utf8') : '';
   writeFileSync(briefsFile(p), upsertBrief(text, b));
   return readBriefs(p);
@@ -234,17 +253,22 @@ export function inPack(b: BriefEntry, pack: string, include: string[]): boolean 
   return include.some(pat => pat.startsWith('kind:') ? b.kind === pat.slice(5) : new RegExp(`^${pat.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*')}$`).test(b.id));
 }
 
-export interface ExportResult { packs: { pack: string; dir: string; atlases: string[]; assets: string[]; drafts: string[] }[]; assetsTs: string; skipped: { id: string; status: AssetStatus }[]; runtime?: VendorResult }
+export interface ContractChange { id: string; change: 'created' | 'extended' | 'broken'; notes: string[] }
+export interface ExportResult { packs: { pack: string; dir: string; atlases: string[]; assets: string[]; drafts: string[] }[]; assetsTs: string; skipped: { id: string; status: AssetStatus }[]; contracts: ContractChange[]; runtime?: VendorResult }
 
 /**
  * Export approved assets into the configured packs: atlases + pack.json + Aseprite JSON, and the typed `assets.ts`;
  * with `runtime`, also vendor the W3 runtime (`--force` overwrites locally edited runtime files).
+ * Every exported asset is held to its animation contract (`art/contracts/<id>.json`, written on its first export):
+ * if a redraw changed states, frame counts, durations, loop, facings or anchor names, nothing is written unless the
+ * asset is listed in `breakContract` (`*` = all). Additions extend the contract.
  */
-export async function exportPacks(p: Project, o: { packs?: string[]; includeDrafts?: boolean; generator?: string; runtime?: boolean; force?: boolean } = {}): Promise<ExportResult> {
+export async function exportPacks(p: Project, o: { packs?: string[]; includeDrafts?: boolean; generator?: string; runtime?: boolean; force?: boolean; breakContract?: string[] } = {}): Promise<ExportResult> {
   const dir = requireLocked(p), cfg = projectConfig(p), rows = await projectStatus(p), briefs = readBriefs(p);
   const ok = (s: AssetStatus) => s === 'approved' || s === 'exported' || (o.includeDrafts && s === 'final');
   const skipped = rows.filter(r => !ok(r.status)).map(r => ({ id: r.id, status: r.status }));
   const out: ExportResult['packs'] = [], forTs: { manifest: ReturnType<typeof buildPack>['manifest']; url: string }[] = [];
+  const builds: { pack: string; built: ReturnType<typeof buildPack>; inputs: PackInput[] }[] = [];
   for (const [pack, def] of Object.entries(cfg.packs)) {
     if (o.packs?.length && !o.packs.includes(pack)) continue;
     const inputs: PackInput[] = [];
@@ -256,7 +280,21 @@ export async function exportPacks(p: Project, o: { packs?: string[]; includeDraf
       inputs.push({ brief: a.brief as AssetBrief, view: a.brief.view ?? dir.camera.view, renders, version: r.final!, sourceHash: finalHash(a, r.final!), draft: r.status === 'final' });
     }
     if (!inputs.length) continue;
-    const built = buildPack(pack, dir, inputs, { generator: o.generator, runtime: RUNTIME_VERSION, maxSize: cfg.export.maxAtlas, padding: cfg.export.padding });
+    builds.push({ pack, inputs, built: buildPack(pack, dir, inputs, { generator: o.generator, runtime: RUNTIME_VERSION, maxSize: cfg.export.maxAtlas, padding: cfg.export.padding }) });
+  }
+  // animation contracts: check every asset before writing anything
+  const contracts: { next: AnimContract; change: ContractChange }[] = [], refused: string[] = [], seen = new Set<string>();
+  for (const { built } of builds) for (const [id, a] of Object.entries(built.manifest.assets)) {
+    if (seen.has(id)) continue; // an asset in several packs is the same render
+    seen.add(id);
+    const next = contractOf(id, a), old = readContract(p, id);
+    if (!old) { contracts.push({ next, change: { id, change: 'created', notes: [] } }); continue; }
+    const d = diffContract(old, next);
+    if (d.breaking.length && !allowed(o.breakContract, id)) refused.push(`${id}: ${d.breaking.join('; ')}`);
+    else if (d.breaking.length || d.added.length) contracts.push({ next, change: { id, change: d.breaking.length ? 'broken' : 'extended', notes: [...d.breaking, ...d.added.map(x => `added ${x}`)] } });
+  }
+  if (refused.length) throw new Error(`export refused: the animation contract changed for\n  ${refused.join('\n  ')}\ngame code indexes these states and frames (art/contracts/<id>.json). Restore the brief's anims/states/directions and the base's anchors, or re-run with --break-contract <id> once the game code is updated`);
+  for (const { pack, built, inputs } of builds) {
     const pdir = join(p.root, cfg.export.packDir, pack);
     built.atlases.forEach((g, i) => { writeGrid(join(pdir, built.manifest.atlases[i]), g); writeJson(join(pdir, built.manifest.atlases[i].replace(/\.png$/, '.aseprite.json')), built.aseprite[i]); });
     writeJson(join(pdir, 'pack.json'), built.manifest);
@@ -265,10 +303,14 @@ export async function exportPacks(p: Project, o: { packs?: string[]; includeDraf
     const pub = cfg.export.packDir.replace(/\\/g, '/').replace(/^\.?\/?/, '');
     forTs.push({ manifest: built.manifest, url: pub.startsWith('public/') || pub === 'public' ? `/${pub.slice(7)}${pub.length > 7 ? '/' : ''}${pack}/pack.json`.replace(/\/+/g, '/') : `${pub}/${pack}/pack.json` });
   }
+  for (const { next, change } of contracts) {
+    writeJson(contractFile(p, next.asset), next);
+    appendLedger(ledgerFile(p), { type: 'contract', asset: next.asset, change: change.change, ...(change.notes.length && { notes: change.notes }), by: 'agent' });
+  }
   const tsFile = join(p.root, cfg.export.assetsTs);
   if (forTs.length) { mkdirSync(dirname(tsFile), { recursive: true }); writeFileSync(tsFile, assetsTs(forTs)); }
   const runtime = o.runtime ? vendorRuntime(p, { force: o.force, generator: o.generator }) : undefined;
-  return { packs: out, assetsTs: forTs.length ? rel(p, tsFile) : '', skipped, ...(runtime && { runtime }) };
+  return { packs: out, assetsTs: forTs.length ? rel(p, tsFile) : '', skipped, contracts: contracts.map(c => c.change), ...(runtime && { runtime }) };
 }
 
 export interface RestyleResult { from: number; to: number; sheet: string; tokens: number; assets: { id: string; final: string; changedPct: number; tokenSame: number; consistent: boolean; gate: boolean; stale: string[] }[] }

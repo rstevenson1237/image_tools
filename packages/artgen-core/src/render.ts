@@ -25,7 +25,8 @@ export interface Brief {
   size?: string | Size;
   states?: string[];
   directions?: 1 | 4 | 8 | 16;
-  anims?: Record<string, { frames: number; fps?: number; loop?: boolean }>;
+  /** Per state: frame count, playback rate, loop, and optional per-frame durations in ms (hold a contact frame longer). */
+  anims?: Record<string, { frames: number; fps?: number; loop?: boolean; durations?: number[] }>;
   variants?: number;
   notes?: string;
 }

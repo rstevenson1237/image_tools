@@ -6,6 +6,7 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, write
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { beforeAll, describe, expect, test } from 'vitest';
+import { RUNTIME_VERSION } from 'artgen-runtime';
 import { buildDist } from '../build.mjs';
 import { install, status } from '../src/install.mjs';
 
@@ -84,7 +85,7 @@ describe('artgen-dist', () => {
     const r = node(['tools/artgen/artgen.js', 'export', '--runtime', '--json']);
     expect(r.status, r.stderr).toBe(0);
     const rt = JSON.parse(r.stdout).runtime;
-    expect(rt).toMatchObject({ dir: 'src/art/runtime', version: '1.0.0', adapters: ['canvas2d'] });
+    expect(rt).toMatchObject({ dir: 'src/art/runtime', version: RUNTIME_VERSION, adapters: ['canvas2d'] });
     expect(rt.written).toEqual(expect.arrayContaining(['pack.ts', 'adapters/canvas2d.ts']));
     expect(existsSync(join(GAME, 'src/art/runtime/runtime.json'))).toBe(true);
     expect(existsSync(join(OUT, 'dist/tools/artgen/runtime/testkit.ts')) || existsSync(join(OUT, 'dist/tools/artgen/runtime/runtime.test.ts'))).toBe(false);

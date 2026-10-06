@@ -10,12 +10,23 @@ export const params = {
   hood: { type: 'toggle', default: false, p: 0.35 },
 };
 
-export function render(ctx) {
-  const { pal } = ctx.dir, P = ctx.params, [w, h] = ctx.size, s = ctx.lib.t2.scene(w, h);
-  const hr = ctx.dir.scale.proportions?.headRatio ?? 0.4, cx = w / 2, X = v => (v * w) / 32;
+// Geometry shared by render() and anchors(), so the face and hand anchors sit exactly on the drawn pixels.
+function layout(ctx) {
+  const [w, h] = ctx.size, hr = ctx.dir.scale.proportions?.headRatio ?? 0.4, cx = w / 2, X = v => (v * w) / 32;
   const top = h * 0.06, headH = h * hr * 0.92, headW = Math.min(w * 0.62, headH * 1.2);
   const neck = top + headH * 0.92, foot = h * 0.95, legH = (foot - neck) * 0.32, hip = foot - legH;
-  const bodyW = Math.max(X(10), headW * 0.82), cloth = pal[P.cloth];
+  const bodyW = Math.max(X(10), headW * 0.82);
+  // eyes on whole pixels (the finishing pass repaints them at the face anchors), mirrored about the centre; the mouth
+  // anchor is the skin row right under them (lower rows are the face's shaded edge)
+  const ex = Math.round(cx - headW * 0.22), ey = Math.round(top + headH * 0.52), eh = Math.max(1, Math.round(X(2)));
+  // facing the viewer, the right hand is on the viewer's left — the lit side for the usual upper-left light
+  const hand = cx - bodyW / 2 - X(3);
+  return { w, h, cx, X, top, headH, headW, neck, foot, legH, hip, bodyW, hand, eyes: [ex, w - 1 - ex], ey, eh, mouth: [(w - 1) >> 1, ey + eh] };
+}
+
+export function render(ctx) {
+  const { pal } = ctx.dir, P = ctx.params, s = ctx.lib.t2.scene(...ctx.size);
+  const { w, h, cx, X, top, headH, headW, neck, foot, legH, hip, bodyW, hand, eyes, ey, eh } = layout(ctx), cloth = pal[P.cloth];
   s.add({ type: 'group', name: 'legs', underlay: true, mat: pal.leather, shade: 'bevel', children: [
     { type: 'rect', x: cx - bodyW * 0.36, y: hip - 0.5, w: bodyW * 0.3, h: legH + 0.5 },
     { type: 'rect', x: cx + bodyW * 0.06, y: hip - 0.5, w: bodyW * 0.3, h: legH + 0.5 },
@@ -35,9 +46,7 @@ export function render(ctx) {
     { type: 'path', name: 'face', d: `M${hx + headW * 0.14} ${hy + headH * 0.45} Q${cx} ${hy + headH * 0.25} ${hx + headW * 0.86} ${hy + headH * 0.45} V${hy + headH * 0.72} Q${cx} ${hy + headH * 1.02} ${hx + headW * 0.14} ${hy + headH * 0.72} Z`, mat: pal.skin, shade: 'normal', round: X(2) },
     ...(P.hood ? [{ type: 'path', name: 'hood', d: `M${hx - X(1)} ${hy + headH * 0.75} Q${hx - X(1)} ${hy - X(1)} ${cx} ${hy - X(1)} Q${hx + headW + X(1)} ${hy - X(1)} ${hx + headW + X(1)} ${hy + headH * 0.75} L${hx + headW * 0.86} ${hy + headH * 0.45} Q${cx} ${hy + headH * 0.2} ${hx + headW * 0.14} ${hy + headH * 0.45} Z`, mat: cloth, shade: 'sphere' }] : []),
   ] });
-  s.add({ type: 'rect', name: 'eye', x: cx - headW * 0.22, y: hy + headH * 0.52, w: 1, h: Math.max(1, X(2)), color: 'outline', mirrorX: cx });
-  // facing the viewer, the right hand is on the viewer's left — the lit side for the usual upper-left light
-  const hand = cx - bodyW / 2 - X(3);
+  for (const ex of eyes) s.add({ type: 'rect', name: 'eye', x: ex, y: ey, w: 1, h: eh, color: 'outline' });
   if (P.item === 'blade') s.add({ type: 'group', name: 'blade', underlay: true, children: [
     { type: 'path', d: `M${hand - X(1)} ${hip} V${neck - X(4)} L${hand} ${neck - X(6)} L${hand + X(1)} ${neck - X(4)} V${hip} Z`, mat: pal.metal, shade: 'bevel' },
     { type: 'rect', x: hand - X(2.5), y: hip, w: X(5), h: Math.max(1, X(1.4)), mat: pal.accent, shade: 'flat', band: 1 },
@@ -49,4 +58,9 @@ export function render(ctx) {
   return ctx.lib.proc(s).add('materialNoise', { part: 'torso', amount: 0.15 }).render();
 }
 
-export const anchors = ctx => ({ head: [ctx.size[0] >> 1, Math.round(ctx.size[1] * 0.06 + ctx.size[1] * (ctx.dir.scale.proportions?.headRatio ?? 0.4) * 0.5)] });
+// Named points per frame: the finishing pass paints the face at eye/eye2/mouth; `hand` is exported in pack.json so
+// effects and held props attach to it in game (sprite.anchor('hand')).
+export const anchors = ctx => {
+  const L = layout(ctx);
+  return { head: [L.w >> 1, Math.round(L.top + L.headH * 0.5)], eye: [L.eyes[0], L.ey], eye2: [L.eyes[1], L.ey], mouth: L.mouth, hand: [Math.round(L.hand), Math.round(L.hip)] };
+};

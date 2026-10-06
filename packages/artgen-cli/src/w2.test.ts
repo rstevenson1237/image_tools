@@ -4,8 +4,9 @@ import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeAll, describe, expect, test, vi } from 'vitest';
-import { decodePNG, encodePNG, parseLedger, type PackManifest } from 'artgen-core';
+import { decodePNG, encodePNG, parseLedger, type AnimContract, type PackManifest } from 'artgen-core';
 import { openAsset, renderVersion } from './asset.ts';
+import { RUNTIME_VERSION } from 'artgen-runtime';
 import { main } from './cli.ts';
 import { readJson, writeJson } from './project.ts';
 
@@ -116,13 +117,13 @@ describe('W2 production in a scratch game repo', () => {
   test('export --runtime vendors the runtime + configured adapters (stamped); upgrades keep local edits unless --force', async () => {
     const rt = (...p: string[]) => join(root, 'src/art/runtime', ...p);
     const first = (await json('export', '--runtime', ...R)).runtime;
-    expect(first).toMatchObject({ dir: 'src/art/runtime', version: '1.0.0', from: null, adapters: ['canvas2d'], kept: [], removed: [] });
+    expect(first).toMatchObject({ dir: 'src/art/runtime', version: RUNTIME_VERSION, from: null, adapters: ['canvas2d'], kept: [], removed: [] });
     expect(first.written).toEqual(expect.arrayContaining(['index.ts', 'pack.ts', 'facing.ts', 'autotile.ts', 'coords.ts', 'types.ts', 'adapters/canvas2d.ts']));
     expect(first.written.some((f: string) => /test|testkit|contract/.test(f))).toBe(false);
-    expect(readJson<PackManifest>(join(root, 'public/assets/main/pack.json')).runtime).toBe('1.0.0');
+    expect(readJson<PackManifest>(join(root, 'public/assets/main/pack.json')).runtime).toBe(RUNTIME_VERSION);
     const stamp = readJson<{ runtime: string; files: Record<string, string> }>(rt('runtime.json'));
     expect(Object.keys(stamp.files).sort()).toEqual([...first.written].sort());
-    expect(readFileSync(rt('pack.ts'), 'utf8')).toMatch(/^\/\/ Vendored by `artgen export --runtime` \(artgen-runtime 1\.0\.0/);
+    expect(readFileSync(rt('pack.ts'), 'utf8')).toContain(`// Vendored by \`artgen export --runtime\` (artgen-runtime ${RUNTIME_VERSION})`);
     // a re-export is a no-op; a local edit is kept and reported; --force restores it
     expect((await json('export', '--runtime', ...R)).runtime).toMatchObject({ written: [], kept: [] });
     writeFileSync(rt('facing.ts'), readFileSync(rt('facing.ts'), 'utf8') + '\n// tuned for our game\n');
@@ -140,6 +141,37 @@ describe('W2 production in a scratch game repo', () => {
     writeJson(cfgFile, { ...cfg, runtime: { adapters: ['phaser'] } });
     await expect(run('export', '--runtime', ...R)).rejects.toThrow(/unknown runtime adapter "phaser".*available: canvas2d, pixi, three/);
     writeJson(cfgFile, cfg);
+  }, 60_000);
+
+  test('animation contract: frozen on first export; edits that break it are refused until --break-contract; additions extend it', async () => {
+    const packFile = join(root, 'public/assets/main/pack.json'), contract = () => readJson<AnimContract>(art('contracts', 'goblin.json'));
+    expect(contract()).toEqual({
+      format: 1, asset: 'goblin', facings: ['s', 'sw', 'w', 'nw', 'n', 'ne', 'e', 'se'], anchors: ['eye', 'eye2', 'hand', 'head', 'mouth'],
+      states: { idle: { frames: 1, durations: [125], loop: true }, walk: { frames: 4, durations: [125, 125, 125, 125], loop: true } },
+    });
+    expect(ledger().filter(e => e.type === 'contract').map(e => [e.asset, e.change])).toEqual([['crate', 'created'], ['goblin', 'created']]);
+    // per-frame anchors ride along in pack.json, one per frame; the back view has no face
+    const g = readJson<PackManifest>(packFile).assets.goblin, at = (f: string) => g.frames.findIndex(x => g.facings[x[5]] === f);
+    expect(g.anchors!.hand).toHaveLength(g.frames.length);
+    expect([g.anchors!.eye[at('n')], g.anchors!.hand[at('n')]?.length]).toEqual([null, 2]);
+    expect(g.anchors!.eye[at('s')]).not.toBeNull();
+    // changing the walk in the brief is refused…
+    const goblin = ['goblin', '--kind', 'character', '--directions', '8', '--swaps', 'red:cloth=accent', '--variants', '2'];
+    await expect(run('brief', 'add', ...goblin, '--anims', 'walk:6', ...R)).rejects.toThrow(/would break its exported animation contract[\s\S]*"walk": 4 → 6 logical frames/);
+    // …a held passing frame is a timing change: the brief takes it with --break-contract, export still refuses and writes nothing
+    await run('brief', 'add', ...goblin, '--anims', 'walk:4', '--durations', 'walk=100/100/250/100', '--break-contract', ...R);
+    const before = readFileSync(packFile, 'utf8');
+    await expect(run('export', ...R)).rejects.toThrow(/export refused[\s\S]*goblin: state "walk": frame durations 125,125,125,125 → 100,100,250,100 ms/);
+    expect(readFileSync(packFile, 'utf8')).toBe(before);
+    const ex = await json('export', '--break-contract', 'goblin', ...R);
+    expect(ex.contracts).toEqual([{ id: 'goblin', change: 'broken', notes: ['state "walk": frame durations 125,125,125,125 → 100,100,250,100 ms'] }]);
+    expect(contract().states.walk.durations).toEqual([100, 100, 250, 100]);
+    expect(readJson<PackManifest>(packFile).assets.goblin.states.walk).toEqual({ frames: 4, fps: 8, loop: true, durations: [100, 100, 250, 100] });
+    // a new state only extends the contract
+    await run('brief', 'add', ...goblin, '--anims', 'walk:4,hurt:2', '--durations', 'walk=100/100/250/100', ...R);
+    expect((await json('export', ...R)).contracts).toEqual([{ id: 'goblin', change: 'extended', notes: ['added state "hurt"'] }]);
+    expect(Object.keys(contract().states)).toEqual(['idle', 'walk', 'hurt']);
+    expect((await json('export', ...R)).contracts).toEqual([]);
   }, 60_000);
 
   test('a hand-edited PNG becomes token ops in the next finish; direction v2 → stale → restyle → final; the edit survives', async () => {

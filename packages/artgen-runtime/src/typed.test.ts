@@ -8,6 +8,7 @@ import { synthPack } from './testkit.js';
 const Assets = {
   walker: { id: 'walker', pack: 'synth', kind: 'character', states: ['idle', 'walk'], facings: ['s', 'se', 'e', 'ne', 'n'], variants: ['base'] },
   gob: { id: 'gob', pack: 'synth', kind: 'character', states: ['idle'], facings: ['s'], variants: ['base', 'v1', 'red'] },
+  swing: { id: 'swing', pack: 'synth', kind: 'character', states: ['attack'], facings: ['s', 'e'], variants: ['base'], anchors: ['hand'] },
 } as const;
 
 const nul: RuntimeAdapter<null, object, null> = { id: 'null', loadTexture: () => null, createNode: () => ({}), setFrame() {}, setAnchor() {}, setPosition() {}, dispose() {} };
@@ -22,6 +23,11 @@ test('states and variants come from the typed ids', async () => {
   pack.sprite(Assets.gob, { variant: 'red' });
   // @ts-expect-error — not a variant of gob
   expect(() => pack.sprite(Assets.gob, { variant: 'blue' })).toThrow(/unknown variant/);
+  // anchor names are typed too
+  const swing = pack.sprite(Assets.swing);
+  expect(swing.anchor('hand')).toBeDefined();
+  // @ts-expect-error — not an anchor of swing
+  expect(() => swing.anchor('tip')).toThrow(/no anchor "tip"/);
   // plain string ids still work, untyped
   expectTypeOf(pack.sprite('walker').state).toEqualTypeOf<string>();
 });

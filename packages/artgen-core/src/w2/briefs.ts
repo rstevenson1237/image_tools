@@ -37,10 +37,12 @@ export function validateBrief(b: unknown, where = 'brief'): string[] {
   if (b.states !== undefined && !(Array.isArray(b.states) && b.states.length && b.states.every(s => typeof s === 'string' && ID.test(s)))) e.push(`${at}: states must be a non-empty list of names`);
   if (b.directions !== undefined && ![1, 4, 8, 16].includes(b.directions as number)) e.push(`${at}: directions must be 1, 4, 8 or 16`);
   if (b.anims !== undefined) {
-    if (!isObj(b.anims)) e.push(`${at}: anims must map state → { frames, fps, loop }`);
+    if (!isObj(b.anims)) e.push(`${at}: anims must map state → { frames, fps, loop, durations }`);
     else for (const [s, a] of Object.entries(b.anims)) {
       if (!isObj(a) || !Number.isInteger(a.frames) || (a.frames as number) < 1) e.push(`${at}: anims.${s}.frames must be a positive integer`);
       else if (Array.isArray(b.states) && !b.states.includes(s)) e.push(`${at}: anims.${s} is not in states`);
+      else if (a.durations !== undefined && !(Array.isArray(a.durations) && a.durations.length === a.frames && a.durations.every(d => Number.isInteger(d) && d > 0)))
+        e.push(`${at}: anims.${s}.durations must list one positive whole number of ms per frame (${a.frames})`);
     }
   }
   if (b.variants !== undefined && !(Number.isInteger(b.variants) && (b.variants as number) >= 1)) e.push(`${at}: variants must be a positive integer`);

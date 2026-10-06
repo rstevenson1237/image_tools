@@ -34,7 +34,7 @@
  *   artgen gallery [ids]                            sheet of finished assets for the user (score, open issues)
  *   artgen feedback <id> --route base|finish --note "…" [--region x,y,w,h] [--cell state/facing/frame]
  *   artgen approve <id> [--note "…"]                user approval (R6: passing gate + review sheet)
- *   artgen export [--pack name] [--include-drafts] [--runtime [--force]]
+ *   artgen export [--pack name] [--include-drafts] [--runtime [--force]] [--break-contract id,…|*]
  *                                                   atlases + pack.json + Aseprite JSON + assets.ts; --runtime vendors the W3
  *                                                   runtime + adapters (artgen.config.json `runtime.adapters`) into runtimeDir
  *   artgen restyle [--from N]                       re-render finished assets under the new direction + diff sheet
@@ -97,11 +97,11 @@ const USAGE = `usage: artgen init
        artgen score <assetDir> <version> <score> [--note "..."]
        artgen variants <assetDir> [--version v] [--n 8]
        artgen report <dir> [--out REPORT.md] [--title "..."]
-       artgen brief add <id> --kind k [--view v] [--size key|WxH] [--states a,b] [--directions n] [--anims walk:4] [--variants n] [--swaps red:cloth=accent] [--importance t] [--priority n] [--notes "..."]
+       artgen brief add <id> --kind k [--view v] [--size key|WxH] [--states a,b] [--directions n] [--anims walk:4] [--durations attack=80/80/200/80] [--variants n] [--swaps red:cloth=accent] [--importance t] [--priority n] [--notes "..."] [--break-contract]
        artgen brief list | rm <id>
        artgen make [ids|all] | status [ids] | gallery [ids]
        artgen feedback <id> --route base|finish --note "..." [--region x,y,w,h] [--cell s/f/n] | approve <id> [--note "..."]
-       artgen export [--pack name] [--include-drafts] [--runtime [--force]] | restyle [--from N] | import-edit <id> <png> [--cell s/f/n]
+       artgen export [--pack name] [--include-drafts] [--runtime [--force]] [--break-contract id,…|*] | restyle [--from N] | import-edit <id> <png> [--cell s/f/n]
        artgen analytics [--out file.md]
        artgen bench [--direction benchmark|alt|<file>] [--out <dir>] [--stages] [--ledger <file>] [--update-golden]
        artgen --version`;
@@ -223,7 +223,9 @@ export async function main(argv: string[]): Promise<number> {
       base = st?.next.action === 'write-finish' ? st.next.base : st?.best?.version ?? vs.filter(v => v.startsWith('base.')).pop();
     }
     if (!base) throw new Error(`${sub}: no base version to finish`);
-    const file = newFinish(dirArg, n, base);
+    // characters and creatures get the face-first finish template; the kind comes from the brief (W2) or brief.json (probes)
+    const kind = (() => { try { return asset(sub).brief.kind; } catch { return undefined; } })();
+    const file = newFinish(dirArg, n, base, kind);
     print(`${file} (bound to ${base})`, { file, base });
     return 0;
   }
@@ -292,8 +294,13 @@ export async function main(argv: string[]): Promise<number> {
         ...(flag(args, '--notes') && { notes: flag(args, '--notes') }),
       };
       if (b.importance && !IMPORTANCE.includes(b.importance)) throw new Error(`--importance: ${IMPORTANCE.join(' | ')}`);
+      for (const d of list(args, '--durations') ?? []) {
+        const [s, ms] = d.split('='), a = b.anims?.[s];
+        if (!a || !ms) throw new Error(`--durations ${d}: give state=ms/ms/… for a state in --anims`);
+        a.durations = ms.split('/').map(Number);
+      }
       if (b.anims && !b.states) b.states = ['idle', ...Object.keys(b.anims).filter(s => s !== 'idle')];
-      const all = addBrief(p, b);
+      const all = addBrief(p, b, { breakContract: args.includes('--break-contract') });
       print(`brief ${b.id} (${b.kind}) in art/briefs.yaml — ${all.length} briefs\nnext: artgen make ${b.id}`, { brief: b, count: all.length });
       return 0;
     }
@@ -337,12 +344,13 @@ export async function main(argv: string[]): Promise<number> {
     return 0;
   }
   if (cmd === 'export') {
-    const r = await exportPacks(requireProject(flag(args, '--root')), { packs: list(args, '--pack'), includeDrafts: args.includes('--include-drafts'), generator: `artgen ${VERSION}`, runtime: args.includes('--runtime'), force: args.includes('--force') });
+    const r = await exportPacks(requireProject(flag(args, '--root')), { packs: list(args, '--pack'), includeDrafts: args.includes('--include-drafts'), generator: `artgen ${VERSION}`, runtime: args.includes('--runtime'), force: args.includes('--force'), breakContract: list(args, '--break-contract') });
     const rt = r.runtime;
     print([
       ...r.packs.map(x => `pack ${x.pack}: ${x.assets.length} assets → ${x.atlases.join(', ')} + ${x.dir}/pack.json${x.drafts.length ? ` (drafts: ${x.drafts.join(', ')})` : ''}`),
       r.assetsTs ? `typed ids: ${r.assetsTs}` : 'nothing approved to export yet',
       ...(r.skipped.length ? [`not exported: ${r.skipped.map(s => `${s.id} (${s.status})`).join(', ')}`] : []),
+      ...r.contracts.map(c => `contract ${c.id}: ${c.change}${c.notes.length ? ` (${c.notes.join('; ')})` : ''} → art/contracts/${c.id}.json`),
       ...(rt ? [
         `runtime ${rt.from && rt.from !== rt.version ? `${rt.from} → ` : ''}${rt.version} (${rt.adapters.join(', ')}) in ${rt.dir}: ${rt.written.length} written, ${rt.unchanged.length} unchanged${rt.removed.length ? `, ${rt.removed.length} removed` : ''}`,
         ...(rt.kept.length ? [`kept locally edited runtime files (re-run with --force to overwrite): ${rt.kept.join(', ')}`] : []),

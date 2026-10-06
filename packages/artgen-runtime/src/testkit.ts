@@ -16,6 +16,8 @@ export function synthPack(): { manifest: PackManifest; images: DecodedImage[] } 
     walker: { kind: 'character', view: 'topdown', size: [W, H], anchor: [3, 7], facings: ['s', 'se', 'e', 'ne', 'n'], states: { idle: { frames: 1, fps: 8, loop: true }, walk: { frames: 4, fps: 10, loop: true } }, variants: ['base'], frameCount: s => (s === 'walk' ? 4 : 1) },
     boom: { kind: 'effect', view: 'topdown', size: [W, H], anchor: [4, 4], facings: ['s'], states: { idle: { frames: 3, fps: 10, loop: false } }, variants: ['base'], frameCount: () => 3 },
     gob: { kind: 'character', view: 'iso', size: [W, H], anchor: [4, 7], facings: ['s'], states: { idle: { frames: 1, fps: 8, loop: true } }, variants: ['base', 'v1', 'red'], swaps: { red: { '#004080': '#ff0000' } }, frameCount: () => 1 },
+    // one attack with a held contact frame (durations) and a hand that moves per frame (anchors); east-side facings
+    swing: { kind: 'character', view: 'topdown', size: [W, H], anchor: [3, 7], facings: ['s', 'e'], states: { attack: { frames: 4, fps: 10, loop: false, durations: [50, 50, 200, 50] } }, variants: ['base'], frameCount: () => 4 },
     wall: { kind: 'tileset', view: 'topdown', size: [W, H], anchor: [4, 4], facings: ['s'], states: { idle: { frames: 16, fps: 8, loop: true } }, variants: ['base'], autotile: 'wang16', tile: W, frameCount: () => 16 },
   };
   const frames: { asset: string; f: PackFrame }[] = [];
@@ -37,6 +39,8 @@ export function synthPack(): { manifest: PackManifest; images: DecodedImage[] } 
   const assets: Record<string, PackAsset> = {};
   for (const [id, { frameCount: _, ...d }] of Object.entries(defs))
     assets[id] = { ...d, directions: d.facings.length, frames: frames.filter(x => x.asset === id).map(x => x.f), version: 'finish.v1', sourceHash: id };
+  // swing's hand: x = 4 + frame, y = 2; frame 3 of the south facing hides it
+  assets.swing.anchors = { hand: assets.swing.frames.map(f => (f[5] === 0 && f[7] === 3 ? null : [4 + f[7], 2])) };
   // make one swap colour hit: gob's base frame pixels are (n, 0x40, 0x80) → give it exactly #004080
   const gob = assets.gob.frames[0];
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const i = ((gob[2] + y) * aw + gob[1] + x) * 4; data[i] = 0; }
