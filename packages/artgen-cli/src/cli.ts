@@ -25,9 +25,23 @@
  *   artgen report <dir> [--out REPORT.md] [--title "…"]
  * Asset commands take --direction <file|bench name> and --ledger <file> overrides.
  *
+ * Production (W2, PLAN P3) — briefs in art/briefs.yaml; asset args take a brief id or a directory:
+ *   artgen brief add <id> --kind k [--view v] [--size key|WxH] [--states a,b] [--directions 8] [--anims walk:4,attack:3]
+ *                    [--variants n] [--swaps red:cloth=accent] [--importance hero|standard|filler] [--priority n] [--notes "…"]
+ *   artgen brief list | rm <id>
+ *   artgen make [ids|all]                           one tick of the autonomous run: scaffold, mark finals, name the next step
+ *   artgen status [ids]                             brief → in-pipeline → final → approved → exported (+ revision, stale)
+ *   artgen gallery [ids]                            sheet of finished assets for the user (score, open issues)
+ *   artgen feedback <id> --route base|finish --note "…" [--region x,y,w,h] [--cell state/facing/frame]
+ *   artgen approve <id> [--note "…"]                user approval (R6: passing gate + review sheet)
+ *   artgen export [--pack name] [--include-drafts]  atlases + pack.json + Aseprite JSON + assets.ts
+ *   artgen restyle [--from N]                       re-render finished assets under the new direction + diff sheet
+ *   artgen import-edit <id> <edited.png> [--cell state/facing/frame]   hand edit → next finish.vM.js
+ *   artgen analytics [--out file.md]                per-pass gains, cost per asset, budget suggestions
+ *
  * Benchmark (this repo): artgen bench [--direction benchmark|alt|<file>] [--out <dir>] [--stages] [--update-golden]
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { extractPalette, generateRamp, Grid, MIX_PARTS, parseGpl, parseHexPalette, rampsFromColors, validateDirection, type Interview, type MixPart, type Size } from 'artgen-core';
 import { openAsset, passState, type AssetDir, renderVersion, reviewVersion, scoreVersion, variantsSheet, versionsIn, writeRender } from './asset.ts';
@@ -36,6 +50,8 @@ import { readGrid, writeGrid } from './node.ts';
 import { findProject, initProject, readJson, requireProject, writeJson } from './project.ts';
 import { report } from './report.ts';
 import { newAsset, newFinish } from './templates.ts';
+import { addBrief, approve, exportPacks, feedback, gallery, importEdit, make, projectAnalytics, projectStatus, readBriefs, removeBriefFile, resolveAssetArg, restyle } from './w2.ts';
+import { IMPORTANCE, type BriefEntry, type Importance } from 'artgen-core';
 import { lock, readInterview, show, writeAnchors, writeCandidates, writeDraft, writeMix, writeTile } from './w1.ts';
 
 declare const __ARTGEN_VERSION__: string | undefined;
@@ -79,13 +95,19 @@ const USAGE = `usage: artgen init
        artgen score <assetDir> <version> <score> [--note "..."]
        artgen variants <assetDir> [--version v] [--n 8]
        artgen report <dir> [--out REPORT.md] [--title "..."]
+       artgen brief add <id> --kind k [--view v] [--size key|WxH] [--states a,b] [--directions n] [--anims walk:4] [--variants n] [--swaps red:cloth=accent] [--importance t] [--priority n] [--notes "..."]
+       artgen brief list | rm <id>
+       artgen make [ids|all] | status [ids] | gallery [ids]
+       artgen feedback <id> --route base|finish --note "..." [--region x,y,w,h] [--cell s/f/n] | approve <id> [--note "..."]
+       artgen export [--pack name] [--include-drafts] | restyle [--from N] | import-edit <id> <png> [--cell s/f/n]
+       artgen analytics [--out file.md]
        artgen bench [--direction benchmark|alt|<file>] [--out <dir>] [--stages] [--ledger <file>] [--update-golden]
        artgen --version`;
 
 export async function main(argv: string[]): Promise<number> {
   const [cmd, sub, ...rest] = argv, args = [sub, ...rest].filter((a): a is string => a !== undefined);
   const json = args.includes('--json'), print = (human: string, data: unknown) => console.log(json ? JSON.stringify(data, null, 2) : human);
-  const asset = (p: string) => openAsset(p, { direction: flag(args, '--direction'), ledger: flag(args, '--ledger') });
+  const asset = (p: string) => openAsset(resolveAssetArg(findProject(flag(args, '--root')), p), { direction: flag(args, '--direction'), ledger: flag(args, '--ledger') });
   const latest = (p: string) => { const vs = versionsIn(asset(p)); if (!vs.length) throw new Error(`${p}: no base.vN.js yet`); return vs[vs.length - 1]; };
 
   if (cmd === 'bench') {
@@ -190,15 +212,16 @@ export async function main(argv: string[]): Promise<number> {
     return 0;
   }
   if (cmd === 'finish' && sub) {
+    const dirArg = resolveAssetArg(findProject(flag(args, '--root')), sub);
     // the base: --base, else the pass machine's choice (best scored), else the latest base (W1 probes before lock)
-    const vs = versionsIn({ path: sub } as AssetDir), n = vs.filter(v => v.startsWith('finish.')).length + 1;
+    const vs = versionsIn({ path: dirArg } as AssetDir), n = vs.filter(v => v.startsWith('finish.')).length + 1;
     let base = flag(args, '--base');
     if (!base) {
       const st = await (async () => { try { return await passState(asset(sub)); } catch { return undefined; } })();
       base = st?.next.action === 'write-finish' ? st.next.base : st?.best?.version ?? vs.filter(v => v.startsWith('base.')).pop();
     }
     if (!base) throw new Error(`${sub}: no base version to finish`);
-    const file = newFinish(sub, n, base);
+    const file = newFinish(dirArg, n, base);
     print(`${file} (bound to ${base})`, { file, base });
     return 0;
   }
@@ -227,7 +250,14 @@ export async function main(argv: string[]): Promise<number> {
   if (cmd === 'score' && sub && rest[0] && rest[1]) {
     const score = +rest[1];
     if (!(score >= 0 && score <= 10)) throw new Error('score must be 0–10');
-    const e = await scoreVersion(asset(sub), rest[0], score, flag(args, '--note') ?? '');
+    // measured analytics override the config mapping and the estimates (D19): --model --effort --tokens-in --tokens-out --ms
+    const ex: Record<string, unknown> = {};
+    if (flag(args, '--model')) ex.model = flag(args, '--model');
+    if (flag(args, '--effort')) ex.effort = flag(args, '--effort');
+    if (flag(args, '--ms')) ex.wallMs = +flag(args, '--ms')!;
+    const a0 = asset(sub);
+    if (flag(args, '--tokens-in') || flag(args, '--tokens-out')) ex.measured = { in: +(flag(args, '--tokens-in') ?? 0), out: +(flag(args, '--tokens-out') ?? 0) };
+    const e = await scoreVersion(a0, rest[0], score, flag(args, '--note') ?? '', ex);
     print(`scored ${e.asset} ${e.version} (${e.pass}) ${score}; gate ${e.conformance?.pass ? 'pass' : 'FAIL'}`, e);
     return 0;
   }
@@ -240,6 +270,90 @@ export async function main(argv: string[]): Promise<number> {
     const r = await report(sub, { out: flag(args, '--out'), title: flag(args, '--title') });
     if (!flag(args, '--out')) console.log(r.markdown);
     return r.summaries.every(s => s.met) ? 0 : 1;
+  }
+  // ---- W2 production (PLAN P3) ----
+  const pos2 = (from: string[]) => from.filter((a, i) => !a.startsWith('--') && !(i > 0 && from[i - 1].startsWith('--') && from[i - 1] !== '--json' && from[i - 1] !== '--include-drafts' && from[i - 1] !== '--force'));
+  if (cmd === 'brief') {
+    const p = requireProject(flag(args, '--root'));
+    if (sub === 'add' && rest[0]) {
+      const kind = flag(args, '--kind');
+      if (!kind) throw new Error('brief add: --kind is required');
+      const anims = list(args, '--anims'), swaps = list(args, '--swaps');
+      const b: BriefEntry = {
+        id: rest[0], kind,
+        ...(flag(args, '--view') && { view: flag(args, '--view') as BriefEntry['view'] }), ...(flag(args, '--size') && { size: parseSize(flag(args, '--size')) }),
+        ...(list(args, '--states') && { states: list(args, '--states') }), ...(flag(args, '--directions') && { directions: +flag(args, '--directions')! as BriefEntry['directions'] }),
+        ...(anims && { anims: Object.fromEntries(anims.map(x => { const [s, f, fps] = x.split(':'); return [s, { frames: +f, ...(fps && { fps: +fps }) }]; })) }),
+        ...(flag(args, '--variants') && { variants: +flag(args, '--variants')! }),
+        ...(swaps && { swaps: swaps.reduce((m, x) => { const [n, pair] = x.split(':'), [from, to] = pair.split('='); (m[n] ??= {})[from] = to; return m; }, {} as Record<string, Record<string, string>>) }),
+        ...(flag(args, '--importance') && { importance: flag(args, '--importance') as Importance }), ...(flag(args, '--priority') && { priority: +flag(args, '--priority')! }),
+        ...(flag(args, '--notes') && { notes: flag(args, '--notes') }),
+      };
+      if (b.importance && !IMPORTANCE.includes(b.importance)) throw new Error(`--importance: ${IMPORTANCE.join(' | ')}`);
+      if (b.anims && !b.states) b.states = ['idle', ...Object.keys(b.anims).filter(s => s !== 'idle')];
+      const all = addBrief(p, b);
+      print(`brief ${b.id} (${b.kind}) in art/briefs.yaml — ${all.length} briefs\nnext: artgen make ${b.id}`, { brief: b, count: all.length });
+      return 0;
+    }
+    if (sub === 'rm' && rest[0]) { const ok = removeBriefFile(p, rest[0]); print(ok ? `removed ${rest[0]} (asset sources are kept)` : `no brief ${rest[0]}`, { removed: ok }); return ok ? 0 : 1; }
+    if (sub === 'list') {
+      const bs = readBriefs(p);
+      print(bs.map(b => `${b.id.padEnd(16)} ${b.kind.padEnd(10)} ${(b.states ?? ['idle']).join(',')}${b.directions ? ` ×${b.directions}` : ''}${b.anims ? ` ${Object.entries(b.anims).map(([k, v]) => `${k}:${v.frames}`).join(' ')}` : ''}${b.importance ? ` [${b.importance}]` : ''}${b.notes ? ` — ${b.notes}` : ''}`).join('\n') || 'no briefs yet (artgen brief add <id> --kind …)', bs);
+      return 0;
+    }
+  }
+  if (cmd === 'make' || cmd === 'status') {
+    const p = requireProject(flag(args, '--root')), ids = pos2(args);
+    const table = (rows: Awaited<ReturnType<typeof projectStatus>>) => rows.map(r => `  ${r.id.padEnd(16)} ${r.status.padEnd(11)} ${r.final ? `${r.final} ${r.score ?? '-'}${r.gate === false ? ' GATE FAIL' : ''}` : (r.next ? `${r.next.action} ${'version' in r.next ? r.next.version : ''}` : '')}${r.issues.length ? `\n${r.issues.map(i => `      issue: ${i}`).join('\n')}` : ''}`).join('\n');
+    if (cmd === 'status') { const rows = await projectStatus(p, ids); print(table(rows) || 'no briefs yet', rows); return 0; }
+    const r = await make(p, ids);
+    const counts = Object.entries(r.rows.reduce((m, x) => ({ ...m, [x.status]: (m[x.status] ?? 0) + 1 }), {} as Record<string, number>)).map(([k, v]) => `${v} ${k}`).join(', ');
+    print([
+      ...(r.scaffolded.length ? [`scaffolded from templates:\n  ${r.scaffolded.join('\n  ')}`] : []), ...(r.finals.length ? [`marked final: ${r.finals.join(', ')}`] : []),
+      ...(r.overBudget.length ? [`over budget, finished as is: ${r.overBudget.join(', ')}`] : []), table(r.rows), `(${counts})`,
+      r.next ? `next: ${r.next.id} — ${r.next.step.action} ${'version' in r.next.step ? r.next.step.version : ''} (${r.next.path}) — ${r.next.step.why}` : 'next: nothing left in the pipeline — show the gallery to the user (artgen gallery)',
+    ].join('\n'), r);
+    return 0;
+  }
+  if (cmd === 'gallery') {
+    const p = requireProject(flag(args, '--root')), r = await gallery(p, { ids: pos2(args) });
+    print(r.sheets.length ? `gallery ${r.sheets.join(', ')} (~${r.tokens} image tokens)\n${r.assets.map(a => `  ${a.id} ${a.final} ${a.score ?? '-'}${a.issues.length ? `\n${a.issues.map(i => `    issue: ${i}`).join('\n')}` : ''}`).join('\n')}` : 'no finished assets waiting for review', r);
+    return 0;
+  }
+  if (cmd === 'feedback' && sub) {
+    const route = flag(args, '--route'), note = flag(args, '--note');
+    if (route !== 'base' && route !== 'finish') throw new Error('feedback: --route base (form, proportion, colour → new base) | finish (pixels → finish revision)');
+    if (!note) throw new Error('feedback: --note "<what the user asked for>" is required');
+    const region = list(args, '--region')?.map(Number);
+    const r = await feedback(requireProject(flag(args, '--root')), sub, { route, note, region, cell: flag(args, '--cell'), force: args.includes('--force') });
+    print(`feedback recorded (user iteration ${r.iterations}): opens ${r.opens}\nnext: ${r.next.action} ${'version' in r.next ? r.next.version : ''} — ${r.next.why}`, r);
+    return 0;
+  }
+  if (cmd === 'approve' && sub) {
+    const e = await approve(requireProject(flag(args, '--root')), sub, flag(args, '--note') ?? '');
+    print(`approved ${e.asset} ${e.version} (direction v${e.direction?.version})`, e);
+    return 0;
+  }
+  if (cmd === 'export') {
+    const r = await exportPacks(requireProject(flag(args, '--root')), { packs: list(args, '--pack'), includeDrafts: args.includes('--include-drafts'), generator: `artgen ${VERSION}` });
+    print([...r.packs.map(x => `pack ${x.pack}: ${x.assets.length} assets → ${x.atlases.join(', ')} + ${x.dir}/pack.json${x.drafts.length ? ` (drafts: ${x.drafts.join(', ')})` : ''}`), r.assetsTs ? `typed ids: ${r.assetsTs}` : 'nothing approved to export yet', ...(r.skipped.length ? [`not exported: ${r.skipped.map(s => `${s.id} (${s.status})`).join(', ')}`] : [])].join('\n'), r);
+    return 0;
+  }
+  if (cmd === 'restyle') {
+    const r = await restyle(requireProject(flag(args, '--root')), { from: flag(args, '--from') ? +flag(args, '--from')! : undefined });
+    print([`restyle v${r.from} → v${r.to}: ${r.sheet} (~${r.tokens} image tokens)`, ...r.assets.map(a => `  ${a.id.padEnd(16)} ${a.changedPct}% px changed, tokens kept ${Math.round(a.tokenSame * 100)}%${a.consistent ? '' : ' (inconsistent colour mapping)'}${a.gate ? '' : ' GATE FAIL'}${a.stale.length ? ` FINISH-STALE ${a.stale.join('; ')}` : ''}`), 'changed assets are back to final: show the gallery and re-approve'].join('\n'), r);
+    return r.assets.every(a => a.gate) ? 0 : 1;
+  }
+  if (cmd === 'import-edit' && sub && rest[0]) {
+    const r = await importEdit(requireProject(flag(args, '--root')), sub, rest[0], { cell: flag(args, '--cell') });
+    print(`${r.file}: ${r.pixels} pixels in ${r.cells} cells${r.snapped ? `, ${r.snapped} snapped to the nearest palette colour` : ''}${r.conflicts ? `, ${r.conflicts} mirrored-cell edits dropped (edit the east facing)` : ''}\nnext: artgen review ${sub}`, r);
+    return 0;
+  }
+  if (cmd === 'analytics') {
+    const r = projectAnalytics(requireProject(flag(args, '--root')));
+    if (flag(args, '--out')) { writeFileSync(flag(args, '--out')!, r.markdown); }
+    print(r.markdown, r.report);
+    return 0;
   }
   console.log(USAGE);
   return cmd ? 1 : 0;

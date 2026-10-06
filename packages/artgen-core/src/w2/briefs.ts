@@ -81,7 +81,11 @@ export function upsertBrief(text: string, brief: BriefEntry): string {
   if (errs.length) throw new Error(errs.join('\n'));
   const doc = parseDocument(text.trim() ? text : '[]\n') as unknown as Document;
   let seq = doc.contents as unknown;
-  if (!seq || (isSeq(seq) && seq.flow && !seq.items.length)) { seq = new YAMLSeq(); doc.contents = seq as YAMLSeq; }
+  if (!seq || (isSeq(seq) && seq.flow && !seq.items.length)) {
+    const fresh = new YAMLSeq(), old = seq as { commentBefore?: string } | null;
+    if (old?.commentBefore) fresh.commentBefore = old.commentBefore; // the file's header comment hangs on the empty list
+    seq = fresh; doc.contents = fresh;
+  }
   if (!isSeq(seq)) throw new Error('briefs.yaml: must be a list of briefs');
   const clean = JSON.parse(JSON.stringify(brief)) as BriefEntry;
   const node = doc.createNode(clean) as YAMLMap;

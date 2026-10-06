@@ -15,10 +15,13 @@ export function templatesRoot(): string {
 
 export interface TemplateRef { view: string; kind: string; dir: string; fallback: boolean }
 
-/** Template for a kind in a view; views without one fall back to `topdown`, unknown kinds to `prop`. */
+/** Kinds that start from a related template (brief kinds beyond the probe set). */
+const KIND_ALIAS: Record<string, string> = { creature: 'character', tileset: 'tile', texture: 'tile', viewmodel: 'prop', 'ui-icon': 'prop' };
+
+/** Template for a kind in a view; views without one fall back to `topdown`, related kinds to their alias, others to `prop`. */
 export function findTemplate(view: string, kind: string): TemplateRef {
-  const root = templatesRoot();
-  for (const [v, k] of [[view, kind], ['topdown', kind], [view, 'prop'], ['topdown', 'prop']]) {
+  const root = templatesRoot(), alias = KIND_ALIAS[kind] ?? kind;
+  for (const [v, k] of [[view, kind], ['topdown', kind], [view, alias], ['topdown', alias], [view, 'prop'], ['topdown', 'prop']]) {
     const dir = join(root, v, k);
     if (existsSync(join(dir, 'base.js'))) return { view: v, kind: k, dir, fallback: v !== view || k !== kind };
   }

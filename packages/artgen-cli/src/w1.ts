@@ -25,6 +25,18 @@ const probeDir = (p: Project, kind: string) => join(p.art, 'probes', kind);
 const ledgerPath = (p: Project) => join(p.art, 'ledger.jsonl');
 const rel = (p: Project, f: string) => relative(p.root, f).split('\\').join('/');
 
+/** Archived locked direction `art/directions/v<N>.json`. */
+export const directionFile = (p: Project, version: number): string => join(p.art, 'directions', `v${version}.json`);
+
+/** A locked direction version from the archive (the current one from `art/direction.json` when not archived yet). */
+export function directionVersion(p: Project, version: number): Direction {
+  const f = directionFile(p, version);
+  if (existsSync(f)) return parseDirection(readJson(f));
+  const cur = lockedDirection(p);
+  if (cur?.version === version) return cur;
+  throw new Error(`direction v${version} is not archived (art/directions/v${version}.json) — directions locked before P3 are archived on the next lock`);
+}
+
 /** Candidate names on disk, a/b/c first, then mixes and drafts in name order. */
 export function candidateNames(p: Project): string[] {
   if (!existsSync(cdir(p))) return [];
@@ -185,9 +197,12 @@ export async function lock(p: Project, name: string, opts: { id?: string; note?:
   const d = lockDirection(chosen, prev, opts.id);
   d.theme = { ...d.theme, notes: `${d.theme.notes ?? ''}${opts.note ? `. ${opts.note}` : ''}`.trim() };
   const file = join(p.art, 'direction.json');
+  // keep every locked version: restyle renders before/after from art/directions/v<N>.json
+  if (prev && !existsSync(directionFile(p, prev.version))) writeJson(directionFile(p, prev.version), readJson(file));
   writeJson(file, d);
   appendLedger(ledgerPath(p), { type: 'approve', asset: 'direction', version: `v${d.version}`, note: `locked ${name}${opts.note ? `: ${opts.note}` : ''}`, direction: { id: d.id, version: d.version }, by: 'user' });
   const anchors = await writeAnchors(p);
+  writeJson(directionFile(p, d.version), readJson(file));
   return { direction: lockedDirection(p)!, file: rel(p, file), ...anchors };
 }
 

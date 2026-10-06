@@ -26,13 +26,34 @@ export function requireProject(start?: string): Project {
   return p;
 }
 
+export interface BudgetCaps { revisionPasses?: number; extraAutonomousRevisions?: number; maxImageTokensPerAsset?: number }
+
+export interface ProjectConfig {
+  version: number;
+  export: { packDir: string; runtimeDir: string; assetsTs: string; maxAtlas?: number; padding?: number };
+  runtime: { adapters: string[] };
+  /** Packs by name: `include` patterns over brief ids (`*`, `goblin*`) or kinds (`kind:tile`). */
+  packs: Record<string, { include: string[] }>;
+  budget: BudgetCaps & {
+    maxSheetEdge?: number;
+    maxUserIterations?: number;
+    /** Per asset kind (`character: { revisionPasses: 4 }`). */
+    perKind?: Record<string, BudgetCaps>;
+    /** Per brief importance (hero / standard / filler). */
+    tiers?: Record<string, BudgetCaps>;
+  };
+  /** Stage → model (and effort): `'default'` or `{ model, effort }`; stages run as subagents with that model. */
+  models: Record<'base' | 'revise' | 'finish' | 'review', string | { model: string; effort?: string }>;
+  gate: Record<string, unknown>;
+}
+
 /** Default `art/artgen.config.json` (export paths, runtime adapter, packs, budget, stage models — D19). */
-export const DEFAULT_CONFIG = {
+export const DEFAULT_CONFIG: ProjectConfig = {
   version: 1,
   export: { packDir: 'public/assets', runtimeDir: 'src/art/runtime', assetsTs: 'src/art/assets.ts' },
   runtime: { adapters: ['canvas2d'] },
   packs: { main: { include: ['*'] } },
-  budget: { revisionPasses: 3, maxSheetEdge: 1568, maxUserIterations: 3, extraAutonomousRevisions: 1 },
+  budget: { revisionPasses: 3, maxSheetEdge: 1568, maxUserIterations: 3, extraAutonomousRevisions: 1, tiers: { hero: { revisionPasses: 4 }, filler: { revisionPasses: 2 } } },
   models: { base: 'default', revise: 'default', finish: 'default', review: 'default' },
   gate: {},
 };
@@ -76,3 +97,14 @@ export function initProject(root: string): { project: Project; created: string[]
 
 export const readJson = <T = unknown>(p: string): T => JSON.parse(readFileSync(p, 'utf8')) as T;
 export const writeJson = (p: string, v: unknown): void => { mkdirSync(dirname(p), { recursive: true }); writeFileSync(p, JSON.stringify(v, null, 2) + '\n'); };
+
+/** `art/artgen.config.json` merged over the defaults (sections shallow-merged, so older configs keep working). */
+export function projectConfig(p: Project): ProjectConfig {
+  const f = join(p.art, CONFIG_FILE), raw = existsSync(f) ? readJson<Partial<ProjectConfig>>(f) : {};
+  const out = { ...DEFAULT_CONFIG } as Record<string, unknown>;
+  for (const [k, v] of Object.entries(raw)) {
+    const d = (DEFAULT_CONFIG as unknown as Record<string, unknown>)[k];
+    out[k] = d && typeof d === 'object' && !Array.isArray(d) && v && typeof v === 'object' && !Array.isArray(v) && k !== 'packs' ? { ...d, ...v } : v;
+  }
+  return out as unknown as ProjectConfig;
+}
