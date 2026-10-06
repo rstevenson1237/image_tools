@@ -8,7 +8,7 @@
       "clinical"
     ],
     "era": "1920s",
-    "notes": "mix mix1: B as the base, palette from C. user choice (simulated for the fixture): B's chunky selout style with C's darker palette | v2 (simulated user): colder moonlit cloth, warmer lamp. simulated user: colder moonlight, warmer lamp"
+    "notes": "mix mix1: B as the base, palette from C. user choice (simulated for the fixture): B's chunky selout style with C's darker palette"
   },
   "camera": {
     "light": [
@@ -120,9 +120,9 @@
         "#10130c"
       ],
       "cloth": [
-        "#7f9ea6",
-        "#4c6b75",
-        "#22323a"
+        "#739c98",
+        "#456e6e",
+        "#213437"
       ],
       "leather": [
         "#868c63",
@@ -150,14 +150,14 @@
         "#090a0b"
       ],
       "grass": [
-        "#5f7266",
-        "#34443b",
-        "#0e130f"
+        "#627564",
+        "#364539",
+        "#0e120f"
       ],
       "accent": [
-        "#ead2a0",
-        "#e28e30",
-        "#8a4410"
+        "#e1cfa4",
+        "#d99a3a",
+        "#8c5114"
       ],
       "glow": [
         "#efe6bd",
@@ -226,7 +226,7 @@
     ]
   },
   "id": "hollow-ward",
-  "version": 2,
+  "version": 1,
   "status": "locked",
   "background": "#1d1e21"
 }

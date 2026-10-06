@@ -8,7 +8,7 @@
       "clinical"
     ],
     "era": "1920s",
-    "notes": "mix mix1: B as the base, palette from C. user choice (simulated for the fixture): B's chunky selout style with C's darker palette | v2 (simulated user): colder moonlit cloth, warmer lamp. simulated user: colder moonlight, warmer lamp"
+    "notes": "mix mix1: B as the base, palette from C. user choice (simulated for the fixture): B's chunky selout style with C's darker palette | v2 (simulated user): colder moonlit cloth, warmer lamp"
   },
   "camera": {
     "light": [
@@ -226,7 +226,7 @@
     ]
   },
   "id": "hollow-ward",
-  "version": 2,
-  "status": "locked",
+  "version": 1,
+  "status": "draft",
   "background": "#1d1e21"
 }
