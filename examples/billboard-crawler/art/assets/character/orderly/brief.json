@@ -1,0 +1,8 @@
+{
+  "id": "orderly",
+  "template": "topdown/character",
+  "review": {
+    "scale": 6,
+    "sym": "x"
+  }
+}

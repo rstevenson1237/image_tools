@@ -1,0 +1,8 @@
+{
+  "id": "ward-wall",
+  "template": "topdown/tile",
+  "review": {
+    "scale": 6,
+    "sym": "none"
+  }
+}
