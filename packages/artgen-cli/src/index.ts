@@ -1,2 +1,5 @@
-/** artgen CLI and Node I/O adapter (P1b, P2). Placeholder until its phase lands (docs/artgen/PLAN.md). */
+/** artgen CLI and Node I/O adapter. */
 export const name = 'artgen-cli';
+export * from './node.ts';
+export * from './bench.ts';
+export { main } from './cli.ts';
