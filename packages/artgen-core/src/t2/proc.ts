@@ -1,6 +1,7 @@
 /**
  * Procedural pass v1 (S2, SPEC §6.4): seeded layers applied to a T2+ raster before colours are fixed —
- * `materialNoise`, `pattern`, lighting (`rimLight`, `ao`, `castShadow`, `groundShadow`, `dropShadow`) and `dither`.
+ * `materialNoise`, `pattern`, `detail` (mask-template variation), lighting (`rimLight`, `ao`, `castShadow`,
+ * `groundShadow`, `dropShadow`) and `dither`.
  * Layers move pixels along their own material ramp, so the output stays on the direction palette.
  * The direction's `pipeline.procedural` list supplies default layers; an asset layer with the same name replaces
  * the default's options.
@@ -100,6 +101,46 @@ export const LAYERS: Record<string, Layer> = {
       else throw new Error(`pattern: unknown type ${type}`);
       if (on) r.step(p, step);
     }
+  },
+
+  /**
+   * Mask-template variation (Bollinger-style, P3): a small char mask is filled from the seed and stepped onto the
+   * target as markings. Mask cells: `.` never, `#` always body, `1` body or empty, `2` body or border, `-` always
+   * border. Body pixels step `step` (default +1, darker), border pixels `step + 1`; with `mirror: 'x'` (default) the
+   * mask is the left half and is mirrored. Options: mask (rows), at ([x, y] top-left, default centred on the
+   * target's bounding box), tile (repeat over the box), density (chance a random cell is body, 0.5), seed, step.
+   * Vary `seed` per variant (`seed: ctx.variant`) for different markings on every variant.
+   */
+  detail(r, env, o) {
+    const hit = matcher(r, env, o), rows = o.mask as string[];
+    if (!Array.isArray(rows) || !rows.length) throw new Error('detail: mask (array of rows) is required');
+    const mirror = (o.mirror as string) ?? 'x', density = (o.density as number) ?? 0.5, step = (o.step as number) ?? 1;
+    let seed = (env.seed * 2654435761 + ((o.seed as number) ?? 0) * 40503 + 7) >>> 0;
+    const rand = () => { seed = (seed + 0x6d2b79f5) >>> 0; let t = seed; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    // fill the template: 0 empty, 1 body, 2 border
+    const half = rows.map(row => [...row].map(ch => ch === '#' ? 1 : ch === '-' ? 2 : ch === '1' ? (rand() < density ? 1 : 0) : ch === '2' ? (rand() < density ? 1 : 2) : 0));
+    let cells = half;
+    if (mirror === 'x') cells = half.map(row => [...row, ...[...row].reverse()]);
+    else if (mirror === 'y') cells = [...half, ...[...half].reverse()];
+    const mh = cells.length, mw = Math.max(...cells.map(c => c.length));
+    // empty cells next to body become border (Bollinger's outline step)
+    const at0 = (x: number, y: number) => (y >= 0 && y < mh && x >= 0 && x < cells[y].length ? cells[y][x] : 0);
+    const mask = cells.map((row, y) => row.map((c, x) => (c === 0 && N4.some(([dx, dy]) => at0(x + dx, y + dy) === 1) ? 2 : c)));
+    const v = (x: number, y: number) => (y >= 0 && y < mh && x >= 0 && x < mask[y].length ? mask[y][x] : 0);
+    let x0 = r.w, y0 = r.h, x1 = -1, y1 = -1;
+    for (let p = 0; p < r.id.length; p++) if (hit(p)) { const x = p % r.w, y = (p / r.w) | 0; x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+    if (x1 < 0) return;
+    const at = (o.at as [number, number]) ?? [Math.round((x0 + x1 + 1 - mw) / 2), Math.round((y0 + y1 + 1 - mh) / 2)];
+    const moves: [number, number][] = [];
+    for (let p = 0; p < r.id.length; p++) {
+      if (!hit(p)) continue;
+      const x = p % r.w, y = (p / r.w) | 0;
+      let mx = x - at[0], my = y - at[1];
+      if (o.tile) { mx = ((mx % mw) + mw) % mw; my = ((my % mh) + mh) % mh; }
+      const c = v(mx, my);
+      if (c) moves.push([p, c === 2 ? step + Math.sign(step || 1) : step]);
+    }
+    for (const [p, k] of moves) r.step(p, k);
   },
 
   /** Edge light: `side: 'lit'` (default) sets edges facing the light to the lightest level; `away` steps them lighter. */

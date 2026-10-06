@@ -168,6 +168,22 @@ describe('procedural pass', () => {
     for (let i = 2; i < 22; i++) expect(a.get(i, 2)).toBe(plain.get(i, 2));
   });
 
+  test('detail: mask-template markings are seeded per variant, mirrored, inside the target and on its ramp', () => {
+    const mask = ['..11', '.122', '1122', '.12.'];
+    const mk = (seed: number) => lib().proc(scene()).add('detail', { part: 'slab', mask, seed }).render();
+    const a = mk(1), b = mk(1), c = mk(2), plain = scene().render();
+    expect(a.hash()).toBe(b.hash()); expect(a.hash()).not.toBe(plain.hash());
+    expect(new Set([1, 2, 3, 4, 5].map(s => mk(s).hash())).size).toBeGreaterThan(2);
+    expect(c.hash()).not.toBe(a.hash());
+    for (const col of opaqueColours(a)) expect([...RAMPS.stone, O]).toContain(col);
+    // mirrored about the mask centre, which sits at the slab centre (x 12)
+    for (let y = 0; y < 24; y++) for (let k = 0; k < 4; k++) expect(a.get(8 + k, y)).toBe(a.get(15 - k, y));
+    // tiled over the whole part
+    const t = lib().proc(scene()).add('detail', { part: 'slab', mask: ['#.'], mirror: 'none', tile: true }).render();
+    expect(t.get(4, 10)).not.toBe(t.get(5, 10));
+    expect(() => lib().proc(scene()).add('detail', { part: 'slab' }).render()).toThrow(/mask/);
+  });
+
   test('pattern stripes, lit rim, ground shadow; dither only when the direction allows it', () => {
     const st = lib().proc(scene()).add('pattern', { type: 'stripes', axis: 'x', period: 4, step: 1 }).render();
     expect(st.get(10, 4)).toBe(RAMPS.stone[2]); expect(st.get(10, 5)).toBe(RAMPS.stone[1]);
