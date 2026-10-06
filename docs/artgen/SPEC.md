@@ -1,6 +1,6 @@
 # artgen — Specification
 
-Status: **rev 5** (P2: packaging and W1 as built) — written against the resolved decisions in [INTAKE §7](INTAKE.md#7-decisions-resolved-2026-10-05) / [DECISIONS.md](DECISIONS.md)
+Status: **rev 6** (P3: W2 production, export and restyle as built) — written against the resolved decisions in [INTAKE §7](INTAKE.md#7-decisions-resolved-2026-10-05) / [DECISIONS.md](DECISIONS.md)
 
 ## 1. Summary
 
@@ -63,6 +63,7 @@ dist/
   claude/skills/asset-production/    # W2 brief → autonomous pipeline → final review → export
   claude/agents/art-reviewer.md      # subagent: scores a sheet against the direction
   claude/commands/artgen-init.md, artgen-direction.md   # thin wrappers: /artgen-init, /artgen-direction
+  claude/commands/artgen-{brief,make,review,feedback,approve,export,restyle}.md   # W2 wrappers (P3)
   tools/artgen/artgen.js             # CLI, single-file bundle (Node 20+, no npm install)
   tools/artgen/artgen-mcp.js         # MCP server, single-file bundle
   tools/artgen/resvg.wasm            # the SVG rasteriser the bundles load
@@ -194,15 +195,22 @@ Plus hygiene metrics from artlab (`measure()`): gate thresholds in `artgen.confi
   states: [idle, walk, attack, hurt]
   directions: 8
   anims: { walk: { frames: 4 }, attack: { frames: 3 } }
-  variants: 3            # seeded variants (palette swaps / mask variants)
+  variants: 3            # seeded param-schema variants, exported as extra frame sets
+  swaps: { red: { cloth: accent } }   # ramp → ramp palette swaps, exported as hex maps for the runtime
+  importance: hero       # hero | standard | filler → budget.tiers (pass counts)
   notes: "hunched, oversized ears, rusty cleaver"
   priority: 1
 ```
+The asset lives in `art/assets/<kind>/<id>/`; its `brief.json` keeps only template review settings, and the YAML entry
+wins for every brief field. Kinds without their own scale key or template borrow one (creature → character,
+tileset/texture → tile, viewmodel → large, ui-icon → prop).
 ### 5.2 Status lifecycle (tracked in ledger, shown in UI)
 `brief → in-pipeline (v1..v3, finish) → final → approved → exported`, plus `revision` (user asked for changes,
 back in the pipeline) and `stale` (direction or source changed after export). The agent moves assets through
 the pipeline on its own; only `approved` and `revision` are set by the user (D10). Approval records direction
-version + source hash + sheet id.
+version + source hash (base + finish sources) + sheet id, and keeps the sheet in `art/sheets/approved/`. Status is
+derived on every read from the ledger and the pass machine, never stored as the truth; a restyle that changes no pixel
+carries the approval over.
 
 ### 5.3 Loop (skill `asset-production`, `/artgen:make <id|all>`)
 For each brief, the pipeline in §6.3: template → base + procedural (v1) → review → v2 → review → v3 → review →
@@ -214,9 +222,21 @@ The user sees only finished assets: `/artgen:review` builds a gallery of `final`
 preview, scores, open issues); the user approves or requests revisions via `/artgen:approve`,
 `/artgen:feedback` or the UI, which starts a user iteration (§6.3, stage U) that again runs autonomously.
 
+As built (P3): `artgen make [ids]` is one tick of the run — it scaffolds missing asset dirs from templates, records
+`final` (with open issues) for completed pipelines, finishes assets over `budget.maxImageTokensPerAsset` as they are,
+and names the next step for the first unfinished brief in priority order; the agent does that step and calls it again.
+Pass ids: `r1..rN` revisions, `x1..` extra autonomous revisions (final fails the gate), `u1..` bases opened by user
+feedback (`--route base`), `f`, `f2..` finishes (re-finish after a user base, or `--route finish`). The base that gets
+finished is the latest user iteration, else the best-scoring base (R12). `maxUserIterations` makes further feedback ask
+the agent to escalate. `artgen import-edit` turns an edited PNG into the next finish (previous finish replayed, edits as
+colour tokens) and records it as finish-route feedback.
+
 ### 5.4 Export (`/artgen:export`)
 Packs approved assets into the paths in `artgen.config.json`: atlas PNG(s) + `pack.json`, textures (+ normal
 maps), voxel exports, generated `assets.ts` (typed ids), and the runtime (§12) if not present or outdated.
+As built (P3): packs pick assets by `include` patterns over ids (`*`, `goblin*`) or kinds (`kind:tile`), or a brief's
+`pack`; identical frames are stored once; `--include-drafts` adds unapproved finals flagged in `drafts`. Normal maps,
+voxel exports and runtime vendoring arrive with P6/P4.
 
 ## 6. Engine core
 
@@ -309,7 +329,7 @@ export function finish(g, ctx) {
 | Layer | Algorithms | Typical use |
 |---|---|---|
 | `materialNoise`, `pattern` | periodic value/simplex/Worley/fBm, banded to ramps | cloth, stone, metal wear, wood grain |
-| `detail` | L-systems (foliage, cracks, roots), mask templates (Bollinger-style variation), scatter | trees, damage, decor |
+| `detail` | mask templates (Bollinger-style variation: built in P3 — `mask` rows, `mirror`, `tile`, `density`, `seed`); L-systems, scatter later | markings, damage, decor |
 | `tiles` | WFC, autotile edge synthesis (§9) | tilesets, floors |
 | `lighting` | SDF/normal banding, rim light, AO at overlaps, cast + ground shadows, normal-map output | everything |
 | `dither` | ordered Bayer 2/4, noise; only if the direction allows | gradients, skies |
@@ -402,6 +422,10 @@ delta vs the previous pass.
   (`{ base, revise, finish, review }`); stages run as subagents with that model. Analytics compares score per
   dollar across mappings so the defaults can be tuned (e.g. a smaller model for the reviewer or for v2/v3).
 - Shown in the UI as an Analytics panel in Asset Review (W4).
+- As built (P3): score records carry `pass`, `model`/`effort`/`reviewModel` from the config mapping (`--model`, `--effort`,
+  `--tokens-in`, `--tokens-out`, `--ms` override), `wallMs` since the asset's previous record, `delta`, code/edit token
+  estimates and the review sheet's image tokens. Budget suggestions fire per kind when v3 adds ≤ 0.1 or ≥ 0.75 over ≥ 3
+  assets, v2 doesn't improve, the finish adds ≤ 0, or > 30 % of revisions regress.
 
 ## 12. Runtime component (W3) — `@artgen/runtime`
 
@@ -412,12 +436,15 @@ delta vs the previous pass.
   "assets": {
     "goblin": { "kind": "character", "view": "topdown", "size": [24,24], "anchor": [12,21],
       "directions": 8, "states": { "idle": { "frames": 1 }, "walk": { "frames": 4, "fps": 8, "loop": true } },
-      "frames": [[0,0,0,0,24,24, 0,"idle",0]],      // atlas, x, y, w, h, facing, state, frame (compact)
-      "variants": ["base","red","grey"], "swaps": { "red": { "moss.1": "#8a3a34" } } },
+      "frames": [[0,0,0,0,24,24, 0,"idle",0, 0]],   // atlas, x, y, w, h, facing index, state, frame, variant (compact)
+      "facings": ["s","sw","w","nw","n","ne","e","se"], "version": "finish.v2", "sourceHash": "…",
+      "variants": ["base","v1","red"], "swaps": { "red": { "#5d704f": "#dd9912" } } },  // param variants, then swaps
     "mud": { "kind": "tileset", "tile": 16, "autotile": "blob47", "map": [ ... ] },
     "spark": { "kind": "effect", "frames": 6, "fps": 12, "loop": false, "blend": "normal" } } }
 ```
-Also emits Aseprite-compatible JSON per sheet for tools that expect it.
+Also emits Aseprite-compatible JSON per atlas (array form; frames named `asset/state/facing/frame[#variant]`, one
+frame tag per strip). As built (P3) the manifest also carries `format: 1`, `generator`, `runtime: null` until P4, and
+`drafts`; tiles carry `tile` (autotile maps arrive with P6b).
 
 ### 12.2 Runtime API (dependency-free TS, ~few KB)
 ```ts
@@ -485,14 +512,14 @@ files on every run; nothing is cached across the boundary.
 ## 14. Interfaces
 
 **CLI** (`artgen`, all with `--json`): `init`, `direction new|candidates|tile|mix|lock|anchors|show|validate`, `palette import|extract|ramp`,
-`brief add|list`, `new`, `render [--stages]`, `review`, `score`, `pass next|status` (pipeline state), `finish`,
-`feedback`, `approve`, `status`, `variants`,
+`brief add|list|rm`, `new`, `render [--stages]`, `review`, `score`, `pass next|status` (pipeline state), `finish`,
+`make`, `gallery`, `feedback`, `approve`, `status`, `variants`, `analytics`,
 `texture`, `fx`, `voxel`, `restyle`, `export [--runtime]`, `import-edit`, `report`, `bench`.
 
 **Skills / commands / agent**: §3.1. `artgen analytics` (§11.1). **MCP tools**: `direction_get`, `direction_tile`, `pass_status`, `render`, `finish`,
 `review`, `conformance`, `score`, `approve`, `texture`, `fx`, `export` — image results returned as MCP image
 content; asset paths are sandboxed to `art/` (P2 serves `direction_get`, `direction_tile`, `pass_status`, `render`,
-`review`, `conformance`, `score`). **Python**: `artgen-py` client (`Artgen(project).render(...)`, `.texture(...)`, `.export(...)`)
+`review`, `conformance`, `score`; P3 adds `status`). **Python**: `artgen-py` client (`Artgen(project).render(...)`, `.texture(...)`, `.export(...)`)
 returning Pillow images + dicts.
 
 ## 15. Non-functional

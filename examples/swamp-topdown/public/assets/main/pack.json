@@ -1,0 +1,1012 @@
+{
+  "format": 1,
+  "pack": "main",
+  "generator": "artgen 0.3.0",
+  "direction": {
+    "id": "bogwatch",
+    "version": 2
+  },
+  "runtime": null,
+  "atlases": [
+    "main-0.png"
+  ],
+  "assets": {
+    "lantern-bearer": {
+      "kind": "character",
+      "view": "topdown",
+      "size": [
+        24,
+        24
+      ],
+      "anchor": [
+        12,
+        12
+      ],
+      "directions": 8,
+      "facings": [
+        "s",
+        "sw",
+        "w",
+        "nw",
+        "n",
+        "ne",
+        "e",
+        "se"
+      ],
+      "states": {
+        "idle": {
+          "frames": 1,
+          "fps": 8,
+          "loop": true
+        },
+        "walk": {
+          "frames": 4,
+          "fps": 8,
+          "loop": true
+        }
+      },
+      "frames": [
+        [
+          0,
+          0,
+          0,
+          24,
+          24,
+          0,
+          "idle",
+          0,
+          0
+        ],
+        [
+          0,
+          25,
+          0,
+          24,
+          24,
+          1,
+          "idle",
+          0,
+          0
+        ],
+        [
+          0,
+          50,
+          0,
+          24,
+          24,
+          2,
+          "idle",
+          0,
+          0
+        ],
+        [
+          0,
+          75,
+          0,
+          24,
+          24,
+          3,
+          "idle",
+          0,
+          0
+        ],
+        [
+          0,
+          100,
+          0,
+          24,
+          24,
+          4,
+          "idle",
+          0,
+          0
+        ],
+        [
+          0,
+          125,
+          0,
+          24,
+          24,
+          5,
+          "idle",
+          0,
+          0
+        ],
+        [
+          0,
+          150,
+          0,
+          24,
+          24,
+          6,
+          "idle",
+          0,
+          0
+        ],
+        [
+          0,
+          175,
+          0,
+          24,
+          24,
+          7,
+          "idle",
+          0,
+          0
+        ],
+        [
+          0,
+          200,
+          0,
+          24,
+          24,
+          0,
+          "walk",
+          0,
+          0
+        ],
+        [
+          0,
+          225,
+          0,
+          24,
+          24,
+          0,
+          "walk",
+          1,
+          0
+        ],
+        [
+          0,
+          200,
+          0,
+          24,
+          24,
+          0,
+          "walk",
+          2,
+          0
+        ],
+        [
+          0,
+          0,
+          25,
+          24,
+          24,
+          0,
+          "walk",
+          3,
+          0
+        ],
+        [
+          0,
+          0,
+          50,
+          24,
+          24,
+          1,
+          "walk",
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          75,
+          24,
+          24,
+          1,
+          "walk",
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          50,
+          24,
+          24,
+          1,
+          "walk",
+          2,
+          0
+        ],
+        [
+          0,
+          0,
+          100,
+          24,
+          24,
+          1,
+          "walk",
+          3,
+          0
+        ],
+        [
+          0,
+          0,
+          125,
+          24,
+          24,
+          2,
+          "walk",
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          150,
+          24,
+          24,
+          2,
+          "walk",
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          125,
+          24,
+          24,
+          2,
+          "walk",
+          2,
+          0
+        ],
+        [
+          0,
+          0,
+          175,
+          24,
+          24,
+          2,
+          "walk",
+          3,
+          0
+        ],
+        [
+          0,
+          0,
+          200,
+          24,
+          24,
+          3,
+          "walk",
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          225,
+          24,
+          24,
+          3,
+          "walk",
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          200,
+          24,
+          24,
+          3,
+          "walk",
+          2,
+          0
+        ],
+        [
+          0,
+          25,
+          25,
+          24,
+          24,
+          3,
+          "walk",
+          3,
+          0
+        ],
+        [
+          0,
+          50,
+          25,
+          24,
+          24,
+          4,
+          "walk",
+          0,
+          0
+        ],
+        [
+          0,
+          75,
+          25,
+          24,
+          24,
+          4,
+          "walk",
+          1,
+          0
+        ],
+        [
+          0,
+          50,
+          25,
+          24,
+          24,
+          4,
+          "walk",
+          2,
+          0
+        ],
+        [
+          0,
+          100,
+          25,
+          24,
+          24,
+          4,
+          "walk",
+          3,
+          0
+        ],
+        [
+          0,
+          125,
+          25,
+          24,
+          24,
+          5,
+          "walk",
+          0,
+          0
+        ],
+        [
+          0,
+          150,
+          25,
+          24,
+          24,
+          5,
+          "walk",
+          1,
+          0
+        ],
+        [
+          0,
+          125,
+          25,
+          24,
+          24,
+          5,
+          "walk",
+          2,
+          0
+        ],
+        [
+          0,
+          175,
+          25,
+          24,
+          24,
+          5,
+          "walk",
+          3,
+          0
+        ],
+        [
+          0,
+          200,
+          25,
+          24,
+          24,
+          6,
+          "walk",
+          0,
+          0
+        ],
+        [
+          0,
+          225,
+          25,
+          24,
+          24,
+          6,
+          "walk",
+          1,
+          0
+        ],
+        [
+          0,
+          200,
+          25,
+          24,
+          24,
+          6,
+          "walk",
+          2,
+          0
+        ],
+        [
+          0,
+          25,
+          50,
+          24,
+          24,
+          6,
+          "walk",
+          3,
+          0
+        ],
+        [
+          0,
+          25,
+          75,
+          24,
+          24,
+          7,
+          "walk",
+          0,
+          0
+        ],
+        [
+          0,
+          25,
+          100,
+          24,
+          24,
+          7,
+          "walk",
+          1,
+          0
+        ],
+        [
+          0,
+          25,
+          75,
+          24,
+          24,
+          7,
+          "walk",
+          2,
+          0
+        ],
+        [
+          0,
+          25,
+          125,
+          24,
+          24,
+          7,
+          "walk",
+          3,
+          0
+        ]
+      ],
+      "variants": [
+        "base"
+      ],
+      "version": "finish.v1",
+      "sourceHash": "a297c3e7571f5f18"
+    },
+    "bog-goblin": {
+      "kind": "character",
+      "view": "topdown",
+      "size": [
+        24,
+        24
+      ],
+      "anchor": [
+        12,
+        12
+      ],
+      "directions": 1,
+      "facings": [
+        "s"
+      ],
+      "states": {
+        "idle": {
+          "frames": 1,
+          "fps": 8,
+          "loop": true
+        }
+      },
+      "frames": [
+        [
+          0,
+          25,
+          150,
+          24,
+          24,
+          0,
+          "idle",
+          0,
+          0
+        ]
+      ],
+      "variants": [
+        "base",
+        "pale"
+      ],
+      "swaps": {
+        "pale": {
+          "#cbc4b5": "#9ca68c",
+          "#a2856b": "#5d704f",
+          "#60443a": "#222d1f"
+        }
+      },
+      "version": "finish.v2",
+      "sourceHash": "f040e2ff273c281a"
+    },
+    "leech": {
+      "kind": "creature",
+      "view": "topdown",
+      "size": [
+        24,
+        24
+      ],
+      "anchor": [
+        12,
+        12
+      ],
+      "directions": 1,
+      "facings": [
+        "s"
+      ],
+      "states": {
+        "idle": {
+          "frames": 4,
+          "fps": 8,
+          "loop": true
+        }
+      },
+      "frames": [
+        [
+          0,
+          25,
+          175,
+          24,
+          24,
+          0,
+          "idle",
+          0,
+          0
+        ],
+        [
+          0,
+          25,
+          200,
+          24,
+          24,
+          0,
+          "idle",
+          1,
+          0
+        ],
+        [
+          0,
+          25,
+          225,
+          24,
+          24,
+          0,
+          "idle",
+          2,
+          0
+        ],
+        [
+          0,
+          50,
+          50,
+          24,
+          24,
+          0,
+          "idle",
+          3,
+          0
+        ]
+      ],
+      "variants": [
+        "base"
+      ],
+      "version": "finish.v1",
+      "sourceHash": "345fd496e061f240"
+    },
+    "wisp": {
+      "kind": "effect",
+      "view": "topdown",
+      "size": [
+        24,
+        24
+      ],
+      "anchor": [
+        12,
+        12
+      ],
+      "directions": 1,
+      "facings": [
+        "s"
+      ],
+      "states": {
+        "idle": {
+          "frames": 6,
+          "fps": 12,
+          "loop": false
+        }
+      },
+      "frames": [
+        [
+          0,
+          75,
+          50,
+          24,
+          24,
+          0,
+          "idle",
+          0,
+          0
+        ],
+        [
+          0,
+          100,
+          50,
+          24,
+          24,
+          0,
+          "idle",
+          1,
+          0
+        ],
+        [
+          0,
+          125,
+          50,
+          24,
+          24,
+          0,
+          "idle",
+          2,
+          0
+        ],
+        [
+          0,
+          150,
+          50,
+          24,
+          24,
+          0,
+          "idle",
+          3,
+          0
+        ],
+        [
+          0,
+          175,
+          50,
+          24,
+          24,
+          0,
+          "idle",
+          4,
+          0
+        ],
+        [
+          0,
+          200,
+          50,
+          24,
+          24,
+          0,
+          "idle",
+          5,
+          0
+        ]
+      ],
+      "variants": [
+        "base"
+      ],
+      "version": "finish.v1",
+      "sourceHash": "6a52ceaf59e70b08"
+    },
+    "sunk-crate": {
+      "kind": "prop",
+      "view": "topdown",
+      "size": [
+        24,
+        24
+      ],
+      "anchor": [
+        12,
+        12
+      ],
+      "directions": 1,
+      "facings": [
+        "s"
+      ],
+      "states": {
+        "idle": {
+          "frames": 1,
+          "fps": 8,
+          "loop": true
+        }
+      },
+      "frames": [
+        [
+          0,
+          225,
+          50,
+          24,
+          24,
+          0,
+          "idle",
+          0,
+          0
+        ],
+        [
+          0,
+          50,
+          75,
+          24,
+          24,
+          0,
+          "idle",
+          0,
+          1
+        ],
+        [
+          0,
+          50,
+          100,
+          24,
+          24,
+          0,
+          "idle",
+          0,
+          2
+        ]
+      ],
+      "variants": [
+        "base",
+        "v1",
+        "v2"
+      ],
+      "version": "finish.v2",
+      "sourceHash": "820fbf5cfee179e6"
+    },
+    "lantern-post": {
+      "kind": "prop",
+      "view": "topdown",
+      "size": [
+        24,
+        24
+      ],
+      "anchor": [
+        12,
+        12
+      ],
+      "directions": 1,
+      "facings": [
+        "s"
+      ],
+      "states": {
+        "idle": {
+          "frames": 1,
+          "fps": 8,
+          "loop": true
+        }
+      },
+      "frames": [
+        [
+          0,
+          50,
+          125,
+          24,
+          24,
+          0,
+          "idle",
+          0,
+          0
+        ]
+      ],
+      "variants": [
+        "base"
+      ],
+      "version": "finish.v1",
+      "sourceHash": "6014be27ff114d3f"
+    },
+    "reeds": {
+      "kind": "prop",
+      "view": "topdown",
+      "size": [
+        24,
+        24
+      ],
+      "anchor": [
+        12,
+        12
+      ],
+      "directions": 1,
+      "facings": [
+        "s"
+      ],
+      "states": {
+        "idle": {
+          "frames": 1,
+          "fps": 8,
+          "loop": true
+        }
+      },
+      "frames": [
+        [
+          0,
+          50,
+          150,
+          24,
+          24,
+          0,
+          "idle",
+          0,
+          0
+        ],
+        [
+          0,
+          50,
+          175,
+          24,
+          24,
+          0,
+          "idle",
+          0,
+          1
+        ],
+        [
+          0,
+          50,
+          200,
+          24,
+          24,
+          0,
+          "idle",
+          0,
+          2
+        ]
+      ],
+      "variants": [
+        "base",
+        "v1",
+        "v2"
+      ],
+      "version": "finish.v2",
+      "sourceHash": "e376545f2df1f67d"
+    },
+    "bone-pile": {
+      "kind": "prop",
+      "view": "topdown",
+      "size": [
+        24,
+        24
+      ],
+      "anchor": [
+        12,
+        12
+      ],
+      "directions": 1,
+      "facings": [
+        "s"
+      ],
+      "states": {
+        "idle": {
+          "frames": 1,
+          "fps": 8,
+          "loop": true
+        }
+      },
+      "frames": [
+        [
+          0,
+          50,
+          225,
+          24,
+          24,
+          0,
+          "idle",
+          0,
+          0
+        ]
+      ],
+      "variants": [
+        "base"
+      ],
+      "version": "finish.v1",
+      "sourceHash": "7b20b9f4d19367d3"
+    },
+    "mud": {
+      "kind": "tile",
+      "view": "topdown",
+      "size": [
+        16,
+        16
+      ],
+      "anchor": [
+        8,
+        8
+      ],
+      "directions": 1,
+      "facings": [
+        "s"
+      ],
+      "states": {
+        "idle": {
+          "frames": 1,
+          "fps": 8,
+          "loop": true
+        }
+      },
+      "frames": [
+        [
+          0,
+          75,
+          75,
+          16,
+          16,
+          0,
+          "idle",
+          0,
+          0
+        ]
+      ],
+      "variants": [
+        "base"
+      ],
+      "version": "finish.v1",
+      "sourceHash": "5efe0be28a36bf12",
+      "tile": 16
+    },
+    "bog-water": {
+      "kind": "tile",
+      "view": "topdown",
+      "size": [
+        16,
+        16
+      ],
+      "anchor": [
+        8,
+        8
+      ],
+      "directions": 1,
+      "facings": [
+        "s"
+      ],
+      "states": {
+        "idle": {
+          "frames": 1,
+          "fps": 8,
+          "loop": true
+        }
+      },
+      "frames": [
+        [
+          0,
+          92,
+          75,
+          16,
+          16,
+          0,
+          "idle",
+          0,
+          0
+        ]
+      ],
+      "variants": [
+        "base"
+      ],
+      "version": "finish.v1",
+      "sourceHash": "0a9b4829c2d52388",
+      "tile": 16
+    }
+  }
+}

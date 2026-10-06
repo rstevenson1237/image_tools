@@ -1,7 +1,7 @@
 /**
  * artgen MCP server (SPEC §14): JSON-RPC 2.0 over stdio, newline-delimited, no SDK dependency so it bundles into
- * one file for the committed install. P2 serves the W1 and pipeline tools the skills use; P7 adds the rest
- * (finish, approve, texture, fx, export). Image results are returned as MCP image content (base64 PNG).
+ * one file for the committed install. P2 serves the W1 and pipeline tools the skills use, P3 adds `status`; P7 adds
+ * the rest (finish, approve, texture, fx, export). Image results are returned as MCP image content (base64 PNG).
  *
  * Paths are sandboxed: every asset path must resolve inside the project's `art/` folder.
  */
@@ -10,10 +10,10 @@ import { isAbsolute, join, relative, resolve } from 'node:path';
 import { encodePNG, type Grid } from 'artgen-core';
 import {
   candidateNames, findProject, loadCandidate, lockedDirection, openAsset, passState, renderVersion, reviewVersion,
-  scoreVersion, versionsIn, writeTile, type Project,
+  projectStatus, scoreVersion, versionsIn, writeTile, type Project,
 } from 'artgen-cli';
 
-export const SERVER = { name: 'artgen', version: '0.2.0' };
+export const SERVER = { name: 'artgen', version: '0.3.0' };
 const PROTOCOLS = ['2025-06-18', '2025-03-26', '2024-11-05'];
 
 type Json = Record<string, unknown>;
@@ -96,6 +96,11 @@ export const TOOLS: ToolDef[] = [
       if (!(s >= 0 && s <= 10)) throw new Error('score must be 0-10');
       return [text(await scoreVersion(asset(p, a), a.version as string, s, typeof a.note === 'string' ? a.note : ''))];
     },
+  },
+  {
+    name: 'status', description: 'W2 production status of every brief in art/briefs.yaml (brief, in-pipeline, final, approved, exported, revision, stale), with the final version, score, open issues and the next pipeline step.',
+    inputSchema: obj({ ids: { type: 'array', items: str, description: 'brief ids; default all' } }),
+    async run(a, p) { return [text(await projectStatus(p, Array.isArray(a.ids) ? (a.ids as string[]) : undefined))]; },
   },
 ];
 

@@ -3,7 +3,8 @@
  * Build the artgen distribution (SPEC §3.1) into `out/` — the content of the `artgen-dist` branch:
  *
  *   package.json, install.mjs, README.md      `npx github:…#artgen-dist init|update|status`
- *   dist/claude/{skills,agents,commands}/     → .claude/ in the game repo (commands: /artgen-init, /artgen-direction)
+ *   dist/claude/{skills,agents,commands}/     → .claude/ in the game repo (commands: /artgen-init, /artgen-direction,
+ *                                               /artgen-brief, -make, -review, -feedback, -approve, -export, -restyle)
  *   dist/tools/artgen/                        → tools/artgen/: artgen.js + artgen-mcp.js (single-file bundles),
  *                                               resvg.wasm, templates/, VERSION
  *   dist/claude-md.md                         the managed CLAUDE.md section
@@ -25,8 +26,8 @@ export const VERSION = JSON.parse(readFileSync(join(HERE, 'package.json'), 'utf8
 
 /** How each layout invokes the CLI and names the direction command. */
 const LAYOUTS = {
-  committed: { ARTGEN: 'node tools/artgen/artgen.js', CMD_DIRECTION: '`/artgen-direction`' },
-  plugin: { ARTGEN: 'node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js"', CMD_DIRECTION: '`/artgen:direction`' },
+  committed: { ARTGEN: 'node tools/artgen/artgen.js', CMD_DIRECTION: '`/artgen-direction`', CMD: '/artgen-' },
+  plugin: { ARTGEN: 'node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js"', CMD_DIRECTION: '`/artgen:direction`', CMD: '/artgen:' },
 };
 
 const fill = (text, vars) => text.replace(/\{\{(\w+)\}\}/g, (m, k) => vars[k] ?? m);
@@ -40,7 +41,7 @@ function walk(dir) {
   return out;
 }
 
-/** Copy a content folder, filling {{ARTGEN}} / {{CMD_DIRECTION}} in text files. */
+/** Copy a content folder, filling {{ARTGEN}} / {{CMD_DIRECTION}} / {{CMD}} in text files. */
 function copyContent(src, dest, vars, rename = n => n) {
   for (const f of walk(src)) {
     const rel = relative(src, f), out = join(dest, dirname(rel), rename(rel.split(/[\\/]/).pop()));
@@ -53,6 +54,8 @@ async function bundle(entry, outfile) {
   await build({
     entryPoints: [entry], outfile, bundle: true, platform: 'node', format: 'esm', target: 'node20',
     define: { __ARTGEN_VERSION__: JSON.stringify(VERSION) },
+    // CommonJS dependencies (yaml) call require() for Node built-ins; give the ESM bundle a real one
+    banner: { js: "import { createRequire as __artgenRequire } from 'node:module'; const require = __artgenRequire(import.meta.url);" },
     legalComments: 'none', logLevel: 'warning',
   });
 }
@@ -87,7 +90,7 @@ export async function buildDist(out = join(HERE, 'out')) {
   copyContent(join(content, 'skills'), join(plugin, 'skills'), vp);
   copyContent(join(content, 'agents'), join(plugin, 'agents'), vp);
   copyContent(join(content, 'commands'), join(plugin, 'commands'), vp);
-  const desc = 'Pixel and voxel game art pipeline: art direction, T2+ asset sources, review and conformance (artgen).';
+  const desc = 'Pixel and voxel game art pipeline: art direction, autonomous asset production, review, approval and atlas export (artgen).';
   mkdirSync(join(plugin, '.claude-plugin'), { recursive: true });
   writeFileSync(join(plugin, '.claude-plugin', 'plugin.json'), JSON.stringify({ name: 'artgen', version: VERSION, description: desc }, null, 2) + '\n');
   writeFileSync(join(plugin, '.mcp.json'), JSON.stringify({ mcpServers: { artgen: { command: 'node', args: ['${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen-mcp.js'] } } }, null, 2) + '\n');

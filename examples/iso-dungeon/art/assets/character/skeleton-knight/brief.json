@@ -1,0 +1,9 @@
+{
+  "id": "skeleton-knight",
+  "template": "iso/character",
+  "review": {
+    "scale": 6,
+    "sym": "x",
+    "iso": true
+  }
+}

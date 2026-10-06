@@ -1,2 +1,53 @@
 # Asset briefs (W2, SPEC §5.1). One entry per asset: id, kind, view, size, states, directions, anims, notes.
-[]
+- id: hero
+  kind: character
+  directions: 8
+  anims: { walk: { frames: 4 } }
+  priority: 1
+  notes: "the party's knight: kettle helm, blue-grey tabard over mail, sword and kite shield"
+  states: [ idle, walk ]
+- id: skeleton-knight
+  kind: character
+  swaps: { bloody: { cloth: accent } }
+  priority: 2
+  notes: open great-helm over a skull, rusted mail, torn tabard, notched sword, round shield (from the W1 probe)
+- id: slime
+  kind: creature
+  anims: { idle: { frames: 4 } }
+  priority: 3
+  notes: grey-green crypt ooze that squashes and stretches, bones floating inside
+  states: [ idle ]
+- id: torch-flame
+  kind: effect
+  anims: { idle: { frames: 4 } }
+  priority: 4
+  notes: wall torch flame, looping flicker, warm red-orange
+  states: [ idle ]
+- id: chest
+  kind: prop
+  states: [ closed, open ]
+  priority: 5
+  notes: iron-banded crypt chest on a plinth, gold inside (from the W1 probe)
+- id: barrel
+  kind: prop
+  variants: 3
+  priority: 6
+  notes: old oak barrel with iron hoops
+- id: pillar
+  kind: prop
+  priority: 7
+  notes: cracked crypt pillar segment, chipped capital
+- id: brazier
+  kind: prop
+  priority: 8
+  notes: iron brazier bowl on three legs, glowing coals
+- id: rubble
+  kind: prop
+  variants: 3
+  priority: 9
+  notes: pile of fallen masonry blocks and dust
+- id: floor
+  kind: tile
+  variants: 4
+  priority: 10
+  notes: crypt flagstones, low contrast (from the W1 probe); variants vary which flag is worn lighter

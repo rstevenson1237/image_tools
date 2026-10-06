@@ -1,0 +1,232 @@
+{
+  "theme": {
+    "pitch": "Hollow Ward - a retro first-person crawler through a haunted asylum ward at night. Ghouls and sleepwalking orderlies are 8-direction billboard sprites; rooms are lit by cold moonlight through barred windows and the player's flickering lamp.",
+    "mood": [
+      "night",
+      "haunted",
+      "cold",
+      "clinical"
+    ],
+    "era": "1920s",
+    "notes": "mix mix1: B as the base, palette from C. user choice (simulated for the fixture): B's chunky selout style with C's darker palette"
+  },
+  "camera": {
+    "light": [
+      -1,
+      -1,
+      1
+    ],
+    "directions": 8,
+    "pixelScale": 3,
+    "view": "fp"
+  },
+  "scale": {
+    "character": [
+      32,
+      32
+    ],
+    "prop": [
+      32,
+      32
+    ],
+    "tile": 32,
+    "effect": [
+      32,
+      32
+    ],
+    "large": [
+      64,
+      64
+    ],
+    "proportions": {
+      "headRatio": 0.5
+    }
+  },
+  "palette": {
+    "shadow": {
+      "color": "#09150f",
+      "alpha": 0.35
+    },
+    "materials": {
+      "cloth": "cloth",
+      "skin": "skin",
+      "hair": "hair",
+      "leather": "leather",
+      "metal": "metal",
+      "steel": "metal",
+      "wood": "wood",
+      "stone": "stone",
+      "dirt": "dirt",
+      "ground": "dirt",
+      "grass": "grass",
+      "foliage": "grass",
+      "accent": "accent",
+      "gold": "accent",
+      "glow": "glow",
+      "fx": "glow"
+    },
+    "perKindMax": {
+      "character": 19,
+      "creature": 19,
+      "prop": 16,
+      "tile": 10,
+      "effect": 6
+    },
+    "perKind": {
+      "character": [
+        "skin",
+        "hair",
+        "cloth",
+        "leather",
+        "metal",
+        "accent"
+      ],
+      "creature": [
+        "skin",
+        "hair",
+        "cloth",
+        "leather",
+        "grass",
+        "accent"
+      ],
+      "prop": [
+        "wood",
+        "metal",
+        "stone",
+        "leather",
+        "accent"
+      ],
+      "tile": [
+        "dirt",
+        "grass",
+        "stone"
+      ],
+      "effect": [
+        "accent",
+        "glow"
+      ]
+    },
+    "source": "generated",
+    "maxColors": 32,
+    "ramps": {
+      "skin": [
+        "#dcded6",
+        "#9fa88c",
+        "#5c684c"
+      ],
+      "hair": [
+        "#767c5a",
+        "#434a30",
+        "#10130c"
+      ],
+      "cloth": [
+        "#739c98",
+        "#456e6e",
+        "#213437"
+      ],
+      "leather": [
+        "#868c63",
+        "#525a39",
+        "#1e2215"
+      ],
+      "metal": [
+        "#a8afb1",
+        "#758288",
+        "#4a5257"
+      ],
+      "wood": [
+        "#919b6c",
+        "#5e6b40",
+        "#2a331d"
+      ],
+      "stone": [
+        "#8e9799",
+        "#5f696d",
+        "#34393c"
+      ],
+      "dirt": [
+        "#5c626a",
+        "#30333a",
+        "#090a0b"
+      ],
+      "grass": [
+        "#627564",
+        "#364539",
+        "#0e120f"
+      ],
+      "accent": [
+        "#e1cfa4",
+        "#d99a3a",
+        "#8c5114"
+      ],
+      "glow": [
+        "#efe6bd",
+        "#f5ab37"
+      ]
+    },
+    "outline": "#111814"
+  },
+  "line": {
+    "outer": "selout",
+    "inner": "selective",
+    "weight": 1
+  },
+  "shading": {
+    "bands": 3,
+    "hueShift": 22,
+    "dither": "none",
+    "highlight": "rich",
+    "aa": false
+  },
+  "detail": {
+    "density": "high",
+    "minFeaturePx": 2
+  },
+  "pipeline": {
+    "revisionPasses": 3,
+    "finishPass": true,
+    "raster": {
+      "directMaxPx": 32,
+      "ss": 8
+    },
+    "procedural": [
+      "rimLight"
+    ],
+    "finish": {
+      "allow": [
+        "patch",
+        "fix",
+        "fx",
+        "light",
+        "outline"
+      ]
+    }
+  },
+  "effects": {
+    "fps": 12,
+    "maxFrames": 8,
+    "palette": [
+      "glow",
+      "accent"
+    ]
+  },
+  "anchors": [
+    "anchors/character.png",
+    "anchors/prop.png",
+    "anchors/tile.png",
+    "anchors/effect.png"
+  ],
+  "rules": {
+    "do": [
+      "billboards read against dark corridors",
+      "big readable shapes at 32px"
+    ],
+    "dont": [
+      "bright saturated colours outside the lamp"
+    ]
+  },
+  "id": "hollow-ward",
+  "version": 1,
+  "status": "locked",
+  "background": "#1d1e21"
+}

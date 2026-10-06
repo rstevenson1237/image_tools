@@ -1,0 +1,242 @@
+{
+  "theme": {
+    "pitch": "Torchdeep - an isometric, turn-based dungeon crawler. A small party pushes down through torch-lit crypts, fighting skeleton knights in tight tactical rooms and looting iron-banded chests. Cold blue-grey stone, warm torchlight, glints of gold.",
+    "mood": [
+      "grim",
+      "torchlit",
+      "cold stone",
+      "tactical"
+    ],
+    "era": "dark fantasy",
+    "notes": "mix mix1: C as the base, line from A, shading from A. user choice (simulated for the fixture): C's cold stone palette with A's outline and 3-band shading | v2 (simulated user): ember-orange torchlight, colder stone"
+  },
+  "camera": {
+    "light": [
+      -1,
+      -1,
+      1
+    ],
+    "directions": 4,
+    "pixelScale": 3,
+    "view": "iso",
+    "iso": {
+      "tile": [
+        32,
+        16
+      ]
+    }
+  },
+  "scale": {
+    "character": [
+      24,
+      32
+    ],
+    "prop": [
+      32,
+      32
+    ],
+    "tile": [
+      32,
+      16
+    ],
+    "effect": [
+      24,
+      24
+    ],
+    "large": [
+      48,
+      48
+    ],
+    "proportions": {
+      "headRatio": 0.32
+    }
+  },
+  "palette": {
+    "shadow": {
+      "color": "#091511",
+      "alpha": 0.35
+    },
+    "materials": {
+      "cloth": "cloth",
+      "skin": "skin",
+      "hair": "hair",
+      "leather": "leather",
+      "metal": "metal",
+      "steel": "metal",
+      "wood": "wood",
+      "stone": "stone",
+      "dirt": "dirt",
+      "ground": "dirt",
+      "grass": "grass",
+      "foliage": "grass",
+      "accent": "accent",
+      "gold": "accent",
+      "glow": "glow",
+      "fx": "glow"
+    },
+    "perKindMax": {
+      "character": 19,
+      "creature": 19,
+      "prop": 16,
+      "tile": 10,
+      "effect": 6
+    },
+    "perKind": {
+      "character": [
+        "skin",
+        "hair",
+        "cloth",
+        "leather",
+        "metal",
+        "accent"
+      ],
+      "creature": [
+        "skin",
+        "hair",
+        "cloth",
+        "leather",
+        "grass",
+        "accent"
+      ],
+      "prop": [
+        "wood",
+        "metal",
+        "stone",
+        "leather",
+        "accent"
+      ],
+      "tile": [
+        "dirt",
+        "grass",
+        "stone"
+      ],
+      "effect": [
+        "accent",
+        "glow"
+      ]
+    },
+    "source": "generated",
+    "maxColors": 31,
+    "ramps": {
+      "skin": [
+        "#a4a38f",
+        "#7a765d",
+        "#474234"
+      ],
+      "hair": [
+        "#66695b",
+        "#36392f",
+        "#0a0b09"
+      ],
+      "cloth": [
+        "#708384",
+        "#445254",
+        "#1b2022"
+      ],
+      "leather": [
+        "#717564",
+        "#414538",
+        "#11120f"
+      ],
+      "metal": [
+        "#969a9d",
+        "#686c6f",
+        "#3c3e40"
+      ],
+      "wood": [
+        "#7c816c",
+        "#4b5140",
+        "#1b1e17"
+      ],
+      "stone": [
+        "#7f8790",
+        "#515862",
+        "#25292e"
+      ],
+      "dirt": [
+        "#636468",
+        "#363739",
+        "#0a0a0a"
+      ],
+      "grass": [
+        "#676a61",
+        "#383b34",
+        "#0a0b09"
+      ],
+      "accent": [
+        "#d8784a",
+        "#b0402a",
+        "#5e1a14"
+      ],
+      "glow": [
+        "#f0b088",
+        "#d84418"
+      ]
+    },
+    "outline": "#131615"
+  },
+  "line": {
+    "outer": "dark",
+    "inner": "selective",
+    "weight": 1
+  },
+  "shading": {
+    "bands": 3,
+    "hueShift": 12,
+    "dither": "none",
+    "highlight": "sparing",
+    "aa": false
+  },
+  "detail": {
+    "density": "low",
+    "minFeaturePx": 2
+  },
+  "pipeline": {
+    "revisionPasses": 3,
+    "finishPass": true,
+    "raster": {
+      "directMaxPx": 32,
+      "ss": 8
+    },
+    "procedural": [
+      "dither"
+    ],
+    "finish": {
+      "allow": [
+        "patch",
+        "fix",
+        "fx",
+        "light",
+        "outline"
+      ]
+    }
+  },
+  "effects": {
+    "fps": 12,
+    "maxFrames": 8,
+    "palette": [
+      "glow",
+      "accent"
+    ]
+  },
+  "anchors": [
+    "anchors/character.png",
+    "anchors/prop.png",
+    "anchors/tile.png",
+    "anchors/effect.png"
+  ],
+  "rules": {
+    "do": [
+      "read the unit's facing at 1x",
+      "keep floor tiles low-contrast so units pop"
+    ],
+    "dont": [
+      "saturated greens",
+      "pure black fills"
+    ]
+  },
+  "id": "torchdeep",
+  "version": 1,
+  "status": "draft",
+  "background": "#1e1e1f"
+}

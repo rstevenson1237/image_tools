@@ -1,2 +1,49 @@
 # Asset briefs (W2, SPEC §5.1). One entry per asset: id, kind, view, size, states, directions, anims, notes.
-[]
+- id: ghoul
+  kind: creature
+  directions: 8
+  anims: { walk: { frames: 4 } }
+  priority: 1
+  notes: hunched asylum ghoul in a torn hospital gown, long clawed arms, glowing eye-points (8-direction billboard)
+  states: [ idle, walk ]
+- id: orderly
+  kind: character
+  priority: 2
+  notes: "sleepwalking orderly: white coat, arms out, head lolling, eyes closed"
+- id: rat
+  kind: creature
+  anims: { idle: { frames: 2 } }
+  priority: 3
+  notes: ward rat, side-on, tail flick
+  states: [ idle ]
+- id: lamp-flicker
+  kind: effect
+  anims: { idle: { frames: 4 } }
+  priority: 4
+  notes: the player's oil lamp flame flickering, warm amber halo
+  states: [ idle ]
+- id: iron-bed
+  kind: prop
+  priority: 5
+  notes: iron asylum bed with restraint straps (from the W1 probe)
+- id: iv-stand
+  kind: prop
+  priority: 6
+  notes: rusty IV drip stand with an empty bag
+- id: wheelchair
+  kind: prop
+  priority: 7
+  notes: old wheelchair, wicker seat, big spoked wheels
+- id: linoleum
+  kind: tile
+  priority: 8
+  notes: worn asylum linoleum floor (from the W1 probe)
+- id: ward-wall
+  kind: texture
+  priority: 9
+  notes: tiled ward wall, grimy, grout lines, a stain
+- id: pill-bottle
+  kind: ui-icon
+  size: [ 16, 16 ]
+  priority: 10
+  notes: "pickup icon: amber pill bottle with a white label"

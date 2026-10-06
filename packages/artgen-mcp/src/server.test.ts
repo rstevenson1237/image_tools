@@ -29,7 +29,7 @@ describe('artgen MCP server', () => {
 
   test('tools/list names the W1 and pipeline tools with input schemas', async () => {
     const r = (await handle({ jsonrpc: '2.0', id: 4, method: 'tools/list' }, root))!.result as { tools: { name: string; inputSchema: { type: string } }[] };
-    expect(r.tools.map(t => t.name)).toEqual(['direction_get', 'direction_tile', 'pass_status', 'render', 'review', 'conformance', 'score']);
+    expect(r.tools.map(t => t.name)).toEqual(['direction_get', 'direction_tile', 'pass_status', 'render', 'review', 'conformance', 'score', 'status']);
     expect(r.tools.every(t => t.inputSchema.type === 'object')).toBe(true);
   });
 

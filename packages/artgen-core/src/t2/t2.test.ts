@@ -34,6 +34,8 @@ describe('geometry', () => {
     expect(sq[0]).toEqual([0, 0]); expect(sq[sq.length - 1]).toEqual([0, 0]); expect(sq).toContainEqual([10, 10]);
     const [c] = parsePath('M0 0 C0 10 10 10 10 0 S20 -10 20 0');
     expect(c[c.length - 1][0]).toBeCloseTo(20); expect(Math.max(...c.map(p => p[1]))).toBeGreaterThan(5);
+    // numbers from Math.sin/cos can come out in exponent notation (`${1e-16}` = '1e-16')
+    expect(parsePath(`M0 0 L${Math.sin(Math.PI)} 10 L1.5e1 2E0`)[0].slice(-2)).toEqual([[Math.sin(Math.PI), 10], [15, 2]]);
     const [q] = parsePath('M0 0 Q5 10 10 0 T20 0');
     expect(q[q.length - 1]).toEqual([20, 0]);
     const [a] = parsePath('M0 5 A5 5 0 0 1 10 5');
@@ -166,6 +168,22 @@ describe('procedural pass', () => {
     expect(a.hash()).toBe(b.hash()); expect(a.hash()).not.toBe(c.hash()); expect(a.hash()).not.toBe(plain.hash());
     for (const col of opaqueColours(a)) expect([...RAMPS.stone, O]).toContain(col);
     for (let i = 2; i < 22; i++) expect(a.get(i, 2)).toBe(plain.get(i, 2));
+  });
+
+  test('detail: mask-template markings are seeded per variant, mirrored, inside the target and on its ramp', () => {
+    const mask = ['..11', '.122', '1122', '.12.'];
+    const mk = (seed: number) => lib().proc(scene()).add('detail', { part: 'slab', mask, seed }).render();
+    const a = mk(1), b = mk(1), c = mk(2), plain = scene().render();
+    expect(a.hash()).toBe(b.hash()); expect(a.hash()).not.toBe(plain.hash());
+    expect(new Set([1, 2, 3, 4, 5].map(s => mk(s).hash())).size).toBeGreaterThan(2);
+    expect(c.hash()).not.toBe(a.hash());
+    for (const col of opaqueColours(a)) expect([...RAMPS.stone, O]).toContain(col);
+    // mirrored about the mask centre, which sits at the slab centre (x 12)
+    for (let y = 0; y < 24; y++) for (let k = 0; k < 4; k++) expect(a.get(8 + k, y)).toBe(a.get(15 - k, y));
+    // tiled over the whole part
+    const t = lib().proc(scene()).add('detail', { part: 'slab', mask: ['#.'], mirror: 'none', tile: true }).render();
+    expect(t.get(4, 10)).not.toBe(t.get(5, 10));
+    expect(() => lib().proc(scene()).add('detail', { part: 'slab' }).render()).toThrow(/mask/);
   });
 
   test('pattern stripes, lit rim, ground shadow; dither only when the direction allows it', () => {

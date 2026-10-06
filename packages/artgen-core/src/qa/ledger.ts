@@ -6,7 +6,7 @@ import { hashString } from '../lib/rng.ts';
 import type { ConformanceReport } from './conformance.ts';
 import type { Metrics } from './metrics.ts';
 
-export type LedgerType = 'render' | 'review' | 'score' | 'conformance' | 'approve' | 'feedback' | 'note';
+export type LedgerType = 'render' | 'review' | 'score' | 'conformance' | 'approve' | 'feedback' | 'note' | 'status' | 'export' | 'restyle' | 'import-edit';
 
 export interface LedgerEntry {
   /** ISO timestamp. */

@@ -1,0 +1,8 @@
+{
+  "id": "wisp",
+  "template": "topdown/effect",
+  "review": {
+    "scale": 6,
+    "sym": "none"
+  }
+}

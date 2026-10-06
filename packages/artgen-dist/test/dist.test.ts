@@ -27,13 +27,18 @@ describe('artgen-dist', () => {
     for (const f of ['package.json', 'install.mjs', 'README.md', 'dist/claude-md.md', 'dist/tools/artgen/artgen.js', 'dist/tools/artgen/artgen-mcp.js',
       'dist/tools/artgen/resvg.wasm', 'dist/tools/artgen/VERSION', 'dist/tools/artgen/templates/topdown/character/base.js',
       'dist/claude/skills/artgen/SKILL.md', 'dist/claude/skills/art-direction/SKILL.md', 'dist/claude/agents/art-reviewer.md',
-      'dist/claude/commands/artgen-init.md', 'dist/claude/commands/artgen-direction.md',
+      'dist/claude/commands/artgen-init.md', 'dist/claude/commands/artgen-direction.md', 'dist/claude/skills/asset-production/SKILL.md',
+      ...['brief', 'make', 'review', 'feedback', 'approve', 'export', 'restyle'].map(c => `dist/claude/commands/artgen-${c}.md`),
+      'dist/tools/artgen/templates/topdown/character-walk/base.js', 'plugin/commands/make.md',
       'plugin/.claude-plugin/plugin.json', 'plugin/.mcp.json', 'plugin/commands/direction.md', 'plugin/skills/artgen/SKILL.md', '.claude-plugin/marketplace.json'])
       expect(existsSync(join(OUT, f)), f).toBe(true);
     const skill = readFileSync(join(OUT, 'dist/claude/skills/art-direction/SKILL.md'), 'utf8');
     expect(skill).toMatch(/node tools\/artgen\/artgen\.js direction candidates/);
     expect(skill).not.toMatch(/\{\{/);
     expect(readFileSync(join(OUT, 'plugin/skills/artgen/SKILL.md'), 'utf8')).toMatch(/CLAUDE_PLUGIN_ROOT/);
+    const prod = readFileSync(join(OUT, 'dist/claude/skills/asset-production/SKILL.md'), 'utf8');
+    expect(prod).toMatch(/`\/artgen-make`/); expect(prod).not.toMatch(/\{\{/);
+    expect(readFileSync(join(OUT, 'plugin/skills/asset-production/SKILL.md'), 'utf8')).toMatch(/`\/artgen:make`/);
     expect(JSON.parse(readFileSync(join(OUT, 'package.json'), 'utf8')).bin).toEqual({ 'artgen-dist': 'install.mjs' });
   });
 
@@ -63,6 +68,17 @@ describe('artgen-dist', () => {
     expect(cli('render', 'art/assets/character/goblin')).toMatch(/gate pass/);
   });
 
+  test('session-equivalent W2 run from the committed files: brief → make → review/score → status → export (drafts)', () => {
+    const cli = (...a: string[]) => { const r = node(['tools/artgen/artgen.js', ...a]); expect(r.status, r.stderr + r.stdout).toBe(0); return r.stdout; };
+    cli('brief', 'add', 'wisp', '--kind', 'effect', '--anims', 'idle:4');
+    cli('brief', 'add', 'leech', '--kind', 'creature', '--directions', '8', '--anims', 'walk:4');
+    expect(cli('make')).toMatch(/next: wisp — review base\.v1/);
+    expect(readFileSync(join(GAME, 'art/assets/creature/leech/base.v1.js'), 'utf8')).toMatch(/template: humanoid with facings/);
+    cli('review', 'wisp'); cli('score', 'wisp', 'base.v1', '6', '--note', 'smoke');
+    expect(cli('status')).toMatch(/wisp\s+in-pipeline\s+write-base base\.v2/);
+    expect(cli('export', '--include-drafts')).toMatch(/nothing approved to export yet/);
+  });
+
   test('MCP server from the committed files: initialize, tools/list, a render with an image result', () => {
     const msgs = [
       { jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'smoke', version: '0' } } },
@@ -73,7 +89,7 @@ describe('artgen-dist', () => {
     const r = node(['tools/artgen/artgen-mcp.js'], msgs.map(m => JSON.stringify(m)).join('\n') + '\n');
     const out = r.stdout.trim().split('\n').map(l => JSON.parse(l));
     expect(out.map(m => m.id)).toEqual([1, 2, 3]);
-    expect(out[1].result.tools.length).toBeGreaterThanOrEqual(7);
+    expect(out[1].result.tools.length).toBeGreaterThanOrEqual(8);
     expect(out[2].result.content.map((c: { type: string }) => c.type)).toEqual(['text', 'image']);
   });
 

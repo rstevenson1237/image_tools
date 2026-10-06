@@ -232,7 +232,9 @@ export function kindPalette(dir: Direction, kind?: string): string[] {
 export function resolveSize(dir: Direction, size: string | Size | undefined, kind?: string): Size {
   if (Array.isArray(size)) return size;
   const key = size ?? kind;
-  const v = key ? dir.scale[key] : undefined;
+  // kinds without their own scale key borrow a related one (P3 brief kinds)
+  const ALIAS: Record<string, string> = { creature: 'character', tileset: 'tile', texture: 'tile', viewmodel: 'large', 'ui-icon': 'prop' };
+  const v = key ? dir.scale[key] ?? (dir.scale[ALIAS[key]] as number | Size | undefined) : undefined;
   if (typeof v === 'number') return [v, v];
   if (Array.isArray(v)) return v;
   throw new Error(`no size for ${JSON.stringify(size ?? kind)} in direction.scale`);
