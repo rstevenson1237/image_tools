@@ -1,6 +1,6 @@
 # artgen — Specification
 
-Status: **rev 7** (P4: W3 runtime, adapters and `export --runtime` as built) — written against the resolved decisions in [INTAKE §7](INTAKE.md#7-decisions-resolved-2026-10-05) / [DECISIONS.md](DECISIONS.md)
+Status: **rev 8** (per-frame anchors in packs, animation contracts, per-frame durations, face-first character finish) — written against the resolved decisions in [INTAKE §7](INTAKE.md#7-decisions-resolved-2026-10-05) / [DECISIONS.md](DECISIONS.md)
 
 ## 1. Summary
 
@@ -48,6 +48,7 @@ Four deliverables share one engine:
 | R10 Never edit a scored version; a change is a new version | artlab | `new`, source hash in ledger |
 | R12 Revision passes start from the **best-scoring** version so far, not the latest; finishing applies to the best | E8 | pass state machine |
 | R11 **Assets never hard-code direction values** (palette hexes, outline colour, light, pixel scale); they reference direction tokens | W1 | conformance lint on source + output |
+| R13 **The animation contract is frozen at first export**: state names, logical frame counts, per-frame durations, loop, facings and anchor names may only grow; art may be redrawn freely underneath | rev 8 | `art/contracts/<id>.json`; `brief add` and `export` refuse breaking changes without `--break-contract` |
 
 ## 3. Packaging and adoption (W1, part 1)
 
@@ -194,7 +195,7 @@ Plus hygiene metrics from artlab (`measure()`): gate thresholds in `artgen.confi
   size: character        # direction scale key or [w,h]
   states: [idle, walk, attack, hurt]
   directions: 8
-  anims: { walk: { frames: 4 }, attack: { frames: 3 } }
+  anims: { walk: { frames: 4 }, attack: { frames: 4, durations: [80, 80, 200, 80] } }   # ms per frame: a held contact frame
   variants: 3            # seeded param-schema variants, exported as extra frame sets
   swaps: { red: { cloth: accent } }   # ramp → ramp palette swaps, exported as hex maps for the runtime
   importance: hero       # hero | standard | filler → budget.tiers (pass counts)
@@ -237,6 +238,14 @@ maps), voxel exports, generated `assets.ts` (typed ids), and the runtime (§12) 
 As built (P3): packs pick assets by `include` patterns over ids (`*`, `goblin*`) or kinds (`kind:tile`), or a brief's
 `pack`; identical frames are stored once; `--include-drafts` adds unapproved finals flagged in `drafts`. Normal maps,
 voxel exports and runtime vendoring arrive with P6/P4.
+
+**Animation contract (R13, rev 8).** Game code indexes states and frames ("the hit lands on frame 2 of attack"), so
+the first export of an asset writes `art/contracts/<id>.json`: `{ facings, states: { <s>: { frames, durations (ms),
+loop } }, anchors: [names] }`. Every later export compares against it before writing anything: a removed state,
+facing or anchor, or a changed frame count, duration or loop, refuses the export (`--break-contract <id>|*` accepts it
+once the game is updated; ledger `contract` entry `broken`); new states, facings or anchors extend it (`extended`).
+`brief add` runs the same check from the brief alone (frames, durations, loop, facings). Anchor *positions* are not
+part of the contract — they move with the drawing.
 
 ## 6. Engine core
 
@@ -324,6 +333,11 @@ export function finish(g, ctx) {
   against the pixels it was written over (recorded as tokens in `finish.vM.snapshot.json` when the finish is
   scored, so a restyle alone doesn't trip it); large differences mark the asset `finish-stale` for review.
 - West facings of 2D assets are the mirrored finished east cells.
+- **Characters and creatures start from `finish-character.js`** (rev 8): clean-up ops, then the face — eyes and mouth
+  painted at the base's `eye` / `eye2` / `mouth` anchors at final resolution, with a per-state expression (calm,
+  fierce, hurt, happy). 1–2 px features cannot survive the `ss` mode vote, so the face is the finishing pass's job;
+  the character templates export these anchors from the same `layout(ctx)` that draws the head. `px.tokenAt(g, at)`
+  reads the token under a pixel (e.g. the skin beside an eye).
 
 ### 6.4 Procedural pass library (S2)
 | Layer | Algorithms | Typical use |
@@ -437,6 +451,7 @@ delta vs the previous pass.
     "goblin": { "kind": "character", "view": "topdown", "size": [24,24], "anchor": [12,21],
       "directions": 8, "states": { "idle": { "frames": 1 }, "walk": { "frames": 4, "fps": 8, "loop": true } },
       "frames": [[0,0,0,0,24,24, 0,"idle",0, 0]],   // atlas, x, y, w, h, facing index, state, frame, variant (compact)
+      "anchors": { "hand": [[17,14], …], "eye": [[10,6], …, null] },  // per frames entry (rev 8), null = not in that frame
       "facings": ["s","sw","w","nw","n","ne","e","se"], "version": "finish.v2", "sourceHash": "…",
       "variants": ["base","v1","red"], "swaps": { "red": { "#5d704f": "#dd9912" } } },  // param variants, then swaps
     "mud": { "kind": "tileset", "tile": 16, "autotile": "blob47", "map": [ ... ] },
@@ -444,7 +459,9 @@ delta vs the previous pass.
 ```
 Also emits Aseprite-compatible JSON per atlas (array form; frames named `asset/state/facing/frame[#variant]`, one
 frame tag per strip). As built (P3) the manifest also carries `format: 1`, `generator`, `runtime` (null before P4,
-the runtime version since), and `drafts`; tiles carry `tile` (autotile maps arrive with P6b).
+the runtime version since), and `drafts`; tiles carry `tile` (autotile maps arrive with P6b). Rev 8 (runtime 1.1.0): states may carry `durations` (ms per
+frame, from the brief; the Aseprite JSON uses them too), assets carry the module's named `anchors` per frame, and
+`assets.ts` lists each asset's anchor names (typed `sprite.anchor(name)`).
 
 ### 12.2 Runtime API (dependency-free TS, ~few KB)
 ```ts
@@ -452,6 +469,7 @@ const pack = await loadPack('/assets/swamp/pack.json');          // fetch + deco
 const goblin = pack.sprite(Assets.goblin, { variant: 'red' });   // typed ids from generated assets.ts
 goblin.play('walk'); goblin.face(angleRad);                      // picks nearest of N facings (mirror-aware)
 goblin.update(dtMs); goblin.draw(ctx2d, x, y);                   // or adapter-specific
+goblin.anchor('hand') → { x, y } | undefined                      // this frame's anchor relative to the sprite (rev 8)
 pack.tiles(Assets.mud).resolve(neighbourMask) → tileIndex        // 16/47 autotile resolver
 pack.effect(Assets.spark).spawn(x, y)
 isoToScreen / screenToIso / depthKey(x, y, z)                     // iso + oblique helpers

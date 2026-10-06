@@ -212,6 +212,12 @@ docs/archive/artgen/             # P8: artlab + planning docs once superseded
   and billboard-crawler (three.js) play their packs with **11–12 lines of art code** each, typecheck against the typed
   ids, and render with no console errors. Details: [findings/P4-w3.md](findings/P4-w3.md).
 
+- **Follow-up (rev 8, runtime 1.1.0, dist 0.5.0):** per-frame named anchors exported in `pack.json` with
+  `sprite.anchor(name)` in the runtime (typed by `assets.ts`), per-frame `durations` in briefs (held contact frames),
+  the frozen animation contract (`art/contracts/<id>.json`, SPEC R13), and the face-first `finish-character.js` with
+  face/hand anchors in the character templates. The fixtures were re-exported: 30 contracts created, existing anchors
+  (`head`, `flame`, `blade`, `lid`) now ship in their packs.
+
 ### P5 — W4: UI in image tools (M–L)
 - Framework: `'artgen'` WorkerKind; `src/core/project/` File System Access store (persisted handle, schema
   validation via core, zip fallback); shared `PaletteRamp`, `PixelPreview`, `CompareView`, `StatusBadge`;
