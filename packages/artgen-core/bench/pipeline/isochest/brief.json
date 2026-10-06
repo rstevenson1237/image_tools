@@ -1,0 +1,20 @@
+{
+  "id": "isochest",
+  "kind": "prop",
+  "view": "iso",
+  "size": "prop",
+  "states": [
+    "closed",
+    "open"
+  ],
+  "direction": "../../directions/benchmark.json",
+  "reference": "../../reference/isochest.png",
+  "target": 7,
+  "review": {
+    "scale": 6,
+    "bg": "#2a2630",
+    "iso": true,
+    "sym": "none",
+    "label": "Iso feature: chest closed|open 64x32"
+  }
+}

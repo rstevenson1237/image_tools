@@ -1,0 +1,15 @@
+{
+  "id": "ship",
+  "kind": "vehicle",
+  "view": "topdown",
+  "size": "ship",
+  "direction": "../../directions/benchmark.json",
+  "reference": "../../reference/ship.png",
+  "target": 7.5,
+  "review": {
+    "scale": 4,
+    "bg": "#24527a",
+    "sym": "y",
+    "label": "WWII battleship 160x41 (naval sim)"
+  }
+}

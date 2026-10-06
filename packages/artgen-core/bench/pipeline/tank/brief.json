@@ -1,0 +1,15 @@
+{
+  "id": "tank",
+  "kind": "vehicle",
+  "view": "topdown",
+  "size": "vehicle",
+  "direction": "../../directions/benchmark.json",
+  "reference": "../../reference/tank.png",
+  "target": 7.5,
+  "review": {
+    "scale": 5,
+    "bg": "#6b5a45",
+    "sym": "x",
+    "label": "Sci-fi tank 64x64 (RTS)"
+  }
+}

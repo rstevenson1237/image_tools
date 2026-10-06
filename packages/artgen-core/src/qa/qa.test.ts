@@ -27,7 +27,7 @@ const status = (r: ReturnType<typeof conformance>) => Object.fromEntries(r.check
 describe('conformance gate', () => {
   test('a clean asset passes every check', () => {
     const r = conformance({ frames: [block()], dir, kind: 'prop', size: [12, 12], source: 'export function render(ctx) { return ctx.dir.pal.stone[0]; }' });
-    expect(status(r)).toEqual({ palette: 'pass', scale: 'pass', aa: 'pass', line: 'pass', light: 'pass', dither: 'pass', source: 'pass', anchors: 'skip' });
+    expect(status(r)).toEqual({ palette: 'pass', scale: 'pass', aa: 'pass', line: 'pass', light: 'pass', dither: 'pass', source: 'pass', lint: 'skip', anchors: 'skip' });
     expect(r.pass).toBe(true);
     expect(r.metrics.offPalettePct).toBe(0);
   });

@@ -114,6 +114,15 @@ docs/archive/artgen/             # P8: artlab + planning docs once superseded
   finishing pass; the same assets as 8-variant sheets show ≥ 6 distinct designs each.
 - **If an asset misses:** close the specific gap in T2+ (one extra PR, up to 1 week), re-run. If still short,
   bring the result to you with the options (accept, add a primitive, or allow an SVG-authored base for that form).
+- **Result (awaiting your decision).** T2+ (`artgen-core/src/t2`: 2D scenes with `path/capsule/tube/ring/arc/star`,
+  booleans, clip, `repeat`, transforms, underlay ink, `direct`/`ss` modes, `flat/bevel/sphere/cyl/normal/linear`
+  shading, AO, cast shadows, param schema, lint; 3D mode over `cubes`; procedural pass v1; finishing ops with
+  anchor-following patches and `finish-stale` snapshots) and the CLI pass machine (`pass next|status`, `render`,
+  `review`, `score`, `variants`, `report`) are in. Parity run: **4/6 at or above artlab's best** (hero 7.5, tank
+  7.5, isochest 7, isospider 7); ship 7 (target 7.5) and isohero 6.5 (target 7) miss by half a point, both on
+  authoring rather than a missing primitive. Revisions gave +0.83 on average, the finishing pass +0.17; 8-variant
+  sheets show 7–8 distinct designs per asset. Details and options:
+  [findings/P1b-pipeline.md](findings/P1b-pipeline.md).
 
 ### P2 — W1: committed install + art direction workflow (M)
 - `artgen-dist`: single-file CLI and MCP bundles, `install.mjs` (`init` / `update` with VERSION + MANIFEST

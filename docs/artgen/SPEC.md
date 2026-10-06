@@ -156,6 +156,7 @@ consume it by default: `prim`/`voxel` shaders use `light` and `bands`; post pass
 | light | luminance gradient across the sprite agrees with `light` (sign test on lit vs shaded edges) |
 | dither | none present if `dither: none` (checkerboard detector) |
 | source lint | no hex literals in asset source (R11) except via `ctx.dir` |
+| scene lint | T2+ scenes report strokes (R4) and colours outside the asset palette (R11) — fail; interpenetrating 3D solids (R5) and shapes that cover no pixels — flag |
 | anchor similarity | colour-histogram and value-distribution distance to anchors of the same kind within tolerance (flag, not fail) |
 Plus hygiene metrics from artlab (`measure()`): gate thresholds in `artgen.config.json`.
 
@@ -210,17 +211,19 @@ export const meta = { brief: 'goblin', pass: 'r3', notes: '...' };      // size/
 export const params = { earLen: 3, stoop: 0.2 };                           // overridable; t-driven for anims
 export function render(ctx) {
   // ctx: { dir (direction tokens), brief, seed, params, state, facing, frame, t, lib }
-  const { pal, line } = ctx.dir;
-  ...
-  const scene = ctx.lib.prim.scene();            // S1: T2+ primitives (2D or 3D mode)
+  const { pal } = ctx.dir;
+  const scene = ctx.lib.t2.scene(24, 24);          // S1: T2+ primitives (ctx.lib.t2.scene3d() for 3D mode)
+  scene.add({ type: 'path', name: 'cloak', d: 'M…', mat: pal.moss, shade: 'normal', underlay: true });
   /* ... */
-  return ctx.lib.proc(scene, ctx)                  // S2: procedural layers (direction defaults + asset-specific)
-    .add('materialNoise', { mat: 'cloth', amount: 0.2 })
-    .add('rimLight', { ramp: 'bone' })
+  return ctx.lib.proc(scene)                       // S2: procedural layers (direction defaults + asset-specific)
+    .add('materialNoise', { part: 'cloak', amount: 0.2 })
+    .add('rimLight', { mat: 'bone' })
     .render();                                     // Grid for one frame; engine loops state × facing × frame
 }
 export const anchors = (ctx) => ({ head: [12, 6] });  // named points per frame, used by finishing patches
 ```
+`params` may declare a schema (`{ type: 'range' | 'toggle' | 'choice' | 'swap', … }`); variant 0 renders the defaults
+and variant n > 0 samples every param from its own seed (`artgen variants`).
 Files per asset: `base.v<N>.js` (S1 + S2, one per revision pass or user iteration) and `finish.v<M>.js` (bound
 to one base version).
 
@@ -242,27 +245,32 @@ What T3 had that T2 lacked, and how T2+ gets it:
 
 | Gap (from the findings) | T2+ feature |
 |---|---|
-| Curves (hull bows, legs, domes) | `path` primitive taking SVG path data (Béziers, arcs); `capsule`, `ring`, `arc`, `star`; SVG files and SVG Tracer output import as `path` |
+| Curves (hull bows, legs, domes) | `path` primitive taking SVG path data (Béziers, arcs); `capsule`, `tube` (a tapered band along a path — a shape, not a stroke), `ring`, `arc`, `star`; SVG files and SVG Tracer output import as `path` |
 | Sub-pixel geometry and smooth edges | raster modes: `direct` (coverage-threshold sampling, not pixel-centre — fixes the chest gaps) for ≤ `directMaxPx`; `ss` (R3) above it |
 | Clean internal outlines after downsampling | automatic **underlay ink** per group (dilated dark copy beneath), plus existing selective `ink`/`inkAll` |
 | Complex silhouettes | groups with transforms (translate/rotate/scale/mirror), z-order, boolean `union/subtract/intersect`, clip masks, `repeat` (rivets, planks, ribs) |
 | Asset-restricted palette quantize | quantize to the direction's ramps allowed for the asset kind |
 
-T2's existing strengths stay: material ramps with `flat/bevel/sphere/cyl` shading, `rim`, mirror, seeded
-params. Added: `normal` shading from shape SDF quantized to `direction.shading.bands`, hue-shifted ramps,
+T2's existing strengths stay: material ramps with `flat/bevel/sphere/cyl` shading, mirror, seeded
+params. Added: `normal` shading from the shape's distance field and `linear` (lit corner → shaded corner) gradients,
+both quantized to `direction.shading.bands`; ramps come from the direction (hue-shifted when generated in W1);
 overlap ambient occlusion, cast shadows, and a declared **param schema** (ranges, part toggles, accessory slots,
-palette swaps) so seeds give real variety (fixes the 4-combo limit).
+palette swaps) so seeds give real variety (fixes the 4-combo limit). Underlays ink only over content already drawn
+beneath them, so the silhouette stays the outer line's job; `line.inner: none` turns underlays and `ink` off.
 
 **3D mode:** the same specs in 3D (`box`, `ellipsoid`, `capsule`, `slab`, `sdf`, groups, booleans) rendered by
 the voxel renderers (§7) to iso, top-down, oblique, stack and billboard views with N facings. Replaces T4.
+A `slab` recolours the surface voxels it overlaps (`add: true` also fills empty cells, for raised trim); solids
+that interpenetrate solids of another material are linted (R5). The `cubes` renderer supports the four
+orthogonal facings; diagonal facings arrive with the `raster` renderer (P6a).
 
 #### Finishing ops (`finish.vM.js`)
 ```js
 export const base = 'base.v3';                     // bound to one base version
 export function finish(g, ctx) {
   const { px } = ctx.lib;
-  px.fix.orphans(g); px.fix.jaggies(g, { region: 'blade' }); px.fix.banding(g);
-  px.light.rim(g, { from: ctx.dir.camera.light, ramp: 'bone' });
+  px.fix.orphans(g); px.fix.jaggies(g, { region: [14, 2, 6, 12] }); px.fix.banding(g);
+  px.light.rim(g, { ramps: ['bone'] });            // lit side from ctx.dir.camera.light
   px.fx.glint(g, ctx.at('blade.tip'), 'amber.0');
   px.outline.selout(g); px.outline.inner(g, { between: ['cloth', 'skin'] });
   if (ctx.key('idle', 0)) px.patch(g, ctx.at('head'), FACE);  // char-map patch; follows the anchor in other frames
@@ -271,7 +279,9 @@ export function finish(g, ctx) {
 ```
 - Global ops run on every frame and facing; patches target key frames and follow named anchors (D15).
 - Colours are direction tokens, so finishing survives a restyle. After any re-render, each patch is checked
-  against the pixels it was written over; large differences mark the asset `finish-stale` for review.
+  against the pixels it was written over (recorded as tokens in `finish.vM.snapshot.json` when the finish is
+  scored, so a restyle alone doesn't trip it); large differences mark the asset `finish-stale` for review.
+- West facings of 2D assets are the mirrored finished east cells.
 
 ### 6.4 Procedural pass library (S2)
 | Layer | Algorithms | Typical use |

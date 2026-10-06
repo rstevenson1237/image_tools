@@ -1,0 +1,16 @@
+{
+  "id": "isohero",
+  "kind": "character",
+  "view": "iso",
+  "size": "tall",
+  "direction": "../../directions/benchmark.json",
+  "reference": "../../reference/isohero.png",
+  "target": 7,
+  "review": {
+    "scale": 6,
+    "bg": "#2a2630",
+    "iso": true,
+    "sym": "x",
+    "label": "Iso hero 32x48 (roguelike)"
+  }
+}
