@@ -1,0 +1,9 @@
+{
+  "id": "floor",
+  "template": "iso/tile",
+  "review": {
+    "scale": 6,
+    "sym": "none",
+    "iso": true
+  }
+}

@@ -183,7 +183,13 @@ export function firstFacing(r: RenderResult): Grid {
 export function reviewGrid(r: RenderResult): Grid {
   // tiles are judged tiled: each cell repeated 3×3, so seams show
   if (['tile', 'tileset', 'texture'].includes(r.brief.kind) && r.cells.length <= 4) {
-    const [w, h] = r.size, g = new Grid((w * 3 + 1) * r.cells.length - 1, h * 3);
+    const [w, h] = r.size, isoTile = r.brief.view === 'iso' || (r.brief as AssetBrief).review?.iso;
+    if (isoTile) { // iso diamonds tile staggered: every other row shifted half a tile
+      const W = w * 3 + (w >> 1), H = (h >> 1) * 6 + (h >> 1), g = new Grid((W + 1) * r.cells.length - 1, H);
+      r.cells.forEach((c, k) => { for (let j = 0; j < 7; j++) for (let i = -1; i < 4; i++) g.over(c.grid, k * (W + 1) + i * w + (j % 2) * (w >> 1), j * (h >> 1) - (h >> 1)); });
+      return g;
+    }
+    const g = new Grid((w * 3 + 1) * r.cells.length - 1, h * 3);
     r.cells.forEach((c, k) => { for (let j = 0; j < 3; j++) for (let i = 0; i < 3; i++) g.blit(c.grid, k * (w * 3 + 1) + i * w, j * h); });
     return g;
   }

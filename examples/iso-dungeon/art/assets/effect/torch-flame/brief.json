@@ -1,0 +1,9 @@
+{
+  "id": "torch-flame",
+  "template": "iso/effect",
+  "review": {
+    "scale": 6,
+    "sym": "none",
+    "iso": true
+  }
+}
