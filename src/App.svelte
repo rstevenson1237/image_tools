@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { tools } from './core/tools/registry';
+  import { groupedTools } from './core/tools/registry';
   import { activeTool } from './core/stores/activeTool.svelte';
 
   const definition = $derived(activeTool.definition);
@@ -12,24 +12,27 @@
 <div class="shell">
   <nav aria-label="Tools">
     <h1>Game Asset Suite</h1>
-    <ul>
-      {#each tools as tool (tool.id)}
-        <li>
-          <button
-            type="button"
-            class:active={tool.id === activeTool.id}
-            aria-current={tool.id === activeTool.id ? 'page' : undefined}
-            onclick={() => activeTool.select(tool.id)}
-          >
-            <span class="icon" aria-hidden="true">{tool.icon}</span>
-            <span class="label">
-              <strong>{tool.name}</strong>
-              <small>{tool.blurb}</small>
-            </span>
-          </button>
-        </li>
-      {/each}
-    </ul>
+    {#each groupedTools() as group (group.id)}
+      <h2>{group.name}</h2>
+      <ul>
+        {#each group.tools as tool (tool.id)}
+          <li>
+            <button
+              type="button"
+              class:active={tool.id === activeTool.id}
+              aria-current={tool.id === activeTool.id ? 'page' : undefined}
+              onclick={() => activeTool.select(tool.id)}
+            >
+              <span class="icon" aria-hidden="true">{tool.icon}</span>
+              <span class="label">
+                <strong>{tool.name}</strong>
+                <small>{tool.blurb}</small>
+              </span>
+            </button>
+          </li>
+        {/each}
+      </ul>
+    {/each}
     <p class="footnote">Everything runs locally in your browser.</p>
   </nav>
 
@@ -73,6 +76,15 @@
     text-transform: uppercase;
     color: var(--text-dim);
     margin: 0 0.25rem 1rem;
+  }
+
+  h2 {
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 0.75rem 0.6rem 0.35rem;
+    font-weight: 600;
   }
 
   ul {

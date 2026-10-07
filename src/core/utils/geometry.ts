@@ -71,3 +71,22 @@ export function rectToPolygon(rect: Rect): Point[] {
     { x: rect.x, y: rect.y + rect.height },
   ];
 }
+
+/**
+ * Pixel-mode zoom ladder: whole multiples above 1 (2×, 3×, …) and whole fractions below it (½, ⅓, …), so every
+ * source pixel covers the same number of screen pixels. `fitZoom` is the largest rung that fits a ratio.
+ */
+export function integerZoom(fit: number): number {
+  if (!(fit > 0)) return 1;
+  return fit >= 1 ? Math.floor(fit) : 1 / Math.ceil(1 / fit);
+}
+
+/** The next rung up (`dir` > 0) or down from `zoom` on the pixel-mode ladder, within [min, max]. */
+export function stepIntegerZoom(zoom: number, dir: number, min: number, max: number): number {
+  const rung = integerZoom(zoom), up = dir > 0;
+  let next: number;
+  if (rung >= 1) next = up ? Math.floor(rung) + 1 : rung > 1 ? Math.floor(rung) - 1 : 1 / 2;
+  else { const k = Math.round(1 / rung); next = up ? (k <= 2 ? 1 : 1 / (k - 1)) : 1 / (k + 1); }
+  const lo = min >= 1 ? Math.ceil(min) : 1 / Math.floor(1 / Math.max(min, 1e-3));
+  return clamp(next, lo, integerZoom(max));
+}
