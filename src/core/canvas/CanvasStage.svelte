@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { Canvas, FabricImage, Point } from 'fabric';
-  import { clamp } from '../utils/geometry';
+  import { clamp, integerZoom, stepIntegerZoom } from '../utils/geometry';
   import { imageDataFromElement } from '../utils/imageData';
   import type { LoadedImage } from './types';
   import { normalizePointer, type NormalizedPointer } from '../utils/pointerEvent';
@@ -17,6 +17,11 @@
     /** Fired before the canvas is disposed, so tools can detach cleanly. */
     oncanvasteardown?: (canvas: Canvas) => void;
     onimageloaded?: (image: LoadedImage) => void;
+    /**
+     * Pixel art: zoom steps through whole multiples (and whole fractions below 1×) and nothing is smoothed, so every
+     * source pixel stays a crisp square of the same size.
+     */
+    pixelMode?: boolean;
   }
 
   let {
@@ -27,6 +32,7 @@
     oncanvasready,
     oncanvasteardown,
     onimageloaded,
+    pixelMode = false,
   }: Props = $props();
 
   let canvasEl: HTMLCanvasElement;
@@ -98,7 +104,9 @@
 
     canvas.on('mouse:wheel', (opt) => {
       const event = opt.e as WheelEvent;
-      const next = clamp(canvas!.getZoom() * 0.999 ** event.deltaY, minZoom, maxZoom);
+      const next = pixelMode
+        ? stepIntegerZoom(canvas!.getZoom(), -event.deltaY, minZoom, maxZoom)
+        : clamp(canvas!.getZoom() * 0.999 ** event.deltaY, minZoom, maxZoom);
       canvas!.zoomToPoint(new Point(event.offsetX, event.offsetY), next);
       zoomPercent = Math.round(next * 100);
       event.preventDefault();
@@ -205,13 +213,12 @@
         return;
       }
 
-      const scale = Math.min(
-        1,
-        (canvas.getWidth() * 0.9) / naturalWidth,
-        (canvas.getHeight() * 0.9) / naturalHeight,
-      );
-      const left = (canvas.getWidth() - naturalWidth * scale) / 2;
-      const top = (canvas.getHeight() - naturalHeight * scale) / 2;
+      const fit = Math.min((canvas.getWidth() * 0.9) / naturalWidth, (canvas.getHeight() * 0.9) / naturalHeight);
+      // pixel mode enlarges small sprites to a whole multiple; photos shrink to a whole fraction
+      const scale = pixelMode ? integerZoom(Math.min(fit, maxZoom)) : Math.min(1, fit);
+      const snap = (v: number) => (pixelMode ? Math.round(v) : v);
+      const left = snap((canvas.getWidth() - naturalWidth * scale) / 2);
+      const top = snap((canvas.getHeight() - naturalHeight * scale) / 2);
 
       image.set({
         // `placement.left/top` is the image's top-left corner in scene units, and
@@ -227,6 +234,7 @@
         selectable: false,
         evented: false,
         hoverCursor: 'default',
+        imageSmoothing: !pixelMode,
       });
 
       canvas.clear();

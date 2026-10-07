@@ -108,6 +108,10 @@ score, blind score (`b6.5` on the sheet; `SELF` means only the maker scored it) 
   - pixel-level (a stray pixel, eye shape, line weight, a glint) → `{{ARTGEN}} feedback <id> --route finish --note "…"`
     (`--cell idle/s/0`, `--region x,y,w,h` pin it)
   - after `maxUserIterations` rounds the CLI asks you to escalate: talk it through with the user before going on.
+- The user may have answered in the image tools' **Asset Review** instead: its approvals and feedback are already in
+  the ledger (`"via": "image-tools"`), so `{{ARTGEN}} status` shows them as `approved` / `revision`. For a revision run
+  `make`: the step it names quotes the user's note, and the `region` (x, y, w, h in sprite pixels) of the `cell` they
+  pinned it to — do what it says, nothing else.
 - Hand edits: the user fixed pixels in Aseprite → `{{ARTGEN}} import-edit <id> edited.png [--cell state/facing/frame]`
   (the PNG is `out/<final>.png`, or one cell); it writes the next finish as colour tokens, then review it.
 

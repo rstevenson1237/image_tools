@@ -15,6 +15,8 @@ type WorkerFactory = () => Worker;
 const factories: Partial<Record<WorkerKind, WorkerFactory>> = {
   opencv: () =>
     new Worker(new URL('./opencv.worker.ts', import.meta.url), { type: 'module' }),
+  artgen: () =>
+    new Worker(new URL('./artgen.worker.ts', import.meta.url), { type: 'module' }),
 };
 
 interface PoolEntry {

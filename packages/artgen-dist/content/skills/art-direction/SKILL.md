@@ -13,6 +13,9 @@ everything else. CLI: `{{ARTGEN}}`.
 `{{ARTGEN}} direction show`. No `art/` yet → `{{ARTGEN}} init`. A locked direction already exists → this is a
 **direction change**: `{{ARTGEN}} direction new` starts a draft from it; after locking the new version, run
 `{{ARTGEN}} restyle` (asset-production skill §6) so finished assets are re-rendered and shown to the user again.
+The user can make the change themselves in the image tools' **Art Direction** tool (ramps, settings, a live style tile,
+save draft / lock): a draft it saved is a candidate here (`art/candidates/<name>.json`), and a version it locked
+(ledger `approve` on `direction` with `"via": "image-tools"`) needs the same restyle.
 
 ## 1. Interview (ask in one message, accept short answers, fill gaps with sensible defaults)
 - the one-paragraph **pitch** (genre, setting, player fantasy)

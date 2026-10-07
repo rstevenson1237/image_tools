@@ -36,3 +36,4 @@ export * from './w2/contract.ts';
 export * from './w2/roster.ts';
 export * from './w2/analytics.ts';
 export * from './w2/edit.ts';
+export * from './w2/config.ts';
