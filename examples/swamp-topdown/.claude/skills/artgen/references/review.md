@@ -2,8 +2,9 @@
 
 `node tools/artgen/artgen.js review <assetDir> [--version v]` writes `out/review-<v>.png` and logs its image-token cost. Rows: the
 reference (if the brief has one), the best-scoring version so far, v(n−1), then **v(n)** (marked `>>`). Each row: 1×
-on checker · scaled on checker · scaled in context (game background, iso floor for iso assets). The label carries
-hygiene, colour count, orphan %, and the gate result.
+on checker · scaled on checker · scaled in context (game background, iso floor for iso assets) · the **silhouette**
+(opaque body in solid black, half size; not for tiles). The label carries hygiene, colour count, orphan %, and the gate
+result. `--blind` builds the final alone for a blind re-score (no earlier rows, no scores).
 
 Always open the PNG and look before scoring (R7). Read the 1× panel first: that is what the player sees.
 
@@ -17,7 +18,8 @@ Always open the PNG and look before scoring (R7). Read the 1× panel first: that
 | 3–4.5 | hard to read at 1×, shading noise, broken lines, clashes with the direction |
 | 0–2.5 | wrong subject, broken render |
 
-Penalise: unreadable silhouette at 1×, pillow shading, banding, orphan pixels, jaggies on curves, lines thicker than
+Penalise: a silhouette that doesn't read in black (if you couldn't name it from the black panel, it won't read in the
+game), a body far off its brief `height` (the `height` check: drawn vs real-world size), unreadable silhouette at 1×, pillow shading, banding, orphan pixels, jaggies on curves, lines thicker than
 the direction's weight, details below `detail.minFeaturePx`, anything that would not sit beside the anchors.
 
 ## Score notes
