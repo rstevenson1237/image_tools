@@ -1,0 +1,127 @@
+{
+  "fixture": "swamp-topdown",
+  "steps": [
+    {
+      "step": "existing tools",
+      "value": "Token Cutter and SVG Tracer load"
+    },
+    {
+      "step": "before: direction",
+      "value": "2"
+    },
+    {
+      "step": "before: statuses",
+      "value": {
+        "lantern-bearer": "exported",
+        "bog-goblin": "exported",
+        "leech": "exported",
+        "wisp": "exported",
+        "sunk-crate": "exported",
+        "lantern-post": "exported",
+        "reeds": "exported",
+        "bone-pile": "exported",
+        "mud": "exported",
+        "bog-water": "exported"
+      }
+    },
+    {
+      "step": "ramp change",
+      "value": "cloth.1 #5d704f → #6f8a4f"
+    },
+    {
+      "step": "UI notice",
+      "value": "locked next as bogwatch v3 — approved assets now need a restyle (ask Claude Code: /artgen-restyle)"
+    },
+    {
+      "step": "after lock: direction",
+      "value": "bogwatch v3 (locked), cloth #9ca68c #6f8a4f #222d1f"
+    },
+    {
+      "step": "after lock: statuses",
+      "value": {
+        "lantern-bearer": "stale",
+        "bog-goblin": "stale",
+        "leech": "stale",
+        "wisp": "stale",
+        "sunk-crate": "stale",
+        "lantern-post": "stale",
+        "reeds": "stale",
+        "bone-pile": "stale",
+        "mud": "stale",
+        "bog-water": "stale"
+      }
+    },
+    {
+      "step": "direction validate",
+      "value": "ok: bogwatch v3"
+    },
+    {
+      "step": "restyle (CLI)",
+      "value": "lantern-bearer 7.8%, bog-goblin 8.3%, leech 0%, wisp 0%, sunk-crate 0%, lantern-post 0%, reeds 0%, bone-pile 0%, mud 0%, bog-water 0%"
+    },
+    {
+      "step": "finals after restyle",
+      "value": [
+        "lantern-bearer",
+        "bog-goblin"
+      ]
+    },
+    {
+      "step": "UI notice",
+      "value": "approved bog-goblin finish.v2 (note: scored only by the agent that made it, with no blind re-score)"
+    },
+    {
+      "step": "UI notice",
+      "value": "requested changes on lantern-bearer: opens base.v4 — ask Claude Code to run /artgen-make"
+    },
+    {
+      "step": "after review: statuses",
+      "value": {
+        "lantern-bearer": "revision",
+        "bog-goblin": "approved",
+        "leech": "approved",
+        "wisp": "approved",
+        "sunk-crate": "approved",
+        "lantern-post": "approved",
+        "reeds": "approved",
+        "bone-pile": "approved",
+        "mud": "approved",
+        "bog-water": "approved"
+      }
+    },
+    {
+      "step": "ledger lines from the UI",
+      "value": [
+        "note direction by user",
+        "approve direction v3 by user",
+        "note direction v3 by user",
+        "approve bog-goblin finish.v2 by user",
+        "feedback lantern-bearer → base.v4 region 5,5,6,5 by user"
+      ]
+    },
+    {
+      "step": "artgen status (CLI) after the UI",
+      "value": "lantern-bearer   revision    write-base base.v4\n  bog-goblin       approved    finish.v2 7\n  leech            approved    finish.v1 6.5\n  wisp             approved    finish.v1 7\n  sunk-crate       approved    finish.v2 7\n  lantern-post     approved    finish.v1 7\n  reeds            approved    finish.v2 7\n  bone-pile        approved    finish.v1 6.5\n  mud              approved    finish.v1 6.5\n  bog-water        approved    finish.v1 6.5"
+    },
+    {
+      "step": "artgen make lantern-bearer (CLI)",
+      "value": "next: lantern-bearer — write-base base.v4 (art/assets/character/lantern-bearer) — user feedback (form, proportion, colour): new base from base.v3, the version the user saw — user: \"this patch went too green under v3; keep it closer to the old mud tone\" (region x,y,w,h 5,5,6,5 of idle/s/0)"
+    },
+    {
+      "step": "asset lab",
+      "value": "lantern-bearer finish.v1 · 24×24 · 8 facing(s) · played by artgen-runtime (canvas2d adapter)"
+    },
+    {
+      "step": "zip download",
+      "value": "swamp-topdown-art.zip: 136 files;   art/ledger.jsonl"
+    },
+    {
+      "step": "after zip round trip",
+      "value": "leech: revision (write-finish finish.v2)"
+    },
+    {
+      "step": "console errors",
+      "value": "none"
+    }
+  ]
+}

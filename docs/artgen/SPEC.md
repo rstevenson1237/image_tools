@@ -557,6 +557,16 @@ Files are the API: UI writes the same files the CLI writes, through the same `@a
 (schema-checked `direction.json`, append-only ledger entries with `by: "user"`). Claude Code commands re-read
 files on every run; nothing is cached across the boundary.
 
+As built (P5): the worker runs core over a snapshot of `art/` (sources, JSON, YAML, ledger, anchors) and imports asset
+modules as blob URLs; `src/core/project/engine.ts` mirrors the CLI's status, renders, conformance, analytics and lock, and
+is tested against the CLI on the fixtures. Each user action re-reads the folder, plans its writes in the worker, refuses
+if the ledger, direction, briefs, config or a file it would overwrite changed on disk meanwhile, then writes; the ledger is
+appended in place. UI ledger lines carry `by: "user"` and `"via": "image-tools"`; feedback may carry `region` (x, y, w, h
+in sprite pixels) and `cell`, and the pass machine quotes note, region and cell in the step the feedback opens, so `make`
+hands them to the agent. A UI lock is the CLI's lock (version bump, archive, anchors, `direction.png`); a restyle in
+Claude Code follows. Asset Lab plays one-asset packs through the runtime's canvas2d adapter and writes nothing. Not built:
+the SVG Tracer → `path` and Token Cutter → `clip` integrations, and the raycaster context (P6d).
+
 ## 14. Interfaces
 
 **CLI** (`artgen`, all with `--json`): `init`, `direction new|candidates|tile|mix|lock|anchors|show|validate`, `palette import|extract|ramp`,

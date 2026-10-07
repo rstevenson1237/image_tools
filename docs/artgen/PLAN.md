@@ -235,6 +235,19 @@ docs/archive/artgen/             # P8: artlab + planning docs once superseded
 - **Accept:** on the Pages build in Chromium, open a fixture repo's `art/`, change a ramp, approve an asset;
   next `/artgen:status` in Claude Code reflects both; zip fallback works in Firefox; existing tools' tests and
   behaviour unchanged.
+- **Built 2026-10-07; accepted in this cloud session on the Pages-style build in headless Chromium (all three fixtures);
+  Firefox and local session pending.** `'artgen'` worker running core over a snapshot of `art/` (asset modules as blob
+  URLs, relative imports rewritten); `src/core/project/` store (File System Access, handle in IndexedDB, re-read → plan in
+  the worker → disk check → write; appends for the ledger; zip import / export fallback) and an engine that mirrors the CLI
+  (`engine.test.ts`: identical status, renders, gate, feedback, lock on the fixtures); `StatusBadge`, `PixelPreview`,
+  `CompareView`, `PaletteRamp`, `ProjectBar`; `CanvasStage` `pixelMode`; registry groups. Tools: Art Direction (ramps,
+  hue-shift generator, `.hex` / `.gpl` import, extraction from a reference image, settings, live style tile + candidate
+  compare, save draft / lock), Asset Review (gallery by status, timeline with scores and reviewers, A/B compare, context,
+  conformance, approve, region-pinned feedback, Analytics), Asset Lab (params / seed / variant, playback through the
+  runtime's canvas2d adapter, single-asset pack export). A UI ramp change locked as v3 made `artgen status` show every
+  asset stale; after `restyle`, an approval and a pinned feedback note made it show `approved` and `revision`, and `make`
+  now quotes the note and region. Zip fallback round trip in Chromium without the directory picker. Dist 0.7.0 (skills
+  explain `via: "image-tools"`). Details: [findings/P5-w4.md](findings/P5-w4.md).
 
 ### P6 — Breadth (four independent tracks, each M–L)
 Each track extends: direction schema → T2+ primitives / procedural layers / finishing ops → conformance →

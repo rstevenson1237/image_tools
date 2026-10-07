@@ -3,11 +3,21 @@
 A client-side image manipulation suite for game developers and Virtual Table Top players.
 Everything runs in the browser — no image ever leaves the machine.
 
-Two tools ship today:
+Image tools:
 
 - **VTT Token Cutter** — lasso a figure in a piece of artwork and extract a mono-colour
   silhouette as a transparent, tightly-cropped PNG.
 - **SVG Tracer** — trace artwork to vector paths, fix the trace node by node, and export SVG.
+
+Art pipeline tools (artgen W4) — open a game repo's `art/` folder (File System Access in Chromium; a zip round trip
+elsewhere) and work on the same files Claude Code's artgen commands use:
+
+- **Art Direction** — edit palette ramps and style settings with a live style tile, compare candidates, save a draft
+  or lock a new direction version.
+- **Asset Review** — finished assets by status, the pass timeline with scores, version compare, conformance; approve,
+  or request changes with notes pinned to regions of the sprite; pipeline analytics.
+- **Asset Lab** — drive an asset's params, seed and variant, and play it through the artgen runtime by state, facing
+  and frame; export it alone as a pack.
 
 ## Getting started
 
@@ -15,7 +25,7 @@ Two tools ship today:
 npm install     # also copies opencv.js into public/vendor
 npm run dev     # http://localhost:5173
 npm run check   # svelte-check
-npm test        # vitest — the vector model and SVG serializer
+npm test        # vitest — the vector model, SVG serializer, artgen project engine (vs the CLI)
 npm run build   # production bundle in dist/
 npm run preview # serve the production build
 
@@ -42,15 +52,21 @@ src/
 ├── App.svelte              Shell: sidebar + dynamically mounted tool
 ├── core/                   Shared infrastructure, used by every tool
 │   ├── canvas/             CanvasStage.svelte — zoom, pan, grid snap, dropzone
+│   ├── components/         StatusBadge, PixelPreview, CompareView, PaletteRamp, ProjectBar (art pipeline tools)
+│   ├── project/            artgen project: file access (FSA / zip), snapshot, engine, store
 │   ├── stores/             activeTool, generic Command-Pattern history
-│   ├── tools/registry.ts   The tool registry
+│   ├── tools/registry.ts   The tool registry (with sidebar groups)
 │   └── utils/              Geometry, ImageData helpers, downloads, pointer normalisation
 ├── tools/
 │   ├── TokenCutter/        UI, selection capture, store, export
-│   └── SvgTracer/          UI, node editor, vector model, SVG serializer, store
+│   ├── SvgTracer/          UI, node editor, vector model, SVG serializer, store
+│   ├── ArtDirection/       direction editor + live style tile
+│   ├── AssetReview/        gallery, timeline, compare, approve / feedback, analytics
+│   └── AssetLab/           params + runtime playback
 └── workers/
     ├── workerRegistry.ts   Ref-counted Comlink worker pool
-    └── opencv.worker.ts    OpenCV pipelines (silhouette extraction, contour tracing)
+    ├── opencv.worker.ts    OpenCV pipelines (silhouette extraction, contour tracing)
+    └── artgen.worker.ts    @artgen/core over the opened project (asset code runs here, never on the page)
 ```
 
 Each tool is registered in `src/core/tools/registry.ts` with a lazy `load()` import, so its UI,
@@ -80,13 +96,23 @@ The SVG Tracer keeps a plain TypeScript document (`SvgTracer/model.ts`) as its s
 and treats Fabric as a renderer. Fabric has no per-vertex editing API, and its geometry setters
 re-centre an object's origin, so a Fabric-owned model would move a shape every time you dragged
 one of its nodes. Keeping the model plain also keeps it free of runes and the DOM, which is what
-makes it and the serializer unit-testable — those two files are the whole of `npm test`.
+makes it and the serializer unit-testable.
 
 Two consequences worth knowing. Node handles are painted straight into the 2D context on
 `after:render`, for the selected path only, rather than becoming thousands of Fabric objects. And
 commands must never capture the document in a closure: `$state` hands back a *new* proxy when the
 same object is reassigned after a null — which is exactly what undoing and redoing a trace does —
 and writes through the stale proxy do not surface on the new one.
+
+### Art pipeline tools
+
+The three artgen tools share one open project (`src/core/project/store.svelte.ts`). The `artgen` worker runs the same
+`@artgen/core` the CLI runs, over a snapshot of the `art/` folder; asset modules (code from the game repo) are imported
+there as blob URLs, never on the page. `engine.ts` derives status, renders, conformance and analytics exactly as the CLI
+does — `engine.test.ts` checks it against the CLI on the fixture repos in `examples/`. Writes are plans the worker
+returns; the store re-reads the files first, refuses if Claude Code changed one meanwhile, and appends ledger lines rather
+than rewriting the file. `scripts/artgen-ui-accept.mjs` drives the whole loop in headless Chromium (see
+`docs/artgen/findings/P5-w4.md`).
 
 ## Two things worth knowing before you touch the worker
 
