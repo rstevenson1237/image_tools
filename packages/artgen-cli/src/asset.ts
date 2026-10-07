@@ -10,7 +10,7 @@ import { basename, dirname, join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
   applyFinish, assembleSheet, conformance, contactSheet, parseBriefs, finishSnapshot, finishStale, Grid, imageTokens, iso, parseDirection, parseLedger,
-  parseVersion, passId, planPasses, renderAsset, resolveSize, reviewSheet, sourceHash,
+  parseVersion, passId, planPasses, pxPerMetre, renderAsset, resolveSize, reviewSheet, sourceHash, TILE_KINDS,
   type AssetModule, type BriefEntry, type ConformanceReport, type FeedbackOpen, type Direction, type FinishModule, type LedgerEntry, type PassState,
   type PatchRecord, type RenderResult,
 } from 'artgen-core';
@@ -169,6 +169,7 @@ export async function renderVersion(a: AssetDir, version: string, opts: { varian
   const report = conformance({
     frames: render.cells.map(c => c.grid), dir: a.dir, kind: a.brief.kind, size: resolveSize(a.dir, a.brief.size, a.brief.kind),
     source: src, symAxis: a.brief.review?.sym ?? 'x', lint: render.lint,
+    ...(a.brief.height && { height: { metres: a.brief.height, pxPerMetre: pxPerMetre(a.dir) } }),
   });
   return { version: v.name, render, strip: s, grid, report, source, base, patches, stale };
 }
@@ -213,13 +214,26 @@ const rowLabel = (r: VersionRender, score?: number) =>
 
 /**
  * Review sheet (R7): reference (if any), the best-so-far and previous versions, then the version under review;
- * checker, scaled and in-context panels. Records a `review` ledger line with the image-token estimate.
+ * checker, scaled, in-context and silhouette panels. Records a `review` ledger line with the image-token estimate.
+ * `blind` (rev 9): the version alone, labelled with the asset id only — no earlier versions, no scores, no pass — for
+ * a fresh reviewer's blind re-score of a final.
  */
-export async function reviewVersion(a: AssetDir, version: string): Promise<{ path: string; tokens: number; render: VersionRender }> {
+export async function reviewVersion(a: AssetDir, version: string, o: { blind?: boolean } = {}): Promise<{ path: string; tokens: number; render: VersionRender }> {
   const vs = versionsIn(a), cur = await renderVersion(a, version), R = a.brief.review ?? {}, sc = R.scale ?? 4;
-  const scores = new Map(ledgerFor(a).filter(e => e.type === 'score' && e.version).map(e => [e.version!, e.score as number]));
+  const sil = !TILE_KINDS.has(a.brief.kind);
+  if (o.blind) {
+    const sheet = reviewSheet({
+      title: R.label ?? a.brief.id, anchors: anchorsFor(a), maxEdge: a.project ? projectConfig(a.project).budget?.maxSheetEdge : undefined,
+      rows: [{ label: a.brief.id, grid: cur.grid, scale: sc, bg: R.bg ?? a.dir.background, context: R.iso ? iso.isoFloor(cur.grid.w, cur.grid.h) : undefined, silhouette: sil }],
+    });
+    const path = join(outDir(a), `review-${version}-blind.png`), tokens = imageTokens(sheet.w, sheet.h);
+    writeGrid(path, sheet);
+    appendLedger(a.ledgerPath, { type: 'review', asset: a.brief.id, version, pass: 'b', blind: true, sheet: relPath(a, path), imageTokens: tokens, by: 'agent' });
+    return { path, tokens, render: cur };
+  }
+  const scores = new Map(ledgerFor(a).filter(e => e.type === 'score' && !e.blind && e.version).map(e => [e.version!, e.score as number]));
   const ctx = (g: Grid) => (R.iso ? iso.isoFloor(g.w, g.h) : undefined);
-  const rows: { label: string; grid: Grid; scale: number; bg?: string; context?: Grid }[] = [];
+  const rows: { label: string; grid: Grid; scale: number; bg?: string; context?: Grid; silhouette?: boolean }[] = [];
   if (a.brief.reference) {
     const ref = readGrid(resolve(a.path, a.brief.reference));
     rows.push({ label: `reference${a.brief.target !== undefined ? ` (target ${a.brief.target})` : ''}`, grid: ref, scale: sc, bg: R.bg, context: ctx(ref) });
@@ -230,9 +244,9 @@ export async function reviewVersion(a: AssetDir, version: string): Promise<{ pat
   const big = cur.render.cells.length > 8;
   for (const other of [best, prev]) if (other) {
     const r = await renderVersion(a, other), grid = big ? firstFacing(r.render) : r.grid;
-    rows.push({ label: rowLabel(r, scores.get(other)) + (big ? ' | first facing' : ''), grid, scale: sc, bg: R.bg ?? a.dir.background, context: ctx(grid) });
+    rows.push({ label: rowLabel(r, scores.get(other)) + (big ? ' | first facing' : ''), grid, scale: sc, bg: R.bg ?? a.dir.background, context: ctx(grid), silhouette: sil });
   }
-  rows.push({ label: `>> ${rowLabel(cur)}`, grid: cur.grid, scale: sc, bg: R.bg ?? a.dir.background, context: ctx(cur.grid) });
+  rows.push({ label: `>> ${rowLabel(cur)}`, grid: cur.grid, scale: sc, bg: R.bg ?? a.dir.background, context: ctx(cur.grid), silhouette: sil });
   const sheet = reviewSheet({ title: `${R.label ?? a.brief.id} - ${version} (${passOf(a, version)})`, rows, anchors: anchorsFor(a), maxEdge: a.project ? projectConfig(a.project).budget?.maxSheetEdge : undefined });
   const path = join(outDir(a), `review-${version}.png`);
   writeGrid(path, sheet);
@@ -247,26 +261,28 @@ const relPath = (a: AssetDir, p: string) => relative(dirname(resolve(a.ledgerPat
 
 /** Record a visual score for a version, with gate results, metrics and token estimates (analytics, D19). */
 export async function scoreVersion(a: AssetDir, version: string, score: number, note = '', extra: Record<string, unknown> = {}): Promise<LedgerEntry> {
-  const r = await renderVersion(a, version), v = parseVersion(version)!, pass = passOf(a, version);
+  const r = await renderVersion(a, version), v = parseVersion(version)!, pass = extra.blind === true ? 'b' : passOf(a, version);
   const vs = versionsIn(a).filter(x => parseVersion(x)!.kind === v.kind && parseVersion(x)!.n < v.n);
   const prevSrc = v.kind === 'finish' ? undefined : vs.length ? sourceOf(a, vs[vs.length - 1]) : undefined;
-  const reviews = ledgerFor(a).filter(e => e.type === 'review' && e.version === version);
+  const blind = extra.blind === true, reviews = ledgerFor(a).filter(e => e.type === 'review' && e.version === version && !!e.blind === blind);
+  if (blind && !reviews.length) throw new Error(`${a.brief.id} ${version}: no blind sheet yet — artgen review ${a.brief.id} --version ${version} --blind, and give only that sheet to the reviewer`);
   if (v.kind === 'finish' && r.patches) {
     const snap = join(a.path, `${version}.snapshot.json`);
     if (!existsSync(snap)) writeFileSync(snap, JSON.stringify(finishSnapshot(r.patches)) + '\n');
   }
   // analytics (D19): the stage's model/effort from the config, wall time since the asset's previous record, Δ score
   const ledger = ledgerFor(a), prevTs = ledger.length ? Date.parse(ledger[ledger.length - 1].ts) : NaN;
-  const scores = new Map(ledger.filter(e => e.type === 'score' && e.version).map(e => [e.version!, e.score as number]));
+  const scores = new Map(ledger.filter(e => e.type === 'score' && !e.blind && e.version).map(e => [e.version!, e.score as number]));
   const prevBase = versionsIn(a).filter(x => parseVersion(x)!.kind === 'base' && parseVersion(x)!.n < v.n && scores.has(x)).pop();
-  const ref = v.kind === 'finish' ? r.base : prevBase, delta = ref && scores.has(ref) ? Math.round((score - scores.get(ref)!) * 100) / 100 : undefined;
+  const ref = blind ? undefined : v.kind === 'finish' ? r.base : prevBase, delta = ref && scores.has(ref) ? Math.round((score - scores.get(ref)!) * 100) / 100 : undefined;
   const entry = {
     type: 'score' as const, asset: a.brief.id, version, pass, score, note, sourceHash: sourceHash(r.source),
     outputHash: r.strip.hash(), direction: { id: a.dir.id, version: a.dir.version }, metrics: r.report.metrics,
     conformance: { pass: r.report.pass, checks: r.report.checks }, ...(r.base && { base: r.base }),
     tokens: { code: codeTokens(r.source), edit: editTokens(prevSrc, r.source), ...(extra.measured as object | undefined) },
     imageTokens: reviews.length ? (reviews[reviews.length - 1].imageTokens as number) : undefined, by: 'agent' as const,
-    ...stageModel(a, pass), ...(Number.isFinite(prevTs) && { wallMs: Date.now() - prevTs }), ...(delta !== undefined && { delta }), ...Object.fromEntries(Object.entries(extra).filter(([k]) => k !== 'measured')),
+    ...stageModel(a, pass), ...(Number.isFinite(prevTs) && { wallMs: Date.now() - prevTs }), ...(delta !== undefined && { delta }),
+    ...(blind && scores.has(version) && { gap: Math.round((scores.get(version)! - score) * 100) / 100 }), ...Object.fromEntries(Object.entries(extra).filter(([k]) => k !== 'measured')),
   };
   appendLedger(a.ledgerPath, entry);
   return { ts: new Date().toISOString(), ...entry };
@@ -280,7 +296,7 @@ export async function passState(a: AssetDir): Promise<PassState & { stale?: stri
   }
   const st = planPasses({
     asset: a.brief.id, versions, ledger: ledgerFor(a), revisionPasses: revisionPasses(a), finishPass: a.dir.pipeline.finishPass, finishBase,
-    ...(a.project && { feedback: feedbackOf(a), extraRevisions: a.budget?.extraRevisions ?? 0 }),
+    ...(a.project && { feedback: feedbackOf(a), extraRevisions: a.budget?.extraRevisions ?? 0, ...blindConfig(a.project) }),
   });
   const lastFinish = versions.filter(v => v.startsWith('finish.')).pop();
   if (lastFinish && existsSync(join(a.path, `${lastFinish}.snapshot.json`))) {
@@ -288,6 +304,12 @@ export async function passState(a: AssetDir): Promise<PassState & { stale?: stri
     if (stale?.length) return { ...st, stale };
   }
   return st;
+}
+
+/** Blind re-score settings for the pass machine (rev 9): `review.blind` in artgen.config.json, on by default. */
+function blindConfig(p: Project): { blind?: { minScore: number; maxGap: number } } {
+  const r = projectConfig(p).review;
+  return r.blind === false ? {} : { blind: { minScore: r.approveMin, maxGap: r.blindMaxGap } };
 }
 
 /** Contact sheet of `n` seeded variants (variant 0 = defaults) and how many are distinct. */

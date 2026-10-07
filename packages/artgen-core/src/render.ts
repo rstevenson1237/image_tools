@@ -29,6 +29,8 @@ export interface Brief {
   anims?: Record<string, { frames: number; fps?: number; loop?: boolean; durations?: number[] }>;
   variants?: number;
   notes?: string;
+  /** Real-world height in metres (rev 9): the drawn body should be `height × pxPerMetre(dir)` px tall (conformance `height`). */
+  height?: number;
 }
 
 export type Anchors = Record<string, [number, number]>;

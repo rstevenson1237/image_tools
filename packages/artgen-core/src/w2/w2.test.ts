@@ -9,6 +9,7 @@ import { briefOrder, parseBriefs, removeBrief, upsertBrief, validateBrief } from
 import { assetStatus } from './status.ts';
 import { assetsTs, buildPack, packRects, swapMaps } from './pack.ts';
 import { briefContract, contractOf, diffContract } from './contract.ts';
+import { body, roster, rosterIssues, silhouetteOverlap } from './roster.ts';
 import { analytics, analyticsMarkdown } from './analytics.ts';
 import { editOps, nearestToken, restyleDiff, tokenizer } from './edit.ts';
 
@@ -203,3 +204,42 @@ describe('tokens: restyle diff and edit ops', () => {
     expect(nearestToken(dir, '#101010')).toEqual({ token: 'outline', exact: true });
   });
 });
+
+describe('roster (rev 9)', () => {
+  const fig = (w: number, h: number, c = dir.palette.ramps.cloth[1]) => { const g = new Grid(16, 16); g.fill(8 - (w >> 1), 16 - h, w, h, c); return g; };
+  const items = [
+    { id: 'hero', kind: 'character', grid: fig(6, 14), height: 1.8 },
+    { id: 'barrel', kind: 'prop', grid: fig(8, 14), height: 1 },   // drawn as tall as the hero: fill-the-frame
+    { id: 'pillar', kind: 'prop', grid: fig(8, 15) },              // no height in the brief
+    { id: 'rat', kind: 'creature', grid: fig(6, 3), height: 0.4 },
+  ];
+  test('sizes against real-world heights, most similar silhouettes, a shuffled lettered sheet', () => {
+    const r = roster(items, { bg: dir.background ?? '#000000', pxPerMetre: 14 / 1.8, seed: 3 });
+    expect(r.sizes.map(x => [x.id, x.drawn, x.flag])).toEqual([['hero', 14, false], ['barrel', 14, true], ['pillar', 15, false], ['rat', 3, false]]);
+    expect(r.sizes[1]).toMatchObject({ expected: 7.8, dev: 0.8 });
+    expect(r.pairs[0]).toEqual({ a: 'barrel', b: 'pillar', overlap: 0.933 });
+    expect(Object.keys(r.key)).toEqual(['A', 'B', 'C', 'D']);
+    expect(Object.values(r.key).sort()).toEqual(['barrel', 'hero', 'pillar', 'rat']);
+    expect(Object.values(r.key)).not.toEqual(items.map(i => i.id)); // shuffled
+    expect(r.lineup.h).toBeGreaterThan(15 * 4);
+    expect(silhouetteOverlap(body(items[0].grid), body(items[0].grid))).toBe(1);
+  });
+  test('a roster review becomes per-asset open issues', () => {
+    const key = { A: 'hero', B: 'barrel' };
+    expect(rosterIssues({ silhouettes: [{ letter: 'A', guess: 'person', readability: 4 }, { letter: 'B', guess: 'a door', readability: 2 }],
+      lineup: [{ id: 'barrel', scale: 'too big', scaleNote: 'as tall as the hero', issues: ['olive wood', 'same block as the pillar', 'third'] }] }, key))
+      .toEqual({ barrel: ['silhouette reads as "a door" (2/5)', 'lineup: too big — as tall as the hero', 'lineup: olive wood', 'lineup: same block as the pillar'] });
+    expect(() => rosterIssues({ silhouettes: [{ letter: 'Z', guess: '?', readability: 1 }], lineup: [] }, key)).toThrow(/no silhouette "Z"/);
+  });
+});
+
+describe('analytics: review independence (rev 9)', () => {
+  test('scores by reviewer and blind gaps; blind scores stay out of the pass tables', () => {
+    const sc = (version: string, score: number, extra: Partial<LedgerEntry> = {}): LedgerEntry => ({ ts: 't', type: 'score', asset: 'a', version, pass: version.startsWith('f') ? 'f' : 'r1', score, ...extra });
+    const r = analytics([sc('base.v1', 6, { reviewer: 'self' }), sc('finish.v1', 7, { reviewer: 'art-reviewer' }), sc('finish.v1', 5, { blind: true, reviewer: 'fresh', pass: 'b' })], [{ id: 'a', kind: 'prop' }]);
+    expect(r.passes.map(p => p.pass)).toEqual(['r1', 'f']);
+    expect(r.review).toEqual({ byReviewer: { self: 1, 'art-reviewer': 1 }, blind: { n: 1, meanGap: 2, over1: 1, assets: [{ asset: 'a', version: 'finish.v1', own: 7, blind: 5, gap: 2 }] } });
+    expect(analyticsMarkdown(r)).toContain('Blind re-scores: 1, mean gap +2 (own − blind), 1 more than 1 point apart');
+  });
+});
+

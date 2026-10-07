@@ -9,13 +9,14 @@
  *   art/directions/v<N>.json         every locked direction version (written by lock)
  *   <packDir>/<pack>/                atlas PNGs, pack.json, Aseprite JSON; <assetsTs> typed ids (`export`)
  *   art/contracts/<id>.json          frozen animation contract per exported asset (states, frames, durations, anchors)
+ *   art/sheets/roster-*.png          roster lineup + shuffled silhouettes for a fresh reviewer (`roster`, rev 9)
  *   <runtimeDir>/                    the vendored W3 runtime + selected adapters, stamped in runtime.json (`export --runtime`)
  */
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import {
-  analytics, analyticsMarkdown, assetsTs, assetStatus, briefContract, briefDir, briefOrder, buildPack, contactSheet, contractOf, diffContract,
-  editOps, Grid, imageTokens, mirrorFacing, parseBriefs, parseLedger, parseVersion, removeBrief, restyleDiff, restyleSheet, tokenDiffMask, upsertBrief,
+  analytics, analyticsMarkdown, assetsTs, assetStatus, blindScores, briefContract, briefDir, briefOrder, buildPack, contactSheet, contractOf, diffContract,
+  editOps, Grid, imageTokens, mirrorFacing, pxPerMetre, roster, rosterIssues, TILE_KINDS, type RosterItem, type RosterPair, type RosterReview, type RosterSize, parseBriefs, parseLedger, parseVersion, removeBrief, restyleDiff, restyleSheet, tokenDiffMask, upsertBrief,
   type AnimContract, type AssetMeta, type AssetStatus, type BriefEntry, type Direction, type LedgerEntry, type NextStep, type PackInput, type RenderResult,
 } from 'artgen-core';
 import {
@@ -119,8 +120,10 @@ export async function assetRow(p: Project, b: BriefEntry): Promise<AssetRow> {
   if (!ledger.length && st.next.action === 'review' && st.next.version === 'base.v1') return { ...base, status: 'in-pipeline', next: st.next, why: 'base.v1 from the template: adapt it to the brief, then review', imageTokens };
   const fh = st.next.action === 'ready' ? finalHash(a, st.next.final) : undefined;
   const s = assetStatus({ ledger, next: st.next, direction: { id: a.dir.id, version: a.dir.version }, finalHash: fh });
-  const sc = s.final ? [...ledger].reverse().find(e => e.type === 'score' && e.version === s.final) : undefined;
-  const issues = [...s.issues, ...(st.stale ?? []).map(x => `finish-stale ${x}`)];
+  const sc = s.final ? [...ledger].reverse().find(e => e.type === 'score' && !e.blind && e.version === s.final) : undefined;
+  // roster findings (rev 9) stand while the final they were made on is still the final
+  const ro = s.final ? [...ledger].reverse().find(e => e.type === 'roster' && e.version === s.final && Array.isArray(e.issues)) : undefined;
+  const issues = [...s.issues, ...(st.stale ?? []).map(x => `finish-stale ${x}`), ...((ro?.issues as string[] | undefined) ?? [])];
   return { ...base, status: s.status, final: s.final, score: sc?.score as number | undefined, gate: sc?.conformance?.pass, issues, next: st.next, why: s.why, imageTokens, stale: st.stale };
 }
 
@@ -185,7 +188,13 @@ function thumb(r: RenderResult): Grid {
   return cells.length > 1 ? strip({ ...r, cells }) : cells[0].grid;
 }
 
-export interface GalleryResult { sheets: string[]; tokens: number; assets: { id: string; final: string; score?: number; issues: string[] }[] }
+export interface GalleryResult { sheets: string[]; tokens: number; assets: { id: string; final: string; score?: number; blind?: number; reviewer?: string; issues: string[] }[] }
+
+/** Who scored a final and its blind re-score, from the asset's ledger (rev 9). */
+function reviewOf(a: AssetDir, final: string): { reviewer?: string; blind?: number } {
+  const ledger = ledgerFor(a), own = [...ledger].reverse().find(e => e.type === 'score' && !e.blind && e.version === final);
+  return { reviewer: typeof own?.reviewer === 'string' ? own.reviewer : undefined, blind: blindScores(ledger).get(final)?.score };
+}
 
 /** Gallery of finished assets (`/artgen:review`): final render, in context, score and open issues; ≤ 12 per sheet. */
 export async function gallery(p: Project, opts: { ids?: string[]; statuses?: AssetStatus[] } = {}): Promise<GalleryResult> {
@@ -193,16 +202,18 @@ export async function gallery(p: Project, opts: { ids?: string[]; statuses?: Ass
   const items: { label: string; grid: Grid; bg?: string }[] = [], assets: GalleryResult['assets'] = [];
   for (const r of rows) {
     const a = openAsset(join(p.root, r.path)), v = await renderVersion(a, r.final!);
-    const tag = `${r.id} ${r.final} ${r.score ?? '-'}${r.gate === false ? ' GATE' : ''}${r.issues.length ? ` !${r.issues.length}` : ''}`;
+    const rv = reviewOf(a, r.final!);
+    // score, then the blind re-score (b) or SELF when only the authoring agent scored it
+    const tag = `${r.id} ${r.final} ${r.score ?? '-'}${rv.blind !== undefined ? ` b${rv.blind}` : rv.reviewer === 'self' ? ' SELF' : ''}${r.gate === false ? ' GATE' : ''}${r.issues.length ? ` !${r.issues.length}` : ''}`;
     items.push({ label: tag, grid: thumb(v.render), bg: a.brief.review?.bg ?? dir.background });
-    assets.push({ id: r.id, final: r.final!, score: r.score, issues: r.issues });
+    assets.push({ id: r.id, final: r.final!, score: r.score, ...(rv.blind !== undefined && { blind: rv.blind }), ...(rv.reviewer && { reviewer: rv.reviewer }), issues: r.issues });
   }
   if (!items.length) return { sheets: [], tokens: 0, assets };
   const sheets: string[] = [];
   let tokens = 0;
   const n0 = (existsSync(join(p.art, 'sheets')) ? readdirCount(join(p.art, 'sheets'), /^gallery-\d+\.png$/) : 0) + 1;
   for (let i = 0; i < items.length; i += 12) {
-    const page = items.slice(i, i + 12), sheet = contactSheet(`${dir.id} v${dir.version}: finished assets ${i + 1}-${i + page.length} of ${items.length} (score, !issues)`, page, 4, Math.min(4, page.length));
+    const page = items.slice(i, i + 12), sheet = contactSheet(`${dir.id} v${dir.version}: finished assets ${i + 1}-${i + page.length} of ${items.length} (score, b blind score, !issues)`, page, 4, Math.min(4, page.length));
     const f = join(p.art, 'sheets', `gallery-${n0 + i / 12}.png`);
     writeGrid(f, sheet);
     sheets.push(rel(p, f));
@@ -213,6 +224,50 @@ export async function gallery(p: Project, opts: { ids?: string[]; statuses?: Ass
 }
 
 const readdirCount = (d: string, re: RegExp): number => readdirSync(d).filter(f => re.test(f)).length;
+
+export interface RosterRun { lineup: string; silhouettes: string; assets: string; tokens: number; seed: number; sizes: RosterSize[]; pairs: RosterPair[]; skipped: string[] }
+
+/**
+ * Roster review sheets (rev 9): every finished non-tile asset's final, first frame. Writes the lineup, the shuffled
+ * silhouette sheet and `roster-assets.json` (alphabetical ids, kinds, notes — all the reviewer may read besides the
+ * two sheets); the letter key goes only into the ledger. Prints the size table and the most-overlapping pairs.
+ */
+export async function rosterRun(p: Project, o: { ids?: string[]; seed?: number } = {}): Promise<RosterRun> {
+  const dir = requireLocked(p), briefs = readBriefs(p), ledgerAll = parseLedger(existsSync(ledgerFile(p)) ? readFileSync(ledgerFile(p), 'utf8') : '');
+  const rows = (await projectStatus(p, o.ids?.length ? o.ids : undefined)).filter(r => r.final), items: RosterItem[] = [], versions: Record<string, string> = {}, skipped: string[] = [];
+  for (const r of rows) {
+    const b = briefs.find(x => x.id === r.id)!;
+    if (TILE_KINDS.has(b.kind)) { skipped.push(`${r.id} (${b.kind})`); continue; }
+    const v = await renderVersion(openAsset(join(p.root, r.path)), r.final!);
+    items.push({ id: r.id, kind: b.kind, grid: v.render.cells[0].grid, notes: b.notes, height: b.height });
+    versions[r.id] = r.final!;
+  }
+  if (items.length < 2) throw new Error(`roster: needs at least two finished non-tile assets (have ${items.length})`);
+  const seed = o.seed ?? ledgerAll.filter(e => e.type === 'roster' && e.asset === 'roster' && e.key).length + 1;
+  const res = roster(items, { bg: dir.background ?? '#202020', pxPerMetre: pxPerMetre(dir), seed });
+  const f = (n: string) => join(p.art, 'sheets', n);
+  writeGrid(f('roster-lineup.png'), res.lineup);
+  writeGrid(f('roster-silhouettes.png'), res.silhouettes);
+  writeJson(f('roster-assets.json'), { lineup: items.map(it => it.id), assets: [...items].sort((a, b) => a.id.localeCompare(b.id)).map(it => ({ id: it.id, kind: it.kind, notes: it.notes ?? '', ...(it.height && { height: it.height }) })) });
+  const tokens = imageTokens(res.lineup.w, res.lineup.h) + imageTokens(res.silhouettes.w, res.silhouettes.h);
+  appendLedger(ledgerFile(p), { type: 'roster', asset: 'roster', key: res.key, versions, seed, sizes: res.sizes, pairs: res.pairs, sheet: 'sheets/roster-lineup.png,sheets/roster-silhouettes.png', imageTokens: tokens, by: 'agent' });
+  return { lineup: rel(p, f('roster-lineup.png')), silhouettes: rel(p, f('roster-silhouettes.png')), assets: rel(p, f('roster-assets.json')), tokens, seed, sizes: res.sizes, pairs: res.pairs, skipped };
+}
+
+/** Record a roster review (`RosterReview` JSON from a fresh reviewer): per-asset open issues on the finals it saw. */
+export function rosterRecord(p: Project, file: string, reviewer = 'self'): { issues: Record<string, string[]>; notes: string[] } {
+  const ledgerAll = parseLedger(existsSync(ledgerFile(p)) ? readFileSync(ledgerFile(p), 'utf8') : '');
+  const run = [...ledgerAll].reverse().find(e => e.type === 'roster' && e.asset === 'roster' && e.key);
+  if (!run) throw new Error('roster record: run `artgen roster` first');
+  const review = readJson<RosterReview>(resolve(file)), key = run.key as Record<string, string>, versions = run.versions as Record<string, string>;
+  const issues = rosterIssues(review, key);
+  for (const id of Object.values(key)) {
+    const s = (review.silhouettes ?? []).find(x => key[x.letter] === id);
+    appendLedger(ledgerFile(p), { type: 'roster', asset: id, version: versions[id], issues: issues[id] ?? [], ...(s && { readability: s.readability, guess: s.guess }), reviewer, by: 'agent' });
+  }
+  appendLedger(ledgerFile(p), { type: 'roster', asset: 'roster', recorded: true, notes: review.notes ?? [], reviewer, by: 'agent' });
+  return { issues, notes: review.notes ?? [] };
+}
 
 /** User feedback on a finished asset: starts a U-stage iteration (`base` = form/colour, `finish` = pixels). */
 export async function feedback(p: Project, id: string, o: { route: 'base' | 'finish'; note: string; region?: number[]; cell?: string; force?: boolean }): Promise<{ opens: string; next: NextStep; iterations: number }> {
@@ -242,7 +297,12 @@ export async function approve(p: Project, id: string, note = ''): Promise<Ledger
   // keep the sheet the user approved from (art/sheets/approved/ is the one sheets folder that is committed)
   const kept = join(p.art, 'sheets', 'approved', `${id}-${row.final}.png`), src = resolve(dirname(ledgerFile(p)), String(sheet));
   if (existsSync(src)) { mkdirSync(dirname(kept), { recursive: true }); copyFileSync(src, kept); }
-  const e = { type: 'approve' as const, asset: id, version: row.final, sourceHash: finalHash(a, row.final!), outputHash: r.strip.hash(), sheet: existsSync(kept) ? relative(p.art, kept).split('\\').join('/') : sheet, direction: { id: dir.id, version: dir.version }, note, by: 'user' as const };
+  // rev 9: approval stays the user's call, but say when the score behind it is not independent or the blind one disagrees
+  const rv = reviewOf(a, row.final!), cfg = projectConfig(p).review, warnings: string[] = [];
+  if (rv.blind === undefined) warnings.push(rv.reviewer === 'self' || !rv.reviewer ? 'scored only by the agent that made it, with no blind re-score' : 'no blind re-score of the final');
+  warnings.push(...row.issues.filter(x => x.startsWith('blind re-score')));
+  if (rv.blind !== undefined && rv.blind < cfg.approveMin && !warnings.some(x => x.startsWith('blind re-score'))) warnings.push(`blind re-score ${rv.blind} is under ${cfg.approveMin}`);
+  const e = { type: 'approve' as const, asset: id, version: row.final, sourceHash: finalHash(a, row.final!), outputHash: r.strip.hash(), sheet: existsSync(kept) ? relative(p.art, kept).split('\\').join('/') : sheet, direction: { id: dir.id, version: dir.version }, note, ...(warnings.length && { warnings }), by: 'user' as const };
   appendLedger(ledgerFile(p), e);
   return { ts: new Date().toISOString(), ...e };
 }

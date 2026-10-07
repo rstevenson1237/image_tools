@@ -48,6 +48,7 @@ export function validateBrief(b: unknown, where = 'brief'): string[] {
   if (b.variants !== undefined && !(Number.isInteger(b.variants) && (b.variants as number) >= 1)) e.push(`${at}: variants must be a positive integer`);
   if (b.importance !== undefined && !(IMPORTANCE as readonly string[]).includes(b.importance as string)) e.push(`${at}: importance must be one of ${IMPORTANCE.join(', ')}`);
   if (b.priority !== undefined && typeof b.priority !== 'number') e.push(`${at}: priority must be a number`);
+  if (b.height !== undefined && !(typeof b.height === 'number' && b.height > 0 && b.height <= 1000)) e.push(`${at}: height must be the real-world height in metres (> 0)`);
   if (b.anchor !== undefined && !(Array.isArray(b.anchor) && b.anchor.length === 2 && b.anchor.every(n => typeof n === 'number'))) e.push(`${at}: anchor must be [x, y]`);
   if (b.swaps !== undefined) {
     if (!isObj(b.swaps)) e.push(`${at}: swaps must map variant name → { ramp: ramp }`);

@@ -22,6 +22,8 @@ export interface ConformanceInput {
   source?: string;
   /** T2+ scene lint messages (`RenderResult.lint`): R4/R11 violations fail, the rest flag. */
   lint?: string[];
+  /** Real-world height (brief `height`, metres) and the direction's world scale: the drawn body is checked against it. */
+  height?: { metres: number; pxPerMetre: number };
   /** Approved anchors of the same kind. */
   anchors?: Grid[];
   symAxis?: 'x' | 'y' | 'none';
@@ -39,8 +41,17 @@ export interface Thresholds {
   ditherMax: number;
   /** Max histogram distance (0–1) to the nearest anchor before flagging. */
   anchorMax: number;
+  /** Max relative difference between the drawn body height and the brief's real-world height before flagging. */
+  heightTolerance: number;
 }
-const DEFAULT_THRESHOLDS: Thresholds = { lineMin: 0.85, lineNoneMax: 0.15, lightTolerance: 4, ditherMax: 2, anchorMax: 0.6 };
+const DEFAULT_THRESHOLDS: Thresholds = { lineMin: 0.85, lineNoneMax: 0.15, lightTolerance: 4, ditherMax: 2, anchorMax: 0.6, heightTolerance: 0.2 };
+
+/** Height of the opaque body in px (alpha 255: ground shadows and glows are translucent); 0 when empty. */
+export function bodyHeight(g: Grid): number {
+  let top = -1, bottom = -1;
+  for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) if (g.alpha(x, y) === 255) { if (top < 0) top = y; bottom = y; break; }
+  return top < 0 ? 0 : bottom - top + 1;
+}
 
 const N4: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
@@ -185,6 +196,16 @@ export function conformance(input: ConformanceInput): ConformanceReport {
   else {
     const hard = input.lint.filter(m => /\((R4|R11)\)/.test(m));
     add('lint', hard.length ? 'fail' : input.lint.length ? 'flag' : 'pass', input.lint.length ? input.lint.slice(0, 3).join(' | ') : 'clean');
+  }
+
+  // real-world height (flag only, rev 9): assets drawn to one world scale, not to fill their frames
+  if (!input.height) add('height', 'skip', 'no real-world height in the brief');
+  else if (kind && TILE_KINDS.has(kind)) add('height', 'skip', `${kind}: ground plane`);
+  else {
+    const want = input.height.metres * input.height.pxPerMetre, got = bodyHeight(frames[0]), dev = (got - want) / want;
+    const fits = !size || want <= size[1];
+    add('height', Math.abs(dev) <= th.heightTolerance ? 'pass' : 'flag',
+      `${got} px drawn, ${want.toFixed(1)} px expected for ${input.height.metres} m (${dev >= 0 ? '+' : ''}${Math.round(dev * 100)} %)${fits ? '' : `; the ${size![1]} px frame is too short for it`}`);
   }
 
   // anchor similarity (flag only)

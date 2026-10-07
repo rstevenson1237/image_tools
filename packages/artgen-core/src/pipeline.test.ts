@@ -1,6 +1,6 @@
 // Pass state machine (PLAN P1b): v1 → v2 → v3 with best-so-far (R12) → finish → ready; ledger pass ids.
 import { describe, expect, test } from 'vitest';
-import { passId, planPasses, type PlanInput } from './pipeline.ts';
+import { blindIssues, latestScores, passId, planPasses, type PlanInput } from './pipeline.ts';
 import type { LedgerEntry } from './qa/ledger.ts';
 
 const score = (version: string, s: number): LedgerEntry => ({ ts: '2026-10-06T00:00:00Z', type: 'score', asset: 'a', version, score: s });
@@ -82,5 +82,30 @@ describe('W2: extra autonomous revision, user feedback routes, open issues (P3)'
     const u = { finishBase: fb, feedback: [{ route: 'base' as const, opens: 'base.v4' }] };
     expect(run([...v, 'base.v4'], [...l, ok('base.v4', 6)], u)).toMatchObject({ action: 'write-finish', version: 'finish.v2', base: 'base.v4' });
     expect(run([...v, 'base.v4', 'finish.v2'], [...l, ok('base.v4', 6), ok('finish.v2', 6.5)], { ...u, finishBase: { ...fb, 'finish.v2': 'base.v4' } })).toMatchObject({ action: 'ready', final: 'finish.v2' });
+  });
+
+  test('blind re-score (rev 9): a fresh reviewer scores the final; a gap or a low blind score is an issue and spends the extra revision', () => {
+    const v = ['base.v1', 'base.v2', 'base.v3', 'finish.v1'], s: [string, number][] = [['base.v1', 5], ['base.v2', 7], ['base.v3', 6.5], ['finish.v1', 7]];
+    const fb = { 'finish.v1': 'base.v2' }, blind = { minScore: 6.5, maxGap: 1 };
+    const ledger = (extra: LedgerEntry[] = []) => [...s.map(([x, y]) => score(x, y)), ...extra];
+    const bl = (version: string, n: number, note?: string): LedgerEntry => ({ ...score(version, n), blind: true, reviewer: 'fresh', ...(note && { note }) });
+    const go = (versions: string[], l: LedgerEntry[], extra: Partial<PlanInput> = {}) =>
+      planPasses({ asset: 'a', versions, ledger: l, revisionPasses: 3, finishPass: true, finishBase: fb, feedback: [], extraRevisions: 1, blind, ...extra }).next;
+    expect(go(v, ledger())).toMatchObject({ action: 'blind-review', version: 'finish.v1', pass: 'b' });
+    // a blind score never replaces the version's own score
+    expect(latestScores(ledger([bl('finish.v1', 4)])).get('finish.v1')!.score).toBe(7);
+    expect(go(v, ledger([bl('finish.v1', 6.5)]))).toMatchObject({ action: 'ready', final: 'finish.v1', issues: [] });
+    // 2 points under its own score: one extra autonomous revision from the best base, naming the blind note
+    const miss = go(v, ledger([bl('finish.v1', 5, 'reads as a crate, not a barrel')]));
+    expect(miss).toMatchObject({ action: 'write-base', version: 'base.v4', pass: 'x1', from: 'base.v2' });
+    expect(miss.why).toMatch(/blind re-score 5 vs 7 \(gap 2\): reads as a crate/);
+    // budget spent (x1 scored lower, so finish.v1 still stands): ready, with the blind issue listed for the user
+    const after = go([...v, 'base.v4'], ledger([bl('finish.v1', 5, 'reads as a crate'), score('base.v4', 6)]));
+    expect(after).toMatchObject({ action: 'ready', final: 'finish.v1', issues: ['blind re-score 5 vs 7 (gap 2): reads as a crate'] });
+    // off, or a final the user already approved: no blind step
+    expect(go(v, ledger(), { blind: undefined })).toMatchObject({ action: 'ready' });
+    expect(go(v, ledger([{ ts: 't', type: 'approve', asset: 'a', version: 'finish.v1', by: 'user' }]))).toMatchObject({ action: 'ready', issues: [] });
+    expect(blindIssues(7, { score: 6 }, blind)).toEqual(['blind re-score 6 is under 6.5']);
+    expect(blindIssues(6.5, { score: 6.5 }, blind)).toEqual([]);
   });
 });

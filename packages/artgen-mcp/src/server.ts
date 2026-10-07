@@ -57,7 +57,7 @@ export const TOOLS: ToolDef[] = [
     },
   },
   {
-    name: 'pass_status', description: 'Pipeline state of an asset directory: versions, scores, gate, best base, and the next step (write-base, review, write-finish, ready).',
+    name: 'pass_status', description: 'Pipeline state of an asset directory: versions, scores, gate, best base, and the next step (write-base, review, write-finish, blind-review, ready).',
     inputSchema: obj({ asset: { ...str, description: 'asset directory, e.g. art/probes/character' }, direction: str }, ['asset']),
     async run(a, p) { return [text(await passState(asset(p, a)))]; },
   },
@@ -72,11 +72,11 @@ export const TOOLS: ToolDef[] = [
     },
   },
   {
-    name: 'review', description: 'Build the review sheet for a version (best so far, v(n-1), v(n), checker + scaled + in context), log it to the ledger and return it.',
-    inputSchema: obj({ asset: str, version: str, direction: str }, ['asset']),
+    name: 'review', description: 'Build the review sheet for a version (best so far, v(n-1), v(n), checker + scaled + in context + silhouette), log it to the ledger and return it. blind: the version alone (no earlier versions, scores or notes) for a fresh reviewer\'s blind re-score of a final.',
+    inputSchema: obj({ asset: str, version: str, blind: { type: 'boolean' }, direction: str }, ['asset']),
     async run(a, p) {
       const ad = asset(p, a), vs = versionsIn(ad), version = typeof a.version === 'string' ? a.version : vs[vs.length - 1];
-      const r = await reviewVersion(ad, version);
+      const r = await reviewVersion(ad, version, { blind: a.blind === true });
       return [text({ sheet: relative(p.root, r.path), imageTokens: r.tokens, pass: r.render.report.pass, checks: r.render.report.checks }), pngFile(r.path)];
     },
   },
@@ -89,12 +89,13 @@ export const TOOLS: ToolDef[] = [
     },
   },
   {
-    name: 'score', description: 'Record a 0-10 visual score for a reviewed version (the art-reviewer verdict) with gate results and token estimates.',
-    inputSchema: obj({ asset: str, version: str, score: num, note: str, direction: str }, ['asset', 'version', 'score']),
+    name: 'score', description: 'Record a 0-10 visual score for a reviewed version (the art-reviewer verdict) with gate results and token estimates. reviewer: who scored (the subagent name; omitted = self). blind: a blind re-score from the blind sheet (needs a reviewer).',
+    inputSchema: obj({ asset: str, version: str, score: num, note: str, reviewer: str, blind: { type: 'boolean' }, direction: str }, ['asset', 'version', 'score']),
     async run(a, p) {
-      const s = a.score as number;
+      const s = a.score as number, reviewer = typeof a.reviewer === 'string' && a.reviewer ? a.reviewer : 'self';
       if (!(s >= 0 && s <= 10)) throw new Error('score must be 0-10');
-      return [text(await scoreVersion(asset(p, a), a.version as string, s, typeof a.note === 'string' ? a.note : ''))];
+      if (a.blind === true && reviewer === 'self') throw new Error('a blind re-score needs reviewer: it comes from a fresh reviewer that saw only the blind sheet');
+      return [text(await scoreVersion(asset(p, a), a.version as string, s, typeof a.note === 'string' ? a.note : '', { reviewer, ...(a.blind === true && { blind: true }) }))];
     },
   },
   {

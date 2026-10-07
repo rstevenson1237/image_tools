@@ -22,8 +22,12 @@ describe('W2 production in a scratch game repo', () => {
   const art = (...p: string[]) => join(root, 'art', ...p);
   const ledger = () => parseLedger(readFileSync(art('ledger.jsonl'), 'utf8'));
 
-  /** Drive one asset like the agent would: write each version the pass machine asks for, review and score it. */
-  async function drive(id: string, scores: number[]) {
+  /**
+   * Drive one asset like the agent would: write each version the pass machine asks for, review and score it. Blind
+   * re-scores of finals (rev 9) come from `blind`, else they equal the final's own score (no gap).
+   */
+  async function drive(id: string, scores: number[], blind: number[] = []) {
+    let own = 6.5;
     for (let guard = 0; guard < 12; guard++) {
       const m = await json('make', id, ...R);
       const step = m.next?.step;
@@ -35,7 +39,11 @@ describe('W2 production in a scratch game repo', () => {
       } else if (step.action === 'write-finish') await run('finish', dir, '--base', step.base, ...R);
       else if (step.action === 'review') {
         await run('review', id, '--version', step.version, ...R);
-        await run('score', id, step.version, String(scores.shift() ?? 6.5), '--note', 'test', ...R);
+        own = scores.shift() ?? 6.5;
+        await run('score', id, step.version, String(own), '--note', 'test', '--reviewer', 'art-reviewer', ...R);
+      } else if (step.action === 'blind-review') {
+        await run('review', id, '--version', step.version, '--blind', ...R);
+        await run('score', id, step.version, String(blind.shift() ?? own), '--blind', '--reviewer', 'fresh-reviewer', '--note', 'blind test', ...R);
       }
     }
     throw new Error('drive: no progress');
@@ -69,7 +77,7 @@ describe('W2 production in a scratch game repo', () => {
     expect(m.rows.find((r: { id: string }) => r.id === 'crate')).toMatchObject({ status: 'final', final: 'finish.v1', score: 7 });
     const st = ledger().filter(e => e.asset === 'crate');
     expect(st.find(e => e.type === 'status')).toMatchObject({ status: 'final', version: 'finish.v1', by: 'agent' });
-    const scores = st.filter(e => e.type === 'score');
+    const scores = st.filter(e => e.type === 'score' && !e.blind);
     expect(scores.map(e => e.pass)).toEqual(['r1', 'r2', 'r3', 'f']);
     expect(scores[1]).toMatchObject({ delta: 1.5, model: 'default', effort: 'default' });
     expect(scores[3]).toMatchObject({ base: 'base.v2', delta: 0.5 });
@@ -96,7 +104,7 @@ describe('W2 production in a scratch game repo', () => {
     expect(fb2.next).toMatchObject({ action: 'write-finish', version: 'finish.v3', base: 'base.v4' });
     await drive('goblin', [7.5]);
     expect((await json('status', 'goblin', ...R))[0]).toMatchObject({ status: 'final', final: 'finish.v3', score: 7.5 });
-    expect(ledger().filter(e => e.asset === 'goblin' && e.type === 'score').map(e => e.pass)).toEqual(['r1', 'r2', 'r3', 'f', 'u1', 'f2', 'f3']);
+    expect(ledger().filter(e => e.asset === 'goblin' && e.type === 'score' && !e.blind).map(e => e.pass)).toEqual(['r1', 'r2', 'r3', 'f', 'u1', 'f2', 'f3']);
   }, 60_000);
 
   test('approve (gate + sheet) → export: atlas, pack.json, Aseprite JSON, assets.ts; exported status', async () => {

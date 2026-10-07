@@ -37,7 +37,7 @@ export const stageOf = (pass: string): PassRecord['stage'] =>
 /** Latest score record per asset version, in ledger order of first appearance, with deltas filled in. */
 export function passRecords(ledger: LedgerEntry[]): PassRecord[] {
   const latest = new Map<string, LedgerEntry>();
-  for (const e of ledger) if (e.type === 'score' && e.version && typeof e.score === 'number' && e.asset !== 'direction') latest.set(`${e.asset}\0${e.version}`, e);
+  for (const e of ledger) if (e.type === 'score' && !e.blind && e.version && typeof e.score === 'number' && e.asset !== 'direction') latest.set(`${e.asset}\0${e.version}`, e);
   const out: PassRecord[] = [], lastBase = new Map<string, number>(), baseScore = new Map<string, number>();
   for (const e of latest.values()) {
     const tk = (e.tokens ?? {}) as { code?: number; edit?: number; in?: number; out?: number };
@@ -70,6 +70,8 @@ export interface AnalyticsReport {
   regressions: { asset: string; version: string; pass: string; delta: number }[];
   userRevisionRate: { feedback: number; finals: number; rate?: number; byRoute: Record<string, number> };
   models: { model: string; effort: string; n: number; meanDelta?: number; deltaPerKTok?: number }[];
+  /** Who scored, and how blind re-scores of finals compare with the finals' own scores (rev 9). */
+  review: { byReviewer: Record<string, number>; blind: { n: number; meanGap?: number; over1: number; assets: { asset: string; version: string; own: number; blind: number; gap: number }[] } };
   suggestions: string[];
   totals: { outTokens: number; inTokens: number; imageTokens: number; cost: number; meanFromRevisions?: number; meanFromFinish?: number };
 }
@@ -127,6 +129,17 @@ export function analytics(ledger: LedgerEntry[], metas: AssetMeta[]): AnalyticsR
   if (ff.length >= 3 && mean(ff)! <= 0) suggestions.push(`the finishing pass adds ${mean(ff)} on average — check it is fixing what the review sheets show`);
   const regRate = recs.filter(r => r.stage === 'revision' && (r.delta ?? 0) < 0).length / Math.max(1, recs.filter(r => r.stage === 'revision' && r.delta !== undefined).length);
   if (recs.length >= 10 && regRate > 0.3) suggestions.push(`${Math.round(regRate * 100)}% of revisions regressed — change one thing per revision (R12 keeps the best, but each regression costs a pass)`);
+  const byReviewer: Record<string, number> = {}, own = new Map<string, number>();
+  for (const e of ledger) if (e.type === 'score' && !e.blind && e.asset !== 'direction' && typeof e.score === 'number') {
+    const k = typeof e.reviewer === 'string' ? e.reviewer : 'unrecorded';
+    byReviewer[k] = (byReviewer[k] ?? 0) + 1;
+    own.set(`${e.asset}\0${e.version}`, e.score);
+  }
+  const blindLatest = new Map<string, LedgerEntry>();
+  for (const e of ledger) if (e.type === 'score' && e.blind && typeof e.score === 'number') blindLatest.set(`${e.asset}\0${e.version}`, e);
+  const blindRows = [...blindLatest].filter(([k]) => own.has(k)).map(([k, e]) => ({ asset: e.asset, version: e.version!, own: own.get(k)!, blind: e.score!, gap: round(own.get(k)! - e.score!) }));
+  const meanGap = mean(blindRows.map(b => b.gap));
+  if (blindRows.length >= 3 && meanGap! >= 0.5) suggestions.push(`blind re-scores average ${meanGap} below the pipeline's own scores over ${blindRows.length} finals — run every review through the art-reviewer subagent, not the authoring agent`);
   const totOut = sum(recs.map(r => r.outTokens)), totIn = sum(recs.map(r => r.inTokens)), totImg = sum(recs.map(r => r.imageTokens));
   return {
     assets: ids.length, passes, perAsset,
@@ -134,7 +147,7 @@ export function analytics(ledger: LedgerEntry[], metas: AssetMeta[]): AnalyticsR
     firstPassByTemplate: [...tmpl].map(([template, xs]) => ({ template, n: xs.length, meanR1: mean(xs) })),
     regressions: recs.filter(r => r.delta !== undefined && r.delta < 0).map(r => ({ asset: r.asset, version: r.version, pass: r.pass, delta: r.delta! })),
     userRevisionRate: { feedback: fb.length, finals, rate: finals ? round(new Set(fb.map(e => e.asset)).size / finals) : undefined, byRoute },
-    models, suggestions,
+    models, review: { byReviewer, blind: { n: blindRows.length, meanGap, over1: blindRows.filter(b => b.gap > 1).length, assets: blindRows } }, suggestions,
     totals: { outTokens: totOut, inTokens: totIn, imageTokens: totImg, cost: round(tokenCost(totOut, totIn + totImg), 4), meanFromRevisions: mean(perAsset.map(a => a.fromRevisions).filter((x): x is number => x !== undefined)), meanFromFinish: mean(ff) },
   };
 }
@@ -161,6 +174,10 @@ export function analyticsMarkdown(r: AnalyticsReport, title = 'artgen pipeline a
   md += `\n## User revisions\n\n${u.feedback} feedback rounds over ${u.finals} finished assets (rate ${s(u.rate)})${Object.keys(u.byRoute).length ? `; by route: ${Object.entries(u.byRoute).map(([k, v]) => `${k} ${v}`).join(', ')}` : ''}.\n`;
   md += '\n## Model / effort per stage\n\n| Model | Effort | Passes | Mean Δ | Δ per 1k tok |\n|---|---|---|---|---|\n';
   for (const m of r.models) md += `| ${m.model} | ${m.effort} | ${m.n} | ${s(m.meanDelta, true)} | ${s(m.deltaPerKTok)} |\n`;
+  const rv = r.review;
+  md += `\n## Review independence\n\nScores by reviewer: ${Object.entries(rv.byReviewer).map(([k, v]) => `${k} ${v}`).join(', ') || 'none'}. ` +
+    `Blind re-scores: ${rv.blind.n}${rv.blind.n ? `, mean gap ${s(rv.blind.meanGap, true)} (own − blind), ${rv.blind.over1} more than 1 point apart` : ''}.\n`;
+  if (rv.blind.n) { md += '\n| Asset | Final | Own | Blind | Gap |\n|---|---|---|---|---|\n'; for (const b of rv.blind.assets) md += `| ${b.asset} | ${b.version} | ${b.own} | ${b.blind} | ${s(b.gap, true)} |\n`; }
   md += `\n## Budget suggestions\n\n${r.suggestions.length ? r.suggestions.map(x => `- ${x}`).join('\n') : '- none: no kind crosses a threshold (v3 adding ≤ 0.1 or ≥ 0.75 over ≥ 3 assets, v2 not improving, finish ≤ 0, > 30% regressions)'}\n`;
   return md;
 }

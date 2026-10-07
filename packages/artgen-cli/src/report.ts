@@ -39,7 +39,7 @@ export async function report(root: string, opts: { title?: string; out?: string 
   const summaries: AssetSummary[] = [];
   for (const a of assets) {
     const ledger = ledgerFor(a), scores = latestScores(ledger), st = await passState(a);
-    const entries = st.rows.map(row => ({ row, e: [...ledger].reverse().find(e => e.type === 'score' && e.version === row.version) }));
+    const entries = st.rows.map(row => ({ row, e: [...ledger].reverse().find(e => e.type === 'score' && !e.blind && e.version === row.version) }));
     let prev: number | undefined, out = 0, inp = 0;
     for (const { row, e } of entries) {
       const tk = (e?.tokens ?? {}) as { code?: number; edit?: number };
