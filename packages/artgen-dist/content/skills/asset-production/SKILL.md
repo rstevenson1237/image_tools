@@ -19,7 +19,7 @@ Turn the user's list into briefs, one per asset, in `art/briefs.yaml` (SPEC §5.
 {{ARTGEN}} brief add goblin --kind character --directions 8 --anims walk:4,attack:3 --notes "hunched, big ears, rusty cleaver" --priority 1
 {{ARTGEN}} brief add crate --kind prop --variants 3 --notes "half-sunk, iron bands"
 {{ARTGEN}} brief add mud --kind tile
-{{ARTGEN}} brief add wisp --kind effect --anims idle:6 --importance filler
+{{ARTGEN}} brief add wisp --kind effect --object "will-o'-wisp flame with orbiting sparks" --anims idle:6 --importance filler
 {{ARTGEN}} brief list
 ```
 Kinds: `character creature prop tile tileset texture effect viewmodel ui-icon`. `--size` takes a direction scale key or
@@ -28,6 +28,12 @@ hero|standard|filler` picks the pass budget tier. `--height <metres>` gives the 
 1, a rat 0.25, a pillar 3): every render then reports `height` against the direction's world scale, so props and
 creatures are drawn to one scale instead of filling their frames — give every non-tile brief one. Editing `briefs.yaml`
 by hand is fine; the CLI validates it.
+
+**Effects name an object.** An effect brief needs `--object`: the thing a draftsman could draw from memory ("ice lance",
+"ring of fire", "a fan of playing cards"), described without the word *effect* and without colour words (colour comes
+from the direction). "Cold flame", "enemies miss for 3 seconds" or "a shadow runs along the floor" have nothing to
+draw and come back as a smudge however many passes they get — if no noun survives, settle the concept with the user
+before production. Briefs written without one show `brief: effect brief has no object` as an open issue.
 
 **Timing.** `--durations attack=80/80/200/80` sets milliseconds per frame (one per frame in `--anims`) and overrides
 the state's fps. Give every attack a held contact frame (≥ 2× the others): without it the hit slides instead of

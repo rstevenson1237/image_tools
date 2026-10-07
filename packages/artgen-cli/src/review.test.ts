@@ -106,4 +106,16 @@ describe('rev 9: blind re-score, reviewer records, heights, roster', () => {
     expect(a.review.byReviewer).toEqual({ 'art-reviewer': 5, self: 4 });
     expect(a.review.blind).toMatchObject({ n: 2, over1: 1 });
   });
+
+  test('effect briefs: brief add needs an object; a brief without one shows it as an open issue', async () => {
+    await expect(run('brief', 'add', 'spark', '--kind', 'effect', ...R)).rejects.toThrow(/an effect needs --object/);
+    await expect(run('brief', 'add', 'spark', '--kind', 'effect', '--object', 'blue magic effect', ...R)).rejects.toThrow(/must not say "effect"[\s\S]*colour words \(blue\)/);
+    expect((await json('brief', 'add', 'spark', '--kind', 'effect', '--object', 'shower of sparks', ...R)).brief.object).toBe('shower of sparks');
+    // an older brief written by hand without one
+    writeFileSync(art('briefs.yaml'), readFileSync(art('briefs.yaml'), 'utf8') + '- id: glow\n  kind: effect\n');
+    const rows = await json('status', ...R);
+    expect(rows.find((x: { id: string }) => x.id === 'glow').issues).toEqual([expect.stringMatching(/^brief: effect brief has no object/)]);
+    expect(rows.find((x: { id: string }) => x.id === 'spark').issues).toEqual([]);
+  });
 });
+

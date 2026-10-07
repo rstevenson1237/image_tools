@@ -15,7 +15,7 @@
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import {
-  analytics, analyticsMarkdown, assetsTs, assetStatus, blindScores, briefContract, briefDir, briefOrder, buildPack, contactSheet, contractOf, diffContract,
+  analytics, analyticsMarkdown, assetsTs, assetStatus, blindScores, briefContract, effectObjectIssues, briefDir, briefOrder, buildPack, contactSheet, contractOf, diffContract,
   editOps, Grid, imageTokens, mirrorFacing, pxPerMetre, roster, rosterIssues, TILE_KINDS, type RosterItem, type RosterPair, type RosterReview, type RosterSize, parseBriefs, parseLedger, parseVersion, removeBrief, restyleDiff, restyleSheet, tokenDiffMask, upsertBrief,
   type AnimContract, type AssetMeta, type AssetStatus, type BriefEntry, type Direction, type LedgerEntry, type NextStep, type PackInput, type RenderResult,
 } from 'artgen-core';
@@ -113,7 +113,7 @@ export interface AssetRow {
 /** Status of one brief's asset (derived from the ledger and the pass machine). */
 export async function assetRow(p: Project, b: BriefEntry): Promise<AssetRow> {
   const path = assetPathOf(p, b);
-  const base = { id: b.id, kind: b.kind, path: rel(p, path), issues: [] as string[], imageTokens: 0 };
+  const base = { id: b.id, kind: b.kind, path: rel(p, path), issues: effectObjectIssues(b).map(x => `brief: ${x}`), imageTokens: 0 };
   if (!existsSync(join(path, 'base.v1.js')) && !versionsInPath(path).length) return { ...base, status: 'brief', why: 'not started' };
   const a = openAsset(path), st = await passState(a), ledger = ledgerFor(a);
   const imageTokens = ledger.filter(e => e.type === 'review').reduce((n, e) => n + ((e.imageTokens as number) ?? 0), 0);
@@ -123,7 +123,7 @@ export async function assetRow(p: Project, b: BriefEntry): Promise<AssetRow> {
   const sc = s.final ? [...ledger].reverse().find(e => e.type === 'score' && !e.blind && e.version === s.final) : undefined;
   // roster findings (rev 9) stand while the final they were made on is still the final
   const ro = s.final ? [...ledger].reverse().find(e => e.type === 'roster' && e.version === s.final && Array.isArray(e.issues)) : undefined;
-  const issues = [...s.issues, ...(st.stale ?? []).map(x => `finish-stale ${x}`), ...((ro?.issues as string[] | undefined) ?? [])];
+  const issues = [...effectObjectIssues(b).map(x => `brief: ${x}`), ...s.issues, ...(st.stale ?? []).map(x => `finish-stale ${x}`), ...((ro?.issues as string[] | undefined) ?? [])];
   return { ...base, status: s.status, final: s.final, score: sc?.score as number | undefined, gate: sc?.conformance?.pass, issues, next: st.next, why: s.why, imageTokens, stale: st.stale };
 }
 

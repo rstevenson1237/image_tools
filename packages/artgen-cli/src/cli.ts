@@ -98,7 +98,7 @@ const USAGE = `usage: artgen init
        artgen score <assetDir> <version> <score> [--note "..."] [--reviewer name] [--blind]
        artgen variants <assetDir> [--version v] [--n 8]
        artgen report <dir> [--out REPORT.md] [--title "..."]
-       artgen brief add <id> --kind k [--view v] [--size key|WxH] [--states a,b] [--directions n] [--anims walk:4] [--durations attack=80/80/200/80] [--variants n] [--swaps red:cloth=accent] [--importance t] [--priority n] [--height metres] [--notes "..."] [--break-contract]
+       artgen brief add <id> --kind k [--view v] [--size key|WxH] [--states a,b] [--directions n] [--anims walk:4] [--durations attack=80/80/200/80] [--variants n] [--swaps red:cloth=accent] [--importance t] [--priority n] [--height metres] [--object "ice lance"] [--notes "..."] [--break-contract]
        artgen brief list | rm <id>
        artgen make [ids|all] | status [ids] | gallery [ids]
        artgen feedback <id> --route base|finish --note "..." [--region x,y,w,h] [--cell s/f/n] | approve <id> [--note "..."]
@@ -299,6 +299,7 @@ export async function main(argv: string[]): Promise<number> {
         ...(swaps && { swaps: swaps.reduce((m, x) => { const [n, pair] = x.split(':'), [from, to] = pair.split('='); (m[n] ??= {})[from] = to; return m; }, {} as Record<string, Record<string, string>>) }),
         ...(flag(args, '--importance') && { importance: flag(args, '--importance') as Importance }), ...(flag(args, '--priority') && { priority: +flag(args, '--priority')! }),
         ...(flag(args, '--notes') && { notes: flag(args, '--notes') }), ...(flag(args, '--height') && { height: +flag(args, '--height')! }),
+        ...(flag(args, '--object') && { object: flag(args, '--object') }),
       };
       if (b.importance && !IMPORTANCE.includes(b.importance)) throw new Error(`--importance: ${IMPORTANCE.join(' | ')}`);
       for (const d of list(args, '--durations') ?? []) {
@@ -306,6 +307,8 @@ export async function main(argv: string[]): Promise<number> {
         if (!a || !ms) throw new Error(`--durations ${d}: give state=ms/ms/… for a state in --anims`);
         a.durations = ms.split('/').map(Number);
       }
+      // new effect briefs name the drawable thing up front (rev 9); older briefs without one show it as an open issue
+      if (b.kind === 'effect' && !b.object) throw new Error(`brief add ${b.id}: an effect needs --object "<the drawable thing>" (e.g. "ice lance", "ring of fire") — without the word effect or colour words`);
       if (b.anims && !b.states) b.states = ['idle', ...Object.keys(b.anims).filter(s => s !== 'idle')];
       const all = addBrief(p, b, { breakContract: args.includes('--break-contract') });
       print(`brief ${b.id} (${b.kind}) in art/briefs.yaml — ${all.length} briefs\nnext: artgen make ${b.id}`, { brief: b, count: all.length });

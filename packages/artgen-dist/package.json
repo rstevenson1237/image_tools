@@ -1,7 +1,7 @@
 {
   "name": "artgen-dist",
   "private": true,
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Builds the artgen committed-install distribution (artgen-dist branch) and the plugin layout; install.mjs installs it into a game repo.",
   "type": "module",
   "scripts": {

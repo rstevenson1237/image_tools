@@ -72,7 +72,7 @@ describe('artgen-dist', () => {
 
   test('session-equivalent W2 run from the committed files: brief → make → review/score → status → export (drafts)', () => {
     const cli = (...a: string[]) => { const r = node(['tools/artgen/artgen.js', ...a]); expect(r.status, r.stderr + r.stdout).toBe(0); return r.stdout; };
-    cli('brief', 'add', 'wisp', '--kind', 'effect', '--anims', 'idle:4');
+    cli('brief', 'add', 'wisp', '--kind', 'effect', '--object', 'will-o-wisp flame with orbiting sparks', '--anims', 'idle:4');
     cli('brief', 'add', 'leech', '--kind', 'creature', '--directions', '8', '--anims', 'walk:4');
     expect(cli('make')).toMatch(/next: wisp — review base\.v1/);
     expect(readFileSync(join(GAME, 'art/assets/creature/leech/base.v1.js'), 'utf8')).toMatch(/template: humanoid with facings/);

@@ -5,7 +5,7 @@ import { Grid } from '../lib/grid.ts';
 import { renderAsset, type AssetModule } from '../render.ts';
 import type { NextStep } from '../pipeline.ts';
 import type { LedgerEntry } from '../qa/ledger.ts';
-import { briefOrder, parseBriefs, removeBrief, upsertBrief, validateBrief } from './briefs.ts';
+import { briefOrder, effectObjectIssues, parseBriefs, removeBrief, upsertBrief, validateBrief } from './briefs.ts';
 import { assetStatus } from './status.ts';
 import { assetsTs, buildPack, packRects, swapMaps } from './pack.ts';
 import { briefContract, contractOf, diffContract } from './contract.ts';
@@ -240,6 +240,23 @@ describe('analytics: review independence (rev 9)', () => {
     expect(r.passes.map(p => p.pass)).toEqual(['r1', 'f']);
     expect(r.review).toEqual({ byReviewer: { self: 1, 'art-reviewer': 1 }, blind: { n: 1, meanGap: 2, over1: 1, assets: [{ asset: 'a', version: 'finish.v1', own: 7, blind: 5, gap: 2 }] } });
     expect(analyticsMarkdown(r)).toContain('Blind re-scores: 1, mean gap +2 (own − blind), 1 more than 1 point apart');
+  });
+});
+
+describe('effect object (rev 9)', () => {
+  test('an effect names a drawable thing, without "effect" or colour words; a missing one is an issue, not an invalid brief', () => {
+    const fx = (object?: string) => effectObjectIssues({ kind: 'effect', object });
+    expect(fx('ice lance')).toEqual([]);
+    expect(fx('ring of fire')).toEqual([]);
+    expect(fx('a fan of playing cards')).toEqual([]);
+    expect(fx('cold pale flame')).toEqual(['object must not lean on colour words (pale): colour comes from the direction']);
+    expect(fx('shadow effect')).toEqual(['object must not say "effect": name the thing itself']);
+    expect(fx('purple glowing VFX')[0]).toMatch(/"effect"/);
+    expect(fx('ab')).toEqual(['object must name a thing (a noun a draftsman could draw)']);
+    expect(fx()).toEqual([expect.stringMatching(/no object: name the drawable thing/)]);
+    expect(effectObjectIssues({ kind: 'prop' })).toEqual([]);
+    expect(validateBrief({ id: 'wisp', kind: 'effect' })).toEqual([]);
+    expect(validateBrief({ id: 'wisp', kind: 'effect', object: 'purple glow' })).toEqual(['brief wisp: object must not lean on colour words (purple): colour comes from the direction']);
   });
 });
 

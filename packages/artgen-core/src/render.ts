@@ -31,6 +31,8 @@ export interface Brief {
   notes?: string;
   /** Real-world height in metres (rev 9): the drawn body should be `height × pxPerMetre(dir)` px tall (conformance `height`). */
   height?: number;
+  /** Effects: the drawable thing the effect is (`ice lance`, `ring of fire`), not a description of an effect (rev 9). */
+  object?: string;
 }
 
 export type Anchors = Record<string, [number, number]>;
