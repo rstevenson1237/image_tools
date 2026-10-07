@@ -84,6 +84,13 @@ describe('W2: extra autonomous revision, user feedback routes, open issues (P3)'
     expect(run([...v, 'base.v4', 'finish.v2'], [...l, ok('base.v4', 6), ok('finish.v2', 6.5)], { ...u, finishBase: { ...fb, 'finish.v2': 'base.v4' } })).toMatchObject({ action: 'ready', final: 'finish.v2' });
   });
 
+  test("the step a user's feedback opens carries their words, region and cell (from Claude Code or the image tools)", () => {
+    const fb = { 'finish.v1': 'base.v2' }, v = [...three, 'finish.v1'], l = [...l3, ok('finish.v1', 7)];
+    const pinned = run(v, l, { finishBase: fb, feedback: [{ route: 'finish', opens: 'finish.v2', note: 'eyes too bright', region: [3, 2, 4, 4], cell: 'idle/s/0' }] });
+    expect(pinned.why).toMatch(/user: "eyes too bright" \(region x,y,w,h 3,2,4,4 of idle\/s\/0\)$/);
+    expect(run(v, l, { finishBase: fb, feedback: [{ route: 'base', opens: 'base.v4', note: 'bigger ears' }] }).why).toMatch(/user: "bigger ears"$/);
+  });
+
   test('blind re-score (rev 9): a fresh reviewer scores the final; a gap or a low blind score is an issue and spends the extra revision', () => {
     const v = ['base.v1', 'base.v2', 'base.v3', 'finish.v1'], s: [string, number][] = [['base.v1', 5], ['base.v2', 7], ['base.v3', 6.5], ['finish.v1', 7]];
     const fb = { 'finish.v1': 'base.v2' }, blind = { minScore: 6.5, maxGap: 1 };

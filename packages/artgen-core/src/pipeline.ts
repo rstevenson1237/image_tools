@@ -39,8 +39,18 @@ export type NextStep =
 
 export interface PassRow { version: string; pass: string; score?: number; gate?: boolean; base?: string }
 
-/** User feedback that opened a U-stage version (`route: base` → a new base, `finish` → a finish revision). */
-export interface FeedbackOpen { route: 'base' | 'finish'; opens: string }
+/**
+ * User feedback that opened a U-stage version (`route: base` → a new base, `finish` → a finish revision), with what the
+ * user said — typed in Claude Code, or written by the image tools (a note pinned to a region of one cell).
+ */
+export interface FeedbackOpen { route: 'base' | 'finish'; opens: string; note?: string; region?: number[]; cell?: string }
+
+/** The user's words for a step's `why`: ` — user: "…" (region x,y,w,h of idle/s/0)`. */
+const userWords = (f: FeedbackOpen): string => {
+  if (!f.note) return '';
+  const where = f.region ? ` (region x,y,w,h ${f.region.join(',')}${f.cell ? ` of ${f.cell}` : ''})` : f.cell ? ` (${f.cell})` : '';
+  return ` — user: "${f.note}"${where}`;
+};
 
 export interface PassState {
   asset: string;
@@ -140,8 +150,8 @@ export function planPasses(input: PlanInput): PassState {
   const open = fb?.filter(f => !vs.some(v => v.name === f.opens)).pop();
   if (open) {
     const shown = bound ?? best.version;
-    if (open.route === 'base') return state({ action: 'write-base', version: open.opens, pass: pid(open.opens), from: shown, why: `user feedback (form, proportion, colour): new base from ${shown}, the version the user saw` });
-    return state({ action: 'write-finish', version: open.opens, pass: pid(open.opens), base: shown, why: `user feedback (pixels): finish revision on ${shown}` });
+    if (open.route === 'base') return state({ action: 'write-base', version: open.opens, pass: pid(open.opens), from: shown, why: `user feedback (form, proportion, colour): new base from ${shown}, the version the user saw${userWords(open)}` });
+    return state({ action: 'write-finish', version: open.opens, pass: pid(open.opens), base: shown, why: `user feedback (pixels): finish revision on ${shown}${userWords(open)}` });
   }
   // the base to finish: the latest user iteration (the user asked for it), else the best-scoring base (R12)
   const userBases = bases.filter(isUserBase), target = userBases.length ? { version: userBases[userBases.length - 1].name, score: scores.get(userBases[userBases.length - 1].name)!.score } : best;

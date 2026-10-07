@@ -9,15 +9,15 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
-  applyFinish, assembleSheet, conformance, contactSheet, parseBriefs, finishSnapshot, finishStale, Grid, imageTokens, iso, parseDirection, parseLedger,
+  applyFinish, assembleSheet, budgetFor, finishBaseOf, conformance, contactSheet, parseBriefs, finishSnapshot, finishStale, Grid, imageTokens, iso, parseDirection, parseLedger,
   parseVersion, passId, planPasses, pxPerMetre, renderAsset, resolveSize, reviewSheet, sourceHash, TILE_KINDS,
-  type AssetModule, type BriefEntry, type ConformanceReport, type FeedbackOpen, type Direction, type FinishModule, type LedgerEntry, type PassState,
+  type AssetBudget, type AssetModule, type BriefEntry, type ConformanceReport, type FeedbackOpen, type Direction, type FinishModule, type LedgerEntry, type PassState,
   type PatchRecord, type RenderResult,
 } from 'artgen-core';
 import { BENCH_DIRECTIONS } from 'artgen-core/bench';
 import { strip } from './bench.ts';
 import { appendLedger, initNodeSvg, readGrid, writeGrid } from './node.ts';
-import { findProject, isPlaceholderDirection, projectConfig, type Project, type ProjectConfig } from './project.ts';
+import { findProject, isPlaceholderDirection, projectConfig, type Project } from './project.ts';
 
 export interface AssetBrief extends BriefEntry {
   /** Template the asset started from (`topdown/character`), recorded for analytics. */
@@ -39,19 +39,10 @@ export interface AssetDir {
   /** Game repo the asset belongs to (absent for bench assets outside a project). */
   project?: Project;
   /** Effective budget: revision passes (config per kind / tier, else the direction) and extra autonomous revisions. */
-  budget?: { revisionPasses: number; extraRevisions: number; maxImageTokens?: number; maxUserIterations: number };
+  budget?: AssetBudget;
 }
 
-/** Effective pipeline budget for an asset (D19): `budget.perKind[kind]` > `budget.tiers[importance]` > `budget` > direction. */
-export function budgetFor(cfg: ProjectConfig | undefined, brief: AssetBrief, dir: Direction): NonNullable<AssetDir['budget']> {
-  const b = cfg?.budget ?? {}, kind = b.perKind?.[brief.kind] ?? {}, tier = (brief.importance && b.tiers?.[brief.importance]) || {};
-  return {
-    revisionPasses: kind.revisionPasses ?? tier.revisionPasses ?? b.revisionPasses ?? dir.pipeline.revisionPasses,
-    extraRevisions: kind.extraAutonomousRevisions ?? tier.extraAutonomousRevisions ?? b.extraAutonomousRevisions ?? 0,
-    maxImageTokens: kind.maxImageTokensPerAsset ?? tier.maxImageTokensPerAsset ?? b.maxImageTokensPerAsset,
-    maxUserIterations: b.maxUserIterations ?? 3,
-  };
-}
+export { budgetFor };
 
 /** The brief for `id` in the project's `art/briefs.yaml`, if any (throws on an invalid file). */
 export function projectBrief(p: Project, id: string): BriefEntry | undefined {
@@ -109,7 +100,10 @@ export const revisionPasses = (a: AssetDir): number => a.budget?.revisionPasses 
 
 /** User feedback that opened U-stage versions, in ledger order. */
 export const feedbackOf = (a: AssetDir): FeedbackOpen[] =>
-  ledgerFor(a).filter(e => e.type === 'feedback' && e.by === 'user' && typeof e.opens === 'string').map(e => ({ route: e.route === 'finish' ? 'finish' : 'base', opens: e.opens as string }));
+  ledgerFor(a).filter(e => e.type === 'feedback' && e.by === 'user' && typeof e.opens === 'string').map(e => ({
+    route: e.route === 'finish' ? 'finish' : 'base', opens: e.opens as string,
+    ...(typeof e.note === 'string' && { note: e.note }), ...(Array.isArray(e.region) && { region: e.region as number[] }), ...(typeof e.cell === 'string' && { cell: e.cell }),
+  }));
 
 /** Ledger pass id of a version for this asset (feedback-aware: r, x, u, f). */
 export const passOf = (a: AssetDir, version: string): string => passId(version, revisionPasses(a), a.project ? feedbackOf(a).map(f => f.opens) : undefined);
@@ -291,8 +285,8 @@ export async function scoreVersion(a: AssetDir, version: string, score: number, 
 export async function passState(a: AssetDir): Promise<PassState & { stale?: string[] }> {
   const versions = versionsIn(a), finishBase: Record<string, string> = {};
   for (const v of versions) if (v.startsWith('finish.')) {
-    const m = sourceOf(a, v).match(/export\s+const\s+base\s*=\s*['"]([^'"]+)['"]/);
-    if (m) finishBase[v] = m[1];
+    const b = finishBaseOf(sourceOf(a, v));
+    if (b) finishBase[v] = b;
   }
   const st = planPasses({
     asset: a.brief.id, versions, ledger: ledgerFor(a), revisionPasses: revisionPasses(a), finishPass: a.dir.pipeline.finishPass, finishBase,
@@ -350,6 +344,6 @@ export function anchorsFor(a: AssetDir): { label: string; grid: Grid }[] {
 export function finalHash(a: AssetDir, version: string): string {
   const v = parseVersion(version)!;
   if (v.kind === 'base') return sourceHash(sourceOf(a, version));
-  const src = sourceOf(a, version), base = src.match(/export\s+const\s+base\s*=\s*['"]([^'"]+)['"]/)?.[1];
+  const src = sourceOf(a, version), base = finishBaseOf(src);
   return sourceHash((base ? sourceOf(a, base) + '\n' : '') + src);
 }
