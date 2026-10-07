@@ -10,6 +10,10 @@
   unless you mean to keep a local fork) and the typed ids in `src/art/assets.ts` (generated — don't edit).
 - The pipeline runs autonomously: don't ask the user between passes; they see finished assets and approve or give
   feedback. Only the user approves (`artgen approve`).
+- The user may also work in the **image tools** web app (Art Direction, Asset Review, Asset Lab), which opens this
+  repo's `art/` and writes the same files: ledger lines with `"via": "image-tools"` are the user's own approvals and
+  feedback (feedback may pin a `region` / `cell`), drafts land in `art/candidates/`, and a direction locked there bumps
+  the version — run `/artgen-restyle`. Re-read files every run; `node tools/artgen/artgen.js status` shows where things stand.
 - Never hard-code palette colours, the outline colour, light or sizes in asset code: read them from `ctx.dir` (R11).
 - Never edit a version that has a score; write the next `base.vN.js` / `finish.vM.js` (R10).
 - CLI: `node tools/artgen/artgen.js <command>` (no npm install needed); the `artgen` MCP server exposes the same tools.
