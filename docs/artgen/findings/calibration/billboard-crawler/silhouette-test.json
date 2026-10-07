@@ -1,0 +1,13 @@
+{
+  "answers": [
+    {"letter": "A", "free_guess": "hospital bed, side view (headboard left, footboard right)", "readability": 4, "match_id": "iron-bed", "match_confidence": 5, "why": "Tall head frame, flat mattress and four legs read as a bed even at 1x. The restraint straps are not visible."},
+    {"letter": "B", "free_guess": "wheelchair, side view", "readability": 5, "match_id": "wheelchair", "match_confidence": 5, "why": "Push handles, seat and a big spoked wheel with holes. Obvious at 1x."},
+    {"letter": "C", "free_guess": "low crawling animal or mound with a pointed snout on the right; maybe a rat or a crawling thing", "readability": 2, "match_id": "rat", "match_confidence": 4, "why": "Low, long body with a snout tip. No legs, ears or clear tail, so it looks like a mound or slug. At 1x it is a smudge."},
+    {"letter": "D", "free_guess": "standing person, featureless (patient or staff)", "readability": 3, "match_id": "orderly", "match_confidence": 4, "why": "Round head on a body shaped like a capsule. The 'arms out' and 'head lolling' from the notes do not show: the arms merge with the torso, so it reads as a generic standing figure, not a sleepwalker."},
+    {"letter": "E", "free_guess": "rounded tombstone or capsule shape with a small hook at the bottom right; maybe a crouching figure or a container", "readability": 1, "match_id": "pill-bottle", "match_confidence": 3, "why": "Chosen mostly by elimination. A wider cap band on top of a rounded body could be a bottle, but the hook at the bottom right (a tail?) suggests a rat or a creature. At 1x it does not read as a pickup icon."},
+    {"letter": "F", "free_guess": "big hulking blob figure, hunched brute or shrouded monster", "readability": 2, "match_id": "ghoul", "match_confidence": 4, "why": "Massive hunched mass with a small head bump, which fits a hunched creature. The long clawed arms are not visible: it reads as a bell-shaped blob, not a creature with limbs."},
+    {"letter": "G", "free_guess": "flame or droplet with sparkle crosses around it (a magic or pickup effect)", "readability": 3, "match_id": "lamp-flicker", "match_confidence": 4, "why": "Teardrop flame shape with sparkles. It reads as flame or glow, but the sparkles could also suggest a pickup or collectible."},
+    {"letter": "H", "free_guess": "IV drip stand with a hanging bag and a wheeled base", "readability": 4, "match_id": "iv-stand", "match_confidence": 5, "why": "Tall pole, a hook with a hanging bag and a splayed caster base. Distinctive at 1x."}
+  ],
+  "confusable_pairs": [["D", "F"], ["E", "C"], ["E", "F"]]
+}

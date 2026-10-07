@@ -1,0 +1,94 @@
+{
+  "assets": [
+    {
+      "id": "lantern-bearer",
+      "scale": "ok",
+      "scale_note": "Fills the full 24px height (body about 20px, pole and lantern on top) and is about 18px wide. As the player and reference figure it reads correctly. The hood and shoulders are very broad (about 14px), so the figure looks squat next to the goblin.",
+      "consistency_issues": [
+        "Uses 16 colours. The props and creatures use 4 to 12, so the detail density does not match the rest of the set.",
+        "The coat uses exactly the same green ramp as the goblin's skin (#222D1F / #5D704F). At 1x the hero and the enemy blur into one colour mass, so the only thing that tells them apart is the lantern.",
+        "The face is an uncovered skin-tone rectangle with yellow pupils, nearly the same eyes as the goblin, so the hooded wader looks like a cousin of the goblin.",
+        "Its outline colour (#191411) is a slightly warmer near-black than the shared #171712 the other assets use. Minor.",
+        "Characters have no ground shadow or puddle, while the crate, post, reeds and bone pile all sit on a dark base. Ground contact is inconsistent."
+      ]
+    },
+    {
+      "id": "bog-goblin",
+      "scale": "ok",
+      "scale_note": "About 20x19, a little shorter than the player, which suits a hunched goblin. The ears push it wider than the player. Acceptable.",
+      "consistency_issues": [
+        "Same green ramp as the player's coat (see lantern-bearer). The enemy does not get its own hue. Push it to a yellower, muddier olive, or recolour the player's coat.",
+        "The cleaver's metal highlight is the brightest cold tone on the sprite, brighter than its face, which pulls the eye to the weapon instead of the silhouette. Minor."
+      ]
+    },
+    {
+      "id": "leech",
+      "scale": "too big",
+      "scale_note": "22px long by 11px high, almost as long as the player is tall and wider than the goblin. Even a 'fat' bog leech reads as a giant worm or eel here. It should be about 50-60% of this size (12-14px long).",
+      "consistency_issues": [
+        "Drawn in pure side profile, facing right. Everything else is front-facing three-quarter top-down, and the lineup is meant to show idle facing the viewer, so the camera angle is broken.",
+        "The segment banding is noisy, with high-contrast light and dark checkering. It reads as camouflage texture rather than the 3-band shading the other organic assets use.",
+        "The pink sucker mouth is the only pink in the roster. Fine as a focal accent, but check it against the palette."
+      ]
+    },
+    {
+      "id": "wisp",
+      "scale": "ok",
+      "scale_note": "About 19x18. Large for a floating orb next to a 24px player, but effects can run large. It could lose 20-25% and still read.",
+      "consistency_issues": [
+        "Biggest palette break in the set: the brief says a cold, pale flame, but it is rendered entirely in the hot lantern amber and orange (#FF9A1E, #FFF0A8, #8A3008). That breaks the 'lantern amber only on light sources' and 'the lantern is the only warm light' rules, and the hostile wisp becomes the warmest, most saturated object in the lineup, outshining the player's lantern.",
+        "The orange crescent under the flame makes it read as a campfire or brazier sitting on the ground, not a floating orb. It also sits on the same baseline as the props.",
+        "No dark outline. It uses only 4 colours, all glow ramp. Selout on an effect is defensible, but it is the only asset with no near-black edge."
+      ]
+    },
+    {
+      "id": "sunk-crate",
+      "scale": "too big",
+      "scale_note": "24px wide (the full frame) by 18px, wider than the player is tall and wider than either character. A crate half-sunk in water should come up to about the player's knee or hip: roughly 14-16px wide, about 60-70% of the current size.",
+      "consistency_issues": [
+        "The material reads as stone or a tombstone slab, not rotten wood. The planks are pale grey-beige with no wood grain, and the iron bands are thin grey verticals. Next to the wooden lantern-post the two do not look like the same material family.",
+        "A dark brown mass (#29211B) sits behind and above the crate toward the upper right. If it is a cast shadow, it contradicts the top-left light: the shadow should fall down and to the right. It is also close in value to the ground, so it muddies the silhouette.",
+        "The waterline ellipse is the largest dark base in the roster, which makes it look heavier than everything else."
+      ]
+    },
+    {
+      "id": "lantern-post",
+      "scale": "too small",
+      "scale_note": "The full 24px height puts it the same height as the player, and the hanging lantern ends up at the player's chest height. A waymarker post with an overhead lantern arm should clear a person's head: about 1.3-1.5x taller, or a taller frame or large-prop slot.",
+      "consistency_issues": [
+        "The 'warm glow' lantern is a dull brick-red box with two muted amber bars, far dimmer than the player's lantern and the wisp. The roster's light hierarchy is inverted: the waymarker light source is the dullest light in the set.",
+        "The post top and arm use dark brown (#29211B) with almost no value separation from the mud ground (#272621). The top of the silhouette disappears at 1x, which breaks 'silhouettes readable at 1x on mud'.",
+        "Drawn in flat side elevation, with the arm going straight right. That is fine for an upright post but slightly flatter than the three-quarter view of the crate."
+      ]
+    },
+    {
+      "id": "reeds",
+      "scale": "ok",
+      "scale_note": "About 18x23, about player height. Plausible for a bulrush clump, so the size is ok.",
+      "consistency_issues": [
+        "The cattail heads are dark brown (#29211B) at nearly ground value with no outline separation, so the top of the clump vanishes at 1x. The same problem affects the lantern-post.",
+        "The leaf highlights run along the left edges, consistent with the light, but the clump is a flat, symmetric fan with less shading depth than the characters."
+      ]
+    },
+    {
+      "id": "bone-pile",
+      "scale": "too big",
+      "scale_note": "23x16 overall. The skull alone is about 9px wide, wider than the player's head (about 6px face). A human skull should be smaller than a living head. Shrink by about 30%, or keep the footprint and shrink the skull to about 5-6px.",
+      "consistency_issues": [
+        "Bones are a cool blue-grey ramp (#666F72 / #A2A9A9) that reads as stone or metal, not 'bleached bone white'. It is the only cool-grey organic in the roster, and it sits close to the forbidden blue.",
+        "The big centred skull above two side-splayed bones reads as a crouching creature or ghost peeking out of the ground, not a scatter. Its silhouette could be confused with an enemy.",
+        "The dark brown and green ground patch under it duplicates the crate's dark base. The props are unevenly grounded compared with the characters, which have no base."
+      ]
+    }
+  ],
+  "roster_notes": [
+    "The light hierarchy is broken across the set. Direction says the lantern is the only warm light, but the wisp (an enemy and a cold flame) is the hottest, brightest object, the player's lantern is second, and the lantern-post's 'warm glow' is a dim red box. Fix the wisp to pale cold green-white, and give the post lantern the same glow core as the player's lantern.",
+    "The player and the goblin share one green ramp. At 1x on the mud ground, friend and foe separate only by the lantern dot. Give the player's oilcloth coat a distinct hue or value, such as a darker desaturated teal-olive or a lighter oilcloth sheen, or shift the goblin to a yellower bog green.",
+    "Scale drift is upward on small things: the leech (about 2x), crate (about 1.5x) and skull (about 1.3x) are all inflated to fill the 24px frame, while the one thing that should be tall (lantern-post) is capped at player height. This is the classic 'everything fills its frame' failure. Set real-world size targets per kind, such as a small creature at 12px, a crate at 14-16px wide and a large prop at 32px tall.",
+    "Low-value dark brown (#29211B) is used as a fill colour on the crate backdrop, post top and cattail heads. It sits within a few values of the mud background (#272621), so several silhouettes lose their tops at 1x. Either outline those shapes with the shared near-black plus a selout rim, or lift that brown.",
+    "Camera angle is inconsistent. The characters and bone pile are front-facing three-quarter top-down, the leech is a pure side profile, and the post is a side elevation. Bring the leech round to face the viewer (or a three-quarter view) for the idle frame.",
+    "Detail density splits into two tiers: the characters use 12-16 colours and dense shading, while the props and creatures use 4-9 colours and flat fills. The props look lower-fidelity next to the cast. Bring the crate, reeds and leech up to 3 shading bands with a clear top-left highlight.",
+    "Ground contact is not standardised. Every prop has a painted dark base or puddle, the characters and wisp have none, and the leech has a heavy dark underside. Pick one rule, for example a shared soft drop-shadow ellipse for every grounded asset and none for floating effects.",
+    "Material families diverge. Wood on the post is warm brown, wood on the crate is pale grey-beige, and the bones are cool grey. Reuse the direction's WOOD and STONE ramps consistently so the crate reads as wood."
+  ]
+}

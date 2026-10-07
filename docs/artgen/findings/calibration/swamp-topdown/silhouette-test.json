@@ -1,0 +1,13 @@
+{
+  "answers": [
+    {"letter": "A", "free_guess": "tree stump or bucket/top hat with a flared base", "readability": 2, "match_id": "sunk-crate", "match_confidence": 3, "why": "Squat rounded block with a wide flared skirt at the bottom reads as an object sitting in water with a waterline; no planks or iron bands show, so it's only a matched blob"},
+    {"letter": "B", "free_guess": "reed/cattail clump or cactus-like plant", "readability": 3, "match_id": "reeds", "match_confidence": 4, "why": "Upright fan of stalks with bulb tops, splaying side leaves; the only plant-like vertical shape"},
+    {"letter": "C", "free_guess": "slug/leech or a short fallen log", "readability": 3, "match_id": "leech", "match_confidence": 4, "why": "Elongated bean shape, fatter at one end; no segments or sucker visible, so it could also pass for a log"},
+    {"letter": "D", "free_guess": "frog or crab-like creature seen from above, arms out", "readability": 3, "match_id": "bog-goblin", "match_confidence": 4, "why": "Wide pointed side protrusions read as the oversized ears, plus a body with limbs. No cleaver is distinguishable, and it reads as a frog or crab before a goblin"},
+    {"letter": "E", "free_guess": "mud mound / rock pile / slime", "readability": 1, "match_id": "bone-pile", "match_confidence": 3, "why": "Low lumpy heap with a stepped outline; picked partly by elimination. No skull or bone shapes are distinct"},
+    {"letter": "F", "free_guess": "tall egg/boulder or hooded figure", "readability": 1, "match_id": "lantern-bearer", "match_confidence": 3, "why": "Tall rounded upright mass, plausibly a hooded long coat; the small notch at upper-left might be the lantern pole, but there's no readable lantern or limbs. Weak for the player character"},
+    {"letter": "G", "free_guess": "flame or sprout over a curved bowl/splash, with a sparkle", "readability": 3, "match_id": "wisp", "match_confidence": 3, "why": "Teardrop flame shape with a detached plus-shaped spark matches the flame-and-sparks note; the crescent under it isn't explained by the note"},
+    {"letter": "H", "free_guess": "lamp post / signpost with a hanging lantern", "readability": 5, "match_id": "lantern-post", "match_confidence": 5, "why": "Vertical post, wide foot, arm with a hanging object: obvious even at 1x"}
+  ],
+  "confusable_pairs": [["A","E"], ["A","F"], ["E","F"], ["C","E"]]
+}

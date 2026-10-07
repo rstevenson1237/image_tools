@@ -1,0 +1,861 @@
+{
+  "swamp-topdown": {
+    "letters": {
+      "A": "sunk-crate",
+      "B": "reeds",
+      "C": "leech",
+      "D": "bog-goblin",
+      "E": "bone-pile",
+      "F": "lantern-bearer",
+      "G": "wisp",
+      "H": "lantern-post"
+    },
+    "sizes": [
+      {
+        "id": "lantern-bearer",
+        "kind": "character",
+        "frame": [
+          24,
+          24
+        ],
+        "h": 24,
+        "w": 18,
+        "group": "figure",
+        "median": 19,
+        "dev": 0.263,
+        "flag": true
+      },
+      {
+        "id": "bog-goblin",
+        "kind": "character",
+        "frame": [
+          24,
+          24
+        ],
+        "h": 19,
+        "w": 20,
+        "group": "figure",
+        "median": 19,
+        "dev": 0,
+        "flag": false
+      },
+      {
+        "id": "leech",
+        "kind": "creature",
+        "frame": [
+          24,
+          24
+        ],
+        "h": 11,
+        "w": 22,
+        "group": "figure",
+        "median": 19,
+        "dev": -0.421,
+        "flag": true
+      },
+      {
+        "id": "wisp",
+        "kind": "effect",
+        "frame": [
+          24,
+          24
+        ],
+        "h": 18,
+        "w": 19,
+        "group": "effect",
+        "median": 18,
+        "dev": 0,
+        "flag": false
+      },
+      {
+        "id": "sunk-crate",
+        "kind": "prop",
+        "frame": [
+          24,
+          24
+        ],
+        "h": 18,
+        "w": 24,
+        "group": "prop",
+        "median": 20.5,
+        "dev": -0.122,
+        "flag": true
+      },
+      {
+        "id": "lantern-post",
+        "kind": "prop",
+        "frame": [
+          24,
+          24
+        ],
+        "h": 24,
+        "w": 17,
+        "group": "prop",
+        "median": 20.5,
+        "dev": 0.171,
+        "flag": true
+      },
+      {
+        "id": "reeds",
+        "kind": "prop",
+        "frame": [
+          24,
+          24
+        ],
+        "h": 23,
+        "w": 18,
+        "group": "prop",
+        "median": 20.5,
+        "dev": 0.122,
+        "flag": true
+      },
+      {
+        "id": "bone-pile",
+        "kind": "prop",
+        "frame": [
+          24,
+          24
+        ],
+        "h": 16,
+        "w": 23,
+        "group": "prop",
+        "median": 20.5,
+        "dev": -0.22,
+        "flag": true
+      }
+    ],
+    "iou": [
+      {
+        "a": "sunk-crate",
+        "b": "bone-pile",
+        "iou": 0.702
+      },
+      {
+        "a": "bog-goblin",
+        "b": "sunk-crate",
+        "iou": 0.669
+      },
+      {
+        "a": "lantern-bearer",
+        "b": "reeds",
+        "iou": 0.587
+      },
+      {
+        "a": "bog-goblin",
+        "b": "reeds",
+        "iou": 0.566
+      },
+      {
+        "a": "lantern-post",
+        "b": "reeds",
+        "iou": 0.559
+      },
+      {
+        "a": "lantern-bearer",
+        "b": "bog-goblin",
+        "iou": 0.543
+      },
+      {
+        "a": "leech",
+        "b": "bone-pile",
+        "iou": 0.539
+      },
+      {
+        "a": "lantern-bearer",
+        "b": "lantern-post",
+        "iou": 0.531
+      },
+      {
+        "a": "lantern-bearer",
+        "b": "sunk-crate",
+        "iou": 0.527
+      },
+      {
+        "a": "sunk-crate",
+        "b": "reeds",
+        "iou": 0.522
+      },
+      {
+        "a": "bog-goblin",
+        "b": "bone-pile",
+        "iou": 0.497
+      },
+      {
+        "a": "wisp",
+        "b": "bone-pile",
+        "iou": 0.49
+      },
+      {
+        "a": "reeds",
+        "b": "bone-pile",
+        "iou": 0.471
+      },
+      {
+        "a": "sunk-crate",
+        "b": "lantern-post",
+        "iou": 0.459
+      },
+      {
+        "a": "leech",
+        "b": "sunk-crate",
+        "iou": 0.446
+      },
+      {
+        "a": "bog-goblin",
+        "b": "lantern-post",
+        "iou": 0.43
+      },
+      {
+        "a": "leech",
+        "b": "wisp",
+        "iou": 0.429
+      },
+      {
+        "a": "wisp",
+        "b": "sunk-crate",
+        "iou": 0.419
+      },
+      {
+        "a": "lantern-bearer",
+        "b": "bone-pile",
+        "iou": 0.395
+      },
+      {
+        "a": "wisp",
+        "b": "reeds",
+        "iou": 0.381
+      },
+      {
+        "a": "bog-goblin",
+        "b": "wisp",
+        "iou": 0.372
+      },
+      {
+        "a": "bog-goblin",
+        "b": "leech",
+        "iou": 0.349
+      },
+      {
+        "a": "lantern-post",
+        "b": "bone-pile",
+        "iou": 0.345
+      },
+      {
+        "a": "wisp",
+        "b": "lantern-post",
+        "iou": 0.326
+      },
+      {
+        "a": "leech",
+        "b": "reeds",
+        "iou": 0.322
+      },
+      {
+        "a": "lantern-bearer",
+        "b": "wisp",
+        "iou": 0.315
+      },
+      {
+        "a": "leech",
+        "b": "lantern-post",
+        "iou": 0.243
+      },
+      {
+        "a": "lantern-bearer",
+        "b": "leech",
+        "iou": 0.24
+      }
+    ]
+  },
+  "iso-dungeon": {
+    "letters": {
+      "A": "chest",
+      "B": "pillar",
+      "C": "slime",
+      "D": "rubble",
+      "E": "skeleton-knight",
+      "F": "brazier",
+      "G": "hero",
+      "H": "torch-flame",
+      "I": "barrel"
+    },
+    "sizes": [
+      {
+        "id": "hero",
+        "kind": "character",
+        "frame": [
+          24,
+          32
+        ],
+        "h": 32,
+        "w": 20,
+        "group": "figure",
+        "median": 29,
+        "dev": 0.103,
+        "flag": true
+      },
+      {
+        "id": "skeleton-knight",
+        "kind": "character",
+        "frame": [
+          24,
+          32
+        ],
+        "h": 29,
+        "w": 19,
+        "group": "figure",
+        "median": 29,
+        "dev": 0,
+        "flag": false
+      },
+      {
+        "id": "slime",
+        "kind": "creature",
+        "frame": [
+          24,
+          32
+        ],
+        "h": 22,
+        "w": 24,
+        "group": "figure",
+        "median": 29,
+        "dev": -0.241,
+        "flag": true
+      },
+      {
+        "id": "torch-flame",
+        "kind": "effect",
+        "frame": [
+          24,
+          24
+        ],
+        "h": 18,
+        "w": 14,
+        "group": "effect",
+        "median": 18,
+        "dev": 0,
+        "flag": false
+      },
+      {
+        "id": "chest",
+        "kind": "prop",
+        "frame": [
+          32,
+          32
+        ],
+        "h": 26,
+        "w": 32,
+        "group": "prop",
+        "median": 29,
+        "dev": -0.103,
+        "flag": true
+      },
+      {
+        "id": "barrel",
+        "kind": "prop",
+        "frame": [
+          32,
+          32
+        ],
+        "h": 31,
+        "w": 22,
+        "group": "prop",
+        "median": 29,
+        "dev": 0.069,
+        "flag": false
+      },
+      {
+        "id": "pillar",
+        "kind": "prop",
+        "frame": [
+          32,
+          32
+        ],
+        "h": 30,
+        "w": 22,
+        "group": "prop",
+        "median": 29,
+        "dev": 0.034,
+        "flag": false
+      },
+      {
+        "id": "brazier",
+        "kind": "prop",
+        "frame": [
+          32,
+          32
+        ],
+        "h": 29,
+        "w": 26,
+        "group": "prop",
+        "median": 29,
+        "dev": 0,
+        "flag": false
+      },
+      {
+        "id": "rubble",
+        "kind": "prop",
+        "frame": [
+          32,
+          32
+        ],
+        "h": 16,
+        "w": 24,
+        "group": "prop",
+        "median": 29,
+        "dev": -0.448,
+        "flag": true
+      }
+    ],
+    "iou": [
+      {
+        "a": "barrel",
+        "b": "pillar",
+        "iou": 0.798
+      },
+      {
+        "a": "hero",
+        "b": "barrel",
+        "iou": 0.742
+      },
+      {
+        "a": "chest",
+        "b": "brazier",
+        "iou": 0.729
+      },
+      {
+        "a": "hero",
+        "b": "pillar",
+        "iou": 0.727
+      },
+      {
+        "a": "hero",
+        "b": "skeleton-knight",
+        "iou": 0.716
+      },
+      {
+        "a": "chest",
+        "b": "barrel",
+        "iou": 0.662
+      },
+      {
+        "a": "slime",
+        "b": "chest",
+        "iou": 0.622
+      },
+      {
+        "a": "skeleton-knight",
+        "b": "pillar",
+        "iou": 0.611
+      },
+      {
+        "a": "barrel",
+        "b": "brazier",
+        "iou": 0.603
+      },
+      {
+        "a": "slime",
+        "b": "pillar",
+        "iou": 0.589
+      },
+      {
+        "a": "chest",
+        "b": "pillar",
+        "iou": 0.582
+      },
+      {
+        "a": "slime",
+        "b": "brazier",
+        "iou": 0.576
+      },
+      {
+        "a": "skeleton-knight",
+        "b": "barrel",
+        "iou": 0.571
+      },
+      {
+        "a": "slime",
+        "b": "barrel",
+        "iou": 0.564
+      },
+      {
+        "a": "torch-flame",
+        "b": "rubble",
+        "iou": 0.557
+      },
+      {
+        "a": "hero",
+        "b": "chest",
+        "iou": 0.553
+      },
+      {
+        "a": "slime",
+        "b": "rubble",
+        "iou": 0.552
+      },
+      {
+        "a": "hero",
+        "b": "brazier",
+        "iou": 0.541
+      },
+      {
+        "a": "hero",
+        "b": "slime",
+        "iou": 0.536
+      },
+      {
+        "a": "skeleton-knight",
+        "b": "slime",
+        "iou": 0.523
+      },
+      {
+        "a": "pillar",
+        "b": "brazier",
+        "iou": 0.52
+      },
+      {
+        "a": "skeleton-knight",
+        "b": "brazier",
+        "iou": 0.505
+      },
+      {
+        "a": "skeleton-knight",
+        "b": "chest",
+        "iou": 0.501
+      },
+      {
+        "a": "slime",
+        "b": "torch-flame",
+        "iou": 0.492
+      },
+      {
+        "a": "pillar",
+        "b": "rubble",
+        "iou": 0.404
+      },
+      {
+        "a": "chest",
+        "b": "rubble",
+        "iou": 0.401
+      },
+      {
+        "a": "torch-flame",
+        "b": "pillar",
+        "iou": 0.381
+      },
+      {
+        "a": "skeleton-knight",
+        "b": "torch-flame",
+        "iou": 0.345
+      },
+      {
+        "a": "hero",
+        "b": "torch-flame",
+        "iou": 0.333
+      },
+      {
+        "a": "barrel",
+        "b": "rubble",
+        "iou": 0.33
+      },
+      {
+        "a": "torch-flame",
+        "b": "chest",
+        "iou": 0.325
+      },
+      {
+        "a": "hero",
+        "b": "rubble",
+        "iou": 0.314
+      },
+      {
+        "a": "brazier",
+        "b": "rubble",
+        "iou": 0.307
+      },
+      {
+        "a": "torch-flame",
+        "b": "barrel",
+        "iou": 0.305
+      },
+      {
+        "a": "torch-flame",
+        "b": "brazier",
+        "iou": 0.264
+      },
+      {
+        "a": "skeleton-knight",
+        "b": "rubble",
+        "iou": 0.261
+      }
+    ]
+  },
+  "billboard-crawler": {
+    "letters": {
+      "A": "iron-bed",
+      "B": "wheelchair",
+      "C": "rat",
+      "D": "orderly",
+      "E": "pill-bottle",
+      "F": "ghoul",
+      "G": "lamp-flicker",
+      "H": "iv-stand"
+    },
+    "sizes": [
+      {
+        "id": "ghoul",
+        "kind": "creature",
+        "frame": [
+          32,
+          32
+        ],
+        "h": 27,
+        "w": 26,
+        "group": "figure",
+        "median": 27,
+        "dev": 0,
+        "flag": false
+      },
+      {
+        "id": "orderly",
+        "kind": "character",
+        "frame": [
+          32,
+          32
+        ],
+        "h": 31,
+        "w": 16,
+        "group": "figure",
+        "median": 27,
+        "dev": 0.148,
+        "flag": true
+      },
+      {
+        "id": "rat",
+        "kind": "creature",
+        "frame": [
+          32,
+          32
+        ],
+        "h": 13,
+        "w": 29,
+        "group": "figure",
+        "median": 27,
+        "dev": -0.519,
+        "flag": true
+      },
+      {
+        "id": "lamp-flicker",
+        "kind": "effect",
+        "frame": [
+          32,
+          32
+        ],
+        "h": 21,
+        "w": 31,
+        "group": "effect",
+        "median": 21,
+        "dev": 0,
+        "flag": false
+      },
+      {
+        "id": "iron-bed",
+        "kind": "prop",
+        "frame": [
+          32,
+          32
+        ],
+        "h": 24,
+        "w": 28,
+        "group": "prop",
+        "median": 28,
+        "dev": -0.143,
+        "flag": true
+      },
+      {
+        "id": "iv-stand",
+        "kind": "prop",
+        "frame": [
+          32,
+          32
+        ],
+        "h": 29,
+        "w": 17,
+        "group": "prop",
+        "median": 28,
+        "dev": 0.036,
+        "flag": false
+      },
+      {
+        "id": "wheelchair",
+        "kind": "prop",
+        "frame": [
+          32,
+          32
+        ],
+        "h": 28,
+        "w": 26,
+        "group": "prop",
+        "median": 28,
+        "dev": 0,
+        "flag": false
+      },
+      {
+        "id": "pill-bottle",
+        "kind": "ui-icon",
+        "frame": [
+          16,
+          16
+        ],
+        "h": 16,
+        "w": 14,
+        "group": "ui-icon",
+        "median": 16,
+        "dev": 0,
+        "flag": false
+      }
+    ],
+    "iou": [
+      {
+        "a": "ghoul",
+        "b": "orderly",
+        "iou": 0.58
+      },
+      {
+        "a": "orderly",
+        "b": "iv-stand",
+        "iou": 0.553
+      },
+      {
+        "a": "ghoul",
+        "b": "wheelchair",
+        "iou": 0.515
+      },
+      {
+        "a": "rat",
+        "b": "pill-bottle",
+        "iou": 0.464
+      },
+      {
+        "a": "lamp-flicker",
+        "b": "pill-bottle",
+        "iou": 0.461
+      },
+      {
+        "a": "ghoul",
+        "b": "iron-bed",
+        "iou": 0.449
+      },
+      {
+        "a": "orderly",
+        "b": "lamp-flicker",
+        "iou": 0.423
+      },
+      {
+        "a": "rat",
+        "b": "lamp-flicker",
+        "iou": 0.422
+      },
+      {
+        "a": "orderly",
+        "b": "wheelchair",
+        "iou": 0.391
+      },
+      {
+        "a": "ghoul",
+        "b": "rat",
+        "iou": 0.388
+      },
+      {
+        "a": "lamp-flicker",
+        "b": "iv-stand",
+        "iou": 0.379
+      },
+      {
+        "a": "ghoul",
+        "b": "iv-stand",
+        "iou": 0.374
+      },
+      {
+        "a": "iron-bed",
+        "b": "wheelchair",
+        "iou": 0.364
+      },
+      {
+        "a": "orderly",
+        "b": "pill-bottle",
+        "iou": 0.343
+      },
+      {
+        "a": "orderly",
+        "b": "rat",
+        "iou": 0.333
+      },
+      {
+        "a": "rat",
+        "b": "wheelchair",
+        "iou": 0.32
+      },
+      {
+        "a": "ghoul",
+        "b": "lamp-flicker",
+        "iou": 0.305
+      },
+      {
+        "a": "lamp-flicker",
+        "b": "wheelchair",
+        "iou": 0.287
+      },
+      {
+        "a": "orderly",
+        "b": "iron-bed",
+        "iou": 0.281
+      },
+      {
+        "a": "rat",
+        "b": "iron-bed",
+        "iou": 0.278
+      },
+      {
+        "a": "ghoul",
+        "b": "pill-bottle",
+        "iou": 0.268
+      },
+      {
+        "a": "iv-stand",
+        "b": "pill-bottle",
+        "iou": 0.262
+      },
+      {
+        "a": "rat",
+        "b": "iv-stand",
+        "iou": 0.244
+      },
+      {
+        "a": "wheelchair",
+        "b": "pill-bottle",
+        "iou": 0.236
+      },
+      {
+        "a": "iv-stand",
+        "b": "wheelchair",
+        "iou": 0.23
+      },
+      {
+        "a": "lamp-flicker",
+        "b": "iron-bed",
+        "iou": 0.218
+      },
+      {
+        "a": "iron-bed",
+        "b": "pill-bottle",
+        "iou": 0.208
+      },
+      {
+        "a": "iron-bed",
+        "b": "iv-stand",
+        "iou": 0.127
+      }
+    ]
+  }
+}

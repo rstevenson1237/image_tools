@@ -1,0 +1,103 @@
+{
+  "assets": [
+    {
+      "id": "hero",
+      "scale": "ok",
+      "scale_note": "About 30px tall in a 24x32 frame. This is the reference height for the roster, and everything else is judged against it.",
+      "consistency_issues": [
+        "The kettle helm reads as grey hair or a hood at both 1x and 4x. Its brim and dome don't separate from the face, so the helmet doesn't match the skeleton-knight's clearly metal great-helm.",
+        "The long red-orange vertical bar on the left (sword or tabard edge) uses the accent/glow ramp, which the direction reserves for torchlight and glints. It reads as a lit fuse, not steel, and the brief asks for a blue-grey tabard.",
+        "The red tabard stripe plus the red bar make the hero the warmest unit on screen apart from the fire assets, which weakens the cold-stone / warm-light split."
+      ]
+    },
+    {
+      "id": "skeleton-knight",
+      "scale": "ok",
+      "scale_note": "About 26px, roughly 85-90% of the hero. That fits a lanky undead, and the pair reads as a matched duel. It could be 1-2px taller for parity, since the helm should match the hero's.",
+      "consistency_issues": [
+        "This is the closest match to the direction anchor and the strongest asset in the set. Outline, palette and detail density all match the anchor.",
+        "The red eye glow is fine, but it is the second use of the accent ramp on a character. Keep it to 1-2px."
+      ]
+    },
+    {
+      "id": "slime",
+      "scale": "too big",
+      "scale_note": "About 20px tall and 22-24px wide, about 2/3 of the knight's height and as wide as the knight. As a mass it outweighs both knights. A crypt ooze should be about 12-14px tall (shin-to-knee), so roughly 30-40% too big. It can stay larger only if it is meant as an elite or boss.",
+      "consistency_issues": [
+        "The body is a near-black, very low-value mass, very close to the 'don't use pure black fills' rule. It is darker than every other asset, the outline vanishes into it, and at 1x it reads as a dark hole or bomb, not a grey-green ooze.",
+        "The grey-green hue barely shows. The brief asks for grey-green, but this reads as charcoal.",
+        "The highlight band sits on the upper right and the cast shadow falls off to the lower right. That reads as lighting from the right, which conflicts with the locked top-left light (-1,-1).",
+        "The floating bones read as a single skull or crossbones motif, like a decal. The interior has no depth or translucency."
+      ]
+    },
+    {
+      "id": "torch-flame",
+      "scale": "too big",
+      "scale_note": "About 16px tall, more than half the knight's height. A wall-torch flame should be about 8-10px, sitting on a sconce at head height, so roughly 60-80% too big. On the shared baseline it reads as a campfire, not a torch.",
+      "consistency_issues": [
+        "It has no dark outer outline, unlike every other asset. That is acceptable for an emissive effect, but it is the only borderless sprite apart from parts of the rubble.",
+        "There is no torch, bracket or socket, so it doesn't attach to anything in the iso scene.",
+        "It is flat and front-on with no iso cue. This is acceptable for an effect, but it means the flame can't sit on a wall face without a mount."
+      ]
+    },
+    {
+      "id": "chest",
+      "scale": "too big",
+      "scale_note": "About 30px wide and 22px tall including the plinth, which puts its top about 3/4 of the way up the hero (chest height). A crypt chest should top out around the hero's waist or hip, about 14-16px with the plinth, so roughly 30-40% too big. It is also a full tile wide.",
+      "consistency_issues": [
+        "Style matches the direction's prop anchor closely, with good iso angle and lighting. It is a good reference for the props.",
+        "The 'gold inside' isn't visible on the first frame. The only accent is a red lock plate, so it doesn't deliver the 'glints of gold' promised in the pitch."
+      ]
+    },
+    {
+      "id": "barrel",
+      "scale": "too big",
+      "scale_note": "About 30px tall, the same height as the hero. An oak barrel should come to the hero's hip or waist, about 16-18px, so roughly 70-80% too big. This is the worst scale error in the lineup.",
+      "consistency_issues": [
+        "The silhouette is a straight-sided square block with a diamond top. It reads as a crate or a stone pillar, not a barrel: no bulge, no curved hoops, no elliptical top.",
+        "The olive-green wood is the most saturated green in the roster, close to the 'don't use saturated greens' rule, and different from the blue-grey/brown wood the palette implies.",
+        "The repeated hoop bands give it a higher detail density than its neighbours. At 1x it turns into a checker pattern.",
+        "It sits beside the grey pillar with the same height and footprint, so the two props read as variants of the same object."
+      ]
+    },
+    {
+      "id": "pillar",
+      "scale": "too small",
+      "scale_note": "About 27px, slightly shorter than the hero. Even as a 'segment', a crypt pillar should clearly tower over a person, or be an obviously broken stub. At 32x32 it reads as a pedestal or plinth. It needs to be about 1.5-2x taller (a large/2-tile prop) or cut down to an obvious waist-high stub about 14px.",
+      "consistency_issues": [
+        "The crack and chipping from the brief are barely visible. It reads as an intact column with a clean capital.",
+        "Its silhouette and size are near-identical to the barrel and the brazier, so the three props blur together at 1x."
+      ]
+    },
+    {
+      "id": "brazier",
+      "scale": "too big",
+      "scale_note": "About 28px to the top of the coals, close to the hero's height. A brazier bowl should sit at waist or chest height, about 18-20px, so roughly 40-50% too big.",
+      "consistency_issues": [
+        "The coal bed is a large solid area of saturated glow orange. It breaks the direction's 'highlight sparing' rule and is the brightest, most saturated element in the roster. It outshines the torch-flame, the asset that is supposed to be the light source.",
+        "The legs are straight vertical rectangles seen front-on, while the bowl top is drawn in iso. The two perspectives conflict, and it doesn't read as a three-legged tripod.",
+        "The rim and legs are lighter, flatter grey than the other iron (the chest bands), with weaker 3-band shading."
+      ]
+    },
+    {
+      "id": "rubble",
+      "scale": "ok",
+      "scale_note": "About 14px tall and 22px wide. Low, ankle-to-shin, which suits floor debris.",
+      "consistency_issues": [
+        "The blocks are thin and spaced apart, so the pile reads as floating fragments or scrap. They don't sit on a common footprint, and nothing reads as a mound.",
+        "The outline is weak or inconsistent compared with the other props, and the detail density is much lower. It is the least finished-looking asset.",
+        "There is no 'dust' layer and no ground contact shadow, so it doesn't feel weighted on the iso floor."
+      ]
+    }
+  ],
+  "roster_notes": [
+    "The main problem is prop scale. The barrel, brazier and pillar all come out about 27-30px tall, the same height as the knights, and the chest is about 3/4 of knight height. The props appear to have been drawn to fill their 32x32 frames, not sized to a character. Set a scale rule, for example hero = 30px, waist about 15px, with props sized to body landmarks, and resize barrel and brazier to roughly 55-65% and the chest to about 70%.",
+    "The middle of the lineup has three near-identical silhouettes: barrel, pillar and brazier are all upright blocks of about the same height and width with a diamond top. At 1x they are hard to tell apart. Vary the height and silhouette: a squat curved barrel, a tall broken pillar, a leggy open brazier.",
+    "Fire and light hierarchy is inverted. The brazier coal bed is a bigger, brighter warm mass than the torch-flame, and the hero carries a lot of accent red. The warm accent should be scarce and live mostly on light sources.",
+    "Value range: the slime is far darker than everything else and the rubble far lighter and thinner. The rest sit in a consistent mid-grey stone band. Pull the slime up to a readable grey-green and give the rubble more mass and outline.",
+    "Light direction is consistent (top-left) on hero, skeleton, chest, barrel and pillar. The slime looks lit from the right, and the brazier and rubble show little directional shading.",
+    "Perspective: the props are iso apart from the brazier's front-on legs. The characters are front-facing sprites like the anchor, which is fine. The torch-flame has no mount and can't sit on a wall.",
+    "The two characters, the chest and the skeleton-knight follow the anchors well. The newer assets (barrel, brazier, rubble, slime, flame) are where the roster drifts. That is consistent with probe-anchored assets holding the style and the rest being produced without a scale or value reference.",
+    "There is no gold anywhere in the first frames, even though 'glints of gold' is part of the pitch. Consider showing gold in the chest's idle frame."
+  ]
+}

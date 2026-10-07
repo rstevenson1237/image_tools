@@ -1,0 +1,302 @@
+[
+  {
+    "fixture": "swamp-topdown",
+    "id": "lantern-bearer",
+    "kind": "character",
+    "final": "finish.v1",
+    "status": "exported",
+    "original": 7,
+    "gate": true,
+    "tokens": 2158
+  },
+  {
+    "fixture": "swamp-topdown",
+    "id": "bog-goblin",
+    "kind": "character",
+    "final": "finish.v2",
+    "status": "exported",
+    "original": 7,
+    "gate": true,
+    "tokens": 155
+  },
+  {
+    "fixture": "swamp-topdown",
+    "id": "leech",
+    "kind": "creature",
+    "final": "finish.v1",
+    "status": "exported",
+    "original": 6.5,
+    "gate": true,
+    "tokens": 557
+  },
+  {
+    "fixture": "swamp-topdown",
+    "id": "wisp",
+    "kind": "effect",
+    "final": "finish.v1",
+    "status": "exported",
+    "original": 7,
+    "gate": true,
+    "tokens": 448
+  },
+  {
+    "fixture": "swamp-topdown",
+    "id": "sunk-crate",
+    "kind": "prop",
+    "final": "finish.v2",
+    "status": "exported",
+    "original": 7,
+    "gate": true,
+    "tokens": 155
+  },
+  {
+    "fixture": "swamp-topdown",
+    "id": "lantern-post",
+    "kind": "prop",
+    "final": "finish.v1",
+    "status": "exported",
+    "original": 7,
+    "gate": true,
+    "tokens": 155
+  },
+  {
+    "fixture": "swamp-topdown",
+    "id": "reeds",
+    "kind": "prop",
+    "final": "finish.v2",
+    "status": "exported",
+    "original": 7,
+    "gate": true,
+    "tokens": 155
+  },
+  {
+    "fixture": "swamp-topdown",
+    "id": "bone-pile",
+    "kind": "prop",
+    "final": "finish.v1",
+    "status": "exported",
+    "original": 6.5,
+    "gate": true,
+    "tokens": 155
+  },
+  {
+    "fixture": "swamp-topdown",
+    "id": "mud",
+    "kind": "tile",
+    "final": "finish.v1",
+    "status": "exported",
+    "original": 6.5,
+    "gate": true,
+    "tokens": 397
+  },
+  {
+    "fixture": "swamp-topdown",
+    "id": "bog-water",
+    "kind": "tile",
+    "final": "finish.v1",
+    "status": "exported",
+    "original": 6.5,
+    "gate": true,
+    "tokens": 397
+  },
+  {
+    "fixture": "iso-dungeon",
+    "id": "hero",
+    "kind": "character",
+    "final": "finish.v1",
+    "status": "exported",
+    "original": 7,
+    "gate": true,
+    "tokens": 1901
+  },
+  {
+    "fixture": "iso-dungeon",
+    "id": "skeleton-knight",
+    "kind": "character",
+    "final": "finish.v2",
+    "status": "exported",
+    "original": 7,
+    "gate": true,
+    "tokens": 190
+  },
+  {
+    "fixture": "iso-dungeon",
+    "id": "slime",
+    "kind": "creature",
+    "final": "finish.v1",
+    "status": "exported",
+    "original": 6.5,
+    "gate": true,
+    "tokens": 681
+  },
+  {
+    "fixture": "iso-dungeon",
+    "id": "torch-flame",
+    "kind": "effect",
+    "final": "finish.v1",
+    "status": "exported",
+    "original": 7,
+    "gate": true,
+    "tokens": 557
+  },
+  {
+    "fixture": "iso-dungeon",
+    "id": "chest",
+    "kind": "prop",
+    "final": "finish.v1",
+    "status": "exported",
+    "original": 6.5,
+    "gate": true,
+    "tokens": 463
+  },
+  {
+    "fixture": "iso-dungeon",
+    "id": "barrel",
+    "kind": "prop",
+    "final": "finish.v2",
+    "status": "exported",
+    "original": 6.5,
+    "gate": true,
+    "tokens": 244
+  },
+  {
+    "fixture": "iso-dungeon",
+    "id": "pillar",
+    "kind": "prop",
+    "final": "finish.v1",
+    "status": "exported",
+    "original": 6.5,
+    "gate": true,
+    "tokens": 244
+  },
+  {
+    "fixture": "iso-dungeon",
+    "id": "brazier",
+    "kind": "prop",
+    "final": "finish.v1",
+    "status": "exported",
+    "original": 6.5,
+    "gate": true,
+    "tokens": 244
+  },
+  {
+    "fixture": "iso-dungeon",
+    "id": "rubble",
+    "kind": "prop",
+    "final": "finish.v2",
+    "status": "exported",
+    "original": 6.5,
+    "gate": true,
+    "tokens": 244
+  },
+  {
+    "fixture": "iso-dungeon",
+    "id": "floor",
+    "kind": "tile",
+    "final": "finish.v2",
+    "status": "exported",
+    "original": 6.5,
+    "gate": true,
+    "tokens": 983
+  },
+  {
+    "fixture": "billboard-crawler",
+    "id": "ghoul",
+    "kind": "creature",
+    "final": "finish.v2",
+    "status": "exported",
+    "original": 6.5,
+    "gate": true,
+    "tokens": 2484
+  },
+  {
+    "fixture": "billboard-crawler",
+    "id": "orderly",
+    "kind": "character",
+    "final": "finish.v2",
+    "status": "exported",
+    "original": 6.5,
+    "gate": true,
+    "tokens": 244
+  },
+  {
+    "fixture": "billboard-crawler",
+    "id": "rat",
+    "kind": "creature",
+    "final": "finish.v1",
+    "status": "exported",
+    "original": 6.5,
+    "gate": true,
+    "tokens": 463
+  },
+  {
+    "fixture": "billboard-crawler",
+    "id": "lamp-flicker",
+    "kind": "effect",
+    "final": "finish.v1",
+    "status": "exported",
+    "original": 7,
+    "gate": true,
+    "tokens": 703
+  },
+  {
+    "fixture": "billboard-crawler",
+    "id": "iron-bed",
+    "kind": "prop",
+    "final": "finish.v2",
+    "status": "exported",
+    "original": 6.5,
+    "gate": true,
+    "tokens": 244
+  },
+  {
+    "fixture": "billboard-crawler",
+    "id": "iv-stand",
+    "kind": "prop",
+    "final": "finish.v1",
+    "status": "exported",
+    "original": 6.5,
+    "gate": true,
+    "tokens": 244
+  },
+  {
+    "fixture": "billboard-crawler",
+    "id": "wheelchair",
+    "kind": "prop",
+    "final": "finish.v2",
+    "status": "exported",
+    "original": 6.5,
+    "gate": true,
+    "tokens": 244
+  },
+  {
+    "fixture": "billboard-crawler",
+    "id": "linoleum",
+    "kind": "tile",
+    "final": "finish.v2",
+    "status": "exported",
+    "original": 6.5,
+    "gate": true,
+    "tokens": 1345
+  },
+  {
+    "fixture": "billboard-crawler",
+    "id": "ward-wall",
+    "kind": "texture",
+    "final": "finish.v1",
+    "status": "exported",
+    "original": 6.5,
+    "gate": true,
+    "tokens": 1345
+  },
+  {
+    "fixture": "billboard-crawler",
+    "id": "pill-bottle",
+    "kind": "ui-icon",
+    "final": "finish.v1",
+    "status": "exported",
+    "original": 7,
+    "gate": true,
+    "tokens": 295
+  }
+]
