@@ -218,6 +218,11 @@ docs/archive/artgen/             # P8: artlab + planning docs once superseded
   face/hand anchors in the character templates. The fixtures were re-exported: 30 contracts created, existing anchors
   (`head`, `flame`, `blade`, `lid`) now ship in their packs.
 
+- **Follow-up (rev 9, dist 0.6.0):** independent review from the [calibration findings](findings/calibration.md):
+  `blind-review` pass step (fresh reviewer, final alone; a miss spends the extra revision), `score --reviewer`,
+  gallery `SELF` / blind marks and `approve` warnings; brief `height` + `scale.metre` with a conformance `height` flag;
+  silhouette panel on review sheets; `artgen roster` / `roster record`; analytics "review independence".
+
 ### P5 — W4: UI in image tools (M–L)
 - Framework: `'artgen'` WorkerKind; `src/core/project/` File System Access store (persisted handle, schema
   validation via core, zip fallback); shared `PaletteRamp`, `PixelPreview`, `CompareView`, `StatusBadge`;

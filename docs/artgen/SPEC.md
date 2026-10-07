@@ -1,6 +1,6 @@
 # artgen — Specification
 
-Status: **rev 8** (per-frame anchors in packs, animation contracts, per-frame durations, face-first character finish) — written against the resolved decisions in [INTAKE §7](INTAKE.md#7-decisions-resolved-2026-10-05) / [DECISIONS.md](DECISIONS.md)
+Status: **rev 9** (independent review: blind re-score of finals, reviewer on every score, real-world heights, silhouette panel, roster review — [findings/calibration.md](findings/calibration.md)); rev 8: per-frame anchors in packs, animation contracts, per-frame durations, face-first character finish — written against the resolved decisions in [INTAKE §7](INTAKE.md#7-decisions-resolved-2026-10-05) / [DECISIONS.md](DECISIONS.md)
 
 ## 1. Summary
 
@@ -48,6 +48,7 @@ Four deliverables share one engine:
 | R10 Never edit a scored version; a change is a new version | artlab | `new`, source hash in ledger |
 | R12 Revision passes start from the **best-scoring** version so far, not the latest; finishing applies to the best | E8 | pass state machine |
 | R11 **Assets never hard-code direction values** (palette hexes, outline colour, light, pixel scale); they reference direction tokens | W1 | conformance lint on source + output |
+| R14 **No asset is judged only by its maker**: every score names its reviewer; a fresh reviewer blind re-scores each final (the final alone) before it reaches the user; the roster is reviewed as a set (lineup + silhouettes) | rev 9 | `blind-review` pass step, `score --reviewer/--blind`, `roster` + `roster record`; gallery marks `SELF`, `approve` warns |
 | R13 **The animation contract is frozen at first export**: state names, logical frame counts, per-frame durations, loop, facings and anchor names may only grow; art may be redrawn freely underneath | rev 8 | `art/contracts/<id>.json`; `brief add` and `export` refuse breaking changes without `--break-contract` |
 
 ## 3. Packaging and adoption (W1, part 1)
@@ -122,7 +123,8 @@ CLAUDE.md                 # managed section: "art lives in art/, use the skills,
                "oblique": { "frontRatio": 0.5 }, "iso": { "tile": [32,16] },
                "light": [-1,-1,1], "directions": 8, "pixelScale": 3 },
   "scale":   { "tile": 16, "character": [24,24], "large": [48,48], "prop": [16,16],
-               "texture": 32, "effect": [32,32], "proportions": { "headRatio": 0.4 } },
+               "texture": 32, "effect": [32,32], "proportions": { "headRatio": 0.4 },
+               "metre": 13.3 },                  // px per metre of world height (rev 9; default: character height / 1.8 m)
   "palette": { "source": "lospec:resurrect-64|custom", "maxColors": 24,
                "ramps": { "moss": ["#..","#..","#.."], "bone": [...], "amber": [...], "skin": [...] },
                "outline": "#1a1423", "shadow": { "color": "#000000", "alpha": 0.35 },
@@ -181,6 +183,7 @@ consume it by default: `prim`/`voxel` shaders use `light` and `bands`; post pass
 | source lint | no hex literals in asset source (R11) except via `ctx.dir` |
 | scene lint | T2+ scenes report strokes (R4) and colours outside the asset palette (R11) — fail; interpenetrating 3D solids (R5) and shapes that cover no pixels — flag |
 | anchor similarity | colour-histogram and value-distribution distance to anchors of the same kind within tolerance (flag, not fail) |
+| height (rev 9) | opaque body height of the first frame vs the brief's `height` (metres) × `scale.metre`; more than 20 % off flags (not fail). Assets are drawn to one world scale, not to fill their frames |
 Tile kinds (`tile`, `tileset`, `texture`) wrap at their borders, so a full-bleed tile has no silhouette edge.
 Plus hygiene metrics from artlab (`measure()`): gate thresholds in `artgen.config.json`.
 
@@ -199,6 +202,7 @@ Plus hygiene metrics from artlab (`measure()`): gate thresholds in `artgen.confi
   variants: 3            # seeded param-schema variants, exported as extra frame sets
   swaps: { red: { cloth: accent } }   # ramp → ramp palette swaps, exported as hex maps for the runtime
   importance: hero       # hero | standard | filler → budget.tiers (pass counts)
+  height: 1.1            # real-world height in metres (rev 9): conformance `height`, roster size table
   notes: "hunched, oversized ears, rusty cleaver"
   priority: 1
 ```
@@ -219,6 +223,17 @@ pick best (R12) → finishing pass → review → mark `final`. All of this runs
 is a sheet (v(n−1), anchors, in-context) scored by the `art-reviewer` subagent against the direction, plus the
 conformance gate; no user input is requested mid-pipeline. An asset that fails the gate after the finishing
 pass gets one extra autonomous revision within budget (D19), then is marked `final` with its open issues listed.
+**Blind re-score (rev 9, R14).** After the finish is scored, the pass machine asks for `blind-review <final>`: a fresh
+`art-reviewer` builds `review --blind` (the final alone: no earlier versions, scores or notes) and records `score
+--blind --reviewer <name>`. A blind score under `review.approveMin` (6.5) or more than `review.blindMaxGap` (1) under
+the final's own score is an open issue and, while `extraAutonomousRevisions` lasts, starts one extra revision (`x1`)
+from the best base. Blind scores never replace a version's own score; finals the user already approved skip it;
+`review.blind: false` in `artgen.config.json` turns it off. Every score records `reviewer` (`self` when omitted).
+**Roster review (rev 9).** When all briefs are final: `artgen roster` writes the lineup (every finished non-tile asset
+on one baseline, 1× and ×4), shuffled lettered silhouettes and `roster-assets.json` (lineup order, alphabetical ids,
+notes, heights; the letter key stays in the ledger), and prints the size table and the five most similar silhouette
+pairs. A fresh reviewer names each silhouette before seeing the list and judges the lineup; `artgen roster record`
+turns its JSON into open issues on those finals (silhouette readability ≤ 2, wrong scale, lineup issues).
 The user sees only finished assets: `/artgen:review` builds a gallery of `final` assets (final render, in-context
 preview, scores, open issues); the user approves or requests revisions via `/artgen:approve`,
 `/artgen:feedback` or the UI, which starts a user iteration (§6.3, stage U) that again runs autonomously.
@@ -418,7 +433,10 @@ GIF/APNG previews.
 - Post passes: artlab `outline/quantize/modeDownsample/dropShadow/despeckle/groundShadow` + `selout`,
   `innerOutline`, `dither`, `rotsprite`, `paletteSwap`, `overlay`, `trim`, `normalFromHeight`.
 - Gate = hygiene (artlab `measure()` + `seam`, `frameJitter`, `anchorOnTile`) + conformance (§4.3).
-- Review sheets ≤ 1568 px long edge; `art-reviewer` subagent scores 0–10 against direction + anchors.
+- Review sheets ≤ 1568 px long edge; `art-reviewer` subagent scores 0–10 against direction + anchors. Rev 9: each row
+  adds a silhouette panel (opaque body in black, half scale; not for tiles); `--blind` sheets show the final alone.
+- Analytics (rev 9): scores by reviewer, blind gaps (own − blind) per final; a mean gap ≥ 0.5 over ≥ 3 finals is a
+  budget suggestion.
 - `ledger.jsonl` append-only: source hash, tokens, metrics, conformance, sheet ids, scores, approvals, direction
   version; `report` reproduces artlab's cost/score tables per project.
 - Golden-image and stage tests in this repo's CI over the benchmark set.

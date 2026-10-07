@@ -86,3 +86,11 @@ named each from the shape and rated readability 1–5 *before* seeing the asset 
 | Silhouette | a solid-black panel on every review sheet |
 | Roster review | `artgen roster`: lineup sheet, shuffled silhouette sheet, size table, top-5 overlap pairs; a fresh reviewer's guesses and lineup notes recorded with `roster record`, shown as open issues in the gallery |
 | Kind-median size check | **not built** (see §2) |
+
+**Check of the built size table** (rev 9, on a scratch copy of iso-dungeon): with plausible real-world heights in the
+briefs (hero and knight 1.8 m, barrel and brazier 1 m, chest 0.8 m, slime 0.6 m, rubble 0.5 m, torch flame 0.4 m,
+pillar 3 m) and the default world scale (character frame 32 px = 1.8 m), `artgen roster` flags 7 of 9 assets and
+agrees in direction with the lineup reviewer on 8 of 9: barrel +74 % (reviewer: "70–80 % too big"), brazier +63 %,
+chest +83 %, slime +106 %, torch flame +153 %, pillar −44 % (too short), hero and knight within tolerance; it disagrees
+on rubble (+80 %, reviewer: fine). The heights were chosen for this check, so it shows the mechanism works when briefs
+carry sizes, not that any particular height is right.
