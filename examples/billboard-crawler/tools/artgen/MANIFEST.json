@@ -1,5 +1,5 @@
 {
-  "version": "0.6.0",
+  "version": "0.6.1",
   "files": {
     ".claude/agents/art-reviewer.md": "9f31377e5fb2ded0",
     ".claude/commands/artgen-approve.md": "acd455a2d4a7b631",
@@ -17,11 +17,11 @@
     ".claude/skills/artgen/references/finishing.md": "3368524f01d287b5",
     ".claude/skills/artgen/references/review.md": "8e1cbc300bf0a8b2",
     ".claude/skills/artgen/references/t2.md": "30aae7fb64c025d3",
-    ".claude/skills/asset-production/SKILL.md": "f0a73b8b63164287",
-    "tools/artgen/VERSION": "97a5d6e540a6120d",
-    "tools/artgen/artgen-mcp.js": "8a0e0bb98cccb608",
-    "tools/artgen/artgen.js": "1a00717084f35c0b",
-    "tools/artgen/package.json": "fcf4c5e056303bed",
+    ".claude/skills/asset-production/SKILL.md": "f7cfad7b30b9f00c",
+    "tools/artgen/VERSION": "87b241b275c59169",
+    "tools/artgen/artgen-mcp.js": "ad475df706f3b3eb",
+    "tools/artgen/artgen.js": "da2cd5aa1610f254",
+    "tools/artgen/package.json": "50fdd46669fc6118",
     "tools/artgen/resvg.wasm": "22bf6e9f9a100d97",
     "tools/artgen/runtime/adapters/canvas2d.ts": "1f822373309cf0a5",
     "tools/artgen/runtime/adapters/pixi.ts": "1cf4984b7ceda419",

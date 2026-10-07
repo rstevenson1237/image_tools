@@ -203,6 +203,7 @@ Plus hygiene metrics from artlab (`measure()`): gate thresholds in `artgen.confi
   swaps: { red: { cloth: accent } }   # ramp → ramp palette swaps, exported as hex maps for the runtime
   importance: hero       # hero | standard | filler → budget.tiers (pass counts)
   height: 1.1            # real-world height in metres (rev 9): conformance `height`, roster size table
+  # object: "ice lance"  # effects (rev 9): the drawable thing — no "effect", no colour words; `brief add` requires it
   notes: "hunched, oversized ears, rusty cleaver"
   priority: 1
 ```
