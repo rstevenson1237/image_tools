@@ -1,0 +1,12 @@
+[
+{"id":"hero","score":6.5,"works":"kettle helm and shield read; facings distinct at 1x","biggest_problem":"walk frames nearly identical, legs barely move","next_change":"add clear stride/contact poses to walk cycle"},
+{"id":"skeleton-knight","score":7.0,"works":"skull with ember eyes, helm and shield read instantly","biggest_problem":"shield and sword muddy; notched blade/torn tabard not visible","next_change":"add notches and tabard tears, brighten shield rim"},
+{"id":"slime","score":5.0,"works":"skull and bone inside, squash/stretch frames","biggest_problem":"huge near-black shadow slab reads as a hooded mound, not translucent ooze","next_change":"replace black half with 3-band green-grey ramp and translucent edge"},
+{"id":"torch-flame","score":7.5,"works":"clean ember palette, readable flame silhouette, varied loop","biggest_problem":"frame-to-frame shape jumps a bit large for a smooth flicker","next_change":"smooth tip motion between frames"},
+{"id":"chest","score":6.0,"works":"closed state matches anchor chest and plinth","biggest_problem":"open state lid is odd twin slabs and gold reads as orange smear","next_change":"redraw open lid as hinged slab and add yellow gold glints"},
+{"id":"barrel","score":4.5,"works":"iron hoops and palette fit","biggest_problem":"square cube silhouette reads as a crate, not a barrel","next_change":"round the body into a bulging cylinder with elliptical top"},
+{"id":"pillar","score":6.5,"works":"clean iso silhouette, base and capital read, fits stone palette","biggest_problem":"cracks and chipped capital barely visible","next_change":"cut a visible chip from capital and a dark crack down the shaft"},
+{"id":"brazier","score":7.0,"works":"bowl, legs and glowing coals read at 1x, warm light contrast","biggest_problem":"coals are a flat orange slab with little texture","next_change":"break coals into lumps with glow highlights"},
+{"id":"rubble","score":6.0,"works":"readable low pile, fits stone ramp","biggest_problem":"generic blob, individual masonry blocks and dust indistinct","next_change":"define 3-4 squared blocks with clear top faces plus dust specks"},
+{"id":"floor","score":5.5,"works":"tiles seamlessly in iso grid, palette on-direction","biggest_problem":"heavy black grout lattice too high-contrast and busy; worn-flag variants not evident","next_change":"lighten grout to mid-stone and vary worn flags per variant"}
+]

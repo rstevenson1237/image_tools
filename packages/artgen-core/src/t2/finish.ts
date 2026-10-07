@@ -7,7 +7,7 @@
  *   px.light.rim / highlight / tone / shade                  light accents
  *   px.outline.selout / inner / corners / weight             line work
  *   px.patch(g, at, rows, key)                               char-map patch (the old T1 blit), anchor-following
- *   px.set / line / fill                                     single writes
+ *   px.set / line / fill, px.tokenAt                         single writes; the token under a pixel
  *
  * Global ops run on every frame and facing. A patch placed at a named anchor (`ctx.at('head')`) in one cell is
  * replayed at that anchor in every other cell with the same facing that doesn't patch it itself (D15). Mirrored
@@ -126,6 +126,8 @@ export function makePx(dc: DirContext, record: (p: Omit<PatchRecord, 'cell'>) =>
 
   const px = {
     color, step,
+    /** Direction token of a pixel (`skin.2`, `outline`), or null when empty — to repaint with the colour already there. */
+    tokenAt: (g: Grid, at: Pt): string | null => (opaque(g, at[0], at[1]) ? tokenOf(g.get(at[0], at[1])) : null),
     set(g: Grid, at: Pt, token: string): Grid { plot(g, at[0], at[1], color(token)); return g; },
     fill(g: Grid, [x, y, w, h]: Region, token: string): Grid { for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) plot(g, i, j, color(token)); return g; },
     /** 1 px Bresenham line. */

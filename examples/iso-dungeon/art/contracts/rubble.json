@@ -1,0 +1,17 @@
+{
+  "format": 1,
+  "asset": "rubble",
+  "facings": [
+    "s"
+  ],
+  "states": {
+    "idle": {
+      "frames": 1,
+      "durations": [
+        125
+      ],
+      "loop": true
+    }
+  },
+  "anchors": []
+}

@@ -23,6 +23,7 @@
   priority: 4
   notes: wall torch flame, looping flicker, warm red-orange
   states: [ idle ]
+  object: torch flame
 - id: chest
   kind: prop
   states: [ closed, open ]

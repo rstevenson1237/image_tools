@@ -25,9 +25,14 @@ export interface Brief {
   size?: string | Size;
   states?: string[];
   directions?: 1 | 4 | 8 | 16;
-  anims?: Record<string, { frames: number; fps?: number; loop?: boolean }>;
+  /** Per state: frame count, playback rate, loop, and optional per-frame durations in ms (hold a contact frame longer). */
+  anims?: Record<string, { frames: number; fps?: number; loop?: boolean; durations?: number[] }>;
   variants?: number;
   notes?: string;
+  /** Real-world height in metres (rev 9): the drawn body should be `height × pxPerMetre(dir)` px tall (conformance `height`). */
+  height?: number;
+  /** Effects: the drawable thing the effect is (`ice lance`, `ring of fire`), not a description of an effect (rev 9). */
+  object?: string;
 }
 
 export type Anchors = Record<string, [number, number]>;

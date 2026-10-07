@@ -22,14 +22,17 @@ const sparks = pack.effect(Assets.spark, { parent: world }); sparks.spawn(x, y);
 
 | Module | What it holds |
 |---|---|
-| `types.ts` | the `pack.json` types (kept in step with artgen-core by a type test), `RuntimeAdapter`, `AssetRef`, `StateOf` / `VariantOf` |
-| `pack.ts` | `loadPack` / `createPack` (format + runtime-major check), `Pack` (frame lookup, palette swaps as recoloured atlases, `pixels`), `ArtSprite` (state × facing × frame, fps, loop, speed; touches the node only when the frame changes), `TileSet` (autotile resolve, variant pick, tile nodes), `EffectPlayer` (spawn, update, dispose finished one-shots; `loop` override) |
+| `types.ts` | the `pack.json` types (kept in step with artgen-core by a type test), `RuntimeAdapter`, `AssetRef`, `StateOf` / `VariantOf` / `AnchorOf` |
+| `pack.ts` | `loadPack` / `createPack` (format + runtime-major check), `Pack` (frame lookup, named anchors per frame, palette swaps as recoloured atlases, `pixels`), `ArtSprite` (state × facing × frame, fps or per-frame durations (`frameAt`), loop, speed; `anchor(name)` relative to the sprite, mirrored when flipped; touches the node only when the frame changes), `TileSet` (autotile resolve, variant pick, tile nodes), `EffectPlayer` (spawn, update, dispose finished one-shots; `loop` override) |
 | `facing.ts` | screen angles (e = 0, s = π/2), `chooseFacing`: nearest exported facing, else a mirrored one (`flipX`) |
 | `autotile.ts` | 8-bit neighbour masks, `wang16`, `blob47` (corners gated by edges; 47 canonical masks), `cellHash` |
 | `coords.ts` | `isoToScreen` / `screenToIso` (2:1), `depthKey`, `obliqueToScreen` / `screenToOblique` / `obliqueDepth` |
 
 Angles: x right, y down; `s` faces the viewer. Anchors are frame pixels (feet for standing sprites, centre for top-down
-sprites, tiles and effects); mirrored frames flip about the anchor in every adapter.
+sprites, tiles and effects); mirrored frames flip about the anchor in every adapter. Named anchors (`hand`, `head`,
+`blade`…) come from the asset module per frame; `sprite.anchor('hand')` gives this frame's point as an offset from the
+sprite's position (pixel centre, unscaled), so trails, sparks and held props stay in the hand when the art is redrawn.
+States with `durations` hold frames for their own time (a contact frame); others step at `fps`.
 
 ## Adapters (`src/adapters/`)
 

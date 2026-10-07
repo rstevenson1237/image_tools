@@ -212,6 +212,17 @@ docs/archive/artgen/             # P8: artlab + planning docs once superseded
   and billboard-crawler (three.js) play their packs with **11–12 lines of art code** each, typecheck against the typed
   ids, and render with no console errors. Details: [findings/P4-w3.md](findings/P4-w3.md).
 
+- **Follow-up (rev 8, runtime 1.1.0, dist 0.5.0):** per-frame named anchors exported in `pack.json` with
+  `sprite.anchor(name)` in the runtime (typed by `assets.ts`), per-frame `durations` in briefs (held contact frames),
+  the frozen animation contract (`art/contracts/<id>.json`, SPEC R13), and the face-first `finish-character.js` with
+  face/hand anchors in the character templates. The fixtures were re-exported: 30 contracts created, existing anchors
+  (`head`, `flame`, `blade`, `lid`) now ship in their packs.
+
+- **Follow-up (rev 9, dist 0.6.0):** independent review from the [calibration findings](findings/calibration.md):
+  `blind-review` pass step (fresh reviewer, final alone; a miss spends the extra revision), `score --reviewer`,
+  gallery `SELF` / blind marks and `approve` warnings; brief `height` + `scale.metre` with a conformance `height` flag;
+  silhouette panel on review sheets; `artgen roster` / `roster record`; analytics "review independence".
+
 ### P5 — W4: UI in image tools (M–L)
 - Framework: `'artgen'` WorkerKind; `src/core/project/` File System Access store (persisted handle, schema
   validation via core, zip fallback); shared `PaletteRamp`, `PixelPreview`, `CompareView`, `StatusBadge`;
@@ -232,10 +243,10 @@ added as **view modules** (SPEC §8) so later targets follow the same path (D8).
 
 | Track | Adds | Benchmark |
 |---|---|---|
-| **P6a** Views + voxel | `oblique`, `stack`, `side` projections; voxel `raster` (any yaw, depth/normal/ID buffers, internal-res outlines) and `toon` shading; 4/8/16-dir voxel sheets; runtime stack/parallax helpers | 8-dir iso skeleton; oblique house; stacked car; parallax forest; artlab isohero/isospider ≥ 6 with `toon` (from 5/4.5) |
-| **P6b** Textures/tiles | periodic noise, 12 material recipes, `seam` metric + 3×3 sheet, 16/47 autotiles, iso tile sets, WFC, L-systems, normal maps | stone 64, plank 32, grass autotile, iso floor/wall set |
-| **P6c** Effects/animation | `t`-driven params, particle system + 11 presets, palette cycling, frame QA, onion-skin sheets, GIF/APNG | explosion, fire loop, sparks, spider walk |
-| **P6d** First-person | raycaster preview for review + UI; 64/128 wall/floor/ceiling sets + normals; skies; 8-dir billboards from voxel; view-model template | brick/metal/wood walls, imp billboard, pistol idle/fire |
+| **P6a** Views + voxel | `oblique`, `stack`, `side` projections; voxel `raster` (any yaw, depth/normal/ID buffers, internal-res outlines) and `toon` shading; 4/8/16-dir voxel sheets; runtime stack/parallax helpers; **sprite normal maps** per frame from T2+ `normal` shading's distance field (and the voxel normal buffer), exported beside the atlas | 8-dir iso skeleton; oblique house; stacked car; parallax forest; artlab isohero/isospider ≥ 6 with `toon` (from 5/4.5) |
+| **P6b** Textures/tiles | periodic noise, 12 material recipes, `seam` metric + 3×3 sheet, 16/47 autotiles, iso tile sets, WFC, L-systems, normal maps; **repetition metric** (self-similarity of the 3×3 repeat; flag) — tiles drifted most under blind review (−1.13, visible grids: [calibration](findings/calibration.md)) | stone 64, plank 32, grass autotile, iso floor/wall set; the fixtures' mud, bog-water and iso floor re-done with the repetition flag clear and a blind score ≥ 6.5 |
+| **P6c** Effects/animation | `t`-driven params, particle system + 11 presets, palette cycling, frame QA, onion-skin sheets, GIF/APNG; **pose rig**: poses as joint-angle maps with 2-bone IK from hand/foot targets (animate intent, not limbs); **spring chains** for hair, cloth and tails (rest angle, stiffness, gravity, damping, wind; seeded fixed step, R9) so secondary motion comes from simulation, not keys; **logical frames vs sub-frames**: the R13 contract counts logical frames, smoothing sub-frames are display-only and the runtime maps them; **attack QA**: ≥ 4 frames per attack state and one held contact frame (`durations`); **effect briefs** name a drawable `object` (lint: no "effect", no colour words) — landed early (rev 9); **solid-fill metric** for effects (interior and brightest-band share per frame; flag), calibrated on this track's effects, with an additive blend mode in the runtime | explosion, fire loop, sparks, spider walk; a knight attack with a held contact frame and a trail on its `hand` anchor; a cloaked walker whose cape keeps moving after it stops |
+| **P6d** First-person | raycaster preview for review + UI; 64/128 wall/floor/ceiling sets + normals; skies; 8-dir billboards from voxel; view-model template; **lit billboards**: the `three` adapter uses P6a sprite normal maps | brick/metal/wood walls, imp billboard, pistol idle/fire; billboard-crawler's ghoul lit by the lamp |
 
 `.vox` read/write and greedy-mesh glTF export land with P6a.
 
@@ -245,6 +256,8 @@ added as **view modules** (SPEC §8) so later targets follow the same path (D8).
 - `python/artgen` client + pytest + notebook example; `pyproject.toml` ready (publish only on your go-ahead).
 - Release workflow: version bump, changelog, `artgen-dist` branch + tag; optional npm publish of runtime (D4).
 - Analytics v2: budget and model/effort recommendations from accumulated ledger data across fixture projects.
+- Parallel `make`: one subagent per asset (each owns its `art/assets/<kind>/<id>/`, the only files it writes), with the
+  ledger append as the one shared write; the main agent runs reviews, blind re-scores and the roster review.
 - **Accept:** MCP inspector renders + reviews a benchmark asset; Python example generates a texture and a
   sheet; tagging a release and running `update` in a fixture repo moves it to the new version with local
   edits preserved.

@@ -1,6 +1,7 @@
 /**
  * Pass state machine (SPEC §6.3, R1, R12; D12): v1 → v2 → v3 (each reviewed and scored) → finishing pass on the
- * best-scoring base → ready for the user. Pure logic over the files present and the ledger; the CLI does the I/O.
+ * best-scoring base → blind re-score of the final by a fresh reviewer (rev 9, when `blind` is set) → ready for the
+ * user. Pure logic over the files present and the ledger; the CLI does the I/O.
  */
 import type { LedgerEntry } from './qa/ledger.ts';
 
@@ -32,6 +33,8 @@ export type NextStep =
   | { action: 'write-base'; version: string; pass: string; from?: string; why: string }
   | { action: 'review'; version: string; pass: string; why: string }
   | { action: 'write-finish'; version: string; pass: string; base: string; why: string }
+  /** A fresh reviewer scores the final from a blind sheet (the final alone: no earlier versions, scores or notes). */
+  | { action: 'blind-review'; version: string; pass: 'b'; why: string }
   | { action: 'ready'; final: string; best: string; why: string; /** Failing gate checks on the final (listed when it is marked final). */ issues: string[] };
 
 export interface PassRow { version: string; pass: string; score?: number; gate?: boolean; base?: string }
@@ -64,12 +67,35 @@ export interface PlanInput {
    * autonomous revisions (`x1..`); when absent, every base after vN counts as a user iteration (P1b behaviour).
    */
   feedback?: FeedbackOpen[];
+  /**
+   * Blind re-score (rev 9): the final must also be scored blind (`score --blind`) before it is ready. A blind score under
+   * `minScore`, or more than `maxGap` below the final's own score, is an open issue and — while the extra autonomous
+   * revision budget lasts — starts one. Finals the user already approved are not asked for one.
+   */
+  blind?: { minScore: number; maxGap: number };
+}
+
+/** Latest blind score per version (`score --blind` records). */
+export function blindScores(ledger: LedgerEntry[]): Map<string, { score: number; note?: string; reviewer?: string }> {
+  const m = new Map<string, { score: number; note?: string; reviewer?: string }>();
+  for (const e of ledger) if (e.type === 'score' && e.blind && e.version && typeof e.score === 'number')
+    m.set(e.version, { score: e.score, ...(typeof e.note === 'string' && e.note && { note: e.note }), ...(typeof e.reviewer === 'string' && { reviewer: e.reviewer }) });
+  return m;
+}
+
+/** Open issues a blind score raises against the final's own score (empty when it holds up). */
+export function blindIssues(own: number, blind: { score: number; note?: string } | undefined, o: { minScore: number; maxGap: number }): string[] {
+  if (!blind) return [];
+  const out: string[] = [], note = blind.note ? `: ${blind.note}` : '';
+  if (own - blind.score > o.maxGap) out.push(`blind re-score ${blind.score} vs ${own} (gap ${+(own - blind.score).toFixed(2)})${note}`);
+  else if (blind.score < o.minScore) out.push(`blind re-score ${blind.score} is under ${o.minScore}${note}`);
+  return out;
 }
 
 /** Latest score (and gate result, failing checks) per version from the ledger. */
 export function latestScores(ledger: LedgerEntry[]): Map<string, { score: number; gate?: boolean; failing?: string[] }> {
   const m = new Map<string, { score: number; gate?: boolean; failing?: string[] }>();
-  for (const e of ledger) if (e.type === 'score' && e.version && typeof e.score === 'number')
+  for (const e of ledger) if (e.type === 'score' && !e.blind && e.version && typeof e.score === 'number')
     m.set(e.version, { score: e.score, gate: e.conformance?.pass, failing: e.conformance?.checks?.filter(c => c.status === 'fail').map(c => `${c.id}: ${c.detail}`) });
   return m;
 }
@@ -127,10 +153,20 @@ export function planPasses(input: PlanInput): PassState {
     return state({ action: 'write-finish', version: nextFinish, pass: pid(nextFinish), base: target.version, why });
   }
   const fin = scores.get(lastFinish.name)!, extrasUsed = bases.filter(b => b.n > N && !isUserBase(b)).length;
-  if (fin.gate === false && !userBases.length && extrasUsed < (input.extraRevisions ?? 0))
+  const canExtra = !userBases.length && extrasUsed < (input.extraRevisions ?? 0);
+  if (fin.gate === false && canExtra)
     return state({ action: 'write-base', version: nextBase, pass: pid(nextBase), from: best.version, why: `the final still fails the gate (${(fin.failing ?? []).join('; ') || 'see conformance'}): one extra autonomous revision from ${best.version} (budget)` });
+  let blindOpen: string[] = [];
+  if (input.blind && !input.ledger.some(e => e.type === 'approve' && e.by === 'user' && e.version === lastFinish.name)) {
+    const bl = blindScores(input.ledger).get(lastFinish.name);
+    if (!bl) return state({ action: 'blind-review', version: lastFinish.name, pass: 'b', why: 'a fresh reviewer scores the final from the blind sheet (`review --blind`, then `score --blind --reviewer <name>`): self-scores drift upward' });
+    blindOpen = blindIssues(fin.score, bl, input.blind);
+    if (blindOpen.length && canExtra)
+      return state({ action: 'write-base', version: nextBase, pass: pid(nextBase), from: best.version, why: `${blindOpen.join('; ')}: one extra autonomous revision from ${best.version} that fixes what the blind reviewer named (budget)` });
+  }
+  const issues = [...(fin.gate === false ? fin.failing ?? ['gate failed'] : []), ...blindOpen];
   return state({
-    action: 'ready', final: lastFinish.name, best: best.version, issues: fin.gate === false ? fin.failing ?? ['gate failed'] : [],
-    why: fin.gate === false ? 'pipeline complete with open issues: mark it final and list them for the user' : 'pipeline complete: show the finished asset to the user (approve or give feedback)',
+    action: 'ready', final: lastFinish.name, best: best.version, issues,
+    why: issues.length ? 'pipeline complete with open issues: mark it final and list them for the user' : 'pipeline complete: show the finished asset to the user (approve or give feedback)',
   });
 }

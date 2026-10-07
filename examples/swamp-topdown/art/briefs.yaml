@@ -23,6 +23,7 @@
   priority: 4
   notes: "will-o'-wisp: cold pale flame orb that pulses and sheds sparks"
   states: [ idle ]
+  object: "will-o'-wisp: a floating flame orb with sparks"
 - id: sunk-crate
   kind: prop
   variants: 3

@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'vitest';
 import { parseDirection } from '../direction.ts';
 import { Grid } from '../lib/grid.ts';
-import { checkerWindows, conformance, histogramDistance, lintSource } from './conformance.ts';
+import { bodyHeight, checkerWindows, conformance, histogramDistance, lintSource } from './conformance.ts';
 import { formatLedgerLine, imageTokens, parseLedger, sourceHash } from './ledger.ts';
 import { measure } from './metrics.ts';
-import { contactSheet, reviewSheet } from './sheet.ts';
+import { contactSheet, reviewSheet, silhouette } from './sheet.ts';
 
 const O = '#1a1423', L = ['#eeeeee', '#999999', '#444444'];
 const dir = parseDirection({
@@ -27,7 +27,7 @@ const status = (r: ReturnType<typeof conformance>) => Object.fromEntries(r.check
 describe('conformance gate', () => {
   test('a clean asset passes every check', () => {
     const r = conformance({ frames: [block()], dir, kind: 'prop', size: [12, 12], source: 'export function render(ctx) { return ctx.dir.pal.stone[0]; }' });
-    expect(status(r)).toEqual({ palette: 'pass', scale: 'pass', aa: 'pass', line: 'pass', light: 'pass', dither: 'pass', source: 'pass', lint: 'skip', anchors: 'skip' });
+    expect(status(r)).toEqual({ palette: 'pass', scale: 'pass', aa: 'pass', line: 'pass', light: 'pass', dither: 'pass', source: 'pass', lint: 'skip', height: 'skip', anchors: 'skip' });
     expect(r.pass).toBe(true);
     expect(r.metrics.offPalettePct).toBe(0);
   });
@@ -118,3 +118,26 @@ describe('ledger', () => {
     expect(imageTokens(3136, 100)).toBe(Math.ceil((1568 * 50) / 750));
   });
 });
+
+describe('rev 9: real-world height and silhouettes', () => {
+  test('height flags a body drawn off its real-world size (one world scale, not fill-the-frame)', () => {
+    const g = block(); // body 10 px tall (the ground shadow is translucent and left out)
+    expect(bodyHeight(g)).toBe(10);
+    const h = (metres: number) => conformance({ frames: [g], dir, kind: 'prop', size: [12, 12], height: { metres, pxPerMetre: 10 } }).checks.find(c => c.id === 'height')!;
+    expect(h(1)).toMatchObject({ status: 'pass', detail: '10 px drawn, 10.0 px expected for 1 m (+0 %)' });
+    expect(h(0.5)).toMatchObject({ status: 'flag', detail: expect.stringMatching(/\+100 %/) });
+    expect(h(2).detail).toMatch(/-50 %\); the 12 px frame is too short for it/);
+    expect(conformance({ frames: [g], dir, kind: 'tile', height: { metres: 1, pxPerMetre: 10 } }).checks.find(c => c.id === 'height')!.status).toBe('skip');
+    // a flag never fails the gate
+    expect(conformance({ frames: [g], dir, kind: 'prop', size: [12, 12], source: '', height: { metres: 0.5, pxPerMetre: 10 } }).pass).toBe(true);
+  });
+
+  test('review rows carry a black silhouette panel (opaque body only), unless turned off', () => {
+    const g = block(), sil = silhouette(g);
+    expect([sil.get(5, 5), sil.get(11, 11), sil.get(0, 0)]).toEqual(['#000000', null, null]);
+    const row = { label: 'x', grid: g, scale: 4 };
+    const on = reviewSheet({ title: 't', rows: [row] }), off = reviewSheet({ title: 't', rows: [{ ...row, silhouette: false }] });
+    expect(on.w - off.w).toBe(12 + 12 * 2); // PAD + the sprite at half the row scale
+  });
+});
+

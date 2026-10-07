@@ -1,0 +1,22 @@
+{
+  "format": 1,
+  "asset": "leech",
+  "facings": [
+    "s"
+  ],
+  "states": {
+    "idle": {
+      "frames": 4,
+      "durations": [
+        125,
+        125,
+        125,
+        125
+      ],
+      "loop": true
+    }
+  },
+  "anchors": [
+    "head"
+  ]
+}

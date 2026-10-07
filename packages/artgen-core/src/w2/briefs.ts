@@ -23,6 +23,27 @@ export interface BriefEntry extends Brief {
 }
 
 const ID = /^[a-z][a-z0-9_-]*$/;
+
+/** Colour words an effect `object` may not lean on: a drawable thing survives being described without them. */
+const COLOUR_WORDS = new Set(('red orange yellow green blue purple violet pink white black grey gray brown gold golden silver amber crimson scarlet ' +
+  'cyan teal magenta azure emerald jade turquoise indigo lilac lavender maroon ochre rust copper bronze ivory pale dark bright glowing glowy ' +
+  'colorful colourful rainbow neon').split(' '));
+
+/**
+ * Effect object lint (rev 9): an ability has to be an object a draftsman could draw from memory, not an effect you can
+ * describe. `object` names it without the word "effect" and without colour words ("ice lance", "ring of fire", "a
+ * flock of doves" — not "cold flame", "shadow effect", "purple glow"). Returns the problems; empty when it holds.
+ */
+export function effectObjectIssues(b: Pick<BriefEntry, 'kind' | 'object'>): string[] {
+  if (b.kind !== 'effect') return [];
+  if (b.object === undefined) return ['effect brief has no object: name the drawable thing it is (brief add --object "ice lance")'];
+  const words = String(b.object).toLowerCase().match(/[a-z]+/g) ?? [], out: string[] = [];
+  if (!words.some(w => w.length >= 3)) out.push('object must name a thing (a noun a draftsman could draw)');
+  if (words.some(w => w === 'effect' || w === 'effects' || w === 'fx' || w === 'vfx')) out.push('object must not say "effect": name the thing itself');
+  const colours = words.filter(w => COLOUR_WORDS.has(w));
+  if (colours.length) out.push(`object must not lean on colour words (${[...new Set(colours)].join(', ')}): colour comes from the direction`);
+  return out;
+}
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 
 /** Validate one brief; returns the errors (empty when valid). */
@@ -37,15 +58,23 @@ export function validateBrief(b: unknown, where = 'brief'): string[] {
   if (b.states !== undefined && !(Array.isArray(b.states) && b.states.length && b.states.every(s => typeof s === 'string' && ID.test(s)))) e.push(`${at}: states must be a non-empty list of names`);
   if (b.directions !== undefined && ![1, 4, 8, 16].includes(b.directions as number)) e.push(`${at}: directions must be 1, 4, 8 or 16`);
   if (b.anims !== undefined) {
-    if (!isObj(b.anims)) e.push(`${at}: anims must map state → { frames, fps, loop }`);
+    if (!isObj(b.anims)) e.push(`${at}: anims must map state → { frames, fps, loop, durations }`);
     else for (const [s, a] of Object.entries(b.anims)) {
       if (!isObj(a) || !Number.isInteger(a.frames) || (a.frames as number) < 1) e.push(`${at}: anims.${s}.frames must be a positive integer`);
       else if (Array.isArray(b.states) && !b.states.includes(s)) e.push(`${at}: anims.${s} is not in states`);
+      else if (a.durations !== undefined && !(Array.isArray(a.durations) && a.durations.length === a.frames && a.durations.every(d => Number.isInteger(d) && d > 0)))
+        e.push(`${at}: anims.${s}.durations must list one positive whole number of ms per frame (${a.frames})`);
     }
   }
   if (b.variants !== undefined && !(Number.isInteger(b.variants) && (b.variants as number) >= 1)) e.push(`${at}: variants must be a positive integer`);
   if (b.importance !== undefined && !(IMPORTANCE as readonly string[]).includes(b.importance as string)) e.push(`${at}: importance must be one of ${IMPORTANCE.join(', ')}`);
   if (b.priority !== undefined && typeof b.priority !== 'number') e.push(`${at}: priority must be a number`);
+  if (b.height !== undefined && !(typeof b.height === 'number' && b.height > 0 && b.height <= 1000)) e.push(`${at}: height must be the real-world height in metres (> 0)`);
+  // a missing effect object is an open issue on the asset (older briefs stay valid); a bad one is an error
+  if (b.object !== undefined) {
+    if (typeof b.object !== 'string' || !b.object.trim()) e.push(`${at}: object must be text`);
+    else for (const m of effectObjectIssues({ kind: String(b.kind), object: b.object })) e.push(`${at}: ${m}`);
+  }
   if (b.anchor !== undefined && !(Array.isArray(b.anchor) && b.anchor.length === 2 && b.anchor.every(n => typeof n === 'number'))) e.push(`${at}: anchor must be [x, y]`);
   if (b.swaps !== undefined) {
     if (!isObj(b.swaps)) e.push(`${at}: swaps must map variant name → { ramp: ramp }`);

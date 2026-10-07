@@ -6,7 +6,7 @@ import { hashString } from '../lib/rng.ts';
 import type { ConformanceReport } from './conformance.ts';
 import type { Metrics } from './metrics.ts';
 
-export type LedgerType = 'render' | 'review' | 'score' | 'conformance' | 'approve' | 'feedback' | 'note' | 'status' | 'export' | 'restyle' | 'import-edit';
+export type LedgerType = 'render' | 'review' | 'score' | 'conformance' | 'approve' | 'feedback' | 'note' | 'status' | 'export' | 'contract' | 'restyle' | 'import-edit' | 'roster';
 
 export interface LedgerEntry {
   /** ISO timestamp. */
@@ -29,6 +29,10 @@ export interface LedgerEntry {
   score?: number;
   note?: string;
   by?: 'agent' | 'user';
+  /** Who gave a score: the reviewer subagent's name, or `self` when the authoring agent scored its own work (rev 9). */
+  reviewer?: string;
+  /** A blind re-score of a final (the reviewer saw the final alone: no earlier versions, scores or notes). */
+  blind?: boolean;
   [extra: string]: unknown;
 }
 

@@ -3,6 +3,15 @@
 One direct-pixel pass on the best base (R2). It is stored as **ops**, not pixels, so it re-applies after every
 re-render and restyle. Colours are tokens.
 
+**Characters and creatures: the face first.** Eyes and mouth are 1–2 px features. The supersampled base cannot draw
+them (the downsample vote turns them to mush), and a face that never changes reads as a doll — this is the biggest
+single difference the finishing pass makes on a character. `artgen finish` starts characters and creatures from
+`finish-character.js`: clean-up ops first, then eyes and mouth painted at the base's `eye` / `eye2` / `mouth`
+anchors, with an expression per state (calm idle/walk, fierce attacks and casts, hurt, happy wins). So the base must
+export those anchors on every facing where the face shows (the character templates compute them from the same
+`layout(ctx)` as the drawing; keep it that way when you change the head). Tune the expressions to the brief; check
+them on the review sheet at 1×. Clean-up ops alone rarely move the score — spend the finish on what the review named.
+
 ```js
 export const base = 'base.v3';                     // bound to one base version
 export function finish(g, ctx) {
@@ -22,7 +31,7 @@ export function finish(g, ctx) {
 | `px.fx` | `glint(at, token, { shape: 'dot'|'plus'|'x' })`, `spark(at, token, r)`, `glow(at, r)` |
 | `px.light` | `rim({ ramps, side })`, `highlight(at, token)`, `tone({ region, ramps, by })`, `shade(o)` |
 | `px.outline` | `selout({ side })`, `inner({ between: [a, b] })`, `corners`, `weight({ times })` |
-| direct | `set(at, token)`, `fill([x,y,w,h], token)`, `line(a, b, token)`, `patch(at, rows, key, { anchor })` |
+| direct | `set(at, token)`, `fill([x,y,w,h], token)`, `line(a, b, token)`, `patch(at, rows, key, { anchor })`, `tokenAt(at)` (the token already there, e.g. the skin beside an eye) |
 
 Options: `region: [x, y, w, h]`, `ramps: [...]` restrict an op. `ctx.protect([x, y], ...)` keeps intentional single
 pixels (eye glints) safe from `fix` ops.

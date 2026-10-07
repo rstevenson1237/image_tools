@@ -44,6 +44,11 @@ export interface ProjectConfig {
   };
   /** Stage → model (and effort): `'default'` or `{ model, effort }`; stages run as subagents with that model. */
   models: Record<'base' | 'revise' | 'finish' | 'review', string | { model: string; effort?: string }>;
+  /**
+   * Review policy (rev 9): `blind` adds a blind re-score of every final by a fresh reviewer; a blind score under
+   * `approveMin`, or more than `blindMaxGap` under the final's own score, is an open issue (and one extra revision).
+   */
+  review: { blind: boolean; approveMin: number; blindMaxGap: number };
   gate: Record<string, unknown>;
 }
 
@@ -55,6 +60,7 @@ export const DEFAULT_CONFIG: ProjectConfig = {
   packs: { main: { include: ['*'] } },
   budget: { revisionPasses: 3, maxSheetEdge: 1568, maxUserIterations: 3, extraAutonomousRevisions: 1, tiers: { hero: { revisionPasses: 4 }, filler: { revisionPasses: 2 } } },
   models: { base: 'default', revise: 'default', finish: 'default', review: 'default' },
+  review: { blind: true, approveMin: 6.5, blindMaxGap: 1 },
   gate: {},
 };
 

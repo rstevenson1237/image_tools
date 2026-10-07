@@ -1,6 +1,8 @@
 /**
- * Review sheets (R7): one row per version — [1× on checker] [scaled on checker] [scaled in context] — with
- * v(n−1) beside v(n), the direction's anchors underneath, labels in the pixel font, long edge ≤ 1568 px.
+ * Review sheets (R7): one row per version — [1× on checker] [scaled on checker] [scaled in context] [silhouette] —
+ * with v(n−1) beside v(n), the direction's anchors underneath, labels in the pixel font, long edge ≤ 1568 px.
+ * The silhouette panel (rev 9) shows the opaque body solid black on light grey: a shape that does not read in black
+ * does not read in the game.
  */
 import { drawText, GLYPH_H, textWidth } from '../lib/font.ts';
 import { Grid } from '../lib/grid.ts';
@@ -14,7 +16,21 @@ export interface SheetRow {
   bg?: string;
   /** Context drawn under the sprite in the third panel (same size as the sprite, e.g. an iso floor). */
   context?: Grid;
+  /** Add the black silhouette panel (default true; off for full-bleed tiles, whose silhouette is a square). */
+  silhouette?: boolean;
 }
+
+const SIL_BG = '#c8c8c8', SIL_INK = '#000000';
+
+/** The opaque body (alpha 255: ground shadows and glows are translucent) as solid black on transparent. */
+export function silhouette(g: Grid): Grid {
+  const out = new Grid(g.w, g.h);
+  for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) if (g.alpha(x, y) === 255) out.set(x, y, SIL_INK);
+  return out;
+}
+
+/** Silhouette panel scale for a row shown at `s`: half size, so the shape is judged small, as in the game. */
+const silScale = (s: number) => Math.max(1, Math.round(s / 2));
 
 export interface ReviewSheetOptions {
   title: string;
@@ -36,7 +52,8 @@ function layout(o: ReviewSheetOptions, k: number) {
   let W = PAD * 2 + textWidth(o.title, TXT), H = PAD + LAB + PAD / 2;
   const rows = o.rows.map(r => {
     const s = Math.max(1, Math.round(r.scale * k)), sw = r.grid.w * s, sh = r.grid.h * s;
-    W = Math.max(W, PAD * 4 + r.grid.w + sw * 2, PAD * 2 + textWidth(r.label, TXT));
+    const sil = r.silhouette === false ? 0 : PAD + r.grid.w * silScale(s);
+    W = Math.max(W, PAD * 4 + r.grid.w + sw * 2 + sil, PAD * 2 + textWidth(r.label, TXT));
     const y = H; H += LAB + sh + PAD;
     return { r, s, sw, sh, y };
   });
@@ -64,6 +81,11 @@ export function reviewSheet(o: ReviewSheetOptions): Grid {
     g.fill(x3, top, sw, sh, r.bg ?? '#000000');
     if (r.context) g.over(r.context.scale(s), x3, top);
     g.over(big, x3, top);
+    if (r.silhouette !== false) {
+      const ss = silScale(s), x4 = x3 + sw + PAD;
+      g.fill(x4, top, r.grid.w * ss, r.grid.h * ss, SIL_BG);
+      g.over(silhouette(r.grid).scale(ss), x4, top);
+    }
   }
   if (o.anchors?.length) {
     drawText(g, PAD, L.ay, 'ANCHORS', FG, TXT);

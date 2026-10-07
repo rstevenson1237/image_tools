@@ -120,7 +120,7 @@ export function validateDirection(input: unknown): ValidationResult {
   }
 
   if (!isObj(d.scale)) err('scale', 'must be an object');
-  else for (const [k, v] of Object.entries(d.scale)) if (k !== 'proportions') size(`scale.${k}`, v);
+  else for (const [k, v] of Object.entries(d.scale)) if (k === 'metre') num('scale.metre', v, 0.1, 1000); else if (k !== 'proportions') size(`scale.${k}`, v);
 
   const p = d.palette;
   if (!isObj(d.palette)) err('palette', 'required object');
@@ -226,6 +226,16 @@ export function kindPalette(dir: Direction, kind?: string): string[] {
   const out = names.flatMap(n => dir.palette.ramps[n].map(normHex));
   out.push(normHex(dir.palette.outline));
   return [...new Set(out)];
+}
+
+/**
+ * Pixels per metre of world height (rev 9): `scale.metre` when the direction sets it, else the character frame height
+ * read as a 1.8 m figure. Briefs give real-world heights (`height`, metres) so assets are drawn to one world scale
+ * instead of filling their frames.
+ */
+export function pxPerMetre(dir: Direction): number {
+  const m = dir.scale.metre;
+  return typeof m === 'number' ? m : resolveSize(dir, 'character', 'character')[1] / 1.8;
 }
 
 /** Frame size for a brief `size`: `[w,h]`, or a key of `direction.scale` (`'character'`). */

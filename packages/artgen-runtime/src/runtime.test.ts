@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, test } from 'vitest';
 import { decodePNG, type PackManifest as CorePackManifest } from 'artgen-core';
 import {
-  BLOB47, E, N, NE, NW, S, SE, SW, W as WEST, blob47, chooseFacing, createPack, depthKey, facingAngle, isoToScreen, loadPack,
+  BLOB47, E, N, NE, NW, S, SE, SW, W as WEST, blob47, chooseFacing, createPack, depthKey, facingAngle, frameAt, isoToScreen, loadPack,
   neighbourMask, obliqueToScreen, reduceCorners, screenToIso, screenToOblique, wang16, type PackManifest, type RuntimeAdapter,
 } from './index.js';
 import { cellAt, synthPack } from './testkit.js';
@@ -98,6 +98,30 @@ describe('sprite state machine', () => {
     expect([s.done, s.frame]).toEqual([true, 2]);
     s.loop = true; s.play('idle', true); s.update(350);
     expect([s.done, s.frame]).toEqual([false, 0]);
+  });
+});
+
+describe('held frames and anchors', () => {
+  test('per-frame durations: a held contact frame, then done', () => {
+    const st = { frames: 4, fps: 10, loop: false, durations: [50, 50, 200, 50] };
+    expect([0, 49, 50, 100, 299, 300, 349].map(ms => frameAt(st, ms).frame)).toEqual([0, 0, 1, 2, 2, 3, 3]);
+    expect(frameAt(st, 350)).toEqual({ frame: 3, done: true });
+    expect(frameAt(st, 360, true)).toEqual({ frame: 0, done: false }); // looping wraps on the summed length
+    expect(frameAt({ frames: 4, fps: 10, loop: true }, 250)).toEqual({ frame: 2, done: false }); // no durations: fps
+  });
+
+  test('a sprite plays the durations and reports anchors relative to its position, mirrored when flipped', async () => {
+    const pack = await synth(), s = pack.sprite('swing').at(100, 50);
+    expect(s.anchor('hand')).toEqual({ x: 1.5, y: -4.5 }); // pixel (4, 2) centre − anchor (3, 7)
+    s.update(120);
+    expect([s.frame, s.anchor('hand')]).toEqual([2, { x: 3.5, y: -4.5 }]);
+    s.update(150); expect(s.frame).toBe(2); // still holding the contact frame at 270 ms
+    s.update(50); expect([s.frame, s.anchor('hand')]).toEqual([3, undefined]); // the south frame 3 has no hand
+    expect(s.update(100)).toBe(false);
+    s.faceToward(-1, 0); // west = mirrored east: the hand swaps sides
+    expect([s.facingName, s.node.flipX, s.anchor('hand')]).toEqual(['e', true, { x: -4.5, y: -4.5 }]);
+    expect(pack.anchor('swing', 'hand', { state: 'attack', facing: 1, frame: 1 })).toEqual([5, 2]);
+    expect(() => pack.anchor('walker', 'hand')).toThrow(/no anchor "hand" \(has: none\)/);
   });
 });
 

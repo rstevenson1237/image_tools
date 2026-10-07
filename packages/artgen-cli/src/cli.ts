@@ -19,8 +19,8 @@
  * Pipeline (asset directories):
  *   artgen pass status|next <assetDir>             pipeline state (v1 → v2 → v3 → finish → ready)
  *   artgen render <assetDir> [--version v] [--variant n] [--stages]
- *   artgen review <assetDir> [--version v]         review sheet: reference, best, v(n−1), v(n)
- *   artgen score <assetDir> <version> <0-10> [--note "…"]
+ *   artgen review <assetDir> [--version v] [--blind]  review sheet: reference, best, v(n−1), v(n); --blind: the final alone
+ *   artgen score <assetDir> <version> <0-10> [--note "…"] [--reviewer name] [--blind]
  *   artgen variants <assetDir> [--version v] [--n 8]
  *   artgen report <dir> [--out REPORT.md] [--title "…"]
  * Asset commands take --direction <file|bench name> and --ledger <file> overrides.
@@ -34,7 +34,8 @@
  *   artgen gallery [ids]                            sheet of finished assets for the user (score, open issues)
  *   artgen feedback <id> --route base|finish --note "…" [--region x,y,w,h] [--cell state/facing/frame]
  *   artgen approve <id> [--note "…"]                user approval (R6: passing gate + review sheet)
- *   artgen export [--pack name] [--include-drafts] [--runtime [--force]]
+ *   artgen roster [ids] [--seed n] | roster record <review.json> [--reviewer name]
+       artgen export [--pack name] [--include-drafts] [--runtime [--force]] [--break-contract id,…|*]
  *                                                   atlases + pack.json + Aseprite JSON + assets.ts; --runtime vendors the W3
  *                                                   runtime + adapters (artgen.config.json `runtime.adapters`) into runtimeDir
  *   artgen restyle [--from N]                       re-render finished assets under the new direction + diff sheet
@@ -52,7 +53,7 @@ import { readGrid, writeGrid } from './node.ts';
 import { findProject, initProject, readJson, requireProject, writeJson } from './project.ts';
 import { report } from './report.ts';
 import { newAsset, newFinish } from './templates.ts';
-import { addBrief, approve, exportPacks, feedback, gallery, importEdit, make, projectAnalytics, projectStatus, readBriefs, removeBriefFile, resolveAssetArg, restyle } from './w2.ts';
+import { addBrief, approve, exportPacks, feedback, gallery, importEdit, make, projectAnalytics, projectStatus, readBriefs, removeBriefFile, resolveAssetArg, restyle, rosterRecord, rosterRun } from './w2.ts';
 import { IMPORTANCE, type BriefEntry, type Importance } from 'artgen-core';
 import { lock, readInterview, show, writeAnchors, writeCandidates, writeDraft, writeMix, writeTile } from './w1.ts';
 
@@ -93,15 +94,15 @@ const USAGE = `usage: artgen init
        artgen finish <assetDir> [--base base.vN]
        artgen pass status|next <assetDir>
        artgen render <assetDir> [--version base.vN|finish.vM] [--variant n] [--stages]
-       artgen review <assetDir> [--version v]
-       artgen score <assetDir> <version> <score> [--note "..."]
+       artgen review <assetDir> [--version v] [--blind]
+       artgen score <assetDir> <version> <score> [--note "..."] [--reviewer name] [--blind]
        artgen variants <assetDir> [--version v] [--n 8]
        artgen report <dir> [--out REPORT.md] [--title "..."]
-       artgen brief add <id> --kind k [--view v] [--size key|WxH] [--states a,b] [--directions n] [--anims walk:4] [--variants n] [--swaps red:cloth=accent] [--importance t] [--priority n] [--notes "..."]
+       artgen brief add <id> --kind k [--view v] [--size key|WxH] [--states a,b] [--directions n] [--anims walk:4] [--durations attack=80/80/200/80] [--variants n] [--swaps red:cloth=accent] [--importance t] [--priority n] [--height metres] [--object "ice lance"] [--notes "..."] [--break-contract]
        artgen brief list | rm <id>
        artgen make [ids|all] | status [ids] | gallery [ids]
        artgen feedback <id> --route base|finish --note "..." [--region x,y,w,h] [--cell s/f/n] | approve <id> [--note "..."]
-       artgen export [--pack name] [--include-drafts] [--runtime [--force]] | restyle [--from N] | import-edit <id> <png> [--cell s/f/n]
+       artgen export [--pack name] [--include-drafts] [--runtime [--force]] [--break-contract id,…|*] | restyle [--from N] | import-edit <id> <png> [--cell s/f/n]
        artgen analytics [--out file.md]
        artgen bench [--direction benchmark|alt|<file>] [--out <dir>] [--stages] [--ledger <file>] [--update-golden]
        artgen --version`;
@@ -223,7 +224,9 @@ export async function main(argv: string[]): Promise<number> {
       base = st?.next.action === 'write-finish' ? st.next.base : st?.best?.version ?? vs.filter(v => v.startsWith('base.')).pop();
     }
     if (!base) throw new Error(`${sub}: no base version to finish`);
-    const file = newFinish(dirArg, n, base);
+    // characters and creatures get the face-first finish template; the kind comes from the brief (W2) or brief.json (probes)
+    const kind = (() => { try { return asset(sub).brief.kind; } catch { return undefined; } })();
+    const file = newFinish(dirArg, n, base, kind);
     print(`${file} (bound to ${base})`, { file, base });
     return 0;
   }
@@ -245,7 +248,7 @@ export async function main(argv: string[]): Promise<number> {
     return r.report.pass ? 0 : 1;
   }
   if (cmd === 'review' && sub) {
-    const a = asset(sub), version = flag(args, '--version') ?? latest(sub), r = await reviewVersion(a, version);
+    const a = asset(sub), version = flag(args, '--version') ?? latest(sub), r = await reviewVersion(a, version, { blind: args.includes('--blind') });
     print(`review sheet ${r.path} (~${r.tokens} image tokens); gate ${r.render.report.pass ? 'pass' : 'FAIL'}`, { sheet: r.path, tokens: r.tokens, pass: r.render.report.pass, checks: r.render.report.checks });
     return 0;
   }
@@ -257,10 +260,16 @@ export async function main(argv: string[]): Promise<number> {
     if (flag(args, '--model')) ex.model = flag(args, '--model');
     if (flag(args, '--effort')) ex.effort = flag(args, '--effort');
     if (flag(args, '--ms')) ex.wallMs = +flag(args, '--ms')!;
+    // who scored (rev 9): the reviewer subagent passes its name; anything else is the authoring agent scoring itself
+    ex.reviewer = flag(args, '--reviewer') ?? 'self';
+    if (args.includes('--blind')) {
+      if (ex.reviewer === 'self') throw new Error('score --blind needs --reviewer <name>: a blind re-score comes from a fresh reviewer that saw only the blind sheet, never from the agent that made the asset');
+      ex.blind = true;
+    }
     const a0 = asset(sub);
     if (flag(args, '--tokens-in') || flag(args, '--tokens-out')) ex.measured = { in: +(flag(args, '--tokens-in') ?? 0), out: +(flag(args, '--tokens-out') ?? 0) };
     const e = await scoreVersion(a0, rest[0], score, flag(args, '--note') ?? '', ex);
-    print(`scored ${e.asset} ${e.version} (${e.pass}) ${score}; gate ${e.conformance?.pass ? 'pass' : 'FAIL'}`, e);
+    print(`scored ${e.asset} ${e.version} (${e.pass}${e.blind ? ', blind' : ''}, by ${e.reviewer}) ${score}; gate ${e.conformance?.pass ? 'pass' : 'FAIL'}${typeof e.gap === 'number' ? `; ${e.gap} under its own score` : ''}`, e);
     return 0;
   }
   if (cmd === 'variants' && sub) {
@@ -289,11 +298,19 @@ export async function main(argv: string[]): Promise<number> {
         ...(flag(args, '--variants') && { variants: +flag(args, '--variants')! }),
         ...(swaps && { swaps: swaps.reduce((m, x) => { const [n, pair] = x.split(':'), [from, to] = pair.split('='); (m[n] ??= {})[from] = to; return m; }, {} as Record<string, Record<string, string>>) }),
         ...(flag(args, '--importance') && { importance: flag(args, '--importance') as Importance }), ...(flag(args, '--priority') && { priority: +flag(args, '--priority')! }),
-        ...(flag(args, '--notes') && { notes: flag(args, '--notes') }),
+        ...(flag(args, '--notes') && { notes: flag(args, '--notes') }), ...(flag(args, '--height') && { height: +flag(args, '--height')! }),
+        ...(flag(args, '--object') && { object: flag(args, '--object') }),
       };
       if (b.importance && !IMPORTANCE.includes(b.importance)) throw new Error(`--importance: ${IMPORTANCE.join(' | ')}`);
+      for (const d of list(args, '--durations') ?? []) {
+        const [s, ms] = d.split('='), a = b.anims?.[s];
+        if (!a || !ms) throw new Error(`--durations ${d}: give state=ms/ms/… for a state in --anims`);
+        a.durations = ms.split('/').map(Number);
+      }
+      // new effect briefs name the drawable thing up front (rev 9); older briefs without one show it as an open issue
+      if (b.kind === 'effect' && !b.object) throw new Error(`brief add ${b.id}: an effect needs --object "<the drawable thing>" (e.g. "ice lance", "ring of fire") — without the word effect or colour words`);
       if (b.anims && !b.states) b.states = ['idle', ...Object.keys(b.anims).filter(s => s !== 'idle')];
-      const all = addBrief(p, b);
+      const all = addBrief(p, b, { breakContract: args.includes('--break-contract') });
       print(`brief ${b.id} (${b.kind}) in art/briefs.yaml — ${all.length} briefs\nnext: artgen make ${b.id}`, { brief: b, count: all.length });
       return 0;
     }
@@ -333,16 +350,18 @@ export async function main(argv: string[]): Promise<number> {
   }
   if (cmd === 'approve' && sub) {
     const e = await approve(requireProject(flag(args, '--root')), sub, flag(args, '--note') ?? '');
-    print(`approved ${e.asset} ${e.version} (direction v${e.direction?.version})`, e);
+    const warn = (e.warnings as string[] | undefined) ?? [];
+    print(`approved ${e.asset} ${e.version} (direction v${e.direction?.version})${warn.length ? `\nnote for the user: ${warn.join('; ')}` : ''}`, e);
     return 0;
   }
   if (cmd === 'export') {
-    const r = await exportPacks(requireProject(flag(args, '--root')), { packs: list(args, '--pack'), includeDrafts: args.includes('--include-drafts'), generator: `artgen ${VERSION}`, runtime: args.includes('--runtime'), force: args.includes('--force') });
+    const r = await exportPacks(requireProject(flag(args, '--root')), { packs: list(args, '--pack'), includeDrafts: args.includes('--include-drafts'), generator: `artgen ${VERSION}`, runtime: args.includes('--runtime'), force: args.includes('--force'), breakContract: list(args, '--break-contract') });
     const rt = r.runtime;
     print([
       ...r.packs.map(x => `pack ${x.pack}: ${x.assets.length} assets → ${x.atlases.join(', ')} + ${x.dir}/pack.json${x.drafts.length ? ` (drafts: ${x.drafts.join(', ')})` : ''}`),
       r.assetsTs ? `typed ids: ${r.assetsTs}` : 'nothing approved to export yet',
       ...(r.skipped.length ? [`not exported: ${r.skipped.map(s => `${s.id} (${s.status})`).join(', ')}`] : []),
+      ...r.contracts.map(c => `contract ${c.id}: ${c.change}${c.notes.length ? ` (${c.notes.join('; ')})` : ''} → art/contracts/${c.id}.json`),
       ...(rt ? [
         `runtime ${rt.from && rt.from !== rt.version ? `${rt.from} → ` : ''}${rt.version} (${rt.adapters.join(', ')}) in ${rt.dir}: ${rt.written.length} written, ${rt.unchanged.length} unchanged${rt.removed.length ? `, ${rt.removed.length} removed` : ''}`,
         ...(rt.kept.length ? [`kept locally edited runtime files (re-run with --force to overwrite): ${rt.kept.join(', ')}`] : []),
@@ -358,6 +377,24 @@ export async function main(argv: string[]): Promise<number> {
   if (cmd === 'import-edit' && sub && rest[0]) {
     const r = await importEdit(requireProject(flag(args, '--root')), sub, rest[0], { cell: flag(args, '--cell') });
     print(`${r.file}: ${r.pixels} pixels in ${r.cells} cells${r.snapped ? `, ${r.snapped} snapped to the nearest palette colour` : ''}${r.conflicts ? `, ${r.conflicts} mirrored-cell edits dropped (edit the east facing)` : ''}\nnext: artgen review ${sub}`, r);
+    return 0;
+  }
+  if (cmd === 'roster') {
+    const p = requireProject(flag(args, '--root'));
+    if (sub === 'record' && rest[0]) {
+      const r = rosterRecord(p, rest[0], flag(args, '--reviewer') ?? 'self');
+      const lines = Object.entries(r.issues).map(([id, xs]) => `  ${id}: ${xs.join('; ')}`);
+      print([`roster review recorded: ${lines.length} assets with open issues`, ...lines, ...r.notes.map(n => `  note: ${n}`), 'they show in status and the gallery until the asset gets a new final'].join('\n'), r);
+      return 0;
+    }
+    const r = await rosterRun(p, { ids: pos2(args), seed: flag(args, '--seed') ? +flag(args, '--seed')! : undefined });
+    print([
+      `roster sheets: ${r.lineup}, ${r.silhouettes} (~${r.tokens} image tokens); asset list for the reviewer: ${r.assets}${r.skipped.length ? `; tiles left out: ${r.skipped.join(', ')}` : ''}`,
+      'sizes (drawn body height vs brief height × px per metre):',
+      ...r.sizes.map(x => `  ${x.id.padEnd(16)} ${String(x.drawn).padStart(3)} px${x.expected !== undefined ? `, expected ${x.expected} px for ${x.height} m (${x.dev! >= 0 ? '+' : ''}${Math.round(x.dev! * 100)} %)${x.flag ? ' FLAG' : ''}` : ' (no height in the brief)'}`),
+      `most similar silhouettes: ${r.pairs.map(x => `${x.a} ~ ${x.b} ${x.overlap}`).join(', ')}`,
+      'next: give the two sheets and the asset list (not the ledger) to a fresh art-reviewer in roster mode, then artgen roster record <its json> --reviewer art-reviewer',
+    ].join('\n'), r);
     return 0;
   }
   if (cmd === 'analytics') {

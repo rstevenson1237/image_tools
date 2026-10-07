@@ -5,9 +5,11 @@ import { Grid } from '../lib/grid.ts';
 import { renderAsset, type AssetModule } from '../render.ts';
 import type { NextStep } from '../pipeline.ts';
 import type { LedgerEntry } from '../qa/ledger.ts';
-import { briefOrder, parseBriefs, removeBrief, upsertBrief, validateBrief } from './briefs.ts';
+import { briefOrder, effectObjectIssues, parseBriefs, removeBrief, upsertBrief, validateBrief } from './briefs.ts';
 import { assetStatus } from './status.ts';
 import { assetsTs, buildPack, packRects, swapMaps } from './pack.ts';
+import { briefContract, contractOf, diffContract } from './contract.ts';
+import { body, roster, rosterIssues, silhouetteOverlap } from './roster.ts';
 import { analytics, analyticsMarkdown } from './analytics.ts';
 import { editOps, nearestToken, restyleDiff, tokenizer } from './edit.ts';
 
@@ -122,6 +124,47 @@ describe('export', () => {
     expect(ts).toContain('goblin: { id: "goblin", pack: "main"'); expect(ts).toContain('export type AssetId');
     expect(() => swapMaps(dir, { x: { nope: 'cloth' } })).toThrow(/unknown ramp/);
   });
+
+  test('per-frame anchors (mirrored with west facings, null where a frame lacks one) and per-frame durations', () => {
+    const mod: AssetModule = {
+      render(ctx) { const g = new ctx.lib.Grid(8, 8); g.fill(1, 1, 6, 6, ctx.dir.pal.cloth[1]); g.set(1 + ctx.frame, 1, ctx.dir.outline); return g; },
+      // the hand swings with the frame; the eye only shows from the front
+      anchors: ctx => ({ hand: [5 + ctx.frame, 4], ...(ctx.facing === 's' && { eye: [3, 2] }) }),
+    };
+    const brief = { id: 'hero', kind: 'character', size: [8, 8] as [number, number], states: ['idle', 'attack'], directions: 4 as const, anims: { attack: { frames: 3, durations: [60, 200, 90] } } };
+    const r = renderAsset(mod, { dir, brief }), a = buildPack('main', dir, [{ brief, view: 'topdown', renders: [r], version: 'f', sourceHash: 'h' }]).manifest.assets.hero;
+    expect(Object.keys(a.anchors!)).toEqual(['eye', 'hand']);
+    expect(a.anchors!.hand).toHaveLength(a.frames.length);
+    const at = (state: string, facing: string, frame: number) => a.frames.findIndex(f => f[6] === state && a.facings[f[5]] === facing && f[7] === frame);
+    expect(a.anchors!.hand[at('attack', 'e', 2)]).toEqual([7, 4]);
+    expect(a.anchors!.hand[at('attack', 'w', 2)]).toEqual([0, 4]); // west = mirrored east: x → w − 1 − x
+    expect([a.anchors!.eye[at('idle', 's', 0)], a.anchors!.eye[at('idle', 'n', 0)]]).toEqual([[3, 2], null]);
+    expect(a.states.attack).toEqual({ frames: 3, fps: 8, loop: false, durations: [60, 200, 90] });
+    expect(a.states.idle).toEqual({ frames: 1, fps: 8, loop: true });
+    const ase = buildPack('main', dir, [{ brief, view: 'topdown', renders: [r], version: 'f', sourceHash: 'h' }]).aseprite[0] as { frames: { filename: string; duration: number }[] };
+    expect(['attack/s/0', 'attack/s/1', 'idle/s/0'].map(n => ase.frames.find(f => f.filename === `hero/${n}`)!.duration)).toEqual([60, 200, 125]);
+    expect(assetsTs([{ manifest: { format: 1, pack: 'main', generator: 't', direction: { id: 'd', version: 1 }, runtime: null, atlases: [], assets: { hero: a } }, url: '/p.json' }]))
+      .toContain('anchors: ["eye","hand"]');
+    expect(validateBrief({ ...brief, anims: { attack: { frames: 3, durations: [60, 200] } } })).toEqual([expect.stringMatching(/durations must list one positive whole number of ms per frame \(3\)/)]);
+  });
+
+  test('animation contract: breaking changes vs additions; a brief predicts it without rendering', () => {
+    const brief = { id: 'hero', kind: 'character', states: ['idle', 'attack'], directions: 4 as const, anims: { attack: { frames: 3, durations: [60, 200, 90] } } };
+    const old = { ...briefContract(brief, dir), anchors: ['hand', 'tip'] };
+    expect(old).toEqual({ format: 1, asset: 'hero', facings: ['s', 'w', 'n', 'e'], anchors: ['hand', 'tip'], states: { idle: { frames: 1, durations: [125], loop: true }, attack: { frames: 3, durations: [60, 200, 90], loop: false } } });
+    expect(diffContract(old, briefContract(brief, dir, old))).toEqual({ breaking: [], added: [] });
+    const next = briefContract({ ...brief, states: ['idle', 'attack', 'hurt'], directions: 8, anims: { attack: { frames: 4 } } }, dir, old);
+    expect(diffContract(old, { ...next, anchors: ['hand', 'head'] })).toEqual({
+      breaking: ['state "attack": 3 → 4 logical frames', 'anchor "tip" removed'],
+      added: ['state "hurt"', 'facing "sw"', 'facing "nw"', 'facing "ne"', 'facing "se"', 'anchor "head"'],
+    });
+    expect(diffContract(old, briefContract({ ...brief, anims: { attack: { frames: 3, loop: true } } }, dir, old)).breaking)
+      .toEqual(['state "attack": frame durations 60,200,90 → 125,125,125 ms', 'state "attack": loop false → true']);
+    expect(diffContract(old, { ...old, facings: ['s'] }).breaking).toEqual(['facing "w" removed', 'facing "n" removed', 'facing "e" removed']);
+    // what export records is what the pack says
+    const a = buildPack('main', dir, [{ brief, view: 'topdown', renders: [renderAsset({ render: ctx => new ctx.lib.Grid(...ctx.size) }, { dir, brief })], version: 'f', sourceHash: 'h' }]).manifest.assets.hero;
+    expect(contractOf('hero', a)).toEqual({ ...old, anchors: [] });
+  });
 });
 
 describe('analytics', () => {
@@ -161,3 +204,59 @@ describe('tokens: restyle diff and edit ops', () => {
     expect(nearestToken(dir, '#101010')).toEqual({ token: 'outline', exact: true });
   });
 });
+
+describe('roster (rev 9)', () => {
+  const fig = (w: number, h: number, c = dir.palette.ramps.cloth[1]) => { const g = new Grid(16, 16); g.fill(8 - (w >> 1), 16 - h, w, h, c); return g; };
+  const items = [
+    { id: 'hero', kind: 'character', grid: fig(6, 14), height: 1.8 },
+    { id: 'barrel', kind: 'prop', grid: fig(8, 14), height: 1 },   // drawn as tall as the hero: fill-the-frame
+    { id: 'pillar', kind: 'prop', grid: fig(8, 15) },              // no height in the brief
+    { id: 'rat', kind: 'creature', grid: fig(6, 3), height: 0.4 },
+  ];
+  test('sizes against real-world heights, most similar silhouettes, a shuffled lettered sheet', () => {
+    const r = roster(items, { bg: dir.background ?? '#000000', pxPerMetre: 14 / 1.8, seed: 3 });
+    expect(r.sizes.map(x => [x.id, x.drawn, x.flag])).toEqual([['hero', 14, false], ['barrel', 14, true], ['pillar', 15, false], ['rat', 3, false]]);
+    expect(r.sizes[1]).toMatchObject({ expected: 7.8, dev: 0.8 });
+    expect(r.pairs[0]).toEqual({ a: 'barrel', b: 'pillar', overlap: 0.933 });
+    expect(Object.keys(r.key)).toEqual(['A', 'B', 'C', 'D']);
+    expect(Object.values(r.key).sort()).toEqual(['barrel', 'hero', 'pillar', 'rat']);
+    expect(Object.values(r.key)).not.toEqual(items.map(i => i.id)); // shuffled
+    expect(r.lineup.h).toBeGreaterThan(15 * 4);
+    expect(silhouetteOverlap(body(items[0].grid), body(items[0].grid))).toBe(1);
+  });
+  test('a roster review becomes per-asset open issues', () => {
+    const key = { A: 'hero', B: 'barrel' };
+    expect(rosterIssues({ silhouettes: [{ letter: 'A', guess: 'person', readability: 4 }, { letter: 'B', guess: 'a door', readability: 2 }],
+      lineup: [{ id: 'barrel', scale: 'too big', scaleNote: 'as tall as the hero', issues: ['olive wood', 'same block as the pillar', 'third'] }] }, key))
+      .toEqual({ barrel: ['silhouette reads as "a door" (2/5)', 'lineup: too big — as tall as the hero', 'lineup: olive wood', 'lineup: same block as the pillar'] });
+    expect(() => rosterIssues({ silhouettes: [{ letter: 'Z', guess: '?', readability: 1 }], lineup: [] }, key)).toThrow(/no silhouette "Z"/);
+  });
+});
+
+describe('analytics: review independence (rev 9)', () => {
+  test('scores by reviewer and blind gaps; blind scores stay out of the pass tables', () => {
+    const sc = (version: string, score: number, extra: Partial<LedgerEntry> = {}): LedgerEntry => ({ ts: 't', type: 'score', asset: 'a', version, pass: version.startsWith('f') ? 'f' : 'r1', score, ...extra });
+    const r = analytics([sc('base.v1', 6, { reviewer: 'self' }), sc('finish.v1', 7, { reviewer: 'art-reviewer' }), sc('finish.v1', 5, { blind: true, reviewer: 'fresh', pass: 'b' })], [{ id: 'a', kind: 'prop' }]);
+    expect(r.passes.map(p => p.pass)).toEqual(['r1', 'f']);
+    expect(r.review).toEqual({ byReviewer: { self: 1, 'art-reviewer': 1 }, blind: { n: 1, meanGap: 2, over1: 1, assets: [{ asset: 'a', version: 'finish.v1', own: 7, blind: 5, gap: 2 }] } });
+    expect(analyticsMarkdown(r)).toContain('Blind re-scores: 1, mean gap +2 (own − blind), 1 more than 1 point apart');
+  });
+});
+
+describe('effect object (rev 9)', () => {
+  test('an effect names a drawable thing, without "effect" or colour words; a missing one is an issue, not an invalid brief', () => {
+    const fx = (object?: string) => effectObjectIssues({ kind: 'effect', object });
+    expect(fx('ice lance')).toEqual([]);
+    expect(fx('ring of fire')).toEqual([]);
+    expect(fx('a fan of playing cards')).toEqual([]);
+    expect(fx('cold pale flame')).toEqual(['object must not lean on colour words (pale): colour comes from the direction']);
+    expect(fx('shadow effect')).toEqual(['object must not say "effect": name the thing itself']);
+    expect(fx('purple glowing VFX')[0]).toMatch(/"effect"/);
+    expect(fx('ab')).toEqual(['object must name a thing (a noun a draftsman could draw)']);
+    expect(fx()).toEqual([expect.stringMatching(/no object: name the drawable thing/)]);
+    expect(effectObjectIssues({ kind: 'prop' })).toEqual([]);
+    expect(validateBrief({ id: 'wisp', kind: 'effect' })).toEqual([]);
+    expect(validateBrief({ id: 'wisp', kind: 'effect', object: 'purple glow' })).toEqual(['brief wisp: object must not lean on colour words (purple): colour comes from the direction']);
+  });
+});
+

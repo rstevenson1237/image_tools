@@ -5,18 +5,19 @@ export const Packs = {
 } as const;
 
 export const Assets = {
-  "lantern-bearer": { id: "lantern-bearer", pack: "main", kind: "character", states: ["idle","walk"], facings: ["s","sw","w","nw","n","ne","e","se"], variants: ["base"] },
-  "bog-goblin": { id: "bog-goblin", pack: "main", kind: "character", states: ["idle"], facings: ["s"], variants: ["base","pale"] },
-  leech: { id: "leech", pack: "main", kind: "creature", states: ["idle"], facings: ["s"], variants: ["base"] },
-  wisp: { id: "wisp", pack: "main", kind: "effect", states: ["idle"], facings: ["s"], variants: ["base"] },
-  "sunk-crate": { id: "sunk-crate", pack: "main", kind: "prop", states: ["idle"], facings: ["s"], variants: ["base","v1","v2"] },
-  "lantern-post": { id: "lantern-post", pack: "main", kind: "prop", states: ["idle"], facings: ["s"], variants: ["base"] },
-  reeds: { id: "reeds", pack: "main", kind: "prop", states: ["idle"], facings: ["s"], variants: ["base","v1","v2"] },
-  "bone-pile": { id: "bone-pile", pack: "main", kind: "prop", states: ["idle"], facings: ["s"], variants: ["base"] },
-  mud: { id: "mud", pack: "main", kind: "tile", states: ["idle"], facings: ["s"], variants: ["base"] },
-  "bog-water": { id: "bog-water", pack: "main", kind: "tile", states: ["idle"], facings: ["s"], variants: ["base"] },
+  "lantern-bearer": { id: "lantern-bearer", pack: "main", kind: "character", states: ["idle","walk"], facings: ["s","sw","w","nw","n","ne","e","se"], variants: ["base"], anchors: ["head"] },
+  "bog-goblin": { id: "bog-goblin", pack: "main", kind: "character", states: ["idle"], facings: ["s"], variants: ["base","pale"], anchors: ["head"] },
+  leech: { id: "leech", pack: "main", kind: "creature", states: ["idle"], facings: ["s"], variants: ["base"], anchors: ["head"] },
+  wisp: { id: "wisp", pack: "main", kind: "effect", states: ["idle"], facings: ["s"], variants: ["base"], anchors: [] },
+  "sunk-crate": { id: "sunk-crate", pack: "main", kind: "prop", states: ["idle"], facings: ["s"], variants: ["base","v1","v2"], anchors: ["lid"] },
+  "lantern-post": { id: "lantern-post", pack: "main", kind: "prop", states: ["idle"], facings: ["s"], variants: ["base"], anchors: ["flame"] },
+  reeds: { id: "reeds", pack: "main", kind: "prop", states: ["idle"], facings: ["s"], variants: ["base","v1","v2"], anchors: [] },
+  "bone-pile": { id: "bone-pile", pack: "main", kind: "prop", states: ["idle"], facings: ["s"], variants: ["base"], anchors: [] },
+  mud: { id: "mud", pack: "main", kind: "tile", states: ["idle"], facings: ["s"], variants: ["base"], anchors: [] },
+  "bog-water": { id: "bog-water", pack: "main", kind: "tile", states: ["idle"], facings: ["s"], variants: ["base"], anchors: [] },
 } as const;
 
 export type AssetId = keyof typeof Assets;
 export type StateOf<K extends AssetId> = (typeof Assets)[K]['states'][number];
 export type VariantOf<K extends AssetId> = (typeof Assets)[K]['variants'][number];
+export type AnchorOf<K extends AssetId> = (typeof Assets)[K]['anchors'][number];

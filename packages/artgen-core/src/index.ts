@@ -32,5 +32,7 @@ export { styleTile, styleSheet, wrap, paletteLuma, type ProbeImages, type StyleT
 export * from './w2/briefs.ts';
 export * from './w2/status.ts';
 export * from './w2/pack.ts';
+export * from './w2/contract.ts';
+export * from './w2/roster.ts';
 export * from './w2/analytics.ts';
 export * from './w2/edit.ts';

@@ -8,6 +8,9 @@ import { Grid } from '../lib/grid.ts';
 import type { Direction, Size, View } from '../direction.ts';
 import type { BriefEntry } from './briefs.ts';
 
+/** Playback of one state. `durations` (ms per frame) is present only when the brief sets it; it overrides `fps`. */
+export interface PackStateDef { frames: number; fps: number; loop: boolean; durations?: number[] }
+
 export interface Rect { x: number; y: number; w: number; h: number }
 export interface Placed extends Rect { id: number; bin: number }
 
@@ -88,9 +91,15 @@ export interface PackAsset {
   anchor: [number, number];
   directions: number;
   facings: string[];
-  states: Record<string, { frames: number; fps: number; loop: boolean }>;
+  states: Record<string, PackStateDef>;
   /** [atlas, x, y, w, h, facing index, state, frame, variant] */
   frames: [number, number, number, number, number, number, string, number, number][];
+  /**
+   * Named points per frame (the asset module's `anchors`: hand, head, weapon tip…), in frame pixels, one entry per
+   * `frames` entry (null where that frame doesn't have the anchor). Effects and held props attach here, so they stay
+   * in the hand when the animation is redrawn. Absent when the asset exports no anchors.
+   */
+  anchors?: Record<string, ([number, number] | null)[]>;
   variants: string[];
   swaps?: Record<string, Record<string, string>>;
   version: string;
@@ -120,6 +129,22 @@ export function defaultAnchor(b: BriefEntry, view: View, size: Size): [number, n
   if (b.anchor) return b.anchor;
   return view === 'topdown' || TILE_KINDS.has(b.kind) || b.kind === 'effect' ? [size[0] >> 1, size[1] >> 1] : [size[0] >> 1, size[1] - 1];
 }
+
+/** Exported playback per state: brief `anims` over the defaults (effects at the direction's fps, others at 8; idle-like states loop). */
+export function stateDefs(b: BriefEntry, dir: Direction, frames: Record<string, number>): Record<string, PackStateDef> {
+  const out: Record<string, PackStateDef> = {};
+  for (const [s, n] of Object.entries(frames)) {
+    const a = b.anims?.[s];
+    out[s] = {
+      frames: n, fps: a?.fps ?? (b.kind === 'effect' ? dir.effects.fps : 8), loop: a?.loop ?? (b.kind !== 'effect' && (n === 1 || LOOPING.test(s))),
+      ...(a?.durations?.length === n && { durations: [...a.durations] }),
+    };
+  }
+  return out;
+}
+
+/** Duration of every frame of a state in ms (the explicit list, else 1000 / fps each). */
+export const frameDurations = (st: PackStateDef): number[] => st.durations ?? Array.from({ length: st.frames }, () => Math.round(1000 / st.fps));
 
 /** Ramp-to-ramp swaps → hex maps over the direction palette. */
 export function swapMaps(dir: Direction, swaps: Record<string, Record<string, string>> = {}): Record<string, Record<string, string>> {
@@ -156,18 +181,19 @@ export function buildPack(pack: string, dir: Direction, inputs: PackInput[], opt
   placed.forEach(p => atlases[p.bin].blit(uniq[p.id], p.x, p.y));
   const names = atlases.map((_, i) => `${pack}-${i}.png`);
   const assets: Record<string, PackAsset> = {};
-  const fps = dir.effects.fps;
   for (const inp of inputs) {
-    const b = inp.brief, r = inp.renders[0];
-    const states: PackAsset['states'] = {};
-    for (const s of r.states) {
-      const a = b.anims?.[s];
-      states[s] = { frames: r.frames[s], fps: a?.fps ?? (b.kind === 'effect' ? fps : 8), loop: a?.loop ?? (b.kind !== 'effect' && (r.frames[s] === 1 || LOOPING.test(s))) };
-    }
+    const b = inp.brief, r = inp.renders[0], mine = refs.filter(x => x.asset === b.id);
+    const states = stateDefs(b, dir, Object.fromEntries(r.states.map(s => [s, r.frames[s]])));
+    const names = [...new Set(mine.flatMap(x => Object.keys(x.cell.anchors ?? {})))].sort();
+    const anchors = names.length ? Object.fromEntries(names.map(n => [n, mine.map(x => {
+      const a = x.cell.anchors?.[n];
+      return a ? [Math.round(a[0]), Math.round(a[1])] as [number, number] : null;
+    })])) : undefined;
     const swaps = b.swaps && Object.keys(b.swaps).length ? swapMaps(dir, b.swaps) : undefined;
     assets[b.id] = {
       kind: b.kind, view: inp.view, size: r.size, anchor: defaultAnchor(b, inp.view, r.size), directions: r.facings.length, facings: r.facings, states,
-      frames: refs.filter(x => x.asset === b.id).map(x => { const p = placed[x.img]; return [p.bin, p.x, p.y, p.w, p.h, x.fi, x.si, x.cell.frame, x.variant]; }),
+      frames: mine.map(x => { const p = placed[x.img]; return [p.bin, p.x, p.y, p.w, p.h, x.fi, x.si, x.cell.frame, x.variant]; }),
+      ...(anchors && { anchors }),
       variants: ['base', ...inp.renders.slice(1).map((_, i) => `v${i + 1}`), ...Object.keys(swaps ?? {})],
       ...(swaps && { swaps }), version: inp.version, sourceHash: inp.sourceHash,
       ...(TILE_KINDS.has(b.kind) && { tile: r.size[0] }), ...(inp.draft && { draft: true as const }),
@@ -193,7 +219,7 @@ export function asepriteJson(m: PackManifest, bin: number, g: Grid, image: strin
       if (!tag || tag.name !== strip) { tag = { name: strip, from: frames.length, to: frames.length, direction: 'forward' }; tags.push(tag); } else tag.to = frames.length;
       frames.push({
         filename: `${id}/${state}/${a.facings[fi]}/${frame}${variant ? `#${a.variants[variant]}` : ''}`, frame: { x, y, w, h }, rotated: false, trimmed: false,
-        spriteSourceSize: { x: 0, y: 0, w, h }, sourceSize: { w, h }, duration: Math.round(1000 / a.states[state].fps),
+        spriteSourceSize: { x: 0, y: 0, w, h }, sourceSize: { w, h }, duration: frameDurations(a.states[state])[frame] ?? Math.round(1000 / a.states[state].fps),
       });
     }
   }
@@ -208,8 +234,8 @@ export function assetsTs(packs: { manifest: PackManifest; url: string }[]): stri
   out += `export const Packs = {\n${packs.map(p => `  ${ident(p.manifest.pack)}: ${JSON.stringify(p.url)},`).join('\n')}\n} as const;\n\n`;
   out += 'export const Assets = {\n';
   for (const { manifest: m } of packs) for (const [id, a] of Object.entries(m.assets))
-    out += `  ${ident(id)}: { id: ${JSON.stringify(id)}, pack: ${JSON.stringify(m.pack)}, kind: ${JSON.stringify(a.kind)}, states: ${JSON.stringify(Object.keys(a.states))}, facings: ${JSON.stringify(a.facings)}, variants: ${JSON.stringify(a.variants)} },\n`;
-  out += '} as const;\n\nexport type AssetId = keyof typeof Assets;\nexport type StateOf<K extends AssetId> = (typeof Assets)[K][\'states\'][number];\nexport type VariantOf<K extends AssetId> = (typeof Assets)[K][\'variants\'][number];\n';
+    out += `  ${ident(id)}: { id: ${JSON.stringify(id)}, pack: ${JSON.stringify(m.pack)}, kind: ${JSON.stringify(a.kind)}, states: ${JSON.stringify(Object.keys(a.states))}, facings: ${JSON.stringify(a.facings)}, variants: ${JSON.stringify(a.variants)}, anchors: ${JSON.stringify(Object.keys(a.anchors ?? {}))} },\n`;
+  out += '} as const;\n\nexport type AssetId = keyof typeof Assets;\nexport type StateOf<K extends AssetId> = (typeof Assets)[K][\'states\'][number];\nexport type VariantOf<K extends AssetId> = (typeof Assets)[K][\'variants\'][number];\nexport type AnchorOf<K extends AssetId> = (typeof Assets)[K][\'anchors\'][number];\n';
   return out;
 }
 

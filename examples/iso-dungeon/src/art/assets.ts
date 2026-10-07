@@ -5,18 +5,19 @@ export const Packs = {
 } as const;
 
 export const Assets = {
-  hero: { id: "hero", pack: "main", kind: "character", states: ["idle","walk"], facings: ["s","sw","w","nw","n","ne","e","se"], variants: ["base"] },
-  "skeleton-knight": { id: "skeleton-knight", pack: "main", kind: "character", states: ["idle"], facings: ["s"], variants: ["base","bloody"] },
-  slime: { id: "slime", pack: "main", kind: "creature", states: ["idle"], facings: ["s"], variants: ["base"] },
-  "torch-flame": { id: "torch-flame", pack: "main", kind: "effect", states: ["idle"], facings: ["s"], variants: ["base"] },
-  chest: { id: "chest", pack: "main", kind: "prop", states: ["closed","open"], facings: ["s"], variants: ["base"] },
-  barrel: { id: "barrel", pack: "main", kind: "prop", states: ["idle"], facings: ["s"], variants: ["base","v1","v2"] },
-  pillar: { id: "pillar", pack: "main", kind: "prop", states: ["idle"], facings: ["s"], variants: ["base"] },
-  brazier: { id: "brazier", pack: "main", kind: "prop", states: ["idle"], facings: ["s"], variants: ["base"] },
-  rubble: { id: "rubble", pack: "main", kind: "prop", states: ["idle"], facings: ["s"], variants: ["base","v1","v2"] },
-  floor: { id: "floor", pack: "main", kind: "tile", states: ["idle"], facings: ["s"], variants: ["base","v1","v2","v3"] },
+  hero: { id: "hero", pack: "main", kind: "character", states: ["idle","walk"], facings: ["s","sw","w","nw","n","ne","e","se"], variants: ["base"], anchors: ["head"] },
+  "skeleton-knight": { id: "skeleton-knight", pack: "main", kind: "character", states: ["idle"], facings: ["s"], variants: ["base","bloody"], anchors: ["blade"] },
+  slime: { id: "slime", pack: "main", kind: "creature", states: ["idle"], facings: ["s"], variants: ["base"], anchors: [] },
+  "torch-flame": { id: "torch-flame", pack: "main", kind: "effect", states: ["idle"], facings: ["s"], variants: ["base"], anchors: [] },
+  chest: { id: "chest", pack: "main", kind: "prop", states: ["closed","open"], facings: ["s"], variants: ["base"], anchors: [] },
+  barrel: { id: "barrel", pack: "main", kind: "prop", states: ["idle"], facings: ["s"], variants: ["base","v1","v2"], anchors: [] },
+  pillar: { id: "pillar", pack: "main", kind: "prop", states: ["idle"], facings: ["s"], variants: ["base"], anchors: [] },
+  brazier: { id: "brazier", pack: "main", kind: "prop", states: ["idle"], facings: ["s"], variants: ["base"], anchors: [] },
+  rubble: { id: "rubble", pack: "main", kind: "prop", states: ["idle"], facings: ["s"], variants: ["base","v1","v2"], anchors: [] },
+  floor: { id: "floor", pack: "main", kind: "tile", states: ["idle"], facings: ["s"], variants: ["base","v1","v2","v3"], anchors: [] },
 } as const;
 
 export type AssetId = keyof typeof Assets;
 export type StateOf<K extends AssetId> = (typeof Assets)[K]['states'][number];
 export type VariantOf<K extends AssetId> = (typeof Assets)[K]['variants'][number];
+export type AnchorOf<K extends AssetId> = (typeof Assets)[K]['anchors'][number];

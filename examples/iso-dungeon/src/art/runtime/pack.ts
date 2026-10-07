@@ -1,4 +1,4 @@
-// Vendored by `artgen export --runtime` (artgen-runtime 1.0.0). Local edits are detected and kept;
+// Vendored by `artgen export --runtime` (artgen-runtime 1.1.0). Local edits are detected and kept;
 // re-export with --force to overwrite them. Source: packages/artgen-runtime in rstevenson1237/image_tools.
 /**
  * A loaded pack: the manifest, its atlases uploaded through an adapter, and the objects game code uses — sprites
@@ -6,9 +6,9 @@
  */
 import { resolveAutotile, cellHash } from './autotile.js';
 import { angleOf, chooseFacing } from './facing.js';
-import type { AssetRef, AtlasImage, FrameRect, PackAsset, PackManifest, RuntimeAdapter, StateOf, VariantOf } from './types.js';
+import type { AnchorOf, AssetRef, AtlasImage, FrameRect, PackAsset, PackManifest, PackStateDef, RuntimeAdapter, StateOf, VariantOf } from './types.js';
 
-export const RUNTIME_VERSION = '1.0.0';
+export const RUNTIME_VERSION = '1.1.0';
 
 export interface DecodedImage { width: number; height: number; data: Uint8ClampedArray | Uint8Array }
 
@@ -98,8 +98,8 @@ export class Pack<Tex = unknown, Node = unknown, Parent = unknown> {
     return a.variants.length - Object.keys(a.swaps ?? {}).length;
   }
 
-  /** Frame rect for a selection; missing facings fall back to facing 0, missing frames to frame 0. */
-  frame(ref: AssetRef, sel: FrameSelect = {}): FrameRect<Tex> {
+  /** Index into the asset's `frames` for a selection; missing facings fall back to facing 0, missing frames to frame 0. */
+  frameIndex(ref: AssetRef, sel: FrameSelect = {}): number {
     const id = idOf(ref), a = this.asset(id);
     let map = this.index.get(id);
     if (!map) { map = new Map(a.frames.map((f, i) => [`${f[8]}|${f[6]}|${f[5]}|${f[7]}`, i])); this.index.set(id, map); }
@@ -107,8 +107,21 @@ export class Pack<Tex = unknown, Node = unknown, Parent = unknown> {
     const state = sel.state ?? Object.keys(a.states)[0], fi = sel.facing ?? 0, fr = sel.frame ?? 0;
     const i = map.get(`${pv}|${state}|${fi}|${fr}`) ?? map.get(`${pv}|${state}|0|${fr}`) ?? map.get(`${pv}|${state}|${fi}|0`) ?? map.get(`0|${state}|0|0`);
     if (i === undefined) throw new Error(`${id}: no frame for state "${state}"`);
-    const [bin, x, y, w, h] = a.frames[i], swap = v >= this.paramVariants(id) ? this.swapSets.get(`${id}#${a.variants[v]}`) : undefined;
+    return i;
+  }
+
+  /** Frame rect for a selection (fallbacks as `frameIndex`). */
+  frame(ref: AssetRef, sel: FrameSelect = {}): FrameRect<Tex> {
+    const id = idOf(ref), a = this.asset(id), v = this.variantIndex(a, sel.variant);
+    const [bin, x, y, w, h] = a.frames[this.frameIndex(id, sel)], swap = v >= this.paramVariants(id) ? this.swapSets.get(`${id}#${a.variants[v]}`) : undefined;
     return { tex: swap?.tex[bin] ?? this.textures[bin], atlas: swap?.img[bin] ?? this.atlases[bin], x, y, w, h };
+  }
+
+  /** A named anchor (`hand`, `head`…) of the selected frame in frame pixels, or undefined when that frame lacks it. */
+  anchor(ref: AssetRef, name: string, sel: FrameSelect = {}): [number, number] | undefined {
+    const a = this.asset(ref), list = a.anchors?.[name];
+    if (!list) throw new Error(`${idOf(ref)}: no anchor "${name}" (has: ${Object.keys(a.anchors ?? {}).join(', ') || 'none'})`);
+    return list[this.frameIndex(ref, sel)] ?? undefined;
   }
 
   /** Pixels of one frame (e.g. to build an engine-side repeating texture). */
@@ -126,8 +139,8 @@ export class Pack<Tex = unknown, Node = unknown, Parent = unknown> {
   }
 
   /** A sprite with its own state machine and adapter node. */
-  sprite<A extends AssetRef>(ref: A, opts: SpriteOptions<VariantOf<A>, StateOf<A>, Parent> = {}): ArtSprite<Tex, Node, StateOf<A>> {
-    const s = new ArtSprite<Tex, Node, StateOf<A>>(this, idOf(ref), opts.variant, opts.state);
+  sprite<A extends AssetRef>(ref: A, opts: SpriteOptions<VariantOf<A>, StateOf<A>, Parent> = {}): ArtSprite<Tex, Node, StateOf<A>, AnchorOf<A>> {
+    const s = new ArtSprite<Tex, Node, StateOf<A>, AnchorOf<A>>(this, idOf(ref), opts.variant, opts.state);
     if (opts.parent !== undefined) this.adapter.attach?.(opts.parent, s.node);
     return s;
   }
@@ -150,11 +163,25 @@ export interface SpriteOptions<V extends string = string, S extends string = str
   parent?: Parent;
 }
 
+/** Frame shown `ms` into a state: per-frame durations when exported, else the state's fps. `done` once a non-looping state ran out. */
+export function frameAt(st: PackStateDef, ms: number, loop = st.loop): { frame: number; done: boolean } {
+  const d = st.durations;
+  if (!d) {
+    const n = Math.floor((ms * st.fps) / 1000);
+    return !loop && n >= st.frames ? { frame: st.frames - 1, done: true } : { frame: n % st.frames, done: false };
+  }
+  const total = d.reduce((a, b) => a + b, 0);
+  if (!loop && ms >= total) return { frame: st.frames - 1, done: true };
+  let t = ms % total, f = 0;
+  while (t >= d[f]) t -= d[f++];
+  return { frame: f, done: false };
+}
+
 /**
- * Sprite state machine: state × facing × frame with per-state fps and loop. `update(dtMs)` advances time;
- * the node is only touched when the shown frame changes.
+ * Sprite state machine: state × facing × frame with per-state fps (or per-frame durations) and loop. `update(dtMs)`
+ * advances time; the node is only touched when the shown frame changes.
  */
-export class ArtSprite<Tex = unknown, Node = unknown, S extends string = string> {
+export class ArtSprite<Tex = unknown, Node = unknown, S extends string = string, N extends string = string> {
   readonly node: Node;
   readonly asset: PackAsset;
   state: S;
@@ -213,14 +240,25 @@ export class ArtSprite<Tex = unknown, Node = unknown, S extends string = string>
     const st = this.asset.states[this.state];
     if (st.frames <= 1 || this.done) return !this.done;
     this.time += dtMs * this.speed;
-    const n = Math.floor((this.time * st.fps) / 1000);
-    if (!(this.loop ?? st.loop) && n >= st.frames) { this.done = true; this.frame = st.frames - 1; }
-    else this.frame = n % st.frames;
+    const r = frameAt(st, this.time, this.loop ?? st.loop);
+    this.frame = r.frame; this.done = r.done;
     this.apply();
     return !this.done;
   }
 
   at(x: number, y: number, z?: number): this { this.pack.adapter.setPosition(this.node, x, y, z); return this; }
+
+  /**
+   * Where a named anchor of the shown frame is, relative to the sprite's position (unscaled pixels, the anchor
+   * pixel's centre; mirrored when the sprite is flipped). Add it to the position you passed to `at` to place an
+   * effect or a held prop. Undefined when this frame doesn't have the anchor (e.g. a hand hidden behind the body).
+   */
+  anchor(name: N): { x: number; y: number } | undefined {
+    const p = this.pack.anchor(this.id, name, { variant: this.variant, state: this.state, facing: this.facing, frame: this.frame });
+    if (!p) return undefined;
+    const [ax, ay] = this.asset.anchor, dx = p[0] + 0.5 - ax;
+    return { x: this.flipX ? -dx : dx, y: p[1] + 0.5 - ay };
+  }
 
   /** The frame currently shown. */
   get rect(): FrameRect<Tex> { return this.pack.frame(this.id, { variant: this.variant, state: this.state, facing: this.facing, frame: this.frame }); }

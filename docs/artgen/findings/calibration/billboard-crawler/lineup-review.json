@@ -1,0 +1,95 @@
+{
+  "assets": [
+    {
+      "id": "ghoul",
+      "scale": "ok",
+      "scale_note": "About 30px tall, the same as the orderly. A hunched ghoul that is as tall as a standing man is plausible, but nothing makes it bigger or more threatening than the orderly. If the ghoul is the main threat, make it about 10-15% taller or wider (long arms past the knees) so it reads as the bigger body.",
+      "consistency_issues": [
+        "Square, symmetric, frontal block with the arms tight to the torso. It is not hunched and the long clawed arms do not show. It also reads blockier and squatter than the ghoul anchor on the direction sheet.",
+        "No glowing eye-points can be seen in the lineup. The face is a pale mask with dark sockets, so the one allowed warm or bright accent on enemies is missing.",
+        "Its colours and silhouette are almost the same as the orderly's (pale olive skin, slate-blue cloth, the same width and height). Side by side, the two characters read as variants of one sprite."
+      ]
+    },
+    {
+      "id": "orderly",
+      "scale": "ok",
+      "scale_note": "About 30px tall, which sets the human reference. The props should be measured against it.",
+      "consistency_issues": [
+        "The skin is the same sickly green-olive as the ghoul's, so the orderly reads as a second undead and not as a human sleepwalker.",
+        "The coat is mid grey-blue, not white. It is darker than the ghoul's gown and loses the white-coat read the notes call for.",
+        "The arms hang at the sides; the notes say they should be held out. The head does not loll and the eyes read as a dark band (a hair or visor block), not closed lids. Pose and silhouette are too close to the ghoul's."
+      ]
+    },
+    {
+      "id": "rat",
+      "scale": "too big",
+      "scale_note": "About 16-18px long including the body and about 9-10px tall. That is over half the orderly's height. A rat is about 1/7 of a human's height, so it is about 2.5-3x too big. The body alone should be about 6-8px long.",
+      "consistency_issues": [
+        "The olive-green fur matches the ghoul's skin ramp. A rat should use the brown-grey hair or dirt ramp, and the green makes it look like a lizard or slug.",
+        "Side-on profile while every other character faces the viewer. That fits a side-on brief, but it is the only character drawn this way.",
+        "The orange eye takes from the lamp or accent hue. The direction says no bright saturated colours outside the lamp.",
+        "The light-grey tail is brighter than the body and is the strongest value in the sprite, which pulls the eye to the tail."
+      ]
+    },
+    {
+      "id": "lamp-flicker",
+      "scale": "ok",
+      "scale_note": "This is a player-held effect, not a world billboard, so it is not judged at world scale. Note that it stands about 15px tall on the ground baseline, half a human's height. If it is ever placed in the world it would be far too big: about 3-4x for an oil-lamp flame.",
+      "consistency_issues": [
+        "Only the flame is drawn. There is no lamp body or glass, so nothing ties it to an oil lamp.",
+        "Single orange pixels sit on both sides of the flame, about 6-8px away (the '·' between the rat and the flame and between the flame and the bed). At 1x they look like stray pixels or dirt, not a halo. They should become a readable halo ring like the effect anchors, or be removed.",
+        "The '+' sparkle is in the anchor effect language. The flame body itself has no outline while every other asset has one. That is acceptable for a light effect but should be a deliberate choice."
+      ]
+    },
+    {
+      "id": "iron-bed",
+      "scale": "ok",
+      "scale_note": "About 28px long and about 23px tall at the headboard. The mattress sits at about half the orderly's height (hip to waist), about 30% too high for a bed. The bed is also slightly shorter than the orderly is tall, when it should be about 10% longer. Acceptable, but at the edge of the range.",
+      "consistency_issues": [
+        "The olive mattress and strap mass is darker and more saturated than the grey-and-green anchor bed. The straps no longer read as separate bands.",
+        "There is no floor contact shadow, which the anchor bed has. The bed floats more than the characters do.",
+        "Thin 1-2px frame tubes with almost no shading give it lower detail density than the characters."
+      ]
+    },
+    {
+      "id": "iv-stand",
+      "scale": "ok",
+      "scale_note": "About 29px tall, the height of the orderly. A real IV stand is about 1.8-2m, so this is correct.",
+      "consistency_issues": [
+        "The pole is very thick for a drip stand: about 3-4px against the bed's 1-2px tubes. Metal line weight is not consistent across the props.",
+        "The empty bag is a dark grey slab hanging off a crooked hook, with no transparency or highlight. It reads as a sign or flag.",
+        "The rust the notes call for does not show; it is flat grey metal."
+      ]
+    },
+    {
+      "id": "wheelchair",
+      "scale": "too big",
+      "scale_note": "About 28px tall at the push handles, roughly the orderly's height. The big wheel is about 16px across, about half a man's height. A real wheelchair is about 0.9-1m, about half a human's height. It is about 1.7-1.9x too big and should be about 15-16px tall.",
+      "consistency_issues": [
+        "It is drawn as pale grey linework with an X for the spokes and almost no shading or volume. It is the flattest, most diagrammatic asset in the roster and does not match the chunky, shaded selout style of the characters.",
+        "The outline is light grey, not the dark outline the other assets use, so it reads lighter and closer to the viewer than everything else.",
+        "Pure side elevation, while the bed is 3/4 and the characters are frontal.",
+        "The wicker seat is a green dotted panel that reads as mesh fabric, not wicker."
+      ]
+    },
+    {
+      "id": "pill-bottle",
+      "scale": "ok",
+      "scale_note": "UI icon, not world scale. At 16x16 it is in line with the other assets as an icon.",
+      "consistency_issues": [
+        "The saturated amber or orange body uses the lamp hue. That is defensible for a pickup, but together with the rat's eye it dilutes the rule that only the lamp is warm.",
+        "The small white diagonal object at the lower right (a pill or syringe?) is detached from the bottle. At 1x it reads as a stray mark.",
+        "The label is a small pale block that does not read as a white label at 1x."
+      ]
+    }
+  ],
+  "roster_notes": [
+    "Scale normalisation problem: almost every world asset (ghoul, orderly, IV stand, wheelchair, nearly the bed) fills the full 32px frame height whatever its real size. Props and creatures need a shared world scale, about 30px for a 1.8m human or about 16-17px per metre, not fit-to-frame. The rat (about 3x) and the wheelchair (about 1.8x) are the clear failures.",
+    "The two characters cannot be told apart easily at 1x. They share a silhouette, height, skin colour and cloth colour. The orderly needs a white coat, outstretched arms and human skin. The ghoul needs the hunch, long arms and glowing eyes.",
+    "Props and characters have split into two styles. The characters are chunky, shaded clusters with dark selout outlines. The bed, IV stand and wheelchair are thin grey linework with little shading and inconsistent line weights (the IV pole is about 3-4px, the bed and wheelchair tubes about 1-2px).",
+    "Green is overused. Ghoul skin, orderly skin, rat fur, the bed mattress and the wheelchair seat all use the same olive ramp, which flattens the roster's colour story. Material ramps (skin, hair, leather, wood) are not being kept apart.",
+    "Warm accents leak outside the lamp: the rat's eye and the pill bottle. The stray orange pixels around the flame make the lamp effect look like dirt in the lineup.",
+    "Light direction (upper left) can only just be seen on the characters and is absent on the props. No asset shows a clear lit left or top edge like the light sphere on the direction sheet, so the moonlit 3-band shading is not applied evenly.",
+    "Grounding is uneven: no asset has a contact shadow, though the anchor bed has one. The flame stands directly on the floor baseline, so it is unclear whether the lamp effect is meant to be a world object at all."
+  ]
+}

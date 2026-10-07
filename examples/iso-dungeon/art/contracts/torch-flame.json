@@ -1,0 +1,20 @@
+{
+  "format": 1,
+  "asset": "torch-flame",
+  "facings": [
+    "s"
+  ],
+  "states": {
+    "idle": {
+      "frames": 4,
+      "durations": [
+        83,
+        83,
+        83,
+        83
+      ],
+      "loop": false
+    }
+  },
+  "anchors": []
+}

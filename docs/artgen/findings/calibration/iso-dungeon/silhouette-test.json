@@ -1,0 +1,14 @@
+{
+  "answers": [
+    {"letter": "A", "free_guess": "low wide box or chest seen isometrically, maybe a table or crate", "readability": 2, "match_id": "chest", "match_confidence": 4, "why": "Wide, low block with a flat lid and a slightly wider base, like a chest on a plinth. No other asset is this wide and flat."},
+    {"letter": "B", "free_guess": "pillar or pedestal with wide top and base and a narrow waist", "readability": 3, "match_id": "pillar", "match_confidence": 4, "why": "Hourglass outline with a flared capital and base and a straight shaft. Nothing else in the list has this shape."},
+    {"letter": "C", "free_guess": "dome-shaped blob, slime or jelly creature", "readability": 3, "match_id": "slime", "match_confidence": 4, "why": "Round dome that spreads into a skirt at the floor, the classic slime outline."},
+    {"letter": "D", "free_guess": "cluster of lumps, a rock pile or mushroom cluster", "readability": 2, "match_id": "rubble", "match_confidence": 4, "why": "Irregular, low cluster of rounded lumps with no symmetry, which fits a masonry pile."},
+    {"letter": "E", "free_guess": "standing humanoid with something on its right side (shield?) and thin legs", "readability": 3, "match_id": "skeleton-knight", "match_confidence": 2, "why": "Humanoid with a squarish helm, a shield bump at the side and a slim, gappy lower body that could be bony legs. Separating it from G was a coin flip."},
+    {"letter": "F", "free_guess": "low wide object on stubby legs with small dots floating above, possibly a cauldron or beast", "readability": 2, "match_id": "brazier", "match_confidence": 4, "why": "Bowl-like body on separate legs, with detached specks above that read as sparks or embers."},
+    {"letter": "G", "free_guess": "stocky hooded or helmeted humanoid, mage or guard", "readability": 3, "match_id": "hero", "match_confidence": 2, "why": "Bulkier humanoid with a brim sticking out from the head, which fits a kettle helm. Assigned by elimination against E."},
+    {"letter": "H", "free_guess": "small teardrop or sack with a cross shape on top, maybe a potion or grave marker", "readability": 2, "match_id": "torch-flame", "match_confidence": 3, "why": "Small teardrop that narrows into flickering tips. It is too small to be a prop, so a flame fits best by elimination."},
+    {"letter": "I", "free_guess": "tall elongated hexagon, a door, coffin, crystal or barrel", "readability": 2, "match_id": "barrel", "match_confidence": 3, "why": "Upright solid with chamfered top and bottom corners, an isometric cylinder. The only cylindrical prop left is the barrel."}
+  ],
+  "confusable_pairs": [["E","G"], ["A","F"], ["H","C"], ["I","B"]]
+}
