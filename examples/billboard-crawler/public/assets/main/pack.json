@@ -1,14 +1,17 @@
 {
   "format": 1,
   "pack": "main",
-  "generator": "artgen 0.5.0",
+  "generator": "artgen 0.8.0",
   "direction": {
     "id": "hollow-ward",
     "version": 2
   },
-  "runtime": "1.1.0",
+  "runtime": "1.2.0",
   "atlases": [
     "main-0.png"
+  ],
+  "normals": [
+    "main-0.n.png"
   ],
   "assets": {
     "ghoul": {
@@ -655,7 +658,8 @@
         "base"
       ],
       "version": "finish.v2",
-      "sourceHash": "5eed941fb77ad80a"
+      "sourceHash": "5eed941fb77ad80a",
+      "normals": true
     },
     "orderly": {
       "kind": "character",
@@ -704,7 +708,8 @@
         "base"
       ],
       "version": "finish.v2",
-      "sourceHash": "470e3561ca3e81f5"
+      "sourceHash": "470e3561ca3e81f5",
+      "normals": true
     },
     "rat": {
       "kind": "creature",
@@ -756,7 +761,8 @@
         "base"
       ],
       "version": "finish.v1",
-      "sourceHash": "f077d753fd1674a8"
+      "sourceHash": "f077d753fd1674a8",
+      "normals": true
     },
     "lamp-flicker": {
       "kind": "effect",
@@ -830,7 +836,8 @@
         "base"
       ],
       "version": "finish.v1",
-      "sourceHash": "09b79a1adf5d27e8"
+      "sourceHash": "09b79a1adf5d27e8",
+      "normals": true
     },
     "iron-bed": {
       "kind": "prop",
@@ -871,7 +878,8 @@
         "base"
       ],
       "version": "finish.v2",
-      "sourceHash": "96b23458a7f98a80"
+      "sourceHash": "96b23458a7f98a80",
+      "normals": true
     },
     "iv-stand": {
       "kind": "prop",
@@ -912,7 +920,8 @@
         "base"
       ],
       "version": "finish.v1",
-      "sourceHash": "3f22657ea4f8adb0"
+      "sourceHash": "3f22657ea4f8adb0",
+      "normals": true
     },
     "wheelchair": {
       "kind": "prop",
@@ -953,7 +962,8 @@
         "base"
       ],
       "version": "finish.v2",
-      "sourceHash": "d8d174996b55429b"
+      "sourceHash": "d8d174996b55429b",
+      "normals": true
     },
     "linoleum": {
       "kind": "tile",
@@ -995,7 +1005,8 @@
       ],
       "version": "finish.v2",
       "sourceHash": "6de832ca0973ecbc",
-      "tile": 32
+      "tile": 32,
+      "normals": true
     },
     "ward-wall": {
       "kind": "texture",
@@ -1037,7 +1048,8 @@
       ],
       "version": "finish.v1",
       "sourceHash": "bc120faa4e4866f7",
-      "tile": 32
+      "tile": 32,
+      "normals": true
     },
     "pill-bottle": {
       "kind": "ui-icon",
@@ -1078,7 +1090,8 @@
         "base"
       ],
       "version": "finish.v1",
-      "sourceHash": "4902e1145454a92c"
+      "sourceHash": "4902e1145454a92c",
+      "normals": true
     }
   }
 }

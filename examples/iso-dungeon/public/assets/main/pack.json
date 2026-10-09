@@ -1,14 +1,17 @@
 {
   "format": 1,
   "pack": "main",
-  "generator": "artgen 0.5.0",
+  "generator": "artgen 0.8.0",
   "direction": {
     "id": "torchdeep",
     "version": 2
   },
-  "runtime": "1.1.0",
+  "runtime": "1.2.0",
   "atlases": [
     "main-0.png"
+  ],
+  "normals": [
+    "main-0.n.png"
   ],
   "assets": {
     "hero": {
@@ -655,7 +658,8 @@
         "base"
       ],
       "version": "finish.v1",
-      "sourceHash": "dfcd651a9fbee07d"
+      "sourceHash": "dfcd651a9fbee07d",
+      "normals": true
     },
     "skeleton-knight": {
       "kind": "character",
@@ -712,7 +716,8 @@
         }
       },
       "version": "finish.v2",
-      "sourceHash": "be48966d2dd6d845"
+      "sourceHash": "be48966d2dd6d845",
+      "normals": true
     },
     "slime": {
       "kind": "creature",
@@ -786,7 +791,8 @@
         "base"
       ],
       "version": "finish.v1",
-      "sourceHash": "745a53eed76549b7"
+      "sourceHash": "745a53eed76549b7",
+      "normals": true
     },
     "torch-flame": {
       "kind": "effect",
@@ -860,7 +866,8 @@
         "base"
       ],
       "version": "finish.v1",
-      "sourceHash": "6e1a8e7a9a240380"
+      "sourceHash": "6e1a8e7a9a240380",
+      "normals": true
     },
     "chest": {
       "kind": "prop",
@@ -1178,8 +1185,8 @@
         ],
         [
           0,
-          100,
-          231,
+          208,
+          33,
           32,
           16,
           0,
@@ -1189,8 +1196,8 @@
         ],
         [
           0,
-          100,
-          231,
+          208,
+          50,
           32,
           16,
           0,
@@ -1205,9 +1212,10 @@
         "v2",
         "v3"
       ],
-      "version": "finish.v2",
-      "sourceHash": "0dcf1e1bc0a7cffa",
-      "tile": 32
+      "version": "finish.v3",
+      "sourceHash": "d2eb17dbc9c0240a",
+      "tile": 32,
+      "normals": true
     }
   }
 }

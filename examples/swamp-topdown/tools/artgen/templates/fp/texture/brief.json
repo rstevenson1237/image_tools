@@ -1,0 +1,1 @@
+{ "kind": "texture", "view": "fp", "size": [64, 64], "states": ["idle"], "surface": "wall", "review": { "scale": 3, "sym": "none" } }

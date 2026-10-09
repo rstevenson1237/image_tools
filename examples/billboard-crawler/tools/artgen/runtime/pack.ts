@@ -4,9 +4,10 @@
  */
 import { resolveAutotile, cellHash } from './autotile.js';
 import { angleOf, chooseFacing } from './facing.js';
+import { StackSprite, type StackOptions } from './stack.js';
 import type { AnchorOf, AssetRef, AtlasImage, FrameRect, PackAsset, PackManifest, PackStateDef, RuntimeAdapter, StateOf, VariantOf } from './types.js';
 
-export const RUNTIME_VERSION = '1.1.0';
+export const RUNTIME_VERSION = '1.2.0';
 
 export interface DecodedImage { width: number; height: number; data: Uint8ClampedArray | Uint8Array }
 
@@ -15,6 +16,8 @@ export interface LoadOptions {
   decode?: (url: string) => Promise<DecodedImage>;
   /** Manifest loader (default: fetch). */
   fetchJson?: (url: string) => Promise<unknown>;
+  /** Also load the normal-map atlases the pack lists (`pack.normals`), for lit sprites (P6a). */
+  normals?: boolean;
 }
 
 const idOf = (r: AssetRef): string => (typeof r === 'string' ? r : r.id);
@@ -33,15 +36,21 @@ export async function loadPack<Tex, Node, Parent>(url: string, adapter: RuntimeA
   const manifest = checkManifest(await (opts.fetchJson ?? fetchJson)(url));
   const base = url.slice(0, url.lastIndexOf('/') + 1), decode = opts.decode ?? decodeImage;
   const images = await Promise.all(manifest.atlases.map(name => decode(base + name)));
-  return createPack(manifest, images, adapter);
+  const normals = opts.normals && manifest.normals ? await Promise.all(manifest.normals.map(name => decode(base + name))) : undefined;
+  return createPack(manifest, images, adapter, normals);
 }
 
 /** Build a pack from an already-parsed manifest and decoded atlases (tests, tools, custom loaders). */
-export async function createPack<Tex, Node, Parent>(manifest: PackManifest, images: DecodedImage[], adapter: RuntimeAdapter<Tex, Node, Parent>): Promise<Pack<Tex, Node, Parent>> {
+export async function createPack<Tex, Node, Parent>(manifest: PackManifest, images: DecodedImage[], adapter: RuntimeAdapter<Tex, Node, Parent>, normals?: DecodedImage[]): Promise<Pack<Tex, Node, Parent>> {
   checkManifest(manifest);
-  const atlases: AtlasImage[] = images.map((img, index) => ({ name: manifest.atlases[index], index, width: img.width, height: img.height, data: new Uint8ClampedArray(img.data.buffer, img.data.byteOffset, img.data.byteLength) }));
+  const wrap = (img: DecodedImage, index: number, name: string): AtlasImage => ({ name, index, width: img.width, height: img.height, data: new Uint8ClampedArray(img.data.buffer, img.data.byteOffset, img.data.byteLength) });
+  const atlases = images.map((img, i) => wrap(img, i, manifest.atlases[i]));
   const textures = await Promise.all(atlases.map(a => adapter.loadTexture(a)));
   const pack = new Pack(manifest, adapter, atlases, textures);
+  if (normals) {
+    pack.normalAtlases = normals.map((img, i) => wrap(img, i, manifest.normals?.[i] ?? `normal-${i}`));
+    pack.normalTextures = await Promise.all(pack.normalAtlases.map(a => adapter.loadTexture(a)));
+  }
   // palette swaps: recoloured copies of the atlases the asset uses, uploaded once
   for (const [id, a] of Object.entries(manifest.assets)) for (const [swap, map] of Object.entries(a.swaps ?? {})) {
     const bins = new Set(a.frames.map(f => f[0])), set: (Tex | undefined)[] = [], imgs: (AtlasImage | undefined)[] = [];
@@ -65,19 +74,25 @@ export function recolor(atlas: AtlasImage, map: Record<string, string>, swap?: s
 }
 
 interface TexSet<Tex> { tex: (Tex | undefined)[]; img: (AtlasImage | undefined)[] }
-export interface FrameSelect { state?: string; facing?: number; frame?: number; variant?: string | number }
+/** `frame` is the logical frame; `sub` the smoothing sub-frame within it (states exported with `sub`, P6c). */
+export interface FrameSelect { state?: string; facing?: number; frame?: number; sub?: number; variant?: string | number }
 
 export class Pack<Tex = unknown, Node = unknown, Parent = unknown> {
   /** `asset#swap` → recoloured textures per atlas. */
   readonly swapSets = new Map<string, TexSet<Tex>>();
+  /** Normal-map atlases and textures (same layout as the colour atlases), when loaded with `normals: true`. */
+  normalAtlases?: AtlasImage[];
+  normalTextures?: Tex[];
   private readonly index = new Map<string, Map<string, number>>();
 
-  constructor(
-    readonly manifest: PackManifest,
-    readonly adapter: RuntimeAdapter<Tex, Node, Parent>,
-    readonly atlases: AtlasImage[],
-    readonly textures: Tex[],
-  ) {}
+  readonly manifest: PackManifest;
+  readonly adapter: RuntimeAdapter<Tex, Node, Parent>;
+  readonly atlases: AtlasImage[];
+  readonly textures: Tex[];
+
+  constructor(manifest: PackManifest, adapter: RuntimeAdapter<Tex, Node, Parent>, atlases: AtlasImage[], textures: Tex[]) {
+    this.manifest = manifest; this.adapter = adapter; this.atlases = atlases; this.textures = textures;
+  }
 
   get ids(): string[] { return Object.keys(this.manifest.assets); }
 
@@ -102,7 +117,8 @@ export class Pack<Tex = unknown, Node = unknown, Parent = unknown> {
     let map = this.index.get(id);
     if (!map) { map = new Map(a.frames.map((f, i) => [`${f[8]}|${f[6]}|${f[5]}|${f[7]}`, i])); this.index.set(id, map); }
     const v = this.variantIndex(a, sel.variant), pv = v < this.paramVariants(id) ? v : 0;
-    const state = sel.state ?? Object.keys(a.states)[0], fi = sel.facing ?? 0, fr = sel.frame ?? 0;
+    const state = sel.state ?? Object.keys(a.states)[0], fi = sel.facing ?? 0, k = a.states[state]?.sub ?? 1;
+    const fr = (sel.frame ?? 0) * k + Math.min(k - 1, Math.max(0, sel.sub ?? 0));
     const i = map.get(`${pv}|${state}|${fi}|${fr}`) ?? map.get(`${pv}|${state}|0|${fr}`) ?? map.get(`${pv}|${state}|${fi}|0`) ?? map.get(`0|${state}|0|0`);
     if (i === undefined) throw new Error(`${id}: no frame for state "${state}"`);
     return i;
@@ -112,7 +128,15 @@ export class Pack<Tex = unknown, Node = unknown, Parent = unknown> {
   frame(ref: AssetRef, sel: FrameSelect = {}): FrameRect<Tex> {
     const id = idOf(ref), a = this.asset(id), v = this.variantIndex(a, sel.variant);
     const [bin, x, y, w, h] = a.frames[this.frameIndex(id, sel)], swap = v >= this.paramVariants(id) ? this.swapSets.get(`${id}#${a.variants[v]}`) : undefined;
-    return { tex: swap?.tex[bin] ?? this.textures[bin], atlas: swap?.img[bin] ?? this.atlases[bin], x, y, w, h };
+    const normal = a.normals && this.normalTextures && this.normalAtlases ? { tex: this.normalTextures[bin], atlas: this.normalAtlases[bin] } : undefined;
+    return { tex: swap?.tex[bin] ?? this.textures[bin], atlas: swap?.img[bin] ?? this.atlases[bin], x, y, w, h, ...(normal && { normal }) };
+  }
+
+  /** The normal-map rect of a selection (same atlas position as its colour frame), when normals are loaded. */
+  normalFrame(ref: AssetRef, sel: FrameSelect = {}): FrameRect<Tex> | undefined {
+    if (!this.normalTextures || !this.normalAtlases) return undefined;
+    const [bin, x, y, w, h] = this.asset(ref).frames[this.frameIndex(ref, sel)];
+    return { tex: this.normalTextures[bin], atlas: this.normalAtlases[bin], x, y, w, h };
   }
 
   /** A named anchor (`hand`, `head`…) of the selected frame in frame pixels, or undefined when that frame lacks it. */
@@ -143,6 +167,9 @@ export class Pack<Tex = unknown, Node = unknown, Parent = unknown> {
     return s;
   }
 
+  /** A sprite stack (P6a): every slice of the asset's first state, rotated together. */
+  stack<A extends AssetRef>(ref: A, opts: StackOptions<Parent> = {}): StackSprite<Tex, Node, Parent> { return new StackSprite(this, ref, opts); }
+
   tiles<A extends AssetRef>(ref: A): TileSet<Tex, Node, Parent> { return new TileSet(this, idOf(ref)); }
 
   effect<A extends AssetRef>(ref: A, opts: EffectOptions<VariantOf<A>, Parent> = {}): EffectPlayer<Tex, Node, Parent> { return new EffectPlayer(this, idOf(ref), opts); }
@@ -151,6 +178,7 @@ export class Pack<Tex = unknown, Node = unknown, Parent = unknown> {
     const free = this.adapter.disposeTexture?.bind(this.adapter);
     if (!free) return;
     this.textures.forEach(free);
+    this.normalTextures?.forEach(free);
     for (const s of this.swapSets.values()) s.tex.forEach(t => t !== undefined && free(t));
   }
 }
@@ -161,18 +189,17 @@ export interface SpriteOptions<V extends string = string, S extends string = str
   parent?: Parent;
 }
 
-/** Frame shown `ms` into a state: per-frame durations when exported, else the state's fps. `done` once a non-looping state ran out. */
-export function frameAt(st: PackStateDef, ms: number, loop = st.loop): { frame: number; done: boolean } {
-  const d = st.durations;
-  if (!d) {
-    const n = Math.floor((ms * st.fps) / 1000);
-    return !loop && n >= st.frames ? { frame: st.frames - 1, done: true } : { frame: n % st.frames, done: false };
-  }
+/**
+ * Logical frame (and smoothing sub-frame) shown `ms` into a state: per-frame durations when exported, else the state's
+ * fps; a logical frame's sub-frames split its time evenly. `done` once a non-looping state ran out.
+ */
+export function frameAt(st: PackStateDef, ms: number, loop = st.loop): { frame: number; sub: number; done: boolean } {
+  const d = st.durations ?? Array.from({ length: st.frames }, () => 1000 / st.fps), k = st.sub ?? 1;
   const total = d.reduce((a, b) => a + b, 0);
-  if (!loop && ms >= total) return { frame: st.frames - 1, done: true };
-  let t = ms % total, f = 0;
-  while (t >= d[f]) t -= d[f++];
-  return { frame: f, done: false };
+  if (!loop && ms >= total) return { frame: st.frames - 1, sub: k - 1, done: true };
+  let t = ((ms % total) + total) % total, f = 0;
+  while (f < st.frames - 1 && t >= d[f]) t -= d[f++];
+  return { frame: f, sub: Math.min(k - 1, Math.floor((t / d[f]) * k)), done: false };
 }
 
 /**
@@ -185,7 +212,10 @@ export class ArtSprite<Tex = unknown, Node = unknown, S extends string = string,
   state: S;
   facing = 0;
   flipX = false;
+  /** Logical frame (what the animation contract counts: "the hit lands on frame 2"). */
   frame = 0;
+  /** Smoothing sub-frame within it (display only; 0 unless the state was exported with `sub`). */
+  sub = 0;
   /** Playback speed multiplier. */
   speed = 1;
   /** A non-looping state reached its last frame. */
@@ -195,13 +225,19 @@ export class ArtSprite<Tex = unknown, Node = unknown, S extends string = string,
   private time = 0;
   private shown = '';
 
-  constructor(readonly pack: Pack<Tex, Node, any>, readonly id: string, readonly variant: string | number = 0, state?: S) {
+  readonly pack: Pack<Tex, Node, any>;
+  readonly id: string;
+  readonly variant: string | number;
+
+  constructor(pack: Pack<Tex, Node, any>, id: string, variant: string | number = 0, state?: S) {
+    this.pack = pack; this.id = id; this.variant = variant;
     this.asset = pack.asset(id);
     this.state = (state ?? Object.keys(this.asset.states)[0]) as S;
     if (!this.asset.states[this.state]) throw new Error(`${id}: no state "${this.state}" (has: ${Object.keys(this.asset.states).join(', ')})`);
     const f = pack.frame(id, { variant, state: this.state });
     this.node = pack.adapter.createNode(f.tex);
     pack.adapter.setAnchor(this.node, this.asset.anchor, this.asset.size);
+    if (this.asset.blend === 'add') pack.adapter.setBlend?.(this.node, 'add');
     this.apply();
   }
 
@@ -212,7 +248,7 @@ export class ArtSprite<Tex = unknown, Node = unknown, S extends string = string,
   play(state: S, restart = false): this {
     if (!this.asset.states[state]) throw new Error(`${this.id}: no state "${state}" (has: ${this.states.join(', ')})`);
     if (state === this.state && !restart) return this;
-    this.state = state; this.time = 0; this.frame = 0; this.done = false;
+    this.state = state; this.time = 0; this.frame = 0; this.sub = 0; this.done = false;
     return this.apply();
   }
 
@@ -236,10 +272,10 @@ export class ArtSprite<Tex = unknown, Node = unknown, S extends string = string,
   /** Advance by `dtMs`. Returns true while playing, false once a non-looping state has finished. */
   update(dtMs: number): boolean {
     const st = this.asset.states[this.state];
-    if (st.frames <= 1 || this.done) return !this.done;
+    if (st.frames * (st.sub ?? 1) <= 1 || this.done) return !this.done;
     this.time += dtMs * this.speed;
     const r = frameAt(st, this.time, this.loop ?? st.loop);
-    this.frame = r.frame; this.done = r.done;
+    this.frame = r.frame; this.sub = r.sub; this.done = r.done;
     this.apply();
     return !this.done;
   }
@@ -252,19 +288,19 @@ export class ArtSprite<Tex = unknown, Node = unknown, S extends string = string,
    * effect or a held prop. Undefined when this frame doesn't have the anchor (e.g. a hand hidden behind the body).
    */
   anchor(name: N): { x: number; y: number } | undefined {
-    const p = this.pack.anchor(this.id, name, { variant: this.variant, state: this.state, facing: this.facing, frame: this.frame });
+    const p = this.pack.anchor(this.id, name, { variant: this.variant, state: this.state, facing: this.facing, frame: this.frame, sub: this.sub });
     if (!p) return undefined;
     const [ax, ay] = this.asset.anchor, dx = p[0] + 0.5 - ax;
     return { x: this.flipX ? -dx : dx, y: p[1] + 0.5 - ay };
   }
 
   /** The frame currently shown. */
-  get rect(): FrameRect<Tex> { return this.pack.frame(this.id, { variant: this.variant, state: this.state, facing: this.facing, frame: this.frame }); }
+  get rect(): FrameRect<Tex> { return this.pack.frame(this.id, { variant: this.variant, state: this.state, facing: this.facing, frame: this.frame, sub: this.sub }); }
 
   dispose(): void { this.pack.adapter.dispose(this.node); }
 
   private apply(): this {
-    const key = `${this.state}|${this.facing}|${this.frame}|${this.flipX}`;
+    const key = `${this.state}|${this.facing}|${this.frame}|${this.sub}|${this.flipX}`;
     if (key !== this.shown) { this.shown = key; this.pack.adapter.setFrame(this.node, this.rect, this.flipX); }
     return this;
   }
@@ -273,7 +309,9 @@ export class ArtSprite<Tex = unknown, Node = unknown, S extends string = string,
 /** A tile asset: autotile resolver over its frames (state 0, facing 0, frame = tile index) and variant picking. */
 export class TileSet<Tex = unknown, Node = unknown, Parent = unknown> {
   readonly asset: PackAsset;
-  constructor(readonly pack: Pack<Tex, Node, Parent>, readonly id: string) { this.asset = pack.asset(id); }
+  readonly pack: Pack<Tex, Node, Parent>;
+  readonly id: string;
+  constructor(pack: Pack<Tex, Node, Parent>, id: string) { this.pack = pack; this.id = id; this.asset = pack.asset(id); }
 
   get size(): [number, number] { return this.asset.size; }
   /** Param variants available for variety (palette swaps excluded). */
@@ -308,7 +346,10 @@ export interface EffectOptions<V extends string = string, Parent = unknown> {
 /** Effect player: spawns effect sprites, advances them and disposes the non-looping ones when they finish. */
 export class EffectPlayer<Tex = unknown, Node = unknown, Parent = unknown> {
   readonly active: ArtSprite<Tex, Node>[] = [];
-  constructor(readonly pack: Pack<Tex, Node, Parent>, readonly id: string, readonly opts: EffectOptions<string, Parent> = {}) { pack.asset(id); }
+  readonly pack: Pack<Tex, Node, Parent>;
+  readonly id: string;
+  readonly opts: EffectOptions<string, Parent>;
+  constructor(pack: Pack<Tex, Node, Parent>, id: string, opts: EffectOptions<string, Parent> = {}) { this.pack = pack; this.id = id; this.opts = opts; pack.asset(id); }
 
   spawn(x: number, y: number, z?: number): ArtSprite<Tex, Node> {
     const s = this.pack.sprite(this.id, { variant: this.opts.variant, parent: this.opts.parent }).at(x, y, z);

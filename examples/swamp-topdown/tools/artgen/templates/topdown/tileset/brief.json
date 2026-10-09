@@ -1,0 +1,1 @@
+{ "kind": "tileset", "size": "tile", "states": ["idle"], "autotile": "blob47", "anims": { "idle": { "frames": 47 } }, "review": { "scale": 4, "sym": "none" } }

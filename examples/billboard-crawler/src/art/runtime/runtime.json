@@ -1,16 +1,17 @@
 {
-  "runtime": "1.1.0",
-  "generator": "artgen 0.5.0",
+  "runtime": "1.2.0",
+  "generator": "artgen 0.8.0",
   "adapters": [
     "three"
   ],
   "files": {
-    "autotile.ts": "b6ffa5e070bbd4c5",
-    "coords.ts": "aca9a16af0b6cbd3",
-    "facing.ts": "80d9ef73f55b0883",
-    "index.ts": "2e7f9ca4b9b654ab",
-    "pack.ts": "fb1b60a399c5243b",
-    "types.ts": "3855903314d0b20c",
-    "adapters/three.ts": "9c7706dd75f8cc38"
+    "autotile.ts": "360510f42d406f6e",
+    "coords.ts": "d1f0f9f47dbd02ba",
+    "facing.ts": "6a68dcdb7f3553e3",
+    "index.ts": "7c600315cb2bb80b",
+    "pack.ts": "aa4d76bbf13e055d",
+    "stack.ts": "69a0549b582d4b16",
+    "types.ts": "b1f50760ab60582c",
+    "adapters/three.ts": "a5a59a2155f205b3"
   }
 }

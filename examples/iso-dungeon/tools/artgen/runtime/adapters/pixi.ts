@@ -51,6 +51,8 @@ export function pixiAdapter(opts: PixiAdapterOptions = {}): RuntimeAdapter<Textu
     },
     setAnchor: (s, [ax, ay], [w, h]) => s.anchor.set(ax / w, ay / h),
     setPosition(s, x, y, z) { s.position.set(x, y); if (z !== undefined) s.zIndex = z; },
+    setRotation(s, rad) { s.rotation = rad; },
+    setBlend(s, mode) { s.blendMode = mode === 'add' ? 'add' : 'normal'; },
     attach(parent, s) { parent.sortableChildren = true; parent.addChild(s); },
     dispose: s => s.destroy(),
     disposeTexture(t) { frames.get(t)?.forEach(x => x.destroy()); frames.delete(t); t.destroy(); },
