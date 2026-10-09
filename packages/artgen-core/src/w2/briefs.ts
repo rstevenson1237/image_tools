@@ -77,6 +77,7 @@ export function validateBrief(b: unknown, where = 'brief'): string[] {
     else for (const m of effectObjectIssues({ kind: String(b.kind), object: b.object })) e.push(`${at}: ${m}`);
   }
   if (b.autotile !== undefined && !['wang16', 'blob47'].includes(b.autotile as string)) e.push(`${at}: autotile must be wang16 or blob47`);
+  if (b.surface !== undefined && !['wall', 'floor', 'ceiling', 'sky'].includes(b.surface as string)) e.push(`${at}: surface must be wall, floor, ceiling or sky`);
   if (b.blend !== undefined && !['normal', 'add'].includes(b.blend as string)) e.push(`${at}: blend must be normal or add`);
   if (b.anchor !== undefined && !(Array.isArray(b.anchor) && b.anchor.length === 2 && b.anchor.every(n => typeof n === 'number'))) e.push(`${at}: anchor must be [x, y]`);
   if (b.swaps !== undefined) {

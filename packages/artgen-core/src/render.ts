@@ -21,6 +21,7 @@ import { material, type MaterialOptions } from './tex/materials.ts';
 import { pGradient, pValue, pWorley } from './tex/noise.ts';
 import { wfc } from './tex/wfc.ts';
 import { Proc } from './t2/proc.ts';
+import { sky, type SkyOptions } from './views/fp.ts';
 import { blend, cellTiming, ease, pingpong, rig, solveTwoBone, spring, sweep, track } from './anim/anim.ts';
 import { colorRun, flame, paletteCycle, particles, preset, PRESET_NAMES, simulate, drawParticles, type Emitter, type FlameOptions, type PresetOptions } from './fx/particles.ts';
 import { Scene2D, type Scene2DOptions } from './t2/scene.ts';
@@ -51,6 +52,8 @@ export interface Brief {
   autotile?: 'wang16' | 'blob47';
   /** Effects (P6c): `add` draws the asset with additive blending in the runtime (fire, glows, muzzle flashes). */
   blend?: 'normal' | 'add';
+  /** First-person textures (P6d): which surface of the corridor the texture is (default wall; layers are skies). */
+  surface?: 'wall' | 'floor' | 'ceiling' | 'sky';
 }
 
 export type Anchors = Record<string, [number, number]>;
@@ -160,6 +163,8 @@ export function makeLib(dir: DirContext, kind?: string, stage?: (name: string, g
       isoFloor: isoFloorTile,
       isoBlock: (tw: number, o: IsoBlockOptions, th?: number) => isoBlockTile(dir, tw, o, th),
       wfc, lsystem, turtle, lsystemSpecs,
+      /** Sky panorama (P6d): ramp bands, clouds, stars, a distant ridge; seamless across x. */
+      sky: (o: SkyOptions) => sky(dir, { seed, ...o }),
       noise: { value: pValue, gradient: pGradient, worley: pWorley },
     },
     /** Animation (P6c): keyframe tracks over t, the pose rig with 2-bone IK, spring chains, swept paths for trails. */

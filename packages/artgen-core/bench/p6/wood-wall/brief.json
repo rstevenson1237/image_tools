@@ -1,0 +1,12 @@
+{
+  "id": "wood-wall",
+  "kind": "texture",
+  "view": "fp",
+  "size": [64, 64],
+  "states": ["idle"],
+  "surface": "wall",
+  "notes": "P6d benchmark: 64 px first-person wall of vertical wooden planks — grain, knots, dark joints; with its normal map",
+  "direction": "../direction.json",
+  "target": 6.5,
+  "review": { "scale": 3, "sym": "none", "periodic": false, "label": "P6d: wood wall 64 (fp corridor)" }
+}

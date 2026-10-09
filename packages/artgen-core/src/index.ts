@@ -26,6 +26,7 @@ export * from './pipeline.ts';
 export * from './lib/normals.ts';
 export * from './views/camera.ts';
 export * from './views/views.ts';
+export * from './views/fp.ts';
 export * from './tex/noise.ts';
 export * from './tex/materials.ts';
 export * from './tex/iso.ts';

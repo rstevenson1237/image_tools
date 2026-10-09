@@ -1,0 +1,12 @@
+{
+  "id": "metal-wall",
+  "kind": "texture",
+  "view": "fp",
+  "size": [64, 64],
+  "states": ["idle"],
+  "surface": "wall",
+  "notes": "P6d benchmark: 64 px first-person wall of riveted iron plates — seams, rivets, rust creeping from the seams; with its normal map",
+  "direction": "../direction.json",
+  "target": 6.5,
+  "review": { "scale": 3, "sym": "none", "periodic": true, "label": "P6d: metal wall 64 (fp corridor)" }
+}

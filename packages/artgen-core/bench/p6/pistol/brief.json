@@ -1,0 +1,12 @@
+{
+  "id": "pistol",
+  "kind": "viewmodel",
+  "view": "fp",
+  "size": [64, 48],
+  "states": ["idle", "fire"],
+  "anims": { "idle": { "frames": 2, "fps": 3 }, "fire": { "frames": 4, "durations": [40, 60, 80, 120], "loop": false } },
+  "notes": "P6d benchmark: first-person pistol view-model held in a gloved hand — idle breathing bob, fire: muzzle flash (particles), recoil kick, settle",
+  "direction": "../direction.json",
+  "target": 6.5,
+  "review": { "scale": 3, "sym": "none", "label": "P6d: pistol view-model idle / fire (fp corridor)" }
+}

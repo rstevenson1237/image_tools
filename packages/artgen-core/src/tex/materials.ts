@@ -6,6 +6,7 @@
  * from the same heights. Everything is periodic, so the texture tiles with no seam.
  *
  *   stone · cobble · wood (planks) · metal (plates) · grass · dirt · sand · snow · water · lava · tech · carpet
+ *   brick (P6d: running-bond courses for first-person walls)
  *
  * Ramps are roles (`stone`, `dirt`, `wood`…) resolved through `palette.materials` and fallbacks, so a recipe works
  * under any generated direction; `ramps: { base: 'moss' }` overrides a role.
@@ -52,13 +53,14 @@ const ROLES: Record<string, string[]> = {
   stone: ['stone', 'metal', 'dirt'], mortar: ['dirt', 'stone'], wood: ['wood', 'leather', 'dirt'], metal: ['metal', 'steel', 'stone'],
   rust: ['accent', 'leather', 'dirt'], grass: ['grass', 'foliage', 'moss', 'green'], dirt: ['dirt', 'leather', 'stone'], sand: ['sand', 'dirt', 'skin'],
   snow: ['snow', 'stone', 'metal', 'cloth'], water: ['water', 'cloth', 'blue', 'stone'], foam: ['metal', 'stone', 'cloth'], lava: ['lava', 'glow', 'accent', 'orange'],
-  crust: ['stone', 'dirt'], tech: ['metal', 'steel', 'stone'], light: ['glow', 'accent'], carpet: ['cloth', 'accent', 'leather'], trim: ['accent', 'leather', 'wood'],
+  brick: ['brick', 'accent', 'leather', 'stone'], crust: ['stone', 'dirt'], tech: ['metal', 'steel', 'stone'], light: ['glow', 'accent'], carpet: ['cloth', 'accent', 'leather'], trim: ['accent', 'leather', 'wood'],
 };
 
 const RECIPE_ROLES: Record<string, Record<string, string>> = {
   stone: { base: 'stone' }, cobble: { base: 'stone', mortar: 'mortar' }, wood: { base: 'wood' }, metal: { base: 'metal', rust: 'rust' },
   grass: { base: 'grass', soil: 'dirt' }, dirt: { base: 'dirt', pebble: 'stone' }, sand: { base: 'sand' }, snow: { base: 'snow' },
   water: { base: 'water', foam: 'foam' }, lava: { base: 'lava', crust: 'crust' }, tech: { base: 'tech', light: 'light' }, carpet: { base: 'carpet', trim: 'trim' },
+  brick: { base: 'brick', mortar: 'mortar' },
 };
 
 export const MATERIALS = Object.keys(RECIPE_ROLES);
@@ -176,6 +178,16 @@ const RECIPES: Record<string, Recipe> = {
     const wear = pGradient(x, y, { w: c.w, h: c.h, cells: across(c.w, 16), octaves: 2, seed: c.seed });
     if (Math.abs(d - 0.32) < 0.06) return { role: 'trim', tone: 0.2 + weave + (wear > 0.7 ? 0.3 : 0), height: 0.6 };
     return { role: 'base', tone: (d < 0.2 ? 0.2 : 0.5) + weave + (wear > 0.65 ? 0.25 : 0), height: 0.5 };
+  },
+  brick(x, y, c) {
+    // running bond: `courses` rows per tile (default 8 per 64 px), bricks twice as long as tall, every other row offset
+    // half a brick; each brick its own tone, bevelled lit top edge, 1 px mortar joints
+    const rows = across(c.h, (c.p.course ?? 8) * c.s), ph = c.h / rows, row = Math.floor(y / ph), v = y - row * ph;
+    const per = across(c.w, ph * 2.2), pw = c.w / per, u = mod(x - (row % 2 ? pw / 2 : 0), pw), id = row * 97 + Math.floor(mod(x - (row % 2 ? pw / 2 : 0), c.w) / pw);
+    if (v < 1 || u < 1) return { role: 'mortar', tone: 0.55 + 0.25 * pValue(x, y, { w: c.w, h: c.h, cells: across(c.w, 3), seed: c.seed + 9 }), height: 0 };
+    const own = c.rnd(id, 5), pit = pValue(x, y, { w: c.w, h: c.h, cells: across(c.w, 2), seed: c.seed + 4 });
+    const chip = c.rnd(id, 6) > 0.8 && pWorley(x, y, { w: c.w, h: c.h, cells: across(c.w, 6), seed: c.seed + id }).f1 < 0.12;
+    return { role: 'base', tone: 0.2 + 0.4 * own + 0.15 * (pit - 0.5) + (v < 2 ? -0.12 : 0) + (chip ? 0.35 : 0), height: chip ? 0.3 : 0.7 + 0.1 * own - (v > ph - 2 ? 0.2 : 0) };
   },
 };
 

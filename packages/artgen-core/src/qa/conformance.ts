@@ -121,7 +121,10 @@ export function conformance(input: ConformanceInput): ConformanceReport {
   const allowed = new Set(kindPalette(dir, kind)), outline = normHex(dir.palette.outline);
   // tiles repeat, so their frame border wraps around instead of being a silhouette edge
   const wraps = !!kind && TILE_KINDS.has(kind), wrapsX = wraps || (!!kind && LAYER_KINDS.has(kind));
+  // view-models (P6d) sit on the bottom edge of the screen: they continue below the frame, so that border is no edge
+  const offBottom = kind === 'viewmodel';
   const opaque = (g: Grid, x: number, y: number) => {
+    if (offBottom && y >= g.h) y = g.h - 1;
     if (wrapsX) x = ((x % g.w) + g.w) % g.w;
     if (wraps) y = ((y % g.h) + g.h) % g.h;
     else if (wrapsX) y = Math.max(0, Math.min(g.h - 1, y)); // a layer's scenery runs on past its top and bottom

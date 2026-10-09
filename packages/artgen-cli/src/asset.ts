@@ -9,7 +9,7 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
-  applyFinish, animInput, onionSkin, assembleSheet, budgetFor, finishBaseOf, conformance, contactSheet, parseBriefs, finishSnapshot, finishStale, Grid, imageTokens, iso, parseDirection, parseLedger,
+  applyFinish, animInput, onionSkin, fpRole, fpShots, assembleSheet, budgetFor, finishBaseOf, conformance, contactSheet, parseBriefs, finishSnapshot, finishStale, Grid, imageTokens, iso, parseDirection, parseLedger,
   parseVersion, passId, planPasses, pxPerMetre, renderAsset, resolveSize, reviewSheet, sourceHash, stackStrip, parallaxStrip, TILE_KINDS, viewContext, autotileCount, autotileMap, autotileSheet,
   type AssetBudget, type AssetModule, type BriefEntry, type ConformanceReport, type FeedbackOpen, type Direction, type FinishModule, type LedgerEntry, type PassState,
   type PatchRecord, type RenderResult,
@@ -159,7 +159,7 @@ export async function renderVersion(a: AssetDir, version: string, opts: { varian
     if (existsSync(snap) && !opts.variant) stale = finishStale(JSON.parse(readFileSync(snap, 'utf8')), patches);
     src = sourceOf(a, base) + '\n' + source;
   }
-  const s = strip(render), grid = reviewGrid(render);
+  const s = strip(render), grid = reviewGrid(render, a.dir);
   const report = conformance({
     frames: render.cells.map(c => c.grid), dir: a.dir, kind: a.brief.kind, size: resolveSize(a.dir, a.brief.size, a.brief.kind),
     source: src, symAxis: a.brief.review?.sym ?? 'x', lint: render.lint, periodic: a.brief.review?.periodic, autotile: a.brief.autotile,
@@ -186,8 +186,8 @@ export function firstFacing(r: RenderResult): Grid {
  * Review layout: the special layouts below, else the cells; animated figures and effects (P6c) get an onion-skin row
  * under it — each animated state of the first facing, every frame over faded copies of the two before it.
  */
-export function reviewGrid(r: RenderResult): Grid {
-  const g = layoutGrid(r);
+export function reviewGrid(r: RenderResult, dir?: Direction): Grid {
+  const g = withFp(layoutGrid(r), r, dir);
   const special = r.brief.kind === 'layer' || r.brief.view === 'stack' || !!r.brief.autotile || TILE_KINDS.has(r.brief.kind);
   const f = r.facings[0], moving = special ? [] : r.states.filter(s => r.frames[s] > 1);
   if (!moving.length) return g;
@@ -196,6 +196,27 @@ export function reviewGrid(r: RenderResult): Grid {
   out.blit(g, 0, 0);
   let y = g.h + 2;
   for (const row of rows) { out.blit(row, 0, y); y += row.h + 2; }
+  return out;
+}
+
+/**
+ * First-person assets (P6d, view `fp`): corridor shots from the raycaster under the layout — textures on their surface,
+ * billboards standing in the corridor (three facings), view-models over the bottom of the screen (one shot per state).
+ */
+function withFp(g: Grid, r: RenderResult, dir?: Direction): Grid {
+  if (!dir || (r.brief.view ?? dir.camera.view) !== 'fp') return g;
+  const f0 = r.facings[0], first = (s: string) => r.cells.find(c => c.state === s && c.facing === f0)!.grid;
+  const role = fpRole(r.brief.kind, r.brief.surface);
+  const frames = role === 'billboard'
+    ? r.facings.filter(f => ['s', 'se', 'e', 'sw', 'n'].includes(f)).slice(0, 3).map(f => r.cells.find(c => c.state === r.states[0] && c.facing === f)!.grid)
+    : role === 'viewmodel' ? r.states.map(s => { const cs = r.cells.filter(c => c.state === s && c.facing === f0); return cs[Math.min(1, cs.length - 1)].grid; })
+    : [first(r.states[0])];
+  const shots = fpShots(dir, r.brief.kind, frames, { surface: r.brief.surface });
+  const row = new Grid(shots.reduce((n, x) => n + x.w + 2, -2), shots[0].h);
+  let x = 0;
+  for (const s of shots) { row.blit(s, x, 0); x += s.w + 2; }
+  const out = new Grid(Math.max(g.w, row.w), g.h + 2 + row.h);
+  out.blit(g, 0, 0); out.blit(row, 0, g.h + 2);
   return out;
 }
 
