@@ -38,6 +38,8 @@ export interface RenderPayload {
   base?: string;
   stale?: string[];
   context?: Img;
+  /** How the game shows it, when that isn't one frame: stack turn strip, parallax scroll (P6a). */
+  preview?: Img;
   background?: string;
   tile: boolean;
 }
@@ -66,7 +68,7 @@ const api = {
       version: r.version, size: r.render.size, states: r.render.states, facings: r.render.facings, frames: r.render.frames,
       cells: r.render.cells.map(c => ({ state: c.state, facing: c.facing, frame: c.frame, mirrored: c.mirrored, img: img(c.grid), ...(c.anchors && { anchors: c.anchors }) })),
       strip: img(s), report: r.report, base: r.base, stale: r.stale,
-      context: p.context(a, r.render.size[0] * 3, r.render.size[1] * 3), background: a.brief.review?.bg ?? a.dir.background,
+      context: p.context(a, r.render.size[0] * 3, r.render.size[1] * 3), preview: p.preview(a, r.render), background: a.brief.review?.bg ?? a.dir.background,
       tile: ['tile', 'tileset', 'texture'].includes(a.brief.kind),
     };
   },

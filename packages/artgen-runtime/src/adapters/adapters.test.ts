@@ -1,7 +1,7 @@
 // Every adapter passes the same contract (contract.ts): canvas2d (reference), pixi, three — and a stub fourth adapter
 // written only against the public core API, which is all a new target needs (D3: no core changes).
 import { Container, type Sprite as PixiSprite, type TextureSource } from 'pixi.js';
-import { DataTexture, NearestFilter, Object3D, PerspectiveCamera, type Sprite as ThreeSprite } from 'three';
+import { AdditiveBlending, DataTexture, NearestFilter, Object3D, PerspectiveCamera, type Sprite as ThreeSprite } from 'three';
 import { describe, expect, test } from 'vitest';
 import { createPack, type RuntimeAdapter } from '../index.js';
 import { synthPack } from '../testkit.js';
@@ -26,6 +26,8 @@ adapterContract(() => canvas2dAdapter({ createCanvas: fakeCanvas }), {
   texture: n => n.tex,
   parent: () => new Canvas2DLayer(),
   children: l => l.nodes.length,
+  rotation: n => n.rotation ?? 0,
+  blend: n => n.blend ?? 'normal',
 });
 
 adapterContract(pixiAdapter, {
@@ -36,6 +38,8 @@ adapterContract(pixiAdapter, {
   parent: () => new Container(),
   children: c => c.children.length,
   nearest: (t: TextureSource) => t.scaleMode === 'nearest' && !t.autoGenerateMipmaps,
+  rotation: s => s.rotation,
+  blend: s => (s.blendMode === 'add' ? 'add' : 'normal'),
 });
 
 const threeFrame = (s: ThreeSprite) => {
@@ -51,6 +55,8 @@ adapterContract(() => threeAdapter({ pixelsPerUnit: 8 }), {
   parent: () => new Object3D(),
   children: o => o.children.length,
   nearest: (t: DataTexture) => t.magFilter === NearestFilter && t.minFilter === NearestFilter && !t.generateMipmaps,
+  rotation: s => -s.material.rotation,
+  blend: s => (s.material.blending === AdditiveBlending ? 'add' : 'normal'),
 });
 
 /** A fourth target added without touching the core: an SVG-ish record per sprite. */

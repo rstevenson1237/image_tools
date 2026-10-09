@@ -14,7 +14,7 @@ import {
   analytics, applyFinish, assetStatus, blindScores, briefDir, briefOrder, budgetFor, conformance, describeDirection,
   effectObjectIssues, encodePNG, finishBaseOf, finishStale, formatLedgerLine, Grid, isPlaceholderDirection, iso, lockDirection,
   mergeConfig, parseBriefs, parseDirection, parseLedger, parseVersion, passId, planPasses, PROBE_KINDS, pxPerMetre,
-  renderAsset, FACINGS, resolveSize, sourceHash, styleSheet, styleTile, TILE_KINDS, validateDirection, decodePNG,
+  renderAsset, FACINGS, resolveSize, sourceHash, styleSheet, styleTile, TILE_KINDS, validateDirection, decodePNG, viewContext, stackStrip, parallaxStrip, autotileCount, autotileMap,
   type AnalyticsReport, type AssetBudget, type AssetMeta, type AssetModule, type AssetStatus, type BriefEntry,
   type ConformanceReport, type Direction, type FeedbackOpen, type FinishModule, type LedgerEntry, type NextStep,
   type PassRow, type PatchRecord, type ProbeImages, type ProjectConfig, type RenderResult, type StyleTileColumn,
@@ -42,7 +42,7 @@ export const img = (g: Grid): Img => ({ w: g.w, h: g.h, data: g.d });
 export interface AssetCtx {
   id: string;
   path: string;
-  brief: BriefEntry & { template?: string; review?: { scale?: number; bg?: string; iso?: boolean; sym?: 'x' | 'y' | 'none'; label?: string } };
+  brief: BriefEntry & { template?: string; review?: { scale?: number; bg?: string; iso?: boolean; sym?: 'x' | 'y' | 'none'; label?: string; /** tiles: the repeat is the design (bricks, panels) */ periodic?: boolean } };
   dir: Direction;
   budget: AssetBudget;
 }
@@ -209,7 +209,7 @@ export class ArtProject {
     }
     const report = conformance({
       frames: render.cells.map(c => c.grid), dir: a.dir, kind: a.brief.kind, size: resolveSize(a.dir, a.brief.size, a.brief.kind),
-      source: src, symAxis: a.brief.review?.sym ?? 'x', lint: render.lint,
+      source: src, symAxis: a.brief.review?.sym ?? 'x', lint: render.lint, periodic: a.brief.review?.periodic, autotile: a.brief.autotile,
       ...(a.brief.height && { height: { metres: a.brief.height, pxPerMetre: pxPerMetre(a.dir) } }),
     });
     const out = { version: v.name, render, report, source, base, patches, stale };
@@ -356,10 +356,32 @@ export class ArtProject {
     return { report: analytics(this.ledger().filter(e => ids.has(e.asset) || e.asset === 'gallery'), metas), metas };
   }
 
-  /** In-context background for an asset's review: 3×3 tiling is done by the viewer; iso assets get the floor. */
+  /** In-context background for an asset's review: 3×3 tiling is done by the viewer; iso assets get the floor, oblique
+   * ones a room, side ones a scroll strip (the view module's context, P6a). */
   context(a: AssetCtx, w: number, h: number): Img | undefined {
-    const isoView = (a.brief.view ?? a.dir.camera.view) === 'iso' && !TILE_KINDS.has(a.brief.kind);
-    return a.brief.review?.iso || isoView ? img(iso.isoFloor(w, h)) : undefined;
+    const view = a.brief.view ?? a.dir.camera.view, isoView = view === 'iso' && !TILE_KINDS.has(a.brief.kind);
+    if (a.brief.review?.iso || isoView) return img(iso.isoFloor(w, h));
+    if (a.brief.kind === 'layer') return undefined;
+    const c = view === 'oblique' || view === 'side' ? viewContext(view, w, h, a.dir) : undefined;
+    return c && img(c);
+  }
+
+  /**
+   * How the game shows the asset when that isn't one frame (P6a/b): a sprite stack turned through 8 angles, parallax
+   * layers scrolled to three camera positions, an autotile set laid as an island. Undefined for ordinary sprites.
+   */
+  preview(a: AssetCtx, r: RenderResult): Img | undefined {
+    const view = a.brief.view ?? a.dir.camera.view;
+    if (view === 'stack') return img(stackStrip(r.cells.filter(c => c.state === r.states[0] && c.facing === r.facings[0]).map(c => c.grid), 8, 1));
+    if (a.brief.autotile && r.cells.length >= autotileCount(a.brief.autotile)) {
+      const tiles = r.cells.filter(c => c.state === r.states[0] && c.facing === r.facings[0]).map(c => c.grid);
+      return img(autotileMap(tiles, a.brief.autotile, undefined, 8));
+    }
+    if (a.brief.kind === 'layer' && r.states.length > 1) {
+      const cells = r.states.map(s => r.cells.find(c => c.state === s)!);
+      return img(parallaxStrip(cells.map((c, i) => ({ grid: c.grid, depth: (i + 1) / cells.length })), r.size[0], [0, Math.round(r.size[0] / 3), Math.round((2 * r.size[0]) / 3)]));
+    }
+    return undefined;
   }
 
   // ---- art direction (W1 in the UI) ----------------------------------------------------------------------------------

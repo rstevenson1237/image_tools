@@ -33,6 +33,8 @@ export interface PackAsset {
   autotile?: 'wang16' | 'blob47';
   /** Autotile index → frame index within the asset's first state, when the exported order differs from the canonical one. */
   map?: number[];
+  /** The asset has a real normal map in the pack's `normals` atlases (P6a; lit sprites). */
+  normals?: true;
   draft?: true;
 }
 
@@ -44,6 +46,8 @@ export interface PackManifest {
   /** Runtime version the pack was exported for (null before P4 exports). */
   runtime: string | null;
   atlases: string[];
+  /** Normal-map atlases in the same layout as `atlases` (P6a): RGB = normal, OpenGL convention. */
+  normals?: string[];
   assets: Record<string, PackAsset>;
   drafts?: string[];
 }
@@ -77,6 +81,10 @@ export interface RuntimeAdapter<Tex = unknown, Node = unknown, Parent = unknown>
   setAnchor(node: Node, anchor: readonly [number, number], size: readonly [number, number]): void;
   /** Place the node; `z` is the adapter's depth (zIndex in 2D, world z in 3D). */
   setPosition(node: Node, x: number, y: number, z?: number): void;
+  /** Rotate the node about its anchor, radians clockwise on screen (sprite-stack slices, P6a). */
+  setRotation?(node: Node, rad: number): void;
+  /** Blend mode: `add` for light-emitting effects (P6c), `normal` otherwise. */
+  setBlend?(node: Node, mode: 'normal' | 'add'): void;
   /** Add the node to a scene parent (effects spawned by the runtime use this). */
   attach?(parent: Parent, node: Node): void;
   /** Remove the node from its parent and free it. */

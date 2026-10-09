@@ -42,15 +42,20 @@
  *   artgen import-edit <id> <edited.png> [--cell state/facing/frame]   hand edit → next finish.vM.js
  *   artgen analytics [--out file.md]                per-pass gains, cost per asset, budget suggestions
  *
+ * Breadth (PLAN P6):
+ *   artgen voxel <asset> [--version v] [--cell s/f/n] [--out dir] [--scale m]   3D-mode model → .vox + greedy-meshed .glb
+ *   artgen texture <material> [--size 32] [--seed n] [--ramps base=stone] | --list   material recipe → png + normal map + 3×3
+ *
  * Benchmark (this repo): artgen bench [--direction benchmark|alt|<file>] [--out <dir>] [--stages] [--update-golden]
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { extractPalette, generateRamp, Grid, MIX_PARTS, parseGpl, parseHexPalette, rampsFromColors, validateDirection, type Interview, type MixPart, type Size } from 'artgen-core';
+import { extractPalette, generateRamp, Grid, MATERIALS, MIX_PARTS, parseDirection, parseGpl, parseHexPalette, rampsFromColors, validateDirection, type Interview, type MixPart, type Size } from 'artgen-core';
 import { openAsset, passState, type AssetDir, renderVersion, reviewVersion, scoreVersion, variantsSheet, versionsIn, writeRender } from './asset.ts';
 import { resolveDirection, updateGolden, writeBench } from './bench.ts';
 import { readGrid, writeGrid } from './node.ts';
 import { findProject, initProject, readJson, requireProject, writeJson } from './project.ts';
+import { textureRun, voxelExport } from './p6.ts';
 import { report } from './report.ts';
 import { newAsset, newFinish } from './templates.ts';
 import { addBrief, approve, exportPacks, feedback, gallery, importEdit, make, projectAnalytics, projectStatus, readBriefs, removeBriefFile, resolveAssetArg, restyle, rosterRecord, rosterRun } from './w2.ts';
@@ -104,6 +109,8 @@ const USAGE = `usage: artgen init
        artgen feedback <id> --route base|finish --note "..." [--region x,y,w,h] [--cell s/f/n] | approve <id> [--note "..."]
        artgen export [--pack name] [--include-drafts] [--runtime [--force]] [--break-contract id,…|*] | restyle [--from N] | import-edit <id> <png> [--cell s/f/n]
        artgen analytics [--out file.md]
+       artgen voxel <asset> [--version v] [--cell s/f/n] [--out dir] [--scale m]
+       artgen texture <material> [--size 32|WxH] [--seed n] [--ramps base=stone,…] [--scale k] [--out dir] | texture --list
        artgen bench [--direction benchmark|alt|<file>] [--out <dir>] [--stages] [--ledger <file>] [--update-golden]
        artgen --version`;
 
@@ -281,6 +288,24 @@ export async function main(argv: string[]): Promise<number> {
     const r = await report(sub, { out: flag(args, '--out'), title: flag(args, '--title') });
     if (!flag(args, '--out')) console.log(r.markdown);
     return r.summaries.every(s => s.met) ? 0 : 1;
+  }
+  // ---- P6 breadth ----
+  if (cmd === 'voxel' && sub) {
+    const r = await voxelExport(asset(sub), { version: flag(args, '--version'), cell: flag(args, '--cell'), out: flag(args, '--out'), scale: flag(args, '--scale') ? +flag(args, '--scale')! : undefined });
+    print(`${r.cell}: ${r.voxels} voxels, ${r.materials} materials, ${r.size.join('x')}\n  ${r.vox}\n  ${r.glb}`, r);
+    return 0;
+  }
+  if (cmd === 'texture') {
+    if (sub === '--list' || args.includes('--list')) { print(MATERIALS.join('\n'), MATERIALS); return 0; }
+    if (!sub) throw new Error('texture: name a material (artgen texture --list)');
+    const p = findProject(flag(args, '--root')), dirFile = flag(args, '--direction') ?? (p ? join(p.art, 'direction.json') : undefined);
+    if (!dirFile || !existsSync(dirFile)) throw new Error('texture: needs a locked direction (run inside a project, or --direction <file>)');
+    const sz = parseSize(flag(args, '--size') ?? '32'), size: Size = Array.isArray(sz) ? sz : [+sz!, +sz!];
+    const ramps = list(args, '--ramps')?.reduce((m, x) => { const [k, v] = x.split('='); m[k] = v; return m; }, {} as Record<string, string>);
+    const r = textureRun(parseDirection(JSON.parse(readFileSync(dirFile, 'utf8'))), sub, { size, seed: flag(args, '--seed') ? +flag(args, '--seed')! : undefined, ramps, scale: flag(args, '--scale') ? +flag(args, '--scale')! : undefined, out: flag(args, '--out') ?? (p ? join(p.art, 'sheets', 'textures') : 'artgen-out') });
+    print([`${sub} ${size.join('x')} (ramps ${Object.entries(r.ramps).map(([k, v]) => `${k}=${v}`).join(', ')})`, ...r.files.map(f => `  ${f}`),
+      `seam ${r.seam.ratio}× the interior · repetition: ${r.issues.length ? r.issues.join('; ') : `clear (lowStd ${r.repetition.lowStd}, ${r.repetition.markBlobs} marks)`}`].join('\n'), r);
+    return 0;
   }
   // ---- W2 production (PLAN P3) ----
   const pos2 = (from: string[]) => from.filter((a, i) => !a.startsWith('--') && !(i > 0 && from[i - 1].startsWith('--') && from[i - 1] !== '--json' && from[i - 1] !== '--include-drafts' && from[i - 1] !== '--force'));

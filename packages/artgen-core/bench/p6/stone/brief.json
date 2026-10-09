@@ -1,0 +1,1 @@
+{ "id": "stone", "kind": "texture", "size": [64, 64], "states": ["idle"], "notes": "P6b benchmark: 64 px rough stone texture, seamless, repetition flag clear", "direction": "../direction.json", "target": 6.5, "review": { "scale": 4, "sym": "none", "label": "P6b: stone 64" } }

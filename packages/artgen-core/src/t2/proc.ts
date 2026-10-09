@@ -252,6 +252,7 @@ export class Proc {
     const src = this.source as Grid;
     for (let i = 0; i < src.w * src.h; i++) if (src.d[i * 4 + 3] && src.d[i * 4 + 3] < 255) g.d.set(src.d.subarray(i * 4, i * 4 + 4), i * 4);
     if (st.shadow || st.ground) g = shadowsUnder(g, st, this.env, r);
+    if (src.normal) g.normal = src.normal;
     return g;
   }
 }

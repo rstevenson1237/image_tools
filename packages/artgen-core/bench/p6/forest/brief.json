@@ -1,0 +1,11 @@
+{
+  "id": "forest",
+  "kind": "layer",
+  "view": "side",
+  "size": [96, 48],
+  "states": ["far", "mid", "near"],
+  "notes": "P6a benchmark: parallax forest — three horizontally seamless side-view layers (far hills, mid pine line, near trunks + ferns) the runtime scrolls by depth",
+  "direction": "../direction.json",
+  "target": 6.5,
+  "review": { "scale": 3, "sym": "none", "label": "P6a: parallax forest (far / mid / near, scrolled)" }
+}

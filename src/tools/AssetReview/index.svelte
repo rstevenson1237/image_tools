@@ -215,6 +215,12 @@
                       <button type="button" class:on={bg === k} onclick={() => (bg = k as typeof bg)}>{l}</button>
                     {/each}
                   </span>
+                  {#if finalRender.preview}
+                    <div class="game-preview">
+                      <span class="dim small">in the game</span>
+                      <PixelPreview img={finalRender.preview} scale={Math.max(1, scale - 1)} background={finalRender.background ?? '#202028'} />
+                    </div>
+                  {/if}
                   {#if finalRender.cells.length > 1}
                     <label class="cells">
                       cell
@@ -421,6 +427,13 @@
     flex-wrap: wrap;
     align-items: flex-start;
     margin: 0.5rem 0 0.75rem;
+  }
+  .game-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-width: 100%;
+    overflow-x: auto;
   }
   .view {
     display: flex;

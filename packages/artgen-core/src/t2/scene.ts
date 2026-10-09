@@ -324,7 +324,6 @@ export class Scene2D {
       geo = { bb, R }; cache.set(it, geo);
     }
     const ln = Math.hypot(light[0], light[1], light[2]) || 1, Lx = light[0] / ln, Ly = light[1] / ln, Lz = light[2] / ln;
-    let nx = 0, ny = 0, nz = 1;
     const bb = geo.bb!;
     if (it.shade === 'linear') { // straight gradient across the shape, lit corner to shaded corner
       const ll = Math.hypot(light[0], light[1]) || 1, ux = -light[0] / ll, uy = -light[1] / ll;
@@ -332,6 +331,16 @@ export class Scene2D {
       const lo = Math.min(...corners), hi = Math.max(...corners), t = ((sx + 0.5) * ux + (sy + 0.5) * uy - lo) / (hi - lo || 1);
       return L[Math.max(0, Math.min(n - 1, Math.floor(t * it.gain * n)))];
     }
+    const [nx, ny, nz] = this.curvedNormal(it, sx, sy, S, geo);
+    const dot = nx * Lx + ny * Ly + nz * Lz;
+    const pos = Math.round(mid - (dot - Lz) * it.gain * (n - 1));
+    return L[Math.max(0, Math.min(n - 1, pos))];
+  }
+
+  /** Surface normal of a `sphere` / `cyl` / `normal` shaded item at a working-resolution sample (screen terms, y down). */
+  private curvedNormal(it: Item, sx: number, sy: number, S: number, geo: { bb: ReturnType<Mask['bounds']>; R: number }): [number, number, number] {
+    const m = it.mask, bb = geo.bb!;
+    let nx = 0, ny = 0, nz = 1;
     if (it.shade === 'sphere' || it.shade === 'cyl') {
       const cx = (bb.x0 + bb.x1 + 1) / 2, cy = (bb.y0 + bb.y1 + 1) / 2, rx = (bb.x1 - bb.x0 + 1) / 2, ry = (bb.y1 - bb.y0 + 1) / 2;
       const ux = (sx + 0.5 - cx) / rx, uy = (sy + 0.5 - cy) / ry;
@@ -350,9 +359,25 @@ export class Scene2D {
         nx = tx * slope * k; ny = ty * slope * k; nz = k;
       }
     }
-    const dot = nx * Lx + ny * Ly + nz * Lz;
-    const pos = Math.round(mid - (dot - Lz) * it.gain * (n - 1));
-    return L[Math.max(0, Math.min(n - 1, pos))];
+    return [nx, ny, nz];
+  }
+
+  /** Normal-map normal of an item at a working-resolution sample (P6a): curved shades exact, the rest approximated. */
+  private normalAt(it: Item, sx: number, sy: number, S: number, cache: Map<Item, { bb: ReturnType<Mask['bounds']>; R: number }>): [number, number, number] {
+    if (it.fixed || it.underlay || !it.levels.length) return [0, 0, 1];
+    const light = this.env.dir.camera.light, lx = Math.sign(light[0]), ly = Math.sign(light[1]), m = it.mask;
+    if (it.shade === 'sphere' || it.shade === 'cyl' || it.shade === 'normal') {
+      this.shadeAt(it, sx, sy, S, cache); // fills the geometry cache
+      return this.curvedNormal(it, sx, sy, S, cache.get(it)!);
+    }
+    if (it.shade === 'bevel') {
+      const lit = (!!lx && !m.has(sx + lx * S, sy)) || (!!ly && !m.has(sx, sy + ly * S));
+      const dark = (!!lx && !m.has(sx - lx * S, sy)) || (!!ly && !m.has(sx, sy - ly * S));
+      if (lit && !dark) return [lx * 0.6, ly * 0.6, 1];
+      if (dark && !lit) return [-lx * 0.6, -ly * 0.6, 1];
+    }
+    if (it.shade === 'linear') return [-lx * 0.3, -ly * 0.3, 1];
+    return [0, 0, 1];
   }
 
   /** Render to a Raster (before the outer line and shadows): S1 output, the input of the procedural pass. */
@@ -387,6 +412,13 @@ export class Scene2D {
       const p = y * this.w + x;
       if (mode === 'ss') { r.id[p] = Math.floor(best / 4096); r.band[p] = best % 4096; }
       else { r.id[p] = best; r.band[p] = this.shadeAt(items[best], x * S + (S >> 1), y * S + (S >> 1), S, cache); }
+    }
+    // normals per final pixel at its centre sample (normal maps, P6a)
+    r.normal = new Float32Array(this.w * this.h * 3);
+    for (let p = 0; p < r.id.length; p++) {
+      if (r.id[p] < 0) continue;
+      const it = items[r.id[p]], x = p % this.w, y = (p / this.w) | 0;
+      r.normal.set(this.normalAt(it, x * S + (S >> 1), y * S + (S >> 1), S, cache), p * 3);
     }
     // final-resolution passes: patterns, ink, cast shadows, AO
     for (let p = 0; p < r.id.length; p++) {
@@ -430,6 +462,7 @@ export class Scene2D {
   /** Colours → outer line → shadows (shared with the procedural pass). */
   finalize(r: Raster, extra: Pick<Scene2DOptions, 'shadow' | 'groundShadow'> = {}): Grid {
     let g = r.toGrid();
+    const normal = r.normalMap();
     const stage = this.opts.stage, { dir } = this.env, o = { ...this.opts, ...extra };
     if (o.outline !== false) { g = this.env.line(g); stage?.('outline', g); }
     if (o.shadow) { g = post.dropShadow(g, o.shadow[0], o.shadow[1], dir.shadow); stage?.('shadow', g); }
@@ -438,6 +471,7 @@ export class Scene2D {
       groundShadow(s, ...o.groundShadow, dir.shadow);
       g = s.stamp(g); stage?.('ground-shadow', g);
     }
+    if (normal) g.normal = normal;
     return g;
   }
 

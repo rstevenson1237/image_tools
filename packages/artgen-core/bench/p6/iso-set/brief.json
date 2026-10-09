@@ -1,0 +1,1 @@
+{ "id": "iso-set", "kind": "tileset", "view": "iso", "size": [32, 32], "states": ["idle"], "anims": { "idle": { "frames": 3 } }, "notes": "P6b benchmark: iso floor + wall + half wall from seamless recipes, shared ground line", "direction": "../direction.json", "target": 6.5, "review": { "scale": 5, "sym": "none", "label": "P6b: iso floor / wall set" } }

@@ -5,6 +5,7 @@
 import { dirContext, kindPalette, resolveSize, type DirContext, type Direction, type Size, type View } from './direction.ts';
 import * as blitLib from './lib/blit.ts';
 import { Grid } from './lib/grid.ts';
+import { fitNormalMap, flipNormalMap } from './lib/normals.ts';
 import * as iso from './lib/iso.ts';
 import * as palette from './lib/palette.ts';
 import * as post from './lib/post.ts';
@@ -13,6 +14,12 @@ import { rng } from './lib/rng.ts';
 import { doc, rasterizeSvg, svgToGrid, type SvgToGridOptions } from './lib/svg.ts';
 import { Voxels, face } from './lib/voxel.ts';
 import { resolveParams } from './t2/params.ts';
+import { autotile, autotileCount, autotileMask, type AutotileOptions } from './tex/autotile.ts';
+import { isoBlockTile, isoFloorTile, type IsoBlockOptions } from './tex/iso.ts';
+import { lsystem, lsystemSpecs, turtle } from './tex/lsystem.ts';
+import { material, type MaterialOptions } from './tex/materials.ts';
+import { pGradient, pValue, pWorley } from './tex/noise.ts';
+import { wfc } from './tex/wfc.ts';
 import { Proc } from './t2/proc.ts';
 import { Scene2D, type Scene2DOptions } from './t2/scene.ts';
 import { Scene3D, type Scene3DOptions } from './t2/scene3d.ts';
@@ -33,6 +40,8 @@ export interface Brief {
   height?: number;
   /** Effects: the drawable thing the effect is (`ice lance`, `ring of fire`), not a description of an effect (rev 9). */
   object?: string;
+  /** Tilesets (P6b): frames of the first state are the autotile set in canonical order (16 Wang edges or 47 blob). */
+  autotile?: 'wang16' | 'blob47';
 }
 
 export type Anchors = Record<string, [number, number]>;
@@ -117,11 +126,26 @@ export function makeLib(dir: DirContext, kind?: string, stage?: (name: string, g
         return s;
       },
       scene3d: (opts: Scene3DOptions = {}) => {
-        const s = new Scene3D(dir, opts), render = s.render.bind(s);
+        const s = new Scene3D(dir, opts), render = s.render.bind(s), slices = s.slices.bind(s);
         s.render = (w, h, o, l = line) => render(w, h, o, l);
+        s.slices = (w, h, o = {}) => slices(w, h, { line, ...o });
         onScene?.(s);
         return s;
       },
+    },
+    /**
+     * Textures and tiles (P6b): material recipes on the direction's ramps (seamless, with normal maps), autotile
+     * transitions, iso floor / block tiles, WFC layouts, L-system growth.
+     */
+    tex: {
+      material: (name: string, o: Omit<MaterialOptions, 'w' | 'h'> & { size: [number, number] } ) => material(name, dir, { ...o, w: o.size[0], h: o.size[1], seed: o.seed ?? seed }).grid,
+      materialResult: (name: string, o: MaterialOptions) => material(name, dir, { seed, ...o }),
+      autotile: (layout: 'wang16' | 'blob47', index: number, o: AutotileOptions) => autotile(dir, layout, index, o),
+      autotileMask, autotileCount,
+      isoFloor: isoFloorTile,
+      isoBlock: (tw: number, o: IsoBlockOptions, th?: number) => isoBlockTile(dir, tw, o, th),
+      wfc, lsystem, turtle, lsystemSpecs,
+      noise: { value: pValue, gradient: pGradient, worley: pWorley },
     },
     /** Procedural pass (S2) over a T2+ scene or a finished grid. */
     proc: (source: Scene2D | Grid) => new Proc(source, { dir, seed, line }, stage),
@@ -148,6 +172,8 @@ export interface Cell {
   /** Rendered as the flipped east-side facing. */
   mirrored: boolean;
   anchors?: Anchors;
+  /** Normal map (P6a): from the renderer's normals (2D shading, voxel raster), fitted to the cell's pixels. */
+  normal?: Grid;
 }
 
 export interface RenderOptions {
@@ -159,6 +185,8 @@ export interface RenderOptions {
   params?: Record<string, unknown>;
   /** Collect stage dumps per cell, keyed `state/facing/frame/<n>-<stage>`. */
   stages?: Map<string, Grid>;
+  /** Called with every T2+ scene a cell's render built (2D and 3D), keyed `state/facing/frame` — voxel exports use it. */
+  onScene?: (cell: string, scene: unknown) => void;
 }
 
 export interface RenderResult {
@@ -173,7 +201,7 @@ export interface RenderResult {
 }
 
 /** Render one asset over every state × facing × frame of its brief. West-side facings mirror east ones (2D). */
-export function renderAsset(mod: AssetModule, { dir, brief, seed = 1, variant = 0, params = {}, stages }: RenderOptions): RenderResult {
+export function renderAsset(mod: AssetModule, { dir, brief, seed = 1, variant = 0, params = {}, stages, onScene }: RenderOptions): RenderResult {
   const dc = dirContext(dir), size = resolveSize(dir, brief.size, brief.kind);
   const states = brief.states?.length ? brief.states : ['idle'];
   const facings = FACINGS[brief.directions ?? 1];
@@ -195,9 +223,9 @@ export function renderAsset(mod: AssetModule, { dir, brief, seed = 1, variant = 
       stage: stage ?? (() => {}),
     };
     const grid = mod.render(ctx);
-    for (const sc of scenes) for (const m of sc.lint()) lint.add(m);
+    for (const sc of scenes) { for (const m of sc.lint()) lint.add(m); onScene?.(key, sc); }
     if (grid.w !== size[0] || grid.h !== size[1]) throw new Error(`${brief.id} ${key}: rendered ${grid.w}x${grid.h}, brief size is ${size.join('x')}`);
-    return { state, facing, frame, grid, mirrored: false, anchors: mod.anchors?.(ctx) };
+    return { state, facing, frame, grid, mirrored: false, anchors: mod.anchors?.(ctx), ...(grid.normal && { normal: fitNormalMap(grid, grid.normal) }) };
   };
 
   for (const state of states) for (const facing of facings) for (let frame = 0; frame < frames[state]; frame++) {
@@ -207,7 +235,7 @@ export function renderAsset(mod: AssetModule, { dir, brief, seed = 1, variant = 
       let e = cache.get(key);
       if (!e) { e = renderCell(state, src, frame); cache.set(key, e); }
       const anchors = e.anchors && Object.fromEntries(Object.entries(e.anchors).map(([k, [x, y]]) => [k, [size[0] - 1 - x, y] as [number, number]]));
-      cells.push({ state, facing, frame, grid: e.grid.flip('x'), mirrored: true, anchors });
+      cells.push({ state, facing, frame, grid: e.grid.flip('x'), mirrored: true, anchors, ...(e.normal && { normal: flipNormalMap(e.normal) }) });
     } else {
       const key = `${state}/${facing}/${frame}`;
       let c = cache.get(key);

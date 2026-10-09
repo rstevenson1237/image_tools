@@ -5,6 +5,8 @@ export class Grid {
   readonly w: number;
   readonly h: number;
   readonly d: Uint8ClampedArray;
+  /** Normal map of this image (same size; RGB = normal, OpenGL convention), when the renderer produced one. */
+  normal?: Grid;
 
   constructor(w: number, h: number, data?: Uint8ClampedArray | Uint8Array) {
     this.w = w; this.h = h;

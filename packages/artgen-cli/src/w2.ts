@@ -357,6 +357,7 @@ export async function exportPacks(p: Project, o: { packs?: string[]; includeDraf
   for (const { pack, built, inputs } of builds) {
     const pdir = join(p.root, cfg.export.packDir, pack);
     built.atlases.forEach((g, i) => { writeGrid(join(pdir, built.manifest.atlases[i]), g); writeJson(join(pdir, built.manifest.atlases[i].replace(/\.png$/, '.aseprite.json')), built.aseprite[i]); });
+    built.normals?.forEach((g, i) => writeGrid(join(pdir, built.manifest.normals![i]), g));
     writeJson(join(pdir, 'pack.json'), built.manifest);
     for (const inp of inputs) appendLedger(ledgerFile(p), { type: 'export', asset: inp.brief.id, version: inp.version, sourceHash: inp.sourceHash, pack, direction: { id: dir.id, version: dir.version }, ...(inp.draft && { draft: true }), by: 'agent' });
     out.push({ pack, dir: rel(p, pdir), atlases: built.manifest.atlases.map(f => rel(p, join(pdir, f))), assets: inputs.map(i => i.brief.id), drafts: built.manifest.drafts ?? [] });

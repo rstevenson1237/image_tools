@@ -10,7 +10,7 @@ import { basename, dirname, join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
   applyFinish, assembleSheet, budgetFor, finishBaseOf, conformance, contactSheet, parseBriefs, finishSnapshot, finishStale, Grid, imageTokens, iso, parseDirection, parseLedger,
-  parseVersion, passId, planPasses, pxPerMetre, renderAsset, resolveSize, reviewSheet, sourceHash, TILE_KINDS,
+  parseVersion, passId, planPasses, pxPerMetre, renderAsset, resolveSize, reviewSheet, sourceHash, stackStrip, parallaxStrip, TILE_KINDS, viewContext, autotileCount, autotileMap, autotileSheet,
   type AssetBudget, type AssetModule, type BriefEntry, type ConformanceReport, type FeedbackOpen, type Direction, type FinishModule, type LedgerEntry, type PassState,
   type PatchRecord, type RenderResult,
 } from 'artgen-core';
@@ -24,7 +24,7 @@ export interface AssetBrief extends BriefEntry {
   template?: string;
   /** Direction file (relative to the asset dir) or a bench direction name. Default: nearest direction.json. */
   direction?: string;
-  review?: { scale?: number; bg?: string; iso?: boolean; sym?: 'x' | 'y' | 'none'; label?: string };
+  review?: { scale?: number; bg?: string; iso?: boolean; sym?: 'x' | 'y' | 'none'; label?: string; /** tiles: the repeat is the design (bricks, panels) */ periodic?: boolean };
   /** Reference image shown on top of review sheets (e.g. the artlab final). */
   reference?: string;
   /** Score to beat. */
@@ -139,7 +139,7 @@ export interface VersionRender {
 }
 
 /** Render one version (a finish renders its bound base first). */
-export async function renderVersion(a: AssetDir, version: string, opts: { variant?: number; stages?: Map<string, Grid> } = {}): Promise<VersionRender> {
+export async function renderVersion(a: AssetDir, version: string, opts: { variant?: number; stages?: Map<string, Grid>; onScene?: (cell: string, scene: unknown) => void } = {}): Promise<VersionRender> {
   await initNodeSvg();
   const v = parseVersion(version);
   if (!v) throw new Error(`bad version ${version}`);
@@ -147,12 +147,12 @@ export async function renderVersion(a: AssetDir, version: string, opts: { varian
   if (!existsSync(file)) throw new Error(`${file} does not exist`);
   const source = readFileSync(file, 'utf8');
   let render: RenderResult, base: string | undefined, patches: PatchRecord[] | undefined, stale: string[] | undefined, src = source;
-  if (v.kind === 'base') render = renderAsset(await load<AssetModule>(file), { dir: a.dir, brief: a.brief, variant: opts.variant, stages: opts.stages });
+  if (v.kind === 'base') render = renderAsset(await load<AssetModule>(file), { dir: a.dir, brief: a.brief, variant: opts.variant, stages: opts.stages, onScene: opts.onScene });
   else {
     const fin = await load<FinishModule>(file);
     base = fin.base;
     if (!parseVersion(base ?? '')) throw new Error(`${file}: export const base = 'base.vN' is required`);
-    const baseRender = renderAsset(await load<AssetModule>(join(a.path, `${base}.js`)), { dir: a.dir, brief: a.brief, variant: opts.variant, stages: opts.stages });
+    const baseRender = renderAsset(await load<AssetModule>(join(a.path, `${base}.js`)), { dir: a.dir, brief: a.brief, variant: opts.variant, stages: opts.stages, onScene: opts.onScene });
     const f = applyFinish(baseRender, fin, a.dir);
     render = f.render; patches = f.patches;
     const snap = join(a.path, `${v.name}.snapshot.json`);
@@ -162,10 +162,18 @@ export async function renderVersion(a: AssetDir, version: string, opts: { varian
   const s = strip(render), grid = reviewGrid(render);
   const report = conformance({
     frames: render.cells.map(c => c.grid), dir: a.dir, kind: a.brief.kind, size: resolveSize(a.dir, a.brief.size, a.brief.kind),
-    source: src, symAxis: a.brief.review?.sym ?? 'x', lint: render.lint,
+    source: src, symAxis: a.brief.review?.sym ?? 'x', lint: render.lint, periodic: a.brief.review?.periodic, autotile: a.brief.autotile,
     ...(a.brief.height && { height: { metres: a.brief.height, pxPerMetre: pxPerMetre(a.dir) } }),
   });
   return { version: v.name, render, strip: s, grid, report, source, base, patches, stale };
+}
+
+/** Review context under a sprite: the iso floor (`review.iso`), else the view module's context (oblique room, side strip). */
+export function contextFor(a: AssetDir, g: Grid): Grid | undefined {
+  if (a.brief.review?.iso) return iso.isoFloor(g.w, g.h);
+  const view = a.brief.view ?? a.dir.camera.view;
+  if (a.brief.kind === 'layer') return undefined; // parallax layers are their own background
+  return view === 'oblique' || view === 'side' ? viewContext(view, g.w, g.h, a.dir) : undefined;
 }
 
 /** The first facing's cells side by side (all states and frames). */
@@ -176,6 +184,32 @@ export function firstFacing(r: RenderResult): Grid {
 
 /** Review layout for big sheets (8 facings × walk cycles): rows per state × unique facing, columns per frame. */
 export function reviewGrid(r: RenderResult): Grid {
+  // parallax layers (P6a): the layers in a row, and under it the scene scrolled to three camera positions, back
+  // layers (earlier states) moving slower
+  if (r.brief.kind === 'layer' && r.states.length > 1) {
+    const cells = r.states.map(s => r.cells.find(c => c.state === s)!), row = strip({ ...r, cells });
+    const layers = cells.map((c, i) => ({ grid: c.grid, depth: (i + 1) / cells.length }));
+    const scroll = parallaxStrip(layers, r.size[0], [0, Math.round(r.size[0] / 3), Math.round((2 * r.size[0]) / 3)]);
+    const g = new Grid(Math.max(row.w, scroll.w), row.h + 2 + scroll.h);
+    g.blit(row, 0, 0); g.blit(scroll, 0, row.h + 2);
+    return g;
+  }
+  // sprite stacks (P6a): the slices in a row, and under it the stack as the runtime draws it at 8 angles
+  if (r.brief.view === 'stack') {
+    const slices = r.cells.filter(c => c.state === r.states[0] && c.facing === r.facings[0]).map(c => c.grid);
+    const row = strip({ ...r, cells: r.cells.filter(c => c.state === r.states[0] && c.facing === r.facings[0]) }), turn = stackStrip(slices, 8, 1);
+    const g = new Grid(Math.max(row.w, turn.w), row.h + 2 + turn.h);
+    g.blit(row, 0, 0); g.blit(turn, 0, row.h + 2);
+    return g;
+  }
+  // autotile sets (P6b): the set in canonical order, and beside it an island resolved by the runtime's rule from it
+  if (r.brief.autotile && r.cells.length >= autotileCount(r.brief.autotile)) {
+    const tiles = r.cells.filter(c => c.state === r.states[0] && c.facing === r.facings[0]).map(c => c.grid);
+    const sheet = autotileSheet(tiles, 8), map = autotileMap(tiles, r.brief.autotile, undefined, 8);
+    const g = new Grid(sheet.w + 4 + map.w, Math.max(sheet.h, map.h));
+    g.blit(sheet, 0, 0); g.blit(map, sheet.w + 4, 0);
+    return g;
+  }
   // tiles are judged tiled: each cell repeated 3×3, so seams show
   if (['tile', 'tileset', 'texture'].includes(r.brief.kind) && r.cells.length <= 4) {
     const [w, h] = r.size, isoTile = r.brief.view === 'iso' || (r.brief as AssetBrief).review?.iso;
@@ -218,7 +252,7 @@ export async function reviewVersion(a: AssetDir, version: string, o: { blind?: b
   if (o.blind) {
     const sheet = reviewSheet({
       title: R.label ?? a.brief.id, anchors: anchorsFor(a), maxEdge: a.project ? projectConfig(a.project).budget?.maxSheetEdge : undefined,
-      rows: [{ label: a.brief.id, grid: cur.grid, scale: sc, bg: R.bg ?? a.dir.background, context: R.iso ? iso.isoFloor(cur.grid.w, cur.grid.h) : undefined, silhouette: sil }],
+      rows: [{ label: a.brief.id, grid: cur.grid, scale: sc, bg: R.bg ?? a.dir.background, context: contextFor(a, cur.grid), silhouette: sil }],
     });
     const path = join(outDir(a), `review-${version}-blind.png`), tokens = imageTokens(sheet.w, sheet.h);
     writeGrid(path, sheet);
@@ -226,7 +260,7 @@ export async function reviewVersion(a: AssetDir, version: string, o: { blind?: b
     return { path, tokens, render: cur };
   }
   const scores = new Map(ledgerFor(a).filter(e => e.type === 'score' && !e.blind && e.version).map(e => [e.version!, e.score as number]));
-  const ctx = (g: Grid) => (R.iso ? iso.isoFloor(g.w, g.h) : undefined);
+  const ctx = (g: Grid) => contextFor(a, g);
   const rows: { label: string; grid: Grid; scale: number; bg?: string; context?: Grid; silhouette?: boolean }[] = [];
   if (a.brief.reference) {
     const ref = readGrid(resolve(a.path, a.brief.reference));

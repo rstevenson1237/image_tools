@@ -26,7 +26,7 @@ const path = (t: number) => [11.5 * TILE + Math.cos(t) * 7.5 * TILE, 7.5 * TILE 
 // art
 const pack = await loadPack(Packs.main, pixiAdapter());
 const mud = pack.tiles(Assets.mud), water = pack.tiles(Assets['bog-water']);
-for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) (isWater(x, y) ? water : mud).node((x + 0.5) * TILE, (y + 0.5) * TILE, { parent: ground });
+for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) { const t = isWater(x, y) ? water : mud; t.node((x + 0.5) * TILE, (y + 0.5) * TILE, { parent: ground, variant: t.pick(x, y) }); }
 const props = scenery.map(([id, x, y, variant]) => pack.sprite(Assets[id], { variant, parent: world }).at((x + 0.5) * TILE, (y + 0.5) * TILE, y));
 const hero = pack.sprite(Assets['lantern-bearer'], { state: 'walk', parent: world });
 const wisps = pack.effect(Assets.wisp, { parent: world, loop: true });
