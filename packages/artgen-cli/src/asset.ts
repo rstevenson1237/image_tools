@@ -10,7 +10,7 @@ import { basename, dirname, join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
   applyFinish, assembleSheet, budgetFor, finishBaseOf, conformance, contactSheet, parseBriefs, finishSnapshot, finishStale, Grid, imageTokens, iso, parseDirection, parseLedger,
-  parseVersion, passId, planPasses, pxPerMetre, renderAsset, resolveSize, reviewSheet, sourceHash, stackStrip, parallaxStrip, TILE_KINDS, viewContext,
+  parseVersion, passId, planPasses, pxPerMetre, renderAsset, resolveSize, reviewSheet, sourceHash, stackStrip, parallaxStrip, TILE_KINDS, viewContext, autotileCount, autotileMap, autotileSheet,
   type AssetBudget, type AssetModule, type BriefEntry, type ConformanceReport, type FeedbackOpen, type Direction, type FinishModule, type LedgerEntry, type PassState,
   type PatchRecord, type RenderResult,
 } from 'artgen-core';
@@ -24,7 +24,7 @@ export interface AssetBrief extends BriefEntry {
   template?: string;
   /** Direction file (relative to the asset dir) or a bench direction name. Default: nearest direction.json. */
   direction?: string;
-  review?: { scale?: number; bg?: string; iso?: boolean; sym?: 'x' | 'y' | 'none'; label?: string };
+  review?: { scale?: number; bg?: string; iso?: boolean; sym?: 'x' | 'y' | 'none'; label?: string; /** tiles: the repeat is the design (bricks, panels) */ periodic?: boolean };
   /** Reference image shown on top of review sheets (e.g. the artlab final). */
   reference?: string;
   /** Score to beat. */
@@ -162,7 +162,7 @@ export async function renderVersion(a: AssetDir, version: string, opts: { varian
   const s = strip(render), grid = reviewGrid(render);
   const report = conformance({
     frames: render.cells.map(c => c.grid), dir: a.dir, kind: a.brief.kind, size: resolveSize(a.dir, a.brief.size, a.brief.kind),
-    source: src, symAxis: a.brief.review?.sym ?? 'x', lint: render.lint,
+    source: src, symAxis: a.brief.review?.sym ?? 'x', lint: render.lint, periodic: a.brief.review?.periodic, autotile: a.brief.autotile,
     ...(a.brief.height && { height: { metres: a.brief.height, pxPerMetre: pxPerMetre(a.dir) } }),
   });
   return { version: v.name, render, strip: s, grid, report, source, base, patches, stale };
@@ -200,6 +200,14 @@ export function reviewGrid(r: RenderResult): Grid {
     const row = strip({ ...r, cells: r.cells.filter(c => c.state === r.states[0] && c.facing === r.facings[0]) }), turn = stackStrip(slices, 8, 1);
     const g = new Grid(Math.max(row.w, turn.w), row.h + 2 + turn.h);
     g.blit(row, 0, 0); g.blit(turn, 0, row.h + 2);
+    return g;
+  }
+  // autotile sets (P6b): the set in canonical order, and beside it an island resolved by the runtime's rule from it
+  if (r.brief.autotile && r.cells.length >= autotileCount(r.brief.autotile)) {
+    const tiles = r.cells.filter(c => c.state === r.states[0] && c.facing === r.facings[0]).map(c => c.grid);
+    const sheet = autotileSheet(tiles, 8), map = autotileMap(tiles, r.brief.autotile, undefined, 8);
+    const g = new Grid(sheet.w + 4 + map.w, Math.max(sheet.h, map.h));
+    g.blit(sheet, 0, 0); g.blit(map, sheet.w + 4, 0);
     return g;
   }
   // tiles are judged tiled: each cell repeated 3×3, so seams show

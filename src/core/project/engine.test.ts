@@ -109,8 +109,8 @@ describe('writes match the CLI (on a copy of swamp-topdown)', () => {
 
   it('approve refuses what the CLI refuses', async () => {
     const p = requireProject(root), { project } = await engineFor(p.art);
-    await expect(project.approve('mud')).rejects.toThrow(/mud is exported: only a final asset can be approved/);
-    await expect(cliApprove(p, 'mud')).rejects.toThrow(/mud is exported: only a final asset can be approved/);
+    await expect(project.approve('lantern-post')).rejects.toThrow(/lantern-post is exported: only a final asset can be approved/);
+    await expect(cliApprove(p, 'lantern-post')).rejects.toThrow(/lantern-post is exported: only a final asset can be approved/);
   }, 60_000);
 
   it('lock: same direction.json and anchors as `artgen direction lock`', async () => {

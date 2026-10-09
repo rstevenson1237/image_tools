@@ -1,0 +1,1 @@
+{ "id": "plank", "kind": "texture", "size": [32, 32], "states": ["idle"], "notes": "P6b benchmark: 32 px wooden plank floor, staggered joints, grain, seamless", "direction": "../direction.json", "target": 6.5, "review": { "scale": 6, "sym": "none", "label": "P6b: plank 32" } }

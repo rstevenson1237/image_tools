@@ -106,6 +106,8 @@ export interface PackAsset {
   version: string;
   sourceHash: string;
   tile?: number;
+  /** Autotile layout of a tileset's frames (P6b): frame i of the first state is canonical tile i. */
+  autotile?: 'wang16' | 'blob47';
   /** The asset has a real normal map (P6a): its frames in the `normals` atlases carry lighting normals. */
   normals?: true;
   draft?: true;
@@ -213,7 +215,7 @@ export function buildPack(pack: string, dir: Direction, inputs: PackInput[], opt
       ...(anchors && { anchors }),
       variants: ['base', ...inp.renders.slice(1).map((_, i) => `v${i + 1}`), ...Object.keys(swaps ?? {})],
       ...(swaps && { swaps }), version: inp.version, sourceHash: inp.sourceHash,
-      ...((TILE_KINDS.has(b.kind) || LAYER_KINDS.has(b.kind)) && { tile: r.size[0] }), ...(inp.renders.some(x => x.cells.some(c => c.normal)) && { normals: true as const }),
+      ...((TILE_KINDS.has(b.kind) || LAYER_KINDS.has(b.kind)) && { tile: r.size[0] }), ...(b.autotile && { autotile: b.autotile }), ...(inp.renders.some(x => x.cells.some(c => c.normal)) && { normals: true as const }),
       ...(inp.draft && { draft: true as const }),
     };
   }

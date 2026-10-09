@@ -44,9 +44,11 @@
   notes: scatter of bleached bones and a skull
 - id: mud
   kind: tile
+  variants: 4
   priority: 9
   notes: wet bog mud, puddles
 - id: bog-water
   kind: tile
+  variants: 4
   priority: 10
   notes: dark still water with scum and lily pads

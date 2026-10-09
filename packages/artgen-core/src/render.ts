@@ -14,6 +14,12 @@ import { rng } from './lib/rng.ts';
 import { doc, rasterizeSvg, svgToGrid, type SvgToGridOptions } from './lib/svg.ts';
 import { Voxels, face } from './lib/voxel.ts';
 import { resolveParams } from './t2/params.ts';
+import { autotile, autotileCount, autotileMask, type AutotileOptions } from './tex/autotile.ts';
+import { isoBlockTile, isoFloorTile, type IsoBlockOptions } from './tex/iso.ts';
+import { lsystem, lsystemSpecs, turtle } from './tex/lsystem.ts';
+import { material, type MaterialOptions } from './tex/materials.ts';
+import { pGradient, pValue, pWorley } from './tex/noise.ts';
+import { wfc } from './tex/wfc.ts';
 import { Proc } from './t2/proc.ts';
 import { Scene2D, type Scene2DOptions } from './t2/scene.ts';
 import { Scene3D, type Scene3DOptions } from './t2/scene3d.ts';
@@ -34,6 +40,8 @@ export interface Brief {
   height?: number;
   /** Effects: the drawable thing the effect is (`ice lance`, `ring of fire`), not a description of an effect (rev 9). */
   object?: string;
+  /** Tilesets (P6b): frames of the first state are the autotile set in canonical order (16 Wang edges or 47 blob). */
+  autotile?: 'wang16' | 'blob47';
 }
 
 export type Anchors = Record<string, [number, number]>;
@@ -124,6 +132,20 @@ export function makeLib(dir: DirContext, kind?: string, stage?: (name: string, g
         onScene?.(s);
         return s;
       },
+    },
+    /**
+     * Textures and tiles (P6b): material recipes on the direction's ramps (seamless, with normal maps), autotile
+     * transitions, iso floor / block tiles, WFC layouts, L-system growth.
+     */
+    tex: {
+      material: (name: string, o: Omit<MaterialOptions, 'w' | 'h'> & { size: [number, number] } ) => material(name, dir, { ...o, w: o.size[0], h: o.size[1], seed: o.seed ?? seed }).grid,
+      materialResult: (name: string, o: MaterialOptions) => material(name, dir, { seed, ...o }),
+      autotile: (layout: 'wang16' | 'blob47', index: number, o: AutotileOptions) => autotile(dir, layout, index, o),
+      autotileMask, autotileCount,
+      isoFloor: isoFloorTile,
+      isoBlock: (tw: number, o: IsoBlockOptions, th?: number) => isoBlockTile(dir, tw, o, th),
+      wfc, lsystem, turtle, lsystemSpecs,
+      noise: { value: pValue, gradient: pGradient, worley: pWorley },
     },
     /** Procedural pass (S2) over a T2+ scene or a finished grid. */
     proc: (source: Scene2D | Grid) => new Proc(source, { dir, seed, line }, stage),

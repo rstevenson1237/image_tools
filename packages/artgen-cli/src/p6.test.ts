@@ -24,11 +24,11 @@ describe('P6 benchmarks (bench/p6)', () => {
 
   test('every scored version renders exactly what was scored (R10); the finals pass the gate and meet their target', async () => {
     for (const a of assets) {
-      const scores = latestScores(ledgerFor(a));
+      const scores = latestScores(ledgerFor(a)), st = await passState(a), final = st.next.action === 'ready' ? st.next.final : undefined;
       for (const [version] of scores) {
         const e = [...ledgerFor(a)].reverse().find(x => x.type === 'score' && x.version === version && !x.blind)!, r = await renderVersion(a, version);
         expect({ asset: a.brief.id, version, hash: r.strip.hash() }).toEqual({ asset: a.brief.id, version, hash: e.outputHash });
-        if (version.startsWith('finish.')) {
+        if (version === final) {
           expect(r.report.pass, `${a.brief.id} ${version}`).toBe(true);
           expect(scores.get(version)!.score, `${a.brief.id} target`).toBeGreaterThanOrEqual(a.brief.target ?? 6.5);
         }

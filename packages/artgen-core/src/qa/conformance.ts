@@ -6,6 +6,7 @@ import { kindPalette, type Direction, type Size } from '../direction.ts';
 import { luma, normHex, parseColor } from '../lib/color.ts';
 import type { Grid } from '../lib/grid.ts';
 import { isShadowPixel, measure, type Metrics } from './metrics.ts';
+import { borderContrast, periodicPatch, repetitionIssues, repetitionMetric, seamMetric } from './tiles.ts';
 
 export type CheckStatus = 'pass' | 'fail' | 'flag' | 'skip';
 export interface Check { id: string; status: CheckStatus; detail: string }
@@ -28,6 +29,10 @@ export interface ConformanceInput {
   anchors?: Grid[];
   symAxis?: 'x' | 'y' | 'none';
   thresholds?: Partial<Thresholds>;
+  /** Tiles: the repeat is the design (bricks, panels, carpet motif) — skip the seam and repetition flags. */
+  periodic?: boolean;
+  /** Autotile sets: seam and repetition are judged on the fully surrounded tile (the last of the set), not tile 0. */
+  autotile?: 'wang16' | 'blob47';
 }
 
 export interface Thresholds {
@@ -43,8 +48,12 @@ export interface Thresholds {
   anchorMax: number;
   /** Max relative difference between the drawn body height and the brief's real-world height before flagging. */
   heightTolerance: number;
+  /** Tiles: max colour step across the wrap edges, relative to the interior's. */
+  seamMax: number;
+  /** Tiles: max luma difference between the tile's rim and its inside (a dark grout ring draws the grid). */
+  borderMax: number;
 }
-const DEFAULT_THRESHOLDS: Thresholds = { lineMin: 0.85, lineNoneMax: 0.15, lightTolerance: 4, ditherMax: 2, anchorMax: 0.6, heightTolerance: 0.2 };
+const DEFAULT_THRESHOLDS: Thresholds = { lineMin: 0.85, lineNoneMax: 0.15, lightTolerance: 4, ditherMax: 2, anchorMax: 0.6, heightTolerance: 0.2, seamMax: 1.8, borderMax: 25 };
 
 /** Height of the opaque body in px (alpha 255: ground shadows and glows are translucent); 0 when empty. */
 export function bodyHeight(g: Grid): number {
@@ -146,14 +155,16 @@ export function conformance(input: ConformanceInput): ConformanceReport {
   // line: silhouette edge pixels (next to transparent or shadow) in the outline colour / selout ramp ends
   const darkest = new Set(Object.values(dir.palette.ramps).map(r => normHex(r[r.length - 1])));
   let edge = 0, inked = 0;
-  for (const g of frames) for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) {
+  // tiles are judged as laid: a staggered iso diamond's corners are its neighbours (P6b), so it has no silhouette
+  const laid = wraps ? frames.map(g => periodicPatch(g) ?? g) : frames;
+  for (const g of laid) for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) {
     if (!opaque(g, x, y) || !N4.some(([dx, dy]) => !opaque(g, x + dx, y + dy))) continue;
     edge++;
     const c = g.get(x, y)!;
     if (c === outline || (dir.line.outer === 'selout' && darkest.has(c))) inked++;
   }
   const share = edge ? inked / edge : 0, pctS = `${(100 * share).toFixed(1)}% of ${edge} edge px`;
-  if (!edge) add('line', 'skip', 'empty frames');
+  if (!edge) add('line', 'skip', wraps ? `${kind}: no silhouette once laid` : 'empty frames');
   else if (dir.line.outer === 'none') add('line', share <= th.lineNoneMax ? 'pass' : 'fail', `outline-coloured edge ${pctS} (want none)`);
   else add('line', share >= th.lineMin ? 'pass' : 'fail', `${dir.line.outer} edge ${pctS} (min ${100 * th.lineMin}%)`);
 
@@ -211,6 +222,20 @@ export function conformance(input: ConformanceInput): ConformanceReport {
     const fits = !size || want <= size[1];
     add('height', Math.abs(dev) <= th.heightTolerance ? 'pass' : 'flag',
       `${got} px drawn, ${want.toFixed(1)} px expected for ${input.height.metres} m (${dev >= 0 ? '+' : ''}${Math.round(dev * 100)} %)${fits ? '' : `; the ${size![1]} px frame is too short for it`}`);
+  }
+
+  // tiles (P6b): seams across the wrap and visible repetition when tiled (flags; `periodic` designs skip them)
+  if (kind && TILE_KINDS.has(kind)) {
+    const patch = periodicPatch(input.autotile ? frames[(input.autotile === 'blob47' ? 47 : 16) - 1] ?? frames[0] : frames[0]);
+    if (!patch) { add('seam', 'skip', 'not a full-bleed or staggered iso tile'); add('repetition', 'skip', 'not a full-bleed or staggered iso tile'); }
+    else if (input.periodic) { add('seam', 'skip', 'periodic design'); add('repetition', 'skip', 'periodic design'); }
+    else {
+      const tile = input.autotile ? frames[(input.autotile === 'blob47' ? 47 : 16) - 1] ?? frames[0] : frames[0], rim = borderContrast(tile);
+      const sm = seamMetric(patch), rm = repetitionMetric(patch), why = repetitionIssues(rm);
+      if (rim > th.borderMax) why.push(`the tile's border draws the grid (its rim ${rim} luma off the inside)`);
+      add('seam', sm.ratio <= th.seamMax ? 'pass' : 'flag', `wrap-edge step ${sm.ratio}× the interior's`);
+      add('repetition', why.length ? 'flag' : 'pass', why.length ? why.join('; ') : `lowStd ${rm.lowStd}, ${rm.markBlobs} marks (weight ${rm.marks})`);
+    }
   }
 
   // anchor similarity (flag only)

@@ -1,0 +1,1 @@
+{ "kind": "tileset", "size": [32, 32], "states": ["idle"], "anims": { "idle": { "frames": 3 } }, "review": { "scale": 5, "sym": "none" } }

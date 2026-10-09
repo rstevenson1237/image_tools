@@ -1,0 +1,1 @@
+{ "id": "grass-autotile", "kind": "tileset", "size": [32, 32], "states": ["idle"], "autotile": "blob47", "anims": { "idle": { "frames": 47 } }, "notes": "P6b benchmark: 47-tile blob autotile, grass lying on dirt", "direction": "../direction.json", "target": 6.5, "review": { "scale": 2, "sym": "none", "label": "P6b: grass autotile (blob47)" } }

@@ -6,7 +6,7 @@ import { isMap, isSeq, parseDocument, stringify, type Document, type YAMLMap, YA
 import { VIEWS, type Size, type View } from '../direction.ts';
 import type { Brief } from '../render.ts';
 
-export const BRIEF_KINDS = ['character', 'creature', 'prop', 'tile', 'tileset', 'texture', 'effect', 'viewmodel', 'ui-icon'] as const;
+export const BRIEF_KINDS = ['character', 'creature', 'prop', 'tile', 'tileset', 'texture', 'effect', 'viewmodel', 'ui-icon', 'layer'] as const;
 /** Importance tier (D19): hero assets may get more passes, filler fewer (`budget.tiers` in artgen.config.json). */
 export const IMPORTANCE = ['hero', 'standard', 'filler'] as const;
 export type Importance = (typeof IMPORTANCE)[number];
@@ -75,6 +75,7 @@ export function validateBrief(b: unknown, where = 'brief'): string[] {
     if (typeof b.object !== 'string' || !b.object.trim()) e.push(`${at}: object must be text`);
     else for (const m of effectObjectIssues({ kind: String(b.kind), object: b.object })) e.push(`${at}: ${m}`);
   }
+  if (b.autotile !== undefined && !['wang16', 'blob47'].includes(b.autotile as string)) e.push(`${at}: autotile must be wang16 or blob47`);
   if (b.anchor !== undefined && !(Array.isArray(b.anchor) && b.anchor.length === 2 && b.anchor.every(n => typeof n === 'number'))) e.push(`${at}: anchor must be [x, y]`);
   if (b.swaps !== undefined) {
     if (!isObj(b.swaps)) e.push(`${at}: swaps must map variant name → { ramp: ramp }`);
