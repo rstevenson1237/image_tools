@@ -57,6 +57,8 @@ const N4: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
 /** Kinds that repeat edge to edge: conformance wraps their borders. */
 export const TILE_KINDS = new Set(['tile', 'tileset', 'texture']);
+/** Kinds that repeat left to right only (P6a parallax layers): conformance wraps x; they are scenery, not lit figures. */
+export const LAYER_KINDS = new Set(['layer']);
 /** Kinds that emit light: the light-direction check doesn't apply. */
 export const EMISSIVE_KINDS = new Set(['effect']);
 
@@ -106,9 +108,11 @@ export function conformance(input: ConformanceInput): ConformanceReport {
   const shadowStr = `rgba(${shadowRGBA.slice(0, 3).join(',')},${dir.palette.shadow.alpha})`;
   const allowed = new Set(kindPalette(dir, kind)), outline = normHex(dir.palette.outline);
   // tiles repeat, so their frame border wraps around instead of being a silhouette edge
-  const wraps = !!kind && TILE_KINDS.has(kind);
+  const wraps = !!kind && TILE_KINDS.has(kind), wrapsX = wraps || (!!kind && LAYER_KINDS.has(kind));
   const opaque = (g: Grid, x: number, y: number) => {
-    if (wraps) { x = ((x % g.w) + g.w) % g.w; y = ((y % g.h) + g.h) % g.h; }
+    if (wrapsX) x = ((x % g.w) + g.w) % g.w;
+    if (wraps) y = ((y % g.h) + g.h) % g.h;
+    else if (wrapsX) y = Math.max(0, Math.min(g.h - 1, y)); // a layer's scenery runs on past its top and bottom
     if (!g.inb(x, y)) return false;
     const i = (y * g.w + x) * 4;
     return g.d[i + 3] > 0 && !isShadowPixel(g.d, i, shadowRGBA);
@@ -173,6 +177,7 @@ export function conformance(input: ConformanceInput): ConformanceReport {
   }
   if (kind && EMISSIVE_KINDS.has(kind)) add('light', 'skip', `${kind}: emissive, no light direction`);
   else if (wraps) add('light', 'skip', `${kind}: ground plane, no silhouette lighting`);
+  else if (wrapsX) add('light', 'skip', `${kind}: scenery layer, lit by its own depth`);
   else if (litN < 4 || shN < 4) add('light', 'skip', 'too few lit/shaded edge pixels');
   else {
     const dl = litSum / litN - shSum / shN;
@@ -200,7 +205,7 @@ export function conformance(input: ConformanceInput): ConformanceReport {
 
   // real-world height (flag only, rev 9): assets drawn to one world scale, not to fill their frames
   if (!input.height) add('height', 'skip', 'no real-world height in the brief');
-  else if (kind && TILE_KINDS.has(kind)) add('height', 'skip', `${kind}: ground plane`);
+  else if (kind && (TILE_KINDS.has(kind) || LAYER_KINDS.has(kind))) add('height', 'skip', `${kind}: ground plane or scenery`);
   else {
     const want = input.height.metres * input.height.pxPerMetre, got = bodyHeight(frames[0]), dev = (got - want) / want;
     const fits = !size || want <= size[1];

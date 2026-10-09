@@ -5,6 +5,7 @@
  */
 import type { Cell, RenderResult } from '../render.ts';
 import { Grid } from '../lib/grid.ts';
+import { fitNormalMap } from '../lib/normals.ts';
 import type { Direction, Size, View } from '../direction.ts';
 import type { BriefEntry } from './briefs.ts';
 
@@ -105,6 +106,8 @@ export interface PackAsset {
   version: string;
   sourceHash: string;
   tile?: number;
+  /** The asset has a real normal map (P6a): its frames in the `normals` atlases carry lighting normals. */
+  normals?: true;
   draft?: true;
 }
 
@@ -116,12 +119,19 @@ export interface PackManifest {
   /** Runtime version the pack is exported for (`artgen-runtime`'s RUNTIME_VERSION); a runtime with another major refuses it. */
   runtime: string | null;
   atlases: string[];
+  /**
+   * Normal-map atlases (P6a), same layout as `atlases` (`<pack>-0.n.png`): RGB = normal, OpenGL convention. Present when
+   * any asset in the pack has normals; assets without one get viewer-facing normals there.
+   */
+  normals?: string[];
   assets: Record<string, PackAsset>;
   /** Assets exported before approval (`--include-drafts`, D10): show them watermarked in game builds. */
   drafts?: string[];
 }
 
 const TILE_KINDS = new Set(['tile', 'tileset', 'texture']);
+/** Parallax layers (P6a): wrap left to right; `tile` gives the runtime their repeat width. */
+const LAYER_KINDS = new Set(['layer']);
 const LOOPING = /^(idle|walk|run|fly|swim|loop|burn|glow|flicker)/;
 
 /** Default export anchor: the frame centre for top-down and tiles, bottom centre (feet) otherwise. */
@@ -162,17 +172,19 @@ export function swapMaps(dir: Direction, swaps: Record<string, Record<string, st
   return out;
 }
 
-export interface BuiltPack { manifest: PackManifest; atlases: Grid[]; aseprite: unknown[] }
+export interface BuiltPack { manifest: PackManifest; atlases: Grid[]; aseprite: unknown[]; /** Normal-map atlases, when the manifest lists `normals`. */ normals?: Grid[] }
 
 /** Pack assets into atlases + manifest. Identical frames (same pixels) are stored once. */
 export function buildPack(pack: string, dir: Direction, inputs: PackInput[], opts: { generator?: string; runtime?: string; maxSize?: number; padding?: number } = {}): BuiltPack {
-  const uniq: Grid[] = [], byHash = new Map<string, number>();
+  const uniq: Grid[] = [], uniqN: (Grid | undefined)[] = [], byHash = new Map<string, number>();
   const refs: { asset: string; cell: Cell; variant: number; img: number; fi: number; si: string }[] = [];
+  const withNormals = inputs.some(i => i.renders.some(r => r.cells.some(c => c.normal)));
   for (const inp of inputs) inp.renders.forEach((r, variant) => {
     for (const cell of r.cells) {
-      const h = cell.grid.hash();
+      // frames with the same pixels but different normals (a mirrored facing) are different frames
+      const h = cell.grid.hash() + (withNormals && cell.normal ? cell.normal.hash() : '');
       let img = byHash.get(h);
-      if (img === undefined) { img = uniq.length; uniq.push(cell.grid); byHash.set(h, img); }
+      if (img === undefined) { img = uniq.length; uniq.push(cell.grid); uniqN.push(cell.normal); byHash.set(h, img); }
       refs.push({ asset: inp.brief.id, cell, variant, img, fi: r.facings.indexOf(cell.facing), si: cell.state });
     }
   });
@@ -180,6 +192,11 @@ export function buildPack(pack: string, dir: Direction, inputs: PackInput[], opt
   const atlases = bins.map(([w, h]) => new Grid(w, h));
   placed.forEach(p => atlases[p.bin].blit(uniq[p.id], p.x, p.y));
   const names = atlases.map((_, i) => `${pack}-${i}.png`);
+  let normals: Grid[] | undefined;
+  if (withNormals) {
+    normals = bins.map(([w, h]) => new Grid(w, h));
+    placed.forEach(p => normals![p.bin].blit(fitNormalMap(uniq[p.id], uniqN[p.id]), p.x, p.y));
+  }
   const assets: Record<string, PackAsset> = {};
   for (const inp of inputs) {
     const b = inp.brief, r = inp.renders[0], mine = refs.filter(x => x.asset === b.id);
@@ -196,16 +213,18 @@ export function buildPack(pack: string, dir: Direction, inputs: PackInput[], opt
       ...(anchors && { anchors }),
       variants: ['base', ...inp.renders.slice(1).map((_, i) => `v${i + 1}`), ...Object.keys(swaps ?? {})],
       ...(swaps && { swaps }), version: inp.version, sourceHash: inp.sourceHash,
-      ...(TILE_KINDS.has(b.kind) && { tile: r.size[0] }), ...(inp.draft && { draft: true as const }),
+      ...((TILE_KINDS.has(b.kind) || LAYER_KINDS.has(b.kind)) && { tile: r.size[0] }), ...(inp.renders.some(x => x.cells.some(c => c.normal)) && { normals: true as const }),
+      ...(inp.draft && { draft: true as const }),
     };
   }
   const drafts = inputs.filter(i => i.draft).map(i => i.brief.id);
   const manifest: PackManifest = {
-    format: 1, pack, generator: opts.generator ?? 'artgen', direction: { id: dir.id, version: dir.version }, runtime: opts.runtime ?? null, atlases: names, assets,
+    format: 1, pack, generator: opts.generator ?? 'artgen', direction: { id: dir.id, version: dir.version }, runtime: opts.runtime ?? null, atlases: names,
+    ...(normals && { normals: names.map(n => n.replace(/\.png$/, '.n.png')) }), assets,
     ...(drafts.length && { drafts }),
   };
   const aseprite = atlases.map((g, bin) => asepriteJson(manifest, bin, g, names[bin]));
-  return { manifest, atlases, aseprite };
+  return { manifest, atlases, aseprite, ...(normals && { normals }) };
 }
 
 /** Aseprite-compatible sprite sheet JSON (array form) for one atlas: frames named `asset/state/facing/frame[#variant]`, tags per strip. */

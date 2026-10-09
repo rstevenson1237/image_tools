@@ -1,0 +1,12 @@
+{
+  "id": "car",
+  "kind": "prop",
+  "view": "stack",
+  "size": [24, 24],
+  "states": ["stack"],
+  "anims": { "stack": { "frames": 9, "loop": false } },
+  "notes": "P6a benchmark: sprite-stacked car — 9 top-down slices the runtime draws rotated and stepped up (StackSprite)",
+  "direction": "../direction.json",
+  "target": 6.5,
+  "review": { "scale": 4, "sym": "none", "label": "P6a: stacked car (slices + 8 angles)" }
+}

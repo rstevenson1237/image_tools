@@ -1,0 +1,20 @@
+{
+  "id": "house",
+  "kind": "prop",
+  "view": "oblique",
+  "size": [
+    48,
+    48
+  ],
+  "states": [
+    "idle"
+  ],
+  "notes": "P6a benchmark: oblique (2.5D) cottage \u2014 stone footing, timber walls, gabled shingle roof, door, lit window, chimney",
+  "direction": "../direction.json",
+  "target": 6.5,
+  "review": {
+    "scale": 4,
+    "sym": "none",
+    "label": "P6a: oblique house (voxel raster)"
+  }
+}

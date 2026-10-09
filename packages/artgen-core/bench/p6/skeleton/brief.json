@@ -1,0 +1,14 @@
+{
+  "id": "skeleton",
+  "kind": "character",
+  "view": "iso",
+  "size": [32, 48],
+  "states": ["idle", "walk"],
+  "directions": 8,
+  "anims": { "walk": { "frames": 4 } },
+  "height": 1.8,
+  "notes": "P6a benchmark: 8-direction iso skeleton warrior from one voxel model (raster renderer, toon skull)",
+  "direction": "../direction.json",
+  "target": 6.5,
+  "review": { "scale": 4, "iso": true, "sym": "none", "label": "P6a: 8-dir iso skeleton (voxel raster)" }
+}

@@ -1,0 +1,12 @@
+{
+  "id": "isospider-toon",
+  "kind": "creature",
+  "view": "iso",
+  "size": "creature",
+  "states": ["idle"],
+  "directions": 4,
+  "notes": "P6a benchmark: artlab's T4 iso cave spider (best 4.5: 'a speckled blob') as a toon voxel model — purple, red hourglass, eight jointed legs",
+  "direction": "../../directions/benchmark.json",
+  "target": 6,
+  "review": { "scale": 6, "bg": "#2a2630", "iso": true, "sym": "none", "label": "P6a: iso spider, voxel toon (artlab T4 best 4.5)" }
+}

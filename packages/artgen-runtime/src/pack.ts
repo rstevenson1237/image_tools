@@ -4,6 +4,7 @@
  */
 import { resolveAutotile, cellHash } from './autotile.js';
 import { angleOf, chooseFacing } from './facing.js';
+import { StackSprite, type StackOptions } from './stack.js';
 import type { AnchorOf, AssetRef, AtlasImage, FrameRect, PackAsset, PackManifest, PackStateDef, RuntimeAdapter, StateOf, VariantOf } from './types.js';
 
 export const RUNTIME_VERSION = '1.1.0';
@@ -15,6 +16,8 @@ export interface LoadOptions {
   decode?: (url: string) => Promise<DecodedImage>;
   /** Manifest loader (default: fetch). */
   fetchJson?: (url: string) => Promise<unknown>;
+  /** Also load the normal-map atlases the pack lists (`pack.normals`), for lit sprites (P6a). */
+  normals?: boolean;
 }
 
 const idOf = (r: AssetRef): string => (typeof r === 'string' ? r : r.id);
@@ -33,15 +36,21 @@ export async function loadPack<Tex, Node, Parent>(url: string, adapter: RuntimeA
   const manifest = checkManifest(await (opts.fetchJson ?? fetchJson)(url));
   const base = url.slice(0, url.lastIndexOf('/') + 1), decode = opts.decode ?? decodeImage;
   const images = await Promise.all(manifest.atlases.map(name => decode(base + name)));
-  return createPack(manifest, images, adapter);
+  const normals = opts.normals && manifest.normals ? await Promise.all(manifest.normals.map(name => decode(base + name))) : undefined;
+  return createPack(manifest, images, adapter, normals);
 }
 
 /** Build a pack from an already-parsed manifest and decoded atlases (tests, tools, custom loaders). */
-export async function createPack<Tex, Node, Parent>(manifest: PackManifest, images: DecodedImage[], adapter: RuntimeAdapter<Tex, Node, Parent>): Promise<Pack<Tex, Node, Parent>> {
+export async function createPack<Tex, Node, Parent>(manifest: PackManifest, images: DecodedImage[], adapter: RuntimeAdapter<Tex, Node, Parent>, normals?: DecodedImage[]): Promise<Pack<Tex, Node, Parent>> {
   checkManifest(manifest);
-  const atlases: AtlasImage[] = images.map((img, index) => ({ name: manifest.atlases[index], index, width: img.width, height: img.height, data: new Uint8ClampedArray(img.data.buffer, img.data.byteOffset, img.data.byteLength) }));
+  const wrap = (img: DecodedImage, index: number, name: string): AtlasImage => ({ name, index, width: img.width, height: img.height, data: new Uint8ClampedArray(img.data.buffer, img.data.byteOffset, img.data.byteLength) });
+  const atlases = images.map((img, i) => wrap(img, i, manifest.atlases[i]));
   const textures = await Promise.all(atlases.map(a => adapter.loadTexture(a)));
   const pack = new Pack(manifest, adapter, atlases, textures);
+  if (normals) {
+    pack.normalAtlases = normals.map((img, i) => wrap(img, i, manifest.normals?.[i] ?? `normal-${i}`));
+    pack.normalTextures = await Promise.all(pack.normalAtlases.map(a => adapter.loadTexture(a)));
+  }
   // palette swaps: recoloured copies of the atlases the asset uses, uploaded once
   for (const [id, a] of Object.entries(manifest.assets)) for (const [swap, map] of Object.entries(a.swaps ?? {})) {
     const bins = new Set(a.frames.map(f => f[0])), set: (Tex | undefined)[] = [], imgs: (AtlasImage | undefined)[] = [];
@@ -70,14 +79,19 @@ export interface FrameSelect { state?: string; facing?: number; frame?: number; 
 export class Pack<Tex = unknown, Node = unknown, Parent = unknown> {
   /** `asset#swap` → recoloured textures per atlas. */
   readonly swapSets = new Map<string, TexSet<Tex>>();
+  /** Normal-map atlases and textures (same layout as the colour atlases), when loaded with `normals: true`. */
+  normalAtlases?: AtlasImage[];
+  normalTextures?: Tex[];
   private readonly index = new Map<string, Map<string, number>>();
 
-  constructor(
-    readonly manifest: PackManifest,
-    readonly adapter: RuntimeAdapter<Tex, Node, Parent>,
-    readonly atlases: AtlasImage[],
-    readonly textures: Tex[],
-  ) {}
+  readonly manifest: PackManifest;
+  readonly adapter: RuntimeAdapter<Tex, Node, Parent>;
+  readonly atlases: AtlasImage[];
+  readonly textures: Tex[];
+
+  constructor(manifest: PackManifest, adapter: RuntimeAdapter<Tex, Node, Parent>, atlases: AtlasImage[], textures: Tex[]) {
+    this.manifest = manifest; this.adapter = adapter; this.atlases = atlases; this.textures = textures;
+  }
 
   get ids(): string[] { return Object.keys(this.manifest.assets); }
 
@@ -115,6 +129,13 @@ export class Pack<Tex = unknown, Node = unknown, Parent = unknown> {
     return { tex: swap?.tex[bin] ?? this.textures[bin], atlas: swap?.img[bin] ?? this.atlases[bin], x, y, w, h };
   }
 
+  /** The normal-map rect of a selection (same atlas position as its colour frame), when normals are loaded. */
+  normalFrame(ref: AssetRef, sel: FrameSelect = {}): FrameRect<Tex> | undefined {
+    if (!this.normalTextures || !this.normalAtlases) return undefined;
+    const [bin, x, y, w, h] = this.asset(ref).frames[this.frameIndex(ref, sel)];
+    return { tex: this.normalTextures[bin], atlas: this.normalAtlases[bin], x, y, w, h };
+  }
+
   /** A named anchor (`hand`, `head`…) of the selected frame in frame pixels, or undefined when that frame lacks it. */
   anchor(ref: AssetRef, name: string, sel: FrameSelect = {}): [number, number] | undefined {
     const a = this.asset(ref), list = a.anchors?.[name];
@@ -143,6 +164,9 @@ export class Pack<Tex = unknown, Node = unknown, Parent = unknown> {
     return s;
   }
 
+  /** A sprite stack (P6a): every slice of the asset's first state, rotated together. */
+  stack<A extends AssetRef>(ref: A, opts: StackOptions<Parent> = {}): StackSprite<Tex, Node, Parent> { return new StackSprite(this, ref, opts); }
+
   tiles<A extends AssetRef>(ref: A): TileSet<Tex, Node, Parent> { return new TileSet(this, idOf(ref)); }
 
   effect<A extends AssetRef>(ref: A, opts: EffectOptions<VariantOf<A>, Parent> = {}): EffectPlayer<Tex, Node, Parent> { return new EffectPlayer(this, idOf(ref), opts); }
@@ -151,6 +175,7 @@ export class Pack<Tex = unknown, Node = unknown, Parent = unknown> {
     const free = this.adapter.disposeTexture?.bind(this.adapter);
     if (!free) return;
     this.textures.forEach(free);
+    this.normalTextures?.forEach(free);
     for (const s of this.swapSets.values()) s.tex.forEach(t => t !== undefined && free(t));
   }
 }
@@ -195,7 +220,12 @@ export class ArtSprite<Tex = unknown, Node = unknown, S extends string = string,
   private time = 0;
   private shown = '';
 
-  constructor(readonly pack: Pack<Tex, Node, any>, readonly id: string, readonly variant: string | number = 0, state?: S) {
+  readonly pack: Pack<Tex, Node, any>;
+  readonly id: string;
+  readonly variant: string | number;
+
+  constructor(pack: Pack<Tex, Node, any>, id: string, variant: string | number = 0, state?: S) {
+    this.pack = pack; this.id = id; this.variant = variant;
     this.asset = pack.asset(id);
     this.state = (state ?? Object.keys(this.asset.states)[0]) as S;
     if (!this.asset.states[this.state]) throw new Error(`${id}: no state "${this.state}" (has: ${Object.keys(this.asset.states).join(', ')})`);
@@ -273,7 +303,9 @@ export class ArtSprite<Tex = unknown, Node = unknown, S extends string = string,
 /** A tile asset: autotile resolver over its frames (state 0, facing 0, frame = tile index) and variant picking. */
 export class TileSet<Tex = unknown, Node = unknown, Parent = unknown> {
   readonly asset: PackAsset;
-  constructor(readonly pack: Pack<Tex, Node, Parent>, readonly id: string) { this.asset = pack.asset(id); }
+  readonly pack: Pack<Tex, Node, Parent>;
+  readonly id: string;
+  constructor(pack: Pack<Tex, Node, Parent>, id: string) { this.pack = pack; this.id = id; this.asset = pack.asset(id); }
 
   get size(): [number, number] { return this.asset.size; }
   /** Param variants available for variety (palette swaps excluded). */
@@ -308,7 +340,10 @@ export interface EffectOptions<V extends string = string, Parent = unknown> {
 /** Effect player: spawns effect sprites, advances them and disposes the non-looping ones when they finish. */
 export class EffectPlayer<Tex = unknown, Node = unknown, Parent = unknown> {
   readonly active: ArtSprite<Tex, Node>[] = [];
-  constructor(readonly pack: Pack<Tex, Node, Parent>, readonly id: string, readonly opts: EffectOptions<string, Parent> = {}) { pack.asset(id); }
+  readonly pack: Pack<Tex, Node, Parent>;
+  readonly id: string;
+  readonly opts: EffectOptions<string, Parent>;
+  constructor(pack: Pack<Tex, Node, Parent>, id: string, opts: EffectOptions<string, Parent> = {}) { this.pack = pack; this.id = id; this.opts = opts; pack.asset(id); }
 
   spawn(x: number, y: number, z?: number): ArtSprite<Tex, Node> {
     const s = this.pack.sprite(this.id, { variant: this.opts.variant, parent: this.opts.parent }).at(x, y, z);

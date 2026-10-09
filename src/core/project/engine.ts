@@ -14,7 +14,7 @@ import {
   analytics, applyFinish, assetStatus, blindScores, briefDir, briefOrder, budgetFor, conformance, describeDirection,
   effectObjectIssues, encodePNG, finishBaseOf, finishStale, formatLedgerLine, Grid, isPlaceholderDirection, iso, lockDirection,
   mergeConfig, parseBriefs, parseDirection, parseLedger, parseVersion, passId, planPasses, PROBE_KINDS, pxPerMetre,
-  renderAsset, FACINGS, resolveSize, sourceHash, styleSheet, styleTile, TILE_KINDS, validateDirection, decodePNG,
+  renderAsset, FACINGS, resolveSize, sourceHash, styleSheet, styleTile, TILE_KINDS, validateDirection, decodePNG, viewContext, stackStrip, parallaxStrip,
   type AnalyticsReport, type AssetBudget, type AssetMeta, type AssetModule, type AssetStatus, type BriefEntry,
   type ConformanceReport, type Direction, type FeedbackOpen, type FinishModule, type LedgerEntry, type NextStep,
   type PassRow, type PatchRecord, type ProbeImages, type ProjectConfig, type RenderResult, type StyleTileColumn,
@@ -356,10 +356,28 @@ export class ArtProject {
     return { report: analytics(this.ledger().filter(e => ids.has(e.asset) || e.asset === 'gallery'), metas), metas };
   }
 
-  /** In-context background for an asset's review: 3×3 tiling is done by the viewer; iso assets get the floor. */
+  /** In-context background for an asset's review: 3×3 tiling is done by the viewer; iso assets get the floor, oblique
+   * ones a room, side ones a scroll strip (the view module's context, P6a). */
   context(a: AssetCtx, w: number, h: number): Img | undefined {
-    const isoView = (a.brief.view ?? a.dir.camera.view) === 'iso' && !TILE_KINDS.has(a.brief.kind);
-    return a.brief.review?.iso || isoView ? img(iso.isoFloor(w, h)) : undefined;
+    const view = a.brief.view ?? a.dir.camera.view, isoView = view === 'iso' && !TILE_KINDS.has(a.brief.kind);
+    if (a.brief.review?.iso || isoView) return img(iso.isoFloor(w, h));
+    if (a.brief.kind === 'layer') return undefined;
+    const c = view === 'oblique' || view === 'side' ? viewContext(view, w, h, a.dir) : undefined;
+    return c && img(c);
+  }
+
+  /**
+   * How the game shows the asset when that isn't one frame (P6a): a sprite stack turned through 8 angles, parallax
+   * layers scrolled to three camera positions. Undefined for ordinary sprites.
+   */
+  preview(a: AssetCtx, r: RenderResult): Img | undefined {
+    const view = a.brief.view ?? a.dir.camera.view;
+    if (view === 'stack') return img(stackStrip(r.cells.filter(c => c.state === r.states[0] && c.facing === r.facings[0]).map(c => c.grid), 8, 1));
+    if (a.brief.kind === 'layer' && r.states.length > 1) {
+      const cells = r.states.map(s => r.cells.find(c => c.state === s)!);
+      return img(parallaxStrip(cells.map((c, i) => ({ grid: c.grid, depth: (i + 1) / cells.length })), r.size[0], [0, Math.round(r.size[0] / 3), Math.round((2 * r.size[0]) / 3)]));
+    }
+    return undefined;
   }
 
   // ---- art direction (W1 in the UI) ----------------------------------------------------------------------------------

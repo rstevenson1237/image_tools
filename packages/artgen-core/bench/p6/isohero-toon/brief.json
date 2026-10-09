@@ -1,0 +1,12 @@
+{
+  "id": "isohero-toon",
+  "kind": "character",
+  "view": "iso",
+  "size": "tall",
+  "states": ["idle"],
+  "directions": 4,
+  "notes": "P6a benchmark: artlab's T4 iso rogue (best 5) as a toon voxel model — green hood and cloak, leather tunic, dagger; facings from the one model",
+  "direction": "../../directions/benchmark.json",
+  "target": 6,
+  "review": { "scale": 5, "bg": "#2a2630", "iso": true, "sym": "none", "label": "P6a: iso rogue, voxel toon (artlab T4 best 5)" }
+}

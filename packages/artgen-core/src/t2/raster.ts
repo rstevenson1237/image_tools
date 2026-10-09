@@ -5,6 +5,7 @@
  */
 import { normHex } from '../lib/color.ts';
 import { Grid } from '../lib/grid.ts';
+import { putNormal } from '../lib/normals.ts';
 
 /** Indices of `bands` evenly spaced steps in a ramp of length `len` (all when the ramp is no longer). */
 export function bandIndices(len: number, bands: number): number[] {
@@ -41,6 +42,8 @@ export class Raster {
   readonly flag: Uint8Array;
   readonly items: RasterItem[];
   readonly ink: string;
+  /** Screen-space normal per pixel (x right, y down, z toward the viewer), when the scene computed them. */
+  normal?: Float32Array;
 
   constructor(w: number, h: number, items: RasterItem[], ink: string) {
     this.w = w; this.h = h; this.items = items; this.ink = ink;
@@ -85,6 +88,18 @@ export class Raster {
     if (this.flag[i] & INK) return this.ink;
     const it = this.items[id];
     return it.fixed ?? it.ramp![this.band[i]];
+  }
+
+  /** Normal map of the filled pixels (ink pixels face the viewer), or undefined without normals. */
+  normalMap(): Grid | undefined {
+    if (!this.normal) return undefined;
+    const g = new Grid(this.w, this.h);
+    for (let i = 0; i < this.id.length; i++) {
+      if (this.id[i] < 0) continue;
+      const ink = !!(this.flag[i] & INK);
+      putNormal(g, i % this.w, (i / this.w) | 0, ink ? [0, 0, 1] : [this.normal[i * 3], this.normal[i * 3 + 1], this.normal[i * 3 + 2]]);
+    }
+    return g;
   }
 
   toGrid(): Grid {

@@ -1,11 +1,11 @@
 /**
  * three.js adapter (SPEC §12.2, D3): pixel textures with `NearestFilter`, sprites as camera-facing billboards
  * (`THREE.Sprite`) sized in world units by `pixelsPerUnit`, frames chosen by UV offset / repeat (mirrored facings by a
- * negative repeat), and the 8-direction facing picked from the camera-relative angle (`billboardAngle`). Sprite-stack
- * planes and `.glb` voxel models arrive with P6a.
+ * negative repeat), and the 8-direction facing picked from the camera-relative angle (`billboardAngle`). P6a: slice
+ * rotation (sprite stacks), additive blending, `.glb` voxel models (`voxelModel`).
  */
 import {
-  DataTexture, NearestFilter, RepeatWrapping, RGBAFormat, SRGBColorSpace, Sprite, SpriteMaterial, Vector3,
+  AdditiveBlending, NormalBlending, DataTexture, NearestFilter, RepeatWrapping, RGBAFormat, SRGBColorSpace, Sprite, SpriteMaterial, Vector3,
   type Object3D,
 } from 'three';
 import type { AssetRef, AtlasImage, RuntimeAdapter } from '../types.js';
@@ -85,8 +85,23 @@ export function threeAdapter(opts: ThreeAdapterOptions = {}): RuntimeAdapter<Dat
     },
     setAnchor(s, a, size) { Object.assign(data(s), { anchor: [a[0], a[1]], size: [size[0], size[1]] }); placeCenter(s); },
     setPosition(s, x, y, z) { s.position.set(x, y, z ?? s.position.z); },
+    setRotation(s, rad) { s.material.rotation = -rad; },
+    setBlend(s, mode) { s.material.blending = mode === 'add' ? AdditiveBlending : NormalBlending; s.material.needsUpdate = true; },
     attach: (parent, s) => { parent.add(s); },
     dispose(s) { s.removeFromParent(); s.material.map?.dispose(); s.material.dispose(); },
     disposeTexture: t => t.dispose(),
   };
+}
+
+/**
+ * A voxel model exported by `artgen voxel` (`<id>.glb`, greedy-meshed, one material per ramp) loaded through three's
+ * `GLTFLoader` — passed in, since it lives in `three/examples` — with flat shading so the voxel faces stay crisp.
+ */
+export async function voxelModel(loader: { loadAsync(url: string): Promise<{ scene: Object3D }> }, url: string): Promise<Object3D> {
+  const { scene } = await loader.loadAsync(url);
+  scene.traverse(o => {
+    const mat = (o as Object3D & { material?: { flatShading?: boolean; needsUpdate?: boolean } }).material;
+    if (mat) { mat.flatShading = true; mat.needsUpdate = true; }
+  });
+  return scene;
 }

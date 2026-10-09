@@ -5,6 +5,7 @@
 import { dirContext, kindPalette, resolveSize, type DirContext, type Direction, type Size, type View } from './direction.ts';
 import * as blitLib from './lib/blit.ts';
 import { Grid } from './lib/grid.ts';
+import { fitNormalMap, flipNormalMap } from './lib/normals.ts';
 import * as iso from './lib/iso.ts';
 import * as palette from './lib/palette.ts';
 import * as post from './lib/post.ts';
@@ -117,8 +118,9 @@ export function makeLib(dir: DirContext, kind?: string, stage?: (name: string, g
         return s;
       },
       scene3d: (opts: Scene3DOptions = {}) => {
-        const s = new Scene3D(dir, opts), render = s.render.bind(s);
+        const s = new Scene3D(dir, opts), render = s.render.bind(s), slices = s.slices.bind(s);
         s.render = (w, h, o, l = line) => render(w, h, o, l);
+        s.slices = (w, h, o = {}) => slices(w, h, { line, ...o });
         onScene?.(s);
         return s;
       },
@@ -148,6 +150,8 @@ export interface Cell {
   /** Rendered as the flipped east-side facing. */
   mirrored: boolean;
   anchors?: Anchors;
+  /** Normal map (P6a): from the renderer's normals (2D shading, voxel raster), fitted to the cell's pixels. */
+  normal?: Grid;
 }
 
 export interface RenderOptions {
@@ -159,6 +163,8 @@ export interface RenderOptions {
   params?: Record<string, unknown>;
   /** Collect stage dumps per cell, keyed `state/facing/frame/<n>-<stage>`. */
   stages?: Map<string, Grid>;
+  /** Called with every T2+ scene a cell's render built (2D and 3D), keyed `state/facing/frame` — voxel exports use it. */
+  onScene?: (cell: string, scene: unknown) => void;
 }
 
 export interface RenderResult {
@@ -173,7 +179,7 @@ export interface RenderResult {
 }
 
 /** Render one asset over every state × facing × frame of its brief. West-side facings mirror east ones (2D). */
-export function renderAsset(mod: AssetModule, { dir, brief, seed = 1, variant = 0, params = {}, stages }: RenderOptions): RenderResult {
+export function renderAsset(mod: AssetModule, { dir, brief, seed = 1, variant = 0, params = {}, stages, onScene }: RenderOptions): RenderResult {
   const dc = dirContext(dir), size = resolveSize(dir, brief.size, brief.kind);
   const states = brief.states?.length ? brief.states : ['idle'];
   const facings = FACINGS[brief.directions ?? 1];
@@ -195,9 +201,9 @@ export function renderAsset(mod: AssetModule, { dir, brief, seed = 1, variant = 
       stage: stage ?? (() => {}),
     };
     const grid = mod.render(ctx);
-    for (const sc of scenes) for (const m of sc.lint()) lint.add(m);
+    for (const sc of scenes) { for (const m of sc.lint()) lint.add(m); onScene?.(key, sc); }
     if (grid.w !== size[0] || grid.h !== size[1]) throw new Error(`${brief.id} ${key}: rendered ${grid.w}x${grid.h}, brief size is ${size.join('x')}`);
-    return { state, facing, frame, grid, mirrored: false, anchors: mod.anchors?.(ctx) };
+    return { state, facing, frame, grid, mirrored: false, anchors: mod.anchors?.(ctx), ...(grid.normal && { normal: fitNormalMap(grid, grid.normal) }) };
   };
 
   for (const state of states) for (const facing of facings) for (let frame = 0; frame < frames[state]; frame++) {
@@ -207,7 +213,7 @@ export function renderAsset(mod: AssetModule, { dir, brief, seed = 1, variant = 
       let e = cache.get(key);
       if (!e) { e = renderCell(state, src, frame); cache.set(key, e); }
       const anchors = e.anchors && Object.fromEntries(Object.entries(e.anchors).map(([k, [x, y]]) => [k, [size[0] - 1 - x, y] as [number, number]]));
-      cells.push({ state, facing, frame, grid: e.grid.flip('x'), mirrored: true, anchors });
+      cells.push({ state, facing, frame, grid: e.grid.flip('x'), mirrored: true, anchors, ...(e.normal && { normal: flipNormalMap(e.normal) }) });
     } else {
       const key = `${state}/${facing}/${frame}`;
       let c = cache.get(key);

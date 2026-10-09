@@ -18,6 +18,8 @@ export function synthPack(): { manifest: PackManifest; images: DecodedImage[] } 
     gob: { kind: 'character', view: 'iso', size: [W, H], anchor: [4, 7], facings: ['s'], states: { idle: { frames: 1, fps: 8, loop: true } }, variants: ['base', 'v1', 'red'], swaps: { red: { '#004080': '#ff0000' } }, frameCount: () => 1 },
     // one attack with a held contact frame (durations) and a hand that moves per frame (anchors); east-side facings
     swing: { kind: 'character', view: 'topdown', size: [W, H], anchor: [3, 7], facings: ['s', 'e'], states: { attack: { frames: 4, fps: 10, loop: false, durations: [50, 50, 200, 50] } }, variants: ['base'], frameCount: () => 4 },
+    // a sprite stack: 3 slices in its first state (P6a)
+    car: { kind: 'prop', view: 'stack', size: [W, H], anchor: [4, 4], facings: ['s'], states: { stack: { frames: 3, fps: 8, loop: false } }, variants: ['base'], frameCount: () => 3 },
     wall: { kind: 'tileset', view: 'topdown', size: [W, H], anchor: [4, 4], facings: ['s'], states: { idle: { frames: 16, fps: 8, loop: true } }, variants: ['base'], autotile: 'wang16', tile: W, frameCount: () => 16 },
   };
   const frames: { asset: string; f: PackFrame }[] = [];

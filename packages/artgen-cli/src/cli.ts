@@ -42,6 +42,9 @@
  *   artgen import-edit <id> <edited.png> [--cell state/facing/frame]   hand edit → next finish.vM.js
  *   artgen analytics [--out file.md]                per-pass gains, cost per asset, budget suggestions
  *
+ * Breadth (PLAN P6):
+ *   artgen voxel <asset> [--version v] [--cell s/f/n] [--out dir] [--scale m]   3D-mode model → .vox + greedy-meshed .glb
+ *
  * Benchmark (this repo): artgen bench [--direction benchmark|alt|<file>] [--out <dir>] [--stages] [--update-golden]
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -51,6 +54,7 @@ import { openAsset, passState, type AssetDir, renderVersion, reviewVersion, scor
 import { resolveDirection, updateGolden, writeBench } from './bench.ts';
 import { readGrid, writeGrid } from './node.ts';
 import { findProject, initProject, readJson, requireProject, writeJson } from './project.ts';
+import { voxelExport } from './p6.ts';
 import { report } from './report.ts';
 import { newAsset, newFinish } from './templates.ts';
 import { addBrief, approve, exportPacks, feedback, gallery, importEdit, make, projectAnalytics, projectStatus, readBriefs, removeBriefFile, resolveAssetArg, restyle, rosterRecord, rosterRun } from './w2.ts';
@@ -104,6 +108,7 @@ const USAGE = `usage: artgen init
        artgen feedback <id> --route base|finish --note "..." [--region x,y,w,h] [--cell s/f/n] | approve <id> [--note "..."]
        artgen export [--pack name] [--include-drafts] [--runtime [--force]] [--break-contract id,…|*] | restyle [--from N] | import-edit <id> <png> [--cell s/f/n]
        artgen analytics [--out file.md]
+       artgen voxel <asset> [--version v] [--cell s/f/n] [--out dir] [--scale m]
        artgen bench [--direction benchmark|alt|<file>] [--out <dir>] [--stages] [--ledger <file>] [--update-golden]
        artgen --version`;
 
@@ -281,6 +286,12 @@ export async function main(argv: string[]): Promise<number> {
     const r = await report(sub, { out: flag(args, '--out'), title: flag(args, '--title') });
     if (!flag(args, '--out')) console.log(r.markdown);
     return r.summaries.every(s => s.met) ? 0 : 1;
+  }
+  // ---- P6 breadth ----
+  if (cmd === 'voxel' && sub) {
+    const r = await voxelExport(asset(sub), { version: flag(args, '--version'), cell: flag(args, '--cell'), out: flag(args, '--out'), scale: flag(args, '--scale') ? +flag(args, '--scale')! : undefined });
+    print(`${r.cell}: ${r.voxels} voxels, ${r.materials} materials, ${r.size.join('x')}\n  ${r.vox}\n  ${r.glb}`, r);
+    return 0;
   }
   // ---- W2 production (PLAN P3) ----
   const pos2 = (from: string[]) => from.filter((a, i) => !a.startsWith('--') && !(i > 0 && from[i - 1].startsWith('--') && from[i - 1] !== '--json' && from[i - 1] !== '--include-drafts' && from[i - 1] !== '--force'));

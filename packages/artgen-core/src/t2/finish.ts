@@ -17,6 +17,7 @@
 import { dirContext, type DirContext, type Direction } from '../direction.ts';
 import { normHex } from '../lib/color.ts';
 import { Grid } from '../lib/grid.ts';
+import { fitNormalMap } from '../lib/normals.ts';
 import * as post from '../lib/post.ts';
 import type { Anchors, Cell, RenderResult } from '../render.ts';
 
@@ -383,10 +384,12 @@ export function applyFinish(r: RenderResult, mod: FinishModule, dir: Direction):
       own.add(p.anchor);
     }
   }
+  // normal maps follow the finished pixels: new pixels (glints, patches) face the viewer, cleared ones drop out
   const cells = r.cells.map(c => {
-    if (!c.mirrored) return { ...c, grid: done.get(keyOf(c))! };
+    if (!c.mirrored) { const g = done.get(keyOf(c))!; return { ...c, grid: g, ...(c.normal && { normal: fitNormalMap(g, c.normal) }) }; }
     const src = done.get(`${c.state}/${c.facing.replace(/[we]/g, ch => (ch === 'w' ? 'e' : 'w'))}/${c.frame}`);
-    return { ...c, grid: src ? src.flip('x') : c.grid };
+    const g = src ? src.flip('x') : c.grid;
+    return { ...c, grid: g, ...(c.normal && { normal: fitNormalMap(g, c.normal) }) };
   });
   return { render: { ...r, cells }, patches };
 }
