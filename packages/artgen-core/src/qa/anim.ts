@@ -143,7 +143,9 @@ export interface AnimThresholds {
   /** Attack states: min logical frames, and the contact frame must be held ≥ this × the median duration. */
   attackFrames: number;
   holdRatio: number;
-  /** Effects: a frame is a solid blob when interior > `fillInterior` and brightest > `fillBright`; flag when more than `fillFrames` of the frames are. */
+  /** Effects: a frame is a solid blob when interior > `fillInterior` and brightest > `fillBright`; flag when more than
+   * `fillFrames` of the frames are (calibrated on P6c: the fixtures' torch flame and lamp flicker are solid in every frame,
+   * an explosion's flash frames legitimately are). */
   fillInterior: number;
   fillBright: number;
   fillFrames: number;
@@ -151,7 +153,7 @@ export interface AnimThresholds {
 
 export const ANIM_THRESHOLDS: AnimThresholds = {
   feetMax: 2, centreMax: 0.2, driftMax: 0.45, seamMax: 2.5, seamMinDiff: 0.2, attackFrames: 4, holdRatio: 1.5,
-  fillInterior: 0.62, fillBright: 0.3, fillFrames: 0.34,
+  fillInterior: 0.62, fillBright: 0.3, fillFrames: 0.5,
 };
 
 /** Frame QA, attack QA and (effects) solid-fill checks for conformance. */

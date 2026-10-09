@@ -1,6 +1,6 @@
 # artgen — Specification
 
-Status: **rev 9** (independent review: blind re-score of finals, reviewer on every score, real-world heights, silhouette panel, roster review — [findings/calibration.md](findings/calibration.md)); rev 8: per-frame anchors in packs, animation contracts, per-frame durations, face-first character finish — written against the resolved decisions in [INTAKE §7](INTAKE.md#7-decisions-resolved-2026-10-05) / [DECISIONS.md](DECISIONS.md)
+Status: **rev 10** (P6c/P6d as built: §10, §12.2, §13.3); **rev 9** (independent review: blind re-score of finals, reviewer on every score, real-world heights, silhouette panel, roster review — [findings/calibration.md](findings/calibration.md)); rev 8: per-frame anchors in packs, animation contracts, per-frame durations, face-first character finish — written against the resolved decisions in [INTAKE §7](INTAKE.md#7-decisions-resolved-2026-10-05) / [DECISIONS.md](DECISIONS.md)
 
 ## 1. Summary
 
@@ -430,6 +430,24 @@ direction effect ramps); presets (explosion, smoke, fire, sparks, magic, heal, m
 dust, trail); palette cycling; frame QA (bbox jitter, colour drift, loop seam); strip + onion-skin sheets,
 GIF/APNG previews.
 
+As built (P6c): `ctx.lib.anim` — `track` / `blend` keyframes over `t`, `rig` (bones with parent, attach point and
+offset; poses as relative joint angles; 2-bone IK from hand / foot targets), `spring` (chains for hair, cloth, tails:
+rest angle, stiffness, damping, gravity, seeded wind; fixed-step simulation from a warm-up, so every frame renders on
+its own), `sweep` (trails). `ctx.lib.fx` — `particles(layers, { w, h, t, duration })`, `preset(name, …)`, `flame`,
+`cycle`, `simulate` / `draw`; emitters are `burst` or `stream` (births wrap the loop period: seamless), `blob` layers
+merge into banded metaball shapes. Render contexts carry `ms`, `duration`, `logical` and `sub`. Briefs add
+`anims.<state>.sub` (display-only smoothing sub-frames; the contract and `pack.json` count logical frames) and
+`blend: add` (effects drawn additively by the runtime). Conformance adds `frames` (feet jump, sideways shift, colour
+drift, loop seam), `attack` (≥ 4 logical frames and one held contact frame) and, for effects, `fill` (interior and
+lightest-step share per frame; flags when more than half the frames are solid bright blobs) — all flags. Review sheets
+add an onion-skin row per animated state; `artgen anim` and `artgen fx` write GIF / APNG previews.
+
+**First-person (P6d).** `views/fp.ts`: a grid raycaster (textured walls, floor / ceiling casting, sky, billboards
+clipped by wall depth, view-model overlay, fog to the direction background) used as the review context for `fp`
+assets — textures on their brief `surface` (wall, floor, ceiling), skies (`kind: layer`, `ctx.lib.tex.sky`),
+8-direction voxel billboards, view-models (`kind: viewmodel`; their bottom border is off-screen for the line check).
+Templates under `fp/`; a `brick` recipe joins the materials.
+
 ## 11. Quality and records
 - Post passes: artlab `outline/quantize/modeDownsample/dropShadow/despeckle/groundShadow` + `selout`,
   `innerOutline`, `dither`, `rotsprite`, `paletteSwap`, `overlay`, `trim`, `normalFromHeight`.
@@ -520,6 +538,10 @@ interface RuntimeAdapter<Tex, Node> {
   colour-map filter. `pixi` also exposes `pixiStrip` (textures for `AnimatedSprite`); `three` exposes
   `billboardAngle(heading, node, camera)` and `tileTexture(pack, id, { repeat })`. Sprite-stack planes, FP wall sets and
   `.glb` loading remain with P6a / P6d.
+- Runtime 1.2.0 (P6c/P6d): states may carry `sub` (frame selection takes a logical `frame` and a `sub`; `sprite.frame`
+  stays logical), assets may carry `blend: 'add'` (sprites call `setBlend`), frame rects carry their `normal` rect when
+  normals are loaded, and `three` adds `threeLitAdapter`: camera-yawed Lambert quads whose `normalMap` is the frame's
+  rect in the normal atlas, so scene lights shade the sprite.
 
 ### 12.3 Delivery
 `artgen export --runtime` vendors `src/art/runtime/` (version-stamped) and `src/art/assets.ts` into the game
@@ -565,14 +587,15 @@ appended in place. UI ledger lines carry `by: "user"` and `"via": "image-tools"`
 in sprite pixels) and `cell`, and the pass machine quotes note, region and cell in the step the feedback opens, so `make`
 hands them to the agent. A UI lock is the CLI's lock (version bump, archive, anchors, `direction.png`); a restyle in
 Claude Code follows. Asset Lab plays one-asset packs through the runtime's canvas2d adapter and writes nothing. Not built:
-the SVG Tracer → `path` and Token Cutter → `clip` integrations, and the raycaster context (P6d).
+the SVG Tracer → `path` and Token Cutter → `clip` integrations. P6d: Asset Review shows first-person assets in the
+raycaster corridor ("in the game").
 
 ## 14. Interfaces
 
 **CLI** (`artgen`, all with `--json`): `init`, `direction new|candidates|tile|mix|lock|anchors|show|validate`, `palette import|extract|ramp`,
 `brief add|list|rm`, `new`, `render [--stages]`, `review`, `score`, `pass next|status` (pipeline state), `finish`,
 `make`, `gallery`, `feedback`, `approve`, `status`, `variants`, `analytics`,
-`texture`, `fx`, `voxel`, `restyle`, `export [--runtime]`, `import-edit`, `report`, `bench`.
+`texture`, `fx`, `anim`, `voxel`, `restyle`, `export [--runtime]`, `import-edit`, `report`, `bench`.
 
 **Skills / commands / agent**: §3.1. `artgen analytics` (§11.1). **MCP tools**: `direction_get`, `direction_tile`, `pass_status`, `render`, `finish`,
 `review`, `conformance`, `score`, `approve`, `texture`, `fx`, `export` — image results returned as MCP image

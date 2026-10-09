@@ -263,6 +263,21 @@ added as **view modules** (SPEC §8) so later targets follow the same path (D8).
 
 `.vox` read/write and greedy-mesh glTF export land with P6a.
 
+- **P6a and P6b built 2026-10-09** (previous PR): view cameras and modules, voxel `raster` / `toon`, normal maps,
+  `.vox` / `.glb`, sprite stacks, parallax; periodic noise, 12 material recipes, seam / repetition / border metrics,
+  autotiles, iso sets, WFC, L-systems. Benchmarks in `bench/p6` at 6.5–7 (self-scored).
+- **P6c and P6d built 2026-10-09; benchmarks self-scored, local session pending.** P6c: animation library (keyframe
+  tracks, pose rig with 2-bone IK, spring chains, swept trails), sub-frames under logical frames (contract and runtime),
+  particles with 11 presets (+ metaball `blob` layers), `fx.flame`, palette cycling, frame / attack / solid-fill QA,
+  onion-skin rows, GIF / APNG previews (`artgen anim`, `artgen fx`), additive blend end to end. Benchmarks: explosion 7,
+  fire loop, sparks, knight attack (held contact frame, trail on the blade tip), cloaked walker (spring cape keeps moving
+  after the stop), spider walk (8-leg IK) at 6.5. P6d: raycaster corridor preview (review sheets and Asset Review),
+  `brick` recipe, skies, `fp` templates (surfaces, sky, voxel billboard, view-model, effect), lit billboards
+  (`threeLitAdapter`); brick / metal / wood walls, imp billboard, pistol idle/fire at 6.5; billboard-crawler's ghoul lit
+  by the player's lamp. Runtime 1.2.0, dist 0.8.0. The P6b fixture tiles (mud, bog-water, iso floor) were blind
+  re-scored here at 5–5.5 — **below P6b's ≥ 6.5 bar** — and approved with a simulated user approval naming the issue;
+  reworking them is a follow-up. Details: [findings/P6-breadth.md](findings/P6-breadth.md).
+
 ### P7 — Access + release (M)
 - `artgen-mcp` (tools per SPEC §14, image content results, path sandbox to `art/`) wired into the committed
   `.mcp.json` entry.
