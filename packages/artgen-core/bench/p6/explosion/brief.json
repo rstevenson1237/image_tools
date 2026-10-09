@@ -1,0 +1,14 @@
+{
+  "id": "explosion",
+  "kind": "effect",
+  "view": "topdown",
+  "size": [32, 32],
+  "states": ["play"],
+  "anims": { "play": { "frames": 8, "loop": false } },
+  "blend": "add",
+  "object": "fireball burst",
+  "notes": "P6c benchmark: one-shot explosion — a flash, fireballs flung out and cooling, debris streaks, smoke rising late",
+  "direction": "../direction.json",
+  "target": 6.5,
+  "review": { "scale": 5, "sym": "none", "label": "P6c: explosion (particles)" }
+}

@@ -12,6 +12,7 @@
 import type { DirContext } from '../direction.ts';
 import { Grid } from '../lib/grid.ts';
 import { rng } from '../lib/rng.ts';
+import { pValue } from '../tex/noise.ts';
 
 export type P2 = [number, number];
 type Range = number | [number, number];
@@ -57,6 +58,10 @@ export interface Emitter {
   heat?: number;
   /** streak: tail length in seconds of travel. */
   streak?: number;
+  /** streak: also draw a head disc of the particle's size (bright sparks that read at 1×). */
+  head?: boolean;
+  /** streak: the tail follows the path actually flown over the last `streak` seconds (never back past the birth point). */
+  streakPath?: boolean;
   /** Colour tokens hottest → coolest (`glow.0`, `accent.2`), or ramp names. Default: the effects palette. */
   colors?: string[];
   /** Use only part of the colour run: [from, to] as fractions (sparks stay hot: [0, 0.5]). */
@@ -86,7 +91,7 @@ export interface ParticleOptions {
 export interface Particle {
   x: number; y: number; vx: number; vy: number; r: number; color: string; rank: number; tail?: P2; shape: NonNullable<Emitter['shape']>;
   /** Layer index, life fraction left (1 at birth), and for blob layers the layer's colour run and field settings. */
-  layer: number; life: number; blob?: { run: string[]; threshold: number; heat: number };
+  layer: number; life: number; blob?: { run: string[]; threshold: number; heat: number }; head?: boolean;
 }
 
 const RAD = Math.PI / 180;
@@ -136,7 +141,10 @@ export function simulate(dir: DirContext, o: ParticleOptions): Particle[] {
       for (const age of ages) {
         let x = sx, y = sy, vx = Math.sin(ang * RAD) * sp, vy = Math.cos(ang * RAD) * sp;
         const n = Math.round(age / step), dt = step / 1000, keep = Math.exp(-(L.drag ?? 0) * dt), sw = (L.swirl ?? 0) * RAD * dt;
+        const back = L.streakPath ? Math.round((L.streak ?? 0.08) * 1000 / step) : -1;
+        let pathTail: P2 = [x, y];
         for (let s = 0; s < n; s++) {
+          if (s === n - back) pathTail = [x, y];
           if (sw) { const c = Math.cos(sw), sn = Math.sin(sw), nx = vx * c - vy * sn; vy = vx * sn + vy * c; vx = nx; }
           vx *= keep; vy = vy * keep + (L.gravity ?? 0) * dt;
           const wob = turb ? turb * Math.sin(phase + s * dt * 9) : 0;
@@ -144,9 +152,9 @@ export function simulate(dir: DirContext, o: ParticleOptions): Particle[] {
         }
         const u = age / life, [s0, s1] = L.size ?? [1.5, 0.5], rad = Math.max(0, (s0 + (s1 - s0) * u) * jit);
         const ci = Math.min(cols.length - 1, Math.floor(Math.pow(u, L.curve ?? 1) * cols.length));
-        const tail: P2 | undefined = L.shape === 'streak' ? [x - vx * (L.streak ?? 0.08), y - vy * (L.streak ?? 0.08)] : undefined;
+        const tail: P2 | undefined = L.shape !== 'streak' ? undefined : L.streakPath ? pathTail : [x - vx * (L.streak ?? 0.08), y - vy * (L.streak ?? 0.08)];
         out.push({
-          x, y, vx, vy, r: rad, color: cols[ci], rank: lo + ci, shape: L.shape ?? 'disc', ...(tail && { tail }), layer: li, life: 1 - u,
+          x, y, vx, vy, r: rad, color: cols[ci], rank: lo + ci, shape: L.shape ?? 'disc', ...(tail && { tail }), ...(L.head && { head: true }), layer: li, life: 1 - u,
           ...(L.blob && { blob: { run: cols, threshold: typeof L.blob === 'number' ? L.blob : 0.5, heat: L.heat ?? 1.6 } }),
         });
       }
@@ -186,7 +194,7 @@ export function drawParticles(g: Grid, ps: Particle[]): Grid {
     if (p.shape === 'streak' && p.tail) {
       const [tx, ty] = p.tail, n = Math.max(1, Math.ceil(Math.hypot(x - tx, y - ty)));
       for (let k = 0; k <= n; k++) g.set(Math.floor(tx + ((x - tx) * k) / n), Math.floor(ty + ((y - ty) * k) / n), c);
-      continue;
+      if (!p.head || r < 0.6) continue;
     }
     if (p.shape === 'plus') {
       const R = Math.max(1, Math.round(r)), cx = Math.floor(x), cy = Math.floor(y);
@@ -332,4 +340,51 @@ export function paletteCycle(dir: DirContext, g: Grid, colors: string[], shift: 
   }
   if (g.normal) out.normal = g.normal;
   return out;
+}
+
+export interface FlameOptions {
+  w: number;
+  h: number;
+  /** Position in the loop, 0–1. */
+  t: number;
+  /** Bottom centre of the flame, px (default: centre, 2 px above the frame bottom). */
+  base?: P2;
+  /** Half-width at the base and height, px. */
+  width?: number;
+  height?: number;
+  /** Noise lattice cells across the frame (more = more, smaller tongues). */
+  cells?: number;
+  /** How hard the noise bites into the shape (0.6–1.2). */
+  lick?: number;
+  /** Sideways sway of the upper flame, px. */
+  sway?: number;
+  colors?: string[];
+  seed?: number;
+}
+
+/**
+ * Flame body (P6c): a teardrop field disturbed by periodic value noise that scrolls up exactly one noise period per
+ * loop — tongues lick upward and the loop is seamless by construction (t = 1 is t = 0). The field is banded to the
+ * colour run: hottest innermost and low, coolest on the rim and the tips. Pair it with ember particles.
+ */
+export function flame(dir: DirContext, o: FlameOptions): Grid {
+  const { w, h } = o, g = new Grid(w, h), run = colorRun(dir, o.colors), n = run.length, [bx, by] = o.base ?? [w / 2, h - 2];
+  const W = o.width ?? w * 0.32, H = o.height ?? h * 0.8, cells = o.cells ?? 3, lick = o.lick ?? 0.9, sway = o.sway ?? W * 0.25, seed = o.seed ?? 1;
+  const tau = o.t * Math.PI * 2;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const v = (by - (y + 0.5)) / H; // 0 at the base, 1 at the top
+    if (v < -0.25 || v > 1.2) continue;
+    // rounded bottom, then a taper to a point
+    const hw = v < 0 ? W * Math.sqrt(Math.max(0, 1 - (v / 0.25) ** 2)) : W * Math.pow(Math.max(0, 1 - v), 0.75);
+    const cx = bx + Math.sin(v * 3.2 - tau) * sway * Math.max(0, v);
+    const d = hw > 0 ? Math.abs(x + 0.5 - cx) / hw : 9;
+    const nz = pValue(x, y + o.t * h, { w, h, cells, cellsY: cells, octaves: 2, seed }) - 0.5;
+    // the silhouette takes the full noise (tongues); the inner bands a calmer share of it, so they nest
+    const S = 1 - d - Math.max(0, v) * 0.45 + nz * lick * (0.35 + Math.max(0, v));
+    if (S <= 0) continue;
+    const B = 1 - d * 1.15 - Math.max(0, v) * 0.75 + nz * lick * 0.25;
+    const idx = S < 0.14 ? n - 1 : Math.max(0, Math.min(n - 1, n - 1 - Math.floor(Math.max(0, B) * n * 1.05)));
+    g.set(x, y, run[idx]);
+  }
+  return g;
 }

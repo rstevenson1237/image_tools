@@ -22,7 +22,7 @@ import { pGradient, pValue, pWorley } from './tex/noise.ts';
 import { wfc } from './tex/wfc.ts';
 import { Proc } from './t2/proc.ts';
 import { blend, cellTiming, ease, pingpong, rig, solveTwoBone, spring, sweep, track } from './anim/anim.ts';
-import { colorRun, paletteCycle, particles, preset, PRESET_NAMES, simulate, drawParticles, type Emitter, type PresetOptions } from './fx/particles.ts';
+import { colorRun, flame, paletteCycle, particles, preset, PRESET_NAMES, simulate, drawParticles, type Emitter, type FlameOptions, type PresetOptions } from './fx/particles.ts';
 import { Scene2D, type Scene2DOptions } from './t2/scene.ts';
 import { Scene3D, type Scene3DOptions } from './t2/scene3d.ts';
 
@@ -177,6 +177,10 @@ export function makeLib(dir: DirContext, kind?: string, stage?: (name: string, g
       draw: drawParticles,
       colors: (names?: string[]) => colorRun(dir, names),
       cycle: (g: Grid, colors: string[], shift: number) => paletteCycle(dir, g, colors, shift),
+      /** Flame body: a noise-licked teardrop banded hot core → cool rim, seamless over t (no outline: add particles, then `line`). */
+      flame: (o: Omit<FlameOptions, 'seed'> & { seed?: number }) => flame(dir, { seed, ...o }),
+      /** The direction's outer line (after compositing flame + particles). */
+      line,
     },
     /** Procedural pass (S2) over a T2+ scene or a finished grid. */
     proc: (source: Scene2D | Grid) => new Proc(source, { dir, seed, line }, stage),

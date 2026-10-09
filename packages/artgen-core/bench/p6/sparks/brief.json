@@ -1,0 +1,14 @@
+{
+  "id": "sparks",
+  "kind": "effect",
+  "view": "topdown",
+  "size": [32, 32],
+  "states": ["play"],
+  "anims": { "play": { "frames": 6, "loop": false } },
+  "blend": "add",
+  "object": "shower of sparks from a sword strike",
+  "notes": "P6c benchmark: a one-shot spray of sparks thrown up and falling under gravity, streaks that cool as they fly",
+  "direction": "../direction.json",
+  "target": 6.5,
+  "review": { "scale": 5, "sym": "none", "label": "P6c: sparks (particles)" }
+}

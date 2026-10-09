@@ -1,0 +1,14 @@
+{
+  "id": "fire-loop",
+  "kind": "effect",
+  "view": "side",
+  "size": [24, 32],
+  "states": ["burn"],
+  "anims": { "burn": { "frames": 8, "loop": true } },
+  "blend": "add",
+  "object": "campfire flames",
+  "notes": "P6c benchmark: a looping campfire flame — tongues rising and thinning to dark tips, hot core low, embers; seamless loop",
+  "direction": "../direction.json",
+  "target": 6.5,
+  "review": { "scale": 5, "sym": "none", "label": "P6c: fire loop (particles, seamless)" }
+}

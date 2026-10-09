@@ -204,7 +204,7 @@ function decodeGif(b: Uint8Array): { palette: string[]; frames: Uint8Array[]; de
       acc >>>= size; bits -= size;
       if (code === clear) { reset(); continue; }
       if (code === clear + 1) break;
-      const entry = code < dict.length ? dict[code] : [...prev!, prev![0]];
+      const entry: number[] = code < dict.length ? dict[code] : [...prev!, prev![0]];
       out.push(...entry);
       if (prev) dict.push([...prev, entry[0]]);
       prev = entry;
