@@ -15,6 +15,6 @@
   "dependencies": {
     "artgen-cli": "0.0.0",
     "artgen-mcp": "0.0.0",
-    "artgen-runtime": "1.1.0"
+    "artgen-runtime": "1.2.0"
   }
 }

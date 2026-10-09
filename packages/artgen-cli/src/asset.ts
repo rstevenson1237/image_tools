@@ -9,7 +9,7 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
-  applyFinish, assembleSheet, budgetFor, finishBaseOf, conformance, contactSheet, parseBriefs, finishSnapshot, finishStale, Grid, imageTokens, iso, parseDirection, parseLedger,
+  applyFinish, animInput, onionSkin, assembleSheet, budgetFor, finishBaseOf, conformance, contactSheet, parseBriefs, finishSnapshot, finishStale, Grid, imageTokens, iso, parseDirection, parseLedger,
   parseVersion, passId, planPasses, pxPerMetre, renderAsset, resolveSize, reviewSheet, sourceHash, stackStrip, parallaxStrip, TILE_KINDS, viewContext, autotileCount, autotileMap, autotileSheet,
   type AssetBudget, type AssetModule, type BriefEntry, type ConformanceReport, type FeedbackOpen, type Direction, type FinishModule, type LedgerEntry, type PassState,
   type PatchRecord, type RenderResult,
@@ -163,7 +163,7 @@ export async function renderVersion(a: AssetDir, version: string, opts: { varian
   const report = conformance({
     frames: render.cells.map(c => c.grid), dir: a.dir, kind: a.brief.kind, size: resolveSize(a.dir, a.brief.size, a.brief.kind),
     source: src, symAxis: a.brief.review?.sym ?? 'x', lint: render.lint, periodic: a.brief.review?.periodic, autotile: a.brief.autotile,
-    ...(a.brief.height && { height: { metres: a.brief.height, pxPerMetre: pxPerMetre(a.dir) } }),
+    ...(a.brief.height && { height: { metres: a.brief.height, pxPerMetre: pxPerMetre(a.dir) } }), anim: animInput(render),
   });
   return { version: v.name, render, strip: s, grid, report, source, base, patches, stale };
 }
@@ -182,8 +182,25 @@ export function firstFacing(r: RenderResult): Grid {
   return strip({ ...r, cells: r.cells.filter(c => c.facing === f) });
 }
 
-/** Review layout for big sheets (8 facings × walk cycles): rows per state × unique facing, columns per frame. */
+/**
+ * Review layout: the special layouts below, else the cells; animated figures and effects (P6c) get an onion-skin row
+ * under it — each animated state of the first facing, every frame over faded copies of the two before it.
+ */
 export function reviewGrid(r: RenderResult): Grid {
+  const g = layoutGrid(r);
+  const special = r.brief.kind === 'layer' || r.brief.view === 'stack' || !!r.brief.autotile || TILE_KINDS.has(r.brief.kind);
+  const f = r.facings[0], moving = special ? [] : r.states.filter(s => r.frames[s] > 1);
+  if (!moving.length) return g;
+  const rows = moving.map(s => onionSkin(r.cells.filter(c => c.state === s && c.facing === f).sort((a, b) => a.frame - b.frame).map(c => c.grid)));
+  const out = new Grid(Math.max(g.w, ...rows.map(x => x.w)), g.h + rows.reduce((n, x) => n + x.h + 2, 0));
+  out.blit(g, 0, 0);
+  let y = g.h + 2;
+  for (const row of rows) { out.blit(row, 0, y); y += row.h + 2; }
+  return out;
+}
+
+/** Review layout for big sheets (8 facings × walk cycles): rows per state × unique facing, columns per frame. */
+function layoutGrid(r: RenderResult): Grid {
   // parallax layers (P6a): the layers in a row, and under it the scene scrolled to three camera positions, back
   // layers (earlier states) moving slower
   if (r.brief.kind === 'layer' && r.states.length > 1) {

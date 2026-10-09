@@ -6,6 +6,7 @@ import { kindPalette, type Direction, type Size } from '../direction.ts';
 import { luma, normHex, parseColor } from '../lib/color.ts';
 import type { Grid } from '../lib/grid.ts';
 import { isShadowPixel, measure, type Metrics } from './metrics.ts';
+import { animChecks, type AnimInput } from './anim.ts';
 import { borderContrast, periodicPatch, repetitionIssues, repetitionMetric, seamMetric } from './tiles.ts';
 
 export type CheckStatus = 'pass' | 'fail' | 'flag' | 'skip';
@@ -33,6 +34,8 @@ export interface ConformanceInput {
   periodic?: boolean;
   /** Autotile sets: seam and repetition are judged on the fully surrounded tile (the last of the set), not tile 0. */
   autotile?: 'wang16' | 'blob47';
+  /** States with their frames (P6c, `animInput(render)`): frame QA, attack QA and the effects' solid-fill check. */
+  anim?: AnimInput;
 }
 
 export interface Thresholds {
@@ -237,6 +240,9 @@ export function conformance(input: ConformanceInput): ConformanceReport {
       add('repetition', why.length ? 'flag' : 'pass', why.length ? why.join('; ') : `lowStd ${rm.lowStd}, ${rm.markBlobs} marks (weight ${rm.marks})`);
     }
   }
+
+  // animation (P6c): frame QA, attack QA, solid fill (flags)
+  if (input.anim) checks.push(...animChecks(input.anim, dir, kind));
 
   // anchor similarity (flag only)
   if (!anchors.length) add('anchors', 'skip', 'no anchors for this kind');

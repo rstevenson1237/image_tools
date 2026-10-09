@@ -105,9 +105,16 @@ describe('held frames and anchors', () => {
   test('per-frame durations: a held contact frame, then done', () => {
     const st = { frames: 4, fps: 10, loop: false, durations: [50, 50, 200, 50] };
     expect([0, 49, 50, 100, 299, 300, 349].map(ms => frameAt(st, ms).frame)).toEqual([0, 0, 1, 2, 2, 3, 3]);
-    expect(frameAt(st, 350)).toEqual({ frame: 3, done: true });
-    expect(frameAt(st, 360, true)).toEqual({ frame: 0, done: false }); // looping wraps on the summed length
-    expect(frameAt({ frames: 4, fps: 10, loop: true }, 250)).toEqual({ frame: 2, done: false }); // no durations: fps
+    expect(frameAt(st, 350)).toEqual({ frame: 3, sub: 0, done: true });
+    expect(frameAt(st, 360, true)).toEqual({ frame: 0, sub: 0, done: false }); // looping wraps on the summed length
+    expect(frameAt({ frames: 4, fps: 10, loop: true }, 250)).toEqual({ frame: 2, sub: 0, done: false }); // no durations: fps
+  });
+
+  test('sub-frames (P6c): the logical frame follows the contract, sub-frames split its time', () => {
+    const st = { frames: 3, fps: 10, loop: true, durations: [100, 300, 100], sub: 2 };
+    expect([0, 49, 50, 100, 249, 250, 399, 400, 450].map(ms => { const r = frameAt(st, ms); return [r.frame, r.sub]; }))
+      .toEqual([[0, 0], [0, 0], [0, 1], [1, 0], [1, 0], [1, 1], [1, 1], [2, 0], [2, 1]]);
+    expect(frameAt({ ...st, loop: false }, 500)).toEqual({ frame: 2, sub: 1, done: true });
   });
 
   test('a sprite plays the durations and reports anchors relative to its position, mirrored when flipped', async () => {

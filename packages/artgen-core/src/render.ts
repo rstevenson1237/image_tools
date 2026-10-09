@@ -21,6 +21,8 @@ import { material, type MaterialOptions } from './tex/materials.ts';
 import { pGradient, pValue, pWorley } from './tex/noise.ts';
 import { wfc } from './tex/wfc.ts';
 import { Proc } from './t2/proc.ts';
+import { blend, cellTiming, ease, pingpong, rig, solveTwoBone, spring, sweep, track } from './anim/anim.ts';
+import { colorRun, paletteCycle, particles, preset, PRESET_NAMES, simulate, drawParticles, type Emitter, type PresetOptions } from './fx/particles.ts';
 import { Scene2D, type Scene2DOptions } from './t2/scene.ts';
 import { Scene3D, type Scene3DOptions } from './t2/scene3d.ts';
 
@@ -33,7 +35,12 @@ export interface Brief {
   states?: string[];
   directions?: 1 | 4 | 8 | 16;
   /** Per state: frame count, playback rate, loop, and optional per-frame durations in ms (hold a contact frame longer). */
-  anims?: Record<string, { frames: number; fps?: number; loop?: boolean; durations?: number[] }>;
+  /**
+   * Per state: logical frame count, playback rate, loop, optional per-frame durations in ms (hold a contact frame
+   * longer) and `sub`: display-only smoothing sub-frames per logical frame (P6c). The animation contract (R13) counts
+   * logical frames; the render has `frames × sub` cells and the runtime maps them.
+   */
+  anims?: Record<string, { frames: number; fps?: number; loop?: boolean; durations?: number[]; sub?: number }>;
   variants?: number;
   notes?: string;
   /** Real-world height in metres (rev 9): the drawn body should be `height × pxPerMetre(dir)` px tall (conformance `height`). */
@@ -42,6 +49,8 @@ export interface Brief {
   object?: string;
   /** Tilesets (P6b): frames of the first state are the autotile set in canonical order (16 Wang edges or 47 blob). */
   autotile?: 'wang16' | 'blob47';
+  /** Effects (P6c): `add` draws the asset with additive blending in the runtime (fire, glows, muzzle flashes). */
+  blend?: 'normal' | 'add';
 }
 
 export type Anchors = Record<string, [number, number]>;
@@ -65,8 +74,14 @@ export interface RenderContext {
   state: string;
   facing: string;
   frame: number;
-  /** frame / frames in [0, 1). */
+  /** frame / frames in [0, 1) over displayed frames (sub-frames included). */
   t: number;
+  /** Logical frame (what the animation contract counts) and smoothing sub-frame within it (P6c; 0 without `sub`). */
+  logical: number;
+  sub: number;
+  /** Start of this frame in ms into the state, and the state's length in ms (fps or per-frame durations). */
+  ms: number;
+  duration: number;
   rng: () => number;
   lib: Lib;
   /** Restricted palette for this asset: the named ramps (default: those allowed for the kind) plus the outline. */
@@ -147,6 +162,22 @@ export function makeLib(dir: DirContext, kind?: string, stage?: (name: string, g
       wfc, lsystem, turtle, lsystemSpecs,
       noise: { value: pValue, gradient: pGradient, worley: pWorley },
     },
+    /** Animation (P6c): keyframe tracks over t, the pose rig with 2-bone IK, spring chains, swept paths for trails. */
+    anim: { ease, track, blend, pingpong, rig, solveTwoBone, spring, sweep },
+    /**
+     * Effects (P6c): particle emitters and presets drawn on the direction's effect colours (outer line from the
+     * direction), palette cycling. `particles(layers, { w, h, t, duration })`; `preset(name, { w, h, duration })`.
+     */
+    fx: {
+      presets: PRESET_NAMES,
+      preset: (name: string, o: PresetOptions, override?: Partial<Emitter>) => preset(name, o, override),
+      particles: (layers: Emitter[], o: { w: number; h: number; t: number; duration: number; seed?: number; line?: boolean }) =>
+        particles(dir, { ...o, layers, seed: o.seed ?? seed, line: o.line === false ? false : line }),
+      simulate: (layers: Emitter[], o: { w: number; h: number; t: number; duration: number; seed?: number }) => simulate(dir, { ...o, layers, seed: o.seed ?? seed }),
+      draw: drawParticles,
+      colors: (names?: string[]) => colorRun(dir, names),
+      cycle: (g: Grid, colors: string[], shift: number) => paletteCycle(dir, g, colors, shift),
+    },
     /** Procedural pass (S2) over a T2+ scene or a finished grid. */
     proc: (source: Scene2D | Grid) => new Proc(source, { dir, seed, line }, stage),
     palette,
@@ -171,6 +202,9 @@ export interface Cell {
   grid: Grid;
   /** Rendered as the flipped east-side facing. */
   mirrored: boolean;
+  /** Sub-frame smoothing (P6c): the logical frame this displayed frame belongs to and its index within it. */
+  logical?: number;
+  sub?: number;
   anchors?: Anchors;
   /** Normal map (P6a): from the renderer's normals (2D shading, voxel raster), fitted to the cell's pixels. */
   normal?: Grid;
@@ -206,8 +240,13 @@ export function renderAsset(mod: AssetModule, { dir, brief, seed = 1, variant = 
   const states = brief.states?.length ? brief.states : ['idle'];
   const facings = FACINGS[brief.directions ?? 1];
   if (!facings) throw new Error(`brief ${brief.id}: directions must be 1, 4, 8 or 16`);
-  const frames: Record<string, number> = {};
-  for (const s of states) frames[s] = brief.anims?.[s]?.frames ?? 1;
+  const frames: Record<string, number> = {}, timing: Record<string, { n: number; sub: number; durations: number[] }> = {};
+  for (const s of states) {
+    const a = brief.anims?.[s], n = a?.frames ?? 1, sub = Math.max(1, Math.floor(a?.sub ?? 1));
+    const fps = a?.fps ?? (brief.kind === 'effect' ? dir.effects.fps : 8);
+    timing[s] = { n, sub, durations: a?.durations?.length === n ? a.durations : Array.from({ length: n }, () => Math.round(1000 / fps)) };
+    frames[s] = n * sub;
+  }
   const mirror = mod.meta?.mirror !== false, cells: Cell[] = [], cache = new Map<string, Cell>(), lint = new Set<string>();
   const allParams = resolveParams(mod.params, variant, params);
 
@@ -216,8 +255,10 @@ export function renderAsset(mod: AssetModule, { dir, brief, seed = 1, variant = 
     let n = 0;
     const stage = stages ? (name: string, g: Grid) => { stages.set(`${key}/${n++}-${name}`, g.clone()); } : undefined;
     const scenes: { lint(): string[] }[] = [];
+    const tm = timing[state], ct = cellTiming(frame, tm.n, tm.sub, tm.durations);
     const ctx: RenderContext = {
       dir: dc, brief, size, seed, variant, params: allParams, state, facing, frame, t: frame / frames[state], rng: rng(seed),
+      logical: ct.logical, sub: ct.sub, ms: ct.ms, duration: ct.duration,
       lib: makeLib(dc, brief.kind, stage, seed, sc => scenes.push(sc)),
       palette: names => (names ? palette.restrict(dc.pal, names, [dc.outline]) : kindPalette(dir, brief.kind)),
       stage: stage ?? (() => {}),
@@ -225,7 +266,10 @@ export function renderAsset(mod: AssetModule, { dir, brief, seed = 1, variant = 
     const grid = mod.render(ctx);
     for (const sc of scenes) { for (const m of sc.lint()) lint.add(m); onScene?.(key, sc); }
     if (grid.w !== size[0] || grid.h !== size[1]) throw new Error(`${brief.id} ${key}: rendered ${grid.w}x${grid.h}, brief size is ${size.join('x')}`);
-    return { state, facing, frame, grid, mirrored: false, anchors: mod.anchors?.(ctx), ...(grid.normal && { normal: fitNormalMap(grid, grid.normal) }) };
+    return {
+      state, facing, frame, grid, mirrored: false, anchors: mod.anchors?.(ctx), ...(grid.normal && { normal: fitNormalMap(grid, grid.normal) }),
+      ...(tm.sub > 1 && { logical: ct.logical, sub: ct.sub }),
+    };
   };
 
   for (const state of states) for (const facing of facings) for (let frame = 0; frame < frames[state]; frame++) {
@@ -235,7 +279,7 @@ export function renderAsset(mod: AssetModule, { dir, brief, seed = 1, variant = 
       let e = cache.get(key);
       if (!e) { e = renderCell(state, src, frame); cache.set(key, e); }
       const anchors = e.anchors && Object.fromEntries(Object.entries(e.anchors).map(([k, [x, y]]) => [k, [size[0] - 1 - x, y] as [number, number]]));
-      cells.push({ state, facing, frame, grid: e.grid.flip('x'), mirrored: true, anchors, ...(e.normal && { normal: flipNormalMap(e.normal) }) });
+      cells.push({ state, facing, frame, grid: e.grid.flip('x'), mirrored: true, anchors, ...(e.normal && { normal: flipNormalMap(e.normal) }), ...(e.logical !== undefined && { logical: e.logical, sub: e.sub }) });
     } else {
       const key = `${state}/${facing}/${frame}`;
       let c = cache.get(key);

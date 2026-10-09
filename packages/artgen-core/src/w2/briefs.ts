@@ -64,6 +64,7 @@ export function validateBrief(b: unknown, where = 'brief'): string[] {
       else if (Array.isArray(b.states) && !b.states.includes(s)) e.push(`${at}: anims.${s} is not in states`);
       else if (a.durations !== undefined && !(Array.isArray(a.durations) && a.durations.length === a.frames && a.durations.every(d => Number.isInteger(d) && d > 0)))
         e.push(`${at}: anims.${s}.durations must list one positive whole number of ms per frame (${a.frames})`);
+      else if (a.sub !== undefined && !(Number.isInteger(a.sub) && (a.sub as number) >= 1 && (a.sub as number) <= 8)) e.push(`${at}: anims.${s}.sub must be a whole number of sub-frames per logical frame (1–8)`);
     }
   }
   if (b.variants !== undefined && !(Number.isInteger(b.variants) && (b.variants as number) >= 1)) e.push(`${at}: variants must be a positive integer`);
@@ -76,6 +77,7 @@ export function validateBrief(b: unknown, where = 'brief'): string[] {
     else for (const m of effectObjectIssues({ kind: String(b.kind), object: b.object })) e.push(`${at}: ${m}`);
   }
   if (b.autotile !== undefined && !['wang16', 'blob47'].includes(b.autotile as string)) e.push(`${at}: autotile must be wang16 or blob47`);
+  if (b.blend !== undefined && !['normal', 'add'].includes(b.blend as string)) e.push(`${at}: blend must be normal or add`);
   if (b.anchor !== undefined && !(Array.isArray(b.anchor) && b.anchor.length === 2 && b.anchor.every(n => typeof n === 'number'))) e.push(`${at}: anchor must be [x, y]`);
   if (b.swaps !== undefined) {
     if (!isObj(b.swaps)) e.push(`${at}: swaps must map variant name → { ramp: ramp }`);

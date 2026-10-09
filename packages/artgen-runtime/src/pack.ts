@@ -7,7 +7,7 @@ import { angleOf, chooseFacing } from './facing.js';
 import { StackSprite, type StackOptions } from './stack.js';
 import type { AnchorOf, AssetRef, AtlasImage, FrameRect, PackAsset, PackManifest, PackStateDef, RuntimeAdapter, StateOf, VariantOf } from './types.js';
 
-export const RUNTIME_VERSION = '1.1.0';
+export const RUNTIME_VERSION = '1.2.0';
 
 export interface DecodedImage { width: number; height: number; data: Uint8ClampedArray | Uint8Array }
 
@@ -74,7 +74,8 @@ export function recolor(atlas: AtlasImage, map: Record<string, string>, swap?: s
 }
 
 interface TexSet<Tex> { tex: (Tex | undefined)[]; img: (AtlasImage | undefined)[] }
-export interface FrameSelect { state?: string; facing?: number; frame?: number; variant?: string | number }
+/** `frame` is the logical frame; `sub` the smoothing sub-frame within it (states exported with `sub`, P6c). */
+export interface FrameSelect { state?: string; facing?: number; frame?: number; sub?: number; variant?: string | number }
 
 export class Pack<Tex = unknown, Node = unknown, Parent = unknown> {
   /** `asset#swap` → recoloured textures per atlas. */
@@ -116,7 +117,8 @@ export class Pack<Tex = unknown, Node = unknown, Parent = unknown> {
     let map = this.index.get(id);
     if (!map) { map = new Map(a.frames.map((f, i) => [`${f[8]}|${f[6]}|${f[5]}|${f[7]}`, i])); this.index.set(id, map); }
     const v = this.variantIndex(a, sel.variant), pv = v < this.paramVariants(id) ? v : 0;
-    const state = sel.state ?? Object.keys(a.states)[0], fi = sel.facing ?? 0, fr = sel.frame ?? 0;
+    const state = sel.state ?? Object.keys(a.states)[0], fi = sel.facing ?? 0, k = a.states[state]?.sub ?? 1;
+    const fr = (sel.frame ?? 0) * k + Math.min(k - 1, Math.max(0, sel.sub ?? 0));
     const i = map.get(`${pv}|${state}|${fi}|${fr}`) ?? map.get(`${pv}|${state}|0|${fr}`) ?? map.get(`${pv}|${state}|${fi}|0`) ?? map.get(`0|${state}|0|0`);
     if (i === undefined) throw new Error(`${id}: no frame for state "${state}"`);
     return i;
@@ -126,7 +128,8 @@ export class Pack<Tex = unknown, Node = unknown, Parent = unknown> {
   frame(ref: AssetRef, sel: FrameSelect = {}): FrameRect<Tex> {
     const id = idOf(ref), a = this.asset(id), v = this.variantIndex(a, sel.variant);
     const [bin, x, y, w, h] = a.frames[this.frameIndex(id, sel)], swap = v >= this.paramVariants(id) ? this.swapSets.get(`${id}#${a.variants[v]}`) : undefined;
-    return { tex: swap?.tex[bin] ?? this.textures[bin], atlas: swap?.img[bin] ?? this.atlases[bin], x, y, w, h };
+    const normal = a.normals && this.normalTextures && this.normalAtlases ? { tex: this.normalTextures[bin], atlas: this.normalAtlases[bin] } : undefined;
+    return { tex: swap?.tex[bin] ?? this.textures[bin], atlas: swap?.img[bin] ?? this.atlases[bin], x, y, w, h, ...(normal && { normal }) };
   }
 
   /** The normal-map rect of a selection (same atlas position as its colour frame), when normals are loaded. */
@@ -186,18 +189,17 @@ export interface SpriteOptions<V extends string = string, S extends string = str
   parent?: Parent;
 }
 
-/** Frame shown `ms` into a state: per-frame durations when exported, else the state's fps. `done` once a non-looping state ran out. */
-export function frameAt(st: PackStateDef, ms: number, loop = st.loop): { frame: number; done: boolean } {
-  const d = st.durations;
-  if (!d) {
-    const n = Math.floor((ms * st.fps) / 1000);
-    return !loop && n >= st.frames ? { frame: st.frames - 1, done: true } : { frame: n % st.frames, done: false };
-  }
+/**
+ * Logical frame (and smoothing sub-frame) shown `ms` into a state: per-frame durations when exported, else the state's
+ * fps; a logical frame's sub-frames split its time evenly. `done` once a non-looping state ran out.
+ */
+export function frameAt(st: PackStateDef, ms: number, loop = st.loop): { frame: number; sub: number; done: boolean } {
+  const d = st.durations ?? Array.from({ length: st.frames }, () => 1000 / st.fps), k = st.sub ?? 1;
   const total = d.reduce((a, b) => a + b, 0);
-  if (!loop && ms >= total) return { frame: st.frames - 1, done: true };
-  let t = ms % total, f = 0;
-  while (t >= d[f]) t -= d[f++];
-  return { frame: f, done: false };
+  if (!loop && ms >= total) return { frame: st.frames - 1, sub: k - 1, done: true };
+  let t = ((ms % total) + total) % total, f = 0;
+  while (f < st.frames - 1 && t >= d[f]) t -= d[f++];
+  return { frame: f, sub: Math.min(k - 1, Math.floor((t / d[f]) * k)), done: false };
 }
 
 /**
@@ -210,7 +212,10 @@ export class ArtSprite<Tex = unknown, Node = unknown, S extends string = string,
   state: S;
   facing = 0;
   flipX = false;
+  /** Logical frame (what the animation contract counts: "the hit lands on frame 2"). */
   frame = 0;
+  /** Smoothing sub-frame within it (display only; 0 unless the state was exported with `sub`). */
+  sub = 0;
   /** Playback speed multiplier. */
   speed = 1;
   /** A non-looping state reached its last frame. */
@@ -232,6 +237,7 @@ export class ArtSprite<Tex = unknown, Node = unknown, S extends string = string,
     const f = pack.frame(id, { variant, state: this.state });
     this.node = pack.adapter.createNode(f.tex);
     pack.adapter.setAnchor(this.node, this.asset.anchor, this.asset.size);
+    if (this.asset.blend === 'add') pack.adapter.setBlend?.(this.node, 'add');
     this.apply();
   }
 
@@ -242,7 +248,7 @@ export class ArtSprite<Tex = unknown, Node = unknown, S extends string = string,
   play(state: S, restart = false): this {
     if (!this.asset.states[state]) throw new Error(`${this.id}: no state "${state}" (has: ${this.states.join(', ')})`);
     if (state === this.state && !restart) return this;
-    this.state = state; this.time = 0; this.frame = 0; this.done = false;
+    this.state = state; this.time = 0; this.frame = 0; this.sub = 0; this.done = false;
     return this.apply();
   }
 
@@ -266,10 +272,10 @@ export class ArtSprite<Tex = unknown, Node = unknown, S extends string = string,
   /** Advance by `dtMs`. Returns true while playing, false once a non-looping state has finished. */
   update(dtMs: number): boolean {
     const st = this.asset.states[this.state];
-    if (st.frames <= 1 || this.done) return !this.done;
+    if (st.frames * (st.sub ?? 1) <= 1 || this.done) return !this.done;
     this.time += dtMs * this.speed;
     const r = frameAt(st, this.time, this.loop ?? st.loop);
-    this.frame = r.frame; this.done = r.done;
+    this.frame = r.frame; this.sub = r.sub; this.done = r.done;
     this.apply();
     return !this.done;
   }
@@ -282,19 +288,19 @@ export class ArtSprite<Tex = unknown, Node = unknown, S extends string = string,
    * effect or a held prop. Undefined when this frame doesn't have the anchor (e.g. a hand hidden behind the body).
    */
   anchor(name: N): { x: number; y: number } | undefined {
-    const p = this.pack.anchor(this.id, name, { variant: this.variant, state: this.state, facing: this.facing, frame: this.frame });
+    const p = this.pack.anchor(this.id, name, { variant: this.variant, state: this.state, facing: this.facing, frame: this.frame, sub: this.sub });
     if (!p) return undefined;
     const [ax, ay] = this.asset.anchor, dx = p[0] + 0.5 - ax;
     return { x: this.flipX ? -dx : dx, y: p[1] + 0.5 - ay };
   }
 
   /** The frame currently shown. */
-  get rect(): FrameRect<Tex> { return this.pack.frame(this.id, { variant: this.variant, state: this.state, facing: this.facing, frame: this.frame }); }
+  get rect(): FrameRect<Tex> { return this.pack.frame(this.id, { variant: this.variant, state: this.state, facing: this.facing, frame: this.frame, sub: this.sub }); }
 
   dispose(): void { this.pack.adapter.dispose(this.node); }
 
   private apply(): this {
-    const key = `${this.state}|${this.facing}|${this.frame}|${this.flipX}`;
+    const key = `${this.state}|${this.facing}|${this.frame}|${this.sub}|${this.flipX}`;
     if (key !== this.shown) { this.shown = key; this.pack.adapter.setFrame(this.node, this.rect, this.flipX); }
     return this;
   }
