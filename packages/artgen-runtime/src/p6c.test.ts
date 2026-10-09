@@ -20,7 +20,7 @@ describe('P6c', () => {
     expect(seen).toEqual([[0, 0, 0], [0, 1, 1], [1, 0, 2], [1, 1, 3], [1, 1, 3]]);
     expect(s.done).toBe(true);
     expect(pack.frameIndex('swing', { state: 'attack', frame: 1, sub: 1 })).toBe(3);
-    expect(s.anchor('hand')).toBeDefined();
+    expect(pack.anchor('swing', 'hand', { state: 'attack', frame: 1, sub: 0 })).toEqual([6, 2]); // displayed frame 2
   });
 
   test('additive effects: sprites of a `blend: add` asset ask the adapter for additive blending', async () => {
