@@ -2,7 +2,7 @@
 // Runtime core: facing math, frame selection and the state machine, autotile masks, effects, coordinates, palette
 // swaps, manifest checks — on a synthetic pack, then on the three fixture packs exported in P3.
 import { readFileSync } from 'node:fs';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { decodePNG, type PackManifest as CorePackManifest } from 'artgen-core';
 import {
   BLOB47, E, N, NE, NW, S, SE, SW, W as WEST, blob47, chooseFacing, createPack, depthKey, facingAngle, frameAt, isoToScreen, loadPack,
@@ -235,6 +235,25 @@ describe('manifest checks and loading', () => {
   test('the runtime manifest type accepts what artgen-core writes', () => {
     const fromCore = (m: CorePackManifest): PackManifest => m;
     expect(typeof fromCore).toBe('function');
+  });
+
+  test('loadPack warns about draft assets (unless told not to); a pack without drafts loads quietly', async () => {
+    const { manifest, images } = synthPack(), [img] = images;
+    const load = (m: PackManifest, opts: Parameters<typeof loadPack>[2] = {}) =>
+      loadPack('/p/pack.json', recAdapter(), { fetchJson: async () => m, decode: async () => img, ...opts });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      await load(manifest);
+      expect(warn).not.toHaveBeenCalled();
+      const drafty: PackManifest = { ...manifest, drafts: ['walker'], assets: { ...manifest.assets, walker: { ...manifest.assets.walker, draft: true } } };
+      await load(drafty);
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(String(warn.mock.calls[0][0])).toMatch(/1 unapproved draft asset \(walker\)/);
+      const seen: string[][] = [];
+      await load(drafty, { onDrafts: ids => seen.push(ids) });
+      await load(drafty, { onDrafts: false });
+      expect([seen, warn.mock.calls.length]).toEqual([[['walker']], 1]);
+    } finally { warn.mockRestore(); }
   });
 
   const root = new URL('../../../examples/', import.meta.url);

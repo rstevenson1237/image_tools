@@ -79,7 +79,9 @@ subagent with that model (the art-reviewer for `review`). Scores record the mapp
 
 **Budget.** `budget` in the config: `revisionPasses` (per `perKind` and per importance `tiers`),
 `extraAutonomousRevisions`, `maxImageTokensPerAsset` (over it, `make` finishes the asset as it is and lists why),
-`maxSheetEdge`, `maxUserIterations`. Batches: `make` works through briefs in priority order; work one asset to `final`
+`maxSheetEdge`, `maxUserIterations`. A per-kind entry wins over the importance tier. New projects start with
+`perKind` textures at 2 passes and props at 4 (artgen's own analytics: a third pass rarely helps a texture, a fourth
+still helps props); change them freely. Batches: `make` works through briefs in priority order; work one asset to `final`
 before the next unless the user asked for a quick pass over all.
 
 ### Parallel make (many assets)

@@ -1,4 +1,4 @@
-// Vendored by `artgen export --runtime` (artgen-runtime 1.2.0). Local edits are detected and kept;
+// Vendored by `artgen export --runtime` (artgen-runtime 1.2.1). Local edits are detected and kept;
 // re-export with --force to overwrite them. Source: packages/artgen-runtime in rstevenson1237/image_tools.
 /**
  * Facing math. Angles are screen angles in radians: x right, y down, so `e` = 0, `s` = π/2 (towards the viewer in

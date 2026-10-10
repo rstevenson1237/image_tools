@@ -4,7 +4,7 @@
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import { DEFAULT_CONFIG, mergeConfig, type ProjectConfig } from 'artgen-core';
+import { INIT_CONFIG, mergeConfig, type ProjectConfig } from 'artgen-core';
 
 export { DEFAULT_CONFIG, isPlaceholderDirection, type BudgetCaps, type ProjectConfig } from 'artgen-core';
 
@@ -55,7 +55,7 @@ export function initProject(root: string): { project: Project; created: string[]
   file(join(art, 'anchors', '.gitkeep'), '');
   file(join(art, 'refs', 'README.md'), 'Reference images for the art direction interview. `artgen palette extract art/refs/<image>.png` pulls a palette from one.\n');
   file(join(art, 'ledger.jsonl'), '');
-  file(join(art, CONFIG_FILE), JSON.stringify(DEFAULT_CONFIG, null, 2) + '\n');
+  file(join(art, CONFIG_FILE), JSON.stringify(INIT_CONFIG, null, 2) + '\n');
   file(join(art, '.gitignore'), ART_GITIGNORE);
   // asset sources are ESM (D17) whatever the game repo's own package.json says
   file(join(art, 'package.json'), JSON.stringify({ private: true, type: 'module', description: 'artgen asset sources (ESM)' }, null, 2) + '\n');

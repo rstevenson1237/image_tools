@@ -16,9 +16,16 @@ import type { FrameSelect, Pack } from '../pack.js';
 export interface ThreeAdapterOptions {
   /** Atlas pixels per world unit (default 32: a 32 px sprite is 1 unit tall). */
   pixelsPerUnit?: number;
-  /** Alpha cut-out threshold (default 0.5: hard pixel edges, no sorting artefacts). */
+  /**
+   * Alpha cut-out threshold. The default (`ALPHA_TEST`, 0.02) drops only clear pixels, so translucent shadow pixels
+   * (a direction's `shadow.alpha`, typically 0.35) draw blended instead of vanishing; clear pixels still write no depth.
+   * Raise it (e.g. 0.5) for hard cut-outs when overlapping translucent sprites sort badly.
+   */
   alphaTest?: number;
 }
+
+/** Default alpha cut-out: just above 0, so only clear pixels are discarded (see `ThreeAdapterOptions.alphaTest`). */
+export const ALPHA_TEST = 0.02;
 
 /**
  * Upload RGBA pixels as a nearest-filtered texture (rows flipped so v = 0 is the bottom): sRGB colour, or linear data
@@ -74,7 +81,7 @@ export function threeAdapter(opts: ThreeAdapterOptions = {}): RuntimeAdapter<Dat
     id: 'three',
     loadTexture: a => pixelTexture(a),
     createNode(tex) {
-      const s = new Sprite(new SpriteMaterial({ map: tex.clone(), transparent: true, alphaTest: opts.alphaTest ?? 0.5 }));
+      const s = new Sprite(new SpriteMaterial({ map: tex.clone(), transparent: true, alphaTest: opts.alphaTest ?? ALPHA_TEST }));
       s.userData = { anchor: [0, 0], size: [1, 1], flipX: false } satisfies NodeData;
       return s;
     },
@@ -156,7 +163,7 @@ export function threeLitAdapter(opts: ThreeLitOptions = {}): RuntimeAdapter<Data
     id: 'three-lit',
     loadTexture: a => pixelTexture(a),
     createNode(tex) {
-      const m = new Mesh(new PlaneGeometry(1, 1), new MeshLambertMaterial({ map: tex.clone(), transparent: true, alphaTest: opts.alphaTest ?? 0.5 }));
+      const m = new Mesh(new PlaneGeometry(1, 1), new MeshLambertMaterial({ map: tex.clone(), transparent: true, alphaTest: opts.alphaTest ?? ALPHA_TEST }));
       m.userData = { anchor: [0, 0], size: [1, 1], flipX: false, fw: 1, fh: 1 } satisfies LitData;
       if (face) m.onBeforeRender = (_r, _s, camera: Camera) => {
         camera.getWorldPosition(_cam); m.getWorldPosition(_me);

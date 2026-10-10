@@ -43,6 +43,17 @@ export const DEFAULT_CONFIG: ProjectConfig = {
   gate: {},
 };
 
+/**
+ * The config `artgen init` writes for a new project: the defaults plus per-kind revision passes from analytics v2 over
+ * artgen's example games and benchmarks (51 assets): a third pass added +0.17 to textures (medium confidence), while
+ * props still gained +0.5 at the third (high, 14 assets). Kept out of `DEFAULT_CONFIG` on purpose: that is merged
+ * under every existing project's file, where new per-kind passes would reopen finished assets.
+ */
+export const INIT_CONFIG: ProjectConfig = {
+  ...DEFAULT_CONFIG,
+  budget: { ...DEFAULT_CONFIG.budget, perKind: { texture: { revisionPasses: 2 }, prop: { revisionPasses: 4 } } },
+};
+
 /** A parsed `artgen.config.json` merged over the defaults (sections shallow-merged, so older configs keep working). */
 export function mergeConfig(raw: Partial<ProjectConfig> | Record<string, unknown> = {}): ProjectConfig {
   const out = { ...DEFAULT_CONFIG } as Record<string, unknown>;

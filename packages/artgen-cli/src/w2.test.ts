@@ -51,6 +51,10 @@ describe('W2 production in a scratch game repo', () => {
 
   beforeAll(async () => {
     await run('init', ...R);
+    // these runs script exactly three revision passes per asset: drop init's per-kind budgets (props at 4)
+    const cfg = readJson<{ budget: { perKind?: unknown } }>(art('artgen.config.json'));
+    delete cfg.budget.perKind;
+    writeJson(art('artgen.config.json'), cfg);
     await run('direction', 'candidates', '--pitch', 'Grim swamp roguelike: bog goblins and leeches in the fog, a lantern as the only warm light.', ...R);
     await run('direction', 'lock', 'a', ...R);
   }, 60_000);

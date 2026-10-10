@@ -36,13 +36,15 @@ States with `durations` hold frames for their own time (a contact frame); others
 states exported with `sub` smoothing sub-frames keep `sprite.frame` logical (what the animation contract counts) and
 step `sprite.sub` through the frames in between; assets with `blend: 'add'` ask the adapter for additive blending.
 P6a added sprite stacks (`pack.stack`, `stack.ts`), `parallaxTiles` and normal atlases (`loadPack(…, { normals: true })`).
+Runtime 1.2.1: `loadPack` warns on the console when a pack carries unapproved drafts (`export --include-drafts`); pass
+`onDrafts` to handle them yourself, or `false` to silence it.
 
 ## Adapters (`src/adapters/`)
 
 | Entry | Engine | Nodes | Notes |
 |---|---|---|---|
 | `pixi.ts` | Pixi.js v8 | `Sprite` | nearest `BufferImageSource` atlases, cached frame textures, flip via `scale.x`, `zIndex` from z (parent made `sortableChildren`), `pixiStrip` → textures for `AnimatedSprite` |
-| `three.ts` | three.js | `Sprite` billboard | nearest sRGB `DataTexture`s, frames by UV offset/repeat (flip = negative repeat), sized by `pixelsPerUnit`, `alphaTest` cut-out; `billboardAngle(heading, node, camera)` for camera-relative facing; `tileTexture` for repeating floors and walls; `voxelModel` for `.glb`; **`threeLitAdapter`** (P6d): camera-yawed Lambert quads whose `normalMap` is the frame's rect in the normal atlas, for sprites lit by scene lights |
+| `three.ts` | three.js | `Sprite` billboard | nearest sRGB `DataTexture`s, frames by UV offset/repeat (flip = negative repeat), sized by `pixelsPerUnit`, `alphaTest` cut-out (default 0.02: translucent shadow pixels draw blended, clear pixels write no depth); `billboardAngle(heading, node, camera)` for camera-relative facing; `tileTexture` for repeating floors and walls; `voxelModel` for `.glb`; **`threeLitAdapter`** (P6d): camera-yawed Lambert quads whose `normalMap` is the frame's rect in the normal atlas, for sprites lit by scene lights |
 | `canvas2d.ts` | Canvas 2D | plain records | reference adapter (UI previews, docs): `Canvas2DLayer.draw(ctx, zoom)` in z order, `drawNode` |
 
 ## Adding a target

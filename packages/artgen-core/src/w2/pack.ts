@@ -133,7 +133,7 @@ export interface PackManifest {
    */
   normals?: string[];
   assets: Record<string, PackAsset>;
-  /** Assets exported before approval (`--include-drafts`, D10): show them watermarked in game builds. */
+  /** Assets exported before approval (`--include-drafts`, D10): `loadPack` warns on the console when it loads them. */
   drafts?: string[];
 }
 

@@ -12,6 +12,7 @@ import { briefContract, contractOf, diffContract } from './contract.ts';
 import { body, roster, rosterIssues, silhouetteOverlap } from './roster.ts';
 import { analytics, analyticsMarkdown } from './analytics.ts';
 import { editOps, nearestToken, restyleDiff, tokenizer } from './edit.ts';
+import { budgetFor, DEFAULT_CONFIG, INIT_CONFIG, mergeConfig } from './config.ts';
 
 const dir = parseDirection({
   id: 't', version: 1, status: 'locked', camera: { view: 'topdown', light: [-1, -1, 1] }, scale: { character: [8, 8], tile: 4 },
@@ -260,3 +261,14 @@ describe('effect object (rev 9)', () => {
   });
 });
 
+
+describe('config budgets', () => {
+  test('new projects get the analytics per-kind passes; existing configs merged over the defaults do not', () => {
+    const fresh = mergeConfig(JSON.parse(JSON.stringify(INIT_CONFIG)));
+    expect([budgetFor(fresh, { kind: 'texture' }, dir).revisionPasses, budgetFor(fresh, { kind: 'prop' }, dir).revisionPasses, budgetFor(fresh, { kind: 'character' }, dir).revisionPasses]).toEqual([2, 4, 3]);
+    const older = mergeConfig({ budget: { revisionPasses: 3, extraAutonomousRevisions: 1 } });
+    expect(older.budget.perKind).toBeUndefined();
+    expect([budgetFor(older, { kind: 'texture' }, dir).revisionPasses, budgetFor(older, { kind: 'prop' }, dir).revisionPasses]).toEqual([3, 3]);
+    expect(DEFAULT_CONFIG.budget.perKind).toBeUndefined();
+  });
+});

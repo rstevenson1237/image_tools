@@ -1,4 +1,4 @@
-// Vendored by `artgen export --runtime` (artgen-runtime 1.2.0). Local edits are detected and kept;
+// Vendored by `artgen export --runtime` (artgen-runtime 1.2.1). Local edits are detected and kept;
 // re-export with --force to overwrite them. Source: packages/artgen-runtime in rstevenson1237/image_tools.
 /**
  * 2.5D helpers (PLAN P6a): sprite stacks and parallax layers.
