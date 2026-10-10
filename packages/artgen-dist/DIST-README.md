@@ -3,6 +3,11 @@
 Built by CI from [`packages/artgen-dist`](https://github.com/rstevenson1237/image_tools/tree/main/packages/artgen-dist)
 on `main`. Do not edit this branch by hand.
 
+artgen is a pixel-art pipeline for game repos, driven by Claude Code: lock an art direction (`art/direction.json`), then
+every sprite, tile and effect is a small JS module drawn from it, made and reviewed autonomously, approved by you, and
+exported as atlas packs plus a typed runtime (Pixi.js, three.js, Canvas 2D). Overview and quickstart:
+[the main README](https://github.com/rstevenson1237/image_tools#artgen-quickstart).
+
 ## Committed install (works in local and claude.ai/code cloud sessions)
 
 From the root of a game repo (local shell, or any Claude Code session with network access):
@@ -20,7 +25,7 @@ npx -y github:rstevenson1237/image_tools#artgen-dist status
 Then commit `.claude/`, `tools/artgen/`, `.mcp.json`, `CLAUDE.md` and `art/`. Sessions need no network or npm after
 that. Start with `/artgen-direction` (or ask Claude to set the art direction).
 
-- Skills: `artgen` (authoring and the pass pipeline), `art-direction` (W1), `asset-production` (W2: briefs, the
+- Skills: `artgen` (authoring and the pass pipeline), `art-direction` (setting the look), `asset-production` (briefs, the
   autonomous run, parallel rounds, gallery, approve/feedback, export, restyle). Agents: `art-reviewer`, `art-maker`. Commands: `/artgen-init`,
   `/artgen-direction`, `/artgen-brief`, `/artgen-make`, `/artgen-review`, `/artgen-feedback`, `/artgen-approve`,
   `/artgen-export`, `/artgen-restyle`.

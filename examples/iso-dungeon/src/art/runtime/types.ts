@@ -1,7 +1,7 @@
-// Vendored by `artgen export --runtime` (artgen-runtime 1.2.0). Local edits are detected and kept;
+// Vendored by `artgen export --runtime` (artgen-runtime 1.2.1). Local edits are detected and kept;
 // re-export with --force to overwrite them. Source: packages/artgen-runtime in rstevenson1237/image_tools.
 /**
- * The exported pack format (SPEC §12.1, written by `artgen export`) and the adapter interface (SPEC §12.2). The runtime
+ * The exported pack format (written by `artgen export`) and the adapter interface. The runtime
  * is vendored into game repos on its own, so it keeps its own copy of the manifest types instead of importing
  * artgen-core; a type test keeps the two in step.
  */
@@ -11,7 +11,7 @@ export type PackFrame = [number, number, number, number, number, number, string,
 
 /**
  * Playback of one state; `frames` counts logical frames, `durations` (ms per logical frame, e.g. a held contact frame)
- * overrides `fps` when present, and `sub` (P6c) is the number of display-only smoothing sub-frames per logical frame
+ * overrides `fps` when present, and `sub` is the number of display-only smoothing sub-frames per logical frame
  * (the asset's `frames` entries then index displayed frames: logical × sub + sub-frame).
  */
 export interface PackStateDef { frames: number; fps: number; loop: boolean; durations?: number[]; sub?: number }
@@ -35,13 +35,13 @@ export interface PackAsset {
   version: string;
   sourceHash: string;
   tile?: number;
-  /** Autotile layout of a tileset's frames (P6b): `wang16` (4-bit edges) or `blob47` (8-bit, corners gated by edges). */
+  /** Autotile layout of a tileset's frames: `wang16` (4-bit edges) or `blob47` (8-bit, corners gated by edges). */
   autotile?: 'wang16' | 'blob47';
   /** Autotile index → frame index within the asset's first state, when the exported order differs from the canonical one. */
   map?: number[];
-  /** The asset has a real normal map in the pack's `normals` atlases (P6a; lit sprites). */
+  /** The asset has a real normal map in the pack's `normals` atlases (lit sprites). */
   normals?: true;
-  /** Additive blending (P6c effects): sprites call the adapter's `setBlend(node, 'add')`. */
+  /** Additive blending (effects): sprites call the adapter's `setBlend(node, 'add')`. */
   blend?: 'add';
   draft?: true;
 }
@@ -51,10 +51,10 @@ export interface PackManifest {
   pack: string;
   generator: string;
   direction: { id: string; version: number };
-  /** Runtime version the pack was exported for (null before P4 exports). */
+  /** Runtime version the pack was exported for (null in packs exported before the runtime existed). */
   runtime: string | null;
   atlases: string[];
-  /** Normal-map atlases in the same layout as `atlases` (P6a): RGB = normal, OpenGL convention. */
+  /** Normal-map atlases in the same layout as `atlases`: RGB = normal, OpenGL convention. */
   normals?: string[];
   assets: Record<string, PackAsset>;
   drafts?: string[];
@@ -72,12 +72,12 @@ export interface AtlasImage {
 
 /**
  * A frame inside a loaded atlas texture. `normal` is the same rect in the normal-map atlas when the pack was loaded
- * with `normals: true` (lit sprites, P6d).
+ * with `normals: true` (lit sprites).
  */
 export interface FrameRect<Tex> { tex: Tex; atlas: AtlasImage; x: number; y: number; w: number; h: number; normal?: { tex: Tex; atlas: AtlasImage } }
 
 /**
- * What an engine target implements (SPEC §12.2, D3). The core never touches engine objects: it picks frames and calls
+ * What an engine target implements. The core never touches engine objects: it picks frames and calls
  * these. New targets are new adapters; nothing in the core changes.
  */
 export interface RuntimeAdapter<Tex = unknown, Node = unknown, Parent = unknown> {
@@ -92,9 +92,9 @@ export interface RuntimeAdapter<Tex = unknown, Node = unknown, Parent = unknown>
   setAnchor(node: Node, anchor: readonly [number, number], size: readonly [number, number]): void;
   /** Place the node; `z` is the adapter's depth (zIndex in 2D, world z in 3D). */
   setPosition(node: Node, x: number, y: number, z?: number): void;
-  /** Rotate the node about its anchor, radians clockwise on screen (sprite-stack slices, P6a). */
+  /** Rotate the node about its anchor, radians clockwise on screen (sprite-stack slices). */
   setRotation?(node: Node, rad: number): void;
-  /** Blend mode: `add` for light-emitting effects (P6c), `normal` otherwise. */
+  /** Blend mode: `add` for light-emitting effects, `normal` otherwise. */
   setBlend?(node: Node, mode: 'normal' | 'add'): void;
   /** Add the node to a scene parent (effects spawned by the runtime use this). */
   attach?(parent: Parent, node: Node): void;

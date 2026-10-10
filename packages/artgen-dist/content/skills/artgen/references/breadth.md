@@ -1,9 +1,9 @@
-# Breadth: views, voxels, textures, effects, animation, first-person (P6)
+# Breadth: views, voxels, textures, effects, animation, first-person
 
 Everything here goes through the same pipeline (base v1–v3 → finish → user) and the same gate. Pick the template for
 the view and kind (`artgen new <id> --kind … --view …`, or `make` from a brief) and adapt it.
 
-## Views and voxel (P6a)
+## Views and voxel
 - Views: `topdown`, `iso`, `oblique` (top + front face), `stack` (z-slices), `side` (+ parallax `layer` kind), `fp`.
   The review sheet shows each in its context: iso floor, oblique room, side scroll strip, stack turned through 8
   angles, parallax layers scrolled, first-person corridor.
@@ -14,14 +14,14 @@ the view and kind (`artgen new <id> --kind … --view …`, or `make` from a bri
 - Normal maps travel with every cell (2D `normal` shading and the voxel normal buffer) and export beside the atlas
   (`pack.json` `normals`); `artgen voxel <asset>` writes `.vox` + greedy-meshed `.glb`.
 
-## Textures and tiles (P6b)
+## Textures and tiles
 - `ctx.lib.tex.material(name, { size: ctx.size, scale, seed, ramps, range, params })` — `artgen texture --list`:
   stone cobble wood metal grass dirt sand snow water lava tech carpet brick. Seamless, palette-exact, with a normal map.
 - Autotiles (`brief autotile: wang16|blob47`), iso floor / block tiles, WFC, L-systems: see the tileset templates.
 - Gate flags for tiles: `seam`, `repetition` (visible grid), border contrast; `review.periodic: true` for designed
   repeats (bricks, panels).
 
-## Effects (P6c)
+## Effects
 - Particles: `ctx.lib.fx.particles(layers, { w, h, t: ctx.t, duration: ctx.duration })`. Presets:
   `ctx.lib.fx.preset('explosion'|'smoke'|'fire'|'sparks'|'magic'|'heal'|'muzzle'|'impact'|'splash'|'dust'|'trail',
   { w, h, duration, origin, angle, scale, colors })`. Quick look: `artgen fx <preset> --size 32 --frames 8`.
@@ -37,7 +37,7 @@ the view and kind (`artgen new <id> --kind … --view …`, or `make` from a bri
   additively). Effects keep inside their frame; the gate's `fill` check flags solid blobs (a disc of the lightest
   colour) — break shapes up, darker body under a small hot core.
 
-## Animation (P6c)
+## Animation
 - Time: `ctx.t` (0–1 over displayed frames), `ctx.ms` / `ctx.duration` (real time, from fps or `durations`),
   `ctx.logical` / `ctx.sub`.
 - Tracks: `ctx.lib.anim.track([[0, a], [0.5, b]], t)`, `blend({ 0: poseA, 0.4: poseB }, t)`, `ease`, `pingpong`.
@@ -58,7 +58,7 @@ the view and kind (`artgen new <id> --kind … --view …`, or `make` from a bri
 - Gate flags: `frames` (feet jumping, colour drift, loop seam), `attack`. Review sheets add an onion-skin row; `artgen
   anim <asset>` writes GIF + APNG previews per state.
 
-## First-person (P6d)
+## First-person
 - Kinds in `view: fp`: `texture` with `surface: wall|floor|ceiling` (64 or 128 px, from `fp/texture`), skies as
   `kind: layer` (`ctx.lib.tex.sky({ w, h, ramp, clouds, stars, ridge })`), 8-direction billboards from one voxel model
   (`fp/character`: raster `billboard` camera), `viewmodel` (`fp/viewmodel`: weapon + hand on the bottom edge, `idle` +

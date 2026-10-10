@@ -97,7 +97,11 @@ const parseSize = (s?: string): string | Size | undefined => {
   return m ? [+m[1], +m[2]] : s;
 };
 
-const USAGE = `usage: artgen init
+const USAGE = `artgen — code-generated pixel art for games, driven by a locked art direction (art/direction.json).
+Lock a direction, write briefs, let the pipeline make and review each asset, approve, then export packs and the
+runtime your game loads them with. In Claude Code, start with /artgen-direction; the skills drive these commands.
+
+usage: artgen init
        artgen direction candidates --pitch "..." [--view topdown|iso] [--mood a,b] [--scale small|medium|large] [--colors src] [--from interview.json]
        artgen direction tile [names...] | mix <base> --palette a --line b ... | lock <name> [--note "..."] | anchors | new [--from c] | show | validate <file>
        artgen palette import <file> | extract <image.png> [--n 16] | ramp <#hex> [--steps 4] [--hue-shift 12] [--contrast 0.45]   (--interview: feed candidate A)
@@ -112,6 +116,7 @@ const USAGE = `usage: artgen init
        artgen brief add <id> --kind k [--view v] [--size key|WxH] [--states a,b] [--directions n] [--anims walk:4] [--durations attack=80/80/200/80] [--variants n] [--swaps red:cloth=accent] [--importance t] [--priority n] [--height metres] [--object "ice lance"] [--notes "..."] [--break-contract]
        artgen brief list | rm <id>
        artgen make [ids|all] [--parallel n] | status [ids] | gallery [ids]
+       artgen roster [ids] [--seed n] | roster record <review.json> [--reviewer name]
        artgen feedback <id> --route base|finish --note "..." [--region x,y,w,h] [--cell s/f/n] | approve <id> [--note "..."]
        artgen export [--pack name] [--include-drafts] [--runtime [--force]] [--break-contract id,…|*] | restyle [--from N] | import-edit <id> <png> [--cell s/f/n]
        artgen analytics [--out file.md] | analytics --across <root>,<root>… [--apply] [--min-assets n] [--out file.md]
@@ -120,7 +125,22 @@ const USAGE = `usage: artgen init
        artgen anim <asset> [--version v] [--state s] [--facing f] [--scale n] [--out dir]
        artgen fx <preset> [--size 32|WxH] [--frames 8] [--seed n] [--scale n] [--out dir] | fx --list
        artgen bench [--direction benchmark|alt|<file>] [--out <dir>] [--stages] [--ledger <file>] [--update-golden]
-       artgen --version`;
+       artgen --version | --help
+
+Commands take --json (machine-readable output) and --root <game repo>; asset commands also take
+--direction <file|benchmark|alt> and --ledger <file>.`;
+
+/** The project's direction for the standalone generators (texture, fx): a clear error until one is locked. */
+function toolDirection(cmd: string, root: string | undefined, override: string | undefined) {
+  const p = findProject(root), file = override ?? (p ? join(p.art, 'direction.json') : undefined);
+  const fix = 'lock one first (artgen direction candidates → tile → lock, or /artgen-direction in Claude Code), or pass --direction <file|benchmark>';
+  if (override && !existsSync(override) && ['benchmark', 'alt'].includes(override)) return { p, dir: resolveDirection(override) };
+  if (override && !existsSync(override)) throw new Error(`${cmd}: --direction ${override}: no such file (or bench direction: benchmark, alt)`);
+  if (!file || !existsSync(file)) throw new Error(`${cmd}: no art direction found — ${fix}`);
+  const raw = JSON.parse(readFileSync(file, 'utf8')), v = validateDirection(raw);
+  if (!v.ok) throw new Error(raw?.status === 'draft' && !override ? `${cmd}: the art direction is still a draft — ${fix}` : `${cmd}: ${file} is not a valid direction:\n  ${v.errors.join('\n  ')}`);
+  return { p, dir: parseDirection(raw) };
+}
 
 export async function main(argv: string[]): Promise<number> {
   const [cmd, sub, ...rest] = argv, args = [sub, ...rest].filter((a): a is string => a !== undefined);
@@ -295,11 +315,10 @@ export async function main(argv: string[]): Promise<number> {
   if (cmd === 'texture') {
     if (sub === '--list' || args.includes('--list')) { print(MATERIALS.join('\n'), MATERIALS); return 0; }
     if (!sub) throw new Error('texture: name a material (artgen texture --list)');
-    const p = findProject(flag(args, '--root')), dirFile = flag(args, '--direction') ?? (p ? join(p.art, 'direction.json') : undefined);
-    if (!dirFile || !existsSync(dirFile)) throw new Error('texture: needs a locked direction (run inside a project, or --direction <file>)');
+    const { p, dir } = toolDirection('texture', flag(args, '--root'), flag(args, '--direction'));
     const sz = parseSize(flag(args, '--size') ?? '32'), size: Size = Array.isArray(sz) ? sz : [+sz!, +sz!];
     const ramps = list(args, '--ramps')?.reduce((m, x) => { const [k, v] = x.split('='); m[k] = v; return m; }, {} as Record<string, string>);
-    const r = textureRun(parseDirection(JSON.parse(readFileSync(dirFile, 'utf8'))), sub, { size, seed: flag(args, '--seed') ? +flag(args, '--seed')! : undefined, ramps, scale: flag(args, '--scale') ? +flag(args, '--scale')! : undefined, out: flag(args, '--out') ?? (p ? join(p.art, 'sheets', 'textures') : 'artgen-out') });
+    const r = textureRun(dir, sub, { size, seed: flag(args, '--seed') ? +flag(args, '--seed')! : undefined, ramps, scale: flag(args, '--scale') ? +flag(args, '--scale')! : undefined, out: flag(args, '--out') ?? (p ? join(p.art, 'sheets', 'textures') : 'artgen-out') });
     print([`${sub} ${size.join('x')} (ramps ${Object.entries(r.ramps).map(([k, v]) => `${k}=${v}`).join(', ')})`, ...r.files.map(f => `  ${f}`),
       `seam ${r.seam.ratio}× the interior · repetition: ${r.issues.length ? r.issues.join('; ') : `clear (lowStd ${r.repetition.lowStd}, ${r.repetition.markBlobs} marks)`}`].join('\n'), r);
     return 0;
@@ -312,10 +331,9 @@ export async function main(argv: string[]): Promise<number> {
   if (cmd === 'fx') {
     if (sub === '--list' || args.includes('--list')) { print(PRESET_NAMES.join('\n'), PRESET_NAMES); return 0; }
     if (!sub) throw new Error('fx: name a preset (artgen fx --list)');
-    const p = findProject(flag(args, '--root')), dirFile = flag(args, '--direction') ?? (p ? join(p.art, 'direction.json') : undefined);
-    if (!dirFile || !existsSync(dirFile)) throw new Error('fx: needs a locked direction (run inside a project, or --direction <file>)');
+    const { p, dir } = toolDirection('fx', flag(args, '--root'), flag(args, '--direction'));
     const sz = parseSize(flag(args, '--size') ?? '32'), size: Size = Array.isArray(sz) ? sz : [+sz!, +sz!];
-    const r = fxRun(parseDirection(JSON.parse(readFileSync(dirFile, 'utf8'))), sub, { size, frames: +(flag(args, '--frames') ?? 8), seed: flag(args, '--seed') ? +flag(args, '--seed')! : undefined, scale: flag(args, '--scale') ? +flag(args, '--scale')! : undefined, out: flag(args, '--out') ?? (p ? join(p.art, 'sheets', 'fx') : 'artgen-out') });
+    const r = fxRun(dir, sub, { size, frames: +(flag(args, '--frames') ?? 8), seed: flag(args, '--seed') ? +flag(args, '--seed')! : undefined, scale: flag(args, '--scale') ? +flag(args, '--scale')! : undefined, out: flag(args, '--out') ?? (p ? join(p.art, 'sheets', 'fx') : 'artgen-out') });
     print([`${sub} ${size.join('x')} × ${r.frames} frames`, ...r.files.map(f => `  ${f}`), `interior ${r.fill.interior.join(' ')} · brightest ${r.fill.brightest.join(' ')}`].join('\n'), r);
     return 0;
   }
@@ -456,6 +474,7 @@ export async function main(argv: string[]): Promise<number> {
     print(r.markdown, r.report);
     return 0;
   }
-  console.log(USAGE);
-  return cmd ? 1 : 0;
+  if (!cmd || cmd === '--help' || cmd === '-h' || cmd === 'help') { console.log(USAGE); return 0; }
+  console.error(`artgen: unknown command '${[cmd, sub].filter(Boolean).join(' ')}' — run artgen --help for the list`);
+  return 1;
 }

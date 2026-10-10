@@ -1,6 +1,6 @@
 # artgen templates
 
-Starting points for `artgen new` (asset sources) and the W1 probe set (`artgen direction candidates`). Each
+Starting points for `artgen new` (asset sources) and the art-direction probe set (`artgen direction candidates`). Each
 `<view>/<kind>/` holds `brief.json` (defaults) and `base.js` (copied as `base.v1.js`); `finish.js` is the
 finishing-pass template (`artgen finish`); characters and creatures start from `finish-character.js` instead, which
 paints the face (eyes, mouth, per-state expression) at the base's `eye`/`eye2`/`mouth` anchors after the clean-up ops. Templates only use role ramps (`skin`, `hair`, `cloth`, `leather`,

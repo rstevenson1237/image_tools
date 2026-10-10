@@ -27,7 +27,7 @@ server exposes the same tools and returns images directly: `direction_get`, `dir
 |---|---|---|
 | S1 base | T2+ primitive scene from the brief + direction tokens | `base.vN.js` |
 | S2 procedural | `ctx.lib.proc(scene).add(...)` layers: noise, patterns, rim light, AO, shadows, dither | same file |
-| R1–R3 | v1 first build, then v2, v3 — each rendered, reviewed, scored; revise from the **best** so far (R12) | `base.v1..v3.js` |
+| v1–v3 revisions | v1 first build, then v2, v3 — each rendered, reviewed, scored; revise from the **best** so far (R12) | `base.v1..v3.js` |
 | F finish | one direct-pixel pass on the best base, stored as ops (R2) | `finish.v1.js` |
 | U user | the user approves or gives feedback → `base.vN+1` (form/colour) or `finish.vM+1` (pixels) | |
 
@@ -48,6 +48,15 @@ asset matters; otherwise score yourself with the rubric in `references/review.md
 before an asset is shown to the user as finished.
 
 ## Rules
+Other artgen skills, agents and CLI messages cite these by number.
+- **R1** one pipeline for every asset: base → procedural → revisions → finish → user review (the table above).
+- **R2** the finishing pass runs once per base version and is stored as ops, not pixels, so it re-applies after re-renders.
+- **R6** the conformance gate and a review sheet come before the user sees an asset; only the user approves.
+- **R8** every stage is inspectable: `render --stages` dumps them when something looks wrong.
+- **R13** an asset's animation contract (`art/contracts/<id>.json`: states, frame counts, durations, loop, facings,
+  anchor names) is frozen at its first export and may only grow; game code indexes it.
+- **R14** no asset is judged only by its maker: every score names its reviewer, and a fresh reviewer blind re-scores
+  each final before the user sees it.
 - **R10** never edit a version that has a score; write the next version (`base.v3.js` from `base.v2.js` + header comment saying what changed).
 - **R11** no colour literals in sources — `pal.<ramp>`, `mat: 'metal'`, tokens like `'accent.0'` / `'outline'`. The gate fails on hex.
 - **R12** revise from the best-scoring version, not the latest (`pass next` names it).
@@ -57,7 +66,7 @@ before an asset is shown to the user as finished.
 - **R3/R9** renders are deterministic: seeded RNG (`ctx.rng`), no platform AA, palette-exact output.
 - Coordinates relative to `ctx.size` keep an asset valid when the direction's scale changes.
 
-## Pitfalls (from the P1b parity run)
+## Pitfalls (from artgen's benchmark runs)
 - `shade: 'normal'` on long thin parts gives blotchy bands; use `flat`/`cyl` for limbs, straps, cloaks — keep `normal` for masses.
 - `bevel` on tubes leaves orphan pixels; `cyl` with `axis` reads better.
 - A group's `underlay` doesn't separate siblings: give each limb its own underlay.
@@ -66,7 +75,8 @@ before an asset is shown to the user as finished.
 - The finishing pass adds ~+0.5 when a pixel-level problem is left (faces, hair tips, line weight) and ~0 on a clean
   base. It does not fix a weak silhouette — that is a base revision. Generic clean-up (`fix.orphans`, `jaggies`,
   `corners`) rarely changes T2+ output (its speckle is material noise, which reads as texture): write ops that target
-  what the review named (an edge to light, a notch, a highlight run). P3 fixtures: revisions +1.27, finishing +0.13.
+  what the review named (an edge to light, a notch, a highlight run). On the example games, revisions added +1.27 on
+  average and finishing +0.13.
 - Style-tile probes run a short pipeline (v1 + finish), roughly a point below a fully revised asset.
 - Turning figures (`--directions 8`) start from the walker template: `ctx.facing` → yaw, `ctx.t` drives the walk.
   Draw s, se, e, ne, n; west facings are mirrors. Check every facing row on the sheet, not just the first.

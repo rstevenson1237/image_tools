@@ -7,7 +7,7 @@ import { angleOf, chooseFacing } from './facing.js';
 import { StackSprite, type StackOptions } from './stack.js';
 import type { AnchorOf, AssetRef, AtlasImage, FrameRect, PackAsset, PackManifest, PackStateDef, RuntimeAdapter, StateOf, VariantOf } from './types.js';
 
-export const RUNTIME_VERSION = '1.2.0';
+export const RUNTIME_VERSION = '1.2.1';
 
 export interface DecodedImage { width: number; height: number; data: Uint8ClampedArray | Uint8Array }
 
@@ -16,9 +16,19 @@ export interface LoadOptions {
   decode?: (url: string) => Promise<DecodedImage>;
   /** Manifest loader (default: fetch). */
   fetchJson?: (url: string) => Promise<unknown>;
-  /** Also load the normal-map atlases the pack lists (`pack.normals`), for lit sprites (P6a). */
+  /** Also load the normal-map atlases the pack lists (`pack.normals`), for lit sprites. */
   normals?: boolean;
+  /**
+   * Called with the ids of unapproved assets the pack carries (`artgen export --include-drafts`). Default: a console
+   * warning, so drafts can't ship unnoticed; pass `false` to silence it once you know.
+   */
+  onDrafts?: ((ids: string[]) => void) | false;
 }
+
+/** Default `onDrafts`: one console warning naming the draft assets (no DOM / Node types in the core: via globalThis). */
+const warnDrafts = (pack: string) => (ids: string[]) =>
+  (globalThis as { console?: { warn(...a: unknown[]): void } }).console?.warn(
+    `artgen: pack "${pack}" includes ${ids.length} unapproved draft asset${ids.length > 1 ? 's' : ''} (${ids.join(', ')}) — approve them and re-export before shipping`);
 
 const idOf = (r: AssetRef): string => (typeof r === 'string' ? r : r.id);
 
@@ -37,6 +47,8 @@ export async function loadPack<Tex, Node, Parent>(url: string, adapter: RuntimeA
   const base = url.slice(0, url.lastIndexOf('/') + 1), decode = opts.decode ?? decodeImage;
   const images = await Promise.all(manifest.atlases.map(name => decode(base + name)));
   const normals = opts.normals && manifest.normals ? await Promise.all(manifest.normals.map(name => decode(base + name))) : undefined;
+  const drafts = manifest.drafts ?? [];
+  if (drafts.length && opts.onDrafts !== false) (opts.onDrafts ?? warnDrafts(manifest.pack))(drafts);
   return createPack(manifest, images, adapter, normals);
 }
 
@@ -74,7 +86,7 @@ export function recolor(atlas: AtlasImage, map: Record<string, string>, swap?: s
 }
 
 interface TexSet<Tex> { tex: (Tex | undefined)[]; img: (AtlasImage | undefined)[] }
-/** `frame` is the logical frame; `sub` the smoothing sub-frame within it (states exported with `sub`, P6c). */
+/** `frame` is the logical frame; `sub` the smoothing sub-frame within it (states exported with `sub`). */
 export interface FrameSelect { state?: string; facing?: number; frame?: number; sub?: number; variant?: string | number }
 
 export class Pack<Tex = unknown, Node = unknown, Parent = unknown> {
@@ -167,7 +179,7 @@ export class Pack<Tex = unknown, Node = unknown, Parent = unknown> {
     return s;
   }
 
-  /** A sprite stack (P6a): every slice of the asset's first state, rotated together. */
+  /** A sprite stack: every slice of the asset's first state, rotated together. */
   stack<A extends AssetRef>(ref: A, opts: StackOptions<Parent> = {}): StackSprite<Tex, Node, Parent> { return new StackSprite(this, ref, opts); }
 
   tiles<A extends AssetRef>(ref: A): TileSet<Tex, Node, Parent> { return new TileSet(this, idOf(ref)); }

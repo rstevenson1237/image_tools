@@ -1,4 +1,4 @@
-// {{ID}} base.v1 (r1) — template: an 8-direction first-person billboard (P6d) from one voxel model (T2+ 3D mode,
+// {{ID}} base.v1 (r1) — template: an 8-direction first-person billboard from one voxel model (T2+ 3D mode,
 // raster renderer, `billboard` camera): one model gives all eight facings, the walk swings the limbs over ctx.t,
 // and the voxel normal buffer becomes the sprite's normal map (lit billboards in the `three` adapter). Build the
 // silhouette from capsules and ellipsoids (toon shading for organic parts), decoration as slabs (R5). Anchors are

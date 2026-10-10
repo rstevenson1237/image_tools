@@ -4,7 +4,7 @@
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import { DEFAULT_CONFIG, mergeConfig, type ProjectConfig } from 'artgen-core';
+import { INIT_CONFIG, mergeConfig, type ProjectConfig } from 'artgen-core';
 
 export { DEFAULT_CONFIG, isPlaceholderDirection, type BudgetCaps, type ProjectConfig } from 'artgen-core';
 
@@ -36,7 +36,7 @@ export const EMPTY_DIRECTION = {
   note: 'Not set yet. Run the art direction workflow (/artgen-direction, or `artgen direction candidates`) to create and lock one.',
 };
 
-const ART_GITIGNORE = `# artgen: renders are rebuilt from sources; keep approved sheets and W1 records
+const ART_GITIGNORE = `# artgen: renders are rebuilt from sources; keep approved sheets and art-direction records
 sheets/*
 !sheets/approved/
 **/out/
@@ -49,13 +49,13 @@ export function initProject(root: string): { project: Project; created: string[]
   const file = (p: string, text: string) => { if (!existsSync(p)) { mkdirSync(dirname(p), { recursive: true }); writeFileSync(p, text); created.push(p); } };
   dir(art);
   file(join(art, 'direction.json'), JSON.stringify(EMPTY_DIRECTION, null, 2) + '\n');
-  file(join(art, 'briefs.yaml'), '# Asset briefs (W2, SPEC §5.1). One entry per asset: id, kind, view, size, states, directions, anims, notes.\n[]\n');
+  file(join(art, 'briefs.yaml'), '# Asset briefs. One entry per asset: id, kind, view, size, states, directions, anims, notes.\n[]\n');
   for (const d of ['assets', 'anchors', 'refs', 'candidates', 'probes', 'sheets']) dir(join(art, d));
   file(join(art, 'assets', '.gitkeep'), '');
   file(join(art, 'anchors', '.gitkeep'), '');
   file(join(art, 'refs', 'README.md'), 'Reference images for the art direction interview. `artgen palette extract art/refs/<image>.png` pulls a palette from one.\n');
   file(join(art, 'ledger.jsonl'), '');
-  file(join(art, CONFIG_FILE), JSON.stringify(DEFAULT_CONFIG, null, 2) + '\n');
+  file(join(art, CONFIG_FILE), JSON.stringify(INIT_CONFIG, null, 2) + '\n');
   file(join(art, '.gitignore'), ART_GITIGNORE);
   // asset sources are ESM (D17) whatever the game repo's own package.json says
   file(join(art, 'package.json'), JSON.stringify({ private: true, type: 'module', description: 'artgen asset sources (ESM)' }, null, 2) + '\n');

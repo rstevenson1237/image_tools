@@ -1,5 +1,5 @@
 /**
- * Pixi.js (v8) adapter (SPEC §12.2, D3). Atlases become nearest-filtered `TextureSource`s, nodes are `Sprite`s whose
+ * Pixi.js (v8) adapter. Atlases become nearest-filtered `TextureSource`s, nodes are `Sprite`s whose
  * texture is swapped per frame (frame textures are cached per atlas rect), mirrored facings flip `scale.x` about the
  * anchor, and z goes to `zIndex` (the parent is made `sortableChildren` on attach) for iso / oblique depth sorting.
  * Palette swaps arrive as recoloured atlases from the core, so no filter is needed.

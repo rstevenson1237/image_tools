@@ -1,4 +1,4 @@
-// {{ID}} base.v1 (r1) — template: a first-person surface (P6d) — wall, floor or ceiling by the brief's `surface` —
+// {{ID}} base.v1 (r1) — template: a first-person surface — wall, floor or ceiling by the brief's `surface` —
 // from a material recipe at 64 px, banded to the direction's ramps, with the normal map the runtime lights (`three`
 // lit billboards and wall materials). Walls read best with clear courses or panels (brick, stone, metal, wood); floors
 // and ceilings with a quieter recipe, darker for ceilings (`range` keeps them off the lightest steps). The review sheet

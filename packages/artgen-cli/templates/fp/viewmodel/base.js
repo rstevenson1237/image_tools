@@ -1,4 +1,4 @@
-// {{ID}} base.v1 (r1) — template: a first-person view-model (P6d): the weapon and the hand holding it, seen from behind
+// {{ID}} base.v1 (r1) — template: a first-person view-model: the weapon and the hand holding it, seen from behind
 // the player, anchored to the bottom of the frame (the runtime draws it over the bottom centre of the screen).
 // `idle` breathes (a 1 px bob); `fire` = muzzle flash on frame 0 (the `muzzle` particle preset at the `muzzle`
 // anchor), recoil kick up and back on frames 1-2, settle on frame 3. Draw it large and simple — it fills a third of

@@ -1,6 +1,8 @@
 # artgen-dist
 
-Builds the artgen **committed install** (SPEC §3.1, D1) and installs it into game repos.
+Builds the artgen **committed install** and installs it into game repos. The distribution is committed into each game
+repo (not installed as a Claude Code plugin) because plugins don't load in claude.ai/code cloud sessions; committed
+`.claude/` files and `.mcp.json` do.
 
 ```
 npm run build -w artgen-dist      # → packages/artgen-dist/out (the artgen-dist branch content)
@@ -20,7 +22,7 @@ node packages/artgen-dist/out/install.mjs init|update|status [--target <game rep
 CI (`.github/workflows/artgen-dist.yml`) publishes `out/` to the `artgen-dist` branch after the package tests pass on
 `main`. `version` in `package.json` becomes `tools/artgen/VERSION` and `artgen --version`.
 
-**Releases (P7).** `node scripts/artgen-release.mjs <x.y.z|patch|minor>` bumps the version in lockstep (this package,
+**Releases.** `node scripts/artgen-release.mjs <x.y.z|patch|minor>` bumps the version in lockstep (this package,
 the lockfile, the Python client) and writes the changelog section; edit it, commit, merge to `main`, then push the tag
 `artgen-v<version>`. `.github/workflows/artgen-release.yml` checks the tag against the versions, runs the package and
 Python tests, publishes the branch with `scripts/artgen-publish-dist.sh` and tags that commit `artgen-dist-v<version>`

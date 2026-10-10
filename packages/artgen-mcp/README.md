@@ -1,6 +1,6 @@
 # artgen-mcp
 
-The artgen MCP server (SPEC §14): JSON-RPC 2.0 over stdio, newline-delimited, no SDK. The build bundles it into the
+The artgen MCP server: JSON-RPC 2.0 over stdio, newline-delimited, no SDK. The build bundles it into the
 committed install as `tools/artgen/artgen-mcp.js`, and the installer adds it to the game's `.mcp.json`
 (`node tools/artgen/artgen-mcp.js`). Run from the game repo root: it finds the project (`art/artgen.config.json`)
 from its working directory.
@@ -16,10 +16,10 @@ from its working directory.
 | `score` | record a 0–10 score (`reviewer`, `blind`) | |
 | `finish` | write the next `finish.vM.js`, bound to the best base | |
 | `make` | one autonomous tick; `parallel: n` adds a round of maker packets | |
-| `status` | W2 status of every brief | |
+| `status` | status of every brief | |
 | `gallery` | finished assets for the user (logged) | sheets |
 | `feedback` | the user's feedback, `route` base / finish, `region`, `cell` | |
-| `approve` | the user's approval — needs `user_approved: true` (D10) | |
+| `approve` | the user's approval — needs `user_approved: true` (only the user approves) | |
 | `texture` | material recipe → `art/sheets/textures/` + seam / repetition metrics; `list` | 3×3 preview, normal map |
 | `fx` | particle preset → `art/sheets/fx/` + solid-fill numbers; `list` | strip, onion skin |
 | `export` | approved assets → packs, `assets.ts`; `runtime` vendors the runtime | |

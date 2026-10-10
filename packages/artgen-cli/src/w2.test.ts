@@ -51,6 +51,10 @@ describe('W2 production in a scratch game repo', () => {
 
   beforeAll(async () => {
     await run('init', ...R);
+    // these runs script exactly three revision passes per asset: drop init's per-kind budgets (props at 4)
+    const cfg = readJson<{ budget: { perKind?: unknown } }>(art('artgen.config.json'));
+    delete cfg.budget.perKind;
+    writeJson(art('artgen.config.json'), cfg);
     await run('direction', 'candidates', '--pitch', 'Grim swamp roguelike: bog goblins and leeches in the fog, a lantern as the only warm light.', ...R);
     await run('direction', 'lock', 'a', ...R);
   }, 60_000);
@@ -118,7 +122,7 @@ describe('W2 production in a scratch game repo', () => {
     expect(pack.assets.goblin).toMatchObject({ directions: 8, variants: ['base', 'v1', 'red'], version: 'finish.v3' });
     expect(pack.assets.goblin.frames.length).toBe(2 * 8 * 5);
     expect(existsSync(join(root, 'public/assets/main/main-0.aseprite.json'))).toBe(true);
-    expect(readFileSync(join(root, 'src/art/assets.ts'), 'utf8')).toContain('main: "/assets/main/pack.json"');
+    expect(readFileSync(join(root, 'src/art/assets.ts'), 'utf8')).toContain('main: `${base}assets/main/pack.json`');
     expect((await json('status', ...R)).map((r: { status: string }) => r.status)).toEqual(['exported', 'exported']);
   }, 60_000);
 

@@ -1,4 +1,4 @@
-// Review independence and roster review on disk (rev 9, findings/calibration.md): every score names its reviewer; a
+// Review independence and roster review on disk (rev 9, from the calibration study): every score names its reviewer; a
 // blind re-score of the final by a fresh reviewer gates `final` (a miss spends the extra revision); the gallery and
 // `approve` say when the score is the maker's own or the blind one disagrees; brief heights flag off-scale bodies;
 // `roster` writes the lineup + shuffled silhouettes and `roster record` turns a review into per-asset open issues.
@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { afterEach, beforeAll, describe, expect, test, vi } from 'vitest';
 import { decodePNG, parseLedger } from 'artgen-core';
 import { main } from './cli.ts';
-import { readJson } from './project.ts';
+import { readJson, writeJson } from './project.ts';
 
 const run = async (...args: string[]) => {
   const out: string[] = [], log = vi.spyOn(console, 'log').mockImplementation((...a) => { out.push(a.join(' ')); });
@@ -41,6 +41,10 @@ describe('rev 9: blind re-score, reviewer records, heights, roster', () => {
 
   beforeAll(async () => {
     await run('init', ...R);
+    // these runs script exactly three revision passes per asset: drop init's per-kind budgets (props at 4)
+    const cfg = readJson<{ budget: { perKind?: unknown } }>(art('artgen.config.json'));
+    delete cfg.budget.perKind;
+    writeJson(art('artgen.config.json'), cfg);
     await run('direction', 'candidates', '--pitch', 'Damp crypt crawler: knights, barrels and torchlight.', ...R);
     await run('direction', 'lock', 'a', ...R);
     await run('brief', 'add', 'barrel', '--kind', 'prop', '--height', '1', '--notes', 'oak barrel, iron hoops', ...R);

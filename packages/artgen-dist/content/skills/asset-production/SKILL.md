@@ -1,20 +1,20 @@
 ---
 name: asset-production
-description: Produce the game's art assets with artgen (W2) — write briefs into art/briefs.yaml, run every brief through the full pipeline (v1–v3 + finish) autonomously with the art-reviewer subagent and the gate, show the user a gallery of finished assets, handle their approvals and feedback, export atlas packs and the W3 runtime (Pixi.js, three.js, Canvas 2D adapters) for the game code, and restyle after a direction change. Use when the user asks for sprites, props, tiles or effects for the game, wants to see or approve assets, export them, wire them into the game, or change the look of existing assets.
+description: Produce the game's art assets with artgen — write briefs into art/briefs.yaml, run every brief through the full pipeline (v1–v3 + finish) autonomously with the art-reviewer subagent and the gate, show the user a gallery of finished assets, handle their approvals and feedback, export atlas packs and the artgen runtime (Pixi.js, three.js, Canvas 2D adapters) for the game code, and restyle after a direction change. Use when the user asks for sprites, props, tiles or effects for the game, wants to see or approve assets, export them, wire them into the game, or change the look of existing assets.
 ---
 
-# Asset production (W2)
+# Asset production
 
 The user gives you a list of things the game needs; you deliver **finished** assets. Everything between the brief and
-the finished asset runs **without asking the user** (D10): you write each version, the `art-reviewer` subagent scores
+the finished asset runs **without asking the user**: you write each version, the `art-reviewer` subagent scores
 it, the gate checks it, and the pass machine decides the next step. The user sees only the gallery of finished assets
 and answers with approvals or feedback. CLI: `{{ARTGEN}}`. Asset arguments take a brief id (`goblin`) or a directory.
 
-Read the **artgen** skill first (authoring rules R1–R12, T2+ and finishing references). There must be a locked
+Read the **artgen** skill first (its rules R1–R14, T2+ and finishing references). There must be a locked
 direction (`{{ARTGEN}} direction show`); if not, run the art-direction skill.
 
 ## 1. Briefs (`{{CMD}}brief`)
-Turn the user's list into briefs, one per asset, in `art/briefs.yaml` (SPEC §5.1):
+Turn the user's list into briefs, one per asset, in `art/briefs.yaml`:
 ```
 {{ARTGEN}} brief add goblin --kind character --directions 8 --anims walk:4,attack:3 --notes "hunched, big ears, rusty cleaver" --priority 1
 {{ARTGEN}} brief add crate --kind prop --variants 3 --notes "half-sunk, iron bands"
@@ -64,22 +64,24 @@ Do exactly the step it names, then call `make` again:
 
 The pass machine already applies R12 (revise from the best), the finishing pass on the best base, the blind re-score of
 the final (`review.blind` in the config, on by default), the extra revision when the final fails the gate or the blind
-score, and finally marks the asset `final` with any open issues listed. Why blind: in calibration, scores given by the
-reviewer that watched an asset improve ran half a point above blind scores and passed concept misses (a barrel that
-reads as a crate) — `docs/artgen/findings/calibration.md` in the artgen repo. Never score your own work: an asset you
+score, and finally marks the asset `final` with any open issues listed. Why blind: in artgen's calibration study, scores
+given by the reviewer that watched an asset improve ran half a point above blind scores and passed concept misses (a
+barrel that reads as a crate). Never score your own work: an asset you
 wrote is scored by the art-reviewer subagent; scores without `--reviewer` are recorded as `self` and shown as `SELF`. Animated assets: global
 finishing ops run on every frame and facing; patches placed at `ctx.at('<anchor>')` follow the anchor through the other
-frames of the same facing (D15) — keep `anchors(ctx)` in the base correct for every frame. Large sheets (8 facings ×
+frames of the same facing — keep `anchors(ctx)` in the base correct for every frame. Large sheets (8 facings ×
 walk) are reviewed as one row per unique facing; the west facings are mirrors.
 
-**Stage models (D19).** `art/artgen.config.json` → `models` maps stages (`base` = v1, `revise` = v2/v3/extra/user,
+**Stage models.** `art/artgen.config.json` → `models` maps stages (`base` = v1, `revise` = v2/v3/extra/user,
 `finish`, `review`) to a model and effort. When a stage names a model other than `default`, run that stage as a
 subagent with that model (the art-reviewer for `review`). Scores record the mapping; pass `--model`, `--effort`,
 `--tokens-in`, `--tokens-out`, `--ms` to `score` when you have measured values.
 
-**Budget (D19).** `budget` in the config: `revisionPasses` (per `perKind` and per importance `tiers`),
+**Budget.** `budget` in the config: `revisionPasses` (per `perKind` and per importance `tiers`),
 `extraAutonomousRevisions`, `maxImageTokensPerAsset` (over it, `make` finishes the asset as it is and lists why),
-`maxSheetEdge`, `maxUserIterations`. Batches: `make` works through briefs in priority order; work one asset to `final`
+`maxSheetEdge`, `maxUserIterations`. A per-kind entry wins over the importance tier. New projects start with
+`perKind` textures at 2 passes and props at 4 (artgen's own analytics: a third pass rarely helps a texture, a fourth
+still helps props); change them freely. Batches: `make` works through briefs in priority order; work one asset to `final`
 before the next unless the user asked for a quick pass over all.
 
 ### Parallel make (many assets)
@@ -144,7 +146,7 @@ contract (§1) and lists `contract <id>: created | extended | broken`. Packs cho
 assets with `include` patterns (`*`, `goblin*`, `kind:tile`) or a brief's `pack`. `--include-drafts` adds finished but
 unapproved assets flagged as drafts (for a test build; say so to the user).
 
-**Runtime (W3).** `{{ARTGEN}} export --runtime` also vendors the artgen runtime into `export.runtimeDir`
+**Runtime.** `{{ARTGEN}} export --runtime` also vendors the artgen runtime into `export.runtimeDir`
 (`src/art/runtime/`: the engine-agnostic core + the adapters listed in `artgen.config.json` → `runtime.adapters`:
 `pixi`, `three`, `canvas2d`), stamped in `runtime.json`. Re-running it upgrades the runtime; files the game edited are
 kept and reported — tell the user, and only pass `--force` if they agree to lose those edits. Set the adapter to the

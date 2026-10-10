@@ -1,4 +1,4 @@
-// {{ID}} base.v1 (r1) — template: a first-person sky (P6d), a panorama that wraps 360° (seamless across x): bands of
+// {{ID}} base.v1 (r1) — template: a first-person sky, a panorama that wraps 360° (seamless across x): bands of
 // one ramp from the horizon (lightest) to the zenith, clouds, stars, a distant ridge. The raycaster draws it behind
 // open ceilings; as a `layer` it also scrolls as a parallax backdrop.
 export const meta = { brief: '{{ID}}', pass: 'r1', notes: 'template sky panorama' };

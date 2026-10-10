@@ -166,4 +166,14 @@ describe('adapter extras', () => {
     const floor = tileTexture(p, 'wall', { frame: 15, repeat: [4, 4] });
     expect([floor.image.width, floor.repeat.x, floor.magFilter]).toEqual([8, 4, NearestFilter]);
   });
+
+  test('three: translucent shadow pixels survive the alpha cut-out; clear pixels do not', async () => {
+    const { manifest, images } = synthPack(), shadow = Math.round(0.35 * 255) / 255; // a direction's default shadow alpha
+    const cases: [RuntimeAdapter<DataTexture, unknown, unknown>, boolean][] = [[threeAdapter(), true], [threeLitAdapter(), true], [threeAdapter({ alphaTest: 0.5 }), false]];
+    for (const [adapter, keeps] of cases) {
+      const p = await createPack(manifest, images, adapter), m = (p.sprite('walker').node as { material: { alphaTest: number } }).material;
+      expect(shadow >= m.alphaTest, `${adapter.id} keeps a 35 % shadow`).toBe(keeps);
+      expect(m.alphaTest).toBeGreaterThan(0); // fully clear pixels are still discarded (no depth writes)
+    }
+  });
 });

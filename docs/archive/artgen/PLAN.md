@@ -1,6 +1,6 @@
 # artgen — Implementation Plan
 
-Status: **rev 4** (P7 status added 2026-10-10) · implements [SPEC.md](SPEC.md) under the resolved decisions in [DECISIONS.md](DECISIONS.md)
+Status: **rev 4** (P7 status added 2026-10-10; archived after P8) · implements [SPEC.md](SPEC.md) under the resolved decisions in [DECISIONS.md](DECISIONS.md)
 
 ## 1. Approach
 
@@ -307,6 +307,11 @@ added as **view modules** (SPEC §8) so later targets follow the same path (D8).
 - Move `docs/artgen/artlab/` and the planning docs (INTAKE, SPEC, PLAN, DECISIONS, findings) to
   `docs/archive/artgen/`, with a short README pointing at the live docs (skill references + package READMEs).
 - **Accept:** no live docs or code link into the archive except the archive README.
+- **Done 2026-10-10.** `docs/artgen/` moved to `docs/archive/artgen/` with a [README](README.md) (contents, how to read
+  the design citations left in code comments, outcomes, known gaps). Live docs link only to that README; the example
+  screenshots moved next to their games; the runtime sources, CLI templates, MCP tool descriptions and CLI messages that
+  reach game repos no longer cite these documents. Internal code comments keep their SPEC / PLAN / D citations as
+  design history, resolved by the README.
 
 ## 5. Dependency graph
 

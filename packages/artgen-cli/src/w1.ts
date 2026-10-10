@@ -34,7 +34,7 @@ export function directionVersion(p: Project, version: number): Direction {
   if (existsSync(f)) return parseDirection(readJson(f));
   const cur = lockedDirection(p);
   if (cur?.version === version) return cur;
-  throw new Error(`direction v${version} is not archived (art/directions/v${version}.json) — directions locked before P3 are archived on the next lock`);
+  throw new Error(`direction v${version} is not archived (art/directions/v${version}.json) — directions locked by older artgen versions are archived on the next lock`);
 }
 
 /** Candidate names on disk, a/b/c first, then mixes and drafts in name order. */

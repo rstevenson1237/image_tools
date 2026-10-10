@@ -1,4 +1,4 @@
-// P5 acceptance run (PLAN P5): the production build of the image tools, served from a sub-path with no special headers
+// UI acceptance run: the production build of the image tools, served from a sub-path with no special headers
 // (as on GitHub Pages), driven in headless Chromium against a copy of a fixture game repo.
 //
 //   1. Art Direction: open the repo, change a ramp, watch the live style tile, save the draft and lock it.
@@ -15,7 +15,7 @@
 // returns. Needs Playwright (`npm i -g playwright`, or set NODE_PATH to where it lives), a production build
 // (`BASE_PATH=/image_tools/ npm run build`) and the fixture tools (`npm run fixtures:install`).
 //
-//   node scripts/artgen-ui-accept.mjs [fixture=swamp-topdown] [out=docs/artgen/findings/p5]
+//   node scripts/artgen-ui-accept.mjs [fixture=swamp-topdown] [out=<tmp>/artgen-ui-accept]   (screenshots + record)
 import { execFileSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
@@ -28,7 +28,7 @@ const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
 
 const root = join(import.meta.dirname, '..'), fixture = process.argv[2] ?? 'swamp-topdown';
-const out = resolve(root, process.argv[3] ?? 'docs/artgen/findings/p5'), dist = join(root, 'dist'), BASE = '/image_tools/';
+const out = process.argv[3] ? resolve(process.argv[3]) : join(tmpdir(), 'artgen-ui-accept'), dist = join(root, 'dist'), BASE = '/image_tools/';
 if (!existsSync(join(dist, 'index.html'))) throw new Error('build first: BASE_PATH=/image_tools/ npm run build');
 mkdirSync(out, { recursive: true });
 
@@ -235,7 +235,7 @@ try {
 
   note('console errors', errors.length ? errors : 'none');
   writeFileSync(join(out, 'acceptance.json'), JSON.stringify({ fixture, steps: record.map(([step, value]) => ({ step, value })) }, null, 2) + '\n');
-  log(`ok — screenshots and acceptance.json in ${relative(root, out)}`);
+  log(`ok — screenshots and acceptance.json in ${out}`);
 } finally {
   await browser.close();
   server.close();

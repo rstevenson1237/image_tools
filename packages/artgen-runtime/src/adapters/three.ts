@@ -1,8 +1,8 @@
 /**
- * three.js adapter (SPEC §12.2, D3): pixel textures with `NearestFilter`, sprites as camera-facing billboards
+ * three.js adapter: pixel textures with `NearestFilter`, sprites as camera-facing billboards
  * (`THREE.Sprite`) sized in world units by `pixelsPerUnit`, frames chosen by UV offset / repeat (mirrored facings by a
- * negative repeat), and the 8-direction facing picked from the camera-relative angle (`billboardAngle`). P6a: slice
- * rotation (sprite stacks), additive blending, `.glb` voxel models (`voxelModel`). P6d: lit billboards
+ * negative repeat), and the 8-direction facing picked from the camera-relative angle (`billboardAngle`). Also: slice
+ * rotation (sprite stacks), additive blending, `.glb` voxel models (`voxelModel`), and lit billboards
  * (`threeLitAdapter`): camera-facing quads with a Lambert material whose normal map is the frame's rect in the pack's
  * normal atlases, so scene lights (a lamp) shade the sprite.
  */
@@ -16,9 +16,16 @@ import type { FrameSelect, Pack } from '../pack.js';
 export interface ThreeAdapterOptions {
   /** Atlas pixels per world unit (default 32: a 32 px sprite is 1 unit tall). */
   pixelsPerUnit?: number;
-  /** Alpha cut-out threshold (default 0.5: hard pixel edges, no sorting artefacts). */
+  /**
+   * Alpha cut-out threshold. The default (`ALPHA_TEST`, 0.02) drops only clear pixels, so translucent shadow pixels
+   * (a direction's `shadow.alpha`, typically 0.35) draw blended instead of vanishing; clear pixels still write no depth.
+   * Raise it (e.g. 0.5) for hard cut-outs when overlapping translucent sprites sort badly.
+   */
   alphaTest?: number;
 }
+
+/** Default alpha cut-out: just above 0, so only clear pixels are discarded (see `ThreeAdapterOptions.alphaTest`). */
+export const ALPHA_TEST = 0.02;
 
 /**
  * Upload RGBA pixels as a nearest-filtered texture (rows flipped so v = 0 is the bottom): sRGB colour, or linear data
@@ -74,7 +81,7 @@ export function threeAdapter(opts: ThreeAdapterOptions = {}): RuntimeAdapter<Dat
     id: 'three',
     loadTexture: a => pixelTexture(a),
     createNode(tex) {
-      const s = new Sprite(new SpriteMaterial({ map: tex.clone(), transparent: true, alphaTest: opts.alphaTest ?? 0.5 }));
+      const s = new Sprite(new SpriteMaterial({ map: tex.clone(), transparent: true, alphaTest: opts.alphaTest ?? ALPHA_TEST }));
       s.userData = { anchor: [0, 0], size: [1, 1], flipX: false } satisfies NodeData;
       return s;
     },
@@ -136,7 +143,7 @@ function placeQuad(m: LitNode, ppu: number) {
 const _cam = new Vector3(), _me = new Vector3();
 
 /**
- * Lit billboards (P6d): like `threeAdapter`, but each node is a quad mesh with a `MeshLambertMaterial`, its colour
+ * Lit billboards: like `threeAdapter`, but each node is a quad mesh with a `MeshLambertMaterial`, its colour
  * frame as `map` and — when the pack was loaded with `{ normals: true }` and the asset exports normals — the same rect
  * of the normal atlas as `normalMap`. Mirrored frames negate the normal's x. Use it for sprites that should take the
  * scene's lights (the crawler's ghoul by the lamp); keep `threeAdapter` for unlit ones.
@@ -156,7 +163,7 @@ export function threeLitAdapter(opts: ThreeLitOptions = {}): RuntimeAdapter<Data
     id: 'three-lit',
     loadTexture: a => pixelTexture(a),
     createNode(tex) {
-      const m = new Mesh(new PlaneGeometry(1, 1), new MeshLambertMaterial({ map: tex.clone(), transparent: true, alphaTest: opts.alphaTest ?? 0.5 }));
+      const m = new Mesh(new PlaneGeometry(1, 1), new MeshLambertMaterial({ map: tex.clone(), transparent: true, alphaTest: opts.alphaTest ?? ALPHA_TEST }));
       m.userData = { anchor: [0, 0], size: [1, 1], flipX: false, fw: 1, fh: 1 } satisfies LitData;
       if (face) m.onBeforeRender = (_r, _s, camera: Camera) => {
         camera.getWorldPosition(_cam); m.getWorldPosition(_me);

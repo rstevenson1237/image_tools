@@ -1,8 +1,8 @@
 # artgen-runtime
 
-The W3 runtime (PLAN P4, SPEC §12): plays the packs `artgen export` writes (`pack.json` + atlas PNGs) in a game.
+The artgen runtime: plays the packs `artgen export` writes (`pack.json` + atlas PNGs) in a game.
 Renderer-agnostic TypeScript core with no dependencies (3.7 KB min+gz, budget 8 KB), plus one adapter per engine as a
-separate entry point. Game repos get it **vendored** (D4): `artgen export --runtime` copies the core and the adapters
+separate entry point. Game repos get it **vendored**: `artgen export --runtime` copies the core and the adapters
 listed in `art/artgen.config.json` (`runtime.adapters`) into `src/art/runtime/`, stamped in `runtime.json`.
 
 ```ts
@@ -32,17 +32,19 @@ Angles: x right, y down; `s` faces the viewer. Anchors are frame pixels (feet fo
 sprites, tiles and effects); mirrored frames flip about the anchor in every adapter. Named anchors (`hand`, `head`,
 `blade`…) come from the asset module per frame; `sprite.anchor('hand')` gives this frame's point as an offset from the
 sprite's position (pixel centre, unscaled), so trails, sparks and held props stay in the hand when the art is redrawn.
-States with `durations` hold frames for their own time (a contact frame); others step at `fps`. Runtime 1.2 (P6c):
+States with `durations` hold frames for their own time (a contact frame); others step at `fps`. Runtime 1.2:
 states exported with `sub` smoothing sub-frames keep `sprite.frame` logical (what the animation contract counts) and
 step `sprite.sub` through the frames in between; assets with `blend: 'add'` ask the adapter for additive blending.
-P6a added sprite stacks (`pack.stack`, `stack.ts`), `parallaxTiles` and normal atlases (`loadPack(…, { normals: true })`).
+It also has sprite stacks (`pack.stack`, `stack.ts`), `parallaxTiles` and normal atlases (`loadPack(…, { normals: true })`).
+Runtime 1.2.1: `loadPack` warns on the console when a pack carries unapproved drafts (`export --include-drafts`); pass
+`onDrafts` to handle them yourself, or `false` to silence it.
 
 ## Adapters (`src/adapters/`)
 
 | Entry | Engine | Nodes | Notes |
 |---|---|---|---|
 | `pixi.ts` | Pixi.js v8 | `Sprite` | nearest `BufferImageSource` atlases, cached frame textures, flip via `scale.x`, `zIndex` from z (parent made `sortableChildren`), `pixiStrip` → textures for `AnimatedSprite` |
-| `three.ts` | three.js | `Sprite` billboard | nearest sRGB `DataTexture`s, frames by UV offset/repeat (flip = negative repeat), sized by `pixelsPerUnit`, `alphaTest` cut-out; `billboardAngle(heading, node, camera)` for camera-relative facing; `tileTexture` for repeating floors and walls; `voxelModel` for `.glb`; **`threeLitAdapter`** (P6d): camera-yawed Lambert quads whose `normalMap` is the frame's rect in the normal atlas, for sprites lit by scene lights |
+| `three.ts` | three.js | `Sprite` billboard | nearest sRGB `DataTexture`s, frames by UV offset/repeat (flip = negative repeat), sized by `pixelsPerUnit`, `alphaTest` cut-out (default 0.02: translucent shadow pixels draw blended, clear pixels write no depth); `billboardAngle(heading, node, camera)` for camera-relative facing; `tileTexture` for repeating floors and walls; `voxelModel` for `.glb`; **`threeLitAdapter`** (P6d): camera-yawed Lambert quads whose `normalMap` is the frame's rect in the normal atlas, for sprites lit by scene lights |
 | `canvas2d.ts` | Canvas 2D | plain records | reference adapter (UI previews, docs): `Canvas2DLayer.draw(ctx, zoom)` in z order, `drawNode` |
 
 ## Adding a target
