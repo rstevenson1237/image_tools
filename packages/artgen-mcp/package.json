@@ -2,7 +2,7 @@
   "name": "artgen-mcp",
   "private": true,
   "version": "0.0.0",
-  "description": "artgen MCP stdio server (P2: W1 + pipeline tools for the committed install; full tool set in P7).",
+  "description": "artgen MCP stdio server: the full artgen tool set (SPEC §14) with image results, sandboxed to art/; bundled into the committed install.",
   "type": "module",
   "exports": "./src/index.ts",
   "bin": {

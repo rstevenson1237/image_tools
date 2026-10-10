@@ -1,0 +1,104 @@
+name: artgen-release
+
+# An artgen release (PLAN P7). Prepare it with `node scripts/artgen-release.mjs <version>` (version bump in lockstep,
+# CHANGELOG section), merge to main, then push the tag:
+#   git tag -a artgen-v0.9.0 -m "artgen 0.9.0" && git push origin artgen-v0.9.0
+# This workflow checks the tag against the version, runs the package and Python tests, publishes the build to the
+# `artgen-dist` branch, tags that commit `artgen-dist-v<version>` (what game repos pin:
+# `npx -y github:rstevenson1237/image_tools#artgen-dist-v0.9.0 update`) and creates the GitHub release with the
+# changelog section and the Python client's sdist/wheel attached. PyPI is not published (on the owner's go-ahead only).
+# Optional (D4): set the repository variable ARTGEN_PUBLISH_RUNTIME=true and the NPM_TOKEN secret to also publish
+# artgen-runtime to npm when its version is not there yet.
+on:
+  push:
+    tags: ['artgen-v*']
+
+permissions:
+  contents: write
+
+# shares the branch with artgen-dist.yml: publishes must not interleave
+concurrency:
+  group: artgen-dist
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Tag matches the version
+        id: v
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./packages/artgen-dist/package.json').version")
+          py=$(sed -n 's/^version = "\(.*\)"/\1/p' python/artgen/pyproject.toml)
+          if [ "${GITHUB_REF_NAME}" != "artgen-v${version}" ] || [ "$py" != "$version" ]; then
+            echo "tag ${GITHUB_REF_NAME} vs artgen-dist ${version} / python ${py}: run scripts/artgen-release.mjs first" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - run: npm ci
+
+      - run: npm run check:packages
+
+      - run: npm run test:packages
+
+      - name: Python client tests
+        run: |
+          pip install -e 'python/artgen[test]' build
+          python -m pytest python/artgen -q
+
+      - run: npm run build -w artgen-dist
+
+      - name: Publish the artgen-dist branch and tag the release
+        run: scripts/artgen-publish-dist.sh packages/artgen-dist/out "artgen-dist-v${{ steps.v.outputs.version }}"
+
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version=${{ steps.v.outputs.version }}
+          # this release's section of the changelog
+          awk -v v="## ${version} " 'index($0, v) == 1 { on = 1; print; next } /^## / { on = 0 } on' packages/artgen-dist/CHANGELOG.md > notes.md
+          printf '\nInstall or update in a game repo:\n\n    npx -y github:%s#artgen-dist-v%s update\n' "$GITHUB_REPOSITORY" "$version" >> notes.md
+          python -m build python/artgen --outdir python-dist
+          gh release create "$GITHUB_REF_NAME" --title "artgen $version" --notes-file notes.md python-dist/*
+
+  runtime-npm:
+    needs: release
+    if: vars.ARTGEN_PUBLISH_RUNTIME == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Publish artgen-runtime when its version is new
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        working-directory: packages/artgen-runtime
+        run: |
+          set -euo pipefail
+          name=$(node -p "require('./package.json').name"); version=$(node -p "require('./package.json').version")
+          if npm view "$name@$version" version >/dev/null 2>&1; then echo "$name@$version is already on npm"; exit 0; fi
+          # the workspace keeps it private (vendored by `artgen export --runtime`); the published copy is not
+          npm pkg delete private
+          npm publish --access public --provenance

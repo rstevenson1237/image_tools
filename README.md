@@ -40,7 +40,9 @@ Game repos install it by committing a built distribution (works in local and cla
 `npx -y github:rstevenson1237/image_tools#artgen-dist init`, then `/artgen-direction` (W1) and `/artgen-brief` + `/artgen-make`
 (W2: briefs → autonomous pipeline → approve → export), and `artgen export --runtime` (W3: vendors the runtime with a
 Pixi.js, three.js or Canvas 2D adapter, `packages/artgen-runtime`). `examples/` holds the fixture game repos used for
-acceptance — each is now a small game playing its exported pack.
+acceptance — each is now a small game playing its exported pack. The same tools are an MCP server in every install
+(`tools/artgen/artgen-mcp.js`) and a Python client (`python/artgen`). Releases are tagged `artgen-dist-v<version>`
+(pin one with `#artgen-dist-v0.9.0`); see `packages/artgen-dist/CHANGELOG.md`.
 
 `npm run dev` and `npm run build` both re-run `scripts/vendor-opencv.mjs` first, so the OpenCV
 asset is always in place.

@@ -14,3 +14,9 @@ packages/artgen-dist/out/
 examples/*/tools/artgen/artgen.js
 examples/*/tools/artgen/artgen-mcp.js
 examples/*/tools/artgen/resvg.wasm
+
+# Python client (python/artgen)
+__pycache__/
+*.egg-info/
+python/artgen/build/
+python-dist/

@@ -82,6 +82,26 @@ subagent with that model (the art-reviewer for `review`). Scores record the mapp
 `maxSheetEdge`, `maxUserIterations`. Batches: `make` works through briefs in priority order; work one asset to `final`
 before the next unless the user asked for a quick pass over all.
 
+### Parallel make (many assets)
+With several briefs in the pipeline, run them as **rounds** — one maker subagent per asset, all at once:
+```
+{{ARTGEN}} make [ids|all] --parallel 4 --json   # `work.makers` (this round), `work.queued`, `work.main`
+```
+- Each **maker** packet is an authoring step for one asset (`write-base`, `write-finish`, or adapting a template
+  `base.v1`). Start one **art-maker** subagent per packet, in parallel, and hand it the packet (`id`, `owns`, `step`,
+  `writes`). It owns that asset's directory: it writes only the file(s) in `writes`, renders and fixes the gate inside
+  its directory, then runs `{{ARTGEN}} review <id> --version <v>` and returns the sheet path. The ledger line that
+  review appends is the one shared write (appends are whole lines, safe from parallel processes).
+- The **main** agent (you) keeps everything that judges or decides: the `review` packets and each maker's returned
+  sheet go to a fresh **art-reviewer** (scores with `--reviewer art-reviewer`), `blind-review` packets to a new
+  art-reviewer in blind mode, and after the last round the roster review (§3). Makers never score, approve, run
+  `make`, edit `briefs.yaml` or touch another asset's directory.
+- When the round's reviews are scored, call `make --parallel` again; `queued` packets join the next round. Check
+  `git status art/` after a round: changes outside the makers' `owns` directories (other than `art/ledger.jsonl`)
+  mean a maker overstepped — revert them.
+- Use it for batches of 3+ assets; one or two go faster through the plain loop. Pick the round size (4 is a good
+  default) by how many subagents you can run at once.
+
 ## 3. Roster review, then show the user (`{{CMD}}review`)
 When `make` reports nothing left, review the **roster** before the gallery — it catches what no single-asset review can
 (assets drawn to fill their frames, a brazier outshining the torch, friend and foe in one ramp, two styles in one game):
@@ -162,3 +182,11 @@ a palette or line change should keep tokens at ~100 %; check gate failures and F
 size and view, regressions, first-pass quality per template, user revision rate, model/effort comparison, and budget
 suggestions (e.g. stop at v2 for a kind where v3 rarely helps). Mention notable suggestions to the user; change the
 config only with their agreement.
+
+**Across projects (v2).** One game has too few assets per kind to tune a budget; pool the ledgers of several (other
+game repos with artgen, or bench folders): `{{ARTGEN}} analytics --across ../game-a,../game-b,. [--out art/RECOMMEND.md]`.
+It recommends `revisionPasses` per kind (the last pass whose mean gain on the best-so-far score is still ≥ 0.25),
+an image-token cap per kind (1.5 × p90), a model/effort per stage when two mappings have been tried (else an
+experiment for the stage that gains least), and notes on finishing, user revisions and blind gaps — each with its
+evidence and a confidence. `--apply` merges the config patch (`budget.perKind`, `models`) into this project's
+`art/artgen.config.json`; only with the user's agreement.

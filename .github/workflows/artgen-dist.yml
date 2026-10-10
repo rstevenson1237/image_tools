@@ -3,6 +3,7 @@ name: artgen-dist
 # Publishes the artgen committed-install distribution (packages/artgen-dist → out/) to the `artgen-dist` branch,
 # which game repos install from:
 #   npx -y github:rstevenson1237/image_tools#artgen-dist init | update
+# Releases (artgen-release.yml) publish the same way and tag the commit artgen-dist-v<version>.
 # Runs only after the packages verify on main, so the branch never carries an untested build.
 on:
   push:
@@ -43,30 +44,6 @@ jobs:
 
       - run: npm run build -w artgen-dist
 
+      # the same publish step the release workflow uses (scripts/artgen-publish-dist.sh), without a tag
       - name: Commit the build to the artgen-dist branch
-        run: |
-          set -euo pipefail
-          out=packages/artgen-dist/out
-          version=$(cat "$out/dist/tools/artgen/VERSION")
-          dir=$(mktemp -d)
-          trap 'git worktree remove --force "$dir" 2>/dev/null || true' EXIT
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if git ls-remote --exit-code --heads origin artgen-dist >/dev/null; then
-            git fetch --depth=1 origin artgen-dist
-            git worktree add -B artgen-dist "$dir" FETCH_HEAD
-          else
-            git worktree add --detach "$dir"
-            git -C "$dir" checkout --orphan artgen-dist
-          fi
-          # the branch holds exactly the build: clear it, then copy the new one in
-          git -C "$dir" rm -rq --ignore-unmatch .
-          cp -a "$out/." "$dir/"
-          git -C "$dir" add -A
-          if git -C "$dir" diff --cached --quiet; then
-            echo "artgen-dist $version: no changes"
-            exit 0
-          fi
-          git -C "$dir" commit -qm "artgen-dist $version from ${GITHUB_SHA::7}"
-          git -C "$dir" push origin artgen-dist
-          echo "published artgen-dist $version"
+        run: scripts/artgen-publish-dist.sh packages/artgen-dist/out

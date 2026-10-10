@@ -1,19 +1,23 @@
 /**
  * artgen MCP server (SPEC §14): JSON-RPC 2.0 over stdio, newline-delimited, no SDK dependency so it bundles into
- * one file for the committed install. P2 serves the W1 and pipeline tools the skills use, P3 adds `status`; P7 adds
- * the rest (finish, approve, texture, fx, export). Image results are returned as MCP image content (base64 PNG).
+ * one file for the committed install. P2 served the W1 and pipeline tools, P3 added `status`; P7 completes the set:
+ * `finish`, `make` (with the parallel round), `feedback`, `approve`, `gallery`, `texture`, `fx`, `export`, `restyle`
+ * and `analytics`. Image results are returned as MCP image content (base64 PNG).
  *
- * Paths are sandboxed: every asset path must resolve inside the project's `art/` folder.
+ * Paths are sandboxed: every asset argument must resolve inside the project's `art/` folder (a brief id resolves
+ * through art/briefs.yaml), and the quick-look tools (`texture`, `fx`) write only under art/sheets/. `export` writes
+ * where art/artgen.config.json says (the game's pack and runtime folders), as the CLI does.
  */
-import { readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve } from 'node:path';
-import { encodePNG, type Grid } from 'artgen-core';
+import { encodePNG, MATERIALS, parseDirection, PRESET_NAMES, type Grid, type Size } from 'artgen-core';
+import { BENCH_DIRECTIONS } from 'artgen-core/bench';
 import {
-  candidateNames, findProject, loadCandidate, lockedDirection, openAsset, passState, renderVersion, reviewVersion,
-  projectStatus, scoreVersion, versionsIn, writeTile, type Project,
+  approve, candidateNames, exportPacks, feedback, findProject, fxRun, gallery, loadCandidate, lockedDirection, make, openAsset, passState, projectAnalytics,
+  readBriefs, renderVersion, requireLocked, restyle, reviewVersion, projectStatus, scoreVersion, textureRun, VERSION, versionsIn, writeNextFinish, writeTile, type Project,
 } from 'artgen-cli';
 
-export const SERVER = { name: 'artgen', version: '0.3.0' };
+export const SERVER = { name: 'artgen', version: VERSION === 'dev' ? '0.0.0-dev' : VERSION };
 const PROTOCOLS = ['2025-06-18', '2025-03-26', '2024-11-05'];
 
 type Json = Record<string, unknown>;
@@ -23,21 +27,30 @@ interface ToolDef { name: string; description: string; inputSchema: Json; run(ar
 const text = (v: unknown): Content => ({ type: 'text', text: typeof v === 'string' ? v : JSON.stringify(v, null, 2) });
 const image = (g: Grid): Content => ({ type: 'image', data: Buffer.from(encodePNG(g)).toString('base64'), mimeType: 'image/png' });
 const pngFile = (f: string): Content => ({ type: 'image', data: readFileSync(f).toString('base64'), mimeType: 'image/png' });
-const str = { type: 'string' } as const, num = { type: 'number' } as const;
+const str = { type: 'string' } as const, num = { type: 'number' } as const, bool = { type: 'boolean' } as const, strs = { type: 'array', items: str } as const;
+/** A file a core function reported (relative to the process's cwd) as a path relative to the project root. */
+const projRel = (p: Project, f: string) => relative(p.root, resolve(f)).split('\\').join('/');
+const sizeArg = (v: unknown, d = 32): Size => (Array.isArray(v) && v.length === 2 ? [Number(v[0]), Number(v[1])] : [Number(v ?? d), Number(v ?? d)]);
 const obj = (properties: Json, required: string[] = []) => ({ type: 'object', properties, required });
 
-/** Resolve an asset directory argument inside `art/` (relative to the project root or to `art/`). */
+/**
+ * Resolve an asset argument inside `art/`: a brief id, a directory relative to the project root or to `art/`, or a
+ * bare asset name under `art/assets/[<kind>/]`. The first candidate that exists wins; nothing outside `art/` is used.
+ */
 export function assetPath(p: Project, arg: unknown): string {
-  if (typeof arg !== 'string' || !arg) throw new Error('asset: required (e.g. "art/probes/character" or "assets/character/goblin")');
-  const cands = isAbsolute(arg) ? [arg] : [resolve(p.root, arg), resolve(p.art, arg)];
-  for (const c of cands) {
-    const r = relative(p.art, c);
-    if (r && !r.startsWith('..') && !isAbsolute(r)) return c;
-  }
-  throw new Error(`asset path ${arg} is outside art/ (sandbox)`);
+  if (typeof arg !== 'string' || !arg) throw new Error('asset: required (e.g. "art/probes/character", "assets/character/goblin" or a brief id)');
+  const bare = /^[\w-]+$/.test(arg), brief = bare ? (() => { try { return readBriefs(p).find(b => b.id === arg); } catch { return undefined; } })() : undefined;
+  const kinds = bare && existsSync(join(p.art, 'assets')) ? readdirSync(join(p.art, 'assets'), { withFileTypes: true }).filter(d => d.isDirectory()).map(d => join(p.art, 'assets', d.name, arg)) : [];
+  const cands = [...(brief ? [resolve(p.art, 'assets', brief.kind, brief.id)] : []), ...(isAbsolute(arg) ? [arg] : [resolve(p.root, arg), resolve(p.art, arg)]), ...(bare ? [join(p.art, 'assets', arg)] : []), ...kinds];
+  const inside = cands.filter(c => { const r = relative(p.art, c); return r && !r.startsWith('..') && !isAbsolute(r); });
+  if (!inside.length) throw new Error(`asset path ${arg} is outside art/ (sandbox)`);
+  return inside.find(c => existsSync(c)) ?? inside[0];
 }
 
-const asset = (p: Project, args: Json) => openAsset(assetPath(p, args.asset), { direction: typeof args.direction === 'string' ? join(p.root, args.direction) : undefined });
+/** `direction`: a bench direction name (`benchmark`, `alt`) or a file relative to the project root. */
+const dirOpt = (p: Project, args: Json) => (typeof args.direction !== 'string' ? undefined : BENCH_DIRECTIONS[args.direction] ? args.direction : join(p.root, args.direction));
+const asset = (p: Project, args: Json) => openAsset(assetPath(p, args.asset), { direction: dirOpt(p, args) });
+const ids = (a: Json) => (Array.isArray(a.ids) ? (a.ids as string[]) : undefined);
 
 export const TOOLS: ToolDef[] = [
   {
@@ -99,11 +112,96 @@ export const TOOLS: ToolDef[] = [
     },
   },
   {
+    name: 'finish', description: 'Write the next finish.vM.js for an asset from the finish template, bound to the best scored base (or `base`). Edit it with the finishing ops, then review it.',
+    inputSchema: obj({ asset: str, base: { ...str, description: 'base.vN to bind; default the pass machine\'s choice' }, direction: str }, ['asset']),
+    async run(a, p) {
+      const r = await writeNextFinish(assetPath(p, a.asset), { base: typeof a.base === 'string' ? a.base : undefined, direction: dirOpt(p, a) });
+      return [text({ file: projRel(p, r.file), base: r.base })];
+    },
+  },
+  {
+    name: 'make', description: 'One tick of the autonomous W2 run: scaffold missing assets from templates, mark finished pipelines final, and name the next step. parallel: n also returns a round of up to n maker packets (one subagent per asset; each writes only its own files, then runs render + review) and the main agent\'s review steps.',
+    inputSchema: obj({ ids: { ...strs, description: 'brief ids; default all' }, parallel: { ...num, description: 'maker subagents per round' } }),
+    async run(a, p) { return [text(await make(p, ids(a), { parallel: typeof a.parallel === 'number' && a.parallel >= 1 ? a.parallel : undefined }))]; },
+  },
+  {
     name: 'status', description: 'W2 production status of every brief in art/briefs.yaml (brief, in-pipeline, final, approved, exported, revision, stale), with the final version, score, open issues and the next pipeline step.',
     inputSchema: obj({ ids: { type: 'array', items: str, description: 'brief ids; default all' } }),
-    async run(a, p) { return [text(await projectStatus(p, Array.isArray(a.ids) ? (a.ids as string[]) : undefined))]; },
+    async run(a, p) { return [text(await projectStatus(p, ids(a)))]; },
+  },
+  {
+    name: 'gallery', description: 'Sheet(s) of finished assets for the user (final render, score, blind score, open issues), logged to the ledger and returned.',
+    inputSchema: obj({ ids: strs }),
+    async run(a, p) {
+      const r = await gallery(p, { ids: ids(a) });
+      return [text(r.sheets.length ? r : 'no finished assets waiting for review'), ...r.sheets.map(f => pngFile(join(p.root, f)))];
+    },
+  },
+  {
+    name: 'feedback', description: 'Record the user\'s feedback on a finished asset (by: user) and open a U-stage iteration. route base = form, proportion, colour (new base); finish = pixel fixes (finish revision). Pass the user\'s own words as note; region x,y,w,h in sprite pixels of cell state/facing/frame.',
+    inputSchema: obj({ id: str, route: { type: 'string', enum: ['base', 'finish'] }, note: str, region: { type: 'array', items: num }, cell: str, force: bool }, ['id', 'route', 'note']),
+    async run(a, p) {
+      if (a.route !== 'base' && a.route !== 'finish') throw new Error('route: base | finish');
+      if (typeof a.note !== 'string' || !a.note) throw new Error('note: the user\'s words are required');
+      return [text(await feedback(p, a.id as string, { route: a.route, note: a.note, region: Array.isArray(a.region) ? (a.region as number[]) : undefined, cell: typeof a.cell === 'string' ? a.cell : undefined, force: a.force === true }))];
+    },
+  },
+  {
+    name: 'approve', description: 'Record the USER\'s approval of a final asset (D10: approval is the user\'s call, never the agent\'s). Call only after the user said so in this conversation; user_approved must be true and note should quote them. Needs a passing gate and a review sheet of the final (R6).',
+    inputSchema: obj({ id: str, note: str, user_approved: { ...bool, description: 'true only when the user explicitly approved this asset' } }, ['id', 'user_approved']),
+    async run(a, p) {
+      if (a.user_approved !== true) throw new Error('approve: only the user approves assets (D10) — show them the gallery and ask; pass user_approved: true once they say so');
+      return [text(await approve(p, a.id as string, typeof a.note === 'string' ? a.note : ''))];
+    },
+  },
+  {
+    name: 'texture', description: 'Render a material recipe under the locked direction (or `direction`) into art/sheets/textures: the tile, its normal map and a 3×3 repeat preview, with the seam and repetition metrics. list: the material names.',
+    inputSchema: obj({ material: str, size: { description: 'px, or [w, h]; default 32' }, seed: num, ramps: { type: 'object', description: 'layer → ramp, e.g. { "base": "stone" }' }, scale: num, list: bool, direction: str }),
+    async run(a, p) {
+      if (a.list === true || !a.material) return [text(MATERIALS)];
+      const dir = typeof a.direction === 'string' ? openDirection(p, a) : requireLocked(p), out = join(p.art, 'sheets', 'textures');
+      const r = textureRun(dir, a.material as string, { size: sizeArg(a.size), seed: typeof a.seed === 'number' ? a.seed : undefined, ramps: a.ramps as Record<string, string> | undefined, scale: typeof a.scale === 'number' ? a.scale : undefined, out });
+      const files = r.files.map(f => projRel(p, f));
+      return [text({ ...r, files }), pngFile(join(p.root, files[2])), pngFile(join(p.root, files[1]))];
+    },
+  },
+  {
+    name: 'fx', description: 'Quick look at a particle preset under the locked direction (or `direction`) in art/sheets/fx: the frame strip and an onion-skin sheet (plus GIF/APNG files), with the solid-fill numbers. list: the preset names.',
+    inputSchema: obj({ preset: str, size: { description: 'px, or [w, h]; default 32' }, frames: num, seed: num, scale: num, list: bool, direction: str }),
+    async run(a, p) {
+      if (a.list === true || !a.preset) return [text(PRESET_NAMES)];
+      const dir = typeof a.direction === 'string' ? openDirection(p, a) : requireLocked(p), out = join(p.art, 'sheets', 'fx');
+      const r = fxRun(dir, a.preset as string, { size: sizeArg(a.size), frames: typeof a.frames === 'number' ? a.frames : 8, seed: typeof a.seed === 'number' ? a.seed : undefined, scale: typeof a.scale === 'number' ? a.scale : undefined, out });
+      const files = r.files.map(f => projRel(p, f));
+      return [text({ ...r, files }), pngFile(join(p.root, files[0])), pngFile(join(p.root, files[1]))];
+    },
+  },
+  {
+    name: 'export', description: 'Export approved assets into the configured packs (atlases, pack.json, Aseprite JSON, typed assets.ts); include_drafts adds finals; runtime vendors the W3 runtime + adapters. Animation contracts are enforced unless break_contract names the asset (or *).',
+    inputSchema: obj({ packs: strs, include_drafts: bool, runtime: bool, force: bool, break_contract: strs }),
+    async run(a, p) {
+      return [text(await exportPacks(p, { packs: a.packs as string[] | undefined, includeDrafts: a.include_drafts === true, generator: `artgen ${VERSION} (mcp)`, runtime: a.runtime === true, force: a.force === true, breakContract: a.break_contract as string[] | undefined }))];
+    },
+  },
+  {
+    name: 'restyle', description: 'Re-render every finished asset under the newly locked direction: before | after | token-diff sheet (returned), per-asset change numbers; changed assets go back to final for re-approval.',
+    inputSchema: obj({ from: { ...num, description: 'direction version to compare from; default the previous one' } }),
+    async run(a, p) {
+      const r = await restyle(p, { from: typeof a.from === 'number' ? a.from : undefined });
+      return [text(r), pngFile(join(p.root, r.sheet))];
+    },
+  },
+  {
+    name: 'analytics', description: 'Pipeline analytics for this project (per-pass gains, cost per asset, regressions, user revision rate, review independence, budget suggestions) as markdown.',
+    inputSchema: obj({}),
+    async run(_a, p) { return [text(projectAnalytics(p).markdown)]; },
   },
 ];
+
+function openDirection(p: Project, a: Json) {
+  const name = dirOpt(p, a)!;
+  return parseDirection(BENCH_DIRECTIONS[name] ?? JSON.parse(readFileSync(name, 'utf8')));
+}
 
 export interface RpcMessage { jsonrpc: '2.0'; id?: number | string | null; method?: string; params?: Json; result?: unknown; error?: unknown }
 

@@ -1,6 +1,6 @@
 # artgen — Implementation Plan
 
-Status: **rev 4** · implements [SPEC.md](SPEC.md) under the resolved decisions in [DECISIONS.md](DECISIONS.md)
+Status: **rev 4** (P7 status added 2026-10-10) · implements [SPEC.md](SPEC.md) under the resolved decisions in [DECISIONS.md](DECISIONS.md)
 
 ## 1. Approach
 
@@ -289,6 +289,17 @@ added as **view modules** (SPEC §8) so later targets follow the same path (D8).
 - **Accept:** MCP inspector renders + reviews a benchmark asset; Python example generates a texture and a
   sheet; tagging a release and running `update` in a fixture repo moves it to the new version with local
   edits preserved.
+- **Built 2026-10-10; accepted in this cloud session** (the release on a stand-in remote; the first real tag push
+  is the owner's step). MCP server with the full tool set (18 tools, image results, brief ids and bare names resolved
+  inside the `art/` sandbox, `approve` only with `user_approved`); `make --parallel n` rounds of maker packets (one
+  `art-maker` subagent per asset, which owns its directory; reviews, blind re-scores and the roster stay with the main
+  agent; concurrent ledger appends tested); analytics v2 `analytics --across … [--apply]` (revision passes and
+  image-token caps per kind, model/effort per stage, with evidence and confidence); Python client `python/artgen`
+  (CLI with `--json` → dicts + Pillow images, `session()` over the MCP server at 37 vs 242 ms per texture, notebook,
+  9 pytest tests, CI job); release script + `artgen-release` workflow (tag `artgen-v<v>` → tests →
+  `artgen-dist-v<v>` tag → GitHub release with changelog and Python sdist/wheel; optional runtime npm publish).
+  The MCP Inspector rendered and reviewed the bench hero; the notebook makes a texture and a review sheet; a tagged
+  0.9.0 → 0.9.1 `update` through `npx` kept both local edits. Dist 0.9.0. Details: [findings/P7-access.md](findings/P7-access.md).
 
 ### P8 — Archive (S)
 - Trigger: artlab is fully superseded — P1b parity passed, the benchmark runs from the new engine, and nothing

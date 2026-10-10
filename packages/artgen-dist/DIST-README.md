@@ -13,14 +13,19 @@ npx -y github:rstevenson1237/image_tools#artgen-dist update    # later: shows th
 npx -y github:rstevenson1237/image_tools#artgen-dist status
 ```
 
+**Releases.** `#artgen-dist` follows `main`. To pin a release, use its tag instead (see the
+[changelog](https://github.com/rstevenson1237/image_tools/blob/main/packages/artgen-dist/CHANGELOG.md)):
+`npx -y github:rstevenson1237/image_tools#artgen-dist-v0.9.0 update`. Release tags never move.
+
 Then commit `.claude/`, `tools/artgen/`, `.mcp.json`, `CLAUDE.md` and `art/`. Sessions need no network or npm after
 that. Start with `/artgen-direction` (or ask Claude to set the art direction).
 
 - Skills: `artgen` (authoring and the pass pipeline), `art-direction` (W1), `asset-production` (W2: briefs, the
-  autonomous run, gallery, approve/feedback, export, restyle). Agent: `art-reviewer`. Commands: `/artgen-init`,
+  autonomous run, parallel rounds, gallery, approve/feedback, export, restyle). Agents: `art-reviewer`, `art-maker`. Commands: `/artgen-init`,
   `/artgen-direction`, `/artgen-brief`, `/artgen-make`, `/artgen-review`, `/artgen-feedback`, `/artgen-approve`,
   `/artgen-export`, `/artgen-restyle`.
-- CLI: `node tools/artgen/artgen.js --help` (Node 20+). MCP server: `artgen` (`node tools/artgen/artgen-mcp.js`).
+- CLI: `node tools/artgen/artgen.js --help` (Node 20+). MCP server: `artgen` (`node tools/artgen/artgen-mcp.js`), the
+  full tool set with image results. Python: the `artgen` client in the repo's `python/artgen` calls the same CLI.
 - `tools/artgen/MANIFEST.json` records installed file hashes; `update` replaces untouched files and keeps edited ones
   unless `--force`. `--dry-run` shows the plan.
 
