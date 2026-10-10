@@ -16,7 +16,7 @@ export interface LoadOptions {
   decode?: (url: string) => Promise<DecodedImage>;
   /** Manifest loader (default: fetch). */
   fetchJson?: (url: string) => Promise<unknown>;
-  /** Also load the normal-map atlases the pack lists (`pack.normals`), for lit sprites (P6a). */
+  /** Also load the normal-map atlases the pack lists (`pack.normals`), for lit sprites. */
   normals?: boolean;
   /**
    * Called with the ids of unapproved assets the pack carries (`artgen export --include-drafts`). Default: a console
@@ -86,7 +86,7 @@ export function recolor(atlas: AtlasImage, map: Record<string, string>, swap?: s
 }
 
 interface TexSet<Tex> { tex: (Tex | undefined)[]; img: (AtlasImage | undefined)[] }
-/** `frame` is the logical frame; `sub` the smoothing sub-frame within it (states exported with `sub`, P6c). */
+/** `frame` is the logical frame; `sub` the smoothing sub-frame within it (states exported with `sub`). */
 export interface FrameSelect { state?: string; facing?: number; frame?: number; sub?: number; variant?: string | number }
 
 export class Pack<Tex = unknown, Node = unknown, Parent = unknown> {
@@ -179,7 +179,7 @@ export class Pack<Tex = unknown, Node = unknown, Parent = unknown> {
     return s;
   }
 
-  /** A sprite stack (P6a): every slice of the asset's first state, rotated together. */
+  /** A sprite stack: every slice of the asset's first state, rotated together. */
   stack<A extends AssetRef>(ref: A, opts: StackOptions<Parent> = {}): StackSprite<Tex, Node, Parent> { return new StackSprite(this, ref, opts); }
 
   tiles<A extends AssetRef>(ref: A): TileSet<Tex, Node, Parent> { return new TileSet(this, idOf(ref)); }

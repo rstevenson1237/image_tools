@@ -1,5 +1,5 @@
 /**
- * 2.5D helpers (PLAN P6a): sprite stacks and parallax layers.
+ * 2.5D helpers: sprite stacks and parallax layers.
  *
  * A **sprite stack** is an asset exported in the `stack` view: its first state holds one top-down slice per voxel
  * layer, bottom first. `StackSprite` draws every slice rotated by the same angle and stepped up the screen by

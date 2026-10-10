@@ -1,5 +1,5 @@
 /**
- * Canvas 2D adapter — the reference target (SPEC §12.2): used by the image tools UI previews, docs and the adapter
+ * Canvas 2D adapter — the reference target: used by the image tools UI previews, docs and the adapter
  * contract tests. Nodes are plain records drawn by a `Canvas2DLayer` (sorted by z) or `drawNode`.
  */
 import type { AtlasImage, FrameRect, RuntimeAdapter } from '../types.js';

@@ -1,5 +1,5 @@
 /**
- * Shared adapter contract (SPEC §12.2): every adapter — the shipped ones and any new target — runs this suite with an
+ * Shared adapter contract: every adapter — the shipped ones and any new target — runs this suite with an
  * inspector that reads its nodes back. Test-only; not part of the vendored runtime.
  */
 import { describe, expect, test } from 'vitest';
@@ -19,7 +19,7 @@ export interface Inspector<Tex, Node, Parent> {
   children(p: Parent): number;
   /** Optional: the loaded textures are nearest-filtered with no mipmaps. */
   nearest?(t: Tex): boolean;
-  /** Optional (P6): rotation in radians (clockwise on screen) and blend mode the node was given. */
+  /** Optional: rotation in radians (clockwise on screen) and blend mode the node was given. */
   rotation?(n: Node): number;
   blend?(n: Node): 'normal' | 'add';
 }
@@ -77,7 +77,7 @@ export function adapterContract<Tex, Node, Parent>(make: () => RuntimeAdapter<Te
       expect(ins.children(parent)).toBe(0);
     });
 
-    test('sprite stacks (P6a): one node per slice, all turned together, stepped up the screen', async () => {
+    test('sprite stacks: one node per slice, all turned together, stepped up the screen', async () => {
       const ad = make();
       if (!ad.setRotation) return; // optional capability; stacks refuse such an adapter (p6.test.ts)
       const p = await load(), parent = ins.parent(), st = p.stack('car', { parent, spacing: 2 }).at(4, 10).rotate(0.5);
@@ -86,7 +86,7 @@ export function adapterContract<Tex, Node, Parent>(make: () => RuntimeAdapter<Te
       if (ins.rotation) for (const n of st.nodes) expect(ins.rotation(n)).toBeCloseTo(0.5);
     });
 
-    test('blend modes (P6c): add and back to normal', async () => {
+    test('blend modes: add and back to normal', async () => {
       const ad = make();
       if (!ad.setBlend || !ins.blend) return;
       const p = await load(), s = p.sprite('boom');

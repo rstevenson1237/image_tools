@@ -1,7 +1,7 @@
 // Vendored by `artgen export --runtime` (artgen-runtime 1.2.1). Local edits are detected and kept;
 // re-export with --force to overwrite them. Source: packages/artgen-runtime in rstevenson1237/image_tools.
 /**
- * artgen runtime core (W3, SPEC §12): loads exported packs, picks frames (state × facing × frame, mirror-aware
+ * artgen runtime core: loads exported packs, picks frames (state × facing × frame, mirror-aware
  * facing), resolves autotiles, plays effects, and converts iso/oblique coordinates. Renderer-agnostic and
  * dependency-free: engines plug in through a `RuntimeAdapter` (separate entry points: `./adapters/pixi`,
  * `./adapters/three`, `./adapters/canvas2d`).

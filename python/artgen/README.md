@@ -1,7 +1,7 @@
 # artgen (Python client)
 
-A thin Python client for [artgen](../../docs/artgen/SPEC.md), the pixel-art pipeline in this repo. It doesn't
-reimplement anything (DECISIONS D7): each call runs the artgen CLI with `--json` in a game repo and returns the parsed
+A thin Python client for [artgen](../../README.md#artgen-quickstart), the pixel-art pipeline in this repo. It doesn't
+reimplement anything: each call runs the artgen CLI with `--json` in a game repo and returns the parsed
 answer as a dict, with the PNGs it wrote available as Pillow images. A `session()` keeps the artgen MCP server open
 for bulk work.
 

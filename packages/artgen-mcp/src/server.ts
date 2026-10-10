@@ -120,12 +120,12 @@ export const TOOLS: ToolDef[] = [
     },
   },
   {
-    name: 'make', description: 'One tick of the autonomous W2 run: scaffold missing assets from templates, mark finished pipelines final, and name the next step. parallel: n also returns a round of up to n maker packets (one subagent per asset; each writes only its own files, then runs render + review) and the main agent\'s review steps.',
+    name: 'make', description: 'One tick of the autonomous production run: scaffold missing assets from templates, mark finished pipelines final, and name the next step. parallel: n also returns a round of up to n maker packets (one subagent per asset; each writes only its own files, then runs render + review) and the main agent\'s review steps.',
     inputSchema: obj({ ids: { ...strs, description: 'brief ids; default all' }, parallel: { ...num, description: 'maker subagents per round' } }),
     async run(a, p) { return [text(await make(p, ids(a), { parallel: typeof a.parallel === 'number' && a.parallel >= 1 ? a.parallel : undefined }))]; },
   },
   {
-    name: 'status', description: 'W2 production status of every brief in art/briefs.yaml (brief, in-pipeline, final, approved, exported, revision, stale), with the final version, score, open issues and the next pipeline step.',
+    name: 'status', description: 'Production status of every brief in art/briefs.yaml (brief, in-pipeline, final, approved, exported, revision, stale), with the final version, score, open issues and the next pipeline step.',
     inputSchema: obj({ ids: { type: 'array', items: str, description: 'brief ids; default all' } }),
     async run(a, p) { return [text(await projectStatus(p, ids(a)))]; },
   },
@@ -147,10 +147,10 @@ export const TOOLS: ToolDef[] = [
     },
   },
   {
-    name: 'approve', description: 'Record the USER\'s approval of a final asset (D10: approval is the user\'s call, never the agent\'s). Call only after the user said so in this conversation; user_approved must be true and note should quote them. Needs a passing gate and a review sheet of the final (R6).',
+    name: 'approve', description: 'Record the USER\'s approval of a final asset (approval is the user\'s call, never the agent\'s). Call only after the user said so in this conversation; user_approved must be true and note should quote them. Needs a passing gate and a review sheet of the final (R6).',
     inputSchema: obj({ id: str, note: str, user_approved: { ...bool, description: 'true only when the user explicitly approved this asset' } }, ['id', 'user_approved']),
     async run(a, p) {
-      if (a.user_approved !== true) throw new Error('approve: only the user approves assets (D10) — show them the gallery and ask; pass user_approved: true once they say so');
+      if (a.user_approved !== true) throw new Error('approve: only the user approves assets — show them the gallery and ask; pass user_approved: true once they say so');
       return [text(await approve(p, a.id as string, typeof a.note === 'string' ? a.note : ''))];
     },
   },
@@ -177,7 +177,7 @@ export const TOOLS: ToolDef[] = [
     },
   },
   {
-    name: 'export', description: 'Export approved assets into the configured packs (atlases, pack.json, Aseprite JSON, typed assets.ts); include_drafts adds finals; runtime vendors the W3 runtime + adapters. Animation contracts are enforced unless break_contract names the asset (or *).',
+    name: 'export', description: 'Export approved assets into the configured packs (atlases, pack.json, Aseprite JSON, typed assets.ts); include_drafts adds finals; runtime vendors the artgen runtime + adapters. Animation contracts are enforced unless break_contract names the asset (or *).',
     inputSchema: obj({ packs: strs, include_drafts: bool, runtime: bool, force: bool, break_contract: strs }),
     async run(a, p) {
       return [text(await exportPacks(p, { packs: a.packs as string[] | undefined, includeDrafts: a.include_drafts === true, generator: `artgen ${VERSION} (mcp)`, runtime: a.runtime === true, force: a.force === true, breakContract: a.break_contract as string[] | undefined }))];

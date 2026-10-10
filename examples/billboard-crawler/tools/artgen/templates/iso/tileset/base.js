@@ -1,4 +1,4 @@
-// {{ID}} base.v1 (r1) — template: iso floor + wall set (P6b) from seamless material recipes. Frames share one ground
+// {{ID}} base.v1 (r1) — template: iso floor + wall set from seamless material recipes. Frames share one ground
 // line (the diamond's bottom corner at the frame's bottom): 0 floor diamond, 1 wall block (a diamond-topped block a
 // tile tall), 2 half wall, each with the direction's outer line. Floors stagger without seams because the texture wraps. Brief: size [w, w] for a w px
 // diamond, `anims: { idle: { frames: 3 } }`.

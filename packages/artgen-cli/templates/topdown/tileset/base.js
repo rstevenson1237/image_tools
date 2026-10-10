@@ -1,4 +1,4 @@
-// {{ID}} base.v1 (r1) — template: autotile set (P6b) — one terrain lying on another, cut from two seamless material
+// {{ID}} base.v1 (r1) — template: autotile set — one terrain lying on another, cut from two seamless material
 // recipes. Frame i of the first state is canonical tile i of the brief's `autotile` layout (blob47: 47 tiles, wang16:
 // 16); the runtime's `pack.tiles(id).resolve(mask)` picks them. Brief: `autotile: blob47` and `anims: { idle: { frames:
 // 47 } }`. The boundary wobbles by noise along each edge, the upper terrain gets a rim and casts a shadow.

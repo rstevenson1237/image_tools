@@ -1,7 +1,9 @@
 # artgen-core
 
-The artgen engine (PLAN P1, P1b, P2). TypeScript, ESM, no Node or DOM imports: the CLI (`artgen-cli`) and, from P5, the
-image tools UI worker run the same build. Spec: [`docs/artgen/SPEC.md`](../../docs/artgen/SPEC.md) §4, §6, §11.
+The artgen engine. TypeScript, ESM, no Node or DOM imports: the CLI (`artgen-cli`) and the image tools UI worker run the
+same build. Rule numbers (R3, R11, …) are the rules listed in the `artgen` skill
+(`packages/artgen-dist/content/skills/artgen/SKILL.md`); "artlab" is the prototype the engine was ported from, archived
+with the design docs in [`docs/archive/artgen`](../../docs/archive/artgen/README.md).
 
 ## Layout
 
@@ -17,7 +19,7 @@ image tools UI worker run the same build. Spec: [`docs/artgen/SPEC.md`](../../do
 | `src/lib/iso.ts`, `voxel.ts` | 2:1 iso helpers, artlab T4 `Voxels` + `cubes` renderer (future T2+ 3D mode) |
 | `src/direction.ts` | `direction.json` types, `validateDirection` (defaults + path-tagged errors), `dirContext`, `resolveToken`, `kindPalette`, `resolveSize` |
 | `src/render.ts` | asset module contract, `renderAsset` over states × facings × frames (west facings mirror east ones), `assembleSheet` |
-| `src/qa/` | `measure` (artlab hygiene), `conformance` gate (SPEC §4.3), `reviewSheet` / `contactSheet`, ledger lines |
+| `src/qa/` | `measure` (artlab hygiene), `conformance` gate, `reviewSheet` / `contactSheet`, ledger lines |
 | `src/t2/geom.ts` | affine transforms, SVG path data → polygons, primitive outlines, `Mask` (coverage bitmap + windowed EDT) |
 | `src/t2/scene.ts` | T2+ 2D scenes (S1): primitives, booleans, groups, clip, repeat, mirror copies, underlays, shading, `direct` / `ss` raster |
 | `src/t2/raster.ts` | `Raster`: owner item + ramp step per pixel, so S2 and finishing move pixels along their own ramp |
@@ -26,21 +28,21 @@ image tools UI worker run the same build. Spec: [`docs/artgen/SPEC.md`](../../do
 | `src/t2/finish.ts` | finishing ops (`px.fix/fx/light/outline/patch`), `applyFinish`, anchor-following patches, `finishStale` |
 | `src/t2/params.ts` | param schema (`range`, `toggle`, `choice`, `swap`) and seeded variants |
 | `src/pipeline.ts` | pass state machine: v1 → v2 → v3 (from the best, R12) → finish → ready (re-finish when a later base wins); ledger pass ids |
-| `src/w1/candidates.ts` | W1: interview → three candidate directions (A faithful, B bold, C muted) over the shared role ramps, `mixDirections`, `lockDirection` |
-| `src/w1/sheets.ts` | W1: `styleTile` (the probe set under each candidate, one column each) and `styleSheet` (`art/direction.png`) |
-| `src/views/` | view cameras and modules (P6a), `fp.ts`: the first-person raycaster preview, `fpShots`, `sky` (P6d) |
-| `src/voxel/` | voxel `raster` renderer (any yaw and camera, depth / part / normal buffers, `toon`), `.vox`, greedy-mesh `.glb` (P6a) |
-| `src/tex/` | periodic noise, material recipes (13 incl. `brick`), autotiles, iso tiles, WFC, L-systems (P6b) |
-| `src/anim/anim.ts` | keyframe tracks, pose rig with 2-bone IK, spring chains, sweeps, sub-frame timing (P6c) |
-| `src/fx/particles.ts` | particle emitters (+ `blob` metaball layers), 11 presets, `flame`, palette cycling (P6c) |
-| `src/qa/anim.ts` | frame QA, attack QA, solid-fill metric, onion skin (P6c) |
+| `src/w1/candidates.ts` | art direction: interview → three candidate directions (A faithful, B bold, C muted) over the shared role ramps, `mixDirections`, `lockDirection` |
+| `src/w1/sheets.ts` | art direction: `styleTile` (the probe set under each candidate, one column each) and `styleSheet` (`art/direction.png`) |
+| `src/views/` | view cameras and modules, `fp.ts`: the first-person raycaster preview, `fpShots`, `sky` |
+| `src/voxel/` | voxel `raster` renderer (any yaw and camera, depth / part / normal buffers, `toon`), `.vox`, greedy-mesh `.glb` |
+| `src/tex/` | periodic noise, material recipes (13 incl. `brick`), autotiles, iso tiles, WFC, L-systems |
+| `src/anim/anim.ts` | keyframe tracks, pose rig with 2-bone IK, spring chains, sweeps, sub-frame timing |
+| `src/fx/particles.ts` | particle emitters (+ `blob` metaball layers), 11 presets, `flame`, palette cycling |
+| `src/qa/anim.ts` | frame QA, attack QA, solid-fill metric, onion skin |
 | `bench/` | the artlab parity benchmark: six asset modules, `benchmark` + `alt` directions, artlab reference PNGs, golden hashes |
-| `bench/p6/` | the P6 breadth benchmarks (views, voxel, textures, effects, animation, first-person) through the full pipeline |
-| `bench/pipeline/` | the P1b parity experiment: the six assets rebuilt through the T2+ pipeline (briefs, `base.v1–3`, `finish.v1`, ledger) |
+| `bench/p6/` | the breadth benchmarks (views, voxel, textures, effects, animation, first-person) through the full pipeline |
+| `bench/pipeline/` | the parity experiment: the six assets rebuilt through the T2+ pipeline (briefs, `base.v1–3`, `finish.v1`, ledger) |
 
 ## Asset modules
 
-Assets are plain ESM JavaScript (D17). Everything direction-specific comes from `ctx`; no colour literals (R11,
+Assets are plain ESM JavaScript. Everything direction-specific comes from `ctx`; no colour literals (R11,
 enforced by the conformance `source` check).
 
 ```js
@@ -60,7 +62,7 @@ export const anchors = ctx => ({ lid: [8, 4] });    // optional named points per
 pass), each pre-bound to the direction. `prim`, `svg`, `voxel` and `blit` are the artlab internals the benchmark
 ports use; new assets use `t2`.
 
-## T2+ (the one generation pipeline, SPEC §6.3)
+## T2+ (the one generation pipeline)
 
 ```js
 // base.v2.js — S1 base + S2 procedural pass
@@ -114,7 +116,7 @@ npx artgen direction validate <file>
 Output per direction: 1× and scaled PNGs, per-asset review sheets (artlab final beside the port), a comparison
 sheet, `parity.png` (benchmark only), `conformance.json`. The CLI runs TypeScript directly, so it needs Node ≥ 22.18.
 
-## Game projects and W1 (PLAN P2)
+## Game projects and art direction
 
 In a game repo the CLI runs from the committed install (`node tools/artgen/artgen.js …`, see
 [`packages/artgen-dist`](../artgen-dist)); in this repo it is `npx artgen …`. Skills `art-direction` and `artgen`
@@ -150,6 +152,6 @@ npx artgen report packages/artgen-core/bench/pipeline --out REPORT.md
 ```
 
 Tests: `npm test -w artgen-core` (unit + stage tests, no wasm), `npm test -w artgen-cli` (SVG stage tests,
-golden hashes, conformance under both directions, artlab parity, the P1b experiment's recorded hashes, restyle,
-variants, a full pass cycle, the W1 flow in a scratch project, parallel make rounds and pooled analytics),
+golden hashes, conformance under both directions, artlab parity, the parity experiment's recorded hashes, restyle,
+variants, a full pass cycle, the art-direction flow in a scratch project, parallel make rounds and pooled analytics),
 `npm test -w artgen-mcp` (protocol, every tool, sandbox) and `npm test -w artgen-dist` (install smoke test from a fresh build, update edit-protection, fixture repos).

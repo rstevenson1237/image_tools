@@ -36,7 +36,7 @@ export const EMPTY_DIRECTION = {
   note: 'Not set yet. Run the art direction workflow (/artgen-direction, or `artgen direction candidates`) to create and lock one.',
 };
 
-const ART_GITIGNORE = `# artgen: renders are rebuilt from sources; keep approved sheets and W1 records
+const ART_GITIGNORE = `# artgen: renders are rebuilt from sources; keep approved sheets and art-direction records
 sheets/*
 !sheets/approved/
 **/out/
@@ -49,7 +49,7 @@ export function initProject(root: string): { project: Project; created: string[]
   const file = (p: string, text: string) => { if (!existsSync(p)) { mkdirSync(dirname(p), { recursive: true }); writeFileSync(p, text); created.push(p); } };
   dir(art);
   file(join(art, 'direction.json'), JSON.stringify(EMPTY_DIRECTION, null, 2) + '\n');
-  file(join(art, 'briefs.yaml'), '# Asset briefs (W2, SPEC §5.1). One entry per asset: id, kind, view, size, states, directions, anims, notes.\n[]\n');
+  file(join(art, 'briefs.yaml'), '# Asset briefs. One entry per asset: id, kind, view, size, states, directions, anims, notes.\n[]\n');
   for (const d of ['assets', 'anchors', 'refs', 'candidates', 'probes', 'sheets']) dir(join(art, d));
   file(join(art, 'assets', '.gitkeep'), '');
   file(join(art, 'anchors', '.gitkeep'), '');

@@ -96,7 +96,7 @@ The ghoul (a 2D T2+ billboard with `normal` shading) already carried a normal ma
 `main-0.n.png` beside the atlas. `src/main.ts` loads the pack a second time through `threeLitAdapter` with
 `{ normals: true }` for the ghoul and carries the player's oil lamp as a flickering warm point light at the camera
 (plus a dim cold ambient). Art code stays at 13 lines. Screenshots (headless Chromium, SwiftShader):
-[front](p6/billboard-crawler-lit.png), [back](p6/billboard-crawler-lit-back.png) — the lamp side of the gown and
+[front](../../../../examples/billboard-crawler/screenshot.png), [back](p6/billboard-crawler-lit-back.png) — the lamp side of the gown and
 arms is warm and lit, the far side falls into shadow.
 
 ## Fixtures after P6a / P6b

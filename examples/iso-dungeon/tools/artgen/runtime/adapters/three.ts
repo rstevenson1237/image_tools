@@ -1,8 +1,8 @@
 /**
- * three.js adapter (SPEC §12.2, D3): pixel textures with `NearestFilter`, sprites as camera-facing billboards
+ * three.js adapter: pixel textures with `NearestFilter`, sprites as camera-facing billboards
  * (`THREE.Sprite`) sized in world units by `pixelsPerUnit`, frames chosen by UV offset / repeat (mirrored facings by a
- * negative repeat), and the 8-direction facing picked from the camera-relative angle (`billboardAngle`). P6a: slice
- * rotation (sprite stacks), additive blending, `.glb` voxel models (`voxelModel`). P6d: lit billboards
+ * negative repeat), and the 8-direction facing picked from the camera-relative angle (`billboardAngle`). Also: slice
+ * rotation (sprite stacks), additive blending, `.glb` voxel models (`voxelModel`), and lit billboards
  * (`threeLitAdapter`): camera-facing quads with a Lambert material whose normal map is the frame's rect in the pack's
  * normal atlases, so scene lights (a lamp) shade the sprite.
  */
@@ -143,7 +143,7 @@ function placeQuad(m: LitNode, ppu: number) {
 const _cam = new Vector3(), _me = new Vector3();
 
 /**
- * Lit billboards (P6d): like `threeAdapter`, but each node is a quad mesh with a `MeshLambertMaterial`, its colour
+ * Lit billboards: like `threeAdapter`, but each node is a quad mesh with a `MeshLambertMaterial`, its colour
  * frame as `map` and — when the pack was loaded with `{ normals: true }` and the asset exports normals — the same rect
  * of the normal atlas as `normalMap`. Mirrored frames negate the normal's x. Use it for sprites that should take the
  * scene's lights (the crawler's ghoul by the lamp); keep `threeAdapter` for unlit ones.

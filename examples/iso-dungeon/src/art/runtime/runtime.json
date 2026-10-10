@@ -8,10 +8,10 @@
     "autotile.ts": "fcc60c490bfb4b56",
     "coords.ts": "e05e1eb86735bc76",
     "facing.ts": "59e8c2fc65b50b2c",
-    "index.ts": "1646b39606241f54",
-    "pack.ts": "0319e9786311ef48",
-    "stack.ts": "ad67eb3331a7e8bf",
-    "types.ts": "50a5d92325b62763",
-    "adapters/pixi.ts": "336c382a23887490"
+    "index.ts": "76a386077807cf9d",
+    "pack.ts": "ed1f029b763d7a5e",
+    "stack.ts": "5a997815f7636a42",
+    "types.ts": "ab6f0f59af433a66",
+    "adapters/pixi.ts": "cd6968876c76a5ba"
   }
 }

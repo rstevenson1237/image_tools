@@ -1,5 +1,5 @@
 /**
- * Roster review (rev 9, findings/calibration.md): what no single-asset review can see. A lineup of every finished
+ * Roster review (rev 9, from the calibration study): what no single-asset review can see. A lineup of every finished
  * non-tile asset on one ground baseline (relative scale, light hierarchy, friend/foe separation, style drift), a sheet
  * of shuffled lettered black silhouettes (named by a fresh reviewer before they see the asset list), the drawn heights
  * against the briefs' real-world heights, and the most-overlapping silhouette pairs. Pure: the CLI renders and writes.

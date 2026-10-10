@@ -48,6 +48,9 @@ dungeon (Pixi.js) and a first-person billboard crawler (three.js).
 | [`packages/artgen-dist`](packages/artgen-dist) | builds the installable distribution and the installer |
 | [`python/artgen`](python/artgen) | Python client |
 
+How artgen was designed and built (intake, spec, plan, decisions, per-phase findings and the original artlab
+experiments) is archived in [`docs/archive/artgen`](docs/archive/artgen/README.md).
+
 ## The image tools
 
 - **VTT Token Cutter** — lasso a figure in a piece of artwork and extract a mono-colour
@@ -147,8 +150,7 @@ The three artgen tools share one open project (`src/core/project/store.svelte.ts
 there as blob URLs, never on the page. `engine.ts` derives status, renders, conformance and analytics exactly as the CLI
 does — `engine.test.ts` checks it against the CLI on the fixture repos in `examples/`. Writes are plans the worker
 returns; the store re-reads the files first, refuses if Claude Code changed one meanwhile, and appends ledger lines rather
-than rewriting the file. `scripts/artgen-ui-accept.mjs` drives the whole loop in headless Chromium (see
-`docs/artgen/findings/P5-w4.md`).
+than rewriting the file. `scripts/artgen-ui-accept.mjs` drives the whole loop in headless Chromium.
 
 ## Two things worth knowing before you touch the worker
 

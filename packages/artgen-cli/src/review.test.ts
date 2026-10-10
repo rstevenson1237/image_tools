@@ -1,4 +1,4 @@
-// Review independence and roster review on disk (rev 9, findings/calibration.md): every score names its reviewer; a
+// Review independence and roster review on disk (rev 9, from the calibration study): every score names its reviewer; a
 // blind re-score of the final by a fresh reviewer gates `final` (a miss spends the extra revision); the gallery and
 // `approve` say when the score is the maker's own or the blind one disagrees; brief heights flag off-scale bodies;
 // `roster` writes the lineup + shuffled silhouettes and `roster record` turns a review into per-asset open issues.

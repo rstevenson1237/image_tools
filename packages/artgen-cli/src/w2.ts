@@ -485,7 +485,7 @@ export async function importEdit(p: Project, id: string, png: string, o: { cell?
   const fin = parseVersion(row.final)!, base = fin.kind === 'finish' ? r.base! : row.final, prev = fin.kind === 'finish' ? row.final : undefined;
   const file = join(a.path, `finish.v${n}.js`);
   const body = Object.entries(edits).map(([k, ops]) => `  '${k}': ${JSON.stringify(ops)},`).join('\n');
-  writeFileSync(file, `// finish.v${n} — hand edit imported from ${relative(a.path, resolve(png)).split('\\').join('/')} (artgen import-edit, SPEC §6.6):
+  writeFileSync(file, `// finish.v${n} — hand edit imported from ${relative(a.path, resolve(png)).split('\\').join('/')} (artgen import-edit):
 // ${pixels} pixels in ${Object.keys(edits).length} cells, as colour tokens so the edit survives a restyle.${prev ? ` Replays ${prev} first.` : ''}
 ${prev ? `import * as prev from './${prev}.js';\n` : ''}export const base = '${base}';
 export const meta = { notes: 'hand edit (import-edit)' };

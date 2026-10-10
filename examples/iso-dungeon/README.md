@@ -1,12 +1,12 @@
 # iso-dungeon (fixture game)
 
-artgen acceptance fixture (PLAN §1): an isometric Pixi.js dungeon crawler, built only through the committed install.
+Example game for artgen: an isometric Pixi.js dungeon crawler, built only through the committed install.
 
 **Pitch.** *Torchdeep* — an isometric, turn-based dungeon crawler. A small party pushes down through torch-lit
 crypts, fighting skeleton knights in tight tactical rooms and looting iron-banded chests. Cold blue-grey stone, warm
 torchlight, glints of gold.
 
-## Game (W3, PLAN P4)
+## Game
 
 `src/main.ts` plays the exported pack (`public/assets/main/`) through the runtime vendored by
 `node tools/artgen/artgen.js export --runtime` (`src/art/runtime/`, adapter set in `art/artgen.config.json`) and the
@@ -20,4 +20,4 @@ pillars, barrels and rubble (variants), braziers with looping torch flames, an o
 npm install && npm run dev     # or, inside the image_tools checkout: node ../../node_modules/vite/bin/vite.js
 ```
 
-Screenshot: [`docs/artgen/findings/p4/iso-dungeon.png`](../../docs/artgen/findings/p4/iso-dungeon.png).
+![The iso dungeon](screenshot.png)
