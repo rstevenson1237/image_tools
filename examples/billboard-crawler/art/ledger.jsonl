@@ -199,3 +199,13 @@
 {"ts":"2026-10-06T23:50:42.076Z","type":"contract","asset":"linoleum","change":"created","by":"agent"}
 {"ts":"2026-10-06T23:50:42.076Z","type":"contract","asset":"ward-wall","change":"created","by":"agent"}
 {"ts":"2026-10-06T23:50:42.076Z","type":"contract","asset":"pill-bottle","change":"created","by":"agent"}
+{"ts":"2026-10-09T23:44:39.021Z","type":"export","asset":"ghoul","version":"finish.v2","sourceHash":"5eed941fb77ad80a","pack":"main","direction":{"id":"hollow-ward","version":2},"by":"agent"}
+{"ts":"2026-10-09T23:44:39.021Z","type":"export","asset":"orderly","version":"finish.v2","sourceHash":"470e3561ca3e81f5","pack":"main","direction":{"id":"hollow-ward","version":2},"by":"agent"}
+{"ts":"2026-10-09T23:44:39.021Z","type":"export","asset":"rat","version":"finish.v1","sourceHash":"f077d753fd1674a8","pack":"main","direction":{"id":"hollow-ward","version":2},"by":"agent"}
+{"ts":"2026-10-09T23:44:39.021Z","type":"export","asset":"lamp-flicker","version":"finish.v1","sourceHash":"09b79a1adf5d27e8","pack":"main","direction":{"id":"hollow-ward","version":2},"by":"agent"}
+{"ts":"2026-10-09T23:44:39.021Z","type":"export","asset":"iron-bed","version":"finish.v2","sourceHash":"96b23458a7f98a80","pack":"main","direction":{"id":"hollow-ward","version":2},"by":"agent"}
+{"ts":"2026-10-09T23:44:39.021Z","type":"export","asset":"iv-stand","version":"finish.v1","sourceHash":"3f22657ea4f8adb0","pack":"main","direction":{"id":"hollow-ward","version":2},"by":"agent"}
+{"ts":"2026-10-09T23:44:39.021Z","type":"export","asset":"wheelchair","version":"finish.v2","sourceHash":"d8d174996b55429b","pack":"main","direction":{"id":"hollow-ward","version":2},"by":"agent"}
+{"ts":"2026-10-09T23:44:39.021Z","type":"export","asset":"linoleum","version":"finish.v2","sourceHash":"6de832ca0973ecbc","pack":"main","direction":{"id":"hollow-ward","version":2},"by":"agent"}
+{"ts":"2026-10-09T23:44:39.021Z","type":"export","asset":"ward-wall","version":"finish.v1","sourceHash":"bc120faa4e4866f7","pack":"main","direction":{"id":"hollow-ward","version":2},"by":"agent"}
+{"ts":"2026-10-09T23:44:39.021Z","type":"export","asset":"pill-bottle","version":"finish.v1","sourceHash":"4902e1145454a92c","pack":"main","direction":{"id":"hollow-ward","version":2},"by":"agent"}

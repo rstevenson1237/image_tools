@@ -1,0 +1,13 @@
+{
+  "id": "knight-attack",
+  "kind": "character",
+  "view": "side",
+  "size": [48, 40],
+  "states": ["idle", "attack"],
+  "anims": { "attack": { "frames": 5, "durations": [120, 90, 60, 220, 140], "loop": false } },
+  "height": 1.8,
+  "notes": "P6c benchmark: side-view knight, overhead slash — anticipation, raise, swing, a held contact frame, recovery; posed by hand and foot targets (2-bone IK), a slash trail swept along the blade tip, `hand` and `tip` anchors",
+  "direction": "../direction.json",
+  "target": 6.5,
+  "review": { "scale": 4, "sym": "none", "label": "P6c: knight attack (rig + IK, held contact frame, trail)" }
+}

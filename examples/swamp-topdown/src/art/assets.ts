@@ -13,8 +13,8 @@ export const Assets = {
   "lantern-post": { id: "lantern-post", pack: "main", kind: "prop", states: ["idle"], facings: ["s"], variants: ["base"], anchors: ["flame"] },
   reeds: { id: "reeds", pack: "main", kind: "prop", states: ["idle"], facings: ["s"], variants: ["base","v1","v2"], anchors: [] },
   "bone-pile": { id: "bone-pile", pack: "main", kind: "prop", states: ["idle"], facings: ["s"], variants: ["base"], anchors: [] },
-  mud: { id: "mud", pack: "main", kind: "tile", states: ["idle"], facings: ["s"], variants: ["base"], anchors: [] },
-  "bog-water": { id: "bog-water", pack: "main", kind: "tile", states: ["idle"], facings: ["s"], variants: ["base"], anchors: [] },
+  mud: { id: "mud", pack: "main", kind: "tile", states: ["idle"], facings: ["s"], variants: ["base","v1","v2","v3"], anchors: [] },
+  "bog-water": { id: "bog-water", pack: "main", kind: "tile", states: ["idle"], facings: ["s"], variants: ["base","v1","v2","v3"], anchors: [] },
 } as const;
 
 export type AssetId = keyof typeof Assets;

@@ -1,0 +1,14 @@
+{
+  "id": "imp",
+  "kind": "creature",
+  "view": "fp",
+  "size": [32, 40],
+  "states": ["idle", "walk"],
+  "directions": 8,
+  "anims": { "walk": { "frames": 4 } },
+  "height": 1.3,
+  "notes": "P6d benchmark: a first-person imp billboard from one voxel model — hunched red demon, horns, pointed ears, small bat wings, tail, claws; 8 facings, a walk; normal maps for lit billboards",
+  "direction": "../direction.json",
+  "target": 6.5,
+  "review": { "scale": 4, "sym": "none", "label": "P6d: imp billboard (8-dir voxel, fp corridor)" }
+}

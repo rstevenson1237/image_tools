@@ -7,7 +7,7 @@ import { createPack, type RuntimeAdapter } from '../index.js';
 import { synthPack } from '../testkit.js';
 import { canvas2dAdapter, Canvas2DLayer, drawNode, type Canvas2DNode, type CanvasLike } from './canvas2d.js';
 import { pixiAdapter, pixiStrip } from './pixi.js';
-import { billboardAngle, threeAdapter, tileTexture } from './three.js';
+import { billboardAngle, threeAdapter, threeLitAdapter, tileTexture, type LitNode } from './three.js';
 import { adapterContract } from './contract.js';
 
 /** Node has no canvas: a stand-in that keeps the uploaded pixels. */
@@ -40,6 +40,48 @@ adapterContract(pixiAdapter, {
   nearest: (t: TextureSource) => t.scaleMode === 'nearest' && !t.autoGenerateMipmaps,
   rotation: s => s.rotation,
   blend: s => (s.blendMode === 'add' ? 'add' : 'normal'),
+});
+
+// lit billboards (P6d): the frame is read back from the map's UV transform, the anchor from the quad's vertices
+const litFrame = (m: LitNode) => {
+  const t = m.material.map!, { width: W, height: H } = t.image as { width: number; height: number }, flipX = t.repeat.x < 0;
+  const w = Math.round(Math.abs(t.repeat.x) * W), h = Math.round(t.repeat.y * H);
+  return { x: Math.round(t.offset.x * W) - (flipX ? w : 0), y: Math.round((1 - t.offset.y) * H) - h, w, h, flipX };
+};
+adapterContract(() => threeLitAdapter({ pixelsPerUnit: 8 }), {
+  frame: litFrame,
+  anchor: m => {
+    const p = m.geometry.attributes.position, { w, flipX } = litFrame(m), x0 = p.getX(0) * 8, y1 = p.getY(0) * 8;
+    return [flipX ? w + x0 : -x0, y1].map(v => Math.round(v * 1000) / 1000) as [number, number];
+  },
+  position: m => [m.position.x, m.position.y],
+  texture: m => m.material.map!.source,
+  parent: () => new Object3D(),
+  children: o => o.children.length,
+  nearest: (t: DataTexture) => t.magFilter === NearestFilter && !t.generateMipmaps,
+  blend: m => (m.material.blending === AdditiveBlending ? 'add' : 'normal'),
+});
+
+describe('three lit billboards (P6d)', () => {
+  test('the normal map is the same rect of the normal atlas, flipped frames negate its x, the quad turns to the camera', async () => {
+    const { manifest, images } = synthPack();
+    manifest.normals = ['synth-0.n.png'];
+    manifest.assets.walker.normals = true;
+    const normals = images.map(i => ({ ...i, data: new Uint8ClampedArray(i.data.length).fill(128) }));
+    const p = await createPack(manifest, images, threeLitAdapter({ pixelsPerUnit: 8 }), normals), s = p.sprite('walker');
+    const m = s.node, n = m.material.normalMap!;
+    expect(n).toBeTruthy();
+    expect(n.colorSpace).toBe('');
+    expect([n.offset.x, n.offset.y, n.repeat.x, n.repeat.y]).toEqual([m.material.map!.offset.x, m.material.map!.offset.y, m.material.map!.repeat.x, m.material.map!.repeat.y]);
+    s.face(Math.PI); // west: the pack only has east-side facings, so the frame is mirrored
+    expect(m.material.normalScale.x).toBe(-1);
+    expect(m.material.normalMap!.repeat.x).toBeLessThan(0);
+    const cam = new PerspectiveCamera();
+    cam.position.set(5, 0, 0);
+    m.onBeforeRender(undefined as never, undefined as never, cam, undefined as never, undefined as never, undefined as never);
+    expect(m.rotation.y).toBeCloseTo(Math.PI / 2);
+    expect(p.sprite('boom').node.material.normalMap).toBeNull(); // assets without normals stay unlit-mapped
+  });
 });
 
 const threeFrame = (s: ThreeSprite) => {

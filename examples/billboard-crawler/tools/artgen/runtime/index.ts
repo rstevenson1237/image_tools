@@ -9,6 +9,8 @@ export type { DecodedImage, LoadOptions, FrameSelect, SpriteOptions, EffectOptio
 export { facingAngle, chooseFacing, angleDelta, angleOf } from './facing.js';
 export type { FacingChoice } from './facing.js';
 export { N, NE, E, SE, S, SW, W, NW, BLOB47, neighbourMask, reduceCorners, wang16, blob47, resolveAutotile, cellHash } from './autotile.js';
+export { StackSprite, parallaxTiles } from './stack.js';
+export type { StackOptions } from './stack.js';
 export { isoToScreen, screenToIso, depthKey, obliqueToScreen, screenToOblique, obliqueDepth } from './coords.js';
 export type { IsoTile, ObliqueTile } from './coords.js';
 export type { AnchorOf, AssetInfo, AssetRef, AtlasImage, FrameRect, PackAsset, PackFrame, PackManifest, PackStateDef, RuntimeAdapter, StateOf, VariantOf } from './types.js';

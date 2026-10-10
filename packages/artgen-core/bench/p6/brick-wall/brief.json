@@ -1,0 +1,12 @@
+{
+  "id": "brick-wall",
+  "kind": "texture",
+  "view": "fp",
+  "size": [64, 64],
+  "states": ["idle"],
+  "surface": "wall",
+  "notes": "P6d benchmark: 64 px first-person crypt wall of old brick courses — running bond, worn mortar, chipped bricks; with its normal map",
+  "direction": "../direction.json",
+  "target": 6.5,
+  "review": { "scale": 3, "sym": "none", "periodic": true, "label": "P6d: brick wall 64 (fp corridor)" }
+}

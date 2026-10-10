@@ -1,6 +1,6 @@
 ---
 name: artgen
-description: Pixel and voxel game art with the artgen pipeline in this repo (art/ folder). Use for any work on game sprites, props, tiles, effects or textures — writing or revising asset sources (base.vN.js, finish.vM.js), rendering, reviewing, scoring, and the conformance gate. For producing a batch of assets from briefs, the user's approvals, export and restyle, use the asset-production skill; for setting or changing the art direction itself, the art-direction skill.
+description: Pixel and voxel game art with the artgen pipeline in this repo (art/ folder). Use for any work on game sprites, props, tiles, effects, animations, textures or first-person assets — writing or revising asset sources (base.vN.js, finish.vM.js), rendering, reviewing, scoring, and the conformance gate. For producing a batch of assets from briefs, the user's approvals, export and restyle, use the asset-production skill; for setting or changing the art direction itself, the art-direction skill.
 ---
 
 # artgen — the asset pipeline
@@ -77,3 +77,6 @@ before an asset is shown to the user as finished.
 - `references/finishing.md` — finishing ops (`px.fix/fx/light/outline/patch`), anchors, `finish-stale`.
 - `references/review.md` — review sheet anatomy, 0–10 rubric, what to write in a score note.
 - `references/direction.md` — direction.json fields and colour tokens.
+- `references/breadth.md` — views and voxel models, textures and tiles, effects (particles, flames, cycling),
+  animation (pose rig with IK, spring chains, attacks, sub-frames) and first-person assets (walls, skies, billboards,
+  view-models, lit billboards).

@@ -13,8 +13,8 @@
 import {
   analytics, applyFinish, assetStatus, blindScores, briefDir, briefOrder, budgetFor, conformance, describeDirection,
   effectObjectIssues, encodePNG, finishBaseOf, finishStale, formatLedgerLine, Grid, isPlaceholderDirection, iso, lockDirection,
-  mergeConfig, parseBriefs, parseDirection, parseLedger, parseVersion, passId, planPasses, PROBE_KINDS, pxPerMetre,
-  renderAsset, FACINGS, resolveSize, sourceHash, styleSheet, styleTile, TILE_KINDS, validateDirection, decodePNG, viewContext, stackStrip, parallaxStrip, autotileCount, autotileMap,
+  mergeConfig, parseBriefs, parseDirection, parseLedger, parseVersion, passId, planPasses, PROBE_KINDS, pxPerMetre, animInput,
+  renderAsset, FACINGS, resolveSize, sourceHash, styleSheet, styleTile, TILE_KINDS, validateDirection, decodePNG, viewContext, stackStrip, parallaxStrip, fpRole, fpShots, autotileCount, autotileMap,
   type AnalyticsReport, type AssetBudget, type AssetMeta, type AssetModule, type AssetStatus, type BriefEntry,
   type ConformanceReport, type Direction, type FeedbackOpen, type FinishModule, type LedgerEntry, type NextStep,
   type PassRow, type PatchRecord, type ProbeImages, type ProjectConfig, type RenderResult, type StyleTileColumn,
@@ -210,7 +210,7 @@ export class ArtProject {
     const report = conformance({
       frames: render.cells.map(c => c.grid), dir: a.dir, kind: a.brief.kind, size: resolveSize(a.dir, a.brief.size, a.brief.kind),
       source: src, symAxis: a.brief.review?.sym ?? 'x', lint: render.lint, periodic: a.brief.review?.periodic, autotile: a.brief.autotile,
-      ...(a.brief.height && { height: { metres: a.brief.height, pxPerMetre: pxPerMetre(a.dir) } }),
+      ...(a.brief.height && { height: { metres: a.brief.height, pxPerMetre: pxPerMetre(a.dir) } }), anim: animInput(render),
     });
     const out = { version: v.name, render, report, source, base, patches, stale };
     this.renders.set(key, out);
@@ -367,11 +367,23 @@ export class ArtProject {
   }
 
   /**
-   * How the game shows the asset when that isn't one frame (P6a/b): a sprite stack turned through 8 angles, parallax
-   * layers scrolled to three camera positions, an autotile set laid as an island. Undefined for ordinary sprites.
+   * How the game shows the asset when that isn't one frame (P6a/b/d): a sprite stack turned through 8 angles, parallax
+   * layers scrolled to three camera positions, an autotile set laid as an island, a first-person asset in the
+   * raycaster corridor (the same shots as the CLI review sheet). Undefined for ordinary sprites.
    */
   preview(a: AssetCtx, r: RenderResult): Img | undefined {
     const view = a.brief.view ?? a.dir.camera.view;
+    if (view === 'fp') {
+      const f0 = r.facings[0], role = fpRole(a.brief.kind, a.brief.surface);
+      const frames = role === 'billboard'
+        ? r.facings.filter(f => ['s', 'se', 'e', 'sw', 'n'].includes(f)).slice(0, 3).map(f => r.cells.find(c => c.state === r.states[0] && c.facing === f)!.grid)
+        : role === 'viewmodel' ? r.states.map(s => { const cs = r.cells.filter(c => c.state === s && c.facing === f0); return cs[Math.min(1, cs.length - 1)].grid; })
+        : [r.cells.find(c => c.state === r.states[0] && c.facing === f0)!.grid];
+      const shots = fpShots(a.dir, a.brief.kind, frames, { surface: a.brief.surface }), row = new Grid(shots.reduce((n, x) => n + x.w + 2, -2), shots[0].h);
+      let x = 0;
+      for (const sh of shots) { row.blit(sh, x, 0); x += sh.w + 2; }
+      return img(row);
+    }
     if (view === 'stack') return img(stackStrip(r.cells.filter(c => c.state === r.states[0] && c.facing === r.facings[0]).map(c => c.grid), 8, 1));
     if (a.brief.autotile && r.cells.length >= autotileCount(a.brief.autotile)) {
       const tiles = r.cells.filter(c => c.state === r.states[0] && c.facing === r.facings[0]).map(c => c.grid);

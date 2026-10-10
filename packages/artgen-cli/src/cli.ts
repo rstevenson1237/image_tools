@@ -45,17 +45,19 @@
  * Breadth (PLAN P6):
  *   artgen voxel <asset> [--version v] [--cell s/f/n] [--out dir] [--scale m]   3D-mode model → .vox + greedy-meshed .glb
  *   artgen texture <material> [--size 32] [--seed n] [--ramps base=stone] | --list   material recipe → png + normal map + 3×3
+ *   artgen anim <asset> [--version v] [--state s] [--facing f] [--scale n]          GIF + APNG previews per state (P6c)
+ *   artgen fx <preset> [--size 32] [--frames 8] [--seed n] | --list                particle preset quick look (P6c)
  *
  * Benchmark (this repo): artgen bench [--direction benchmark|alt|<file>] [--out <dir>] [--stages] [--update-golden]
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { extractPalette, generateRamp, Grid, MATERIALS, MIX_PARTS, parseDirection, parseGpl, parseHexPalette, rampsFromColors, validateDirection, type Interview, type MixPart, type Size } from 'artgen-core';
+import { extractPalette, generateRamp, Grid, MATERIALS, PRESET_NAMES, MIX_PARTS, parseDirection, parseGpl, parseHexPalette, rampsFromColors, validateDirection, type Interview, type MixPart, type Size } from 'artgen-core';
 import { openAsset, passState, type AssetDir, renderVersion, reviewVersion, scoreVersion, variantsSheet, versionsIn, writeRender } from './asset.ts';
 import { resolveDirection, updateGolden, writeBench } from './bench.ts';
 import { readGrid, writeGrid } from './node.ts';
 import { findProject, initProject, readJson, requireProject, writeJson } from './project.ts';
-import { textureRun, voxelExport } from './p6.ts';
+import { animPreview, fxRun, textureRun, voxelExport } from './p6.ts';
 import { report } from './report.ts';
 import { newAsset, newFinish } from './templates.ts';
 import { addBrief, approve, exportPacks, feedback, gallery, importEdit, make, projectAnalytics, projectStatus, readBriefs, removeBriefFile, resolveAssetArg, restyle, rosterRecord, rosterRun } from './w2.ts';
@@ -111,6 +113,8 @@ const USAGE = `usage: artgen init
        artgen analytics [--out file.md]
        artgen voxel <asset> [--version v] [--cell s/f/n] [--out dir] [--scale m]
        artgen texture <material> [--size 32|WxH] [--seed n] [--ramps base=stone,…] [--scale k] [--out dir] | texture --list
+       artgen anim <asset> [--version v] [--state s] [--facing f] [--scale n] [--out dir]
+       artgen fx <preset> [--size 32|WxH] [--frames 8] [--seed n] [--scale n] [--out dir] | fx --list
        artgen bench [--direction benchmark|alt|<file>] [--out <dir>] [--stages] [--ledger <file>] [--update-golden]
        artgen --version`;
 
@@ -305,6 +309,21 @@ export async function main(argv: string[]): Promise<number> {
     const r = textureRun(parseDirection(JSON.parse(readFileSync(dirFile, 'utf8'))), sub, { size, seed: flag(args, '--seed') ? +flag(args, '--seed')! : undefined, ramps, scale: flag(args, '--scale') ? +flag(args, '--scale')! : undefined, out: flag(args, '--out') ?? (p ? join(p.art, 'sheets', 'textures') : 'artgen-out') });
     print([`${sub} ${size.join('x')} (ramps ${Object.entries(r.ramps).map(([k, v]) => `${k}=${v}`).join(', ')})`, ...r.files.map(f => `  ${f}`),
       `seam ${r.seam.ratio}× the interior · repetition: ${r.issues.length ? r.issues.join('; ') : `clear (lowStd ${r.repetition.lowStd}, ${r.repetition.markBlobs} marks)`}`].join('\n'), r);
+    return 0;
+  }
+  if (cmd === 'anim' && sub) {
+    const r = await animPreview(asset(sub), { version: flag(args, '--version'), state: flag(args, '--state'), facing: flag(args, '--facing'), scale: flag(args, '--scale') ? +flag(args, '--scale')! : undefined, out: flag(args, '--out') });
+    print([...r.states.map(s => `${s.state}/${s.facing}: ${s.frames} frames, ${s.ms} ms`), ...r.files.map(f => `  ${f}`)].join('\n'), r);
+    return 0;
+  }
+  if (cmd === 'fx') {
+    if (sub === '--list' || args.includes('--list')) { print(PRESET_NAMES.join('\n'), PRESET_NAMES); return 0; }
+    if (!sub) throw new Error('fx: name a preset (artgen fx --list)');
+    const p = findProject(flag(args, '--root')), dirFile = flag(args, '--direction') ?? (p ? join(p.art, 'direction.json') : undefined);
+    if (!dirFile || !existsSync(dirFile)) throw new Error('fx: needs a locked direction (run inside a project, or --direction <file>)');
+    const sz = parseSize(flag(args, '--size') ?? '32'), size: Size = Array.isArray(sz) ? sz : [+sz!, +sz!];
+    const r = fxRun(parseDirection(JSON.parse(readFileSync(dirFile, 'utf8'))), sub, { size, frames: +(flag(args, '--frames') ?? 8), seed: flag(args, '--seed') ? +flag(args, '--seed')! : undefined, scale: flag(args, '--scale') ? +flag(args, '--scale')! : undefined, out: flag(args, '--out') ?? (p ? join(p.art, 'sheets', 'fx') : 'artgen-out') });
+    print([`${sub} ${size.join('x')} × ${r.frames} frames`, ...r.files.map(f => `  ${f}`), `interior ${r.fill.interior.join(' ')} · brightest ${r.fill.brightest.join(' ')}`].join('\n'), r);
     return 0;
   }
   // ---- W2 production (PLAN P3) ----

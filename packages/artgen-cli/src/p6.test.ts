@@ -15,12 +15,12 @@ const assets: AssetDir[] = assetDirs(P6).map(p => openAsset(p));
 
 describe('P6 benchmarks (bench/p6)', () => {
   test('every asset ran the whole pipeline and is ready for the user', async () => {
-    expect(assets.length).toBeGreaterThanOrEqual(6);
+    expect(assets.length).toBeGreaterThanOrEqual(21); // P6a 6, P6b 4, P6c 6, P6d 5
     for (const a of assets) {
       const st = await passState(a);
       expect({ id: a.brief.id, next: st.next.action, stale: st.stale, f: st.rows.some(r => r.pass === 'f' && r.score !== undefined) }).toEqual({ id: a.brief.id, next: 'ready', stale: undefined, f: true });
     }
-  });
+  }, 120_000);
 
   test('every scored version renders exactly what was scored (R10); the finals pass the gate and meet their target', async () => {
     for (const a of assets) {

@@ -1345,8 +1345,8 @@
     {
       "filename": "floor/idle/s/0#v2",
       "frame": {
-        "x": 100,
-        "y": 231,
+        "x": 208,
+        "y": 33,
         "w": 32,
         "h": 16
       },
@@ -1367,8 +1367,8 @@
     {
       "filename": "floor/idle/s/0#v3",
       "frame": {
-        "x": 100,
-        "y": 231,
+        "x": 208,
+        "y": 50,
         "w": 32,
         "h": 16
       },
@@ -1389,7 +1389,7 @@
   ],
   "meta": {
     "app": "artgen",
-    "version": "artgen 0.5.0",
+    "version": "artgen 0.8.0",
     "image": "main-0.png",
     "format": "RGBA8888",
     "size": {

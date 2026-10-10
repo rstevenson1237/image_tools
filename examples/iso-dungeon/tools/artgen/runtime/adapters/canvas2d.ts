@@ -18,6 +18,8 @@ export interface Context2DLike {
   restore(): void;
   translate(x: number, y: number): void;
   scale(x: number, y: number): void;
+  rotate?(rad: number): void;
+  globalCompositeOperation?: string;
   drawImage(img: CanvasLike, sx: number, sy: number, sw: number, sh: number, dx: number, dy: number, dw: number, dh: number): void;
   imageSmoothingEnabled: boolean;
 }
@@ -32,6 +34,10 @@ export interface Canvas2DNode {
   z: number;
   visible: boolean;
   layer: Canvas2DLayer | null;
+  /** Radians clockwise about the anchor (sprite stacks). */
+  rotation?: number;
+  /** `add` draws with the canvas's `lighter` composite (glows, fire). */
+  blend?: 'normal' | 'add';
 }
 
 /** A draw list: nodes drawn in z order (stable for equal z). */
@@ -53,6 +59,8 @@ export function drawNode(ctx: Context2DLike, n: Canvas2DNode, scale = 1, ox = 0,
   ctx.save();
   ctx.imageSmoothingEnabled = false;
   ctx.translate(Math.round(ox + n.x * scale), Math.round(oy + n.y * scale));
+  if (n.rotation) ctx.rotate?.(n.rotation);
+  if (n.blend === 'add') ctx.globalCompositeOperation = 'lighter';
   ctx.scale(n.flipX ? -scale : scale, scale);
   ctx.drawImage(n.tex, x, y, w, h, -ax, -ay, w, h);
   ctx.restore();
@@ -87,6 +95,8 @@ export function canvas2dAdapter(opts: Canvas2DAdapterOptions = {}): RuntimeAdapt
     setFrame(n, f, flipX) { n.tex = f.tex; n.frame = f; n.flipX = flipX; },
     setAnchor(n, a) { n.anchor = [a[0], a[1]]; },
     setPosition(n, x, y, z) { n.x = x; n.y = y; if (z !== undefined) n.z = z; },
+    setRotation(n, rad) { n.rotation = rad; },
+    setBlend(n, mode) { n.blend = mode; },
     attach: (layer, n) => layer.add(n),
     dispose(n) { n.layer?.remove(n); n.frame = null; },
   };

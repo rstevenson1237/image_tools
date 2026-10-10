@@ -1,0 +1,13 @@
+{
+  "id": "cloak-walker",
+  "kind": "character",
+  "view": "side",
+  "size": [32, 40],
+  "states": ["walk", "stop"],
+  "anims": { "walk": { "frames": 8, "fps": 10, "loop": true }, "stop": { "frames": 8, "fps": 10, "loop": false } },
+  "height": 1.8,
+  "notes": "P6c benchmark: a hooded wanderer in a long cape, side view; the walk cycle comes from foot targets (IK), the cape is a spring chain simulated from the shoulder, so in `stop` the body halts while the cape swings forward and settles",
+  "direction": "../direction.json",
+  "target": 6.5,
+  "review": { "scale": 4, "sym": "none", "label": "P6c: cloaked walker (IK walk, spring cape keeps moving after the stop)" }
+}

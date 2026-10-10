@@ -28,7 +28,14 @@ image tools UI worker run the same build. Spec: [`docs/artgen/SPEC.md`](../../do
 | `src/pipeline.ts` | pass state machine: v1 → v2 → v3 (from the best, R12) → finish → ready (re-finish when a later base wins); ledger pass ids |
 | `src/w1/candidates.ts` | W1: interview → three candidate directions (A faithful, B bold, C muted) over the shared role ramps, `mixDirections`, `lockDirection` |
 | `src/w1/sheets.ts` | W1: `styleTile` (the probe set under each candidate, one column each) and `styleSheet` (`art/direction.png`) |
+| `src/views/` | view cameras and modules (P6a), `fp.ts`: the first-person raycaster preview, `fpShots`, `sky` (P6d) |
+| `src/voxel/` | voxel `raster` renderer (any yaw and camera, depth / part / normal buffers, `toon`), `.vox`, greedy-mesh `.glb` (P6a) |
+| `src/tex/` | periodic noise, material recipes (13 incl. `brick`), autotiles, iso tiles, WFC, L-systems (P6b) |
+| `src/anim/anim.ts` | keyframe tracks, pose rig with 2-bone IK, spring chains, sweeps, sub-frame timing (P6c) |
+| `src/fx/particles.ts` | particle emitters (+ `blob` metaball layers), 11 presets, `flame`, palette cycling (P6c) |
+| `src/qa/anim.ts` | frame QA, attack QA, solid-fill metric, onion skin (P6c) |
 | `bench/` | the artlab parity benchmark: six asset modules, `benchmark` + `alt` directions, artlab reference PNGs, golden hashes |
+| `bench/p6/` | the P6 breadth benchmarks (views, voxel, textures, effects, animation, first-person) through the full pipeline |
 | `bench/pipeline/` | the P1b parity experiment: the six assets rebuilt through the T2+ pipeline (briefs, `base.v1–3`, `finish.v1`, ledger) |
 
 ## Asset modules
@@ -47,9 +54,9 @@ export function render(ctx) {
 export const anchors = ctx => ({ lid: [8, 4] });    // optional named points per frame
 ```
 
-`ctx` also carries `brief`, `size`, `seed`, `variant`, `params`, `state`, `facing`, `frame`, `t`, `rng`,
+`ctx` also carries `brief`, `size`, `seed`, `variant`, `params`, `state`, `facing`, `frame`, `t`, `ms`, `duration`, `logical`, `sub`, `rng`,
 `palette(names?)` (restricted palette incl. outline) and `stage(name, grid)` for `--stages` dumps. `ctx.lib` hands out
-`t2` (scenes), `proc`, `prim`, `svg`, `voxel`, `iso`, `blit`, `post`, `palette` and `line` (the direction's outer-line
+`t2` (scenes), `proc`, `tex`, `anim`, `fx`, `prim`, `svg`, `voxel`, `iso`, `blit`, `post`, `palette` and `line` (the direction's outer-line
 pass), each pre-bound to the direction. `prim`, `svg`, `voxel` and `blit` are the artlab internals the benchmark
 ports use; new assets use `t2`.
 

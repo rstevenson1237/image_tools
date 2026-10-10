@@ -7,8 +7,12 @@
 /** One exported frame: [atlas, x, y, w, h, facing index, state, frame, variant]. */
 export type PackFrame = [number, number, number, number, number, number, string, number, number];
 
-/** Playback of one state; `durations` (ms per frame, e.g. a held contact frame) overrides `fps` when present. */
-export interface PackStateDef { frames: number; fps: number; loop: boolean; durations?: number[] }
+/**
+ * Playback of one state; `frames` counts logical frames, `durations` (ms per logical frame, e.g. a held contact frame)
+ * overrides `fps` when present, and `sub` (P6c) is the number of display-only smoothing sub-frames per logical frame
+ * (the asset's `frames` entries then index displayed frames: logical × sub + sub-frame).
+ */
+export interface PackStateDef { frames: number; fps: number; loop: boolean; durations?: number[]; sub?: number }
 
 export interface PackAsset {
   kind: string;
@@ -33,6 +37,10 @@ export interface PackAsset {
   autotile?: 'wang16' | 'blob47';
   /** Autotile index → frame index within the asset's first state, when the exported order differs from the canonical one. */
   map?: number[];
+  /** The asset has a real normal map in the pack's `normals` atlases (P6a; lit sprites). */
+  normals?: true;
+  /** Additive blending (P6c effects): sprites call the adapter's `setBlend(node, 'add')`. */
+  blend?: 'add';
   draft?: true;
 }
 
@@ -44,6 +52,8 @@ export interface PackManifest {
   /** Runtime version the pack was exported for (null before P4 exports). */
   runtime: string | null;
   atlases: string[];
+  /** Normal-map atlases in the same layout as `atlases` (P6a): RGB = normal, OpenGL convention. */
+  normals?: string[];
   assets: Record<string, PackAsset>;
   drafts?: string[];
 }
@@ -58,8 +68,11 @@ export interface AtlasImage {
   swap?: string;
 }
 
-/** A frame inside a loaded atlas texture. */
-export interface FrameRect<Tex> { tex: Tex; atlas: AtlasImage; x: number; y: number; w: number; h: number }
+/**
+ * A frame inside a loaded atlas texture. `normal` is the same rect in the normal-map atlas when the pack was loaded
+ * with `normals: true` (lit sprites, P6d).
+ */
+export interface FrameRect<Tex> { tex: Tex; atlas: AtlasImage; x: number; y: number; w: number; h: number; normal?: { tex: Tex; atlas: AtlasImage } }
 
 /**
  * What an engine target implements (SPEC §12.2, D3). The core never touches engine objects: it picks frames and calls
@@ -77,6 +90,10 @@ export interface RuntimeAdapter<Tex = unknown, Node = unknown, Parent = unknown>
   setAnchor(node: Node, anchor: readonly [number, number], size: readonly [number, number]): void;
   /** Place the node; `z` is the adapter's depth (zIndex in 2D, world z in 3D). */
   setPosition(node: Node, x: number, y: number, z?: number): void;
+  /** Rotate the node about its anchor, radians clockwise on screen (sprite-stack slices, P6a). */
+  setRotation?(node: Node, rad: number): void;
+  /** Blend mode: `add` for light-emitting effects (P6c), `normal` otherwise. */
+  setBlend?(node: Node, mode: 'normal' | 'add'): void;
   /** Add the node to a scene parent (effects spawned by the runtime use this). */
   attach?(parent: Parent, node: Node): void;
   /** Remove the node from its parent and free it. */

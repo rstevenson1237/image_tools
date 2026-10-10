@@ -144,6 +144,10 @@ if (h) sparks.spawn(x + h.x * scale, y + h.y * scale);                       // 
 ```
 Iso games use `isoToScreen` / `depthKey` for placement and draw order; three.js billboards use
 `face(billboardAngle(heading, sprite.node, camera))` and `tileTexture(pack, Assets.floor, { repeat })` for surfaces.
+Sprites that should take the scene's lights (a torch, a lamp) load through `threeLitAdapter()` with
+`loadPack(url, adapter, { normals: true })` — the exported normal maps shade them. Effects briefed with `blend: add`
+draw additively on their own. States exported with `sub` sub-frames keep `sprite.frame` logical (the contract); the
+runtime steps through the smoothing frames in between. Sprite stacks: `pack.stack(id)`; parallax: `parallaxTiles`.
 Reference: `tools/artgen/runtime/` (the README-level docs are the comments at the top of each file).
 
 ## 6. Restyle (`{{CMD}}restyle`)

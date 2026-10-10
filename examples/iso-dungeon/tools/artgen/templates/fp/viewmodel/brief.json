@@ -1,0 +1,1 @@
+{ "kind": "viewmodel", "view": "fp", "size": [64, 48], "states": ["idle", "fire"], "anims": { "idle": { "frames": 2, "fps": 3 }, "fire": { "frames": 4, "durations": [40, 60, 80, 120], "loop": false } }, "review": { "scale": 3, "sym": "none" } }

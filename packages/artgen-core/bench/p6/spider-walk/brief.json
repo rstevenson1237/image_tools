@@ -1,0 +1,13 @@
+{
+  "id": "spider-walk",
+  "kind": "creature",
+  "view": "topdown",
+  "size": [32, 32],
+  "states": ["walk"],
+  "anims": { "walk": { "frames": 8, "fps": 12, "loop": true } },
+  "height": 0.4,
+  "notes": "P6c benchmark: a cave spider seen from above, walking up the screen; every leg is 2-bone IK to a foot target — feet plant and slide back under the body, then lift and swing forward — in an alternating tetrapod gait",
+  "direction": "../direction.json",
+  "target": 6.5,
+  "review": { "scale": 5, "sym": "none", "label": "P6c: spider walk (8-leg IK gait)" }
+}

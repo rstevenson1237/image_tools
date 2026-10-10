@@ -1,14 +1,17 @@
 {
   "format": 1,
   "pack": "main",
-  "generator": "artgen 0.5.0",
+  "generator": "artgen 0.8.0",
   "direction": {
     "id": "bogwatch",
     "version": 2
   },
-  "runtime": "1.1.0",
+  "runtime": "1.2.0",
   "atlases": [
     "main-0.png"
+  ],
+  "normals": [
+    "main-0.n.png"
   ],
   "assets": {
     "lantern-bearer": {
@@ -655,7 +658,8 @@
         "base"
       ],
       "version": "finish.v1",
-      "sourceHash": "a297c3e7571f5f18"
+      "sourceHash": "a297c3e7571f5f18",
+      "normals": true
     },
     "bog-goblin": {
       "kind": "character",
@@ -712,7 +716,8 @@
         }
       },
       "version": "finish.v2",
-      "sourceHash": "f040e2ff273c281a"
+      "sourceHash": "f040e2ff273c281a",
+      "normals": true
     },
     "leech": {
       "kind": "creature",
@@ -806,7 +811,8 @@
         "base"
       ],
       "version": "finish.v1",
-      "sourceHash": "345fd496e061f240"
+      "sourceHash": "345fd496e061f240",
+      "normals": true
     },
     "wisp": {
       "kind": "effect",
@@ -902,7 +908,8 @@
         "base"
       ],
       "version": "finish.v1",
-      "sourceHash": "6a52ceaf59e70b08"
+      "sourceHash": "6a52ceaf59e70b08",
+      "normals": true
     },
     "sunk-crate": {
       "kind": "prop",
@@ -983,7 +990,8 @@
         "v2"
       ],
       "version": "finish.v2",
-      "sourceHash": "820fbf5cfee179e6"
+      "sourceHash": "820fbf5cfee179e6",
+      "normals": true
     },
     "lantern-post": {
       "kind": "prop",
@@ -1032,7 +1040,8 @@
         "base"
       ],
       "version": "finish.v1",
-      "sourceHash": "6014be27ff114d3f"
+      "sourceHash": "6014be27ff114d3f",
+      "normals": true
     },
     "reeds": {
       "kind": "prop",
@@ -1097,7 +1106,8 @@
         "v2"
       ],
       "version": "finish.v2",
-      "sourceHash": "e376545f2df1f67d"
+      "sourceHash": "e376545f2df1f67d",
+      "normals": true
     },
     "bone-pile": {
       "kind": "prop",
@@ -1138,7 +1148,8 @@
         "base"
       ],
       "version": "finish.v1",
-      "sourceHash": "7b20b9f4d19367d3"
+      "sourceHash": "7b20b9f4d19367d3",
+      "normals": true
     },
     "mud": {
       "kind": "tile",
@@ -1173,13 +1184,49 @@
           "idle",
           0,
           0
+        ],
+        [
+          0,
+          92,
+          75,
+          16,
+          16,
+          0,
+          "idle",
+          0,
+          1
+        ],
+        [
+          0,
+          109,
+          75,
+          16,
+          16,
+          0,
+          "idle",
+          0,
+          2
+        ],
+        [
+          0,
+          126,
+          75,
+          16,
+          16,
+          0,
+          "idle",
+          0,
+          3
         ]
       ],
       "variants": [
-        "base"
+        "base",
+        "v1",
+        "v2",
+        "v3"
       ],
-      "version": "finish.v1",
-      "sourceHash": "5efe0be28a36bf12",
+      "version": "finish.v2",
+      "sourceHash": "730f6bb961724dd0",
       "tile": 16
     },
     "bog-water": {
@@ -1207,7 +1254,7 @@
       "frames": [
         [
           0,
-          92,
+          143,
           75,
           16,
           16,
@@ -1215,13 +1262,49 @@
           "idle",
           0,
           0
+        ],
+        [
+          0,
+          160,
+          75,
+          16,
+          16,
+          0,
+          "idle",
+          0,
+          1
+        ],
+        [
+          0,
+          177,
+          75,
+          16,
+          16,
+          0,
+          "idle",
+          0,
+          2
+        ],
+        [
+          0,
+          194,
+          75,
+          16,
+          16,
+          0,
+          "idle",
+          0,
+          3
         ]
       ],
       "variants": [
-        "base"
+        "base",
+        "v1",
+        "v2",
+        "v3"
       ],
-      "version": "finish.v1",
-      "sourceHash": "0a9b4829c2d52388",
+      "version": "finish.v2",
+      "sourceHash": "7976658ec1db4f30",
       "tile": 16
     }
   }

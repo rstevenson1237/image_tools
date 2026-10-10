@@ -9,8 +9,12 @@ import { fitNormalMap } from '../lib/normals.ts';
 import type { Direction, Size, View } from '../direction.ts';
 import type { BriefEntry } from './briefs.ts';
 
-/** Playback of one state. `durations` (ms per frame) is present only when the brief sets it; it overrides `fps`. */
-export interface PackStateDef { frames: number; fps: number; loop: boolean; durations?: number[] }
+/**
+ * Playback of one state. `frames` counts logical frames (the animation contract); `durations` (ms per logical frame)
+ * is present only when the brief sets it and overrides `fps`; `sub` (P6c) is the number of display-only smoothing
+ * sub-frames per logical frame — the asset's `frames` entries then index displayed frames (logical × sub + sub-frame).
+ */
+export interface PackStateDef { frames: number; fps: number; loop: boolean; durations?: number[]; sub?: number }
 
 export interface Rect { x: number; y: number; w: number; h: number }
 export interface Placed extends Rect { id: number; bin: number }
@@ -110,6 +114,8 @@ export interface PackAsset {
   autotile?: 'wang16' | 'blob47';
   /** The asset has a real normal map (P6a): its frames in the `normals` atlases carry lighting normals. */
   normals?: true;
+  /** Effects (P6c): `add` = draw with additive blending (the runtime calls the adapter's `setBlend`). */
+  blend?: 'add';
   draft?: true;
 }
 
@@ -142,21 +148,30 @@ export function defaultAnchor(b: BriefEntry, view: View, size: Size): [number, n
   return view === 'topdown' || TILE_KINDS.has(b.kind) || b.kind === 'effect' ? [size[0] >> 1, size[1] >> 1] : [size[0] >> 1, size[1] - 1];
 }
 
-/** Exported playback per state: brief `anims` over the defaults (effects at the direction's fps, others at 8; idle-like states loop). */
+/**
+ * Exported playback per state: brief `anims` over the defaults (effects at the direction's fps, others at 8; idle-like
+ * states loop). `frames` are logical frame counts per state.
+ */
 export function stateDefs(b: BriefEntry, dir: Direction, frames: Record<string, number>): Record<string, PackStateDef> {
   const out: Record<string, PackStateDef> = {};
   for (const [s, n] of Object.entries(frames)) {
-    const a = b.anims?.[s];
+    const a = b.anims?.[s], sub = Math.max(1, Math.floor(a?.sub ?? 1));
     out[s] = {
       frames: n, fps: a?.fps ?? (b.kind === 'effect' ? dir.effects.fps : 8), loop: a?.loop ?? (b.kind !== 'effect' && (n === 1 || LOOPING.test(s))),
-      ...(a?.durations?.length === n && { durations: [...a.durations] }),
+      ...(a?.durations?.length === n && { durations: [...a.durations] }), ...(sub > 1 && { sub }),
     };
   }
   return out;
 }
 
-/** Duration of every frame of a state in ms (the explicit list, else 1000 / fps each). */
+/** Duration of every logical frame of a state in ms (the explicit list, else 1000 / fps each). */
 export const frameDurations = (st: PackStateDef): number[] => st.durations ?? Array.from({ length: st.frames }, () => Math.round(1000 / st.fps));
+
+/** Duration of every displayed frame (sub-frames split their logical frame's time, rounded so they sum to it). */
+export function displayDurations(st: PackStateDef): number[] {
+  const k = st.sub ?? 1;
+  return frameDurations(st).flatMap(d => Array.from({ length: k }, (_, i) => Math.round(((i + 1) * d) / k) - Math.round((i * d) / k)));
+}
 
 /** Ramp-to-ramp swaps → hex maps over the direction palette. */
 export function swapMaps(dir: Direction, swaps: Record<string, Record<string, string>> = {}): Record<string, Record<string, string>> {
@@ -202,7 +217,7 @@ export function buildPack(pack: string, dir: Direction, inputs: PackInput[], opt
   const assets: Record<string, PackAsset> = {};
   for (const inp of inputs) {
     const b = inp.brief, r = inp.renders[0], mine = refs.filter(x => x.asset === b.id);
-    const states = stateDefs(b, dir, Object.fromEntries(r.states.map(s => [s, r.frames[s]])));
+    const states = stateDefs(b, dir, Object.fromEntries(r.states.map(s => [s, r.frames[s] / Math.max(1, Math.floor(b.anims?.[s]?.sub ?? 1))])));
     const names = [...new Set(mine.flatMap(x => Object.keys(x.cell.anchors ?? {})))].sort();
     const anchors = names.length ? Object.fromEntries(names.map(n => [n, mine.map(x => {
       const a = x.cell.anchors?.[n];
@@ -216,6 +231,7 @@ export function buildPack(pack: string, dir: Direction, inputs: PackInput[], opt
       variants: ['base', ...inp.renders.slice(1).map((_, i) => `v${i + 1}`), ...Object.keys(swaps ?? {})],
       ...(swaps && { swaps }), version: inp.version, sourceHash: inp.sourceHash,
       ...((TILE_KINDS.has(b.kind) || LAYER_KINDS.has(b.kind)) && { tile: r.size[0] }), ...(b.autotile && { autotile: b.autotile }), ...(inp.renders.some(x => x.cells.some(c => c.normal)) && { normals: true as const }),
+      ...(b.blend === 'add' && { blend: 'add' as const }),
       ...(inp.draft && { draft: true as const }),
     };
   }
@@ -240,7 +256,7 @@ export function asepriteJson(m: PackManifest, bin: number, g: Grid, image: strin
       if (!tag || tag.name !== strip) { tag = { name: strip, from: frames.length, to: frames.length, direction: 'forward' }; tags.push(tag); } else tag.to = frames.length;
       frames.push({
         filename: `${id}/${state}/${a.facings[fi]}/${frame}${variant ? `#${a.variants[variant]}` : ''}`, frame: { x, y, w, h }, rotated: false, trimmed: false,
-        spriteSourceSize: { x: 0, y: 0, w, h }, sourceSize: { w, h }, duration: frameDurations(a.states[state])[frame] ?? Math.round(1000 / a.states[state].fps),
+        spriteSourceSize: { x: 0, y: 0, w, h }, sourceSize: { w, h }, duration: displayDurations(a.states[state])[frame] ?? Math.round(1000 / a.states[state].fps),
       });
     }
   }

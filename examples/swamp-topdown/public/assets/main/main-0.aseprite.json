@@ -1321,9 +1321,141 @@
       "duration": 125
     },
     {
-      "filename": "bog-water/idle/s/0",
+      "filename": "mud/idle/s/0#v1",
       "frame": {
         "x": 92,
+        "y": 75,
+        "w": 16,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 16,
+        "h": 16
+      },
+      "duration": 125
+    },
+    {
+      "filename": "mud/idle/s/0#v2",
+      "frame": {
+        "x": 109,
+        "y": 75,
+        "w": 16,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 16,
+        "h": 16
+      },
+      "duration": 125
+    },
+    {
+      "filename": "mud/idle/s/0#v3",
+      "frame": {
+        "x": 126,
+        "y": 75,
+        "w": 16,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 16,
+        "h": 16
+      },
+      "duration": 125
+    },
+    {
+      "filename": "bog-water/idle/s/0",
+      "frame": {
+        "x": 143,
+        "y": 75,
+        "w": 16,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 16,
+        "h": 16
+      },
+      "duration": 125
+    },
+    {
+      "filename": "bog-water/idle/s/0#v1",
+      "frame": {
+        "x": 160,
+        "y": 75,
+        "w": 16,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 16,
+        "h": 16
+      },
+      "duration": 125
+    },
+    {
+      "filename": "bog-water/idle/s/0#v2",
+      "frame": {
+        "x": 177,
+        "y": 75,
+        "w": 16,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 16,
+        "h": 16
+      },
+      "duration": 125
+    },
+    {
+      "filename": "bog-water/idle/s/0#v3",
+      "frame": {
+        "x": 194,
         "y": 75,
         "w": 16,
         "h": 16
@@ -1345,7 +1477,7 @@
   ],
   "meta": {
     "app": "artgen",
-    "version": "artgen 0.5.0",
+    "version": "artgen 0.8.0",
     "image": "main-0.png",
     "format": "RGBA8888",
     "size": {
@@ -1523,9 +1655,45 @@
         "direction": "forward"
       },
       {
-        "name": "bog-water/idle/s",
+        "name": "mud/idle/s#v1",
         "from": 60,
         "to": 60,
+        "direction": "forward"
+      },
+      {
+        "name": "mud/idle/s#v2",
+        "from": 61,
+        "to": 61,
+        "direction": "forward"
+      },
+      {
+        "name": "mud/idle/s#v3",
+        "from": 62,
+        "to": 62,
+        "direction": "forward"
+      },
+      {
+        "name": "bog-water/idle/s",
+        "from": 63,
+        "to": 63,
+        "direction": "forward"
+      },
+      {
+        "name": "bog-water/idle/s#v1",
+        "from": 64,
+        "to": 64,
+        "direction": "forward"
+      },
+      {
+        "name": "bog-water/idle/s#v2",
+        "from": 65,
+        "to": 65,
+        "direction": "forward"
+      },
+      {
+        "name": "bog-water/idle/s#v3",
+        "from": 66,
+        "to": 66,
         "direction": "forward"
       }
     ]

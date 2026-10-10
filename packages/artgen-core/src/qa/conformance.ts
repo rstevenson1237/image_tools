@@ -6,6 +6,7 @@ import { kindPalette, type Direction, type Size } from '../direction.ts';
 import { luma, normHex, parseColor } from '../lib/color.ts';
 import type { Grid } from '../lib/grid.ts';
 import { isShadowPixel, measure, type Metrics } from './metrics.ts';
+import { animChecks, type AnimInput } from './anim.ts';
 import { borderContrast, periodicPatch, repetitionIssues, repetitionMetric, seamMetric } from './tiles.ts';
 
 export type CheckStatus = 'pass' | 'fail' | 'flag' | 'skip';
@@ -33,6 +34,8 @@ export interface ConformanceInput {
   periodic?: boolean;
   /** Autotile sets: seam and repetition are judged on the fully surrounded tile (the last of the set), not tile 0. */
   autotile?: 'wang16' | 'blob47';
+  /** States with their frames (P6c, `animInput(render)`): frame QA, attack QA and the effects' solid-fill check. */
+  anim?: AnimInput;
 }
 
 export interface Thresholds {
@@ -118,7 +121,10 @@ export function conformance(input: ConformanceInput): ConformanceReport {
   const allowed = new Set(kindPalette(dir, kind)), outline = normHex(dir.palette.outline);
   // tiles repeat, so their frame border wraps around instead of being a silhouette edge
   const wraps = !!kind && TILE_KINDS.has(kind), wrapsX = wraps || (!!kind && LAYER_KINDS.has(kind));
+  // view-models (P6d) sit on the bottom edge of the screen: they continue below the frame, so that border is no edge
+  const offBottom = kind === 'viewmodel';
   const opaque = (g: Grid, x: number, y: number) => {
+    if (offBottom && y >= g.h) y = g.h - 1;
     if (wrapsX) x = ((x % g.w) + g.w) % g.w;
     if (wraps) y = ((y % g.h) + g.h) % g.h;
     else if (wrapsX) y = Math.max(0, Math.min(g.h - 1, y)); // a layer's scenery runs on past its top and bottom
@@ -237,6 +243,9 @@ export function conformance(input: ConformanceInput): ConformanceReport {
       add('repetition', why.length ? 'flag' : 'pass', why.length ? why.join('; ') : `lowStd ${rm.lowStd}, ${rm.markBlobs} marks (weight ${rm.marks})`);
     }
   }
+
+  // animation (P6c): frame QA, attack QA, solid fill (flags)
+  if (input.anim) checks.push(...animChecks(input.anim, dir, kind));
 
   // anchor similarity (flag only)
   if (!anchors.length) add('anchors', 'skip', 'no anchors for this kind');
