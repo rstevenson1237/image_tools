@@ -1,25 +1,68 @@
 # Game Asset Suite
 
-A client-side image manipulation suite for game developers and Virtual Table Top players.
-Everything runs in the browser — no image ever leaves the machine.
+Two things for game developers live in this repo:
 
-Image tools:
+- **artgen** — a pixel-art pipeline you install into your game's repo and drive from [Claude Code](https://claude.ai/code).
+  You describe the game; Claude proposes three art directions, you pick or mix one, and it is locked as
+  `art/direction.json` (palette, outline, light, scale, camera). From then on every sprite, prop, tile, texture and
+  effect is a small JavaScript module that draws itself from that direction, goes through a fixed make → review →
+  revise loop, and waits for your approval. Approved art exports as atlas packs plus a tiny typed runtime for Pixi.js,
+  three.js or Canvas 2D. Change the direction later and one command re-renders the whole set.
+- **The image tools** — a browser app (everything stays on your machine): a VTT token cutter, an SVG tracer, and three
+  tools that open an artgen game's `art/` folder to edit the direction, review and approve assets, and play them.
+
+## artgen quickstart
+
+You need Node 20+, a git repo for your game, and Claude Code (local or claude.ai/code).
+
+1. **Install** from your game repo's root, then commit what it adds (`.claude/`, `tools/artgen/`, `.mcp.json`,
+   `CLAUDE.md`, `art/`). After that, sessions need no network or npm.
+   ```bash
+   npx -y github:rstevenson1237/image_tools#artgen-dist init
+   ```
+2. **Set the art direction:** run `/artgen-direction` in Claude Code. It asks about the game, renders three style tiles,
+   and locks the one you choose (or a mix: "A's palette with B's outlines").
+3. **Make assets:** `/artgen-brief` to list what you need ("a goblin with 8 facings and a walk cycle, a crate, a mud
+   tile"), then `/artgen-make`. Claude works through every asset on its own and doesn't stop to ask.
+4. **Approve:** `/artgen-review` shows the finished assets; `/artgen-approve <id>` or `/artgen-feedback <id>` for each.
+   You can also do this in the **Asset Review** tool of the image tools app.
+5. **Use them in the game:** `/artgen-export` writes the atlas packs, `src/art/assets.ts` (typed ids) and the runtime:
+   ```ts
+   const pack = await loadPack(Packs.main, pixiAdapter());
+   const goblin = pack.sprite(Assets.goblin).play('walk').at(x, y);
+   app.ticker.add(t => goblin.faceToward(dx, dy).update(t.deltaMS));   // picks the facing, steps the frames
+   ```
+
+Later: `npx -y github:rstevenson1237/image_tools#artgen-dist update` (keeps your local edits), or pin a release with
+`#artgen-dist-v0.9.0` ([changelog](packages/artgen-dist/CHANGELOG.md)). `node tools/artgen/artgen.js --help` lists
+the CLI; the same tools are an MCP server (`artgen`) in every install, and `python/artgen` is a Python client.
+[`examples/`](examples/) holds three small games built entirely this way: a top-down swamp (Pixi.js), an isometric
+dungeon (Pixi.js) and a first-person billboard crawler (three.js).
+
+| Package | What it is |
+|---|---|
+| [`packages/artgen-core`](packages/artgen-core) | the engine: direction model, primitives, procedural layers, finishing ops, checks, export |
+| [`packages/artgen-cli`](packages/artgen-cli) | the `artgen` CLI the skills call |
+| [`packages/artgen-runtime`](packages/artgen-runtime) | the runtime vendored into games, with Pixi.js / three.js / Canvas 2D adapters |
+| [`packages/artgen-mcp`](packages/artgen-mcp) | the MCP server |
+| [`packages/artgen-dist`](packages/artgen-dist) | builds the installable distribution and the installer |
+| [`python/artgen`](python/artgen) | Python client |
+
+## The image tools
 
 - **VTT Token Cutter** — lasso a figure in a piece of artwork and extract a mono-colour
   silhouette as a transparent, tightly-cropped PNG.
 - **SVG Tracer** — trace artwork to vector paths, fix the trace node by node, and export SVG.
-
-Art pipeline tools (artgen W4) — open a game repo's `art/` folder (File System Access in Chromium; a zip round trip
-elsewhere) and work on the same files Claude Code's artgen commands use:
-
-- **Art Direction** — edit palette ramps and style settings with a live style tile, compare candidates, save a draft
-  or lock a new direction version.
+- **Art Direction** — open a game's `art/` folder (File System Access in Chromium; a zip round trip elsewhere), edit
+  palette ramps and style settings with a live style tile, compare candidates, save a draft or lock a new version.
 - **Asset Review** — finished assets by status, the pass timeline with scores, version compare, conformance; approve,
   or request changes with notes pinned to regions of the sprite; pipeline analytics.
 - **Asset Lab** — drive an asset's params, seed and variant, and play it through the artgen runtime by state, facing
   and frame; export it alone as a pack.
 
-## Getting started
+The art tools write the same files Claude Code reads, so changes made in either show up in the other.
+
+## Developing this repo
 
 ```bash
 npm install     # also copies opencv.js into public/vendor
@@ -34,15 +77,6 @@ npm run test:packages   # vitest in each artgen workspace package
 npm run build:dist      # build the artgen committed-install distribution (packages/artgen-dist/out)
 npm run fixtures:install  # restore the generated tools in the examples/ fixture game repos
 ```
-
-**artgen** (`packages/`, `docs/artgen/`) is the pixel-art pipeline for game repos that lives alongside the app.
-Game repos install it by committing a built distribution (works in local and claude.ai/code sessions):
-`npx -y github:rstevenson1237/image_tools#artgen-dist init`, then `/artgen-direction` (W1) and `/artgen-brief` + `/artgen-make`
-(W2: briefs → autonomous pipeline → approve → export), and `artgen export --runtime` (W3: vendors the runtime with a
-Pixi.js, three.js or Canvas 2D adapter, `packages/artgen-runtime`). `examples/` holds the fixture game repos used for
-acceptance — each is now a small game playing its exported pack. The same tools are an MCP server in every install
-(`tools/artgen/artgen-mcp.js`) and a Python client (`python/artgen`). Releases are tagged `artgen-dist-v<version>`
-(pin one with `#artgen-dist-v0.9.0`); see `packages/artgen-dist/CHANGELOG.md`.
 
 `npm run dev` and `npm run build` both re-run `scripts/vendor-opencv.mjs` first, so the OpenCV
 asset is always in place.

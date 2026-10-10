@@ -31,7 +31,10 @@ const check = (ok, what) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${what}`); if
 // 1. remote + publisher clone (the script runs `git worktree` in the repo it is called from)
 sh('git', ['init', '-q', '--bare', remote], tmp);
 sh('git', ['init', '-q', pub], tmp);
-git(pub, 'commit', '-q', '--allow-empty', '-m', 'main');
+// tracked files, like the CI checkout of main: the first publish starts an orphan branch with them still staged
+writeFileSync(join(pub, 'README.md'), 'main\n');
+git(pub, 'add', 'README.md');
+git(pub, 'commit', '-q', '-m', 'main');
 git(pub, 'remote', 'add', 'origin', remote);
 // like GitHub, the remote has a default branch (npm resolves git refs against HEAD)
 git(pub, 'push', '-q', 'origin', 'HEAD:refs/heads/main');

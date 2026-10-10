@@ -38,7 +38,7 @@ pixels (eye glints) safe from `fix` ops.
 
 - `ctx` carries `dir`, `state`, `facing`, `frame`, `anchors`, `at`, `key`, `protect`, `lib.px`; the frame size is `g.w` × `g.h`.
 - Global ops run on every frame and facing; patches target key frames (`ctx.key(state, frame)`) and follow named
-  anchors (`ctx.at('head')`) through the others (D15). West facings of 2D assets are mirrored finished east cells.
+  anchors (`ctx.at('head')`) through the others. West facings of 2D assets are mirrored finished east cells.
 - When a finish is scored, `finish.vM.snapshot.json` records the pixels under each patch (as tokens). After a
   re-render, large differences mark the asset **FINISH-STALE** in `pass status` / `render`: re-review it, and write
   `finish.vM+1` if the patch no longer fits.

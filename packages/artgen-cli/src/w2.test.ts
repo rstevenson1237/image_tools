@@ -118,7 +118,7 @@ describe('W2 production in a scratch game repo', () => {
     expect(pack.assets.goblin).toMatchObject({ directions: 8, variants: ['base', 'v1', 'red'], version: 'finish.v3' });
     expect(pack.assets.goblin.frames.length).toBe(2 * 8 * 5);
     expect(existsSync(join(root, 'public/assets/main/main-0.aseprite.json'))).toBe(true);
-    expect(readFileSync(join(root, 'src/art/assets.ts'), 'utf8')).toContain('main: "/assets/main/pack.json"');
+    expect(readFileSync(join(root, 'src/art/assets.ts'), 'utf8')).toContain('main: `${base}assets/main/pack.json`');
     expect((await json('status', ...R)).map((r: { status: string }) => r.status)).toEqual(['exported', 'exported']);
   }, 60_000);
 

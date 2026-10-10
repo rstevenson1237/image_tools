@@ -1,9 +1,9 @@
 ---
 name: art-direction
-description: Set or change the game's art direction with artgen (W1) — interview the user about the game, generate three direction candidates, render style tiles, let the user choose or mix, then lock direction.json with anchors and a style sheet. Use when a game repo has no locked art/direction.json, when the user wants a new look, or asks to restyle.
+description: Set or change the game's art direction with artgen — interview the user about the game, generate three direction candidates, render style tiles, let the user choose or mix, then lock direction.json with anchors and a style sheet. Use when a game repo has no locked art/direction.json, when the user wants a new look, or asks to restyle.
 ---
 
-# Art direction (W1)
+# Art direction
 
 Goal: in one session, go from the user's game pitch to a **locked** `art/direction.json`, saved anchors
 (`art/anchors/`) and a style sheet (`art/direction.png`). The user's choices are the only manual input: you run

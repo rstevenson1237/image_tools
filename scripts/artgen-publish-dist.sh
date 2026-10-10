@@ -34,7 +34,8 @@ else
   git worktree add -q --detach "$dir"
   git -C "$dir" checkout -q --orphan "$branch"
 fi
-git -C "$dir" rm -rq --ignore-unmatch .
+# -f: a new orphan branch starts with the checkout's files staged, which a plain rm refuses to drop
+git -C "$dir" rm -rqf --ignore-unmatch .
 cp -a "$out/." "$dir/"
 git -C "$dir" add -A
 if git -C "$dir" diff --cached --quiet; then
