@@ -1,0 +1,13 @@
+{
+  "name": "artgen-dist",
+  "version": "0.9.0",
+  "description": "artgen committed install: run `init` or `update` in a game repo root, then commit.",
+  "type": "module",
+  "bin": {
+    "artgen-dist": "install.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}

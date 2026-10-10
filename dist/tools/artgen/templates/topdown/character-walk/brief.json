@@ -1,0 +1,1 @@
+{ "kind": "character", "size": "character", "states": ["idle", "walk"], "directions": 8, "anims": { "walk": { "frames": 4 } }, "review": { "scale": 5, "sym": "none" } }

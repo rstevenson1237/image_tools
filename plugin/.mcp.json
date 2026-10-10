@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "artgen": {
+      "command": "node",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen-mcp.js"
+      ]
+    }
+  }
+}

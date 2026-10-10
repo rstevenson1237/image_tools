@@ -1,0 +1,14 @@
+{
+  "name": "artgen",
+  "owner": {
+    "name": "rstevenson1237"
+  },
+  "plugins": [
+    {
+      "name": "artgen",
+      "source": "./plugin",
+      "description": "Pixel and voxel game art pipeline: art direction, autonomous asset production, review, approval and atlas export (artgen).",
+      "version": "0.9.0"
+    }
+  ]
+}
