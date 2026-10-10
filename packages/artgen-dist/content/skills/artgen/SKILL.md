@@ -10,9 +10,10 @@ light setting from the locked art direction (`art/direction.json`, handed to the
 checks and records; you write the sources and judge the sheets.
 
 CLI: `{{ARTGEN}} <command>` (Node 20+, no npm install). Add `--json` for machine-readable output. The `artgen` MCP
-server exposes the same core tools (`direction_get`, `pass_status`, `render`, `review`, `conformance`, `score`,
-`direction_tile`, `status`) and returns images directly. Briefs, the autonomous run (`make`), the gallery, approvals,
-feedback, export and restyle are in the **asset-production** skill.
+server exposes the same tools and returns images directly: `direction_get`, `direction_tile`, `pass_status`, `render`,
+`review`, `conformance`, `score`, `finish`, `make`, `status`, `gallery`, `feedback`, `approve`, `texture`, `fx`,
+`export`, `restyle`, `analytics` (asset arguments: a brief id or a directory inside `art/`). Briefs, the autonomous run
+(`make`), the gallery, approvals, feedback, export and restyle are in the **asset-production** skill.
 
 ## Before writing anything
 1. `{{ARTGEN}} direction show` — there must be a **locked** direction. If not, use the art-direction skill first.

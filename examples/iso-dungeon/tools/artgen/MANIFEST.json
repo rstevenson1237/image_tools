@@ -1,6 +1,7 @@
 {
-  "version": "0.8.0",
+  "version": "0.9.0",
   "files": {
+    ".claude/agents/art-maker.md": "3a325b46ea1b9fd2",
     ".claude/agents/art-reviewer.md": "9f31377e5fb2ded0",
     ".claude/commands/artgen-approve.md": "acd455a2d4a7b631",
     ".claude/commands/artgen-brief.md": "b466df003b9bae40",
@@ -8,21 +9,21 @@
     ".claude/commands/artgen-export.md": "b01c930f5cefdc34",
     ".claude/commands/artgen-feedback.md": "cee94dd049697086",
     ".claude/commands/artgen-init.md": "588c91dd180debef",
-    ".claude/commands/artgen-make.md": "c85cfd1f6770ad83",
+    ".claude/commands/artgen-make.md": "6fd5b6b7a5a92e3b",
     ".claude/commands/artgen-restyle.md": "b6ac80f8d9f18931",
     ".claude/commands/artgen-review.md": "ac2267373a77bea0",
     ".claude/skills/art-direction/SKILL.md": "0eb90a91bf9ac0be",
-    ".claude/skills/artgen/SKILL.md": "4c3ec1ec9d4a1717",
+    ".claude/skills/artgen/SKILL.md": "75b0026bac46b915",
     ".claude/skills/artgen/references/breadth.md": "456c29ddd8d70e73",
     ".claude/skills/artgen/references/direction.md": "44305c4f90c73d55",
     ".claude/skills/artgen/references/finishing.md": "3368524f01d287b5",
     ".claude/skills/artgen/references/review.md": "8e1cbc300bf0a8b2",
     ".claude/skills/artgen/references/t2.md": "30aae7fb64c025d3",
-    ".claude/skills/asset-production/SKILL.md": "f909ab87a31e5465",
-    "tools/artgen/VERSION": "a66780da23103bea",
-    "tools/artgen/artgen-mcp.js": "35352081ca610c41",
-    "tools/artgen/artgen.js": "a2b38b6a746a3997",
-    "tools/artgen/package.json": "be5e0300f61c3b08",
+    ".claude/skills/asset-production/SKILL.md": "499aea7b27e5313c",
+    "tools/artgen/VERSION": "9d8c94f1ad3ea96b",
+    "tools/artgen/artgen-mcp.js": "2b8c57db859411f4",
+    "tools/artgen/artgen.js": "62e68389b6b4b4a7",
+    "tools/artgen/package.json": "83da2f2104e49c4e",
     "tools/artgen/resvg.wasm": "22bf6e9f9a100d97",
     "tools/artgen/runtime/adapters/canvas2d.ts": "e47817fe971883a5",
     "tools/artgen/runtime/adapters/pixi.ts": "24fe8b349d6b3a46",
@@ -72,5 +73,5 @@
     "tools/artgen/templates/topdown/tileset/base.js": "da2619cee55bd964",
     "tools/artgen/templates/topdown/tileset/brief.json": "4f09b33e1e389ed3"
   },
-  "claudeMd": "346a1f7ec0046d95"
+  "claudeMd": "87e12b832c8469dd"
 }

@@ -27,7 +27,7 @@ describe('artgen-dist', () => {
   test('build: committed layout, plugin layout, installer package', () => {
     for (const f of ['package.json', 'install.mjs', 'README.md', 'dist/claude-md.md', 'dist/tools/artgen/artgen.js', 'dist/tools/artgen/artgen-mcp.js',
       'dist/tools/artgen/resvg.wasm', 'dist/tools/artgen/VERSION', 'dist/tools/artgen/templates/topdown/character/base.js',
-      'dist/claude/skills/artgen/SKILL.md', 'dist/claude/skills/art-direction/SKILL.md', 'dist/claude/agents/art-reviewer.md',
+      'dist/claude/skills/artgen/SKILL.md', 'dist/claude/skills/art-direction/SKILL.md', 'dist/claude/agents/art-reviewer.md', 'dist/claude/agents/art-maker.md',
       'dist/claude/commands/artgen-init.md', 'dist/claude/commands/artgen-direction.md', 'dist/claude/skills/asset-production/SKILL.md',
       ...['brief', 'make', 'review', 'feedback', 'approve', 'export', 'restyle'].map(c => `dist/claude/commands/artgen-${c}.md`),
       'dist/tools/artgen/templates/topdown/character-walk/base.js', 'plugin/commands/make.md',
@@ -101,7 +101,7 @@ describe('artgen-dist', () => {
     const r = node(['tools/artgen/artgen-mcp.js'], msgs.map(m => JSON.stringify(m)).join('\n') + '\n');
     const out = r.stdout.trim().split('\n').map(l => JSON.parse(l));
     expect(out.map(m => m.id)).toEqual([1, 2, 3]);
-    expect(out[1].result.tools.length).toBeGreaterThanOrEqual(8);
+    expect(out[1].result.tools.map((t: { name: string }) => t.name)).toEqual(expect.arrayContaining(['make', 'approve', 'texture', 'fx', 'export', 'analytics']));
     expect(out[2].result.content.map((c: { type: string }) => c.type)).toEqual(['text', 'image']);
   });
 

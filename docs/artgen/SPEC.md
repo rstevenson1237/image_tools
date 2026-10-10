@@ -1,6 +1,6 @@
 # artgen — Specification
 
-Status: **rev 10** (P6c/P6d as built: §10, §12.2, §13.3); **rev 9** (independent review: blind re-score of finals, reviewer on every score, real-world heights, silhouette panel, roster review — [findings/calibration.md](findings/calibration.md)); rev 8: per-frame anchors in packs, animation contracts, per-frame durations, face-first character finish — written against the resolved decisions in [INTAKE §7](INTAKE.md#7-decisions-resolved-2026-10-05) / [DECISIONS.md](DECISIONS.md)
+Status: **rev 11** (P7 as built: §3.1 release tags, §11.1 analytics v2, §14 interfaces); **rev 10** (P6c/P6d as built: §10, §12.2, §13.3); **rev 9** (independent review: blind re-score of finals, reviewer on every score, real-world heights, silhouette panel, roster review — [findings/calibration.md](findings/calibration.md)); rev 8: per-frame anchors in packs, animation contracts, per-frame durations, face-first character finish — written against the resolved decisions in [INTAKE §7](INTAKE.md#7-decisions-resolved-2026-10-05) / [DECISIONS.md](DECISIONS.md)
 
 ## 1. Summary
 
@@ -64,6 +64,7 @@ dist/
   claude/skills/art-direction/       # W1 interview → candidates → lock
   claude/skills/asset-production/    # W2 brief → autonomous pipeline → final review → export
   claude/agents/art-reviewer.md      # subagent: scores a sheet against the direction
+  claude/agents/art-maker.md         # subagent: writes one asset's next version in a parallel make round (P7)
   claude/commands/artgen-init.md, artgen-direction.md   # thin wrappers: /artgen-init, /artgen-direction
   claude/commands/artgen-{brief,make,review,feedback,approve,export,restyle}.md   # W2 wrappers (P3)
   tools/artgen/artgen.js             # CLI, single-file bundle (Node 20+, no npm install)
@@ -87,6 +88,8 @@ npx -y github:rstevenson1237/image_tools#artgen-dist update   # later: shows ver
 - Copies `dist/claude/*` into `.claude/`, `dist/tools/artgen` into `tools/artgen/`, merges an `artgen` entry
   into `.mcp.json` (`node tools/artgen/artgen-mcp.js`), writes the art section into `CLAUDE.md` between
   `artgen:begin`/`artgen:end` markers (`update` rewrites it unless it was edited), and runs `artgen init`.
+- Releases (P7): a pushed tag `artgen-v<version>` publishes the build and tags the `artgen-dist` commit
+  `artgen-dist-v<version>`, so a game repo can pin one: `npx -y github:…#artgen-dist-v0.9.0 update`.
 - `tools/artgen/VERSION` pins the version; `MANIFEST.json` stores file hashes so `update` refuses to overwrite
   local edits without `--force`, and removes untouched files a new version no longer ships. `status` lists edits;
   `--dry-run` shows the plan.
@@ -473,6 +476,13 @@ delta vs the previous pass.
   (`{ base, revise, finish, review }`); stages run as subagents with that model. Analytics compares score per
   dollar across mappings so the defaults can be tuned (e.g. a smaller model for the reviewer or for v2/v3).
 - Shown in the UI as an Analytics panel in Asset Review (W4).
+- **v2 (P7): pooled recommendations.** `artgen analytics --across <project roots | bench folders>` pools ledgers (asset
+  ids scoped per project) and recommends, per kind, `revisionPasses` (the last base pass whose mean gain on the
+  best-so-far score is ≥ 0.25; one more when the last observed pass still adds ≥ 0.5) and `maxImageTokensPerAsset`
+  (1.5 × p90, rounded up to 500), and per stage a model/effort mapping (the cheapest by gain per 1k tokens within
+  0.25 of the best gain, once two mappings each have ≥ 3 passes; else an experiment on the stage that gains least).
+  It also notes finishing gains, second-finish and user-revision rates and blind gaps by kind. Each row carries n and
+  a confidence; medium/high ones form a config patch that `--apply` merges into `artgen.config.json`.
 - As built (P3): score records carry `pass`, `model`/`effort`/`reviewModel` from the config mapping (`--model`, `--effort`,
   `--tokens-in`, `--tokens-out`, `--ms` override), `wallMs` since the asset's previous record, `delta`, code/edit token
   estimates and the review sheet's image tokens. Budget suggestions fire per kind when v3 adds ≤ 0.1 or ≥ 0.75 over ≥ 3
@@ -602,6 +612,16 @@ raycaster corridor ("in the game").
 content; asset paths are sandboxed to `art/` (P2 serves `direction_get`, `direction_tile`, `pass_status`, `render`,
 `review`, `conformance`, `score`; P3 adds `status`). **Python**: `artgen-py` client (`Artgen(project).render(...)`, `.texture(...)`, `.export(...)`)
 returning Pillow images + dicts.
+
+As built (P7, dist 0.9.0): the MCP server has 18 tools — the list above plus `make` (with `parallel`), `status`,
+`gallery`, `feedback`, `restyle` and `analytics`. Asset arguments take a brief id, a directory relative to the root or
+`art/`, or a bare name under `art/assets/[<kind>/]`; nothing outside `art/` resolves. `texture` / `fx` write under
+`art/sheets/`. `approve` needs `user_approved: true` (D10). `direction` may name a bench direction. The CLI adds
+`make --parallel <n>` (a round of maker packets, one subagent per asset that owns `art/assets/<kind>/<id>/`, the ledger
+append being the only shared write; agent `art-maker`) and `analytics --across <roots> [--apply]` (§11.1 v2). The Python
+client is `python/artgen` (package `artgen`): `Artgen(project)` runs the CLI with `--json` and returns dicts with
+Pillow images (`render`, `review`, `texture`, `fx`, `export`, `status`, `make`, `analytics`, …); `Artgen.session()`
+keeps the MCP server open for bulk calls (~6× faster per call than a CLI process each).
 
 ## 15. Non-functional
 - `@artgen/core` and `@artgen/runtime` have no Node/DOM imports; runtime adapters isolate I/O.

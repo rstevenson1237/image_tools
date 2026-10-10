@@ -151,5 +151,5 @@ npx artgen report packages/artgen-core/bench/pipeline --out REPORT.md
 
 Tests: `npm test -w artgen-core` (unit + stage tests, no wasm), `npm test -w artgen-cli` (SVG stage tests,
 golden hashes, conformance under both directions, artlab parity, the P1b experiment's recorded hashes, restyle,
-variants, a full pass cycle, and the W1 flow in a scratch project), `npm test -w artgen-mcp` (protocol, tools,
-sandbox) and `npm test -w artgen-dist` (install smoke test from a fresh build, update edit-protection, fixture repos).
+variants, a full pass cycle, the W1 flow in a scratch project, parallel make rounds and pooled analytics),
+`npm test -w artgen-mcp` (protocol, every tool, sandbox) and `npm test -w artgen-dist` (install smoke test from a fresh build, update edit-protection, fixture repos).

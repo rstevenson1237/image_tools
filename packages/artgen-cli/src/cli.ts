@@ -29,7 +29,8 @@
  *   artgen brief add <id> --kind k [--view v] [--size key|WxH] [--states a,b] [--directions 8] [--anims walk:4,attack:3]
  *                    [--variants n] [--swaps red:cloth=accent] [--importance hero|standard|filler] [--priority n] [--notes "…"]
  *   artgen brief list | rm <id>
- *   artgen make [ids|all]                           one tick of the autonomous run: scaffold, mark finals, name the next step
+ *   artgen make [ids|all] [--parallel n]            one tick of the autonomous run: scaffold, mark finals, name the next step;
+ *                                                   --parallel: a round of up to n maker packets (one subagent per asset) + main steps
  *   artgen status [ids]                             brief → in-pipeline → final → approved → exported (+ revision, stale)
  *   artgen gallery [ids]                            sheet of finished assets for the user (score, open issues)
  *   artgen feedback <id> --route base|finish --note "…" [--region x,y,w,h] [--cell state/facing/frame]
@@ -41,6 +42,9 @@
  *   artgen restyle [--from N]                       re-render finished assets under the new direction + diff sheet
  *   artgen import-edit <id> <edited.png> [--cell state/facing/frame]   hand edit → next finish.vM.js
  *   artgen analytics [--out file.md]                per-pass gains, cost per asset, budget suggestions
+ *   artgen analytics --across <root>,<root>… [--apply] [--min-assets 3] [--out file.md]
+ *                                                   v2 (P7): budget + model/effort recommendations pooled across projects;
+ *                                                   --apply merges the config patch into this project's artgen.config.json
  *
  * Breadth (PLAN P6):
  *   artgen voxel <asset> [--version v] [--cell s/f/n] [--out dir] [--scale m]   3D-mode model → .vox + greedy-meshed .glb
@@ -53,14 +57,14 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { extractPalette, generateRamp, Grid, MATERIALS, PRESET_NAMES, MIX_PARTS, parseDirection, parseGpl, parseHexPalette, rampsFromColors, validateDirection, type Interview, type MixPart, type Size } from 'artgen-core';
-import { openAsset, passState, type AssetDir, renderVersion, reviewVersion, scoreVersion, variantsSheet, versionsIn, writeRender } from './asset.ts';
+import { openAsset, passState, renderVersion, reviewVersion, scoreVersion, variantsSheet, versionsIn, writeRender } from './asset.ts';
 import { resolveDirection, updateGolden, writeBench } from './bench.ts';
 import { readGrid, writeGrid } from './node.ts';
 import { findProject, initProject, readJson, requireProject, writeJson } from './project.ts';
 import { animPreview, fxRun, textureRun, voxelExport } from './p6.ts';
 import { report } from './report.ts';
-import { newAsset, newFinish } from './templates.ts';
-import { addBrief, approve, exportPacks, feedback, gallery, importEdit, make, projectAnalytics, projectStatus, readBriefs, removeBriefFile, resolveAssetArg, restyle, rosterRecord, rosterRun } from './w2.ts';
+import { newAsset } from './templates.ts';
+import { addBrief, approve, exportPacks, feedback, gallery, importEdit, make, pooledAnalytics, projectAnalytics, projectStatus, readBriefs, removeBriefFile, resolveAssetArg, restyle, rosterRecord, rosterRun, writeNextFinish, type WorkPacket } from './w2.ts';
 import { IMPORTANCE, type BriefEntry, type Importance } from 'artgen-core';
 import { lock, readInterview, show, writeAnchors, writeCandidates, writeDraft, writeMix, writeTile } from './w1.ts';
 
@@ -107,10 +111,10 @@ const USAGE = `usage: artgen init
        artgen report <dir> [--out REPORT.md] [--title "..."]
        artgen brief add <id> --kind k [--view v] [--size key|WxH] [--states a,b] [--directions n] [--anims walk:4] [--durations attack=80/80/200/80] [--variants n] [--swaps red:cloth=accent] [--importance t] [--priority n] [--height metres] [--object "ice lance"] [--notes "..."] [--break-contract]
        artgen brief list | rm <id>
-       artgen make [ids|all] | status [ids] | gallery [ids]
+       artgen make [ids|all] [--parallel n] | status [ids] | gallery [ids]
        artgen feedback <id> --route base|finish --note "..." [--region x,y,w,h] [--cell s/f/n] | approve <id> [--note "..."]
        artgen export [--pack name] [--include-drafts] [--runtime [--force]] [--break-contract id,…|*] | restyle [--from N] | import-edit <id> <png> [--cell s/f/n]
-       artgen analytics [--out file.md]
+       artgen analytics [--out file.md] | analytics --across <root>,<root>… [--apply] [--min-assets n] [--out file.md]
        artgen voxel <asset> [--version v] [--cell s/f/n] [--out dir] [--scale m]
        artgen texture <material> [--size 32|WxH] [--seed n] [--ramps base=stone,…] [--scale k] [--out dir] | texture --list
        artgen anim <asset> [--version v] [--state s] [--facing f] [--scale n] [--out dir]
@@ -226,19 +230,8 @@ export async function main(argv: string[]): Promise<number> {
     return 0;
   }
   if (cmd === 'finish' && sub) {
-    const dirArg = resolveAssetArg(findProject(flag(args, '--root')), sub);
-    // the base: --base, else the pass machine's choice (best scored), else the latest base (W1 probes before lock)
-    const vs = versionsIn({ path: dirArg } as AssetDir), n = vs.filter(v => v.startsWith('finish.')).length + 1;
-    let base = flag(args, '--base');
-    if (!base) {
-      const st = await (async () => { try { return await passState(asset(sub)); } catch { return undefined; } })();
-      base = st?.next.action === 'write-finish' ? st.next.base : st?.best?.version ?? vs.filter(v => v.startsWith('base.')).pop();
-    }
-    if (!base) throw new Error(`${sub}: no base version to finish`);
-    // characters and creatures get the face-first finish template; the kind comes from the brief (W2) or brief.json (probes)
-    const kind = (() => { try { return asset(sub).brief.kind; } catch { return undefined; } })();
-    const file = newFinish(dirArg, n, base, kind);
-    print(`${file} (bound to ${base})`, { file, base });
+    const r = await writeNextFinish(resolveAssetArg(findProject(flag(args, '--root')), sub), { base: flag(args, '--base'), direction: flag(args, '--direction'), ledger: flag(args, '--ledger') });
+    print(`${r.file} (bound to ${r.base})`, r);
     return 0;
   }
   if (cmd === 'pass' && (sub === 'status' || sub === 'next') && rest[0]) {
@@ -369,11 +362,19 @@ export async function main(argv: string[]): Promise<number> {
     const p = requireProject(flag(args, '--root')), ids = pos2(args);
     const table = (rows: Awaited<ReturnType<typeof projectStatus>>) => rows.map(r => `  ${r.id.padEnd(16)} ${r.status.padEnd(11)} ${r.final ? `${r.final} ${r.score ?? '-'}${r.gate === false ? ' GATE FAIL' : ''}` : (r.next ? `${r.next.action} ${'version' in r.next ? r.next.version : ''}` : '')}${r.issues.length ? `\n${r.issues.map(i => `      issue: ${i}`).join('\n')}` : ''}`).join('\n');
     if (cmd === 'status') { const rows = await projectStatus(p, ids); print(table(rows) || 'no briefs yet', rows); return 0; }
-    const r = await make(p, ids);
+    const par = flag(args, '--parallel');
+    if (par !== undefined && !(+par >= 1)) throw new Error('make --parallel <n>: how many maker subagents to run at once (e.g. 4)');
+    const r = await make(p, ids, { parallel: par ? +par : undefined });
+    const pk = (x: WorkPacket) => `  ${x.id.padEnd(16)} ${x.step.action} ${'version' in x.step ? x.step.version : ''}${x.writes.length ? ` → writes ${x.writes.join(', ')}` : ''}`;
     const counts = Object.entries(r.rows.reduce((m, x) => ({ ...m, [x.status]: (m[x.status] ?? 0) + 1 }), {} as Record<string, number>)).map(([k, v]) => `${v} ${k}`).join(', ');
     print([
       ...(r.scaffolded.length ? [`scaffolded from templates:\n  ${r.scaffolded.join('\n  ')}`] : []), ...(r.finals.length ? [`marked final: ${r.finals.join(', ')}`] : []),
       ...(r.overBudget.length ? [`over budget, finished as is: ${r.overBudget.join(', ')}`] : []), table(r.rows), `(${counts})`,
+      ...(r.work ? [
+        `parallel round: ${r.work.makers.length} maker subagent(s), one per asset; each writes only its own file(s), then runs artgen render + artgen review on its asset`,
+        ...r.work.makers.map(pk), ...(r.work.queued.length ? [`queued for the next round (${r.work.queued.length}):`, ...r.work.queued.map(pk)] : []),
+        ...(r.work.main.length ? ['main agent (reviews, blind re-scores — fresh art-reviewer per sheet):', ...r.work.main.map(pk)] : []),
+      ] : []),
       r.next ? `next: ${r.next.id} — ${r.next.step.action} ${'version' in r.next.step ? r.next.step.version : ''} (${r.next.path}) — ${r.next.step.why}` : 'next: nothing left in the pipeline — show the gallery to the user (artgen gallery)',
     ].join('\n'), r);
     return 0;
@@ -442,6 +443,14 @@ export async function main(argv: string[]): Promise<number> {
     return 0;
   }
   if (cmd === 'analytics') {
+    const across = list(args, '--across');
+    if (across) {
+      if (!across.length) throw new Error('analytics --across <project root>[,<root>…]: the projects (or bench folders with a ledger.jsonl) to pool');
+      const r = pooledAnalytics(across, { apply: args.includes('--apply') ? requireProject(flag(args, '--root')) : undefined, minAssets: flag(args, '--min-assets') ? +flag(args, '--min-assets')! : undefined });
+      if (flag(args, '--out')) writeFileSync(flag(args, '--out')!, r.markdown);
+      print(r.markdown + (r.applied ? `\napplied to ${r.applied}` : ''), { ...r.report, ...(r.applied && { applied: r.applied }) });
+      return 0;
+    }
     const r = projectAnalytics(requireProject(flag(args, '--root')));
     if (flag(args, '--out')) { writeFileSync(flag(args, '--out')!, r.markdown); }
     print(r.markdown, r.report);

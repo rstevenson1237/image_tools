@@ -17,6 +17,7 @@ import { dirname, join, relative, resolve } from 'node:path';
 import {
   analytics, analyticsMarkdown, assetsTs, assetStatus, blindScores, briefContract, effectObjectIssues, briefDir, briefOrder, buildPack, contactSheet, contractOf, diffContract,
   editOps, Grid, imageTokens, mirrorFacing, pxPerMetre, roster, rosterIssues, TILE_KINDS, type RosterItem, type RosterPair, type RosterReview, type RosterSize, parseBriefs, parseLedger, parseVersion, removeBrief, restyleDiff, restyleSheet, tokenDiffMask, upsertBrief,
+  applyRecommendations, mergeConfig, recommend, recommendMarkdown, type LedgerSet,
   type AnimContract, type AssetMeta, type AssetStatus, type BriefEntry, type Direction, type LedgerEntry, type NextStep, type PackInput, type RenderResult,
 } from 'artgen-core';
 import {
@@ -27,7 +28,7 @@ import { RUNTIME_VERSION } from 'artgen-runtime';
 import { appendLedger, readGrid, writeGrid } from './node.ts';
 import { vendorRuntime, type VendorResult } from './runtime.ts';
 import { projectConfig, readJson, writeJson, type Project } from './project.ts';
-import { findTemplate } from './templates.ts';
+import { findTemplate, newFinish } from './templates.ts';
 import { directionVersion, lockedDirection } from './w1.ts';
 
 const briefsFile = (p: Project) => join(p.art, 'briefs.yaml');
@@ -142,14 +143,40 @@ export function requireLocked(p: Project): Direction {
   return d;
 }
 
-export interface MakeResult { rows: AssetRow[]; next?: { id: string; path: string; step: NextStep }; scaffolded: string[]; finals: string[]; overBudget: string[] }
+/**
+ * One unit of a parallel `make` round (P7). `maker` packets are authoring steps for one subagent each: it owns `owns`
+ * (the asset's directory), writes only `writes` there (renders and sheets land in the same directory's `out/`) and
+ * appends to the ledger through `artgen review` — the one shared write. `main` packets (reviews, blind re-scores) stay
+ * with the main agent, which also runs the roster review once the round is done.
+ */
+export interface WorkPacket { id: string; kind: string; owns: string; step: NextStep; writes: string[]; role: 'maker' | 'main' }
+
+export interface MakeResult {
+  rows: AssetRow[];
+  next?: { id: string; path: string; step: NextStep };
+  scaffolded: string[];
+  finals: string[];
+  overBudget: string[];
+  /** With `parallel`: makers for this round (up to `parallel`), makers that wait for the next round, and the main agent's steps. */
+  work?: { makers: WorkPacket[]; queued: WorkPacket[]; main: WorkPacket[] };
+}
+
+/** The work packet for an asset's next step (none when it is ready). A template base.v1 nobody reviewed yet is authoring. */
+export function workPacket(row: AssetRow): WorkPacket | undefined {
+  const st = row.next;
+  if (!st || st.action === 'ready') return undefined;
+  const owns = row.path, base = { id: row.id, kind: row.kind, owns, step: st };
+  if (st.action === 'write-base' || st.action === 'write-finish') return { ...base, writes: [`${owns}/${st.version}.js`], role: 'maker' };
+  if (st.action === 'review' && st.version === 'base.v1' && /^base\.v1 from the template/.test(row.why)) return { ...base, writes: [`${owns}/base.v1.js`], role: 'maker' };
+  return { ...base, writes: [], role: 'main' };
+}
 
 /**
  * One tick of the autonomous run (`/artgen:make`, D10): scaffold missing asset dirs from templates, record `final`
  * (with open issues) for every asset whose pipeline is complete, stop assets over their image-token budget, and name
  * the next step for the first unfinished asset in priority order. The agent does that step and calls make again.
  */
-export async function make(p: Project, ids?: string[]): Promise<MakeResult> {
+export async function make(p: Project, ids?: string[], o: { parallel?: number } = {}): Promise<MakeResult> {
   const dir = requireLocked(p), briefs = briefOrder(readBriefs(p)).filter(b => !ids?.length || ids.includes(b.id) || ids.includes('all'));
   if (ids?.length && !ids.includes('all')) for (const id of ids) if (!briefs.some(b => b.id === id)) throw new Error(`no brief ${id} in art/briefs.yaml`);
   const scaffolded: string[] = [], finals: string[] = [], overBudget: string[] = [], rows: AssetRow[] = [];
@@ -179,7 +206,9 @@ export async function make(p: Project, ids?: string[]): Promise<MakeResult> {
     rows.push(row);
     if (!next && row.next && row.next.action !== 'ready') next = { id: b.id, path: row.path, step: row.next };
   }
-  return { rows, next, scaffolded, finals, overBudget };
+  if (!o.parallel) return { rows, next, scaffolded, finals, overBudget };
+  const packets = rows.filter(r => !r.why.startsWith('over budget')).map(workPacket).filter((x): x is WorkPacket => !!x), makers = packets.filter(x => x.role === 'maker');
+  return { rows, next, scaffolded, finals, overBudget, work: { makers: makers.slice(0, o.parallel), queued: makers.slice(o.parallel), main: packets.filter(x => x.role === 'main') } };
 }
 
 /** Render a final as one row per state of the first facing (gallery / restyle thumbnails). */
@@ -305,6 +334,23 @@ export async function approve(p: Project, id: string, note = ''): Promise<Ledger
   const e = { type: 'approve' as const, asset: id, version: row.final, sourceHash: finalHash(a, row.final!), outputHash: r.strip.hash(), sheet: existsSync(kept) ? relative(p.art, kept).split('\\').join('/') : sheet, direction: { id: dir.id, version: dir.version }, note, ...(warnings.length && { warnings }), by: 'user' as const };
   appendLedger(ledgerFile(p), e);
   return { ts: new Date().toISOString(), ...e };
+}
+
+/**
+ * Write the next `finish.vM.js` from the finish template (`artgen finish`, MCP `finish`), bound to `base`, else to the
+ * pass machine's choice (the best scored base), else to the latest base (W1 probes before a lock).
+ */
+export async function writeNextFinish(path: string, o: { base?: string; direction?: string; ledger?: string } = {}): Promise<{ file: string; base: string }> {
+  const vs = versionsIn({ path } as AssetDir), n = vs.filter(v => v.startsWith('finish.')).length + 1;
+  let base = o.base;
+  if (!base) {
+    const st = await (async () => { try { return await passState(openAsset(path, o)); } catch { return undefined; } })();
+    base = st?.next.action === 'write-finish' ? st.next.base : st?.best?.version ?? vs.filter(v => v.startsWith('base.')).pop();
+  }
+  if (!base) throw new Error(`${path}: no base version to finish`);
+  // characters and creatures get the face-first finish template; the kind comes from the brief (W2) or brief.json (probes)
+  const kind = (() => { try { return openAsset(path, o).brief.kind; } catch { return undefined; } })();
+  return { file: newFinish(path, n, base, kind), base };
 }
 
 /** Does a brief belong in a pack (`include`: `*`, `goblin*`, `kind:tile`)? */
@@ -468,13 +514,51 @@ function crop(g: Grid, x0: number, y0: number, w: number, h: number): Grid {
 
 /** Analytics over the project's ledger with brief metadata (kind, view, size, template, importance). */
 export function projectAnalytics(p: Project, title?: string) {
-  const dir = requireLocked(p), all = parseAll(ledgerFile(p)), metas: AssetMeta[] = readBriefs(p).map(b => {
-    const bj = join(assetPathOf(p, b), 'brief.json'), local = existsSync(bj) ? readJson<{ template?: string }>(bj) : {};
-    const size = Array.isArray(b.size) ? b.size.join('x') : (b.size ?? b.kind);
-    return { id: b.id, kind: b.kind, view: b.view ?? dir.camera.view, size, template: local.template, importance: b.importance ?? 'standard' };
-  });
+  const dir = requireLocked(p), all = parseAll(ledgerFile(p)), metas = projectMetas(p, dir);
   const ids = new Set(metas.map(m => m.id)), report = analytics(all.filter(e => ids.has(e.asset) || e.asset === 'gallery'), metas);
   return { report, markdown: analyticsMarkdown(report, title ?? `${dir.id}: pipeline analytics`) };
 }
 
 const parseAll = (f: string): LedgerEntry[] => (existsSync(f) ? parseLedger(readFileSync(f, 'utf8')) : []);
+
+/** Brief metadata for analytics: kind, view, size, template and importance per brief id. */
+function projectMetas(p: Project, dir?: Direction | null): AssetMeta[] {
+  return readBriefs(p).map(b => {
+    const bj = join(assetPathOf(p, b), 'brief.json'), local = existsSync(bj) ? readJson<{ template?: string }>(bj) : {};
+    const size = Array.isArray(b.size) ? b.size.join('x') : (b.size ?? b.kind);
+    return { id: b.id, kind: b.kind, view: b.view ?? dir?.camera.view, size, template: local.template, importance: b.importance ?? 'standard' };
+  });
+}
+
+/**
+ * The ledger and asset metadata of a project root (art/ledger.jsonl + briefs.yaml + its config), or of a bench-style
+ * folder (ledger.jsonl beside asset directories with brief.json), for pooled analytics (v2, PLAN P7).
+ */
+export function ledgerSet(dir: string): LedgerSet {
+  const root = resolve(dir), name = relative(process.cwd(), root).split('\\').join('/') || '.';
+  if (existsSync(join(root, 'art', 'artgen.config.json'))) {
+    const p = { root, art: join(root, 'art') };
+    return { project: name, ledger: parseAll(ledgerFile(p)), metas: projectMetas(p, lockedDirection(p)), config: projectConfig(p) };
+  }
+  if (!existsSync(join(root, 'ledger.jsonl'))) throw new Error(`${dir}: neither a project (art/artgen.config.json) nor a folder with ledger.jsonl`);
+  const metas: AssetMeta[] = [];
+  for (const d of readdirSync(root, { withFileTypes: true })) {
+    const bj = join(root, d.name, 'brief.json');
+    if (!d.isDirectory() || !existsSync(bj)) continue;
+    const b = readJson<{ id?: string; kind: string; view?: string; size?: string | number[]; template?: string; importance?: string }>(bj);
+    metas.push({ id: b.id ?? d.name, kind: b.kind, view: b.view, size: Array.isArray(b.size) ? b.size.join('x') : b.size, template: b.template, importance: b.importance ?? 'standard' });
+  }
+  return { project: name, ledger: parseAll(join(root, 'ledger.jsonl')), metas };
+}
+
+/** Pooled recommendations (analytics v2) over project roots / bench folders; `apply` merges the patch into `p`'s config. */
+export function pooledAnalytics(dirs: string[], o: { apply?: Project; minAssets?: number; title?: string } = {}) {
+  const r = recommend(dirs.map(ledgerSet), { minAssets: o.minAssets });
+  let applied: string | undefined;
+  if (o.apply) {
+    const f = join(o.apply.art, 'artgen.config.json'), raw = readJson<Record<string, unknown>>(f), next = applyRecommendations(mergeConfig(raw), r.patch);
+    writeJson(f, { ...raw, budget: { ...(raw.budget as object), ...(next.budget.perKind && { perKind: next.budget.perKind }) }, models: next.models });
+    applied = rel(o.apply, f);
+  }
+  return { report: r, markdown: recommendMarkdown(r, o.title), ...(applied && { applied }) };
+}
