@@ -8,8 +8,9 @@ Two things for game developers live in this repo:
   effect is a small JavaScript module that draws itself from that direction, goes through a fixed make → review →
   revise loop, and waits for your approval. Approved art exports as atlas packs plus a tiny typed runtime for Pixi.js,
   three.js or Canvas 2D. Change the direction later and one command re-renders the whole set.
-- **The image tools** — a browser app (everything stays on your machine): a VTT token cutter, an SVG tracer, and three
-  tools that open an artgen game's `art/` folder to edit the direction, review and approve assets, and play them.
+- **The image tools** — a browser app (everything stays on your machine): a VTT token cutter, an SVG tracer, a terrain
+  map maker for tabletop RPGs, and three tools that open an artgen game's `art/` folder to edit the direction, review
+  and approve assets, and play them.
 
 ## artgen quickstart
 
@@ -32,6 +33,12 @@ You need Node 20+, a git repo for your game, and Claude Code (local or claude.ai
    const goblin = pack.sprite(Assets.goblin).play('walk').at(x, y);
    app.ticker.add(t => goblin.faceToward(dx, dy).update(t.deltaMS));   // picks the facing, steps the frames
    ```
+
+**Tabletop maps.** The same install makes terrain maps for tabletop RPGs: `/artgen-map a hex crawl of a marshy coast
+with a ruined keep` (or `artgen map new|gen|edit|label|symbol|grid|render`, or the `map_*` MCP tools). A map is
+`art/maps/<id>/map.json` — generator settings, terrain edits and an overlay of labels and symbols — rendered with
+contour lines, shaded terrain, an optional square or hex grid, in colour and black & white, as SVG and PNG. The
+**Terrain Map** tool in the image tools opens, edits and saves the same file.
 
 Later: `npx -y github:rstevenson1237/image_tools#artgen-dist update` (keeps your local edits), or pin a release with
 `#artgen-dist-v0.9.0` ([changelog](packages/artgen-dist/CHANGELOG.md)). `node tools/artgen/artgen.js --help` lists
@@ -56,6 +63,10 @@ experiments) is archived in [`docs/archive/artgen`](docs/archive/artgen/README.m
 - **VTT Token Cutter** — lasso a figure in a piece of artwork and extract a mono-colour
   silhouette as a transparent, tightly-cropped PNG.
 - **SVG Tracer** — trace artwork to vector paths, fix the trace node by node, and export SVG.
+- **Terrain Map** — tabletop RPG maps: a regional hex crawl or a local battle map generated from a seed, then shaped
+  with brushes (paint terrain, raise or lower ground, rivers, roads). Topographic contours over shaded terrain; add a
+  square or hex grid, labels and symbols; export SVG or PNG in colour or black & white. Works on its own (open or
+  download `map.json`) or on a game repo's `art/maps/`, which Claude Code edits with `/artgen-map`.
 - **Art Direction** — open a game's `art/` folder (File System Access in Chromium; a zip round trip elsewhere), edit
   palette ramps and style settings with a live style tile, compare candidates, save a draft or lock a new version.
 - **Asset Review** — finished assets by status, the pass timeline with scores, version compare, conformance; approve,
@@ -99,6 +110,7 @@ src/
 ├── tools/
 │   ├── TokenCutter/        UI, selection capture, store, export
 │   ├── SvgTracer/          UI, node editor, vector model, SVG serializer, store
+│   ├── TerrainMap/         map editor over artgen-core's `map` engine (generator, contours, themes, SVG renderer)
 │   ├── ArtDirection/       direction editor + live style tile
 │   ├── AssetReview/        gallery, timeline, compare, approve / feedback, analytics
 │   └── AssetLab/           params + runtime playback

@@ -4,16 +4,18 @@
  * `finish`, `make` (with the parallel round), `feedback`, `approve`, `gallery`, `texture`, `fx`, `export`, `restyle`
  * and `analytics`. Image results are returned as MCP image content (base64 PNG).
  *
+ * Terrain maps (`map_*`) work on `art/maps/<id>/map.json`; a map id is a name, never a path.
+ *
  * Paths are sandboxed: every asset argument must resolve inside the project's `art/` folder (a brief id resolves
  * through art/briefs.yaml), and the quick-look tools (`texture`, `fx`) write only under art/sheets/. `export` writes
  * where art/artgen.config.json says (the game's pack and runtime folders), as the CLI does.
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve } from 'node:path';
-import { encodePNG, MATERIALS, parseDirection, PRESET_NAMES, type Grid, type Size } from 'artgen-core';
+import { encodePNG, map, MATERIALS, parseDirection, PRESET_NAMES, type Grid, type Size } from 'artgen-core';
 import { BENCH_DIRECTIONS } from 'artgen-core/bench';
 import {
-  approve, candidateNames, exportPacks, feedback, findProject, fxRun, gallery, loadCandidate, lockedDirection, make, openAsset, passState, projectAnalytics,
+  approve, candidateNames, createMap, describeMap, exportPacks, listMaps, readMap, renderMapFiles, updateMap, feedback, findProject, fxRun, gallery, loadCandidate, lockedDirection, make, openAsset, passState, projectAnalytics,
   readBriefs, renderVersion, requireLocked, restyle, reviewVersion, projectStatus, scoreVersion, textureRun, VERSION, versionsIn, writeNextFinish, writeTile, type Project,
 } from 'artgen-cli';
 
@@ -195,6 +197,86 @@ export const TOOLS: ToolDef[] = [
     name: 'analytics', description: 'Pipeline analytics for this project (per-pass gains, cost per asset, regressions, user revision rate, review independence, budget suggestions) as markdown.',
     inputSchema: obj({}),
     async run(_a, p) { return [text(projectAnalytics(p).markdown)]; },
+  },
+  {
+    name: 'map_list', description: 'Terrain maps (TTRPG) in art/maps, plus the terrains, symbol kinds and label kinds the map tools accept.',
+    inputSchema: obj({}),
+    async run(_a, p) { return [text({ maps: listMaps(p), terrains: map.TERRAINS, symbols: map.SYMBOL_KINDS, labelKinds: map.LABEL_KINDS, presets: map.PRESETS })]; },
+  },
+  {
+    name: 'map_get', description: 'A terrain map\'s file (art/maps/<id>/map.json) and a readable summary: generator settings, edits, labels and symbols with their indices.',
+    inputSchema: obj({ id: str }, ['id']),
+    async run(a, p) { const m = readMap(p, a.id as string); return [text(describeMap(m)), text(m)]; },
+  },
+  {
+    name: 'map_new', description: 'Create a terrain map from a preset: regional (hex crawl, 6 mi hexes) or local (battle map, 5 ft squares). The terrain is generated from the seed; render it with map_render, then adjust.',
+    inputSchema: obj({ id: str, preset: { type: 'string', enum: [...map.PRESETS] }, cols: num, rows: num, seed: num, title: str, grid: { type: 'string', enum: [...map.GRID_TYPES] } }, ['id']),
+    async run(a, p) {
+      const preset = (a.preset ?? 'regional') as map.Preset;
+      const r = createMap(p, a.id as string, preset, {
+        seed: typeof a.seed === 'number' ? a.seed : Math.floor(Math.random() * 1e6), ...(typeof a.cols === 'number' && { cols: a.cols }), ...(typeof a.rows === 'number' && { rows: a.rows }),
+        ...(typeof a.title === 'string' && { title: a.title }), ...(typeof a.grid === 'string' && { grid: { ...map.PRESET_DEFAULTS[preset].grid, type: a.grid as map.GridType } }),
+      });
+      return [text({ file: r.file, summary: describeMap(r.map) })];
+    },
+  },
+  {
+    name: 'map_update', description: 'Change a terrain map\'s settings. gen: {land: mixed|island|inland, sea 0..0.9 (water fraction), moisture 0..1, roughness 0..1, relief 0..1, rivers 0..20, simplify 0..6 (higher = fewer, larger, smoother patches), feature (hill size in cells)}; topo: {interval, maxElevation, majorEvery, unit, labels}; grid: {type none|square|hex, size, coords}; scale: {perCell, unit}; title, legend, scale_bar, compass.',
+    inputSchema: obj({ id: str, seed: num, gen: { type: 'object' }, topo: { type: 'object' }, grid: { type: 'object' }, scale: { type: 'object' }, title: str, legend: bool, scale_bar: bool, compass: bool }, ['id']),
+    async run(a, p) {
+      const m = updateMap(p, a.id as string, m => {
+        if (typeof a.seed === 'number') m.seed = a.seed;
+        for (const k of ['gen', 'topo', 'grid', 'scale'] as const) if (a[k] && typeof a[k] === 'object') Object.assign(m[k], a[k]);
+        if (typeof a.title === 'string') { if (a.title) m.title = a.title; else delete m.title; }
+        if (typeof a.legend === 'boolean') m.legend = a.legend;
+        if (typeof a.scale_bar === 'boolean') m.scaleBar = a.scale_bar;
+        if (typeof a.compass === 'boolean') m.compass = a.compass;
+      });
+      return [text(describeMap(m))];
+    },
+  },
+  {
+    name: 'map_edit', description: 'Append terrain edits to a map (applied in order on top of the generated terrain), or undo the last ones. Coordinates are map cells (x right, y down). ops: {op:"paint", terrain, shape} | {op:"elevate", amount -1..1, shape} | {op:"river", points:[x,y,…], width?} | {op:"road", points:[x,y,…]}; shape: {circle:[x,y,r]} | {poly:[x,y,…]} | {stroke:[x,y,…], width}.',
+    inputSchema: obj({ id: str, ops: { type: 'array', items: { type: 'object' } }, undo: { ...num, description: 'remove this many of the latest edits first' } }, ['id']),
+    async run(a, p) {
+      const m = updateMap(p, a.id as string, m => {
+        const n = typeof a.undo === 'number' ? a.undo : 0;
+        if (n > m.edits.length) throw new Error(`${m.id}: only ${m.edits.length} edits to undo`);
+        m.edits.splice(m.edits.length - n, n);
+        if (Array.isArray(a.ops)) m.edits.push(...(a.ops as map.MapEdit[]));
+      });
+      return [text({ edits: m.edits.length, last: m.edits.slice(-3) })];
+    },
+  },
+  {
+    name: 'map_overlay', description: 'Labels and symbols over a map (the follow-up layer). add_labels: [{text, at:"x,y"|"0304"|"C4" or x,y, kind: region|place|water|note, size?, angle?}]; add_symbols: [{kind, at or x,y, scale?}] (kinds from map_list); remove_labels / remove_symbols: indices (from map_get); clear: "labels"|"symbols"|"all".',
+    inputSchema: obj({ id: str, add_labels: { type: 'array', items: { type: 'object' } }, add_symbols: { type: 'array', items: { type: 'object' } }, remove_labels: { type: 'array', items: num }, remove_symbols: { type: 'array', items: num }, clear: str }, ['id']),
+    async run(a, p) {
+      const m = updateMap(p, a.id as string, m => {
+        const pt = (o: Json): [number, number] => (typeof o.at === 'string' ? map.parsePoint(m, o.at) : [Number(o.x), Number(o.y)]);
+        const drop = <T>(list: T[], idx: unknown) => { if (Array.isArray(idx)) for (const i of [...(idx as number[])].sort((x, y) => y - x)) { if (!list[i]) throw new Error(`no overlay item ${i}`); list.splice(i, 1); } };
+        if (a.clear === 'labels' || a.clear === 'all') m.overlay.labels = [];
+        if (a.clear === 'symbols' || a.clear === 'all') m.overlay.symbols = [];
+        drop(m.overlay.labels, a.remove_labels); drop(m.overlay.symbols, a.remove_symbols);
+        for (const l of (a.add_labels as Json[] | undefined) ?? []) { const [x, y] = pt(l); m.overlay.labels.push({ text: String(l.text), x, y, kind: (l.kind ?? 'place') as map.LabelKind, ...(typeof l.size === 'number' && { size: l.size }), ...(typeof l.angle === 'number' && { angle: l.angle }) }); }
+        for (const s of (a.add_symbols as Json[] | undefined) ?? []) {
+          if (!map.SYMBOLS[String(s.kind)]) throw new Error(`unknown symbol ${String(s.kind)} (have: ${map.SYMBOL_KINDS.join(', ')})`);
+          const [x, y] = pt(s); m.overlay.symbols.push({ kind: String(s.kind), x, y, ...(typeof s.scale === 'number' && { scale: s.scale }) });
+        }
+      });
+      return [text({ labels: m.overlay.labels.map((l, i) => `${i}. ${l.kind} "${l.text}" at ${l.x},${l.y}`), symbols: m.overlay.symbols.map((s, i) => `${i}. ${s.kind} at ${s.x},${s.y}`) })];
+    },
+  },
+  {
+    name: 'map_render', description: 'Render a terrain map to art/maps/<id>/out/ (SVG + PNG; theme color, bw or both) and return the PNG to look at. layers turns layers off/on: terrain, rivers, roads, contours, grid, symbols, labels, legend, scale, compass, title. ppu: pixels per cell (default 40; the returned image uses at most 24 unless set).',
+    inputSchema: obj({ id: str, theme: { type: 'string', enum: ['color', 'bw', 'both'] }, ppu: num, layers: { type: 'object' } }, ['id']),
+    async run(a, p) {
+      const themes: map.ThemeName[] = a.theme === 'both' ? ['color', 'bw'] : [a.theme === 'bw' ? 'bw' : 'color'], layers = a.layers as Partial<Record<map.MapLayer, boolean>> | undefined;
+      const r = await renderMapFiles(p, a.id as string, { themes, ppu: typeof a.ppu === 'number' ? a.ppu : undefined, layers });
+      const files = r.files.map(f => projRel(p, f));
+      const look = typeof a.ppu === 'number' ? files.filter(f => f.endsWith('.png')) : (await renderMapFiles(p, a.id as string, { themes, ppu: 24, layers, formats: ['png'], out: join(p.art, 'maps', a.id as string, 'out', 'preview') })).files.map(f => projRel(p, f));
+      return [text({ ...r, files }), ...look.map(f => pngFile(join(p.root, f)))];
+    },
   },
 ];
 

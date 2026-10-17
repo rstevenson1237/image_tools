@@ -52,6 +52,15 @@ export const tools: ToolDefinition[] = [
     requiredWorkers: ['opencv'],
   },
   {
+    id: 'terrain-map',
+    name: 'Terrain Map',
+    blurb: 'TTRPG maps: contours, terrain, hex or square grid, labels; colour or B&W.',
+    icon: '⛰',
+    group: 'image',
+    load: () => import('../../tools/TerrainMap/index.svelte') as Loaded,
+    requiredWorkers: ['artgen'],
+  },
+  {
     id: 'art-direction',
     name: 'Art Direction',
     blurb: "Edit a game's palette and style settings, compare candidates, lock.",

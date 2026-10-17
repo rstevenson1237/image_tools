@@ -6,8 +6,11 @@
  */
 import * as Comlink from 'comlink';
 import wasmUrl from '@resvg/resvg-wasm/index_bg.wasm?url';
+import fontRegular from '../../packages/artgen-core/assets/fonts/AlegreyaSans-Regular.ttf?url';
+import fontBold from '../../packages/artgen-core/assets/fonts/AlegreyaSans-Bold.ttf?url';
+import fontItalic from '../../packages/artgen-core/assets/fonts/AlegreyaSans-Italic.ttf?url';
 import {
-  buildPack, encodePNG, extractPalette, decodePNG, Grid, initSvg, parseDirection, sourceHash, validateDirection,
+  buildPack, encodePNG, extractPalette, decodePNG, Grid, initSvg, map, parseDirection, rasterizeSvg, setSvgFonts, sourceHash, validateDirection,
   type Direction, type LedgerEntry, type PackManifest,
 } from 'artgen-core';
 import { RUNTIME_VERSION } from 'artgen-runtime';
@@ -18,6 +21,20 @@ let project: ArtProject | null = null;
 let revision = -1;
 const urls = new Map<string, string>();
 const svgReady = initSvg(fetch(wasmUrl));
+/** Terrain map label fonts, loaded on the first PNG export (the SVG preview uses the page's copy of the same font). */
+let mapFonts: Promise<void> | null = null;
+const loadMapFonts = () => (mapFonts ??= Promise.all([fontRegular, fontBold, fontItalic].map(async u => new Uint8Array(await (await fetch(u)).arrayBuffer())))
+  .then(b => setSvgFonts(b, map.FONT_FAMILY)));
+/** The last generated terrain field, reused while only the overlay, grid or theme changes. */
+let mapField: { key: string; field: map.MapField } | null = null;
+
+function mapFieldFor(spec: map.MapSpec): map.MapField {
+  const key = map.fieldKey(spec);
+  if (mapField?.key !== key) mapField = { key, field: map.generateMap(spec) };
+  return mapField.field;
+}
+
+export interface MapRenderOptions { theme: map.ThemeName; ppu?: number; layers?: Partial<Record<map.MapLayer, boolean>> }
 
 function current(): ArtProject {
   if (!project) throw new Error('no project loaded');
@@ -106,6 +123,20 @@ const api = {
   /** Palette from a reference image (median cut → ramps), for the palette editor. */
   extract(image: Img | Uint8Array, n = 16) {
     return extractPalette(image instanceof Uint8Array ? decodePNG(image) : new Grid(image.w, image.h, image.data), n);
+  },
+
+  /** Terrain Map: validate and render a map to SVG (no project needed). */
+  mapSvg(raw: unknown, o: MapRenderOptions): { svg: string; terrains: map.Terrain[]; rivers: number } {
+    const spec = map.parseMap(raw), field = mapFieldFor(spec);
+    return { svg: map.renderMapSvg(spec, { ...o, field }), terrains: map.terrainsUsed(field), rivers: field.rivers.length };
+  },
+
+  /** Terrain Map: PNG bytes, rasterised by the same resvg build and fonts as the CLI. */
+  async mapPng(raw: unknown, o: MapRenderOptions): Promise<Uint8Array> {
+    await svgReady; await loadMapFonts();
+    const spec = map.parseMap(raw), ppu = o.ppu ?? 40, svg = map.renderMapSvg(spec, { ...o, ppu, field: mapFieldFor(spec) });
+    const png = encodePNG(rasterizeSvg(svg, spec.cols * ppu, spec.rows * ppu));
+    return Comlink.transfer(png, [png.buffer as ArrayBuffer]);
   },
 
   /** A one-asset pack for the Asset Lab: plays through the runtime's canvas2d adapter, downloads as a pack. */
