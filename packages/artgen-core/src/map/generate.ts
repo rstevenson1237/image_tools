@@ -25,7 +25,23 @@ export interface MapField {
   /** Terrain index into TERRAINS per sample. */
   terrain: Uint8Array;
   rivers: MapLine[];
+  /** Where rivers open into the sea or a lake: small filled flares the renderer shades into the water. */
+  mouths: RiverMouth[];
   roads: MapLine[];
+}
+
+export interface RiverMouth {
+  /** The flare as a closed ring (map units), from the river's full width at the throat to a fan that runs into the water. */
+  outline: number[];
+  /** Its two banks, from the throat to the shore (B/W draws them). */
+  banks: [number[], number[]];
+  /** Throat (where the river line ends) and shore: the shading runs from river to water between them. */
+  from: [number, number];
+  to: [number, number];
+  /** The water it opens into. */
+  into: Terrain;
+  /** The river's width at the throat (map units). */
+  width: number;
 }
 
 export const terrainIndex = (t: Terrain): number => TERRAINS.indexOf(t);
@@ -210,31 +226,32 @@ export const riverWidth = (spec: Pick<MapSpec, 'preset'>): number => (spec.prese
 const SOURCE = 0.2;
 
 /**
- * A river that ends in open water fans out into a small delta: two side channels split off a short way up from the
- * mouth, bend away from the main channel and run on until they reach water. Channels that never reach water are
- * dropped, so a mouth in a narrow inlet keeps just its main channel.
+ * A river's mouth: the last stretch (four widths long) becomes a flare that widens from the river's width to about
+ * twice it at the shore and runs on a little into the water, so the river opens into the lake or sea instead of
+ * stopping at the coastline. Returns the river cut back to the throat and the flare, or null when the river is too
+ * short to have one.
  */
-function riverDelta(main: number[], width: number, isWater: (x: number, y: number) => boolean, r: () => number): MapLine[] {
-  const n = main.length / 2, reach = width * 7;
-  if (n < 3) return [];
-  // the split point: `reach` back along the river from the mouth
+function riverMouth(pts: number[], width: number, terrainAt: (x: number, y: number) => number): { river: number[]; mouth: RiverMouth } | null {
+  const n = pts.length / 2, len = width * 4, spread = width * 1.1, over = width * 1.5;
   let i = n - 1, run = 0;
-  while (i > 0 && run < reach) { run += Math.hypot(main[i * 2] - main[i * 2 - 2], main[i * 2 + 1] - main[i * 2 - 1]); i--; }
-  if (run < reach * 0.6) return [];
-  const sx = main[i * 2], sy = main[i * 2 + 1], ex = main[n * 2 - 2], ey = main[n * 2 - 1], flow = Math.atan2(ey - sy, ex - sx), out: MapLine[] = [];
-  for (const side of [-1, 1]) {
-    // leave the main channel at an angle, then swing back toward the flow: a finger of the fan, not a fork
-    const spread = side * (0.6 + r() * 0.25), pts = [sx, sy], step = reach / 10;
-    let x = sx, y = sy, reached = false;
-    for (let k = 1; k <= 18; k++) {
-      const t = Math.min(1, k / 10), a = flow + spread * (1 - 0.7 * t);
-      x += Math.cos(a) * step; y += Math.sin(a) * step;
-      pts.push(x, y);
-      if (k > 3 && isWater(x, y)) { reached = true; x += Math.cos(a) * step; y += Math.sin(a) * step; pts.push(x, y); break; }
-    }
-    if (reached) out.push({ pts: simplifyLine(chaikin({ pts, closed: false }, 2), 0.01).pts, width: width * 0.45, start: width * 0.6 });
+  while (i > 0 && run < len) { run += Math.hypot(pts[i * 2] - pts[i * 2 - 2], pts[i * 2 + 1] - pts[i * 2 - 1]); i--; }
+  if (i < 1 || run < len * 0.5) return null;
+  const tx = pts[i * 2], ty = pts[i * 2 + 1], ex = pts[n * 2 - 2], ey = pts[n * 2 - 1], dist = Math.hypot(ex - tx, ey - ty);
+  if (!dist) return null;
+  const dx = (ex - tx) / dist, dy = (ey - ty) / dist, left: number[] = [], right: number[] = [], bankL: number[] = [], bankR: number[] = [];
+  for (let k = 0; k <= 10; k++) {
+    const along = (k / 10) * (dist + over), f = Math.min(1, along / dist), hw = width / 2 + (spread - width / 2) * f * f;
+    const px = tx + dx * along, py = ty + dy * along;
+    left.push(px - dy * hw, py + dx * hw); right.push(px + dy * hw, py - dx * hw);
+    if (along <= dist + 1e-9) { bankL.push(px - dy * hw, py + dx * hw); bankR.push(px + dy * hw, py - dx * hw); }
   }
-  return out;
+  const back: number[] = [];
+  for (let q = right.length - 2; q >= 0; q -= 2) back.push(right[q], right[q + 1]);
+  const into = TERRAINS[terrainAt(ex + dx * over * 0.5, ey + dy * over * 0.5)];
+  return {
+    river: pts.slice(0, (i + 1) * 2),
+    mouth: { outline: [...left, ...back], banks: [bankL, bankR], from: [tx, ty], to: [ex, ey], into: into === 'deep' ? 'deep' : 'water', width },
+  };
 }
 
 /** Smooth a polyline: thin it to about one point per half unit (steepest-descent paths zigzag sample by sample), then round it. */
@@ -344,13 +361,14 @@ export function generateMap(spec: MapSpec): MapField {
 
   // each river runs from a thin source to its full width at the mouth; one that ends in water as drawn gets a delta
   const shown = (x: number, y: number) => { const i = Math.floor(x * res), j = Math.floor(y * res); return i >= 0 && j >= 0 && i < w && j < h && isWater(simple[j * w + i]); };
-  const rivers: MapLine[] = [], rr = rng(spec.seed * 17 + 3);
+  const terrainAt = (x: number, y: number) => simple[Math.min(h - 1, Math.max(0, Math.floor(y * res))) * w + Math.min(w - 1, Math.max(0, Math.floor(x * res)))];
+  const rivers: MapLine[] = [], mouths: RiverMouth[] = [];
   for (const m of mains) {
-    const fit = m.mouth ? toShore(m.pts, shown) : null, pts = fit ?? m.pts;
-    rivers.push({ pts, width: m.width, start: m.width * SOURCE });
-    if (fit) rivers.push(...riverDelta(pts, m.width, shown, rr));
+    const fit = m.mouth ? toShore(m.pts, shown) : null, open = fit ? riverMouth(fit, m.width, terrainAt) : null;
+    rivers.push({ pts: open?.river ?? fit ?? m.pts, width: m.width, start: m.width * SOURCE });
+    if (open) mouths.push(open.mouth);
   }
-  return { res, w, h, elevation: elev, terrain: simple, rivers, roads };
+  return { res, w, h, elevation: elev, terrain: simple, rivers, mouths, roads };
 }
 
 /** Terrains present, most common first. */

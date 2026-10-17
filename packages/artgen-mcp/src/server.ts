@@ -236,7 +236,7 @@ export const TOOLS: ToolDef[] = [
     },
   },
   {
-    name: 'map_edit', description: 'Append terrain edits to a map (applied in order on top of the generated terrain), or undo the last ones. Coordinates are map cells (x right, y down). ops: {op:"paint", terrain, shape} | {op:"elevate", amount -1..1, shape} | {op:"river", points:[x,y,…] from source to mouth, width? (at the mouth), delta? (default true: fans out where it ends in water)} | {op:"road", points:[x,y,…]}; shape: {circle:[x,y,r]} | {poly:[x,y,…]} | {stroke:[x,y,…], width}.',
+    name: 'map_edit', description: 'Append terrain edits to a map (applied in order on top of the generated terrain), or undo the last ones. Coordinates are map cells (x right, y down). ops: {op:"paint", terrain, shape} | {op:"elevate", amount -1..1, shape} | {op:"river", points:[x,y,…] from source to mouth, width? (at the mouth), delta? (default true: opens into a flared mouth blended into the water it ends in)} | {op:"road", points:[x,y,…]}; shape: {circle:[x,y,r]} | {poly:[x,y,…]} | {stroke:[x,y,…], width}.',
     inputSchema: obj({ id: str, ops: { type: 'array', items: { type: 'object' } }, undo: { ...num, description: 'remove this many of the latest edits first' } }, ['id']),
     async run(a, p) {
       const m = updateMap(p, a.id as string, m => {

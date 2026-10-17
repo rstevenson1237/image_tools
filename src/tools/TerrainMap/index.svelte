@@ -42,7 +42,7 @@
     { id: 'paint', label: 'Terrain', hint: 'paint the chosen terrain' },
     { id: 'raise', label: 'Raise', hint: 'raise the ground (hills, ridges)' },
     { id: 'lower', label: 'Lower', hint: 'lower the ground (valleys, basins)' },
-    { id: 'river', label: 'River', hint: 'click from the source down to the mouth; double-click or Enter to finish (it widens downstream and fans into a delta at water)' },
+    { id: 'river', label: 'River', hint: 'click from the source down to the mouth; double-click or Enter to finish (it widens downstream and opens into the water it meets)' },
     { id: 'road', label: 'Road', hint: 'click points, double-click or Enter to finish' },
     { id: 'label', label: 'Label', hint: 'click to place the text below' },
     { id: 'symbol', label: 'Symbol', hint: 'click to place the symbol below' },

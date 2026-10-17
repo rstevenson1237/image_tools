@@ -150,12 +150,25 @@ export function renderMapSvg(spec: MapSpec, o: RenderMapOptions = {}): string {
 
   const lineGroup = (id: string, lines: { pts: number[]; width: number }[], draw: (d: string, w: number) => string) =>
     lines.length ? `<g id="${id}" fill="none" stroke-linecap="round" stroke-linejoin="round">${lines.map(l => draw(pathData([{ pts: l.pts, closed: false }], k), Math.max(1.2 * u, l.width * k))).join('')}</g>` : '';
+  const defs: string[] = [];
   if (on.rivers && f.rivers.length) {
     // tapering rivers are drawn as short pieces whose width grows along the river (round caps join them);
     // B/W draws every black piece first, then the white cores, so the double line stays unbroken
     const pieces = f.rivers.flatMap(l => taper(l, Math.max(0.5, l.width * 4)).map(p => ({ d: pathData([{ pts: p.pts, closed: false }], k), w: Math.max(1.2 * u, p.width * k) })));
     let g = pieces.map(p => `<path d="${p.d}" stroke="${th.river}" stroke-width="${n1(p.w)}"/>`).join('');
     if (th.riverCore) g += pieces.filter(p => p.w > 3).map(p => `<path d="${p.d}" stroke="${th.riverCore}" stroke-width="${n1(p.w * 0.45)}"/>`).join('');
+    // mouths: a flare shaded from the river's colour into the water it meets (B/W: open paper between two banks),
+    // drawn over the coastline so the river runs into the lake or sea
+    f.mouths.forEach((m, i) => {
+      const d = pathData([{ pts: m.outline, closed: true }], k);
+      if (th.riverCore) {
+        g += `<path d="${d}" fill="${th.riverCore}" stroke="none"/>`;
+        g += `<path d="${pathData(m.banks.map(b => ({ pts: b, closed: false })), k)}" stroke="${th.river}" stroke-width="${n1(Math.max(u, m.width * k * 0.275))}"/>`;
+      } else {
+        defs.push(`<linearGradient id="mouth-${i}" gradientUnits="userSpaceOnUse" x1="${n1(m.from[0] * k)}" y1="${n1(m.from[1] * k)}" x2="${n1(m.to[0] * k)}" y2="${n1(m.to[1] * k)}"><stop offset="0" stop-color="${th.river}"/><stop offset="0.2" stop-color="${th.river}"/><stop offset="1" stop-color="${th.terrain[m.into].fill}"/></linearGradient>`);
+        g += `<path d="${d}" fill="url(#mouth-${i})" stroke="none"/>`;
+      }
+    });
     parts.push(`<g id="rivers" fill="none" stroke-linecap="round" stroke-linejoin="round">${g}</g>`);
   }
   if (on.roads) parts.push(lineGroup('roads', f.roads, (d, w) => `<path d="${d}" stroke="${th.road}" stroke-width="${n1(w)}" stroke-dasharray="${n1(w * 3)} ${n1(w * 2)}"/>`));
@@ -242,5 +255,5 @@ export function renderMapSvg(spec: MapSpec, o: RenderMapOptions = {}): string {
     parts.push(`<g id="title">${box(pad, pad, w, fs * 1.7)}<text x="${n1(pad + w / 2)}" y="${n1(pad + fs * 1.18)}" font-size="${n1(fs)}" font-weight="700" letter-spacing="${n1(fs * 0.06)}" text-anchor="middle" fill="${th.ink}">${esc(spec.title)}</text></g>`);
   }
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="${FONT}"><defs>${patternDefs(th, tile)}<clipPath id="map-clip"><rect width="${W}" height="${H}"/></clipPath></defs><g clip-path="url(#map-clip)">${parts.join('')}</g></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="${FONT}"><defs>${patternDefs(th, tile)}${defs.join('')}<clipPath id="map-clip"><rect width="${W}" height="${H}"/></clipPath></defs><g clip-path="url(#map-clip)">${parts.join('')}</g></svg>`;
 }

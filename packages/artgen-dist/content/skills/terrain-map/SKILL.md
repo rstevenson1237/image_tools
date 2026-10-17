@@ -40,8 +40,9 @@ Big changes first, with the generator; then local fixes with edits. Render and l
 {{ARTGEN}} map edit <id> undo
 ```
 Rivers (generated and drawn) start as a thin line at the source and widen toward the mouth. One that ends in the sea
-or a lake (painted lakes count) is carried to the shore and fans into a small delta; give `--delta off` for a plain
-mouth, and draw rivers from the source down, never from the mouth up.
+or a lake (painted lakes count) is carried to the shore and opens into a short flared mouth shaded into the water
+(in B/W, its banks open onto the water); give `--delta off` for a plain end, and draw rivers from the source down,
+never from the mouth up.
 
 Terrains: `deep water marsh sand desert grass scrub forest rock snow`. Edits apply in order on top of the generated
 terrain, so a later paint wins; `gen` keeps every edit. If the user wants "the same map but …", edit — don't reseed.

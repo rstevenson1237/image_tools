@@ -110,18 +110,25 @@ describe('terrain maps', () => {
     for (const t of TERRAINS) expect(legend.includes(`>${map.TERRAIN_NAMES[t]}<`)).toBe(terrainsUsed(f).includes(t));
   });
 
-  test('rivers start thin and widen downhill; a river into a lake fans into a delta (unless delta: false)', () => {
+  test('rivers start thin and widen downhill; a river into a lake opens into a shaded mouth (unless delta: false)', () => {
     const base = small({ gen: { ...small().gen, sea: 0, rivers: 0 } });
     const lake = { op: 'paint' as const, terrain: 'water' as const, shape: { circle: [12, 6, 2.5] as [number, number, number] } };
-    const f = generateMap({ ...base, edits: [lake, { op: 'river', points: [1, 6, 4, 5, 7, 6.5, 9, 6] }] });
-    const [main, ...delta] = f.rivers;
+    const river = { op: 'river' as const, points: [1, 6, 4, 5, 7, 6.5, 9, 6] };
+    const f = generateMap({ ...base, edits: [lake, river] }), [main] = f.rivers;
+    expect(f.rivers).toHaveLength(1);
     expect(main.start).toBeLessThan(main.width);
     expect(main.width).toBe(map.riverWidth(base));
-    expect(at(f, main.pts[main.pts.length - 2], main.pts[main.pts.length - 1])).toBe('water'); // carried on to the lake shore
-    expect(delta.length).toBeGreaterThanOrEqual(1);
-    for (const d of delta) expect(at(f, d.pts[d.pts.length - 2], d.pts[d.pts.length - 1])).toBe('water');
-    expect(generateMap({ ...base, edits: [lake, { op: 'river', points: [1, 6, 4, 5, 7, 6.5, 9, 6], delta: false }] }).rivers).toHaveLength(1);
-    expect(generateMap({ ...base, edits: [{ op: 'river', points: [1, 6, 4, 5, 7, 6.5] }] }).rivers).toHaveLength(1); // no water nearby: no delta
+    expect(f.mouths).toHaveLength(1);
+    const m = f.mouths[0];
+    expect(m).toMatchObject({ into: 'water', width: main.width });
+    expect(main.pts.slice(-2)).toEqual(m.from);              // the river line ends where the mouth begins
+    expect(at(f, m.to[0] + 0.05, m.to[1])).toBe('water');     // and the mouth reaches the lake shore
+    const svg = renderMapSvg({ ...base, edits: [lake, river] });
+    expect(svg).toContain('<linearGradient id="mouth-0"');
+    expect(svg).toContain(`stop-color="${map.THEME.color.terrain.water.fill}"`);
+    expect(renderMapSvg({ ...base, edits: [lake, river] }, { theme: 'bw' })).not.toContain('linearGradient');
+    expect(generateMap({ ...base, edits: [lake, { ...river, delta: false }] }).mouths).toHaveLength(0);
+    expect(generateMap({ ...base, edits: [{ op: 'river', points: [1, 6, 4, 5, 7, 6.5] }] }).mouths).toHaveLength(0); // no water nearby
     const pieces = map.taper(main, 0.5);
     expect(pieces.length).toBeGreaterThan(3);
     for (let i = 1; i < pieces.length; i++) expect(pieces[i].width).toBeGreaterThan(pieces[i - 1].width);
