@@ -1978,15 +1978,15 @@ var init_voxel = __esm({
           }
         }
         for (const [x, y, z, r] of vs) {
-          const sx = ox + (x - y) * 2 - 2, sy = oy + (x + y) - z * 2, T = r[0], L = r[1], Rt = r[2] || r[1];
+          const sx = ox + (x - y) * 2 - 2, sy = oy + (x + y) - z * 2, T2 = r[0], L = r[1], Rt = r[2] || r[1];
           const topLit = edgeLight && !this.has(x, y, z + 1) && (!this.has(x - 1, y, z) || !this.has(x, y - 1, z));
           for (let i = 0; i < 4; i++) {
-            g.set(sx + i, sy, T);
-            g.set(sx + i, sy + 1, T);
+            g.set(sx + i, sy, T2);
+            g.set(sx + i, sy + 1, T2);
           }
           if (topLit && !this.has(x, y - 1, z + 1)) {
-            g.set(sx + 1, sy, r[3] || T);
-            g.set(sx + 2, sy, r[3] || T);
+            g.set(sx + 1, sy, r[3] || T2);
+            g.set(sx + 2, sy, r[3] || T2);
           }
           for (let j = 2; j < 4; j++) {
             g.set(sx, sy + j, L);
@@ -2508,9 +2508,9 @@ var init_resvg_wasm = __esm({
       * the viewbox/size of the svg and do not move the elements for simplicity
       * @param {BBox} bbox
       */
-      cropByBBox(bbox2) {
-        _assertClass(bbox2, BBox);
-        wasm.resvg_cropByBBox(this.__wbg_ptr, bbox2.__wbg_ptr);
+      cropByBBox(bbox3) {
+        _assertClass(bbox3, BBox);
+        wasm.resvg_cropByBBox(this.__wbg_ptr, bbox3.__wbg_ptr);
       }
       /**
       * @returns {Array<any>}
@@ -2592,9 +2592,13 @@ function initSvg(wasm2) {
   });
   return ready;
 }
+function setSvgFonts(buffers, family = "") {
+  fonts = buffers;
+  defaultFont = family;
+}
 function rasterizeSvg(svg, w, h) {
   if (!initialised) throw new Error("SVG rasteriser not initialised: call initSvg(wasm) first");
-  const r = new Resvg2(svg, { fitTo: { mode: "width", value: w }, font: { loadSystemFonts: false } });
+  const r = new Resvg2(svg, { fitTo: { mode: "width", value: w }, font: { loadSystemFonts: false, ...fonts.length && { fontBuffers: fonts, ...defaultFont && { defaultFontFamily: defaultFont, sansSerifFamily: defaultFont } } } });
   const img = r.render(), px = img.pixels, iw = img.width, ih = img.height, g = new Grid(w, h);
   for (let y = 0; y < Math.min(h, ih); y++) for (let x = 0; x < Math.min(w, iw); x++) {
     const s2 = (y * iw + x) * 4, a = px[s2 + 3];
@@ -2642,7 +2646,7 @@ function svgToGrid(svg, w, h, { mode = "raw", ss = 8, pal, outline: outline2, sh
   }
   return g;
 }
-var ready, initialised, doc;
+var ready, initialised, fonts, defaultFont, doc;
 var init_svg = __esm({
   "../artgen-core/src/lib/svg.ts"() {
     "use strict";
@@ -2651,6 +2655,8 @@ var init_svg = __esm({
     init_post();
     ready = null;
     initialised = false;
+    fonts = [];
+    defaultFont = "";
     doc = (w, h, body, extra = "") => `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" ${extra}>${body}</svg>`;
   }
 });
@@ -4333,7 +4339,7 @@ function colorRun(dir, colors) {
   return out;
 }
 function simulate(dir, o) {
-  const T = o.t * o.duration, step = o.step ?? 1e3 / 60, out = [];
+  const T2 = o.t * o.duration, step = o.step ?? 1e3 / 60, out = [];
   o.layers.forEach((L, li) => {
     const run = colorRun(dir, L.colors), [b0, b1] = L.band ?? [0, 1];
     const lo = Math.floor(b0 * (run.length - 1) + 1e-9), hi = Math.max(lo, Math.ceil(b1 * (run.length - 1) - 1e-9));
@@ -4359,11 +4365,11 @@ function simulate(dir, o) {
       const ages = [];
       if (L.mode === "stream") {
         for (let k = 0; ; k++) {
-          const a = ((T - birth0) % period + period) % period + k * period;
+          const a = ((T2 - birth0) % period + period) % period + k * period;
           if (a >= life) break;
           ages.push(a);
         }
-      } else if (T - birth0 >= 0 && T - birth0 < life) ages.push(T - birth0);
+      } else if (T2 - birth0 >= 0 && T2 - birth0 < life) ages.push(T2 - birth0);
       for (const age of ages) {
         let x = sx, y = sy, vx = Math.sin(ang * RAD2) * sp, vy = Math.cos(ang * RAD2) * sp;
         const n = Math.round(age / step), dt = step / 1e3, keep = Math.exp(-(L.drag ?? 0) * dt), sw = (L.swirl ?? 0) * RAD2 * dt;
@@ -5656,8 +5662,8 @@ var init_raster2 = __esm({
       cast(wx, wy) {
         const g = this.g;
         if (g.empty) return null;
-        const P2 = this.origin(wx, wy), d = this.into, T = this.far;
-        const O = [P2[0] + this.toward[0] * T, P2[1] + this.toward[1] * T, P2[2] + this.toward[2] * T];
+        const P2 = this.origin(wx, wy), d = this.into, T2 = this.far;
+        const O = [P2[0] + this.toward[0] * T2, P2[1] + this.toward[1] * T2, P2[2] + this.toward[2] * T2];
         const lo = [g.x0, g.y0, g.z0], hi = [g.x0 + g.nx, g.y0 + g.ny, g.z0 + g.nz];
         let t0 = -Infinity, t1 = Infinity, axis = 0;
         for (let a = 0; a < 3; a++) {
@@ -5684,7 +5690,7 @@ var init_raster2 = __esm({
           if (c >= 0) {
             const face2 = [0, 0, 0];
             face2[axis] = -step[axis];
-            return { cell: c, face: face2, depth: T - s2 };
+            return { cell: c, face: face2, depth: T2 - s2 };
           }
           const a = tMax[0] < tMax[1] ? tMax[0] < tMax[2] ? 0 : 2 : tMax[1] < tMax[2] ? 1 : 2;
           s2 = tMax[a];
@@ -15790,6 +15796,1113 @@ var init_config = __esm({
   }
 });
 
+// ../artgen-core/src/map/spec.ts
+function newMap(id, preset2 = "regional", over = {}) {
+  const d = structuredClone(PRESET_DEFAULTS[preset2]);
+  return parseMap({ ...d, ...over, id, version: 1, preset: preset2, seed: over.seed ?? 1, gen: { ...d.gen, ...over.gen }, topo: { ...d.topo, ...over.topo }, grid: { ...d.grid, ...over.grid }, scale: { ...d.scale, ...over.scale }, edits: over.edits ?? [], overlay: over.overlay ?? { labels: [], symbols: [] } });
+}
+function shapeErrors(s2, at) {
+  if (!s2 || typeof s2 !== "object") return [`${at}: shape required ({circle:[x,y,r]}, {poly:[x,y,\u2026]} or {stroke:[x,y,\u2026], width})`];
+  const o = s2;
+  if ("circle" in o) return nums(o.circle) && o.circle.length === 3 && o.circle[2] > 0 ? [] : [`${at}.circle: [x, y, r] with r > 0`];
+  if ("poly" in o) return nums(o.poly) && o.poly.length >= 6 && o.poly.length % 2 === 0 ? [] : [`${at}.poly: at least 3 x,y pairs`];
+  if ("stroke" in o) return nums(o.stroke) && o.stroke.length >= 2 && o.stroke.length % 2 === 0 && isNum(o.width) && o.width > 0 ? [] : [`${at}.stroke: x,y pairs and width > 0`];
+  return [`${at}: unknown shape (circle, poly or stroke)`];
+}
+function validateMap(raw) {
+  const e = [];
+  if (!raw || typeof raw !== "object") return ["map: expected an object"];
+  const m = raw;
+  if (typeof m.id !== "string" || !/^[\w-]+$/.test(m.id)) e.push("id: letters, digits, - and _ only");
+  if (!PRESETS2.includes(m.preset)) e.push(`preset: one of ${PRESETS2.join(", ")}`);
+  for (const k of ["cols", "rows"]) if (!isNum(m[k]) || m[k] < 4 || m[k] > MAX_SIDE || !Number.isInteger(m[k])) e.push(`${k}: an integer from 4 to ${MAX_SIDE}`);
+  if (!isNum(m.seed)) e.push("seed: a number");
+  const g = m.gen;
+  if (!g) e.push("gen: required");
+  else {
+    if (!LAND_MODES.includes(g.land)) e.push(`gen.land: one of ${LAND_MODES.join(", ")}`);
+    for (const [k, lo, hi] of [["sea", 0, 0.9], ["moisture", 0, 1], ["roughness", 0, 1], ["relief", 0, 1], ["rivers", 0, 20], ["simplify", 0, 6], ["feature", 2, 60]])
+      if (!isNum(g[k]) || g[k] < lo || g[k] > hi) e.push(`gen.${k}: ${lo}..${hi}`);
+  }
+  const t = m.topo;
+  if (!t || !isNum(t.maxElevation) || t.maxElevation <= 0 || !isNum(t.interval) || t.interval <= 0 || t.interval > t.maxElevation || !isNum(t.majorEvery) || t.majorEvery < 1)
+    e.push("topo: maxElevation > 0, 0 < interval \u2264 maxElevation, majorEvery \u2265 1");
+  else if (t.maxElevation / t.interval > 60) e.push("topo.interval: at most 60 contour levels (raise the interval)");
+  if (!m.grid || !GRID_TYPES.includes(m.grid.type) || !isNum(m.grid.size) || m.grid.size < 0.25) e.push(`grid: type ${GRID_TYPES.join("|")}, size \u2265 0.25`);
+  if (!m.scale || !isNum(m.scale.perCell) || typeof m.scale.unit !== "string") e.push("scale: perCell (number) and unit");
+  (Array.isArray(m.edits) ? m.edits : (e.push("edits: an array"), [])).forEach((ed, i) => {
+    const at = `edits[${i}]`;
+    if (ed?.op === "paint") {
+      if (!TERRAINS.includes(ed.terrain)) e.push(`${at}.terrain: one of ${TERRAINS.join(", ")}`);
+      e.push(...shapeErrors(ed.shape, `${at}.shape`));
+    } else if (ed?.op === "elevate") {
+      if (!isNum(ed.amount) || Math.abs(ed.amount) > 1) e.push(`${at}.amount: -1..1`);
+      e.push(...shapeErrors(ed.shape, `${at}.shape`));
+    } else if (ed?.op === "river" || ed?.op === "road") {
+      if (!nums(ed.points) || ed.points.length < 4 || ed.points.length % 2) e.push(`${at}.points: at least 2 x,y pairs`);
+      if (ed.op === "river" && ed.width !== void 0 && !(isNum(ed.width) && ed.width > 0)) e.push(`${at}.width: > 0`);
+      if (ed.op === "river" && ed.delta !== void 0 && typeof ed.delta !== "boolean") e.push(`${at}.delta: true or false`);
+    } else e.push(`${at}.op: paint, elevate, river or road`);
+  });
+  const o = m.overlay;
+  if (!o || !Array.isArray(o.labels) || !Array.isArray(o.symbols)) e.push("overlay: { labels: [], symbols: [] }");
+  else {
+    o.labels.forEach((l, i) => {
+      if (typeof l?.text !== "string" || !isNum(l.x) || !isNum(l.y) || !LABEL_KINDS.includes(l.kind)) e.push(`overlay.labels[${i}]: text, x, y, kind (${LABEL_KINDS.join("|")})`);
+    });
+    o.symbols.forEach((s2, i) => {
+      if (typeof s2?.kind !== "string" || !isNum(s2.x) || !isNum(s2.y)) e.push(`overlay.symbols[${i}]: kind, x, y`);
+    });
+  }
+  return e;
+}
+function parseMap(raw) {
+  const r = raw ?? {}, d = PRESET_DEFAULTS[PRESETS2.includes(r.preset) ? r.preset : "regional"];
+  const m = {
+    ...structuredClone(d),
+    ...r,
+    version: 1,
+    gen: { ...d.gen, ...r.gen },
+    topo: { ...d.topo, ...r.topo },
+    grid: { ...d.grid, ...r.grid },
+    scale: { ...d.scale, ...r.scale },
+    edits: r.edits ?? [],
+    overlay: { labels: r.overlay?.labels ?? [], symbols: r.overlay?.symbols ?? [] }
+  };
+  const errors = validateMap(m);
+  if (errors.length) throw new Error(`invalid map${typeof r.id === "string" ? ` ${r.id}` : ""}:
+  ${errors.join("\n  ")}`);
+  return m;
+}
+function cellCenter(spec, ref) {
+  const s2 = spec.grid.size;
+  const hex = ref.match(/^(\d{2})(\d{2})$/);
+  if (hex) {
+    const c = +hex[1] - 1, r = +hex[2] - 1, R2 = s2 / Math.sqrt(3);
+    return [R2 + c * 1.5 * R2, s2 / 2 + r * s2 + (c % 2 ? s2 / 2 : 0)];
+  }
+  const sq = ref.toUpperCase().match(/^([A-Z]+)(\d+)$/);
+  if (sq) {
+    const c = [...sq[1]].reduce((n, ch) => n * 26 + ch.charCodeAt(0) - 64, 0) - 1, r = +sq[2] - 1;
+    return [(c + 0.5) * s2, (r + 0.5) * s2];
+  }
+  throw new Error(`${ref}: expected hex coordinates (0304) or a square cell (C4)`);
+}
+function parsePoint(spec, at) {
+  const xy = at.match(/^\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*$/);
+  if (xy) return [+xy[1], +xy[2]];
+  return cellCenter(spec, at.replace(/^(hex|cell):/i, ""));
+}
+var TERRAINS, TERRAIN_NAMES, PRESETS2, LAND_MODES, GRID_TYPES, LABEL_KINDS, RESOLUTION, PRESET_DEFAULTS, MAX_SIDE, isNum, nums;
+var init_spec = __esm({
+  "../artgen-core/src/map/spec.ts"() {
+    "use strict";
+    TERRAINS = ["deep", "water", "marsh", "sand", "desert", "grass", "scrub", "forest", "rock", "snow"];
+    TERRAIN_NAMES = {
+      deep: "Deep water",
+      water: "Shallow water",
+      marsh: "Marsh",
+      sand: "Sand / beach",
+      desert: "Desert",
+      grass: "Grassland",
+      scrub: "Scrub",
+      forest: "Forest",
+      rock: "Rock / mountain",
+      snow: "Snow"
+    };
+    PRESETS2 = ["regional", "local"];
+    LAND_MODES = ["mixed", "island", "inland"];
+    GRID_TYPES = ["none", "square", "hex"];
+    LABEL_KINDS = ["region", "place", "water", "note"];
+    RESOLUTION = { regional: 8, local: 6 };
+    PRESET_DEFAULTS = {
+      regional: {
+        cols: 30,
+        rows: 22,
+        gen: { land: "mixed", sea: 0.3, moisture: 0.5, roughness: 0.5, relief: 0.5, rivers: 3, simplify: 3, feature: 10 },
+        topo: { maxElevation: 5e3, interval: 500, majorEvery: 5, unit: "ft", labels: false },
+        grid: { type: "hex", size: 1, coords: true },
+        scale: { perCell: 6, unit: "mi" },
+        legend: true,
+        scaleBar: true,
+        compass: true
+      },
+      local: {
+        cols: 30,
+        rows: 20,
+        gen: { land: "inland", sea: 0.08, moisture: 0.55, roughness: 0.4, relief: 0.3, rivers: 1, simplify: 2, feature: 14 },
+        topo: { maxElevation: 40, interval: 5, majorEvery: 4, unit: "ft", labels: false },
+        grid: { type: "square", size: 1, coords: false },
+        scale: { perCell: 5, unit: "ft" },
+        legend: true,
+        scaleBar: true,
+        compass: false
+      }
+    };
+    MAX_SIDE = 120;
+    isNum = (v) => typeof v === "number" && Number.isFinite(v);
+    nums = (v) => Array.isArray(v) && v.every(isNum);
+  }
+});
+
+// ../artgen-core/src/map/trace.ts
+function isolines(f, w, h, t) {
+  const segs2 = [];
+  const hk = (i, j) => `h${j * w + i}`, vk = (i, j) => `v${j * w + i}`;
+  const lerp = (a, b) => a === b ? 0.5 : (t - a) / (b - a);
+  for (let j = 0; j < h - 1; j++) for (let i = 0; i < w - 1; i++) {
+    const a = f[j * w + i], b = f[j * w + i + 1], c = f[(j + 1) * w + i + 1], d = f[(j + 1) * w + i];
+    const k = (a >= t ? 8 : 0) | (b >= t ? 4 : 0) | (c >= t ? 2 : 0) | (d >= t ? 1 : 0);
+    if (k === 0 || k === 15) continue;
+    const T2 = () => [hk(i, j), i + lerp(a, b), j];
+    const R2 = () => [vk(i + 1, j), i + 1, j + lerp(b, c)];
+    const B = () => [hk(i, j + 1), i + lerp(d, c), j + 1];
+    const L = () => [vk(i, j), i, j + lerp(a, d)];
+    const add2 = (p, q) => segs2.push([...p, ...q]);
+    const mid = (a + b + c + d) / 4 >= t;
+    switch (k) {
+      case 1:
+      case 14:
+        add2(L(), B());
+        break;
+      case 2:
+      case 13:
+        add2(B(), R2());
+        break;
+      case 3:
+      case 12:
+        add2(L(), R2());
+        break;
+      case 4:
+      case 11:
+        add2(T2(), R2());
+        break;
+      case 6:
+      case 9:
+        add2(T2(), B());
+        break;
+      case 7:
+      case 8:
+        add2(L(), T2());
+        break;
+      case 5:
+        if (mid) {
+          add2(L(), T2());
+          add2(B(), R2());
+        } else {
+          add2(T2(), R2());
+          add2(L(), B());
+        }
+        break;
+      case 10:
+        if (mid) {
+          add2(T2(), R2());
+          add2(L(), B());
+        } else {
+          add2(L(), T2());
+          add2(B(), R2());
+        }
+        break;
+    }
+  }
+  const at = /* @__PURE__ */ new Map();
+  segs2.forEach((s2, n) => {
+    for (const key2 of [s2[0], s2[3]]) {
+      const l = at.get(key2);
+      if (l) l.push(n);
+      else at.set(key2, [n]);
+    }
+  });
+  const used = new Uint8Array(segs2.length), lines = [];
+  const walk = (key2, from, out) => {
+    for (let cur = from, k = key2; ; ) {
+      const next = (at.get(k) ?? []).find((n) => n !== cur && !used[n]);
+      if (next === void 0) return k;
+      used[next] = 1;
+      const s2 = segs2[next], far = s2[0] === k ? 3 : 0;
+      out.push(s2[far + 1], s2[far + 2]);
+      cur = next;
+      k = s2[far];
+    }
+  };
+  for (let n = 0; n < segs2.length; n++) {
+    if (used[n]) continue;
+    used[n] = 1;
+    const s2 = segs2[n], fwd = [s2[1], s2[2], s2[4], s2[5]];
+    const endKey = walk(s2[3], n, fwd);
+    if (endKey === s2[0]) {
+      fwd.length -= 2;
+      lines.push({ pts: fwd, closed: true });
+      continue;
+    }
+    const back = [];
+    walk(s2[0], n, back);
+    const pts = [];
+    for (let q = back.length - 2; q >= 0; q -= 2) pts.push(back[q], back[q + 1]);
+    lines.push({ pts: pts.concat(fwd), closed: false });
+  }
+  return lines;
+}
+function chaikin(l, passes = 2) {
+  let p = l.pts;
+  for (let k = 0; k < passes && p.length >= 6; k++) {
+    const n = p.length / 2, out = [];
+    if (!l.closed) out.push(p[0], p[1]);
+    for (let i = 0; i < (l.closed ? n : n - 1); i++) {
+      const j = (i + 1) % n, x0 = p[i * 2], y0 = p[i * 2 + 1], x1 = p[j * 2], y1 = p[j * 2 + 1];
+      out.push(x0 * 0.75 + x1 * 0.25, y0 * 0.75 + y1 * 0.25, x0 * 0.25 + x1 * 0.75, y0 * 0.25 + y1 * 0.75);
+    }
+    if (!l.closed) out.push(p[p.length - 2], p[p.length - 1]);
+    p = out;
+  }
+  return { pts: p, closed: l.closed };
+}
+function simplifyLine(l, eps) {
+  const p = l.pts, n = p.length / 2;
+  if (n < 4) return l;
+  const keep = new Uint8Array(n);
+  keep[0] = keep[n - 1] = 1;
+  const stack = [[0, n - 1]];
+  while (stack.length) {
+    const [a, b] = stack.pop(), ax = p[a * 2], ay = p[a * 2 + 1], dx = p[b * 2] - ax, dy = p[b * 2 + 1] - ay, len = Math.hypot(dx, dy) || 1;
+    let best = -1, far = 0;
+    for (let i = a + 1; i < b; i++) {
+      const d = Math.abs((p[i * 2] - ax) * dy - (p[i * 2 + 1] - ay) * dx) / len;
+      if (d > far) {
+        far = d;
+        best = i;
+      }
+    }
+    if (best >= 0 && far > eps) {
+      keep[best] = 1;
+      stack.push([a, best], [best, b]);
+    }
+  }
+  const out = [];
+  for (let i = 0; i < n; i++) if (keep[i]) out.push(p[i * 2], p[i * 2 + 1]);
+  return { pts: out, closed: l.closed };
+}
+function pathData(lines, k = 1) {
+  const f = (v) => (Math.round(v * k * 10) / 10).toString();
+  return lines.map((l) => {
+    let d = `M${f(l.pts[0])} ${f(l.pts[1])}`;
+    for (let i = 2; i < l.pts.length; i += 2) d += `L${f(l.pts[i])} ${f(l.pts[i + 1])}`;
+    return l.closed ? d + "Z" : d;
+  }).join("");
+}
+var lineLength;
+var init_trace = __esm({
+  "../artgen-core/src/map/trace.ts"() {
+    "use strict";
+    lineLength = (p) => {
+      let s2 = 0;
+      for (let i = 2; i < p.length; i += 2) s2 += Math.hypot(p[i] - p[i - 2], p[i + 1] - p[i - 1]);
+      return s2;
+    };
+  }
+});
+
+// ../artgen-core/src/map/generate.ts
+function coverage(s2, x, y, soft = false) {
+  const fall = (d, r) => d >= r ? 0 : !soft || d <= r * 0.4 ? 1 : 0.5 + 0.5 * Math.cos((d - r * 0.4) / (r * 0.6) * Math.PI);
+  if ("circle" in s2) return fall(Math.hypot(x - s2.circle[0], y - s2.circle[1]), s2.circle[2]);
+  if ("poly" in s2) {
+    const p = s2.poly;
+    let inside = false;
+    for (let i = 0, j = p.length - 2; i < p.length; j = i, i += 2) {
+      if (p[i + 1] > y !== p[j + 1] > y && x < (p[j] - p[i]) * (y - p[i + 1]) / (p[j + 1] - p[i + 1]) + p[i]) inside = !inside;
+    }
+    return inside ? 1 : 0;
+  }
+  return fall(distToPolyline(s2.stroke, x, y), s2.width / 2);
+}
+function distToPolyline(p, x, y) {
+  if (p.length === 2) return Math.hypot(x - p[0], y - p[1]);
+  let best = Infinity;
+  for (let i = 2; i < p.length; i += 2) {
+    const ax = p[i - 2], ay = p[i - 1], dx = p[i] - ax, dy = p[i + 1] - ay, l2 = dx * dx + dy * dy;
+    const t = l2 ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2)) : 0;
+    best = Math.min(best, Math.hypot(x - ax - t * dx, y - ay - t * dy));
+  }
+  return best;
+}
+function bbox2(s2) {
+  if ("circle" in s2) {
+    const [x, y, r] = s2.circle;
+    return [x - r, y - r, x + r, y + r];
+  }
+  const p = "poly" in s2 ? s2.poly : s2.stroke, pad = "stroke" in s2 ? s2.width / 2 : 0;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (let i = 0; i < p.length; i += 2) {
+    x0 = Math.min(x0, p[i]);
+    x1 = Math.max(x1, p[i]);
+    y0 = Math.min(y0, p[i + 1]);
+    y1 = Math.max(y1, p[i + 1]);
+  }
+  return [x0 - pad, y0 - pad, x1 + pad, y1 + pad];
+}
+function eachCovered(f, s2, soft, fn) {
+  const [x0, y0, x1, y1] = bbox2(s2), r = f.res;
+  for (let j = Math.max(0, Math.floor(y0 * r)); j < Math.min(f.h, Math.ceil(y1 * r) + 1); j++)
+    for (let i = Math.max(0, Math.floor(x0 * r)); i < Math.min(f.w, Math.ceil(x1 * r) + 1); i++) {
+      const c = coverage(s2, (i + 0.5) / r, (j + 0.5) / r, soft);
+      if (c > 0) fn(j * f.w + i, c);
+    }
+}
+function quantile(f, q) {
+  if (q <= 0) return -Infinity;
+  const s2 = Float32Array.from(f).sort();
+  return s2[Math.min(s2.length - 1, Math.floor(q * s2.length))];
+}
+function blur(f, w, h, r, passes = 1) {
+  let a = f;
+  for (let p = 0; p < passes; p++) {
+    const tmp = new Float32Array(a.length), out = new Float32Array(a.length);
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+      let s2 = 0;
+      for (let k = -r; k <= r; k++) s2 += a[j * w + Math.min(w - 1, Math.max(0, i + k))];
+      tmp[j * w + i] = s2 / (2 * r + 1);
+    }
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+      let s2 = 0;
+      for (let k = -r; k <= r; k++) s2 += tmp[Math.min(h - 1, Math.max(0, j + k)) * w + i];
+      out[j * w + i] = s2 / (2 * r + 1);
+    }
+    a = out;
+  }
+  return a;
+}
+function heightField(spec, w, h) {
+  const g = spec.gen, R2 = 4, cells = Math.max(2, Math.round(R2 * Math.max(spec.cols, spec.rows) / g.feature));
+  const opts = { w: w * R2, h: h * R2, cells, cellsY: Math.max(2, Math.round(cells * h / w)), octaves: 5, gain: 0.35 + g.roughness * 0.25, seed: spec.seed };
+  const r = rng(spec.seed), ox = Math.floor(r() * w * (R2 - 1)), oy = Math.floor(r() * h * (R2 - 1));
+  const f = new Float32Array(w * h);
+  let lo = Infinity, hi = -Infinity;
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    let v = pGradient(i + ox, j + oy, opts);
+    if (g.land === "island") {
+      const dx = (i + 0.5) / w - 0.5, dy = (j + 0.5) / h - 0.5;
+      v -= Math.pow(Math.hypot(dx, dy) * 2, 2.2) * 0.55;
+    }
+    f[j * w + i] = v;
+    lo = Math.min(lo, v);
+    hi = Math.max(hi, v);
+  }
+  const k = 1.7 - g.relief * 1.1;
+  for (let n = 0; n < f.length; n++) f[n] = Math.pow((f[n] - lo) / (hi - lo || 1), k);
+  return f;
+}
+function fillDepressions(h, w, hh, water) {
+  const out = Float32Array.from(h), seen = new Uint8Array(h.length), heap2 = [];
+  const less = (a, b) => out[a] < out[b];
+  const push = (n) => {
+    heap2.push(n);
+    let c = heap2.length - 1;
+    while (c) {
+      const p = c - 1 >> 1;
+      if (!less(heap2[c], heap2[p])) break;
+      [heap2[c], heap2[p]] = [heap2[p], heap2[c]];
+      c = p;
+    }
+  };
+  const pop = () => {
+    const top = heap2[0], last = heap2.pop();
+    if (heap2.length) {
+      heap2[0] = last;
+      let c = 0;
+      for (; ; ) {
+        const l = c * 2 + 1, r = l + 1;
+        let m = c;
+        if (l < heap2.length && less(heap2[l], heap2[m])) m = l;
+        if (r < heap2.length && less(heap2[r], heap2[m])) m = r;
+        if (m === c) break;
+        [heap2[c], heap2[m]] = [heap2[m], heap2[c]];
+        c = m;
+      }
+    }
+    return top;
+  };
+  for (let j = 0; j < hh; j++) for (let i = 0; i < w; i++) {
+    const n = j * w + i;
+    if (water[n] || i === 0 || j === 0 || i === w - 1 || j === hh - 1) {
+      seen[n] = 1;
+      push(n);
+    }
+  }
+  while (heap2.length) {
+    const n = pop(), i = n % w, j = (n - i) / w;
+    for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+      const x = i + di, y = j + dj, m = y * w + x;
+      if (!di && !dj || x < 0 || y < 0 || x >= w || y >= hh || seen[m]) continue;
+      seen[m] = 1;
+      if (out[m] <= out[n]) out[m] = out[n] + 1e-6;
+      push(m);
+    }
+  }
+  return out;
+}
+function traceRivers(spec, filled, elev, water, w, h, res, wet) {
+  const n = spec.gen.rivers;
+  if (!n) return [];
+  const r = rng(spec.seed * 31 + 7), cands = [];
+  for (let k = 0; k < elev.length; k++) if (!water[k] && elev[k] > 0.4 && elev[k] < 0.85) cands.push(k);
+  cands.sort((a, b) => elev[b] - elev[a]);
+  const spacing = Math.max(spec.cols, spec.rows) / (n + 1) * res, sources = [];
+  for (let tries = 0; tries < 400 && sources.length < n && cands.length; tries++) {
+    const k = cands[Math.floor(Math.pow(r(), 2) * cands.length)], x = k % w, y = (k - x) / w;
+    if (sources.every((s2) => Math.hypot(s2 % w - x, Math.floor(s2 / w) - y) > spacing)) sources.push(k);
+  }
+  const out = [];
+  for (const s2 of sources) {
+    const path = [];
+    let k = s2, mouth = false;
+    for (let step = 0; step < w * h; step++) {
+      const x = k % w, y = (k - x) / w;
+      path.push((x + 0.5) / res, (y + 0.5) / res);
+      if (water[k]) {
+        mouth = true;
+        break;
+      }
+      if (wet[k] === 2) break;
+      wet[k] = 2;
+      let best = -1, low = filled[k];
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+        const xx = x + di, yy = y + dj, m = yy * w + xx;
+        if (!di && !dj || xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
+        if (filled[m] < low) {
+          low = filled[m];
+          best = m;
+        }
+      }
+      if (best < 0) break;
+      k = best;
+    }
+    if (path.length / 2 < res * 3) continue;
+    out.push({ pts: smoothLine(path, res), mouth });
+  }
+  return out;
+}
+function toShore(pts, water) {
+  const n = pts.length / 2;
+  for (let i = 2; i < n; i++) if (water(pts[i * 2], pts[i * 2 + 1])) return pts.slice(0, (i + 1) * 2);
+  const ex = pts[n * 2 - 2], ey = pts[n * 2 - 1];
+  let k = n - 2, dx = 0, dy = 0;
+  while (k > 0 && Math.hypot(ex - pts[k * 2], ey - pts[k * 2 + 1]) < 0.5) k--;
+  dx = ex - pts[k * 2];
+  dy = ey - pts[k * 2 + 1];
+  const len = Math.hypot(dx, dy);
+  if (!len) return null;
+  for (let d = 0.1; d <= 3; d += 0.1) {
+    const x = ex + dx / len * d, y = ey + dy / len * d;
+    if (water(x, y)) return [...pts, ex + dx / len * (d + 0.15), ey + dy / len * (d + 0.15)];
+  }
+  return null;
+}
+function resample(p, step) {
+  const out = [p[0], p[1]];
+  let carry = 0;
+  for (let i = 2; i < p.length; i += 2) {
+    const ax = p[i - 2], ay = p[i - 1], seg = Math.hypot(p[i] - ax, p[i + 1] - ay);
+    let d = step - carry;
+    for (; d <= seg; d += step) out.push(ax + (p[i] - ax) * d / seg, ay + (p[i + 1] - ay) * d / seg);
+    carry = seg - (d - step);
+  }
+  const n = out.length;
+  if (Math.hypot(out[n - 2] - p[p.length - 2], out[n - 1] - p[p.length - 1]) > step * 0.3) out.push(p[p.length - 2], p[p.length - 1]);
+  else {
+    out[n - 2] = p[p.length - 2];
+    out[n - 1] = p[p.length - 1];
+  }
+  return out;
+}
+function riverRibbon(line, W3, mouth) {
+  let p = line;
+  if (mouth) {
+    const n2 = p.length / 2, ex = p[n2 * 2 - 2], ey = p[n2 * 2 - 1];
+    let k = n2 - 2;
+    while (k > 0 && Math.hypot(ex - p[k * 2], ey - p[k * 2 + 1]) < W3 * 2) k--;
+    const dx = ex - p[k * 2], dy = ey - p[k * 2 + 1], len = Math.hypot(dx, dy) || 1;
+    p = [...p, ex + dx / len * W3 * FLARE_WATER, ey + dy / len * W3 * FLARE_WATER];
+  }
+  const c = resample(p, Math.min(0.1, W3 * 0.4)), n = c.length / 2, s2 = [0];
+  for (let i = 1; i < n; i++) s2.push(s2[i - 1] + Math.hypot(c[i * 2] - c[i * 2 - 2], c[i * 2 + 1] - c[i * 2 - 1]));
+  const L = s2[n - 1] || 1, shore = mouth ? Math.max(L * 0.5, L - W3 * FLARE_WATER) : L;
+  const widths = s2.map((d) => {
+    const base = W3 * (SOURCE + (1 - SOURCE) * Math.pow(Math.min(d, shore) / shore, 0.6));
+    return mouth ? base * (1 + FLARE * smoothstep((d - (shore - W3 * FLARE_LAND)) / (W3 * (FLARE_LAND + FLARE_WATER)))) : base;
+  });
+  const nx = [], ny = [];
+  for (let i = 0; i < n; i++) {
+    const a = Math.max(0, i - 2), b = Math.min(n - 1, i + 2), tx = c[b * 2] - c[a * 2], ty = c[b * 2 + 1] - c[a * 2 + 1], tl = Math.hypot(tx, ty) || 1;
+    nx.push(-ty / tl);
+    ny.push(tx / tl);
+  }
+  const side = (i, sgn) => [c[i * 2] + nx[i] * sgn * widths[i] / 2, c[i * 2 + 1] + ny[i] * sgn * widths[i] / 2];
+  const cap = (i, dir, from) => {
+    const out = [], r = widths[i] / 2, tx = ny[i] * dir, ty = -nx[i] * dir;
+    for (let k = 1; k < 8; k++) {
+      const a = k / 8 * Math.PI, cs = Math.cos(a) * from, sn = Math.sin(a);
+      out.push(c[i * 2] + r * (nx[i] * cs + tx * sn), c[i * 2 + 1] + r * (ny[i] * cs + ty * sn));
+    }
+    return out;
+  };
+  const outline2 = [];
+  for (let i = 0; i < n; i++) outline2.push(...side(i, 1));
+  if (!mouth) outline2.push(...cap(n - 1, 1, 1));
+  for (let i = n - 1; i >= 0; i--) outline2.push(...side(i, -1));
+  outline2.push(...cap(0, -1, -1));
+  return { pts: c, widths, outline: outline2, mouth };
+}
+function smoothLine(pts, res) {
+  const thin = [pts[0], pts[1]];
+  for (let i = 2; i < pts.length - 2; i += 2) if (Math.hypot(pts[i] - thin[thin.length - 2], pts[i + 1] - thin[thin.length - 1]) >= 0.5) thin.push(pts[i], pts[i + 1]);
+  thin.push(pts[pts.length - 2], pts[pts.length - 1]);
+  return simplifyLine(chaikin({ pts: thin, closed: false }, 3), 0.15 / res).pts;
+}
+function markLine(pts, width, w, h, res, wet) {
+  eachCovered({ res, w, h }, { stroke: pts, width: Math.max(width, 1 / res) * 2 }, false, (i) => {
+    if (!wet[i]) wet[i] = 1;
+  });
+}
+function simplifyTerrain(t, w, h, passes, minArea) {
+  let a = t;
+  for (let p = 0; p < passes; p++) {
+    const out = new Uint8Array(a.length), count = new Uint16Array(TERRAINS.length);
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+      count.fill(0);
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) count[a[Math.min(h - 1, Math.max(0, j + dj)) * w + Math.min(w - 1, Math.max(0, i + di))]]++;
+      const own = a[j * w + i];
+      let best = own;
+      for (let c = 0; c < count.length; c++) if (count[c] > count[best]) best = c;
+      out[j * w + i] = count[best] >= 5 ? best : own;
+    }
+    a = out;
+  }
+  if (minArea <= 1) return a;
+  const label = new Int32Array(a.length).fill(-1), stack = [];
+  for (let s2 = 0; s2 < a.length; s2++) {
+    if (label[s2] >= 0) continue;
+    const cls = a[s2], members = [], border = /* @__PURE__ */ new Map();
+    label[s2] = s2;
+    stack.push(s2);
+    while (stack.length) {
+      const n = stack.pop(), i = n % w, j = (n - i) / w;
+      members.push(n);
+      for (const [x, y] of [[i + 1, j], [i - 1, j], [i, j + 1], [i, j - 1]]) {
+        if (x < 0 || y < 0 || x >= w || y >= h) continue;
+        const m = y * w + x;
+        if (a[m] === cls) {
+          if (label[m] < 0) {
+            label[m] = s2;
+            stack.push(m);
+          }
+        } else border.set(a[m], (border.get(a[m]) ?? 0) + 1);
+      }
+    }
+    if (members.length >= minArea || !border.size) continue;
+    let into = -1, most = 0;
+    for (const [c, k] of border) if (k > most) {
+      most = k;
+      into = c;
+    }
+    for (const n of members) a[n] = into;
+  }
+  return a;
+}
+function classify(e, m, local) {
+  if (e < 0.035) return m > 0.72 ? T.marsh : T.sand;
+  if (!local && e > 0.84) return T.snow;
+  if (e > (local ? 0.7 : 0.64)) return T.rock;
+  if (m > 0.78 && e < 0.2) return T.marsh;
+  if (m < 0.2) return T.desert;
+  if (m < 0.38) return T.scrub;
+  if (m < 0.6) return T.grass;
+  return T.forest;
+}
+function generateMap(spec) {
+  const res = RESOLUTION[spec.preset], w = spec.cols * res, h = spec.rows * res, N3 = w * h, g = spec.gen;
+  const field = { res, w, h };
+  const raw = heightField(spec, w, h), sea = quantile(raw, g.sea);
+  for (const ed of spec.edits) if (ed.op === "elevate") eachCovered(field, ed.shape, true, (i, c) => {
+    raw[i] = Math.max(0, Math.min(1.2, raw[i] + ed.amount * c));
+  });
+  const water = new Uint8Array(N3), elev = new Float32Array(N3), seaLevel = Number.isFinite(sea) ? sea : -0.01;
+  for (let n = 0; n < N3; n++) {
+    if (raw[n] < seaLevel) water[n] = 1;
+    else elev[n] = Math.min(1, (raw[n] - seaLevel) / (1 - seaLevel || 1));
+  }
+  const terrain = new Uint8Array(N3), wet = new Uint8Array(N3);
+  const open = Uint8Array.from(water);
+  for (const ed of spec.edits) if (ed.op === "paint") {
+    const v = ed.terrain === "water" || ed.terrain === "deep" ? 1 : 0;
+    eachCovered(field, ed.shape, false, (i) => {
+      open[i] = v;
+    });
+  }
+  const mains = traceRivers(spec, fillDepressions(raw, w, h, water), elev, open, w, h, res, wet).map((r) => ({ ...r, width: riverWidth(spec) }));
+  for (const ed of spec.edits) if (ed.op === "river") mains.push({ pts: smoothLine(ed.points, res), width: ed.width ?? riverWidth(spec), mouth: ed.delta !== false });
+  const roads = [];
+  for (const ed of spec.edits) {
+    if (ed.op === "road") roads.push({ pts: smoothLine(ed.points, res), width: spec.preset === "local" ? 0.5 : 0.08 });
+  }
+  for (const rv of mains) markLine(rv.pts, rv.width, w, h, res, wet);
+  const near = new Float32Array(N3);
+  for (let n = 0; n < N3; n++) near[n] = water[n] || wet[n] ? 1 : 0;
+  const nearB = blur(near, w, h, Math.max(1, Math.round(res * 1.5)), 2);
+  const mopts = { w: w * 4, h: h * 4, cells: Math.max(2, Math.round(4 * Math.max(spec.cols, spec.rows) / (g.feature * 1.4))), octaves: 3, seed: spec.seed + 101 };
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const n = j * w + i;
+    if (water[n]) {
+      terrain[n] = raw[n] < seaLevel - Math.max(0.08, seaLevel * 0.35) ? T.deep : T.water;
+      continue;
+    }
+    const m = 0.5 + (pGradient(i + w, j + h, mopts) - 0.5) * 1.8 + nearB[n] * 0.25 + (g.moisture - 0.5) * 0.9 - elev[n] * 0.12;
+    terrain[n] = classify(elev[n], Math.max(0, Math.min(1, m)), spec.preset === "local");
+  }
+  const minArea = Math.round(Math.pow(g.simplify * res * 0.55, 2));
+  const simple = simplifyTerrain(terrain, w, h, Math.ceil(g.simplify), minArea);
+  for (const ed of spec.edits) if (ed.op === "paint") {
+    const c = T[ed.terrain];
+    eachCovered(field, ed.shape, false, (i) => {
+      simple[i] = c;
+    });
+  }
+  for (let n = 0; n < N3; n++) if (isWater(simple[n])) elev[n] = 0;
+  const shown = (x, y) => {
+    const i = Math.floor(x * res), j = Math.floor(y * res);
+    return i >= 0 && j >= 0 && i < w && j < h && isWater(simple[j * w + i]);
+  };
+  const rivers = mains.map((m) => {
+    const fit = m.mouth ? toShore(m.pts, shown) : null;
+    return riverRibbon(fit ?? m.pts, m.width, !!fit);
+  });
+  return { res, w, h, elevation: elev, terrain: simple, rivers, roads };
+}
+function terrainsUsed(f) {
+  const count = new Array(TERRAINS.length).fill(0);
+  for (const t of f.terrain) count[t]++;
+  return TERRAINS.map((t, i) => [t, count[i]]).filter(([, c]) => c > 0).sort((a, b) => b[1] - a[1]).map(([t]) => t);
+}
+var T, isWater, riverWidth, SOURCE, FLARE, FLARE_LAND, FLARE_WATER, smoothstep;
+var init_generate = __esm({
+  "../artgen-core/src/map/generate.ts"() {
+    "use strict";
+    init_rng();
+    init_noise();
+    init_spec();
+    init_trace();
+    T = Object.fromEntries(TERRAINS.map((t, i) => [t, i]));
+    isWater = (t) => t === T.deep || t === T.water;
+    riverWidth = (spec) => spec.preset === "local" ? 0.35 : 0.16;
+    SOURCE = 0.6;
+    FLARE = 1.2;
+    FLARE_LAND = 3;
+    FLARE_WATER = 1.5;
+    smoothstep = (t) => {
+      const c = Math.max(0, Math.min(1, t));
+      return c * c * (3 - 2 * c);
+    };
+  }
+});
+
+// ../artgen-core/src/map/gridlines.ts
+function gridGeometry(spec, k = 1) {
+  const { cols: W3, rows: H } = spec, s2 = spec.grid.size, f = (v) => (Math.round(v * k * 10) / 10).toString();
+  const cells = [];
+  let d = "";
+  if (spec.grid.type === "square") {
+    for (let x = 0; x <= W3 + 1e-9; x += s2) d += `M${f(x)} 0V${f(H)}`;
+    for (let y = 0; y <= H + 1e-9; y += s2) d += `M0 ${f(y)}H${f(W3)}`;
+    for (let c = 0; (c + 0.5) * s2 < W3; c++) for (let r = 0; (r + 0.5) * s2 < H; r++) cells.push({ x: (c + 0.5) * s2, y: (r + 0.5) * s2, name: `${letters(c)}${r + 1}` });
+  } else if (spec.grid.type === "hex") {
+    const R2 = s2 / Math.sqrt(3);
+    for (let c = 0; c * 1.5 * R2 - R2 < W3; c++) for (let r = -1; r * s2 - s2 < H; r++) {
+      const cx = R2 + c * 1.5 * R2, cy = s2 / 2 + r * s2 + (c % 2 ? s2 / 2 : 0);
+      const P2 = (a) => `${f(cx + R2 * Math.cos(a * Math.PI / 3))} ${f(cy + R2 * Math.sin(a * Math.PI / 3))}`;
+      d += `M${P2(0)}L${P2(1)}L${P2(2)}L${P2(3)}L${P2(4)}L${P2(5)}Z`;
+      if (r >= 0 && cx < W3 && cy < H && cx > 0 && cy > 0) cells.push({ x: cx, y: cy, name: `${two(c + 1)}${two(r + 1)}` });
+    }
+  }
+  return { d, cells };
+}
+var letters, two;
+var init_gridlines = __esm({
+  "../artgen-core/src/map/gridlines.ts"() {
+    "use strict";
+    letters = (n) => {
+      let s2 = "";
+      for (n += 1; n > 0; n = Math.floor((n - 1) / 26)) s2 = String.fromCharCode(65 + (n - 1) % 26) + s2;
+      return s2;
+    };
+    two = (n) => String(n).padStart(2, "0");
+  }
+});
+
+// ../artgen-core/src/map/symbols.ts
+var SYMBOLS, SYMBOL_KINDS;
+var init_symbols = __esm({
+  "../artgen-core/src/map/symbols.ts"() {
+    "use strict";
+    SYMBOLS = {
+      village: { name: "Village", svg: '<circle r="3.2" fill="{ink}"/>' },
+      town: { name: "Town", svg: '<circle r="5.5" fill="{fill}" stroke="{ink}" stroke-width="1.6"/><circle r="2.2" fill="{ink}"/>' },
+      city: { name: "City", svg: '<rect x="-6.5" y="-6.5" width="13" height="13" fill="{fill}" stroke="{ink}" stroke-width="1.6"/><rect x="-3" y="-3" width="6" height="6" fill="{ink}"/>' },
+      castle: { name: "Castle", svg: '<path d="M-7 8V-3H-5V-6H-2.5V-3H-1V-6H1V-3H2.5V-6H5V-3H7V8Z" fill="{fill}" stroke="{ink}" stroke-width="1.4" stroke-linejoin="round"/><path d="M-1.8 8V3A1.8 1.8 0 0 1 1.8 3V8" fill="{ink}"/>' },
+      tower: { name: "Tower", svg: '<path d="M-3.5 8.5L-2.5 -4.5H-4.5V-8.5H-2V-6.5H-0.7V-8.5H0.7V-6.5H2V-8.5H4.5V-4.5H2.5L3.5 8.5Z" fill="{fill}" stroke="{ink}" stroke-width="1.3" stroke-linejoin="round"/>' },
+      ruin: { name: "Ruin", svg: '<path d="M-7 8V-2A7 7 0 0 1 3 -6.3M7 8V0" fill="none" stroke="{ink}" stroke-width="1.8" stroke-linecap="round" stroke-dasharray="4 2.2"/><path d="M-8.5 8H8.5" stroke="{ink}" stroke-width="1.6"/>' },
+      temple: { name: "Temple", svg: '<path d="M-8 -2L0 -8L8 -2Z" fill="{fill}" stroke="{ink}" stroke-width="1.4" stroke-linejoin="round"/><path d="M-5.5 -1V6M-2 -1V6M2 -1V6M5.5 -1V6M-8 7.5H8" stroke="{ink}" stroke-width="1.5"/>' },
+      cave: { name: "Cave", svg: '<path d="M-8 7Q-8 -7 0 -7Q8 -7 8 7Z" fill="{fill}" stroke="{ink}" stroke-width="1.4"/><path d="M-3.5 7Q-3.5 -1 0 -1Q3.5 -1 3.5 7Z" fill="{ink}"/>' },
+      dungeon: { name: "Dungeon", svg: '<rect x="-7" y="-7" width="14" height="14" fill="{fill}" stroke="{ink}" stroke-width="1.5"/><path d="M-4 4H-1V1H2V-2H5" fill="none" stroke="{ink}" stroke-width="1.5"/>' },
+      camp: { name: "Camp", svg: '<path d="M-8 7L0 -7L8 7Z" fill="{fill}" stroke="{ink}" stroke-width="1.5" stroke-linejoin="round"/><path d="M0 -7V7M-2.5 7L0 2L2.5 7" fill="none" stroke="{ink}" stroke-width="1.3"/>' },
+      port: { name: "Port", svg: '<circle cy="-6" r="1.8" fill="none" stroke="{ink}" stroke-width="1.4"/><path d="M0 -4V7M-4 -1H4M-6.5 2.5Q-6 7 0 7Q6 7 6.5 2.5" fill="none" stroke="{ink}" stroke-width="1.6" stroke-linecap="round"/>' },
+      bridge: { name: "Bridge", svg: '<path d="M-7 -5Q-3 -2 -3 0Q-3 2 -7 5M7 -5Q3 -2 3 0Q3 2 7 5" fill="none" stroke="{ink}" stroke-width="1.8" stroke-linecap="round"/>' },
+      battle: { name: "Battle site", svg: '<path d="M-6.5 -6.5L6.5 6.5M6.5 -6.5L-6.5 6.5M-7 3.5L-3.5 7M7 3.5L3.5 7" stroke="{ink}" stroke-width="1.8" stroke-linecap="round"/>' },
+      poi: { name: "Point of interest", svg: '<path d="M0 -8L2.35 -3.2L7.6 -2.5L3.8 1.2L4.7 6.5L0 4L-4.7 6.5L-3.8 1.2L-7.6 -2.5L-2.35 -3.2Z" fill="{fill}" stroke="{ink}" stroke-width="1.4" stroke-linejoin="round"/>' },
+      mountain: { name: "Mountain", svg: '<path d="M-9 7L-2 -7L2 0L4 -3L9 7Z" fill="{fill}" stroke="{ink}" stroke-width="1.4" stroke-linejoin="round"/><path d="M-2 -7L-0.2 -1.5" stroke="{ink}" stroke-width="1.2"/>' },
+      hill: { name: "Hill", svg: '<path d="M-8 5Q0 -9 8 5" fill="{fill}" stroke="{ink}" stroke-width="1.5"/>' },
+      tree: { name: "Tree", svg: '<path d="M0 8V2" stroke="{ink}" stroke-width="1.6"/><circle cy="-2" r="5.5" fill="{fill}" stroke="{ink}" stroke-width="1.4"/>' },
+      skull: { name: "Danger", svg: '<path d="M-6 -1A6 6 0 1 1 6 -1V3H3V6H-3V3H-6Z" fill="{fill}" stroke="{ink}" stroke-width="1.4" stroke-linejoin="round"/><circle cx="-2.4" cy="-1" r="1.6" fill="{ink}"/><circle cx="2.4" cy="-1" r="1.6" fill="{ink}"/>' },
+      door: { name: "Door / entrance", svg: '<rect x="-4.5" y="-7" width="9" height="14" fill="{fill}" stroke="{ink}" stroke-width="1.5"/><circle cx="2" cy="0.5" r="1" fill="{ink}"/>' },
+      treasure: { name: "Treasure", svg: '<rect x="-7" y="-2" width="14" height="8" fill="{fill}" stroke="{ink}" stroke-width="1.4"/><path d="M-7 -2Q-7 -7 0 -7Q7 -7 7 -2M-1.5 -2V2H1.5V-2" fill="none" stroke="{ink}" stroke-width="1.4"/>' }
+    };
+    SYMBOL_KINDS = Object.keys(SYMBOLS);
+  }
+});
+
+// ../artgen-core/src/map/theme.ts
+var THEMES, PATTERNS, THEME;
+var init_theme = __esm({
+  "../artgen-core/src/map/theme.ts"() {
+    "use strict";
+    THEMES = ["color", "bw"];
+    PATTERNS = {
+      lines: '<path d="M0 2.5H10M0 7.5H10" stroke="{ink}" stroke-width="0.7"/>',
+      waves: '<path d="M0.5 3.5q1.25 -1.4 2.5 0t2.5 0M5.5 8.5q1.25 -1.4 2.5 0t2.5 0" fill="none" stroke="{ink}" stroke-width="0.6"/>',
+      marsh: '<path d="M1 4H5M2 4V2.6M3.5 4V2.3M6 9H9.5M7 9V7.6M8.5 9V7.3" fill="none" stroke="{ink}" stroke-width="0.6"/>',
+      sparse: '<circle cx="2.5" cy="3" r="0.55" fill="{ink}"/><circle cx="7.5" cy="8" r="0.55" fill="{ink}"/>',
+      dots: '<circle cx="2" cy="2" r="0.6" fill="{ink}"/><circle cx="7" cy="2.5" r="0.6" fill="{ink}"/><circle cx="4.5" cy="7" r="0.6" fill="{ink}"/><circle cx="9.3" cy="7.8" r="0.6" fill="{ink}"/><circle cx="0.5" cy="8.8" r="0.6" fill="{ink}"/>',
+      tufts: '<path d="M1.5 5.5l1 -2 1 2M6.5 10l1 -2 1 2" fill="none" stroke="{ink}" stroke-width="0.6" stroke-linejoin="round"/>',
+      trees: '<circle cx="3" cy="3" r="1.7" fill="none" stroke="{ink}" stroke-width="0.6"/><circle cx="8" cy="8" r="1.7" fill="none" stroke="{ink}" stroke-width="0.6"/>',
+      hatch: '<path d="M0 10L10 0M-2.5 2.5L2.5 -2.5M7.5 12.5L12.5 7.5" stroke="{ink}" stroke-width="0.6"/>',
+      snow: '<path d="M3 2V4.4M1.8 3.2H4.2M8 7V9.4M6.8 8.2H9.2" stroke="{ink}" stroke-width="0.5"/>'
+    };
+    THEME = {
+      color: {
+        name: "color",
+        paper: "#f6f0e1",
+        ink: "#2a241c",
+        terrain: {
+          deep: { fill: "#5d8db5" },
+          water: { fill: "#9cc5df" },
+          marsh: { fill: "#a9bb93", pattern: "marsh", ink: "#4f6a45" },
+          sand: { fill: "#f0e2b6" },
+          desert: { fill: "#e6cc8f", pattern: "sparse", ink: "#a8854a" },
+          grass: { fill: "#cddca3" },
+          scrub: { fill: "#c2bf82", pattern: "tufts", ink: "#77733c" },
+          forest: { fill: "#86ad6f", pattern: "trees", ink: "#3f6534" },
+          rock: { fill: "#b3a998", pattern: "hatch", ink: "#7d7263" },
+          snow: { fill: "#f8f8f4" }
+        },
+        edge: "own",
+        edgeWidth: 1,
+        coast: "#3d6a8f",
+        coastWidth: 1.3,
+        contour: "#7f5f3f",
+        contourOpacity: 0.65,
+        riverBank: "#3d6a8f",
+        riverBankWidth: 0.9,
+        road: "#7a4f2a",
+        grid: "#2b2b2b",
+        gridOpacity: 0.3,
+        label: { region: "#3b2a1a", place: "#1e1e1e", water: "#1f4f7a", note: "#3a3a3a" },
+        halo: "#ffffff",
+        symbolFill: "#fbf7ee"
+      },
+      bw: {
+        name: "bw",
+        paper: "#ffffff",
+        ink: "#000000",
+        terrain: {
+          deep: { fill: "#ffffff", pattern: "lines", ink: "#000000" },
+          water: { fill: "#ffffff", pattern: "waves", ink: "#000000" },
+          marsh: { fill: "#ffffff", pattern: "marsh", ink: "#000000" },
+          sand: { fill: "#ffffff", pattern: "sparse", ink: "#000000" },
+          desert: { fill: "#ffffff", pattern: "dots", ink: "#000000" },
+          grass: { fill: "#ffffff" },
+          scrub: { fill: "#ffffff", pattern: "tufts", ink: "#000000" },
+          forest: { fill: "#ffffff", pattern: "trees", ink: "#000000" },
+          rock: { fill: "#ffffff", pattern: "hatch", ink: "#000000" },
+          snow: { fill: "#ffffff", pattern: "snow", ink: "#000000" }
+        },
+        edge: "#000000",
+        edgeWidth: 0.7,
+        coast: "#000000",
+        coastWidth: 1.6,
+        contour: "#555555",
+        contourOpacity: 0.8,
+        riverBank: "#000000",
+        riverBankWidth: 1.1,
+        road: "#000000",
+        grid: "#000000",
+        gridOpacity: 0.3,
+        label: { region: "#000000", place: "#000000", water: "#000000", note: "#000000" },
+        halo: "#ffffff",
+        symbolFill: "#ffffff"
+      }
+    };
+  }
+});
+
+// ../artgen-core/src/map/render.ts
+function layersFor(spec, over = {}) {
+  const on = Object.fromEntries(MAP_LAYERS.map((l) => [l, true]));
+  on.grid = spec.grid.type !== "none";
+  on.legend = spec.legend;
+  on.scale = spec.scaleBar;
+  on.compass = spec.compass;
+  on.title = !!spec.title;
+  return { ...on, ...over };
+}
+function toUnits(lines, res, pad, passes) {
+  return lines.map((l) => simplifyLine(chaikin({ pts: l.pts.map((v) => (v + 0.5 - pad) / res), closed: l.closed }, passes), 0.04));
+}
+function terrainRegions(f) {
+  const pw = f.w + 4, ph = f.h + 4, out = /* @__PURE__ */ new Map();
+  for (const t of terrainsUsed(f)) {
+    const k = TERRAINS.indexOf(t), m = new Float32Array(pw * ph);
+    for (let j = 1; j < ph - 1; j++) for (let i = 1; i < pw - 1; i++) {
+      const sx = Math.min(f.w - 1, Math.max(0, i - 2)), sy = Math.min(f.h - 1, Math.max(0, j - 2));
+      m[j * pw + i] = f.terrain[sy * f.w + sx] === k ? 1 : 0;
+    }
+    const sm = new Float32Array(m.length);
+    for (let j = 1; j < ph - 1; j++) for (let i = 1; i < pw - 1; i++) {
+      let s2 = 0;
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) s2 += m[(j + dj) * pw + i + di] * (di && dj ? 1 : di || dj ? 2 : 4);
+      sm[j * pw + i] = s2 / 16;
+    }
+    out.set(t, toUnits(isolines(sm, pw, ph, 0.5), f.res, 2, 1).filter((l) => l.closed && l.pts.length >= 6));
+  }
+  return out;
+}
+function contourLines(spec, f) {
+  const step = spec.topo.interval / spec.topo.maxElevation, e = Float32Array.from(f.elevation), w = f.w, h = f.h;
+  const passes = 1 + Math.round(spec.gen.simplify / 2);
+  for (let p = 0; p < passes; p++) {
+    const src = Float32Array.from(e);
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+      let s2 = 0, n = 0;
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+        const x = i + di, y = j + dj;
+        if (x >= 0 && y >= 0 && x < w && y < h) {
+          s2 += src[y * w + x];
+          n++;
+        }
+      }
+      e[j * w + i] = s2 / n;
+    }
+  }
+  const out = [], minLen = spec.preset === "local" ? 2 : 1.5;
+  for (let k = 1; k * step < 1 - 1e-9; k++) {
+    const lines = toUnits(isolines(e, w, h, k * step), f.res, 0, 2).filter((l) => lineLength(l.closed ? [...l.pts, l.pts[0], l.pts[1]] : l.pts) >= minLen);
+    if (lines.length) out.push({ level: k, lines });
+  }
+  return out;
+}
+function patternDefs(th, tile) {
+  return TERRAINS.map((t) => {
+    const st = th.terrain[t];
+    if (!st.pattern) return "";
+    return `<pattern id="pat-${t}" patternUnits="userSpaceOnUse" width="${n1(tile)}" height="${n1(tile)}"><g transform="scale(${n1(tile / 10)})">${PATTERNS[st.pattern].replaceAll("{ink}", st.ink ?? th.ink)}</g></pattern>`;
+  }).join("");
+}
+function symbolSvg(kind, x, y, size, th) {
+  const s2 = SYMBOLS[kind] ?? SYMBOLS.poi;
+  return `<g transform="translate(${n1(x)} ${n1(y)}) scale(${(size / 20).toFixed(3)})">${s2.svg.replaceAll("{ink}", th.ink).replaceAll("{fill}", th.symbolFill)}</g>`;
+}
+function haloText(text2, x, y, size, color, th, attrs = "") {
+  const a = `x="${n1(x)}" y="${n1(y)}" font-size="${n1(size)}" text-anchor="middle" ${attrs}`;
+  return `<text ${a} fill="none" stroke="${th.halo}" stroke-width="${n1(size * 0.22)}" stroke-linejoin="round" stroke-opacity="0.9">${esc(text2)}</text><text ${a} fill="${color}">${esc(text2)}</text>`;
+}
+function scaleCells(spec) {
+  const target = spec.cols / 5;
+  for (const n of [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30, 40, 50]) if (n >= target * 0.75) return n;
+  return Math.max(1, Math.round(target));
+}
+function renderMapSvg(spec, o = {}) {
+  const th = THEME[o.theme ?? "color"], k = o.ppu ?? 40, W3 = spec.cols * k, H = spec.rows * k, u = k / 40;
+  const f = o.field ?? generateMap(spec), on = layersFor(spec, o.layers), tile = Math.max(9, Math.min(24, k * 0.4)) * (th.name === "bw" ? 1.4 : 1);
+  const parts = [];
+  const used = terrainsUsed(f);
+  const regions = on.terrain || on.rivers && f.rivers.length ? terrainRegions(f) : /* @__PURE__ */ new Map();
+  if (on.terrain) {
+    const base = used.find((t) => t !== "deep" && t !== "water") ?? used[0];
+    const order = [...used.filter((t) => t !== "deep" && t !== "water"), ...used.filter((t) => t === "water" || t === "deep").reverse()];
+    let g = `<rect width="${W3}" height="${H}" fill="${th.terrain[base].fill}"/>`;
+    for (const t of order) {
+      const d = pathData(regions.get(t) ?? [], k), st = th.terrain[t], water = t === "water" || t === "deep";
+      if (!d) continue;
+      const edge = water ? th.coast : th.edge === "own" ? st.fill : th.edge, ew = water ? th.coastWidth : th.edgeWidth;
+      g += `<path d="${d}" fill="${st.fill}" fill-rule="evenodd" stroke="${edge}" stroke-width="${n1(ew * u)}" stroke-linejoin="round"/>`;
+      if (st.pattern) g += `<path d="${d}" fill="url(#pat-${t})" fill-rule="evenodd"/>`;
+    }
+    parts.push(`<g id="terrain">${g}</g>`);
+  } else parts.push(`<rect width="${W3}" height="${H}" fill="${th.paper}"/>`);
+  const lineGroup = (id, lines, draw) => lines.length ? `<g id="${id}" fill="none" stroke-linecap="round" stroke-linejoin="round">${lines.map((l) => draw(pathData([{ pts: l.pts, closed: false }], k), Math.max(1.2 * u, l.width * k))).join("")}</g>` : "";
+  const defs = [];
+  const riverD = on.rivers && f.rivers.length ? pathData(f.rivers.map((r) => ({ pts: r.outline, closed: true })), k) : "";
+  if (riverD) {
+    const d = riverD, water = pathData([...regions.get("water") ?? [], ...regions.get("deep") ?? []], k);
+    defs.push(`<mask id="river-land" maskUnits="userSpaceOnUse" x="0" y="0" width="${W3}" height="${H}"><rect width="${W3}" height="${H}" fill="#fff"/>${water ? `<path d="${water}" fill="#000" fill-rule="evenodd"/>` : ""}</mask>`);
+    parts.push(`<g id="rivers" stroke-linejoin="round"><g mask="url(#river-land)"><path d="${d}" fill="${th.riverBank}" stroke="${th.riverBank}" stroke-width="${n1(th.riverBankWidth * 2 * u)}"/></g><path d="${d}" fill="${th.terrain.water.fill}"/></g>`);
+  }
+  if (on.roads) parts.push(lineGroup("roads", f.roads, (d, w) => `<path d="${d}" stroke="${th.road}" stroke-width="${n1(w)}" stroke-dasharray="${n1(w * 3)} ${n1(w * 2)}"/>`));
+  if (on.contours) {
+    const major = spec.topo.majorEvery;
+    let g = "";
+    for (const { level, lines } of contourLines(spec, f)) {
+      const isMajor = level % major === 0, d = pathData(lines, k);
+      g += `<path d="${d}" stroke-width="${n1((isMajor ? 1.5 : 0.75) * u)}"/>`;
+      if (isMajor && spec.topo.labels) {
+        const best = lines.reduce((a, b) => b.pts.length > a.pts.length ? b : a);
+        const mid = best.pts.length >> 2 << 1, x = best.pts[mid] * k, y = best.pts[mid + 1] * k;
+        g += `<g stroke="none">${haloText(`${level * spec.topo.interval} ${spec.topo.unit}`, x, y + 4 * u, 10 * u, th.contour, th)}</g>`;
+      }
+    }
+    if (riverD) defs.push(`<mask id="no-river" maskUnits="userSpaceOnUse" x="0" y="0" width="${W3}" height="${H}"><rect width="${W3}" height="${H}" fill="#fff"/><path d="${riverD}" fill="#000" stroke="#000" stroke-width="${n1(th.riverBankWidth * 2 * u)}" stroke-linejoin="round"/></mask>`);
+    parts.push(`<g id="contours"${riverD ? ' mask="url(#no-river)"' : ""} fill="none" stroke="${th.contour}" stroke-opacity="${th.contourOpacity}" stroke-linejoin="round" stroke-linecap="round">${g}</g>`);
+  }
+  if (on.grid && spec.grid.type !== "none") {
+    const gg = gridGeometry(spec, k);
+    let g = `<path d="${gg.d}" fill="none" stroke="${th.grid}" stroke-opacity="${th.gridOpacity}" stroke-width="${n1(u)}"/>`;
+    if (spec.grid.coords) {
+      const fs = Math.max(6, 7 * u * spec.grid.size), dy = (spec.grid.type === "hex" ? -0.33 : -0.34) * spec.grid.size * k;
+      g += `<g fill="${th.grid}" fill-opacity="${Math.min(1, th.gridOpacity + 0.2)}" font-size="${n1(fs)}" text-anchor="middle">${gg.cells.map((c) => `<text x="${n1(c.x * k)}" y="${n1(c.y * k + dy + fs * 0.35)}">${c.name}</text>`).join("")}</g>`;
+    }
+    parts.push(`<g id="grid">${g}</g>`);
+  }
+  if (on.symbols && spec.overlay.symbols.length)
+    parts.push(`<g id="symbols">${spec.overlay.symbols.map((s2) => symbolSvg(s2.kind, s2.x * k, s2.y * k, 22 * u * (s2.scale ?? 1), th)).join("")}</g>`);
+  if (on.labels && spec.overlay.labels.length) {
+    const g = spec.overlay.labels.map((l) => {
+      const base = { region: 30, place: 16, water: 20, note: 13 }[l.kind] * u * (l.size ?? 1);
+      const attrs = l.kind === "region" ? `font-weight="700" letter-spacing="${n1(base * 0.18)}"` : l.kind === "water" ? 'font-style="italic"' : l.kind === "place" ? 'font-weight="700"' : "";
+      const text2 = l.kind === "region" ? l.text.toUpperCase() : l.text;
+      const t = haloText(text2, l.x * k, l.y * k + base * 0.35, base, th.label[l.kind], th, attrs);
+      return l.angle ? `<g transform="rotate(${n1(l.angle)} ${n1(l.x * k)} ${n1(l.y * k)})">${t}</g>` : t;
+    }).join("");
+    parts.push(`<g id="labels">${g}</g>`);
+  }
+  const box = (x, y, w, h) => `<rect x="${n1(x)}" y="${n1(y)}" width="${n1(w)}" height="${n1(h)}" rx="${n1(4 * u)}" fill="${th.paper}" fill-opacity="0.92" stroke="${th.ink}" stroke-width="${n1(u)}"/>`;
+  const pad = 12 * u;
+  if (on.legend) {
+    const rows = used.map((t) => [t, TERRAIN_NAMES[t]]);
+    if (f.rivers.length) rows.push(["river", "River"]);
+    if (f.roads.length) rows.push(["road", "Road"]);
+    const rh = 18 * u, fs = 12 * u, bw = 150 * u, bh = rows.length * rh + 12 * u, x = W3 - bw - pad, y = H - bh - pad;
+    let g = box(x, y, bw, bh);
+    rows.forEach(([t, name], i) => {
+      const sx = x + 8 * u, sy = y + 6 * u + i * rh + 2 * u, sw = 24 * u, sh = rh - 5 * u;
+      if (t === "river") g += `<path d="M${n1(sx)} ${n1(sy + sh / 2)}h${n1(sw)}" stroke="${th.riverBank}" stroke-width="${n1(5 * u)}"/><path d="M${n1(sx + th.riverBankWidth * u)} ${n1(sy + sh / 2)}h${n1(sw - 2 * th.riverBankWidth * u)}" stroke="${th.terrain.water.fill}" stroke-width="${n1(5 * u - 2 * th.riverBankWidth * u)}"/>`;
+      else if (t === "road") g += `<path d="M${n1(sx)} ${n1(sy + sh / 2)}h${n1(sw)}" stroke="${th.road}" stroke-width="${n1(2 * u)}" stroke-dasharray="${n1(5 * u)} ${n1(3 * u)}"/>`;
+      else {
+        const st = th.terrain[t];
+        g += `<rect x="${n1(sx)}" y="${n1(sy)}" width="${n1(sw)}" height="${n1(sh)}" fill="${st.fill}" stroke="${th.ink}" stroke-width="${n1(0.6 * u)}"/>`;
+        if (st.pattern) g += `<rect x="${n1(sx)}" y="${n1(sy)}" width="${n1(sw)}" height="${n1(sh)}" fill="url(#pat-${t})"/>`;
+      }
+      g += `<text x="${n1(sx + sw + 7 * u)}" y="${n1(sy + sh / 2 + fs * 0.35)}" font-size="${n1(fs)}" fill="${th.ink}">${esc(name)}</text>`;
+    });
+    parts.push(`<g id="legend">${g}</g>`);
+  }
+  if (on.scale) {
+    const n = scaleCells(spec), len = n * k, fs = 11 * u, x = pad + 8 * u, y = H - pad - 20 * u, seg = 4;
+    let g = box(pad, y - 18 * u, len + 34 * u, 40 * u);
+    for (let i = 0; i < seg; i++) g += `<rect x="${n1(x + len / seg * i)}" y="${n1(y)}" width="${n1(len / seg)}" height="${n1(5 * u)}" fill="${i % 2 ? th.paper : th.ink}" stroke="${th.ink}" stroke-width="${n1(0.8 * u)}"/>`;
+    g += `<text x="${n1(x)}" y="${n1(y - 5 * u)}" font-size="${n1(fs)}" fill="${th.ink}" text-anchor="middle">0</text>`;
+    g += `<text x="${n1(x + len)}" y="${n1(y - 5 * u)}" font-size="${n1(fs)}" fill="${th.ink}" text-anchor="middle">${n * spec.scale.perCell} ${esc(spec.scale.unit)}</text>`;
+    g += `<text x="${n1(x + len / 2)}" y="${n1(y + 16 * u)}" font-size="${n1(fs * 0.85)}" fill="${th.ink}" text-anchor="middle">1 ${spec.grid.type === "hex" ? "hex" : "square"} = ${spec.scale.perCell} ${esc(spec.scale.unit)}</text>`;
+    parts.push(`<g id="scale">${g}</g>`);
+  }
+  if (on.compass) {
+    const r = 18 * u, cx = W3 - pad - r - 4 * u, cy = pad + r + 14 * u;
+    parts.push(`<g id="compass" stroke="${th.ink}" stroke-width="${n1(u)}" stroke-linejoin="round"><circle cx="${n1(cx)}" cy="${n1(cy)}" r="${n1(r)}" fill="${th.paper}" fill-opacity="0.85"/><path d="M${n1(cx)} ${n1(cy - r * 0.9)}L${n1(cx + r * 0.3)} ${n1(cy)}L${n1(cx)} ${n1(cy + r * 0.9)}L${n1(cx - r * 0.3)} ${n1(cy)}Z" fill="${th.paper}"/><path d="M${n1(cx)} ${n1(cy - r * 0.9)}L${n1(cx + r * 0.3)} ${n1(cy)}L${n1(cx - r * 0.3)} ${n1(cy)}Z" fill="${th.ink}"/><text x="${n1(cx)}" y="${n1(cy - r - 4 * u)}" font-size="${n1(13 * u)}" font-weight="700" text-anchor="middle" fill="${th.ink}" stroke="none">N</text></g>`);
+  }
+  if (on.title && spec.title) {
+    const fs = 26 * u, w = Math.max(120 * u, spec.title.length * fs * 0.62 + 30 * u);
+    parts.push(`<g id="title">${box(pad, pad, w, fs * 1.7)}<text x="${n1(pad + w / 2)}" y="${n1(pad + fs * 1.18)}" font-size="${n1(fs)}" font-weight="700" letter-spacing="${n1(fs * 0.06)}" text-anchor="middle" fill="${th.ink}">${esc(spec.title)}</text></g>`);
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W3}" height="${H}" viewBox="0 0 ${W3} ${H}" font-family="${FONT}"><defs>${patternDefs(th, tile)}${defs.join("")}<clipPath id="map-clip"><rect width="${W3}" height="${H}"/></clipPath></defs><g clip-path="url(#map-clip)">${parts.join("")}</g></svg>`;
+}
+var MAP_LAYERS, FONT_FAMILY, FONT, fieldKey, esc, n1;
+var init_render2 = __esm({
+  "../artgen-core/src/map/render.ts"() {
+    "use strict";
+    init_generate();
+    init_gridlines();
+    init_spec();
+    init_symbols();
+    init_theme();
+    init_trace();
+    MAP_LAYERS = ["terrain", "rivers", "roads", "contours", "grid", "symbols", "labels", "legend", "scale", "compass", "title"];
+    FONT_FAMILY = "Alegreya Sans";
+    FONT = `'${FONT_FAMILY}', 'Segoe UI', Helvetica, Arial, sans-serif`;
+    fieldKey = (s2) => JSON.stringify([s2.preset, s2.cols, s2.rows, s2.seed, s2.gen, s2.edits]);
+    esc = (t) => t.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+    n1 = (v) => (Math.round(v * 10) / 10).toString();
+  }
+});
+
+// ../artgen-core/src/map/index.ts
+var map_exports = {};
+__export(map_exports, {
+  FONT_FAMILY: () => FONT_FAMILY,
+  GRID_TYPES: () => GRID_TYPES,
+  LABEL_KINDS: () => LABEL_KINDS,
+  LAND_MODES: () => LAND_MODES,
+  MAP_LAYERS: () => MAP_LAYERS,
+  MAX_SIDE: () => MAX_SIDE,
+  PATTERNS: () => PATTERNS,
+  PRESETS: () => PRESETS2,
+  PRESET_DEFAULTS: () => PRESET_DEFAULTS,
+  RESOLUTION: () => RESOLUTION,
+  SYMBOLS: () => SYMBOLS,
+  SYMBOL_KINDS: () => SYMBOL_KINDS,
+  TERRAINS: () => TERRAINS,
+  TERRAIN_NAMES: () => TERRAIN_NAMES,
+  THEME: () => THEME,
+  THEMES: () => THEMES,
+  cellCenter: () => cellCenter,
+  chaikin: () => chaikin,
+  contourLines: () => contourLines,
+  coverage: () => coverage,
+  fieldKey: () => fieldKey,
+  generateMap: () => generateMap,
+  gridGeometry: () => gridGeometry,
+  isolines: () => isolines,
+  layersFor: () => layersFor,
+  newMap: () => newMap,
+  parseMap: () => parseMap,
+  parsePoint: () => parsePoint,
+  pathData: () => pathData,
+  renderMapSvg: () => renderMapSvg,
+  riverWidth: () => riverWidth,
+  simplifyLine: () => simplifyLine,
+  terrainRegions: () => terrainRegions,
+  terrainsUsed: () => terrainsUsed,
+  validateMap: () => validateMap
+});
+var init_map = __esm({
+  "../artgen-core/src/map/index.ts"() {
+    "use strict";
+    init_spec();
+    init_generate();
+    init_gridlines();
+    init_symbols();
+    init_theme();
+    init_render2();
+    init_trace();
+  }
+});
+
 // ../artgen-core/src/index.ts
 var init_src = __esm({
   "../artgen-core/src/index.ts"() {
@@ -15849,6 +16962,7 @@ var init_src = __esm({
     init_recommend();
     init_edit();
     init_config();
+    init_map();
   }
 });
 
@@ -16158,11 +17272,16 @@ var init_bench = __esm({
 // ../artgen-cli/src/node.ts
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire as createRequire2 } from "node:module";
-import { dirname } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 function initNodeSvg() {
   const local = fileURLToPath(new URL("./resvg.wasm", import.meta.url));
   return initSvg(readFileSync(existsSync(local) ? local : require3.resolve("@resvg/resvg-wasm/index_bg.wasm")));
+}
+async function initNodeMapSvg() {
+  await initNodeSvg();
+  const local = fileURLToPath(new URL("./fonts/", import.meta.url)), dir = existsSync(join(local, MAP_FONTS[0])) ? local : fileURLToPath(new URL("../../artgen-core/assets/fonts/", import.meta.url));
+  setSvgFonts(MAP_FONTS.map((f) => new Uint8Array(readFileSync(join(dir, f)))), map_exports.FONT_FAMILY);
 }
 function writeGrid(path, g) {
   mkdirSync(dirname(path), { recursive: true });
@@ -16172,19 +17291,20 @@ function appendLedger(path, entry) {
   mkdirSync(dirname(path), { recursive: true });
   appendFileSync(path, formatLedgerLine({ ts: (/* @__PURE__ */ new Date()).toISOString(), ...entry }) + "\n");
 }
-var require3, readGrid;
+var require3, MAP_FONTS, readGrid;
 var init_node = __esm({
   "../artgen-cli/src/node.ts"() {
     "use strict";
     init_src();
     require3 = createRequire2(import.meta.url);
+    MAP_FONTS = ["AlegreyaSans-Regular.ttf", "AlegreyaSans-Bold.ttf", "AlegreyaSans-Italic.ttf"];
     readGrid = (path) => decodePNG(new Uint8Array(readFileSync(path)));
   }
 });
 
 // ../artgen-cli/src/bench.ts
 import { fileURLToPath as fileURLToPath2 } from "node:url";
-import { join } from "node:path";
+import { join as join2 } from "node:path";
 function strip(r) {
   const g = new Grid(r.size[0] * r.cells.length, r.size[1]);
   r.cells.forEach((c, i) => g.blit(c.grid, i * r.size[0], 0));
@@ -16198,21 +17318,21 @@ var init_bench2 = __esm({
     init_bench();
     init_node();
     BENCH_ROOT = fileURLToPath2(new URL("../../artgen-core/bench/", import.meta.url));
-    GOLDEN_PATH = join(BENCH_ROOT, "golden.json");
+    GOLDEN_PATH = join2(BENCH_ROOT, "golden.json");
   }
 });
 
 // ../artgen-cli/src/project.ts
 import { existsSync as existsSync2, mkdirSync as mkdirSync2, readFileSync as readFileSync2, writeFileSync as writeFileSync2 } from "node:fs";
-import { dirname as dirname2, join as join2, resolve } from "node:path";
+import { dirname as dirname2, join as join3, resolve } from "node:path";
 function findProject(start = process.cwd()) {
   for (let d = resolve(start); ; d = dirname2(d)) {
-    if (existsSync2(join2(d, "art", CONFIG_FILE))) return { root: d, art: join2(d, "art") };
+    if (existsSync2(join3(d, "art", CONFIG_FILE))) return { root: d, art: join3(d, "art") };
     if (dirname2(d) === d) return null;
   }
 }
 function projectConfig(p) {
-  const f = join2(p.art, CONFIG_FILE);
+  const f = join3(p.art, CONFIG_FILE);
   return mergeConfig(existsSync2(f) ? readJson(f) : {});
 }
 var CONFIG_FILE, readJson, writeJson;
@@ -16232,10 +17352,10 @@ var init_project = __esm({
 
 // ../artgen-cli/src/asset.ts
 import { existsSync as existsSync3, readdirSync, readFileSync as readFileSync3, writeFileSync as writeFileSync3 } from "node:fs";
-import { basename, dirname as dirname3, join as join3, relative, resolve as resolve2 } from "node:path";
+import { basename, dirname as dirname3, join as join4, relative, resolve as resolve2 } from "node:path";
 import { pathToFileURL } from "node:url";
 function projectBrief(p, id) {
-  const f = join3(p.art, "briefs.yaml");
+  const f = join4(p.art, "briefs.yaml");
   if (!existsSync3(f)) return void 0;
   const r = parseBriefs(readFileSync3(f, "utf8"));
   if (!r.ok) throw new Error(`art/briefs.yaml:
@@ -16256,12 +17376,12 @@ function editTokens(prev, src) {
 }
 function findUp(start, name) {
   for (let d = resolve2(start); ; d = dirname3(d)) {
-    if (existsSync3(join3(d, name))) return join3(d, name);
+    if (existsSync3(join4(d, name))) return join4(d, name);
     if (dirname3(d) === d) return null;
   }
 }
 function openAsset(path, opts = {}) {
-  const briefPath = join3(path, "brief.json"), project2 = findProject(path) ?? void 0;
+  const briefPath = join4(path, "brief.json"), project2 = findProject(path) ?? void 0;
   const local = existsSync3(briefPath) ? JSON.parse(readFileSync3(briefPath, "utf8")) : void 0;
   const id = local?.id ?? basename(resolve2(path)), fromYaml = project2 ? projectBrief(project2, id) : void 0;
   if (!local && !fromYaml) throw new Error(`${path}: no brief.json and no brief "${id}" in art/briefs.yaml`);
@@ -16276,7 +17396,7 @@ function openAsset(path, opts = {}) {
     if (isPlaceholderDirection(raw)) throw new Error(`${file} is not locked yet \u2014 lock one with \`artgen direction lock <candidate>\`, or pass --direction art/candidates/<name>.json`);
     dir = parseDirection(raw);
   }
-  const ledgerPath2 = opts.ledger ?? findUp(path, "ledger.jsonl") ?? join3(dirname3(resolve2(path)), "ledger.jsonl");
+  const ledgerPath2 = opts.ledger ?? findUp(path, "ledger.jsonl") ?? join4(dirname3(resolve2(path)), "ledger.jsonl");
   const cfg = project2 ? projectConfig(project2) : void 0;
   return { path, brief, dir, ledgerPath: ledgerPath2, ...project2 && { project: project2 }, budget: budgetFor(cfg, brief, dir) };
 }
@@ -16290,7 +17410,7 @@ async function renderVersion(a, version, opts = {}) {
   await initNodeSvg();
   const v = parseVersion(version);
   if (!v) throw new Error(`bad version ${version}`);
-  const file = join3(a.path, `${v.name}.js`);
+  const file = join4(a.path, `${v.name}.js`);
   if (!existsSync3(file)) throw new Error(`${file} does not exist`);
   const source = readFileSync3(file, "utf8");
   let render, base, patches, stale, src = source;
@@ -16299,11 +17419,11 @@ async function renderVersion(a, version, opts = {}) {
     const fin = await load(file);
     base = fin.base;
     if (!parseVersion(base ?? "")) throw new Error(`${file}: export const base = 'base.vN' is required`);
-    const baseRender = renderAsset(await load(join3(a.path, `${base}.js`)), { dir: a.dir, brief: a.brief, variant: opts.variant, stages: opts.stages, onScene: opts.onScene });
+    const baseRender = renderAsset(await load(join4(a.path, `${base}.js`)), { dir: a.dir, brief: a.brief, variant: opts.variant, stages: opts.stages, onScene: opts.onScene });
     const f = applyFinish(baseRender, fin, a.dir);
     render = f.render;
     patches = f.patches;
-    const snap = join3(a.path, `${v.name}.snapshot.json`);
+    const snap = join4(a.path, `${v.name}.snapshot.json`);
     if (existsSync3(snap) && !opts.variant) stale = finishStale(JSON.parse(readFileSync3(snap, "utf8")), patches);
     src = sourceOf(a, base) + "\n" + source;
   }
@@ -16414,10 +17534,10 @@ function layoutGrid(r) {
   return assembleSheet({ ...r, facings, cells: r.cells.filter((c) => facings.includes(c.facing)) }, 1).grid;
 }
 function outDir(a) {
-  return join3(a.path, "out");
+  return join4(a.path, "out");
 }
 function writeRender(a, r, out = outDir(a)) {
-  const sc = a.brief.review?.scale ?? 4, files = [join3(out, `${r.version}.png`), join3(out, `${r.version}@${sc}x.png`)];
+  const sc = a.brief.review?.scale ?? 4, files = [join4(out, `${r.version}.png`), join4(out, `${r.version}@${sc}x.png`)];
   writeGrid(files[0], r.strip);
   writeGrid(files[1], r.strip.scale(sc));
   return files;
@@ -16432,7 +17552,7 @@ async function reviewVersion(a, version, o = {}) {
       maxEdge: a.project ? projectConfig(a.project).budget?.maxSheetEdge : void 0,
       rows: [{ label: a.brief.id, grid: cur.grid, scale: sc, bg: R2.bg ?? a.dir.background, context: contextFor(a, cur.grid), silhouette: sil }]
     });
-    const path2 = join3(outDir(a), `review-${version}-blind.png`), tokens2 = imageTokens(sheet2.w, sheet2.h);
+    const path2 = join4(outDir(a), `review-${version}-blind.png`), tokens2 = imageTokens(sheet2.w, sheet2.h);
     writeGrid(path2, sheet2);
     appendLedger(a.ledgerPath, { type: "review", asset: a.brief.id, version, pass: "b", blind: true, sheet: relPath(a, path2), imageTokens: tokens2, by: "agent" });
     return { path: path2, tokens: tokens2, render: cur };
@@ -16453,7 +17573,7 @@ async function reviewVersion(a, version, o = {}) {
   }
   rows.push({ label: `>> ${rowLabel(cur)}`, grid: cur.grid, scale: sc, bg: R2.bg ?? a.dir.background, context: ctx(cur.grid), silhouette: sil });
   const sheet = reviewSheet({ title: `${R2.label ?? a.brief.id} - ${version} (${passOf(a, version)})`, rows, anchors: anchorsFor(a), maxEdge: a.project ? projectConfig(a.project).budget?.maxSheetEdge : void 0 });
-  const path = join3(outDir(a), `review-${version}.png`);
+  const path = join4(outDir(a), `review-${version}.png`);
   writeGrid(path, sheet);
   writeRender(a, cur);
   const tokens = imageTokens(sheet.w, sheet.h);
@@ -16467,7 +17587,7 @@ async function scoreVersion(a, version, score, note = "", extra = {}) {
   const blind = extra.blind === true, reviews = ledgerFor(a).filter((e) => e.type === "review" && e.version === version && !!e.blind === blind);
   if (blind && !reviews.length) throw new Error(`${a.brief.id} ${version}: no blind sheet yet \u2014 artgen review ${a.brief.id} --version ${version} --blind, and give only that sheet to the reviewer`);
   if (v.kind === "finish" && r.patches) {
-    const snap = join3(a.path, `${version}.snapshot.json`);
+    const snap = join4(a.path, `${version}.snapshot.json`);
     if (!existsSync3(snap)) writeFileSync3(snap, JSON.stringify(finishSnapshot(r.patches)) + "\n");
   }
   const ledger = ledgerFor(a), prevTs = ledger.length ? Date.parse(ledger[ledger.length - 1].ts) : NaN;
@@ -16515,7 +17635,7 @@ async function passState(a) {
     ...a.project && { feedback: feedbackOf(a), extraRevisions: a.budget?.extraRevisions ?? 0, ...blindConfig(a.project) }
   });
   const lastFinish = versions.filter((v) => v.startsWith("finish.")).pop();
-  if (lastFinish && existsSync3(join3(a.path, `${lastFinish}.snapshot.json`))) {
+  if (lastFinish && existsSync3(join4(a.path, `${lastFinish}.snapshot.json`))) {
     const stale = (await renderVersion(a, lastFinish)).stale;
     if (stale?.length) return { ...st, stale };
   }
@@ -16570,7 +17690,7 @@ var init_asset = __esm({
       const a1 = parseVersion(x), b1 = parseVersion(y);
       return a1.kind === b1.kind ? a1.n - b1.n : a1.kind === "base" ? -1 : 1;
     });
-    sourceOf = (a, version) => readFileSync3(join3(a.path, `${version}.js`), "utf8");
+    sourceOf = (a, version) => readFileSync3(join4(a.path, `${version}.js`), "utf8");
     rowLabel = (r, score) => `${r.version}${score !== void 0 ? ` (${score})` : ""} | hyg ${r.report.metrics.hygiene} col ${r.report.metrics.colors} orph ${r.report.metrics.orphanPct}% | gate ${r.report.pass ? "pass" : "FAIL"}${r.stale?.length ? " | FINISH-STALE" : ""}`;
     relPath = (a, p) => relative(dirname3(resolve2(a.ledgerPath)), resolve2(p)).split("\\").join("/");
     stageKey = (pass) => pass === "r1" ? "base" : pass.startsWith("f") ? "finish" : "revise";
@@ -16589,13 +17709,13 @@ var init_report = __esm({
 
 // ../artgen-cli/src/p6.ts
 import { mkdirSync as mkdirSync3, writeFileSync as writeFileSync4 } from "node:fs";
-import { join as join4, relative as relative2 } from "node:path";
+import { join as join5, relative as relative2 } from "node:path";
 function textureRun(dir, name, o) {
   if (!MATERIALS.includes(name)) throw new Error(`unknown material ${name} (have: ${MATERIALS.join(", ")})`);
   const [w, h] = o.size, t = material(name, dirContext(dir), { w, h, seed: o.seed, ramps: o.ramps, scale: o.scale });
   const pre = new Grid(w * 3, h * 3);
   for (let j = 0; j < 3; j++) for (let i = 0; i < 3; i++) pre.blit(t.grid, i * w, j * h);
-  const files = [join4(o.out, `${name}.png`), join4(o.out, `${name}.n.png`), join4(o.out, `${name}-3x3@4x.png`)];
+  const files = [join5(o.out, `${name}.png`), join5(o.out, `${name}.n.png`), join5(o.out, `${name}-3x3@4x.png`)];
   writeGrid(files[0], t.grid);
   writeGrid(files[1], t.normal);
   writeGrid(files[2], pre.scale(4));
@@ -16610,7 +17730,7 @@ function fxRun(dir, name, o) {
   mkdirSync3(o.out, { recursive: true });
   const strip2 = new Grid(o.frames * (w + 1) - 1, h);
   frames.forEach((f, i) => strip2.blit(f, i * (w + 1), 0));
-  const files = [join4(o.out, `${name}.png`), join4(o.out, `${name}-onion@${sc}x.png`), join4(o.out, `${name}.gif`), join4(o.out, `${name}.apng`)];
+  const files = [join5(o.out, `${name}.png`), join5(o.out, `${name}-onion@${sc}x.png`), join5(o.out, `${name}.gif`), join5(o.out, `${name}.apng`)];
   writeGrid(files[0], strip2);
   writeGrid(files[1], onionSkin(frames).scale(sc));
   const big = frames.map((f) => f.scale(sc)), d = frames.map(() => Math.round(1e3 / fps));
@@ -16627,28 +17747,107 @@ var init_p6 = __esm({
   }
 });
 
+// ../artgen-cli/src/map.ts
+import { existsSync as existsSync4, mkdirSync as mkdirSync4, readdirSync as readdirSync2, writeFileSync as writeFileSync5 } from "node:fs";
+import { join as join6, relative as relative3 } from "node:path";
+function mapFile(p, id) {
+  if (!/^[\w-]+$/.test(id ?? "")) throw new Error(`map id ${JSON.stringify(id)}: letters, digits, - and _ only`);
+  return join6(mapsDir(p), id, "map.json");
+}
+function listMaps(p) {
+  if (!existsSync4(mapsDir(p))) return [];
+  return readdirSync2(mapsDir(p), { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync4(join6(mapsDir(p), d.name, "map.json"))).map((d) => {
+    const m = readMap(p, d.name);
+    return { id: m.id, preset: m.preset, size: `${m.cols}x${m.rows}`, ...m.title && { title: m.title }, edits: m.edits.length, labels: m.overlay.labels.length, symbols: m.overlay.symbols.length };
+  });
+}
+function readMap(p, id) {
+  const f = mapFile(p, id);
+  if (!existsSync4(f)) throw new Error(`no map ${id} (${relative3(p.root, f)}) \u2014 artgen map new ${id}`);
+  return map_exports.parseMap(readJson(f));
+}
+function writeMap(p, m) {
+  const spec = map_exports.parseMap(m), f = mapFile(p, spec.id);
+  writeJson(f, spec);
+  return relative3(p.root, f);
+}
+function createMap(p, id, preset2, over = {}, force = false) {
+  if (existsSync4(mapFile(p, id)) && !force) throw new Error(`map ${id} already exists (edit it, or pick another id)`);
+  const m = map_exports.newMap(id, preset2, over);
+  return { file: writeMap(p, m), map: m };
+}
+function updateMap(p, id, change) {
+  const m = readMap(p, id);
+  change(m);
+  writeMap(p, m);
+  return m;
+}
+async function renderMapFiles(p, id, o = {}) {
+  const m = readMap(p, id), field = map_exports.generateMap(m), ppu = o.ppu ?? 40, out = o.out ?? join6(mapsDir(p), id, "out");
+  const formats = o.formats ?? ["svg", "png"], files = [];
+  if (formats.includes("png")) await initNodeMapSvg();
+  mkdirSync4(out, { recursive: true });
+  for (const theme of o.themes ?? ["color"]) {
+    const svg = map_exports.renderMapSvg(m, { theme, ppu, layers: o.layers, field }), base = join6(out, `${id}.${theme}`);
+    if (formats.includes("svg")) {
+      writeFileSync5(`${base}.svg`, svg);
+      files.push(`${base}.svg`);
+    }
+    if (formats.includes("png")) {
+      writeFileSync5(`${base}.png`, encodePNG(rasterizeSvg(svg, m.cols * ppu, m.rows * ppu)));
+      files.push(`${base}.png`);
+    }
+  }
+  return { files: files.map((f) => relative3(process.cwd(), f)), terrains: map_exports.terrainsUsed(field), rivers: field.rivers.length, size: [m.cols * ppu, m.rows * ppu] };
+}
+function describeMap(m) {
+  const g = m.gen;
+  return [
+    `${m.id}${m.title ? ` "${m.title}"` : ""}: ${m.preset}, ${m.cols}\xD7${m.rows} ${m.grid.type === "hex" ? "hexes" : "cells"} of ${m.scale.perCell} ${m.scale.unit}, seed ${m.seed}`,
+    `  gen: land ${g.land}, sea ${g.sea}, moisture ${g.moisture}, roughness ${g.roughness}, relief ${g.relief}, rivers ${g.rivers}, simplify ${g.simplify}, feature ${g.feature}`,
+    `  topo: every ${m.topo.interval} ${m.topo.unit} up to ${m.topo.maxElevation}, major every ${m.topo.majorEvery}${m.topo.labels ? ", labelled" : ""}`,
+    `  grid: ${m.grid.type}${m.grid.type !== "none" ? ` size ${m.grid.size}${m.grid.coords ? ", coordinates" : ""}` : ""}; legend ${m.legend ? "on" : "off"}, scale bar ${m.scaleBar ? "on" : "off"}, compass ${m.compass ? "on" : "off"}`,
+    `  edits (${m.edits.length}):${m.edits.map((e, i) => `
+    ${i}. ${e.op}${e.op === "paint" ? ` ${e.terrain}` : e.op === "elevate" ? ` ${e.amount}` : ""} ${"shape" in e ? JSON.stringify(e.shape) : JSON.stringify(e.points)}`).join("")}`,
+    `  labels (${m.overlay.labels.length}):${m.overlay.labels.map((l, i) => `
+    ${i}. ${l.kind} "${l.text}" at ${l.x},${l.y}`).join("")}`,
+    `  symbols (${m.overlay.symbols.length}):${m.overlay.symbols.map((s2, i) => `
+    ${i}. ${s2.kind} at ${s2.x},${s2.y}`).join("")}`
+  ].join("\n");
+}
+var mapsDir;
+var init_map2 = __esm({
+  "../artgen-cli/src/map.ts"() {
+    "use strict";
+    init_src();
+    init_node();
+    init_project();
+    mapsDir = (p) => join6(p.art, "maps");
+  }
+});
+
 // ../artgen-cli/src/templates.ts
-import { existsSync as existsSync4, mkdirSync as mkdirSync4, readFileSync as readFileSync4, writeFileSync as writeFileSync5 } from "node:fs";
-import { dirname as dirname4, join as join5, resolve as resolve3 } from "node:path";
+import { existsSync as existsSync5, mkdirSync as mkdirSync5, readFileSync as readFileSync4, writeFileSync as writeFileSync6 } from "node:fs";
+import { dirname as dirname4, join as join7, resolve as resolve3 } from "node:path";
 import { fileURLToPath as fileURLToPath3 } from "node:url";
 function templatesRoot() {
   const here = dirname4(fileURLToPath3(import.meta.url));
-  for (const p of [join5(here, "templates"), join5(here, "..", "templates")]) if (existsSync4(join5(p, "finish.js"))) return p;
+  for (const p of [join7(here, "templates"), join7(here, "..", "templates")]) if (existsSync5(join7(p, "finish.js"))) return p;
   throw new Error(`artgen templates not found next to ${here}`);
 }
 function findTemplate(view, kind) {
   const root = templatesRoot(), alias = KIND_ALIAS[kind] ?? kind;
   for (const [v, k] of [[view, kind], ["topdown", kind], [view, alias], ["topdown", alias], [view, "prop"], ["topdown", "prop"]]) {
-    const dir = join5(root, v, k);
-    if (existsSync4(join5(dir, "base.js"))) return { view: v, kind: k, dir, fallback: v !== view || k !== kind };
+    const dir = join7(root, v, k);
+    if (existsSync5(join7(dir, "base.js"))) return { view: v, kind: k, dir, fallback: v !== view || k !== kind };
   }
   throw new Error(`no template for ${view}/${kind}`);
 }
 function newFinish(path, n, base, kind) {
-  const file = join5(path, `finish.v${n}.js`);
-  if (existsSync4(file)) throw new Error(`${file} exists`);
-  if (kind === void 0 && existsSync4(join5(path, "brief.json"))) kind = JSON.parse(readFileSync4(join5(path, "brief.json"), "utf8")).kind;
-  writeFileSync5(file, fill(readFileSync4(finishTemplate(kind), "utf8"), { BASE: base, N: String(n) }));
+  const file = join7(path, `finish.v${n}.js`);
+  if (existsSync5(file)) throw new Error(`${file} exists`);
+  if (kind === void 0 && existsSync5(join7(path, "brief.json"))) kind = JSON.parse(readFileSync4(join7(path, "brief.json"), "utf8")).kind;
+  writeFileSync6(file, fill(readFileSync4(finishTemplate(kind), "utf8"), { BASE: base, N: String(n) }));
   return resolve3(file);
 }
 var KIND_ALIAS, fill, FACE_KINDS, finishTemplate;
@@ -16658,7 +17857,7 @@ var init_templates = __esm({
     KIND_ALIAS = { creature: "character", tileset: "tile", texture: "tile", viewmodel: "prop", "ui-icon": "prop" };
     fill = (text2, vars) => text2.replace(/\{\{(\w+)\}\}/g, (m, k) => vars[k] ?? m);
     FACE_KINDS = /* @__PURE__ */ new Set(["character", "creature"]);
-    finishTemplate = (kind) => join5(templatesRoot(), kind && FACE_KINDS.has(kind) ? "finish-character.js" : "finish.js");
+    finishTemplate = (kind) => join7(templatesRoot(), kind && FACE_KINDS.has(kind) ? "finish-character.js" : "finish.js");
   }
 });
 
@@ -16737,34 +17936,34 @@ var init_src2 = __esm({
 
 // ../artgen-cli/src/runtime.ts
 import { createHash } from "node:crypto";
-import { existsSync as existsSync5, mkdirSync as mkdirSync5, readdirSync as readdirSync2, readFileSync as readFileSync5, rmSync, writeFileSync as writeFileSync6 } from "node:fs";
-import { dirname as dirname5, join as join6, relative as relative3 } from "node:path";
+import { existsSync as existsSync6, mkdirSync as mkdirSync6, readdirSync as readdirSync3, readFileSync as readFileSync5, rmSync, writeFileSync as writeFileSync7 } from "node:fs";
+import { dirname as dirname5, join as join8, relative as relative4 } from "node:path";
 import { fileURLToPath as fileURLToPath4 } from "node:url";
 function runtimeRoot() {
   const here = dirname5(fileURLToPath4(import.meta.url));
-  for (const p of [join6(here, "runtime"), join6(here, "..", "..", "artgen-runtime", "src")]) if (existsSync5(join6(p, "pack.ts"))) return p;
+  for (const p of [join8(here, "runtime"), join8(here, "..", "..", "artgen-runtime", "src")]) if (existsSync6(join8(p, "pack.ts"))) return p;
   throw new Error(`artgen runtime sources not found next to ${here}`);
 }
 function runtimeFiles(adapters, root = runtimeRoot()) {
-  const ts = (d) => existsSync5(d) ? readdirSync2(d).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts") && f !== "testkit.ts" && f !== "contract.ts") : [];
-  const available = ts(join6(root, "adapters")).map((f) => f.replace(/\.ts$/, ""));
+  const ts = (d) => existsSync6(d) ? readdirSync3(d).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts") && f !== "testkit.ts" && f !== "contract.ts") : [];
+  const available = ts(join8(root, "adapters")).map((f) => f.replace(/\.ts$/, ""));
   for (const a of adapters) if (!available.includes(a)) throw new Error(`unknown runtime adapter "${a}" in artgen.config.json (available: ${available.join(", ")})`);
   return [...ts(root).sort(), ...[...new Set(adapters)].map((a) => `adapters/${a}.ts`)];
 }
 function vendorRuntime(p, o = {}) {
   const cfg = projectConfig(p), root = runtimeRoot(), adapters = cfg.runtime.adapters, files = runtimeFiles(adapters, root);
-  const dir = join6(p.root, cfg.export.runtimeDir), stampFile = join6(dir, STAMP);
-  const old = existsSync5(stampFile) ? readJson(stampFile) : null;
+  const dir = join8(p.root, cfg.export.runtimeDir), stampFile = join8(dir, STAMP);
+  const old = existsSync6(stampFile) ? readJson(stampFile) : null;
   const generator = o.generator ?? "artgen";
-  const r = { dir: relative3(p.root, dir).split("\\").join("/"), version: RUNTIME_VERSION, from: old?.runtime ?? null, adapters, written: [], unchanged: [], kept: [], removed: [] };
+  const r = { dir: relative4(p.root, dir).split("\\").join("/"), version: RUNTIME_VERSION, from: old?.runtime ?? null, adapters, written: [], unchanged: [], kept: [], removed: [] };
   const hashes = {};
   const edited = (f) => {
-    const dest = join6(dir, f);
-    return existsSync5(dest) && old?.files[f] !== void 0 && sha(readFileSync5(dest, "utf8")) !== old.files[f];
+    const dest = join8(dir, f);
+    return existsSync6(dest) && old?.files[f] !== void 0 && sha(readFileSync5(dest, "utf8")) !== old.files[f];
   };
   for (const f of files) {
-    const text2 = vendoredSource(f, root), h = sha(text2), dest = join6(dir, f);
-    if (existsSync5(dest)) {
+    const text2 = vendoredSource(f, root), h = sha(text2), dest = join8(dir, f);
+    if (existsSync6(dest)) {
       const cur = sha(readFileSync5(dest, "utf8"));
       if (cur === h) {
         r.unchanged.push(f);
@@ -16777,19 +17976,19 @@ function vendorRuntime(p, o = {}) {
         continue;
       }
     }
-    mkdirSync5(dirname5(dest), { recursive: true });
-    writeFileSync6(dest, text2);
+    mkdirSync6(dirname5(dest), { recursive: true });
+    writeFileSync7(dest, text2);
     r.written.push(f);
     hashes[f] = h;
   }
   for (const f of Object.keys(old?.files ?? {})) {
-    if (files.includes(f) || !existsSync5(join6(dir, f))) continue;
+    if (files.includes(f) || !existsSync6(join8(dir, f))) continue;
     if (!o.force && edited(f)) {
       r.kept.push(f);
       hashes[f] = old.files[f];
       continue;
     }
-    rmSync(join6(dir, f));
+    rmSync(join8(dir, f));
     r.removed.push(f);
   }
   writeJson(stampFile, { runtime: RUNTIME_VERSION, generator, adapters, files: hashes });
@@ -16806,32 +18005,32 @@ var init_runtime = __esm({
     HEADER = `// Vendored by \`artgen export --runtime\` (artgen-runtime ${RUNTIME_VERSION}). Local edits are detected and kept;
 // re-export with --force to overwrite them. Source: packages/artgen-runtime in rstevenson1237/image_tools.
 `;
-    vendoredSource = (file, root = runtimeRoot()) => HEADER + readFileSync5(join6(root, file), "utf8");
+    vendoredSource = (file, root = runtimeRoot()) => HEADER + readFileSync5(join8(root, file), "utf8");
   }
 });
 
 // ../artgen-cli/src/w1.ts
-import { existsSync as existsSync6, readdirSync as readdirSync3, readFileSync as readFileSync6 } from "node:fs";
-import { basename as basename2, join as join7, relative as relative4 } from "node:path";
+import { existsSync as existsSync7, readdirSync as readdirSync4, readFileSync as readFileSync6 } from "node:fs";
+import { basename as basename2, join as join9, relative as relative5 } from "node:path";
 function directionVersion(p, version) {
   const f = directionFile(p, version);
-  if (existsSync6(f)) return parseDirection(readJson(f));
+  if (existsSync7(f)) return parseDirection(readJson(f));
   const cur = lockedDirection(p);
   if (cur?.version === version) return cur;
   throw new Error(`direction v${version} is not archived (art/directions/v${version}.json) \u2014 directions locked by older artgen versions are archived on the next lock`);
 }
 function candidateNames(p) {
-  if (!existsSync6(cdir(p))) return [];
-  return readdirSync3(cdir(p)).filter((f) => f.endsWith(".json")).map((f) => f.slice(0, -5)).sort((x, y) => (x.length === 1 ? 0 : 1) - (y.length === 1 ? 0 : 1) || x.localeCompare(y, "en", { numeric: true }));
+  if (!existsSync7(cdir(p))) return [];
+  return readdirSync4(cdir(p)).filter((f) => f.endsWith(".json")).map((f) => f.slice(0, -5)).sort((x, y) => (x.length === 1 ? 0 : 1) - (y.length === 1 ? 0 : 1) || x.localeCompare(y, "en", { numeric: true }));
 }
 function loadCandidate(p, name) {
-  const file = existsSync6(join7(cdir(p), `${name}.json`)) ? join7(cdir(p), `${name}.json`) : name;
-  if (!existsSync6(file)) throw new Error(`no candidate ${name} (have: ${candidateNames(p).join(", ") || "none \u2014 run direction candidates"})`);
+  const file = existsSync7(join9(cdir(p), `${name}.json`)) ? join9(cdir(p), `${name}.json`) : name;
+  if (!existsSync7(file)) throw new Error(`no candidate ${name} (have: ${candidateNames(p).join(", ") || "none \u2014 run direction candidates"})`);
   return parseDirection(readJson(file));
 }
 function lockedDirection(p) {
-  const f = join7(p.art, "direction.json");
-  if (!existsSync6(f)) return null;
+  const f = join9(p.art, "direction.json");
+  if (!existsSync7(f)) return null;
   const raw = readJson(f);
   return isPlaceholderDirection(raw) ? null : parseDirection(raw);
 }
@@ -16841,7 +18040,7 @@ function probeVersion(a) {
   return [...vs].reverse().find((v) => v.startsWith("finish.")) ?? vs.filter((v) => v.startsWith("base.")).pop();
 }
 function probeAsset(p, kind, dir) {
-  const path = probeDir(p, kind), brief = readJson(join7(path, "brief.json"));
+  const path = probeDir(p, kind), brief = readJson(join9(path, "brief.json"));
   return { path, brief: { ...brief, id: brief.id ?? `probe-${kind}` }, dir, ledgerPath: ledgerPath(p) };
 }
 async function renderProbes(p, dir, opts = {}) {
@@ -16867,12 +18066,12 @@ async function writeTile(p, names) {
     hashes.push(images.character.hash() + images.prop.hash());
   }
   const versions = PROBE_KINDS.map((k) => `${k} ${probeVersion(probeAsset(p, k, loadCandidate(p, list[0])))}`).join(", ");
-  const round2 = (existsSync6(cdir(p)) ? readdirSync3(cdir(p)).filter((f) => /^style-tile-r\d+\.png$/.test(f)).length : 0) + 1;
+  const round2 = (existsSync7(cdir(p)) ? readdirSync4(cdir(p)).filter((f) => /^style-tile-r\d+\.png$/.test(f)).length : 0) + 1;
   const sheet = styleTile(`style tile round ${round2}: ${versions}`, columns);
-  const path = join7(cdir(p), `style-tile-r${round2}.png`);
+  const path = join9(cdir(p), `style-tile-r${round2}.png`);
   writeGrid(path, sheet);
   const tokens = imageTokens(sheet.w, sheet.h);
-  appendLedger(ledgerPath(p), { type: "review", asset: "direction", version: `tile-r${round2}`, sheet: relative4(p.art, path).split("\\").join("/"), imageTokens: tokens, candidates: list, by: "agent" });
+  appendLedger(ledgerPath(p), { type: "review", asset: "direction", version: `tile-r${round2}`, sheet: relative5(p.art, path).split("\\").join("/"), imageTokens: tokens, candidates: list, by: "agent" });
   const dirs = list.map((n) => loadCandidate(p, n)), lumas = dirs.map(paletteLuma);
   let minGap = Infinity;
   for (let i = 0; i < lumas.length; i++) for (let j = i + 1; j < lumas.length; j++) minGap = Math.min(minGap, Math.abs(lumas[i] - lumas[j]));
@@ -16887,42 +18086,42 @@ var init_w1 = __esm({
     init_node();
     init_project();
     init_templates();
-    cdir = (p) => join7(p.art, "candidates");
-    probeDir = (p, kind) => join7(p.art, "probes", kind);
-    ledgerPath = (p) => join7(p.art, "ledger.jsonl");
-    rel = (p, f) => relative4(p.root, f).split("\\").join("/");
-    directionFile = (p, version) => join7(p.art, "directions", `v${version}.json`);
+    cdir = (p) => join9(p.art, "candidates");
+    probeDir = (p, kind) => join9(p.art, "probes", kind);
+    ledgerPath = (p) => join9(p.art, "ledger.jsonl");
+    rel = (p, f) => relative5(p.root, f).split("\\").join("/");
+    directionFile = (p, version) => join9(p.art, "directions", `v${version}.json`);
   }
 });
 
 // ../artgen-cli/src/w2.ts
-import { copyFileSync, existsSync as existsSync7, mkdirSync as mkdirSync6, readdirSync as readdirSync4, readFileSync as readFileSync7, writeFileSync as writeFileSync7 } from "node:fs";
-import { dirname as dirname6, join as join8, relative as relative5, resolve as resolve4 } from "node:path";
+import { copyFileSync, existsSync as existsSync8, mkdirSync as mkdirSync7, readdirSync as readdirSync5, readFileSync as readFileSync7, writeFileSync as writeFileSync8 } from "node:fs";
+import { dirname as dirname6, join as join10, relative as relative6, resolve as resolve4 } from "node:path";
 function readBriefs(p) {
-  if (!existsSync7(briefsFile(p))) return [];
+  if (!existsSync8(briefsFile(p))) return [];
   const r = parseBriefs(readFileSync7(briefsFile(p), "utf8"));
   if (!r.ok) throw new Error(`art/briefs.yaml:
   ${r.errors.join("\n  ")}`);
   return r.briefs;
 }
 function readContract(p, id) {
-  return existsSync7(contractFile(p, id)) ? readJson(contractFile(p, id)) : void 0;
+  return existsSync8(contractFile(p, id)) ? readJson(contractFile(p, id)) : void 0;
 }
 function scaffoldAsset(p, b, dir) {
   const path = assetPathOf(p, b), view = b.view ?? dir.camera.view;
   const walker = ["character", "creature"].includes(b.kind) && ((b.directions ?? 1) > 1 || !!b.anims?.walk);
   const t = walker ? findTemplate(view, "character-walk") : findTemplate(view, b.kind), template = `${t.view}/${t.kind}`;
-  if (existsSync7(join8(path, "base.v1.js"))) return { path, created: false, template };
-  mkdirSync6(path, { recursive: true });
-  const tb = readJson(join8(t.dir, "brief.json"));
-  if (!existsSync7(join8(path, "brief.json"))) writeJson(join8(path, "brief.json"), { id: b.id, template, review: tb.review ?? {} });
-  writeFileSync7(join8(path, "base.v1.js"), readFileSync7(join8(t.dir, "base.js"), "utf8").replace(/\{\{ID\}\}/g, b.id));
+  if (existsSync8(join10(path, "base.v1.js"))) return { path, created: false, template };
+  mkdirSync7(path, { recursive: true });
+  const tb = readJson(join10(t.dir, "brief.json"));
+  if (!existsSync8(join10(path, "brief.json"))) writeJson(join10(path, "brief.json"), { id: b.id, template, review: tb.review ?? {} });
+  writeFileSync8(join10(path, "base.v1.js"), readFileSync7(join10(t.dir, "base.js"), "utf8").replace(/\{\{ID\}\}/g, b.id));
   return { path, created: true, template };
 }
 async function assetRow(p, b) {
   const path = assetPathOf(p, b);
   const base = { id: b.id, kind: b.kind, path: rel2(p, path), issues: effectObjectIssues(b).map((x) => `brief: ${x}`), imageTokens: 0 };
-  if (!existsSync7(join8(path, "base.v1.js")) && !versionsInPath(path).length) return { ...base, status: "brief", why: "not started" };
+  if (!existsSync8(join10(path, "base.v1.js")) && !versionsInPath(path).length) return { ...base, status: "brief", why: "not started" };
   const a = openAsset(path), st = await passState(a), ledger = ledgerFor(a);
   const imageTokens2 = ledger.filter((e) => e.type === "review").reduce((n, e) => n + (e.imageTokens ?? 0), 0);
   if (!ledger.length && st.next.action === "review" && st.next.version === "base.v1") return { ...base, status: "in-pipeline", next: st.next, why: "base.v1 from the template: adapt it to the brief, then review", imageTokens: imageTokens2 };
@@ -16961,7 +18160,7 @@ async function make(p, ids2, o = {}) {
   let next;
   for (const b of briefs) {
     const sc = scaffoldAsset(p, b, dir);
-    if (sc.created) scaffolded.push(rel2(p, join8(sc.path, "base.v1.js")));
+    if (sc.created) scaffolded.push(rel2(p, join10(sc.path, "base.v1.js")));
     let row = await assetRow(p, b);
     const a = openAsset(sc.path), ledger = ledgerFor(a);
     if (row.next?.action === "ready") {
@@ -16999,7 +18198,7 @@ async function gallery(p, opts = {}) {
   const dir = requireLocked(p), want = opts.statuses ?? ["final"], rows = (await projectStatus(p, opts.ids)).filter((r) => r.final && (opts.ids?.length || want.includes(r.status)));
   const items = [], assets = [];
   for (const r of rows) {
-    const a = openAsset(join8(p.root, r.path)), v = await renderVersion(a, r.final);
+    const a = openAsset(join10(p.root, r.path)), v = await renderVersion(a, r.final);
     const rv = reviewOf(a, r.final);
     const tag = `${r.id} ${r.final} ${r.score ?? "-"}${rv.blind !== void 0 ? ` b${rv.blind}` : rv.reviewer === "self" ? " SELF" : ""}${r.gate === false ? " GATE" : ""}${r.issues.length ? ` !${r.issues.length}` : ""}`;
     items.push({ label: tag, grid: thumb(v.render), bg: a.brief.review?.bg ?? dir.background });
@@ -17008,10 +18207,10 @@ async function gallery(p, opts = {}) {
   if (!items.length) return { sheets: [], tokens: 0, assets };
   const sheets = [];
   let tokens = 0;
-  const n0 = (existsSync7(join8(p.art, "sheets")) ? readdirCount(join8(p.art, "sheets"), /^gallery-\d+\.png$/) : 0) + 1;
+  const n0 = (existsSync8(join10(p.art, "sheets")) ? readdirCount(join10(p.art, "sheets"), /^gallery-\d+\.png$/) : 0) + 1;
   for (let i = 0; i < items.length; i += 12) {
     const page = items.slice(i, i + 12), sheet = contactSheet(`${dir.id} v${dir.version}: finished assets ${i + 1}-${i + page.length} of ${items.length} (score, b blind score, !issues)`, page, 4, Math.min(4, page.length));
-    const f = join8(p.art, "sheets", `gallery-${n0 + i / 12}.png`);
+    const f = join10(p.art, "sheets", `gallery-${n0 + i / 12}.png`);
     writeGrid(f, sheet);
     sheets.push(rel2(p, f));
     tokens += imageTokens(sheet.w, sheet.h);
@@ -17041,16 +18240,16 @@ async function approve(p, id, note = "") {
   if (!r.report.pass) throw new Error(`${id} ${row.final}: the gate fails (${r.report.checks.filter((c) => c.status === "fail").map((c) => c.id).join(", ")}) \u2014 give feedback instead (R6)`);
   const sheet = [...ledgerFor(a)].reverse().find((e2) => e2.type === "review" && e2.version === row.final)?.sheet;
   if (!sheet) throw new Error(`${id} ${row.final}: no review sheet yet \u2014 artgen review first (R6)`);
-  const kept = join8(p.art, "sheets", "approved", `${id}-${row.final}.png`), src = resolve4(dirname6(ledgerFile(p)), String(sheet));
-  if (existsSync7(src)) {
-    mkdirSync6(dirname6(kept), { recursive: true });
+  const kept = join10(p.art, "sheets", "approved", `${id}-${row.final}.png`), src = resolve4(dirname6(ledgerFile(p)), String(sheet));
+  if (existsSync8(src)) {
+    mkdirSync7(dirname6(kept), { recursive: true });
     copyFileSync(src, kept);
   }
   const rv = reviewOf(a, row.final), cfg = projectConfig(p).review, warnings = [];
   if (rv.blind === void 0) warnings.push(rv.reviewer === "self" || !rv.reviewer ? "scored only by the agent that made it, with no blind re-score" : "no blind re-score of the final");
   warnings.push(...row.issues.filter((x) => x.startsWith("blind re-score")));
   if (rv.blind !== void 0 && rv.blind < cfg.approveMin && !warnings.some((x) => x.startsWith("blind re-score"))) warnings.push(`blind re-score ${rv.blind} is under ${cfg.approveMin}`);
-  const e = { type: "approve", asset: id, version: row.final, sourceHash: finalHash(a, row.final), outputHash: r.strip.hash(), sheet: existsSync7(kept) ? relative5(p.art, kept).split("\\").join("/") : sheet, direction: { id: dir.id, version: dir.version }, note, ...warnings.length && { warnings }, by: "user" };
+  const e = { type: "approve", asset: id, version: row.final, sourceHash: finalHash(a, row.final), outputHash: r.strip.hash(), sheet: existsSync8(kept) ? relative6(p.art, kept).split("\\").join("/") : sheet, direction: { id: dir.id, version: dir.version }, note, ...warnings.length && { warnings }, by: "user" };
   appendLedger(ledgerFile(p), e);
   return { ts: (/* @__PURE__ */ new Date()).toISOString(), ...e };
 }
@@ -17093,7 +18292,7 @@ async function exportPacks(p, o = {}) {
     for (const r of rows) {
       const b = briefs.find((x) => x.id === r.id);
       if (!ok(r.status) || !inPack(b, pack, def.include)) continue;
-      const a = openAsset(join8(p.root, r.path)), n = Math.max(1, b.variants ?? 1), renders = [];
+      const a = openAsset(join10(p.root, r.path)), n = Math.max(1, b.variants ?? 1), renders = [];
       for (let k = 0; k < n; k++) renders.push((await renderVersion(a, r.final, { variant: k })).render);
       inputs.push({ brief: a.brief, view: a.brief.view ?? dir.camera.view, renders, version: r.final, sourceHash: finalHash(a, r.final), draft: r.status === "final" });
     }
@@ -17117,15 +18316,15 @@ async function exportPacks(p, o = {}) {
   ${refused.join("\n  ")}
 game code indexes these states and frames (art/contracts/<id>.json). Restore the brief's anims/states/directions and the base's anchors, or re-run with --break-contract <id> once the game code is updated`);
   for (const { pack, built, inputs } of builds) {
-    const pdir = join8(p.root, cfg.export.packDir, pack);
+    const pdir = join10(p.root, cfg.export.packDir, pack);
     built.atlases.forEach((g, i) => {
-      writeGrid(join8(pdir, built.manifest.atlases[i]), g);
-      writeJson(join8(pdir, built.manifest.atlases[i].replace(/\.png$/, ".aseprite.json")), built.aseprite[i]);
+      writeGrid(join10(pdir, built.manifest.atlases[i]), g);
+      writeJson(join10(pdir, built.manifest.atlases[i].replace(/\.png$/, ".aseprite.json")), built.aseprite[i]);
     });
-    built.normals?.forEach((g, i) => writeGrid(join8(pdir, built.manifest.normals[i]), g));
-    writeJson(join8(pdir, "pack.json"), built.manifest);
+    built.normals?.forEach((g, i) => writeGrid(join10(pdir, built.manifest.normals[i]), g));
+    writeJson(join10(pdir, "pack.json"), built.manifest);
     for (const inp of inputs) appendLedger(ledgerFile(p), { type: "export", asset: inp.brief.id, version: inp.version, sourceHash: inp.sourceHash, pack, direction: { id: dir.id, version: dir.version }, ...inp.draft && { draft: true }, by: "agent" });
-    out.push({ pack, dir: rel2(p, pdir), atlases: built.manifest.atlases.map((f) => rel2(p, join8(pdir, f))), assets: inputs.map((i) => i.brief.id), drafts: built.manifest.drafts ?? [] });
+    out.push({ pack, dir: rel2(p, pdir), atlases: built.manifest.atlases.map((f) => rel2(p, join10(pdir, f))), assets: inputs.map((i) => i.brief.id), drafts: built.manifest.drafts ?? [] });
     const pub = cfg.export.packDir.replace(/\\/g, "/").replace(/^\.?\/?/, "");
     forTs.push({ manifest: built.manifest, url: pub.startsWith("public/") || pub === "public" ? `/${pub.slice(7)}${pub.length > 7 ? "/" : ""}${pack}/pack.json`.replace(/\/+/g, "/") : `${pub}/${pack}/pack.json` });
   }
@@ -17133,10 +18332,10 @@ game code indexes these states and frames (art/contracts/<id>.json). Restore the
     writeJson(contractFile(p, next.asset), next);
     appendLedger(ledgerFile(p), { type: "contract", asset: next.asset, change: change.change, ...change.notes.length && { notes: change.notes }, by: "agent" });
   }
-  const tsFile = join8(p.root, cfg.export.assetsTs);
+  const tsFile = join10(p.root, cfg.export.assetsTs);
   if (forTs.length) {
-    mkdirSync6(dirname6(tsFile), { recursive: true });
-    writeFileSync7(tsFile, assetsTs(forTs));
+    mkdirSync7(dirname6(tsFile), { recursive: true });
+    writeFileSync8(tsFile, assetsTs(forTs));
   }
   const runtime = o.runtime ? vendorRuntime(p, { force: o.force, generator: o.generator }) : void 0;
   return { packs: out, assetsTs: forTs.length ? rel2(p, tsFile) : "", skipped, contracts: contracts.map((c) => c.change), ...runtime && { runtime } };
@@ -17145,10 +18344,10 @@ async function restyle(p, o = {}) {
   const to = requireLocked(p), from = directionVersion(p, o.from ?? to.version - 1);
   if (from.version === to.version) throw new Error(`nothing to restyle: direction is v${to.version}`);
   const rows = (await projectStatus(p)).filter((r) => r.final), sheetRows = [], assets = [];
-  const fromFile = join8(p.art, "directions", `v${from.version}.json`);
+  const fromFile = join10(p.art, "directions", `v${from.version}.json`);
   for (const r of rows) {
-    const path = join8(p.root, r.path), a = openAsset(path), old = openAsset(path, { direction: existsSync7(fromFile) ? fromFile : void 0 });
-    if (!existsSync7(fromFile)) old.dir = from;
+    const path = join10(p.root, r.path), a = openAsset(path), old = openAsset(path, { direction: existsSync8(fromFile) ? fromFile : void 0 });
+    if (!existsSync8(fromFile)) old.dir = from;
     const [before, after] = [await renderVersion(old, r.final), await renderVersion(a, r.final)];
     const d = restyleDiff(before.strip, after.strip, from, to);
     sheetRows.push({ label: `${r.id} ${r.final}: ${d.changedPct}% px changed, tokens kept ${Math.round(d.tokenSame * 100)}%${after.report.pass ? "" : " GATE FAIL"}${after.stale?.length ? " FINISH-STALE" : ""}`, before: thumb(before.render), after: thumb(after.render), mask: tokenDiffMask(thumb(before.render), thumb(after.render), from, to), bg: to.background });
@@ -17156,7 +18355,7 @@ async function restyle(p, o = {}) {
     appendLedger(ledgerFile(p), { type: "restyle", asset: r.id, version: r.final, from: { id: from.id, version: from.version }, direction: { id: to.id, version: to.version }, changedPct: d.changedPct, tokenSame: d.tokenSame, consistent: d.consistent, gate: after.report.pass, outputHash: after.strip.hash(), ...after.stale?.length && { stale: after.stale }, by: "agent" });
   }
   const sheet = restyleSheet(`restyle ${from.id} v${from.version} -> ${to.id} v${to.version}`, sheetRows);
-  const f = join8(p.art, "sheets", `restyle-v${from.version}-v${to.version}.png`);
+  const f = join10(p.art, "sheets", `restyle-v${from.version}-v${to.version}.png`);
   writeGrid(f, sheet);
   return { from: from.version, to: to.version, sheet: rel2(p, f), tokens: imageTokens(sheet.w, sheet.h), assets };
 }
@@ -17167,7 +18366,7 @@ function projectAnalytics(p, title) {
 }
 function projectMetas(p, dir) {
   return readBriefs(p).map((b) => {
-    const bj = join8(assetPathOf(p, b), "brief.json"), local = existsSync7(bj) ? readJson(bj) : {};
+    const bj = join10(assetPathOf(p, b), "brief.json"), local = existsSync8(bj) ? readJson(bj) : {};
     const size = Array.isArray(b.size) ? b.size.join("x") : b.size ?? b.kind;
     return { id: b.id, kind: b.kind, view: b.view ?? dir?.camera.view, size, template: local.template, importance: b.importance ?? "standard" };
   });
@@ -17185,20 +18384,20 @@ var init_w2 = __esm({
     init_project();
     init_templates();
     init_w1();
-    briefsFile = (p) => join8(p.art, "briefs.yaml");
-    ledgerFile = (p) => join8(p.art, "ledger.jsonl");
-    rel2 = (p, f) => relative5(p.root, f).split("\\").join("/");
-    contractFile = (p, id) => join8(p.art, "contracts", `${id}.json`);
+    briefsFile = (p) => join10(p.art, "briefs.yaml");
+    ledgerFile = (p) => join10(p.art, "ledger.jsonl");
+    rel2 = (p, f) => relative6(p.root, f).split("\\").join("/");
+    contractFile = (p, id) => join10(p.art, "contracts", `${id}.json`);
     allowed = (list, id) => !!list && (list.includes("*") || list.includes(id));
-    assetPathOf = (p, b) => join8(p.art, briefDir(b));
-    versionsInPath = (path) => existsSync7(path) ? versionsIn({ path }) : [];
-    readdirCount = (d, re) => readdirSync4(d).filter((f) => re.test(f)).length;
-    parseAll = (f) => existsSync7(f) ? parseLedger(readFileSync7(f, "utf8")) : [];
+    assetPathOf = (p, b) => join10(p.art, briefDir(b));
+    versionsInPath = (path) => existsSync8(path) ? versionsIn({ path }) : [];
+    readdirCount = (d, re) => readdirSync5(d).filter((f) => re.test(f)).length;
+    parseAll = (f) => existsSync8(f) ? parseLedger(readFileSync7(f, "utf8")) : [];
   }
 });
 
 // ../artgen-cli/src/cli.ts
-var VERSION;
+var VERSION, USAGE;
 var init_cli = __esm({
   "../artgen-cli/src/cli.ts"() {
     "use strict";
@@ -17209,11 +18408,54 @@ var init_cli = __esm({
     init_project();
     init_p6();
     init_report();
+    init_map2();
     init_templates();
     init_w2();
     init_src();
     init_w1();
     VERSION = true ? "0.9.0" : "dev";
+    USAGE = `artgen \u2014 code-generated pixel art for games, driven by a locked art direction (art/direction.json).
+Lock a direction, write briefs, let the pipeline make and review each asset, approve, then export packs and the
+runtime your game loads them with. In Claude Code, start with /artgen-direction; the skills drive these commands.
+
+usage: artgen init
+       artgen direction candidates --pitch "..." [--view topdown|iso] [--mood a,b] [--scale small|medium|large] [--colors src] [--from interview.json]
+       artgen direction tile [names...] | mix <base> --palette a --line b ... | lock <name> [--note "..."] | anchors | new [--from c] | show | validate <file>
+       artgen palette import <file> | extract <image.png> [--n 16] | ramp <#hex> [--steps 4] [--hue-shift 12] [--contrast 0.45]   (--interview: feed candidate A)
+       artgen new <id> --kind <kind> [--view v] [--size key|WxH] [--states a,b] [--dir path]
+       artgen finish <assetDir> [--base base.vN]
+       artgen pass status|next <assetDir>
+       artgen render <assetDir> [--version base.vN|finish.vM] [--variant n] [--stages]
+       artgen review <assetDir> [--version v] [--blind]
+       artgen score <assetDir> <version> <score> [--note "..."] [--reviewer name] [--blind]
+       artgen variants <assetDir> [--version v] [--n 8]
+       artgen report <dir> [--out REPORT.md] [--title "..."]
+       artgen brief add <id> --kind k [--view v] [--size key|WxH] [--states a,b] [--directions n] [--anims walk:4] [--durations attack=80/80/200/80] [--variants n] [--swaps red:cloth=accent] [--importance t] [--priority n] [--height metres] [--object "ice lance"] [--notes "..."] [--break-contract]
+       artgen brief list | rm <id>
+       artgen make [ids|all] [--parallel n] | status [ids] | gallery [ids]
+       artgen roster [ids] [--seed n] | roster record <review.json> [--reviewer name]
+       artgen feedback <id> --route base|finish --note "..." [--region x,y,w,h] [--cell s/f/n] | approve <id> [--note "..."]
+       artgen export [--pack name] [--include-drafts] [--runtime [--force]] [--break-contract id,\u2026|*] | restyle [--from N] | import-edit <id> <png> [--cell s/f/n]
+       artgen analytics [--out file.md] | analytics --across <root>,<root>\u2026 [--apply] [--min-assets n] [--out file.md]
+       artgen voxel <asset> [--version v] [--cell s/f/n] [--out dir] [--scale m]
+       artgen texture <material> [--size 32|WxH] [--seed n] [--ramps base=stone,\u2026] [--scale k] [--out dir] | texture --list
+       artgen anim <asset> [--version v] [--state s] [--facing f] [--scale n] [--out dir]
+       artgen fx <preset> [--size 32|WxH] [--frames 8] [--seed n] [--scale n] [--out dir] | fx --list
+       artgen map new <id> [--preset regional|local] [--size 30x22] [--grid hex|square|none] [--seed n] [--title "..."]
+       artgen map gen <id> [--seed n] [--land mixed|island|inland] [--sea f] [--moisture f] [--roughness f] [--relief f] [--rivers n] [--simplify n] [--feature n] [--interval n] [--max-elevation n] [--topo-labels on|off]
+       artgen map edit <id> paint --terrain t <shape> | elevate --amount \xB1f <shape> | river --points x,y,\u2026 [--width w] [--delta off] | road --points x,y,\u2026 | undo
+                  <shape>: --circle x,y,r | --poly x,y,x,y,\u2026 | --stroke x,y,\u2026 --width w   (terrains: ${map_exports.TERRAINS.join(", ")})
+       artgen map grid <id> hex|square|none [--size n] [--coords on|off]
+       artgen map label <id> "Text" --at x,y|0304|C4 [--kind region|place|water|note] [--size f] [--angle deg]
+       artgen map symbol <id> <kind> --at x,y|0304|C4 [--scale f] | map symbols | map overlay <id> rm label|symbol <i> | clear [labels|symbols]
+       artgen map set <id> [--title "..."] [--legend on|off] [--scale-bar on|off] [--compass on|off] [--per-cell n] [--unit mi]
+       artgen map render <id> [--theme color|bw|both] [--format svg|png|both] [--ppu 40] [--layers grid=off,labels=off] [--out dir]
+       artgen map show <id> | list
+       artgen bench [--direction benchmark|alt|<file>] [--out <dir>] [--stages] [--ledger <file>] [--update-golden]
+       artgen --version | --help
+
+Commands take --json (machine-readable output) and --root <game repo>; asset commands also take
+--direction <file|benchmark|alt> and --ledger <file>.`;
   }
 });
 
@@ -17227,6 +18469,7 @@ var init_src3 = __esm({
     init_report();
     init_cli();
     init_p6();
+    init_map2();
     init_project();
     init_templates();
     init_w1();
@@ -17244,8 +18487,8 @@ __export(server_exports, {
   handle: () => handle,
   serve: () => serve
 });
-import { existsSync as existsSync8, readdirSync as readdirSync5, readFileSync as readFileSync8 } from "node:fs";
-import { isAbsolute, join as join9, relative as relative6, resolve as resolve5 } from "node:path";
+import { existsSync as existsSync9, readdirSync as readdirSync6, readFileSync as readFileSync8 } from "node:fs";
+import { isAbsolute, join as join11, relative as relative7, resolve as resolve5 } from "node:path";
 function assetPath(p, arg) {
   if (typeof arg !== "string" || !arg) throw new Error('asset: required (e.g. "art/probes/character", "assets/character/goblin" or a brief id)');
   const bare = /^[\w-]+$/.test(arg), brief = bare ? (() => {
@@ -17255,14 +18498,14 @@ function assetPath(p, arg) {
       return void 0;
     }
   })() : void 0;
-  const kinds = bare && existsSync8(join9(p.art, "assets")) ? readdirSync5(join9(p.art, "assets"), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => join9(p.art, "assets", d.name, arg)) : [];
-  const cands = [...brief ? [resolve5(p.art, "assets", brief.kind, brief.id)] : [], ...isAbsolute(arg) ? [arg] : [resolve5(p.root, arg), resolve5(p.art, arg)], ...bare ? [join9(p.art, "assets", arg)] : [], ...kinds];
+  const kinds = bare && existsSync9(join11(p.art, "assets")) ? readdirSync6(join11(p.art, "assets"), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => join11(p.art, "assets", d.name, arg)) : [];
+  const cands = [...brief ? [resolve5(p.art, "assets", brief.kind, brief.id)] : [], ...isAbsolute(arg) ? [arg] : [resolve5(p.root, arg), resolve5(p.art, arg)], ...bare ? [join11(p.art, "assets", arg)] : [], ...kinds];
   const inside = cands.filter((c) => {
-    const r = relative6(p.art, c);
+    const r = relative7(p.art, c);
     return r && !r.startsWith("..") && !isAbsolute(r);
   });
   if (!inside.length) throw new Error(`asset path ${arg} is outside art/ (sandbox)`);
-  return inside.find((c) => existsSync8(c)) ?? inside[0];
+  return inside.find((c) => existsSync9(c)) ?? inside[0];
 }
 function openDirection(p, a) {
   const name = dirOpt(p, a);
@@ -17345,10 +18588,10 @@ var init_server = __esm({
     num = { type: "number" };
     bool = { type: "boolean" };
     strs = { type: "array", items: str };
-    projRel = (p, f) => relative6(p.root, resolve5(f)).split("\\").join("/");
+    projRel = (p, f) => relative7(p.root, resolve5(f)).split("\\").join("/");
     sizeArg = (v, d = 32) => Array.isArray(v) && v.length === 2 ? [Number(v[0]), Number(v[1])] : [Number(v ?? d), Number(v ?? d)];
     obj = (properties, required = []) => ({ type: "object", properties, required });
-    dirOpt = (p, args) => typeof args.direction !== "string" ? void 0 : BENCH_DIRECTIONS[args.direction] ? args.direction : join9(p.root, args.direction);
+    dirOpt = (p, args) => typeof args.direction !== "string" ? void 0 : BENCH_DIRECTIONS[args.direction] ? args.direction : join11(p.root, args.direction);
     asset = (p, args) => openAsset(assetPath(p, args.asset), { direction: dirOpt(p, args) });
     ids = (a) => Array.isArray(a.ids) ? a.ids : void 0;
     TOOLS = [
@@ -17367,7 +18610,7 @@ var init_server = __esm({
         inputSchema: obj({ candidates: { type: "array", items: str, description: "candidate names; default all" } }),
         async run(a, p) {
           const r = await writeTile(p, Array.isArray(a.candidates) ? a.candidates : void 0);
-          return [text({ sheet: r.path, round: r.round, imageTokens: r.tokens, columns: r.columns, distinct: r.distinct }), pngFile(join9(p.root, r.path))];
+          return [text({ sheet: r.path, round: r.round, imageTokens: r.tokens, columns: r.columns, distinct: r.distinct }), pngFile(join11(p.root, r.path))];
         }
       },
       {
@@ -17396,7 +18639,7 @@ var init_server = __esm({
         async run(a, p) {
           const ad = asset(p, a), vs = versionsIn(ad), version = typeof a.version === "string" ? a.version : vs[vs.length - 1];
           const r = await reviewVersion(ad, version, { blind: a.blind === true });
-          return [text({ sheet: relative6(p.root, r.path), imageTokens: r.tokens, pass: r.render.report.pass, checks: r.render.report.checks }), pngFile(r.path)];
+          return [text({ sheet: relative7(p.root, r.path), imageTokens: r.tokens, pass: r.render.report.pass, checks: r.render.report.checks }), pngFile(r.path)];
         }
       },
       {
@@ -17450,7 +18693,7 @@ var init_server = __esm({
         inputSchema: obj({ ids: strs }),
         async run(a, p) {
           const r = await gallery(p, { ids: ids(a) });
-          return [text(r.sheets.length ? r : "no finished assets waiting for review"), ...r.sheets.map((f) => pngFile(join9(p.root, f)))];
+          return [text(r.sheets.length ? r : "no finished assets waiting for review"), ...r.sheets.map((f) => pngFile(join11(p.root, f)))];
         }
       },
       {
@@ -17478,10 +18721,10 @@ var init_server = __esm({
         inputSchema: obj({ material: str, size: { description: "px, or [w, h]; default 32" }, seed: num, ramps: { type: "object", description: 'layer \u2192 ramp, e.g. { "base": "stone" }' }, scale: num, list: bool, direction: str }),
         async run(a, p) {
           if (a.list === true || !a.material) return [text(MATERIALS)];
-          const dir = typeof a.direction === "string" ? openDirection(p, a) : requireLocked(p), out = join9(p.art, "sheets", "textures");
+          const dir = typeof a.direction === "string" ? openDirection(p, a) : requireLocked(p), out = join11(p.art, "sheets", "textures");
           const r = textureRun(dir, a.material, { size: sizeArg(a.size), seed: typeof a.seed === "number" ? a.seed : void 0, ramps: a.ramps, scale: typeof a.scale === "number" ? a.scale : void 0, out });
           const files = r.files.map((f) => projRel(p, f));
-          return [text({ ...r, files }), pngFile(join9(p.root, files[2])), pngFile(join9(p.root, files[1]))];
+          return [text({ ...r, files }), pngFile(join11(p.root, files[2])), pngFile(join11(p.root, files[1]))];
         }
       },
       {
@@ -17490,10 +18733,10 @@ var init_server = __esm({
         inputSchema: obj({ preset: str, size: { description: "px, or [w, h]; default 32" }, frames: num, seed: num, scale: num, list: bool, direction: str }),
         async run(a, p) {
           if (a.list === true || !a.preset) return [text(PRESET_NAMES)];
-          const dir = typeof a.direction === "string" ? openDirection(p, a) : requireLocked(p), out = join9(p.art, "sheets", "fx");
+          const dir = typeof a.direction === "string" ? openDirection(p, a) : requireLocked(p), out = join11(p.art, "sheets", "fx");
           const r = fxRun(dir, a.preset, { size: sizeArg(a.size), frames: typeof a.frames === "number" ? a.frames : 8, seed: typeof a.seed === "number" ? a.seed : void 0, scale: typeof a.scale === "number" ? a.scale : void 0, out });
           const files = r.files.map((f) => projRel(p, f));
-          return [text({ ...r, files }), pngFile(join9(p.root, files[0])), pngFile(join9(p.root, files[1]))];
+          return [text({ ...r, files }), pngFile(join11(p.root, files[0])), pngFile(join11(p.root, files[1]))];
         }
       },
       {
@@ -17510,7 +18753,7 @@ var init_server = __esm({
         inputSchema: obj({ from: { ...num, description: "direction version to compare from; default the previous one" } }),
         async run(a, p) {
           const r = await restyle(p, { from: typeof a.from === "number" ? a.from : void 0 });
-          return [text(r), pngFile(join9(p.root, r.sheet))];
+          return [text(r), pngFile(join11(p.root, r.sheet))];
         }
       },
       {
@@ -17519,6 +18762,114 @@ var init_server = __esm({
         inputSchema: obj({}),
         async run(_a2, p) {
           return [text(projectAnalytics(p).markdown)];
+        }
+      },
+      {
+        name: "map_list",
+        description: "Terrain maps (TTRPG) in art/maps, plus the terrains, symbol kinds and label kinds the map tools accept.",
+        inputSchema: obj({}),
+        async run(_a2, p) {
+          return [text({ maps: listMaps(p), terrains: map_exports.TERRAINS, symbols: map_exports.SYMBOL_KINDS, labelKinds: map_exports.LABEL_KINDS, presets: map_exports.PRESETS })];
+        }
+      },
+      {
+        name: "map_get",
+        description: "A terrain map's file (art/maps/<id>/map.json) and a readable summary: generator settings, edits, labels and symbols with their indices.",
+        inputSchema: obj({ id: str }, ["id"]),
+        async run(a, p) {
+          const m = readMap(p, a.id);
+          return [text(describeMap(m)), text(m)];
+        }
+      },
+      {
+        name: "map_new",
+        description: "Create a terrain map from a preset: regional (hex crawl, 6 mi hexes) or local (battle map, 5 ft squares). The terrain is generated from the seed; render it with map_render, then adjust.",
+        inputSchema: obj({ id: str, preset: { type: "string", enum: [...map_exports.PRESETS] }, cols: num, rows: num, seed: num, title: str, grid: { type: "string", enum: [...map_exports.GRID_TYPES] } }, ["id"]),
+        async run(a, p) {
+          const preset2 = a.preset ?? "regional";
+          const r = createMap(p, a.id, preset2, {
+            seed: typeof a.seed === "number" ? a.seed : Math.floor(Math.random() * 1e6),
+            ...typeof a.cols === "number" && { cols: a.cols },
+            ...typeof a.rows === "number" && { rows: a.rows },
+            ...typeof a.title === "string" && { title: a.title },
+            ...typeof a.grid === "string" && { grid: { ...map_exports.PRESET_DEFAULTS[preset2].grid, type: a.grid } }
+          });
+          return [text({ file: r.file, summary: describeMap(r.map) })];
+        }
+      },
+      {
+        name: "map_update",
+        description: "Change a terrain map's settings. gen: {land: mixed|island|inland, sea 0..0.9 (water fraction), moisture 0..1, roughness 0..1, relief 0..1, rivers 0..20, simplify 0..6 (higher = fewer, larger, smoother patches), feature (hill size in cells)}; topo: {interval, maxElevation, majorEvery, unit, labels}; grid: {type none|square|hex, size, coords}; scale: {perCell, unit}; title, legend, scale_bar, compass.",
+        inputSchema: obj({ id: str, seed: num, gen: { type: "object" }, topo: { type: "object" }, grid: { type: "object" }, scale: { type: "object" }, title: str, legend: bool, scale_bar: bool, compass: bool }, ["id"]),
+        async run(a, p) {
+          const m = updateMap(p, a.id, (m2) => {
+            if (typeof a.seed === "number") m2.seed = a.seed;
+            for (const k of ["gen", "topo", "grid", "scale"]) if (a[k] && typeof a[k] === "object") Object.assign(m2[k], a[k]);
+            if (typeof a.title === "string") {
+              if (a.title) m2.title = a.title;
+              else delete m2.title;
+            }
+            if (typeof a.legend === "boolean") m2.legend = a.legend;
+            if (typeof a.scale_bar === "boolean") m2.scaleBar = a.scale_bar;
+            if (typeof a.compass === "boolean") m2.compass = a.compass;
+          });
+          return [text(describeMap(m))];
+        }
+      },
+      {
+        name: "map_edit",
+        description: 'Append terrain edits to a map (applied in order on top of the generated terrain), or undo the last ones. Coordinates are map cells (x right, y down). ops: {op:"paint", terrain, shape} | {op:"elevate", amount -1..1, shape} | {op:"river", points:[x,y,\u2026] from source to mouth, width? (at the mouth), delta? (default true: flares into the water it ends in, banks merging into the shore)} | {op:"road", points:[x,y,\u2026]}; shape: {circle:[x,y,r]} | {poly:[x,y,\u2026]} | {stroke:[x,y,\u2026], width}.',
+        inputSchema: obj({ id: str, ops: { type: "array", items: { type: "object" } }, undo: { ...num, description: "remove this many of the latest edits first" } }, ["id"]),
+        async run(a, p) {
+          const m = updateMap(p, a.id, (m2) => {
+            const n = typeof a.undo === "number" ? a.undo : 0;
+            if (n > m2.edits.length) throw new Error(`${m2.id}: only ${m2.edits.length} edits to undo`);
+            m2.edits.splice(m2.edits.length - n, n);
+            if (Array.isArray(a.ops)) m2.edits.push(...a.ops);
+          });
+          return [text({ edits: m.edits.length, last: m.edits.slice(-3) })];
+        }
+      },
+      {
+        name: "map_overlay",
+        description: 'Labels and symbols over a map (the follow-up layer). add_labels: [{text, at:"x,y"|"0304"|"C4" or x,y, kind: region|place|water|note, size?, angle?}]; add_symbols: [{kind, at or x,y, scale?}] (kinds from map_list); remove_labels / remove_symbols: indices (from map_get); clear: "labels"|"symbols"|"all".',
+        inputSchema: obj({ id: str, add_labels: { type: "array", items: { type: "object" } }, add_symbols: { type: "array", items: { type: "object" } }, remove_labels: { type: "array", items: num }, remove_symbols: { type: "array", items: num }, clear: str }, ["id"]),
+        async run(a, p) {
+          const m = updateMap(p, a.id, (m2) => {
+            const pt = (o) => typeof o.at === "string" ? map_exports.parsePoint(m2, o.at) : [Number(o.x), Number(o.y)];
+            const drop = (list, idx) => {
+              if (Array.isArray(idx)) for (const i of [...idx].sort((x, y) => y - x)) {
+                if (!list[i]) throw new Error(`no overlay item ${i}`);
+                list.splice(i, 1);
+              }
+            };
+            if (a.clear === "labels" || a.clear === "all") m2.overlay.labels = [];
+            if (a.clear === "symbols" || a.clear === "all") m2.overlay.symbols = [];
+            drop(m2.overlay.labels, a.remove_labels);
+            drop(m2.overlay.symbols, a.remove_symbols);
+            for (const l of a.add_labels ?? []) {
+              const [x, y] = pt(l);
+              m2.overlay.labels.push({ text: String(l.text), x, y, kind: l.kind ?? "place", ...typeof l.size === "number" && { size: l.size }, ...typeof l.angle === "number" && { angle: l.angle } });
+            }
+            for (const s2 of a.add_symbols ?? []) {
+              if (!map_exports.SYMBOLS[String(s2.kind)]) throw new Error(`unknown symbol ${String(s2.kind)} (have: ${map_exports.SYMBOL_KINDS.join(", ")})`);
+              const [x, y] = pt(s2);
+              m2.overlay.symbols.push({ kind: String(s2.kind), x, y, ...typeof s2.scale === "number" && { scale: s2.scale } });
+            }
+          });
+          return [text({ labels: m.overlay.labels.map((l, i) => `${i}. ${l.kind} "${l.text}" at ${l.x},${l.y}`), symbols: m.overlay.symbols.map((s2, i) => `${i}. ${s2.kind} at ${s2.x},${s2.y}`) })];
+        }
+      },
+      {
+        name: "map_render",
+        description: "Render a terrain map to art/maps/<id>/out/ (SVG + PNG; theme color, bw or both) and return the PNG to look at. layers turns layers off/on: terrain, rivers, roads, contours, grid, symbols, labels, legend, scale, compass, title. ppu: pixels per cell (default 40; the returned image uses at most 24 unless set).",
+        inputSchema: obj({ id: str, theme: { type: "string", enum: ["color", "bw", "both"] }, ppu: num, layers: { type: "object" } }, ["id"]),
+        async run(a, p) {
+          const themes = a.theme === "both" ? ["color", "bw"] : [a.theme === "bw" ? "bw" : "color"], layers = a.layers;
+          const r = await renderMapFiles(p, a.id, { themes, ppu: typeof a.ppu === "number" ? a.ppu : void 0, layers });
+          const files = r.files.map((f) => projRel(p, f));
+          const look = typeof a.ppu === "number" ? files.filter((f) => f.endsWith(".png")) : (await renderMapFiles(p, a.id, { themes, ppu: 24, layers, formats: ["png"], out: join11(p.art, "maps", a.id, "out", "preview") })).files.map((f) => projRel(p, f));
+          return [text({ ...r, files }), ...look.map((f) => pngFile(join11(p.root, f)))];
         }
       }
     ];
