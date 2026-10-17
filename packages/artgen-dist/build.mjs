@@ -4,9 +4,10 @@
  *
  *   package.json, install.mjs, README.md      `npx github:…#artgen-dist init|update|status`
  *   dist/claude/{skills,agents,commands}/     → .claude/ in the game repo (commands: /artgen-init, /artgen-direction,
- *                                               /artgen-brief, -make, -review, -feedback, -approve, -export, -restyle)
+ *                                               /artgen-brief, -make, -review, -feedback, -approve, -export, -restyle,
+ *                                               -map)
  *   dist/tools/artgen/                        → tools/artgen/: artgen.js + artgen-mcp.js (single-file bundles),
- *                                               resvg.wasm, templates/, runtime/ (W3 sources `export --runtime`
+ *                                               resvg.wasm, fonts/ (map labels), templates/, runtime/ (W3 sources `export --runtime`
  *                                               vendors into the game), VERSION
  *   dist/claude-md.md                         the managed CLAUDE.md section
  *   plugin/ + .claude-plugin/marketplace.json the same content in plugin layout (/artgen:init, /artgen:direction)
@@ -67,6 +68,8 @@ async function tools(dest) {
   await bundle(join(PKGS, 'artgen-cli', 'src', 'bin.ts'), join(dest, 'artgen.js'));
   await bundle(join(PKGS, 'artgen-mcp', 'src', 'bin.ts'), join(dest, 'artgen-mcp.js'));
   cpSync(require.resolve('@resvg/resvg-wasm/index_bg.wasm'), join(dest, 'resvg.wasm'));
+  // terrain map label fonts (SIL OFL), loaded by the CLI's map renderer next to the bundle
+  cpSync(join(PKGS, 'artgen-core', 'assets', 'fonts'), join(dest, 'fonts'), { recursive: true });
   cpSync(join(PKGS, 'artgen-cli', 'templates'), join(dest, 'templates'), { recursive: true });
   // runtime sources (core + adapters), without tests and test kits
   const rt = join(PKGS, 'artgen-runtime', 'src');
@@ -94,7 +97,7 @@ export async function buildDist(out = join(HERE, 'out')) {
   copyContent(join(content, 'skills'), join(plugin, 'skills'), vp);
   copyContent(join(content, 'agents'), join(plugin, 'agents'), vp);
   copyContent(join(content, 'commands'), join(plugin, 'commands'), vp);
-  const desc = 'Pixel and voxel game art pipeline: art direction, autonomous asset production, review, approval and atlas export (artgen).';
+  const desc = 'Pixel and voxel game art pipeline: art direction, autonomous asset production, review, approval and atlas export, plus tabletop terrain maps (artgen).';
   mkdirSync(join(plugin, '.claude-plugin'), { recursive: true });
   writeFileSync(join(plugin, '.claude-plugin', 'plugin.json'), JSON.stringify({ name: 'artgen', version: VERSION, description: desc }, null, 2) + '\n');
   writeFileSync(join(plugin, '.mcp.json'), JSON.stringify({ mcpServers: { artgen: { command: 'node', args: ['${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen-mcp.js'] } } }, null, 2) + '\n');

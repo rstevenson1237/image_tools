@@ -29,7 +29,9 @@ describe('artgen-dist', () => {
       'dist/tools/artgen/resvg.wasm', 'dist/tools/artgen/VERSION', 'dist/tools/artgen/templates/topdown/character/base.js',
       'dist/claude/skills/artgen/SKILL.md', 'dist/claude/skills/art-direction/SKILL.md', 'dist/claude/agents/art-reviewer.md', 'dist/claude/agents/art-maker.md',
       'dist/claude/commands/artgen-init.md', 'dist/claude/commands/artgen-direction.md', 'dist/claude/skills/asset-production/SKILL.md',
-      ...['brief', 'make', 'review', 'feedback', 'approve', 'export', 'restyle'].map(c => `dist/claude/commands/artgen-${c}.md`),
+      ...['brief', 'make', 'review', 'feedback', 'approve', 'export', 'restyle', 'map'].map(c => `dist/claude/commands/artgen-${c}.md`),
+      'dist/claude/skills/terrain-map/SKILL.md', 'plugin/skills/terrain-map/SKILL.md', 'plugin/commands/map.md',
+      'dist/tools/artgen/fonts/AlegreyaSans-Regular.ttf', 'dist/tools/artgen/fonts/OFL.txt', 'plugin/tools/artgen/fonts/AlegreyaSans-Bold.ttf',
       'dist/tools/artgen/templates/topdown/character-walk/base.js', 'plugin/commands/make.md',
       'dist/tools/artgen/runtime/index.ts', 'dist/tools/artgen/runtime/adapters/pixi.ts', 'dist/tools/artgen/runtime/adapters/three.ts',
       'plugin/.claude-plugin/plugin.json', 'plugin/.mcp.json', 'plugin/commands/direction.md', 'plugin/skills/artgen/SKILL.md', '.claude-plugin/marketplace.json'])
@@ -68,6 +70,14 @@ describe('artgen-dist', () => {
     for (const f of ['art/direction.png', 'art/anchors/character.png', 'art/anchors/effect.png']) expect(existsSync(join(GAME, f))).toBe(true);
     cli('new', 'goblin', '--kind', 'character');
     expect(cli('render', 'art/assets/character/goblin')).toMatch(/gate pass/);
+  });
+
+  test('terrain map from the committed files: new → label → render (bundled fonts)', () => {
+    const cli = (...a: string[]) => { const r = node(['tools/artgen/artgen.js', ...a]); expect(r.status, r.stderr + r.stdout).toBe(0); return r.stdout; };
+    cli('map', 'new', 'isle', '--size', '10x8', '--seed', '3');
+    cli('map', 'label', 'isle', 'Port Ash', '--at', '0303');
+    expect(cli('map', 'render', 'isle', '--ppu', '12')).toMatch(/isle\.bw\.png/);
+    for (const f of ['isle.color.svg', 'isle.color.png', 'isle.bw.svg', 'isle.bw.png']) expect(existsSync(join(GAME, 'art/maps/isle/out', f)), f).toBe(true);
   });
 
   test('session-equivalent W2 run from the committed files: brief → make → review/score → status → export (drafts)', () => {

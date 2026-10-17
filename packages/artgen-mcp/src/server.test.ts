@@ -30,7 +30,7 @@ describe('artgen MCP server', () => {
   test('tools/list names the full tool set (SPEC §14) with input schemas', async () => {
     const r = (await handle({ jsonrpc: '2.0', id: 4, method: 'tools/list' }, root))!.result as { tools: { name: string; inputSchema: { type: string } }[] };
     expect(r.tools.map(t => t.name)).toEqual(['direction_get', 'direction_tile', 'pass_status', 'render', 'review', 'conformance', 'score', 'finish', 'make', 'status',
-      'gallery', 'feedback', 'approve', 'texture', 'fx', 'export', 'restyle', 'analytics']);
+      'gallery', 'feedback', 'approve', 'texture', 'fx', 'export', 'restyle', 'analytics', 'map_list', 'map_get', 'map_new', 'map_update', 'map_edit', 'map_overlay', 'map_render']);
     expect(r.tools.every(t => t.inputSchema.type === 'object')).toBe(true);
   });
 
@@ -133,4 +133,23 @@ describe('artgen MCP server on a locked project (W2 tools)', () => {
     expect((await call2('gallery')).content[0].text).toMatch(/no finished assets/);
     expect(JSON.parse((await call2('export', { include_drafts: true })).content[0].text!).packs).toEqual([]);
   });
+
+  test('terrain maps: new, update, edit, overlay, render (image); map ids cannot leave art/maps', async () => {
+    expect((await call('map_new', { id: 'isle', preset: 'regional', cols: 12, rows: 10, seed: 4, grid: 'square' })).isError).toBeUndefined();
+    await call('map_update', { id: 'isle', gen: { land: 'island', sea: 0.45 }, title: 'Isle' });
+    await call('map_edit', { id: 'isle', ops: [{ op: 'paint', terrain: 'forest', shape: { circle: [6, 5, 2] } }, { op: 'road', points: [1, 1, 8, 8] }] });
+    expect(JSON.parse((await call('map_edit', { id: 'isle', undo: 1 })).content[0].text!)).toMatchObject({ edits: 1 });
+    expect((await call('map_edit', { id: 'isle', ops: [{ op: 'paint', terrain: 'lava', shape: { circle: [1, 1, 1] } }] })).isError).toBe(true);
+    await call('map_overlay', { id: 'isle', add_labels: [{ text: 'Port Ash', at: 'C4', kind: 'place' }], add_symbols: [{ kind: 'port', x: 3, y: 3 }, { kind: 'cave', at: '5,5' }] });
+    await call('map_overlay', { id: 'isle', remove_symbols: [0] });
+    const got = JSON.parse((await call('map_get', { id: 'isle' })).content[1].text!);
+    expect(got).toMatchObject({ title: 'Isle', gen: { land: 'island', sea: 0.45 }, edits: [{ op: 'paint' }], overlay: { labels: [{ text: 'Port Ash', x: 2.5, y: 3.5 }], symbols: [{ kind: 'cave' }] } });
+    expect(JSON.parse((await call('map_list')).content[0].text!).maps).toEqual([expect.objectContaining({ id: 'isle' })]);
+    const r = await call('map_render', { id: 'isle', theme: 'both' });
+    expect(r.content.map(c => c.type)).toEqual(['text', 'image', 'image']);
+    expect(JSON.parse(r.content[0].text!).files).toEqual(['art/maps/isle/out/isle.color.svg', 'art/maps/isle/out/isle.color.png', 'art/maps/isle/out/isle.bw.svg', 'art/maps/isle/out/isle.bw.png']);
+    expect(existsSync(join(root, 'art/maps/isle/out/isle.bw.png'))).toBe(true);
+    expect((await call('map_new', { id: '../../etc' })).isError).toBe(true);
+    expect((await call('map_get', { id: '../isle' })).isError).toBe(true);
+  }, 60_000);
 });

@@ -25,7 +25,8 @@ const EXAMPLES = fileURLToPath(new URL('../../../examples/', import.meta.url));
 const FIXTURES = ['swamp-topdown', 'iso-dungeon', 'billboard-crawler'];
 const ENGINE: Record<string, string> = { 'swamp-topdown': 'pixi', 'iso-dungeon': 'pixi', 'billboard-crawler': 'three' };
 const TSC = createRequire(import.meta.url).resolve('typescript/bin/tsc');
-const GENERATED = new Set(['tools/artgen/artgen.js', 'tools/artgen/artgen-mcp.js', 'tools/artgen/resvg.wasm']);
+const GENERATED = new Set(['tools/artgen/artgen.js', 'tools/artgen/artgen-mcp.js', 'tools/artgen/resvg.wasm',
+  ...['Regular', 'Bold', 'Italic'].map(w => `tools/artgen/fonts/AlegreyaSans-${w}.ttf`)]);
 const sha = (b: Buffer) => createHash('sha256').update(b).digest('hex').slice(0, 16);
 let dist = '';
 

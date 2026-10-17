@@ -11,7 +11,7 @@ import type { LedgerEntry } from 'artgen-core';
 import type { ArtgenApi } from '../../workers/artgen.worker';
 import { downloadBlob } from '../utils/download';
 import type { FileOp } from './engine';
-import { HandleFiles, MemoryFiles, type FileStat, type ProjectFiles } from './files';
+import { HandleFiles, isFolder, MemoryFiles, type FileStat, type ProjectFiles } from './files';
 import { forgetHandle, recallHandle, rememberHandle } from './persist';
 import { findArt, loadSnapshot, WATCHED, type LoadedSnapshot } from './snapshot';
 import { artFromZip, zipArt } from './zip';
@@ -178,6 +178,38 @@ class ProjectStore {
       const r = await a.lock(name, note);
       return { ops: r.ops, result: r.direction };
     }, d => `locked ${name} as ${d.id} v${d.version} — approved assets now need a restyle (ask Claude Code: /artgen-restyle)`);
+  }
+
+  /** Terrain maps in the project (`art/maps/<id>/map.json`). */
+  async mapIds(): Promise<string[]> {
+    const files = this.files;
+    if (!files) return [];
+    const ids = (await files.list('maps')).filter(isFolder).map(e => e.slice(0, -1));
+    return (await Promise.all(ids.map(async id => ((await files.stat(`maps/${id}/map.json`)) ? id : null)))).filter((id): id is string => !!id).sort();
+  }
+
+  /** A map's file and its disk state (pass the state back to `saveMap` so a change by Claude Code isn't overwritten). */
+  async readMap(id: string): Promise<{ text: string; stat?: FileStat } | undefined> {
+    const path = `maps/${id}/map.json`, text = await this.files?.readText(path);
+    return text === undefined ? undefined : { text, stat: await this.files!.stat(path) };
+  }
+
+  /**
+   * Write `art/maps/<id>/map.json`. `base` is the disk state it was read at (undefined: a new map, which must not exist
+   * yet); if the file changed since, nothing is written unless `force`. Returns the new disk state.
+   */
+  saveMap(id: string, text: string, base: FileStat | undefined, force = false): Promise<FileStat | undefined> {
+    return this.guard(async () => {
+      const files = this.files;
+      if (!files) throw new Error('no project open');
+      if (!/^[\w-]+$/.test(id)) throw new Error(`map id ${id}: letters, digits, - and _ only`);
+      const path = `maps/${id}/map.json`, now = await files.stat(path);
+      if (!force && now && !sameStat(base, now))
+        throw new Error(base ? `art/${path} changed on disk since you opened it (Claude Code?) — nothing was written; reopen it, or save again to overwrite` : `art/${path} already exists — open it, pick another id, or save again to overwrite`);
+      await files.write(path, text);
+      this.notice = `saved art/${path} — ask Claude Code to render it (artgen map render ${id}), or keep editing here`;
+      return files.stat(path);
+    });
   }
 
   /** Read a file of the project (sheets, reference images) for display. */

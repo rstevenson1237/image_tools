@@ -18,10 +18,20 @@ export function initSvg(wasm: Parameters<typeof initWasm>[0]): Promise<void> {
 
 export const svgReady = (): boolean => initialised;
 
+let fonts: Uint8Array[] = [], defaultFont = '';
+
+/**
+ * Fonts for text in rasterised SVG (terrain map labels). resvg loads no system fonts, so text renders the same in
+ * Node and the browser worker; without fonts text is skipped.
+ */
+export function setSvgFonts(buffers: Uint8Array[], family = ''): void {
+  fonts = buffers; defaultFont = family;
+}
+
 /** Rasterise an SVG document at w×h (the root is scaled to fit the width). Returns straight (non-premultiplied) RGBA. */
 export function rasterizeSvg(svg: string, w: number, h: number): Grid {
   if (!initialised) throw new Error('SVG rasteriser not initialised: call initSvg(wasm) first');
-  const r = new Resvg(svg, { fitTo: { mode: 'width', value: w }, font: { loadSystemFonts: false } });
+  const r = new Resvg(svg, { fitTo: { mode: 'width', value: w }, font: { loadSystemFonts: false, ...(fonts.length && { fontBuffers: fonts, ...(defaultFont && { defaultFontFamily: defaultFont, sansSerifFamily: defaultFont }) }) } });
   const img = r.render(), px = img.pixels, iw = img.width, ih = img.height, g = new Grid(w, h);
   for (let y = 0; y < Math.min(h, ih); y++) for (let x = 0; x < Math.min(w, iw); x++) {
     const s = (y * iw + x) * 4, a = px[s + 3];

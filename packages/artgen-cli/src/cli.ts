@@ -52,17 +52,21 @@
  *   artgen anim <asset> [--version v] [--state s] [--facing f] [--scale n]          GIF + APNG previews per state (P6c)
  *   artgen fx <preset> [--size 32] [--frames 8] [--seed n] | --list                particle preset quick look (P6c)
  *
+ * Terrain maps (TTRPG; art/maps/<id>/map.json, see map.ts):
+ *   artgen map new|gen|edit|grid|label|symbol|overlay|set|render|show|list|symbols
+ *
  * Benchmark (this repo): artgen bench [--direction benchmark|alt|<file>] [--out <dir>] [--stages] [--update-golden]
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { extractPalette, generateRamp, Grid, MATERIALS, PRESET_NAMES, MIX_PARTS, parseDirection, parseGpl, parseHexPalette, rampsFromColors, validateDirection, type Interview, type MixPart, type Size } from 'artgen-core';
+import { extractPalette, generateRamp, Grid, map, MATERIALS, PRESET_NAMES, MIX_PARTS, parseDirection, parseGpl, parseHexPalette, rampsFromColors, validateDirection, type Interview, type MixPart, type Size } from 'artgen-core';
 import { openAsset, passState, renderVersion, reviewVersion, scoreVersion, variantsSheet, versionsIn, writeRender } from './asset.ts';
 import { resolveDirection, updateGolden, writeBench } from './bench.ts';
 import { readGrid, writeGrid } from './node.ts';
 import { findProject, initProject, readJson, requireProject, writeJson } from './project.ts';
 import { animPreview, fxRun, textureRun, voxelExport } from './p6.ts';
 import { report } from './report.ts';
+import { createMap, describeMap, listMaps, numbers, onOff, parseLayers, readMap, renderMapFiles, shapeFrom, updateMap } from './map.ts';
 import { newAsset } from './templates.ts';
 import { addBrief, approve, exportPacks, feedback, gallery, importEdit, make, pooledAnalytics, projectAnalytics, projectStatus, readBriefs, removeBriefFile, resolveAssetArg, restyle, rosterRecord, rosterRun, writeNextFinish, type WorkPacket } from './w2.ts';
 import { IMPORTANCE, type BriefEntry, type Importance } from 'artgen-core';
@@ -124,6 +128,16 @@ usage: artgen init
        artgen texture <material> [--size 32|WxH] [--seed n] [--ramps base=stone,…] [--scale k] [--out dir] | texture --list
        artgen anim <asset> [--version v] [--state s] [--facing f] [--scale n] [--out dir]
        artgen fx <preset> [--size 32|WxH] [--frames 8] [--seed n] [--scale n] [--out dir] | fx --list
+       artgen map new <id> [--preset regional|local] [--size 30x22] [--grid hex|square|none] [--seed n] [--title "..."]
+       artgen map gen <id> [--seed n] [--land mixed|island|inland] [--sea f] [--moisture f] [--roughness f] [--relief f] [--rivers n] [--simplify n] [--feature n] [--interval n] [--max-elevation n] [--topo-labels on|off]
+       artgen map edit <id> paint --terrain t <shape> | elevate --amount ±f <shape> | river --points x,y,… [--width w] [--delta off] | road --points x,y,… | undo
+                  <shape>: --circle x,y,r | --poly x,y,x,y,… | --stroke x,y,… --width w   (terrains: ${map.TERRAINS.join(', ')})
+       artgen map grid <id> hex|square|none [--size n] [--coords on|off]
+       artgen map label <id> "Text" --at x,y|0304|C4 [--kind region|place|water|note] [--size f] [--angle deg]
+       artgen map symbol <id> <kind> --at x,y|0304|C4 [--scale f] | map symbols | map overlay <id> rm label|symbol <i> | clear [labels|symbols]
+       artgen map set <id> [--title "..."] [--legend on|off] [--scale-bar on|off] [--compass on|off] [--per-cell n] [--unit mi]
+       artgen map render <id> [--theme color|bw|both] [--format svg|png|both] [--ppu 40] [--layers grid=off,labels=off] [--out dir]
+       artgen map show <id> | list
        artgen bench [--direction benchmark|alt|<file>] [--out <dir>] [--stages] [--ledger <file>] [--update-golden]
        artgen --version | --help
 
@@ -140,6 +154,127 @@ function toolDirection(cmd: string, root: string | undefined, override: string |
   const raw = JSON.parse(readFileSync(file, 'utf8')), v = validateDirection(raw);
   if (!v.ok) throw new Error(raw?.status === 'draft' && !override ? `${cmd}: the art direction is still a draft — ${fix}` : `${cmd}: ${file} is not a valid direction:\n  ${v.errors.join('\n  ')}`);
   return { p, dir: parseDirection(raw) };
+}
+
+const num = (args: string[], name: string): number | undefined => { const v = flag(args, name); if (v === undefined) return undefined; if (!Number.isFinite(+v)) throw new Error(`${name}: a number`); return +v; };
+
+/** `artgen map …` (terrain maps, map.ts). */
+async function mapCommand(sub: string | undefined, args: string[], print: (human: string, data: unknown) => void): Promise<number> {
+  const p = requireProject(flag(args, '--root'));
+  const pos = args.filter((a, i) => !a.startsWith('--') && !(i > 0 && args[i - 1].startsWith('--') && args[i - 1] !== '--json')).slice(1), id = pos[0];
+  const need = (what: string) => { if (!id) throw new Error(`map ${sub}: ${what}`); return id; };
+  const next = (i: string) => `next: artgen map render ${i}`;
+  if (sub === 'list') { const ms = listMaps(p); print(ms.length ? ms.map(m => `${m.id.padEnd(16)} ${m.preset.padEnd(9)} ${m.size.padEnd(7)} ${m.edits} edits, ${m.labels} labels, ${m.symbols} symbols${m.title ? `  "${m.title}"` : ''}`).join('\n') : 'no maps yet: artgen map new <id>', ms); return 0; }
+  if (sub === 'symbols') { print(Object.entries(map.SYMBOLS).map(([k, v]) => `${k.padEnd(10)} ${v.name}`).join('\n'), map.SYMBOL_KINDS); return 0; }
+  if (sub === 'show') { const m = readMap(p, need('<id>')); print(describeMap(m), m); return 0; }
+  if (sub === 'new') {
+    const preset = (flag(args, '--preset') ?? 'regional') as map.Preset;
+    if (!map.PRESETS.includes(preset)) throw new Error(`--preset: ${map.PRESETS.join(' or ')}`);
+    const sz = flag(args, '--size')?.match(/^(\d+)x(\d+)$/), grid = flag(args, '--grid') as map.GridType | undefined;
+    if (flag(args, '--size') && !sz) throw new Error('--size: COLSxROWS, e.g. 30x22');
+    const r = createMap(p, need('<id> is required'), preset, {
+      seed: num(args, '--seed') ?? Math.floor(Math.random() * 1e6), ...(sz && { cols: +sz[1], rows: +sz[2] }), ...(flag(args, '--title') && { title: flag(args, '--title') }),
+      ...(grid && { grid: { ...map.PRESET_DEFAULTS[preset].grid, type: grid } }),
+    }, args.includes('--force'));
+    print(`${r.file}\n${describeMap(r.map)}\n${next(id)}`, { file: r.file, map: r.map });
+    return 0;
+  }
+  if (sub === 'gen') {
+    const m = updateMap(p, need('<id>'), m => {
+      if (num(args, '--seed') !== undefined) m.seed = num(args, '--seed')!;
+      const land = flag(args, '--land') as map.LandMode | undefined;
+      if (land) m.gen.land = land;
+      for (const k of ['sea', 'moisture', 'roughness', 'relief', 'rivers', 'simplify', 'feature'] as const) { const v = num(args, `--${k}`); if (v !== undefined) m.gen[k] = v; }
+      if (num(args, '--interval') !== undefined) m.topo.interval = num(args, '--interval')!;
+      if (num(args, '--max-elevation') !== undefined) m.topo.maxElevation = num(args, '--max-elevation')!;
+      if (num(args, '--major-every') !== undefined) m.topo.majorEvery = num(args, '--major-every')!;
+      if (onOff(flag(args, '--topo-labels')) !== undefined) m.topo.labels = onOff(flag(args, '--topo-labels'))!;
+    });
+    print(`${describeMap(m)}\n${next(id)}`, m);
+    return 0;
+  }
+  if (sub === 'edit') {
+    const op = pos[1];
+    let summary = '';
+    const m = updateMap(p, need('<id> <op>'), m => {
+      const shape = () => shapeFrom({ circle: flag(args, '--circle'), poly: flag(args, '--poly'), stroke: flag(args, '--stroke'), width: flag(args, '--width') });
+      if (op === 'undo') { const e = m.edits.pop(); if (!e) throw new Error(`${m.id}: no edits to undo`); summary = `removed ${e.op}`; return; }
+      if (op === 'paint') {
+        const t = flag(args, '--terrain') as map.Terrain;
+        if (!map.TERRAINS.includes(t)) throw new Error(`--terrain: one of ${map.TERRAINS.join(', ')}`);
+        m.edits.push({ op, terrain: t, shape: shape() });
+      } else if (op === 'elevate') m.edits.push({ op, amount: num(args, '--amount') ?? 0.2, shape: shape() });
+      else if (op === 'river') m.edits.push({ op, points: numbers(flag(args, '--points'), '--points'), ...(num(args, '--width') !== undefined && { width: num(args, '--width') }), ...(onOff(flag(args, '--delta')) === false && { delta: false }) });
+      else if (op === 'road') m.edits.push({ op, points: numbers(flag(args, '--points'), '--points') });
+      else throw new Error('map edit <id> paint|elevate|river|road|undo');
+      summary = `edit ${m.edits.length - 1}: ${op}`;
+    });
+    print(`${m.id}: ${summary} (${m.edits.length} edits)\n${next(m.id)}`, m);
+    return 0;
+  }
+  if (sub === 'grid') {
+    const type = pos[1] as map.GridType;
+    if (!map.GRID_TYPES.includes(type)) throw new Error(`map grid <id> ${map.GRID_TYPES.join('|')}`);
+    const m = updateMap(p, need('<id>'), m => { m.grid.type = type; if (num(args, '--size') !== undefined) m.grid.size = num(args, '--size')!; if (onOff(flag(args, '--coords')) !== undefined) m.grid.coords = onOff(flag(args, '--coords'))!; });
+    print(`${m.id}: grid ${m.grid.type}${m.grid.type !== 'none' ? ` size ${m.grid.size}${m.grid.coords ? ', coordinates' : ''}` : ''}\n${next(m.id)}`, m.grid);
+    return 0;
+  }
+  if (sub === 'label' || sub === 'symbol') {
+    const what = pos[1], at = flag(args, '--at');
+    if (!what || !at) throw new Error(sub === 'label' ? 'map label <id> "Text" --at x,y|0304|C4' : 'map symbol <id> <kind> --at x,y|0304|C4 (kinds: artgen map symbols)');
+    const m = updateMap(p, need('<id>'), m => {
+      const [x, y] = map.parsePoint(m, at);
+      if (sub === 'label') {
+        const kind = (flag(args, '--kind') ?? 'place') as map.LabelKind;
+        if (!map.LABEL_KINDS.includes(kind)) throw new Error(`--kind: ${map.LABEL_KINDS.join(', ')}`);
+        m.overlay.labels.push({ text: what, x, y, kind, ...(num(args, '--size') !== undefined && { size: num(args, '--size') }), ...(num(args, '--angle') !== undefined && { angle: num(args, '--angle') }) });
+      } else {
+        if (!map.SYMBOLS[what]) throw new Error(`unknown symbol ${what} (have: ${map.SYMBOL_KINDS.join(', ')})`);
+        m.overlay.symbols.push({ kind: what, x, y, ...(num(args, '--scale') !== undefined && { scale: num(args, '--scale') }) });
+      }
+    });
+    const n = sub === 'label' ? m.overlay.labels.length : m.overlay.symbols.length;
+    print(`${m.id}: ${sub} ${n - 1} "${what}"\n${next(m.id)}`, sub === 'label' ? m.overlay.labels : m.overlay.symbols);
+    return 0;
+  }
+  if (sub === 'overlay') {
+    const [, action, which, index] = pos;
+    const m = updateMap(p, need('<id> rm|clear'), m => {
+      if (action === 'rm') {
+        const list = which === 'label' ? m.overlay.labels : which === 'symbol' ? m.overlay.symbols : null, i = Number(index);
+        if (!list || !Number.isInteger(i) || i < 0 || i >= list.length) throw new Error(`map overlay <id> rm label|symbol <index> (labels 0..${m.overlay.labels.length - 1}, symbols 0..${m.overlay.symbols.length - 1})`);
+        list.splice(i, 1);
+      } else if (action === 'clear') {
+        if (!which || which === 'labels') m.overlay.labels = [];
+        if (!which || which === 'symbols') m.overlay.symbols = [];
+      } else throw new Error('map overlay <id> rm label|symbol <index> | clear [labels|symbols]');
+    });
+    print(`${m.id}: ${m.overlay.labels.length} labels, ${m.overlay.symbols.length} symbols`, m.overlay);
+    return 0;
+  }
+  if (sub === 'set') {
+    const m = updateMap(p, need('<id>'), m => {
+      const t = flag(args, '--title');
+      if (t !== undefined) { if (t) m.title = t; else delete m.title; }
+      for (const [f, k] of [['--legend', 'legend'], ['--scale-bar', 'scaleBar'], ['--compass', 'compass']] as const) { const v = onOff(flag(args, f)); if (v !== undefined) m[k] = v; }
+      if (num(args, '--per-cell') !== undefined) m.scale.perCell = num(args, '--per-cell')!;
+      if (flag(args, '--unit')) m.scale.unit = flag(args, '--unit')!;
+    });
+    print(`${describeMap(m)}\n${next(m.id)}`, m);
+    return 0;
+  }
+  if (sub === 'render') {
+    const theme = flag(args, '--theme') ?? 'both', format = flag(args, '--format') ?? 'both';
+    if (!['color', 'bw', 'both'].includes(theme)) throw new Error('--theme: color, bw or both');
+    if (!['svg', 'png', 'both'].includes(format)) throw new Error('--format: svg, png or both');
+    const r = await renderMapFiles(p, need('<id>'), {
+      themes: theme === 'both' ? ['color', 'bw'] : [theme as map.ThemeName], formats: format === 'both' ? ['svg', 'png'] : [format as 'svg' | 'png'],
+      ppu: num(args, '--ppu'), layers: parseLayers(flag(args, '--layers')), out: flag(args, '--out'),
+    });
+    print([`${id} ${r.size.join('×')} px: ${r.terrains.join(', ')}${r.rivers ? `, ${r.rivers} rivers` : ''}`, ...r.files.map(f => `  ${f}`)].join('\n'), r);
+    return 0;
+  }
+  throw new Error('map: new | gen | edit | grid | label | symbol | symbols | overlay | set | render | show | list (artgen --help)');
 }
 
 export async function main(argv: string[]): Promise<number> {
@@ -312,6 +447,7 @@ export async function main(argv: string[]): Promise<number> {
     print(`${r.cell}: ${r.voxels} voxels, ${r.materials} materials, ${r.size.join('x')}\n  ${r.vox}\n  ${r.glb}`, r);
     return 0;
   }
+  if (cmd === 'map') return mapCommand(sub, args, print);
   if (cmd === 'texture') {
     if (sub === '--list' || args.includes('--list')) { print(MATERIALS.join('\n'), MATERIALS); return 0; }
     if (!sub) throw new Error('texture: name a material (artgen texture --list)');
