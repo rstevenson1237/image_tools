@@ -9,10 +9,21 @@ import { chaikin, simplifyLine, type Line } from './trace.ts';
 
 export interface MapLine {
   pts: number[];
-  /** Width in map units at the last point. */
+  /** Width in map units. */
   width: number;
-  /** Width at the first point, when the line tapers (rivers: a thin source widening downhill). */
-  start?: number;
+}
+
+/**
+ * A river as a filled ribbon: an evenly spaced centre line, the width at each of its points (growing smoothly
+ * downstream, flaring where it opens into water), and the outline the renderer fills and banks.
+ */
+export interface River {
+  pts: number[];
+  widths: number[];
+  /** Closed ring (map units): both banks, a round cap at the source, and one at the end unless it opens into water. */
+  outline: number[];
+  /** True when it runs into the sea or a lake (the end of the ribbon lies in the water). */
+  mouth: boolean;
 }
 
 export interface MapField {
@@ -24,24 +35,8 @@ export interface MapField {
   elevation: Float32Array;
   /** Terrain index into TERRAINS per sample. */
   terrain: Uint8Array;
-  rivers: MapLine[];
-  /** Where rivers open into the sea or a lake: small filled flares the renderer shades into the water. */
-  mouths: RiverMouth[];
+  rivers: River[];
   roads: MapLine[];
-}
-
-export interface RiverMouth {
-  /** The flare as a closed ring (map units), from the river's full width at the throat to a fan that runs into the water. */
-  outline: number[];
-  /** Its two banks, from the throat to the shore (B/W draws them). */
-  banks: [number[], number[]];
-  /** Throat (where the river line ends) and shore: the shading runs from river to water between them. */
-  from: [number, number];
-  to: [number, number];
-  /** The water it opens into. */
-  into: Terrain;
-  /** The river's width at the throat (map units). */
-  width: number;
 }
 
 export const terrainIndex = (t: Terrain): number => TERRAINS.indexOf(t);
@@ -203,7 +198,7 @@ function traceRivers(spec: MapSpec, filled: Float32Array, elev: Float32Array, wa
 /**
  * Fit a river's mouth to the shore as drawn (the simplified terrain, not the raw height field): cut it just past the
  * first point in water, or carry it on in its last direction (up to 3 units) until it reaches water. Null when no
- * water is that close: the river keeps its course and gets no delta.
+ * water is that close: the river keeps its course and ends with a round cap.
  */
 function toShore(pts: number[], water: (x: number, y: number) => boolean): number[] | null {
   const n = pts.length / 2;
@@ -221,37 +216,74 @@ function toShore(pts: number[], water: (x: number, y: number) => boolean): numbe
   return null;
 }
 
-/** River width at the mouth for a preset (map units); sources start at a fifth of it. */
+/** River width at the mouth for a preset (map units). */
 export const riverWidth = (spec: Pick<MapSpec, 'preset'>): number => (spec.preset === 'local' ? 0.35 : 0.16);
-const SOURCE = 0.2;
+
+/** Width profile: sources start at 60 % of the mouth width; the flare at a mouth reaches 2.2 × over 4.5 widths. */
+const SOURCE = 0.6, FLARE = 1.2, FLARE_LAND = 3, FLARE_WATER = 1.5;
+
+const smoothstep = (t: number) => { const c = Math.max(0, Math.min(1, t)); return c * c * (3 - 2 * c); };
+
+/** Points every `step` along a polyline (both ends kept). */
+function resample(p: number[], step: number): number[] {
+  const out = [p[0], p[1]];
+  let carry = 0;
+  for (let i = 2; i < p.length; i += 2) {
+    const ax = p[i - 2], ay = p[i - 1], seg = Math.hypot(p[i] - ax, p[i + 1] - ay);
+    let d = step - carry;
+    for (; d <= seg; d += step) out.push(ax + ((p[i] - ax) * d) / seg, ay + ((p[i + 1] - ay) * d) / seg);
+    carry = seg - (d - step);
+  }
+  const n = out.length;
+  if (Math.hypot(out[n - 2] - p[p.length - 2], out[n - 1] - p[p.length - 1]) > step * 0.3) out.push(p[p.length - 2], p[p.length - 1]);
+  else { out[n - 2] = p[p.length - 2]; out[n - 1] = p[p.length - 1]; }
+  return out;
+}
 
 /**
- * A river's mouth: the last stretch (four widths long) becomes a flare that widens from the river's width to about
- * twice it at the shore and runs on a little into the water, so the river opens into the lake or sea instead of
- * stopping at the coastline. Returns the river cut back to the throat and the flare, or null when the river is too
- * short to have one.
+ * Build a river ribbon of mouth width `W`. The width grows smoothly from 60 % at the source (fast at first, then
+ * levelling off, like the flow of a real river). A river that reaches water is carried on 1.5 widths past the shore
+ * and flares over its last stretch with a smoothstep, so it widens without a kink, follows its own curve and opens into
+ * the lake or sea.
  */
-function riverMouth(pts: number[], width: number, terrainAt: (x: number, y: number) => number): { river: number[]; mouth: RiverMouth } | null {
-  const n = pts.length / 2, len = width * 4, spread = width * 1.1, over = width * 1.5;
-  let i = n - 1, run = 0;
-  while (i > 0 && run < len) { run += Math.hypot(pts[i * 2] - pts[i * 2 - 2], pts[i * 2 + 1] - pts[i * 2 - 1]); i--; }
-  if (i < 1 || run < len * 0.5) return null;
-  const tx = pts[i * 2], ty = pts[i * 2 + 1], ex = pts[n * 2 - 2], ey = pts[n * 2 - 1], dist = Math.hypot(ex - tx, ey - ty);
-  if (!dist) return null;
-  const dx = (ex - tx) / dist, dy = (ey - ty) / dist, left: number[] = [], right: number[] = [], bankL: number[] = [], bankR: number[] = [];
-  for (let k = 0; k <= 10; k++) {
-    const along = (k / 10) * (dist + over), f = Math.min(1, along / dist), hw = width / 2 + (spread - width / 2) * f * f;
-    const px = tx + dx * along, py = ty + dy * along;
-    left.push(px - dy * hw, py + dx * hw); right.push(px + dy * hw, py - dx * hw);
-    if (along <= dist + 1e-9) { bankL.push(px - dy * hw, py + dx * hw); bankR.push(px + dy * hw, py - dx * hw); }
+function riverRibbon(line: number[], W: number, mouth: boolean): River {
+  let p = line;
+  if (mouth) {
+    const n = p.length / 2, ex = p[n * 2 - 2], ey = p[n * 2 - 1];
+    let k = n - 2;
+    while (k > 0 && Math.hypot(ex - p[k * 2], ey - p[k * 2 + 1]) < W * 2) k--;
+    const dx = ex - p[k * 2], dy = ey - p[k * 2 + 1], len = Math.hypot(dx, dy) || 1;
+    p = [...p, ex + (dx / len) * W * FLARE_WATER, ey + (dy / len) * W * FLARE_WATER];
   }
-  const back: number[] = [];
-  for (let q = right.length - 2; q >= 0; q -= 2) back.push(right[q], right[q + 1]);
-  const into = TERRAINS[terrainAt(ex + dx * over * 0.5, ey + dy * over * 0.5)];
-  return {
-    river: pts.slice(0, (i + 1) * 2),
-    mouth: { outline: [...left, ...back], banks: [bankL, bankR], from: [tx, ty], to: [ex, ey], into: into === 'deep' ? 'deep' : 'water', width },
+  const c = resample(p, Math.min(0.1, W * 0.4)), n = c.length / 2, s = [0];
+  for (let i = 1; i < n; i++) s.push(s[i - 1] + Math.hypot(c[i * 2] - c[i * 2 - 2], c[i * 2 + 1] - c[i * 2 - 1]));
+  const L = s[n - 1] || 1, shore = mouth ? Math.max(L * 0.5, L - W * FLARE_WATER) : L;
+  const widths = s.map(d => {
+    const base = W * (SOURCE + (1 - SOURCE) * Math.pow(Math.min(d, shore) / shore, 0.6));
+    return mouth ? base * (1 + FLARE * smoothstep((d - (shore - W * FLARE_LAND)) / (W * (FLARE_LAND + FLARE_WATER)))) : base;
+  });
+  // normals from a tangent averaged over ±2 samples, so the banks stay smooth through bends
+  const nx: number[] = [], ny: number[] = [];
+  for (let i = 0; i < n; i++) {
+    const a = Math.max(0, i - 2), b = Math.min(n - 1, i + 2), tx = c[b * 2] - c[a * 2], ty = c[b * 2 + 1] - c[a * 2 + 1], tl = Math.hypot(tx, ty) || 1;
+    nx.push(-ty / tl); ny.push(tx / tl);
+  }
+  const side = (i: number, sgn: number) => [c[i * 2] + nx[i] * sgn * widths[i] / 2, c[i * 2 + 1] + ny[i] * sgn * widths[i] / 2];
+  /** Half circle around point i from the +normal side to the −normal side, bulging along `dir` (±1 = with / against the flow). */
+  const cap = (i: number, dir: number, from: number) => {
+    const out: number[] = [], r = widths[i] / 2, tx = ny[i] * dir, ty = -nx[i] * dir;
+    for (let k = 1; k < 8; k++) {
+      const a = (k / 8) * Math.PI, cs = Math.cos(a) * from, sn = Math.sin(a);
+      out.push(c[i * 2] + r * (nx[i] * cs + tx * sn), c[i * 2 + 1] + r * (ny[i] * cs + ty * sn));
+    }
+    return out;
   };
+  const outline: number[] = [];
+  for (let i = 0; i < n; i++) outline.push(...side(i, 1));
+  if (!mouth) outline.push(...cap(n - 1, 1, 1));
+  for (let i = n - 1; i >= 0; i--) outline.push(...side(i, -1));
+  outline.push(...cap(0, -1, -1));
+  return { pts: c, widths, outline, mouth };
 }
 
 /** Smooth a polyline: thin it to about one point per half unit (steepest-descent paths zigzag sample by sample), then round it. */
@@ -359,16 +391,13 @@ export function generateMap(spec: MapSpec): MapField {
   for (const ed of spec.edits) if (ed.op === 'paint') { const c = T[ed.terrain]; eachCovered(field, ed.shape, false, i => { simple[i] = c; }); }
   for (let n = 0; n < N; n++) if (isWater(simple[n])) elev[n] = 0;
 
-  // each river runs from a thin source to its full width at the mouth; one that ends in water as drawn gets a delta
+  // each river widens smoothly downstream; one that ends in water as drawn is fitted to the shore and flares into it
   const shown = (x: number, y: number) => { const i = Math.floor(x * res), j = Math.floor(y * res); return i >= 0 && j >= 0 && i < w && j < h && isWater(simple[j * w + i]); };
-  const terrainAt = (x: number, y: number) => simple[Math.min(h - 1, Math.max(0, Math.floor(y * res))) * w + Math.min(w - 1, Math.max(0, Math.floor(x * res)))];
-  const rivers: MapLine[] = [], mouths: RiverMouth[] = [];
-  for (const m of mains) {
-    const fit = m.mouth ? toShore(m.pts, shown) : null, open = fit ? riverMouth(fit, m.width, terrainAt) : null;
-    rivers.push({ pts: open?.river ?? fit ?? m.pts, width: m.width, start: m.width * SOURCE });
-    if (open) mouths.push(open.mouth);
-  }
-  return { res, w, h, elevation: elev, terrain: simple, rivers, mouths, roads };
+  const rivers = mains.map(m => {
+    const fit = m.mouth ? toShore(m.pts, shown) : null;
+    return riverRibbon(fit ?? m.pts, m.width, !!fit);
+  });
+  return { res, w, h, elevation: elev, terrain: simple, rivers, roads };
 }
 
 /** Terrains present, most common first. */

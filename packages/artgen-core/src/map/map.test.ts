@@ -110,33 +110,53 @@ describe('terrain maps', () => {
     for (const t of TERRAINS) expect(legend.includes(`>${map.TERRAIN_NAMES[t]}<`)).toBe(terrainsUsed(f).includes(t));
   });
 
-  test('rivers start thin and widen downhill; a river into a lake opens into a shaded mouth (unless delta: false)', () => {
-    const base = small({ gen: { ...small().gen, sea: 0, rivers: 0 } });
+  /** Is (x, y) inside the closed ring `p` (x, y pairs)? */
+  const inside = (p: number[], x: number, y: number) => {
+    let r = false;
+    for (let i = 0, j = p.length - 2; i < p.length; j = i, i += 2) if ((p[i + 1] > y) !== (p[j + 1] > y) && x < ((p[j] - p[i]) * (y - p[i + 1])) / (p[j + 1] - p[i + 1]) + p[i]) r = !r;
+    return r;
+  };
+  /**
+   * Width checks shared by drawn and generated rivers: never narrowing, starting at 60 % of the mouth width, and smooth:
+   * the width changes by under half a unit per unit of length (each bank turns less than about 14°, even in the flare).
+   */
+  const smoothWidths = (r: map.River, W: number) => {
+    expect(r.widths.length).toBe(r.pts.length / 2);
+    expect(r.widths[0]).toBeCloseTo(W * 0.6, 5);
+    for (let i = 1; i < r.widths.length; i++) {
+      expect(r.widths[i]).toBeGreaterThanOrEqual(r.widths[i - 1] - 1e-9);
+      const ds = Math.hypot(r.pts[i * 2] - r.pts[i * 2 - 2], r.pts[i * 2 + 1] - r.pts[i * 2 - 1]);
+      expect((r.widths[i] - r.widths[i - 1]) / ds).toBeLessThan(0.5);
+    }
+  };
+
+  test('rivers are ribbons that widen smoothly downstream and flare into the lake they reach (unless delta: false)', () => {
+    const base = small({ gen: { ...small().gen, sea: 0, rivers: 0 } }), W = map.riverWidth(base);
     const lake = { op: 'paint' as const, terrain: 'water' as const, shape: { circle: [12, 6, 2.5] as [number, number, number] } };
     const river = { op: 'river' as const, points: [1, 6, 4, 5, 7, 6.5, 9, 6] };
-    const f = generateMap({ ...base, edits: [lake, river] }), [main] = f.rivers;
+    const f = generateMap({ ...base, edits: [lake, river] }), [r] = f.rivers;
     expect(f.rivers).toHaveLength(1);
-    expect(main.start).toBeLessThan(main.width);
-    expect(main.width).toBe(map.riverWidth(base));
-    expect(f.mouths).toHaveLength(1);
-    const m = f.mouths[0];
-    expect(m).toMatchObject({ into: 'water', width: main.width });
-    expect(main.pts.slice(-2)).toEqual(m.from);              // the river line ends where the mouth begins
-    expect(at(f, m.to[0] + 0.05, m.to[1])).toBe('water');     // and the mouth reaches the lake shore
-    const svg = renderMapSvg({ ...base, edits: [lake, river] });
-    expect(svg).toContain('<linearGradient id="mouth-0"');
-    expect(svg).toContain(`stop-color="${map.THEME.color.terrain.water.fill}"`);
-    expect(renderMapSvg({ ...base, edits: [lake, river] }, { theme: 'bw' })).not.toContain('linearGradient');
-    expect(generateMap({ ...base, edits: [lake, { ...river, delta: false }] }).mouths).toHaveLength(0);
-    expect(generateMap({ ...base, edits: [{ op: 'river', points: [1, 6, 4, 5, 7, 6.5] }] }).mouths).toHaveLength(0); // no water nearby
-    const pieces = map.taper(main, 0.5);
-    expect(pieces.length).toBeGreaterThan(3);
-    for (let i = 1; i < pieces.length; i++) expect(pieces[i].width).toBeGreaterThan(pieces[i - 1].width);
+    expect(r.mouth).toBe(true);
+    smoothWidths(r, W);
+    expect(at(f, r.pts[r.pts.length - 2], r.pts[r.pts.length - 1])).toBe('water'); // runs on into the lake
+    expect(Math.max(...r.widths)).toBeGreaterThan(W * 1.8);                      // and flares there
+    for (const i of [0, Math.floor(r.pts.length / 4), r.pts.length / 2 - 3]) expect(inside(r.outline, r.pts[i * 2], r.pts[i * 2 + 1]), `point ${i}`).toBe(true);
+    const plain = generateMap({ ...base, edits: [lake, { ...river, delta: false }] }).rivers[0];
+    expect(plain.mouth).toBe(false);
+    expect(Math.max(...plain.widths)).toBeCloseTo(W, 5);
+    expect(generateMap({ ...base, edits: [{ op: 'river', points: [1, 6, 4, 5, 7, 6.5] }] }).rivers[0].mouth).toBe(false); // no water nearby
+    const svg = renderMapSvg({ ...base, edits: [lake, river] }), bw = renderMapSvg({ ...base, edits: [lake, river] }, { theme: 'bw' });
+    expect(svg).toContain('<mask id="river-land"');
+    expect(svg).toContain(`fill="${map.THEME.color.terrain.water.fill}"`);
+    expect(svg).toContain('mask="url(#no-river)"'); // contours stop at the banks
+    expect(svg).not.toContain('linearGradient');
+    expect(bw).toContain(`<g id="rivers"`);
   });
 
-  test('generated rivers taper too', () => {
-    const f = generateMap(newMap('r', 'regional', { seed: 14 }));
+  test('generated rivers have the same smooth profile', () => {
+    const spec = newMap('r', 'regional', { seed: 14 }), f = generateMap(spec);
     expect(f.rivers.length).toBeGreaterThan(0);
-    expect(f.rivers.every(r => r.start !== undefined && r.start !== r.width)).toBe(true);
+    expect(f.rivers.some(r => r.mouth)).toBe(true);
+    for (const r of f.rivers) smoothWidths(r, map.riverWidth(spec));
   });
 });

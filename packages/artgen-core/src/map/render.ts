@@ -3,7 +3,7 @@
  * symbols, labels, then the legend, scale bar, compass and title. Any layer can be turned off, so the same file
  * gives a bare terrain image, or the full map once labels and symbols are added as a follow-up.
  */
-import { generateMap, terrainsUsed, type MapField, type MapLine } from './generate.ts';
+import { generateMap, terrainsUsed, type MapField } from './generate.ts';
 import { gridGeometry } from './gridlines.ts';
 import { TERRAIN_NAMES, TERRAINS, type MapSpec, type Terrain } from './spec.ts';
 import { SYMBOLS } from './symbols.ts';
@@ -104,23 +104,6 @@ function haloText(text: string, x: number, y: number, size: number, color: strin
   return `<text ${a} fill="none" stroke="${th.halo}" stroke-width="${n1(size * 0.22)}" stroke-linejoin="round" stroke-opacity="0.9">${esc(text)}</text><text ${a} fill="${color}">${esc(text)}</text>`;
 }
 
-/** Split a tapering line into pieces about `step` long, each with the width at its middle; a constant line stays whole. */
-export function taper(l: MapLine, step: number): MapLine[] {
-  if (l.start === undefined || l.start === l.width) return [l];
-  const total = lineLength(l.pts) || 1, out: MapLine[] = [];
-  let piece = [l.pts[0], l.pts[1]], from = 0, run = 0;
-  for (let i = 2; i < l.pts.length; i += 2) {
-    run += Math.hypot(l.pts[i] - l.pts[i - 2], l.pts[i + 1] - l.pts[i - 1]);
-    piece.push(l.pts[i], l.pts[i + 1]);
-    if (run - from >= step || i === l.pts.length - 2) {
-      const t = (from + run) / 2 / total;
-      out.push({ pts: piece, width: l.start + (l.width - l.start) * t });
-      piece = [l.pts[i], l.pts[i + 1]]; from = run;
-    }
-  }
-  return out;
-}
-
 /** A round number of cells for the scale bar, about a fifth of the map wide. */
 function scaleCells(spec: MapSpec): number {
   const target = spec.cols / 5;
@@ -134,8 +117,9 @@ export function renderMapSvg(spec: MapSpec, o: RenderMapOptions = {}): string {
   const parts: string[] = [];
   const used = terrainsUsed(f);
 
+  const regions = on.terrain || (on.rivers && f.rivers.length) ? terrainRegions(f) : new Map<Terrain, Line[]>();
   if (on.terrain) {
-    const regions = terrainRegions(f), base = used.find(t => t !== 'deep' && t !== 'water') ?? used[0];
+    const base = used.find(t => t !== 'deep' && t !== 'water') ?? used[0];
     const order = [...used.filter(t => t !== 'deep' && t !== 'water'), ...used.filter(t => t === 'water' || t === 'deep').reverse()];
     let g = `<rect width="${W}" height="${H}" fill="${th.terrain[base].fill}"/>`;
     for (const t of order) {
@@ -151,25 +135,15 @@ export function renderMapSvg(spec: MapSpec, o: RenderMapOptions = {}): string {
   const lineGroup = (id: string, lines: { pts: number[]; width: number }[], draw: (d: string, w: number) => string) =>
     lines.length ? `<g id="${id}" fill="none" stroke-linecap="round" stroke-linejoin="round">${lines.map(l => draw(pathData([{ pts: l.pts, closed: false }], k), Math.max(1.2 * u, l.width * k))).join('')}</g>` : '';
   const defs: string[] = [];
-  if (on.rivers && f.rivers.length) {
-    // tapering rivers are drawn as short pieces whose width grows along the river (round caps join them);
-    // B/W draws every black piece first, then the white cores, so the double line stays unbroken
-    const pieces = f.rivers.flatMap(l => taper(l, Math.max(0.5, l.width * 4)).map(p => ({ d: pathData([{ pts: p.pts, closed: false }], k), w: Math.max(1.2 * u, p.width * k) })));
-    let g = pieces.map(p => `<path d="${p.d}" stroke="${th.river}" stroke-width="${n1(p.w)}"/>`).join('');
-    if (th.riverCore) g += pieces.filter(p => p.w > 3).map(p => `<path d="${p.d}" stroke="${th.riverCore}" stroke-width="${n1(p.w * 0.45)}"/>`).join('');
-    // mouths: a flare shaded from the river's colour into the water it meets (B/W: open paper between two banks),
-    // drawn over the coastline so the river runs into the lake or sea
-    f.mouths.forEach((m, i) => {
-      const d = pathData([{ pts: m.outline, closed: true }], k);
-      if (th.riverCore) {
-        g += `<path d="${d}" fill="${th.riverCore}" stroke="none"/>`;
-        g += `<path d="${pathData(m.banks.map(b => ({ pts: b, closed: false })), k)}" stroke="${th.river}" stroke-width="${n1(Math.max(u, m.width * k * 0.275))}"/>`;
-      } else {
-        defs.push(`<linearGradient id="mouth-${i}" gradientUnits="userSpaceOnUse" x1="${n1(m.from[0] * k)}" y1="${n1(m.from[1] * k)}" x2="${n1(m.to[0] * k)}" y2="${n1(m.to[1] * k)}"><stop offset="0" stop-color="${th.river}"/><stop offset="0.2" stop-color="${th.river}"/><stop offset="1" stop-color="${th.terrain[m.into].fill}"/></linearGradient>`);
-        g += `<path d="${d}" fill="url(#mouth-${i})" stroke="none"/>`;
-      }
-    });
-    parts.push(`<g id="rivers" fill="none" stroke-linecap="round" stroke-linejoin="round">${g}</g>`);
+  const riverD = on.rivers && f.rivers.length ? pathData(f.rivers.map(r => ({ pts: r.outline, closed: true })), k) : '';
+  if (riverD) {
+    // each river is a filled ribbon. Banks first: every outline in the bank colour with a wide stroke, masked out
+    // over open water so the banks stop at the coastline and run into it; then every outline filled with the
+    // shallow-water fill, which covers the coast where a river crosses it, matches the lake or sea it opens into,
+    // and merges rivers where a tributary joins
+    const d = riverD, water = pathData([...(regions.get('water') ?? []), ...(regions.get('deep') ?? [])], k);
+    defs.push(`<mask id="river-land" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}"><rect width="${W}" height="${H}" fill="#fff"/>${water ? `<path d="${water}" fill="#000" fill-rule="evenodd"/>` : ''}</mask>`);
+    parts.push(`<g id="rivers" stroke-linejoin="round"><g mask="url(#river-land)"><path d="${d}" fill="${th.riverBank}" stroke="${th.riverBank}" stroke-width="${n1(th.riverBankWidth * 2 * u)}"/></g><path d="${d}" fill="${th.terrain.water.fill}"/></g>`);
   }
   if (on.roads) parts.push(lineGroup('roads', f.roads, (d, w) => `<path d="${d}" stroke="${th.road}" stroke-width="${n1(w)}" stroke-dasharray="${n1(w * 3)} ${n1(w * 2)}"/>`));
 
@@ -185,7 +159,9 @@ export function renderMapSvg(spec: MapSpec, o: RenderMapOptions = {}): string {
         g += `<g stroke="none">${haloText(`${level * spec.topo.interval} ${spec.topo.unit}`, x, y + 4 * u, 10 * u, th.contour, th)}</g>`;
       }
     }
-    parts.push(`<g id="contours" fill="none" stroke="${th.contour}" stroke-opacity="${th.contourOpacity}" stroke-linejoin="round" stroke-linecap="round">${g}</g>`);
+    // contour lines stop at the river banks rather than crossing the water
+    if (riverD) defs.push(`<mask id="no-river" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}"><rect width="${W}" height="${H}" fill="#fff"/><path d="${riverD}" fill="#000" stroke="#000" stroke-width="${n1(th.riverBankWidth * 2 * u)}" stroke-linejoin="round"/></mask>`);
+    parts.push(`<g id="contours"${riverD ? ' mask="url(#no-river)"' : ''} fill="none" stroke="${th.contour}" stroke-opacity="${th.contourOpacity}" stroke-linejoin="round" stroke-linecap="round">${g}</g>`);
   }
 
   if (on.grid && spec.grid.type !== 'none') {
@@ -223,7 +199,7 @@ export function renderMapSvg(spec: MapSpec, o: RenderMapOptions = {}): string {
     let g = box(x, y, bw, bh);
     rows.forEach(([t, name], i) => {
       const sx = x + 8 * u, sy = y + 6 * u + i * rh + 2 * u, sw = 24 * u, sh = rh - 5 * u;
-      if (t === 'river') g += `<path d="M${n1(sx)} ${n1(sy + sh / 2)}h${n1(sw)}" stroke="${th.river}" stroke-width="${n1(3 * u)}"/>`;
+      if (t === 'river') g += `<path d="M${n1(sx)} ${n1(sy + sh / 2)}h${n1(sw)}" stroke="${th.riverBank}" stroke-width="${n1(5 * u)}"/><path d="M${n1(sx + th.riverBankWidth * u)} ${n1(sy + sh / 2)}h${n1(sw - 2 * th.riverBankWidth * u)}" stroke="${th.terrain.water.fill}" stroke-width="${n1(5 * u - 2 * th.riverBankWidth * u)}"/>`;
       else if (t === 'road') g += `<path d="M${n1(sx)} ${n1(sy + sh / 2)}h${n1(sw)}" stroke="${th.road}" stroke-width="${n1(2 * u)}" stroke-dasharray="${n1(5 * u)} ${n1(3 * u)}"/>`;
       else {
         const st = th.terrain[t as Terrain];

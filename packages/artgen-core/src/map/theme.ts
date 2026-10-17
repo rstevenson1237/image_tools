@@ -22,9 +22,9 @@ export interface MapTheme {
   coastWidth: number;
   contour: string;
   contourOpacity: number;
-  river: string;
-  /** B/W rivers are a black line with a white core. */
-  riverCore?: string;
+  /** River banks (the river is filled with the shallow-water fill, so it runs into lakes and the sea seamlessly). */
+  riverBank: string;
+  riverBankWidth: number;
   road: string;
   grid: string;
   gridOpacity: number;
@@ -56,7 +56,7 @@ export const THEME: Record<ThemeName, MapTheme> = {
       rock: { fill: '#b3a998', pattern: 'hatch', ink: '#7d7263' }, snow: { fill: '#f8f8f4' },
     },
     edge: 'own', edgeWidth: 1, coast: '#3d6a8f', coastWidth: 1.3,
-    contour: '#7f5f3f', contourOpacity: 0.65, river: '#3f78a8', road: '#7a4f2a', grid: '#2b2b2b', gridOpacity: 0.3,
+    contour: '#7f5f3f', contourOpacity: 0.65, riverBank: '#3d6a8f', riverBankWidth: 0.9, road: '#7a4f2a', grid: '#2b2b2b', gridOpacity: 0.3,
     label: { region: '#3b2a1a', place: '#1e1e1e', water: '#1f4f7a', note: '#3a3a3a' }, halo: '#ffffff', symbolFill: '#fbf7ee',
   },
   bw: {
@@ -69,7 +69,7 @@ export const THEME: Record<ThemeName, MapTheme> = {
       rock: { fill: '#ffffff', pattern: 'hatch', ink: '#000000' }, snow: { fill: '#ffffff', pattern: 'snow', ink: '#000000' },
     },
     edge: '#000000', edgeWidth: 0.7, coast: '#000000', coastWidth: 1.6,
-    contour: '#555555', contourOpacity: 0.8, river: '#000000', riverCore: '#ffffff', road: '#000000', grid: '#000000', gridOpacity: 0.3,
+    contour: '#555555', contourOpacity: 0.8, riverBank: '#000000', riverBankWidth: 1.1, road: '#000000', grid: '#000000', gridOpacity: 0.3,
     label: { region: '#000000', place: '#000000', water: '#000000', note: '#000000' }, halo: '#ffffff', symbolFill: '#ffffff',
   },
 };
