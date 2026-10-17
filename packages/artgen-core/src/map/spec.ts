@@ -33,7 +33,8 @@ export type MapEdit =
   | { op: 'paint'; terrain: Terrain; shape: Shape }
   /** Raise (amount > 0) or lower the ground, in fractions of the full height range (-1..1), with a soft edge. */
   | { op: 'elevate'; amount: number; shape: Shape }
-  | { op: 'river'; points: number[]; width?: number }
+  /** A river: thin at its first point, `width` (map units) at its last; a delta where it ends in water unless `delta: false`. */
+  | { op: 'river'; points: number[]; width?: number; delta?: boolean }
   | { op: 'road'; points: number[] };
 
 export interface MapLabel { text: string; x: number; y: number; kind: LabelKind; size?: number; angle?: number }
@@ -144,7 +145,11 @@ export function validateMap(raw: unknown): string[] {
     const at = `edits[${i}]`;
     if (ed?.op === 'paint') { if (!TERRAINS.includes(ed.terrain)) e.push(`${at}.terrain: one of ${TERRAINS.join(', ')}`); e.push(...shapeErrors(ed.shape, `${at}.shape`)); }
     else if (ed?.op === 'elevate') { if (!isNum(ed.amount) || Math.abs(ed.amount) > 1) e.push(`${at}.amount: -1..1`); e.push(...shapeErrors(ed.shape, `${at}.shape`)); }
-    else if (ed?.op === 'river' || ed?.op === 'road') { if (!nums(ed.points) || ed.points.length < 4 || ed.points.length % 2) e.push(`${at}.points: at least 2 x,y pairs`); }
+    else if (ed?.op === 'river' || ed?.op === 'road') {
+      if (!nums(ed.points) || ed.points.length < 4 || ed.points.length % 2) e.push(`${at}.points: at least 2 x,y pairs`);
+      if (ed.op === 'river' && ed.width !== undefined && !(isNum(ed.width) && ed.width > 0)) e.push(`${at}.width: > 0`);
+      if (ed.op === 'river' && ed.delta !== undefined && typeof ed.delta !== 'boolean') e.push(`${at}.delta: true or false`);
+    }
     else e.push(`${at}.op: paint, elevate, river or road`);
   });
   const o = m.overlay;

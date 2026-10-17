@@ -109,4 +109,27 @@ describe('terrain maps', () => {
     const m = small(), f = generateMap(m), svg = renderMapSvg(m, { field: f }), legend = svg.slice(svg.indexOf('<g id="legend"'));
     for (const t of TERRAINS) expect(legend.includes(`>${map.TERRAIN_NAMES[t]}<`)).toBe(terrainsUsed(f).includes(t));
   });
+
+  test('rivers start thin and widen downhill; a river into a lake fans into a delta (unless delta: false)', () => {
+    const base = small({ gen: { ...small().gen, sea: 0, rivers: 0 } });
+    const lake = { op: 'paint' as const, terrain: 'water' as const, shape: { circle: [12, 6, 2.5] as [number, number, number] } };
+    const f = generateMap({ ...base, edits: [lake, { op: 'river', points: [1, 6, 4, 5, 7, 6.5, 9, 6] }] });
+    const [main, ...delta] = f.rivers;
+    expect(main.start).toBeLessThan(main.width);
+    expect(main.width).toBe(map.riverWidth(base));
+    expect(at(f, main.pts[main.pts.length - 2], main.pts[main.pts.length - 1])).toBe('water'); // carried on to the lake shore
+    expect(delta.length).toBeGreaterThanOrEqual(1);
+    for (const d of delta) expect(at(f, d.pts[d.pts.length - 2], d.pts[d.pts.length - 1])).toBe('water');
+    expect(generateMap({ ...base, edits: [lake, { op: 'river', points: [1, 6, 4, 5, 7, 6.5, 9, 6], delta: false }] }).rivers).toHaveLength(1);
+    expect(generateMap({ ...base, edits: [{ op: 'river', points: [1, 6, 4, 5, 7, 6.5] }] }).rivers).toHaveLength(1); // no water nearby: no delta
+    const pieces = map.taper(main, 0.5);
+    expect(pieces.length).toBeGreaterThan(3);
+    for (let i = 1; i < pieces.length; i++) expect(pieces[i].width).toBeGreaterThan(pieces[i - 1].width);
+  });
+
+  test('generated rivers taper too', () => {
+    const f = generateMap(newMap('r', 'regional', { seed: 14 }));
+    expect(f.rivers.length).toBeGreaterThan(0);
+    expect(f.rivers.every(r => r.start !== undefined && r.start !== r.width)).toBe(true);
+  });
 });

@@ -7,7 +7,13 @@ import { pGradient } from '../tex/noise.ts';
 import { RESOLUTION, TERRAINS, type MapSpec, type Shape, type Terrain } from './spec.ts';
 import { chaikin, simplifyLine, type Line } from './trace.ts';
 
-export interface MapLine { pts: number[]; width: number }
+export interface MapLine {
+  pts: number[];
+  /** Width in map units at the last point. */
+  width: number;
+  /** Width at the first point, when the line tapers (rivers: a thin source widening downhill). */
+  start?: number;
+}
 
 export interface MapField {
   /** Samples per map unit; sample (i, j) sits at ((i + 0.5) / res, (j + 0.5) / res). */
@@ -142,7 +148,7 @@ function fillDepressions(h: Float32Array, w: number, hh: number, water: Uint8Arr
 }
 
 /** Trace generated rivers downhill from high ground; marks river samples in `wet`. */
-function traceRivers(spec: MapSpec, filled: Float32Array, elev: Float32Array, water: Uint8Array, w: number, h: number, res: number, wet: Uint8Array): MapLine[] {
+function traceRivers(spec: MapSpec, filled: Float32Array, elev: Float32Array, water: Uint8Array, w: number, h: number, res: number, wet: Uint8Array): { pts: number[]; mouth: boolean }[] {
   const n = spec.gen.rivers;
   if (!n) return [];
   const r = rng(spec.seed * 31 + 7), cands: number[] = [];
@@ -153,14 +159,15 @@ function traceRivers(spec: MapSpec, filled: Float32Array, elev: Float32Array, wa
     const k = cands[Math.floor(Math.pow(r(), 2) * cands.length)], x = k % w, y = (k - x) / w;
     if (sources.every(s => Math.hypot((s % w) - x, Math.floor(s / w) - y) > spacing)) sources.push(k);
   }
-  const width = spec.preset === 'local' ? 0.35 : 0.16, out: MapLine[] = [];
+  const out: { pts: number[]; mouth: boolean }[] = [];
   for (const s of sources) {
     const path: number[] = [];
-    let k = s;
+    let k = s, mouth = false;
     for (let step = 0; step < w * h; step++) {
       const x = k % w, y = (k - x) / w;
       path.push((x + 0.5) / res, (y + 0.5) / res);
-      if (water[k] || wet[k] === 2) break;
+      if (water[k]) { mouth = true; break; }
+      if (wet[k] === 2) break;
       wet[k] = 2;
       let best = -1, low = filled[k];
       for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
@@ -172,7 +179,60 @@ function traceRivers(spec: MapSpec, filled: Float32Array, elev: Float32Array, wa
       k = best;
     }
     if (path.length / 2 < res * 3) continue;
-    out.push({ pts: smoothLine(path, res), width });
+    out.push({ pts: smoothLine(path, res), mouth });
+  }
+  return out;
+}
+
+/**
+ * Fit a river's mouth to the shore as drawn (the simplified terrain, not the raw height field): cut it just past the
+ * first point in water, or carry it on in its last direction (up to 3 units) until it reaches water. Null when no
+ * water is that close: the river keeps its course and gets no delta.
+ */
+function toShore(pts: number[], water: (x: number, y: number) => boolean): number[] | null {
+  const n = pts.length / 2;
+  for (let i = 2; i < n; i++) if (water(pts[i * 2], pts[i * 2 + 1])) return pts.slice(0, (i + 1) * 2);
+  const ex = pts[n * 2 - 2], ey = pts[n * 2 - 1];
+  let k = n - 2, dx = 0, dy = 0;
+  while (k > 0 && Math.hypot(ex - pts[k * 2], ey - pts[k * 2 + 1]) < 0.5) k--;
+  dx = ex - pts[k * 2]; dy = ey - pts[k * 2 + 1];
+  const len = Math.hypot(dx, dy);
+  if (!len) return null;
+  for (let d = 0.1; d <= 3; d += 0.1) {
+    const x = ex + (dx / len) * d, y = ey + (dy / len) * d;
+    if (water(x, y)) return [...pts, ex + (dx / len) * (d + 0.15), ey + (dy / len) * (d + 0.15)];
+  }
+  return null;
+}
+
+/** River width at the mouth for a preset (map units); sources start at a fifth of it. */
+export const riverWidth = (spec: Pick<MapSpec, 'preset'>): number => (spec.preset === 'local' ? 0.35 : 0.16);
+const SOURCE = 0.2;
+
+/**
+ * A river that ends in open water fans out into a small delta: two side channels split off a short way up from the
+ * mouth, bend away from the main channel and run on until they reach water. Channels that never reach water are
+ * dropped, so a mouth in a narrow inlet keeps just its main channel.
+ */
+function riverDelta(main: number[], width: number, isWater: (x: number, y: number) => boolean, r: () => number): MapLine[] {
+  const n = main.length / 2, reach = width * 7;
+  if (n < 3) return [];
+  // the split point: `reach` back along the river from the mouth
+  let i = n - 1, run = 0;
+  while (i > 0 && run < reach) { run += Math.hypot(main[i * 2] - main[i * 2 - 2], main[i * 2 + 1] - main[i * 2 - 1]); i--; }
+  if (run < reach * 0.6) return [];
+  const sx = main[i * 2], sy = main[i * 2 + 1], ex = main[n * 2 - 2], ey = main[n * 2 - 1], flow = Math.atan2(ey - sy, ex - sx), out: MapLine[] = [];
+  for (const side of [-1, 1]) {
+    // leave the main channel at an angle, then swing back toward the flow: a finger of the fan, not a fork
+    const spread = side * (0.6 + r() * 0.25), pts = [sx, sy], step = reach / 10;
+    let x = sx, y = sy, reached = false;
+    for (let k = 1; k <= 18; k++) {
+      const t = Math.min(1, k / 10), a = flow + spread * (1 - 0.7 * t);
+      x += Math.cos(a) * step; y += Math.sin(a) * step;
+      pts.push(x, y);
+      if (k > 3 && isWater(x, y)) { reached = true; x += Math.cos(a) * step; y += Math.sin(a) * step; pts.push(x, y); break; }
+    }
+    if (reached) out.push({ pts: simplifyLine(chaikin({ pts, closed: false }, 2), 0.01).pts, width: width * 0.45, start: width * 0.6 });
   }
   return out;
 }
@@ -253,13 +313,17 @@ export function generateMap(spec: MapSpec): MapField {
     else elev[n] = Math.min(1, (raw[n] - seaLevel) / (1 - seaLevel || 1));
   }
   const terrain = new Uint8Array(N), wet = new Uint8Array(N);
-  const rivers = traceRivers(spec, fillDepressions(raw, w, h, water), elev, water, w, h, res, wet);
+  // open water as the edits leave it (painted lakes included): where generated rivers stop
+  const open = Uint8Array.from(water);
+  for (const ed of spec.edits) if (ed.op === 'paint') { const v = ed.terrain === 'water' || ed.terrain === 'deep' ? 1 : 0; eachCovered(field, ed.shape, false, i => { open[i] = v; }); }
+  // rivers are traced now (they wet the land around them); their mouths are fitted to the drawn shore at the end
+  const mains: { pts: number[]; width: number; mouth: boolean }[] = traceRivers(spec, fillDepressions(raw, w, h, water), elev, open, w, h, res, wet).map(r => ({ ...r, width: riverWidth(spec) }));
+  for (const ed of spec.edits) if (ed.op === 'river') mains.push({ pts: smoothLine(ed.points, res), width: ed.width ?? riverWidth(spec), mouth: ed.delta !== false });
   const roads: MapLine[] = [];
   for (const ed of spec.edits) {
-    if (ed.op === 'river') rivers.push({ pts: smoothLine(ed.points, res), width: ed.width ?? (spec.preset === 'local' ? 0.35 : 0.16) });
     if (ed.op === 'road') roads.push({ pts: smoothLine(ed.points, res), width: spec.preset === 'local' ? 0.5 : 0.08 });
   }
-  for (const rv of rivers) markLine(rv.pts, rv.width, w, h, res, wet);
+  for (const rv of mains) markLine(rv.pts, rv.width, w, h, res, wet);
 
   // moisture: noise, plus nearness to water and rivers, biased by the moisture setting
   const near = new Float32Array(N);
@@ -277,6 +341,15 @@ export function generateMap(spec: MapSpec): MapField {
   const simple = simplifyTerrain(terrain, w, h, Math.ceil(g.simplify), minArea);
   for (const ed of spec.edits) if (ed.op === 'paint') { const c = T[ed.terrain]; eachCovered(field, ed.shape, false, i => { simple[i] = c; }); }
   for (let n = 0; n < N; n++) if (isWater(simple[n])) elev[n] = 0;
+
+  // each river runs from a thin source to its full width at the mouth; one that ends in water as drawn gets a delta
+  const shown = (x: number, y: number) => { const i = Math.floor(x * res), j = Math.floor(y * res); return i >= 0 && j >= 0 && i < w && j < h && isWater(simple[j * w + i]); };
+  const rivers: MapLine[] = [], rr = rng(spec.seed * 17 + 3);
+  for (const m of mains) {
+    const fit = m.mouth ? toShore(m.pts, shown) : null, pts = fit ?? m.pts;
+    rivers.push({ pts, width: m.width, start: m.width * SOURCE });
+    if (fit) rivers.push(...riverDelta(pts, m.width, shown, rr));
+  }
   return { res, w, h, elevation: elev, terrain: simple, rivers, roads };
 }
 

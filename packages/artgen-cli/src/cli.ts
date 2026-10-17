@@ -130,7 +130,7 @@ usage: artgen init
        artgen fx <preset> [--size 32|WxH] [--frames 8] [--seed n] [--scale n] [--out dir] | fx --list
        artgen map new <id> [--preset regional|local] [--size 30x22] [--grid hex|square|none] [--seed n] [--title "..."]
        artgen map gen <id> [--seed n] [--land mixed|island|inland] [--sea f] [--moisture f] [--roughness f] [--relief f] [--rivers n] [--simplify n] [--feature n] [--interval n] [--max-elevation n] [--topo-labels on|off]
-       artgen map edit <id> paint --terrain t <shape> | elevate --amount ±f <shape> | river|road --points x,y,… [--width w] | undo
+       artgen map edit <id> paint --terrain t <shape> | elevate --amount ±f <shape> | river --points x,y,… [--width w] [--delta off] | road --points x,y,… | undo
                   <shape>: --circle x,y,r | --poly x,y,x,y,… | --stroke x,y,… --width w   (terrains: ${map.TERRAINS.join(', ')})
        artgen map grid <id> hex|square|none [--size n] [--coords on|off]
        artgen map label <id> "Text" --at x,y|0304|C4 [--kind region|place|water|note] [--size f] [--angle deg]
@@ -204,7 +204,7 @@ async function mapCommand(sub: string | undefined, args: string[], print: (human
         if (!map.TERRAINS.includes(t)) throw new Error(`--terrain: one of ${map.TERRAINS.join(', ')}`);
         m.edits.push({ op, terrain: t, shape: shape() });
       } else if (op === 'elevate') m.edits.push({ op, amount: num(args, '--amount') ?? 0.2, shape: shape() });
-      else if (op === 'river') m.edits.push({ op, points: numbers(flag(args, '--points'), '--points'), ...(num(args, '--width') !== undefined && { width: num(args, '--width') }) });
+      else if (op === 'river') m.edits.push({ op, points: numbers(flag(args, '--points'), '--points'), ...(num(args, '--width') !== undefined && { width: num(args, '--width') }), ...(onOff(flag(args, '--delta')) === false && { delta: false }) });
       else if (op === 'road') m.edits.push({ op, points: numbers(flag(args, '--points'), '--points') });
       else throw new Error('map edit <id> paint|elevate|river|road|undo');
       summary = `edit ${m.edits.length - 1}: ${op}`;

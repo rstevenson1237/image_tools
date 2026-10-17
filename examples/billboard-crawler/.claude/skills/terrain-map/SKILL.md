@@ -35,10 +35,14 @@ node tools/artgen/artgen.js map gen <id> --simplify 4 --interval 1000 # calmer: 
 node tools/artgen/artgen.js map edit <id> paint --terrain forest --circle 12,8,3
 node tools/artgen/artgen.js map edit <id> paint --terrain water --poly 4,4,8,3,9,7,5,8       # a lake
 node tools/artgen/artgen.js map edit <id> elevate --amount 0.4 --stroke 3,15,10,12,18,14 --width 3   # a ridge (negative: a valley)
-node tools/artgen/artgen.js map edit <id> river --points 20,2,18,8,21,14,19,22
+node tools/artgen/artgen.js map edit <id> river --points 20,2,18,8,21,14,19,22   # source first: thin there, full width at the mouth
 node tools/artgen/artgen.js map edit <id> road --points 2,10,10,11,25,9
 node tools/artgen/artgen.js map edit <id> undo
 ```
+Rivers (generated and drawn) start as a thin line at the source and widen toward the mouth. One that ends in the sea
+or a lake (painted lakes count) is carried to the shore and fans into a small delta; give `--delta off` for a plain
+mouth, and draw rivers from the source down, never from the mouth up.
+
 Terrains: `deep water marsh sand desert grass scrub forest rock snow`. Edits apply in order on top of the generated
 terrain, so a later paint wins; `gen` keeps every edit. If the user wants "the same map but …", edit — don't reseed.
 

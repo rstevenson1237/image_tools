@@ -6,7 +6,8 @@
  *   artgen map new <id> [--preset regional|local] [--size 30x22] [--grid hex|square|none] [--seed n] [--title "…"]
  *   artgen map gen <id> [--seed n] [--land mixed|island|inland] [--sea f] [--moisture f] [--roughness f] [--relief f]
  *                       [--rivers n] [--simplify n] [--feature n] [--interval n] [--max-elevation n] [--topo-labels on|off]
- *   artgen map edit <id> paint --terrain t <shape> | elevate --amount ±f <shape> | river|road --points x,y,… [--width w] | undo
+ *   artgen map edit <id> paint --terrain t <shape> | elevate --amount ±f <shape> | river --points x,y,… [--width w] [--delta off]
+ *                       | road --points x,y,… | undo   (rivers widen from source to mouth; a delta where they end in water)
  *       <shape>: --circle x,y,r | --poly x,y,x,y,… | --stroke x,y,… --width w
  *   artgen map grid <id> hex|square|none [--size n] [--coords on|off]
  *   artgen map label <id> "Text" --at x,y|0304|C4 [--kind region|place|water|note] [--size f] [--angle deg]

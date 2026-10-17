@@ -3,7 +3,7 @@
  * symbols, labels, then the legend, scale bar, compass and title. Any layer can be turned off, so the same file
  * gives a bare terrain image, or the full map once labels and symbols are added as a follow-up.
  */
-import { generateMap, terrainsUsed, type MapField } from './generate.ts';
+import { generateMap, terrainsUsed, type MapField, type MapLine } from './generate.ts';
 import { gridGeometry } from './gridlines.ts';
 import { TERRAIN_NAMES, TERRAINS, type MapSpec, type Terrain } from './spec.ts';
 import { SYMBOLS } from './symbols.ts';
@@ -104,6 +104,23 @@ function haloText(text: string, x: number, y: number, size: number, color: strin
   return `<text ${a} fill="none" stroke="${th.halo}" stroke-width="${n1(size * 0.22)}" stroke-linejoin="round" stroke-opacity="0.9">${esc(text)}</text><text ${a} fill="${color}">${esc(text)}</text>`;
 }
 
+/** Split a tapering line into pieces about `step` long, each with the width at its middle; a constant line stays whole. */
+export function taper(l: MapLine, step: number): MapLine[] {
+  if (l.start === undefined || l.start === l.width) return [l];
+  const total = lineLength(l.pts) || 1, out: MapLine[] = [];
+  let piece = [l.pts[0], l.pts[1]], from = 0, run = 0;
+  for (let i = 2; i < l.pts.length; i += 2) {
+    run += Math.hypot(l.pts[i] - l.pts[i - 2], l.pts[i + 1] - l.pts[i - 1]);
+    piece.push(l.pts[i], l.pts[i + 1]);
+    if (run - from >= step || i === l.pts.length - 2) {
+      const t = (from + run) / 2 / total;
+      out.push({ pts: piece, width: l.start + (l.width - l.start) * t });
+      piece = [l.pts[i], l.pts[i + 1]]; from = run;
+    }
+  }
+  return out;
+}
+
 /** A round number of cells for the scale bar, about a fifth of the map wide. */
 function scaleCells(spec: MapSpec): number {
   const target = spec.cols / 5;
@@ -133,7 +150,14 @@ export function renderMapSvg(spec: MapSpec, o: RenderMapOptions = {}): string {
 
   const lineGroup = (id: string, lines: { pts: number[]; width: number }[], draw: (d: string, w: number) => string) =>
     lines.length ? `<g id="${id}" fill="none" stroke-linecap="round" stroke-linejoin="round">${lines.map(l => draw(pathData([{ pts: l.pts, closed: false }], k), Math.max(1.2 * u, l.width * k))).join('')}</g>` : '';
-  if (on.rivers) parts.push(lineGroup('rivers', f.rivers, (d, w) => `<path d="${d}" stroke="${th.river}" stroke-width="${n1(w)}"/>${th.riverCore && w > 3 ? `<path d="${d}" stroke="${th.riverCore}" stroke-width="${n1(w * 0.45)}"/>` : ''}`));
+  if (on.rivers && f.rivers.length) {
+    // tapering rivers are drawn as short pieces whose width grows along the river (round caps join them);
+    // B/W draws every black piece first, then the white cores, so the double line stays unbroken
+    const pieces = f.rivers.flatMap(l => taper(l, Math.max(0.5, l.width * 4)).map(p => ({ d: pathData([{ pts: p.pts, closed: false }], k), w: Math.max(1.2 * u, p.width * k) })));
+    let g = pieces.map(p => `<path d="${p.d}" stroke="${th.river}" stroke-width="${n1(p.w)}"/>`).join('');
+    if (th.riverCore) g += pieces.filter(p => p.w > 3).map(p => `<path d="${p.d}" stroke="${th.riverCore}" stroke-width="${n1(p.w * 0.45)}"/>`).join('');
+    parts.push(`<g id="rivers" fill="none" stroke-linecap="round" stroke-linejoin="round">${g}</g>`);
+  }
   if (on.roads) parts.push(lineGroup('roads', f.roads, (d, w) => `<path d="${d}" stroke="${th.road}" stroke-width="${n1(w)}" stroke-dasharray="${n1(w * 3)} ${n1(w * 2)}"/>`));
 
   if (on.contours) {
