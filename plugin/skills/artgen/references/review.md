@@ -19,7 +19,7 @@ Always open the PNG and look before scoring (R7). Read the 1× panel first: that
 | 0–2.5 | wrong subject, broken render |
 
 Penalise: a silhouette that doesn't read in black (if you couldn't name it from the black panel, it won't read in the
-game), a body far off its brief `height` (the `height` check: drawn vs real-world size), unreadable silhouette at 1×, pillow shading, banding, orphan pixels, jaggies on curves, lines thicker than
+game), a body far off its brief `height` (the `height` check: drawn vs real-world size, measured over the first state's frames; it fails upright characters and creatures more than 15 % off), unreadable silhouette at 1×, pillow shading, banding, orphan pixels, jaggies on curves, lines thicker than
 the direction's weight, details below `detail.minFeaturePx`, anything that would not sit beside the anchors.
 
 ## Score notes

@@ -28,7 +28,7 @@ server exposes the same tools and returns images directly: `direction_get`, `dir
 | S1 base | T2+ primitive scene from the brief + direction tokens | `base.vN.js` |
 | S2 procedural | `ctx.lib.proc(scene).add(...)` layers: noise, patterns, rim light, AO, shadows, dither | same file |
 | v1–v3 revisions | v1 first build, then v2, v3 — each rendered, reviewed, scored; revise from the **best** so far (R12) | `base.v1..v3.js` |
-| F finish | one direct-pixel pass on the best base, stored as ops (R2) | `finish.v1.js` |
+| F finish | one direct-pixel pass on the best base, stored as ops (R2) — in projects only when the review names a finish-level problem or the base clears the bar (`review.finish: auto`) | `finish.v1.js` |
 | U user | the user approves or gives feedback → `base.vN+1` (form/colour) or `finish.vM+1` (pixels) | |
 
 The loop — let the state machine decide each step:
@@ -77,9 +77,17 @@ Other artgen skills, agents and CLI messages cite these by number.
   `corners`) rarely changes T2+ output (its speckle is material noise, which reads as texture): write ops that target
   what the review named (an edge to light, a notch, a highlight run). On the example games, revisions added +1.27 on
   average and finishing +0.13.
+- In the first production run (70 assets) the finishing pass averaged −0.06 and regressed 30 % of assets for a third of
+  the tokens, so projects now finish only on a finish-level note (outline, banding, clusters, jaggies, stray pixels) or
+  a base over `approveMin`, and the final is the best-scoring version — a finish that loses ships its base.
+- `fix.jaggies` leaves an iso tile's diamond rim alone: its 2:1 stair is the edge, not a jaggy.
 - Style-tile probes run a short pipeline (v1 + finish), roughly a point below a fully revised asset.
-- Turning figures (`--directions 8`) start from the walker template: `ctx.facing` → yaw, `ctx.t` drives the walk.
-  Draw s, se, e, ne, n; west facings are mirrors. Check every facing row on the sheet, not just the first.
+- Turning figures (`--directions 8`) start from the walker template (top-down or iso): `ctx.facing` → yaw, `ctx.t`
+  drives the walk. Draw s, se, e, ne, n; west facings are mirrors. Check every facing row on the sheet, not just the first.
+- Bodies the humanoid walker doesn't cover start from a rig (brief `body`): `creature-quadruped`, `-serpent`,
+  `-flyer`, `-large`, each with `layout(ctx)`, four facings, a walk and a `ground` anchor. Keep the rig's proportions
+  relative to the brief's `height`: an upright character or creature more than 15 % off its height fails the gate in
+  a project (`review.heightFail`); low bodies (quadruped, serpent, flyer) and first-person billboards only flag.
 - Markings and variation: the `detail` procedural layer stamps a seeded mask template (Bollinger-style) onto a part;
   pass `seed: ctx.variant` so every variant gets its own markings.
 

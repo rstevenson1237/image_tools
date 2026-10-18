@@ -1,6 +1,6 @@
 {
   "name": "artgen-dist",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "artgen committed install: run `init` or `update` in a game repo root, then commit.",
   "type": "module",
   "bin": {

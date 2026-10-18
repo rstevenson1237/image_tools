@@ -1,0 +1,1 @@
+{"kind": "creature", "size": "large", "body": "large", "states": ["idle", "walk"], "directions": 4, "anims": {"walk": {"frames": 4}}, "importance": "hero", "review": {"scale": 3, "sym": "none", "iso": true}}

@@ -6688,6 +6688,10 @@ function bodyHeight(g) {
   }
   return top < 0 ? 0 : bottom - top + 1;
 }
+function standFrames(r) {
+  const cs = r.cells.filter((c) => c.state === r.states[0] && c.facing === r.facings[0]);
+  return (cs.length ? cs : r.cells.slice(0, 1)).map((c) => c.grid);
+}
 function lintSource(src) {
   const out = [], re = /(#[0-9a-fA-F]{8}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3})(?![0-9a-zA-Z_-])|\brgba?\s*\(/;
   src.split("\n").forEach((l, i) => {
@@ -6822,12 +6826,13 @@ function conformance(input) {
   if (!input.height) add2("height", "skip", "no real-world height in the brief");
   else if (kind && (TILE_KINDS.has(kind) || LAYER_KINDS.has(kind))) add2("height", "skip", `${kind}: ground plane or scenery`);
   else {
-    const want = input.height.metres * input.height.pxPerMetre, got = bodyHeight(frames[0]), dev = (got - want) / want;
-    const fits = !size || want <= size[1];
+    const want = input.height.metres * input.height.pxPerMetre, got = drawnHeight(input.height.frames ?? frames.slice(0, 1)), dev = (got - want) / want;
+    const h = input.height, fits = !size || want <= size[1];
+    const figure = th.heightFail !== void 0 && !!kind && FIGURE_KINDS.has(kind) && h.view !== "fp" && !LOW_BODIES.has(h.body ?? ""), limit = figure ? th.heightFail : th.heightTolerance;
     add2(
       "height",
-      Math.abs(dev) <= th.heightTolerance ? "pass" : "flag",
-      `${got} px drawn, ${want.toFixed(1)} px expected for ${input.height.metres} m (${dev >= 0 ? "+" : ""}${Math.round(dev * 100)} %)${fits ? "" : `; the ${size[1]} px frame is too short for it`}`
+      Math.abs(dev) <= limit ? "pass" : figure ? "fail" : "flag",
+      `${got} px drawn, ${want.toFixed(1)} px expected for ${input.height.metres} m (${dev >= 0 ? "+" : ""}${Math.round(dev * 100)} %, limit \xB1${Math.round(limit * 100)} %)${fits ? "" : `; the ${size[1]} px frame is too short for it`}`
     );
   }
   if (kind && TILE_KINDS.has(kind)) {
@@ -6855,7 +6860,7 @@ function conformance(input) {
   const metrics = measure(frames[0], { symAxis, palette: [...allowed2], shadow: shadowStr });
   return { pass: checks.every((c) => c.status !== "fail"), checks, metrics };
 }
-var DEFAULT_THRESHOLDS, N45, TILE_KINDS, LAYER_KINDS, EMISSIVE_KINDS;
+var DEFAULT_THRESHOLDS, drawnHeight, FIGURE_KINDS, LOW_BODIES, N45, TILE_KINDS, LAYER_KINDS, EMISSIVE_KINDS;
 var init_conformance = __esm({
   "../artgen-core/src/qa/conformance.ts"() {
     "use strict";
@@ -6865,6 +6870,9 @@ var init_conformance = __esm({
     init_anim2();
     init_tiles();
     DEFAULT_THRESHOLDS = { lineMin: 0.85, lineNoneMax: 0.15, lightTolerance: 4, ditherMax: 2, anchorMax: 0.6, heightTolerance: 0.2, seamMax: 1.8, borderMax: 25 };
+    drawnHeight = (frames) => Math.max(0, ...frames.map(bodyHeight));
+    FIGURE_KINDS = /* @__PURE__ */ new Set(["character", "creature"]);
+    LOW_BODIES = /* @__PURE__ */ new Set(["quadruped", "serpent", "flyer"]);
     N45 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
     TILE_KINDS = /* @__PURE__ */ new Set(["tile", "tileset", "texture"]);
     LAYER_KINDS = /* @__PURE__ */ new Set(["layer"]);
@@ -7030,6 +7038,9 @@ function passId(version, revisionPasses2, user) {
   const k = ub.indexOf(v.n);
   return k >= 0 ? `u${k + 1}` : `x${v.n - revisionPasses2 - ub.filter((n) => n < v.n).length}`;
 }
+function wantsFinish(note, score, approveMin) {
+  return score >= approveMin || !!note && FINISH_WORDS.test(note);
+}
 function blindScores(ledger) {
   const m = /* @__PURE__ */ new Map();
   for (const e of ledger) if (e.type === "score" && e.blind && e.version && typeof e.score === "number")
@@ -7046,16 +7057,21 @@ function blindIssues(own, blind, o) {
 function latestScores(ledger) {
   const m = /* @__PURE__ */ new Map();
   for (const e of ledger) if (e.type === "score" && !e.blind && e.version && typeof e.score === "number")
-    m.set(e.version, { score: e.score, gate: e.conformance?.pass, failing: e.conformance?.checks?.filter((c) => c.status === "fail").map((c) => `${c.id}: ${c.detail}`) });
+    m.set(e.version, { score: e.score, gate: e.conformance?.pass, failing: e.conformance?.checks?.filter((c) => c.status === "fail").map((c) => `${c.id}: ${c.detail}`), ...typeof e.note === "string" && e.note && { note: e.note } });
   return m;
+}
+function rosterNotes(ledger, version) {
+  const last = [...ledger].reverse().find((e) => e.type === "roster" && e.version === version && Array.isArray(e.issues));
+  return last?.issues ?? [];
 }
 function planPasses(input) {
   const { asset, revisionPasses: N3, finishPass } = input;
   const vs = input.versions.map(parseVersion).filter((v) => !!v);
   const bases = vs.filter((v) => v.kind === "base").sort((a, b) => a.n - b.n), finishes = vs.filter((v) => v.kind === "finish").sort((a, b) => a.n - b.n);
-  const scores = latestScores(input.ledger), fb = input.feedback, userOpened = fb?.map((f) => f.opens);
+  const scores = latestScores(input.ledger), fb = input.feedback, userFb = fb?.filter((f) => f.by !== "agent"), userOpened = userFb?.map((f) => f.opens);
   const pid = (v) => passId(v, N3, userOpened);
-  const isUserBase = (b) => b.n > N3 && (!fb || fb.some((f) => f.opens === b.name));
+  const isUserBase = (b) => b.n > N3 && (!fb || !!userFb?.some((f) => f.opens === b.name));
+  const isAgentOpened = (v) => !!fb?.some((f) => f.by === "agent" && f.opens === v);
   const rows = [...bases, ...finishes].map((v) => ({
     version: v.name,
     pass: pid(v.name),
@@ -7073,6 +7089,10 @@ function planPasses(input) {
     return best2;
   };
   const state = (next) => ({ asset, rows, best: bestOf(Infinity), next });
+  const roster2 = (v) => {
+    const n = v ? rosterNotes(input.ledger, v) : [];
+    return n.length ? `; the roster review of ${v} found: ${n.join("; ")}` : "";
+  };
   const unscored = [...bases, ...finishes].find((v) => !scores.has(v.name));
   if (unscored) return state({ action: "review", version: unscored.name, pass: pid(unscored.name), why: "render it, build the review sheet (v(n\u22121) beside v(n)), score it" });
   for (let i = 1; i <= N3; i++) {
@@ -7083,55 +7103,81 @@ function planPasses(input) {
       version: `base.v${i}`,
       pass: `r${i}`,
       from: from?.version,
-      why: from ? `revise from the best-scoring version so far, ${from.version} (${from.score}) \u2014 R12` : "first build: T2+ base + procedural pass from the brief and direction"
+      why: (from ? `revise from the best-scoring version so far, ${from.version} (${from.score}) \u2014 R12` : "first build: T2+ base + procedural pass from the brief and direction") + roster2(from?.version)
     });
   }
   const best = bestOf(Infinity);
   const lastFinish = finishes[finishes.length - 1], bound = lastFinish && input.finishBase?.[lastFinish.name];
   const nextBase = `base.v${(bases[bases.length - 1]?.n ?? 0) + 1}`, nextFinish = `finish.v${(lastFinish?.n ?? 0) + 1}`;
+  const baseOf = (v) => parseVersion(v)?.kind === "finish" ? input.finishBase?.[v] ?? best.version : v;
   const open = fb?.filter((f) => !vs.some((v) => v.name === f.opens)).pop();
   if (open) {
-    const shown = bound ?? best.version;
-    if (open.route === "base") return state({ action: "write-base", version: open.opens, pass: pid(open.opens), from: shown, why: `user feedback (form, proportion, colour): new base from ${shown}, the version the user saw${userWords(open)}` });
-    return state({ action: "write-finish", version: open.opens, pass: pid(open.opens), base: shown, why: `user feedback (pixels): finish revision on ${shown}${userWords(open)}` });
+    const shown = open.on && vs.some((v) => v.name === open.on) ? baseOf(open.on) : bound ?? best.version, who = open.by === "agent" ? `${open.source ?? "agent"} note` : "user feedback";
+    if (open.route === "base") return state({ action: "write-base", version: open.opens, pass: pid(open.opens), from: shown, why: `${who} (form, proportion, colour): new base from ${shown}, the version ${open.by === "agent" ? "the note is about" : "the user saw"}${userWords(open)}` });
+    return state({ action: "write-finish", version: open.opens, pass: pid(open.opens), base: shown, why: `${who} (pixels): finish revision on ${shown}${userWords(open)}` });
+  }
+  const iApprove = input.ledger.map((e) => e.type === "approve" && e.by === "user").lastIndexOf(true);
+  const approved = iApprove >= 0 ? input.ledger[iApprove].version : void 0;
+  if (approved && vs.some((v) => v.name === approved) && !input.ledger.slice(iApprove + 1).some((e) => e.type === "score" && !e.blind && e.version !== approved)) {
+    const a = scores.get(approved);
+    return state({ action: "ready", final: approved, best: best.version, issues: a.gate === false ? a.failing ?? ["gate failed"] : [], why: "approved by the user; nothing newer since" });
   }
   const userBases = bases.filter(isUserBase), target = userBases.length ? { version: userBases[userBases.length - 1].name, score: scores.get(userBases[userBases.length - 1].name).score } : best;
-  if (!finishPass) return state({ action: "ready", final: target.version, best: best.version, issues: scores.get(target.version)?.failing ?? [], why: "finishing pass disabled by the direction" });
-  if (!lastFinish) return state({ action: "write-finish", version: "finish.v1", pass: "f", base: target.version, why: `one direct-pixel pass on the best base, ${target.version} (${target.score}) \u2014 R2, R12` });
-  if (bound && bound !== target.version && (parseVersion(bound)?.n ?? 0) < parseVersion(target.version).n) {
+  const mode = !finishPass ? "never" : input.finish ?? "always", bar = input.approveMin ?? input.blind?.minScore ?? 6.5;
+  const finishedTarget = finishes.some((f) => (input.finishBase?.[f.name] ?? target.version) === target.version);
+  if (!finishedTarget && (mode === "always" || mode === "auto" && wantsFinish(scores.get(target.version).note, target.score, bar))) {
+    if (!lastFinish) return state({ action: "write-finish", version: "finish.v1", pass: "f", base: target.version, why: `one direct-pixel pass on the best base, ${target.version} (${target.score}) \u2014 R2, R12${mode === "auto" ? target.score >= bar ? ": it clears the bar, so only polish is left" : ": its review names a finish-level problem" : ""}` });
     const why = userBases.some((b) => b.name === target.version) ? `a user iteration produced ${target.version}; re-finish it` : `${target.version} (${target.score}) now beats ${bound}, which ${lastFinish.name} finishes; re-finish the best \u2014 R12`;
     return state({ action: "write-finish", version: nextFinish, pass: pid(nextFinish), base: target.version, why });
   }
-  const fin = scores.get(lastFinish.name), extrasUsed = bases.filter((b) => b.n > N3 && !isUserBase(b)).length;
-  const canExtra = !userBases.length && extrasUsed < (input.extraRevisions ?? 0);
-  if (fin.gate === false && canExtra)
-    return state({ action: "write-base", version: nextBase, pass: pid(nextBase), from: best.version, why: `the final still fails the gate (${(fin.failing ?? []).join("; ") || "see conformance"}): one extra autonomous revision from ${best.version} (budget)` });
-  let blindOpen = [];
-  if (input.blind && !input.ledger.some((e) => e.type === "approve" && e.by === "user" && e.version === lastFinish.name)) {
-    const bl = blindScores(input.ledger).get(lastFinish.name);
-    if (!bl) return state({ action: "blind-review", version: lastFinish.name, pass: "b", why: "a fresh reviewer scores the final from the blind sheet (`review --blind`, then `score --blind --reviewer <name>`): self-scores drift upward" });
-    blindOpen = blindIssues(fin.score, bl, input.blind);
-    if (blindOpen.length && canExtra)
+  const lastUser = [...userFb ?? []].reverse().find((f) => vs.some((v) => v.name === f.opens))?.opens;
+  let cands;
+  if (lastUser && parseVersion(lastUser).kind === "base") cands = [lastUser, ...finishes.filter((f) => input.finishBase?.[f.name] === lastUser).map((f) => f.name)];
+  else if (lastUser) cands = finishes.filter((f) => f.n >= parseVersion(lastUser).n && input.finishBase?.[f.name] === input.finishBase?.[lastUser]).map((f) => f.name);
+  else cands = [...bases, ...finishes].map((v) => v.name);
+  const passing = cands.filter((v) => scores.get(v).gate !== false), pool = passing.length ? passing : cands;
+  const order = (v) => {
+    const p = parseVersion(v);
+    return (p.kind === "finish" ? 1e3 : 0) + p.n;
+  };
+  const rank = (val) => (xs) => xs.filter((v) => val(v) !== void 0).sort((a, b) => val(b) - val(a) || order(b) - order(a))[0];
+  const own = (v) => scores.get(v).score, ownBest = rank(own)(pool);
+  const extrasUsed = bases.filter((b) => b.n > N3 && !isUserBase(b) && !isAgentOpened(b.name)).length;
+  const extraOk = (budget) => !userBases.length && extrasUsed < budget;
+  if (!passing.length && extraOk(input.extraRevisions ?? 0)) {
+    const f = scores.get(ownBest);
+    return state({ action: "write-base", version: nextBase, pass: pid(nextBase), from: best.version, why: `the final still fails the gate (${(f.failing ?? []).join("; ") || "see conformance"}): one extra autonomous revision from ${best.version} (budget)` });
+  }
+  let final = ownBest, blindOpen = [];
+  if (input.blind) {
+    const bls = blindScores(input.ledger);
+    if (!bls.has(ownBest)) return state({ action: "blind-review", version: ownBest, pass: "b", why: `a fresh reviewer scores ${ownBest}, the best-scoring version, from the blind sheet (\`review --blind\`, then \`score --blind --reviewer <name>\`): self-scores drift upward, so the final is chosen and gated on the blind score` });
+    final = rank((v) => bls.get(v)?.score)(pool);
+    blindOpen = blindIssues(own(final), bls.get(final), input.blind);
+    if (blindOpen.length && extraOk((input.extraRevisions ?? 0) + (input.blindRevisions ?? 0)))
       return state({ action: "write-base", version: nextBase, pass: pid(nextBase), from: best.version, why: `${blindOpen.join("; ")}: one extra autonomous revision from ${best.version} that fixes what the blind reviewer named (budget)` });
   }
-  const issues = [...fin.gate === false ? fin.failing ?? ["gate failed"] : [], ...blindOpen];
+  const fin = scores.get(final), issues = [...fin.gate === false ? fin.failing ?? ["gate failed"] : [], ...blindOpen];
+  const top = rank(own)([...bases, ...finishes].map((v) => v.name));
   return state({
     action: "ready",
-    final: lastFinish.name,
+    final,
     best: best.version,
     issues,
+    ...top !== final && own(top) > own(final) && { top: { version: top, score: own(top) } },
     why: issues.length ? "pipeline complete with open issues: mark it final and list them for the user" : "pipeline complete: show the finished asset to the user (approve or give feedback)"
   });
 }
-var userWords;
+var userWords, FINISH_WORDS;
 var init_pipeline = __esm({
   "../artgen-core/src/pipeline.ts"() {
     "use strict";
     userWords = (f) => {
       if (!f.note) return "";
       const where = f.region ? ` (region x,y,w,h ${f.region.join(",")}${f.cell ? ` of ${f.cell}` : ""})` : f.cell ? ` (${f.cell})` : "";
-      return ` \u2014 user: "${f.note}"${where}`;
+      return ` \u2014 ${f.by === "agent" ? f.source ?? "agent" : "user"}: "${f.note}"${where}`;
     };
+    FINISH_WORDS = /\b(outlines?|line weight|lines? (?:too )?(?:thick|thin|heavy|broken)|band(?:s|ing)?|clusters?|jagg(?:y|ies)|stair[- ]?steps?|orphans?|stray pixels?|speckles?|pillow(?:ed|ing)?|anti-?alias(?:ing|ed)?|aa|selout|rim ?light)\b/i;
   }
 });
 
@@ -7360,7 +7406,7 @@ var init_gltf = __esm({
 
 // ../artgen-core/src/t2/finish.ts
 function makePx(dc, record = () => {
-}, guard = /* @__PURE__ */ new Set()) {
+}, guard = /* @__PURE__ */ new Set(), o = {}) {
   const outline2 = dc.outline, rampOf = /* @__PURE__ */ new Map();
   for (const [name, r] of Object.entries(dc.pal)) r.forEach((c, i) => {
     if (!rampOf.has(c)) rampOf.set(c, [name, i]);
@@ -7392,20 +7438,20 @@ function makePx(dc, record = () => {
   const isLine = (g, x, y) => g.get(x, y) === outline2 || selout2 && opaque(g, x, y) && N46.some(([dx, dy]) => !opaque(g, x + dx, y + dy));
   const fill2 = (g, x, y) => opaque(g, x, y) && !isLine(g, x, y);
   const open = (g, x, y) => !opaque(g, x, y) || isLine(g, x, y);
-  const inScope = (o, g, x, y) => {
+  const inScope = (o2, g, x, y) => {
     if (guard.has(`${x},${y}`)) return false;
-    if (o?.region) {
-      const [rx, ry, rw, rh] = o.region;
+    if (o2?.region) {
+      const [rx, ry, rw, rh] = o2.region;
       if (x < rx || y < ry || x >= rx + rw || y >= ry + rh) return false;
     }
-    if (o?.ramps) {
+    if (o2?.ramps) {
       const c = g.get(x, y), hit = c && rampOf.get(c);
-      if (!hit || !o.ramps.includes(hit[0])) return false;
+      if (!hit || !o2.ramps.includes(hit[0])) return false;
     }
     return true;
   };
-  const each = (g, o, fn) => {
-    for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) if (inScope(o, g, x, y)) fn(x, y);
+  const each = (g, o2, fn) => {
+    for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) if (inScope(o2, g, x, y)) fn(x, y);
   };
   const batch = (g, writes) => {
     for (const [x, y, c] of writes) if (c === null) g.clear(x, y);
@@ -7453,9 +7499,9 @@ function makePx(dc, record = () => {
      * Char-map patch (T1 `blit`): `rows` of characters, `.` transparent, `_` clears the pixel, others look up a
      * token in `key`. `anchor: 'center'` (default) centres the map on `at`; `'topleft'` puts its corner there.
      */
-    patch(g, at, rows, key2, o = {}) {
+    patch(g, at, rows, key2, o2 = {}) {
       const h = rows.length, w = Math.max(...rows.map((r) => r.length));
-      const x0 = o.anchor === "topleft" ? at[0] : at[0] - (w >> 1), y0 = o.anchor === "topleft" ? at[1] : at[1] - (h >> 1);
+      const x0 = o2.anchor === "topleft" ? at[0] : at[0] - (w >> 1), y0 = o2.anchor === "topleft" ? at[1] : at[1] - (h >> 1);
       const under = [];
       for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) under.push(tokenOf(g.get(x0 + x, y0 + y)));
       const cols = {};
@@ -7467,14 +7513,14 @@ function makePx(dc, record = () => {
         else throw new Error(`patch: no key for ${JSON.stringify(ch)}`);
         guard.add(`${x0 + x},${y0 + y}`);
       }));
-      record({ anchor: at.anchor, x: x0, y: y0, w, h, under, rows, key: key2, mode: o.anchor ?? "center" });
+      record({ anchor: at.anchor, x: x0, y: y0, w, h, under, rows, key: key2, mode: o2.anchor ?? "center" });
       return g;
     },
     fix: {
       /** Single pixels whose four neighbours all differ from them take the neighbours' majority colour (≥ 3 agree). */
-      orphans(g, o) {
+      orphans(g, o2) {
         const w = [];
-        each(g, o, (x, y) => {
+        each(g, o2, (x, y) => {
           const c = g.get(x, y);
           if (!c || !opaque(g, x, y) || c === outline2) return;
           const n = N46.map(([dx, dy]) => opaque(g, x + dx, y + dy) ? g.get(x + dx, y + dy) : null);
@@ -7486,22 +7532,26 @@ function makePx(dc, record = () => {
         });
         return batch(g, w);
       },
-      /** Thin 4-connected outline stairs to 8-connected: drop elbow pixels that only touch outline and empty space. */
-      jaggies(g, o) {
+      /**
+       * Thin 4-connected outline stairs to 8-connected: drop elbow pixels that only touch outline and empty space. On
+       * an iso tile the rim is left alone: its 2:1 stair is the diamond's edge, and thinning it breaks the tiling.
+       */
+      jaggies(g, op) {
         const isO = (x, y) => opaque(g, x, y) && g.get(x, y) === outline2;
-        each(g, o, (x, y) => {
+        each(g, op, (x, y) => {
           if (!isO(x, y)) return;
           const n = N46.map(([dx, dy]) => isO(x + dx, y + dy));
           if (N46.some(([dx, dy], i) => !n[i] && opaque(g, x + dx, y + dy))) return;
+          if (o.isoTile && N46.some(([dx, dy]) => g.alpha(x + dx, y + dy) === 0)) return;
           const h = n[0] || n[1], v = n[2] || n[3];
           if (n.filter(Boolean).length === 2 && h && v) g.clear(x, y);
         });
         return g;
       },
       /** Pillow shading: edge pixels on the lit side darker than the pixel inside them take the inner colour. */
-      pillow(g, o) {
+      pillow(g, o2) {
         const w = [];
-        each(g, o, (x, y) => {
+        each(g, o2, (x, y) => {
           if (!fill2(g, x, y)) return;
           const c = g.get(x, y), rc = rampOf.get(c);
           if (!rc) return;
@@ -7518,9 +7568,9 @@ function makePx(dc, record = () => {
         return batch(g, w);
       },
       /** 1 px bands squeezed between a lighter and a darker step of the same ramp merge into the lighter step. */
-      banding(g, o) {
+      banding(g, o2) {
         const w = [];
-        each(g, o, (x, y) => {
+        each(g, o2, (x, y) => {
           const c = g.get(x, y), rc = c && rampOf.get(c);
           if (!rc || !fill2(g, x, y)) return;
           for (const [dx, dy] of [[1, 0], [0, 1]]) {
@@ -7545,11 +7595,11 @@ function makePx(dc, record = () => {
     },
     fx: {
       /** Bright pixel (`dot`), plus or x shape; default colour is the lightest step of the pixel's ramp. */
-      glint(g, at, token, o = {}) {
+      glint(g, at, token, o2 = {}) {
         const base = g.get(at[0], at[1]), c = token ? color(token) : base ? step(base, -99) : null;
         if (!c) return g;
         plot(g, at[0], at[1], c);
-        const arms = o.shape === "plus" ? N46 : o.shape === "x" ? [[1, 1], [-1, -1], [1, -1], [-1, 1]] : [];
+        const arms = o2.shape === "plus" ? N46 : o2.shape === "x" ? [[1, 1], [-1, -1], [1, -1], [-1, 1]] : [];
         for (const [dx, dy] of arms) if (opaque(g, at[0] + dx, at[1] + dy) && g.get(at[0] + dx, at[1] + dy) !== outline2) plot(g, at[0] + dx, at[1] + dy, step(g.get(at[0] + dx, at[1] + dy), -1));
         return g;
       },
@@ -7570,9 +7620,9 @@ function makePx(dc, record = () => {
     },
     light: {
       /** Edges facing the light → lightest step (`side: 'away'`: edges facing away step one lighter). */
-      rim(g, o = {}) {
-        const w = [], s2 = o.side === "away" ? -1 : 1;
-        each(g, o, (x, y) => {
+      rim(g, o2 = {}) {
+        const w = [], s2 = o2.side === "away" ? -1 : 1;
+        each(g, o2, (x, y) => {
           if (!fill2(g, x, y)) return;
           const c = g.get(x, y);
           if (lx && open(g, x + lx * s2, y) || ly && open(g, x, y + ly * s2)) w.push([x, y, s2 > 0 ? step(c, -99) : step(c, -1)]);
@@ -7586,17 +7636,17 @@ function makePx(dc, record = () => {
         return g;
       },
       /** Move every fill pixel in scope `by` steps along its ramp (default -1 = one lighter): light-side shade fixes. */
-      tone(g, o = {}) {
+      tone(g, o2 = {}) {
         const w = [];
-        each(g, o, (x, y) => {
-          if (fill2(g, x, y)) w.push([x, y, step(g.get(x, y), o.by ?? -1)]);
+        each(g, o2, (x, y) => {
+          if (fill2(g, x, y)) w.push([x, y, step(g.get(x, y), o2.by ?? -1)]);
         });
         return batch(g, w);
       },
       /** Edges facing away from the light step one darker. */
-      shade(g, o) {
+      shade(g, o2) {
         const w = [];
-        each(g, o, (x, y) => {
+        each(g, o2, (x, y) => {
           if (!fill2(g, x, y)) return;
           if (lx && open(g, x - lx, y) || ly && open(g, x, y - ly)) w.push([x, y, step(g.get(x, y), 1)]);
         });
@@ -7605,15 +7655,15 @@ function makePx(dc, record = () => {
     },
     outline: {
       /** Selective outline: outline pixels on the lit side take the darkest step of the fill they border. */
-      selout(g, o = {}) {
+      selout(g, o2 = {}) {
         const w = [];
-        each(g, { region: o.region }, (x, y) => {
+        each(g, { region: o2.region }, (x, y) => {
           if (!opaque(g, x, y) || g.get(x, y) !== outline2) return;
-          const dirs = o.side === "all" ? N46 : [[-lx, 0], [0, -ly]].filter(([a, b]) => a || b);
+          const dirs = o2.side === "all" ? N46 : [[-lx, 0], [0, -ly]].filter(([a, b]) => a || b);
           for (const [dx, dy] of dirs) {
             if (!fill2(g, x + dx, y + dy)) continue;
             const hit = rampOf.get(g.get(x + dx, y + dy));
-            if (!hit || o.ramps && !o.ramps.includes(hit[0])) continue;
+            if (!hit || o2.ramps && !o2.ramps.includes(hit[0])) continue;
             const r = dc.pal[hit[0]];
             if (r.length > 1 && hit[1] < r.length - 1) {
               w.push([x, y, r[r.length - 1]]);
@@ -7624,27 +7674,27 @@ function makePx(dc, record = () => {
         return batch(g, w);
       },
       /** Inner line where ramp `between[0]` meets `between[1]`: the first ramp's pixels there take `color` (default its darkest step). */
-      inner(g, o) {
-        const [a, b] = o.between, w = [];
-        each(g, o, (x, y) => {
+      inner(g, o2) {
+        const [a, b] = o2.between, w = [];
+        each(g, o2, (x, y) => {
           const c = g.get(x, y), hit = c && rampOf.get(c);
           if (!hit || hit[0] !== a || !fill2(g, x, y)) return;
           if (N46.some(([dx, dy]) => {
             const n = g.get(x + dx, y + dy), hn = n && rampOf.get(n);
             return !!hn && hn[0] === b;
           }))
-            w.push([x, y, o.color ? color(o.color) : dc.pal[a][dc.pal[a].length - 1]]);
+            w.push([x, y, o2.color ? color(o2.color) : dc.pal[a][dc.pal[a].length - 1]]);
         });
         return batch(g, w);
       },
-      corners(g, o) {
-        return px.fix.jaggies(g, o);
+      corners(g, o2) {
+        return px.fix.jaggies(g, o2);
       },
       /** Heavier line: empty pixels 4-adjacent to the outline get the outline colour (`times` rings). */
-      weight(g, o = {}) {
-        for (let k = 0; k < (o.times ?? 1); k++) {
+      weight(g, o2 = {}) {
+        for (let k = 0; k < (o2.times ?? 1); k++) {
           const w = [];
-          each(g, { region: o.region }, (x, y) => {
+          each(g, { region: o2.region }, (x, y) => {
             if (opaque(g, x, y)) return;
             if (N46.some(([dx, dy]) => opaque(g, x + dx, y + dy) && g.get(x + dx, y + dy) === outline2)) w.push([x, y, outline2]);
           });
@@ -7658,11 +7708,12 @@ function makePx(dc, record = () => {
 }
 function applyFinish(r, mod4, dir) {
   const dc = dirContext(dir), patches = [], done = /* @__PURE__ */ new Map();
+  const view = r.brief.view ?? dir.camera.view, isoTile = TILE_KINDS.has(r.brief.kind) && (view === "iso" || !!r.brief.review?.iso);
   const keyOf = (c) => `${c.state}/${c.facing}/${c.frame}`;
   const sources = r.cells.filter((c) => !c.mirrored);
   for (const c of sources) {
     const guard = /* @__PURE__ */ new Set(), cellKey = keyOf(c);
-    const px = makePx(dc, (p) => patches.push({ cell: cellKey, ...p }), guard);
+    const px = makePx(dc, (p) => patches.push({ cell: cellKey, ...p }), guard, { isoTile });
     const anchors = c.anchors ?? {};
     const ctx = {
       dir: dc,
@@ -7689,7 +7740,7 @@ function applyFinish(r, mod4, dir) {
       if (p.cell === k || own.has(p.anchor) || p.cell.split("/")[1] !== c.facing) continue;
       const [name, off] = splitAnchor(p.anchor), a = c.anchors?.[name];
       if (!a) continue;
-      const g = done.get(k), px = makePx(dc, (rec) => patches.push({ cell: k, ...rec, replay: true }));
+      const g = done.get(k), px = makePx(dc, (rec) => patches.push({ cell: k, ...rec, replay: true }), void 0, { isoTile });
       const src = p;
       px.patch(g, Object.assign([a[0] + off[0], a[1] + off[1]], { anchor: p.anchor }), src.rows, src.key, { anchor: src.mode });
       own.add(p.anchor);
@@ -7744,6 +7795,7 @@ var init_finish = __esm({
     init_grid();
     init_normals();
     init_post();
+    init_conformance();
     N46 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
     finishSnapshot = (patches) => patches.map(({ cell, anchor, x, y, w, h, under, replay }) => ({ cell, anchor, x, y, w, h, under, ...replay && { replay } }));
   }
@@ -15577,6 +15629,18 @@ function effectObjectIssues(b) {
   if (colours.length) out.push(`object must not lean on colour words (${[...new Set(colours)].join(", ")}): colour comes from the direction`);
   return out;
 }
+function briefMaterialIssues(b, dir) {
+  const words = new Set(`${b.id.replace(/[-_]/g, " ")} ${b.object ?? ""} ${b.notes ?? ""}`.toLowerCase().match(/[a-z]+/g) ?? []);
+  const allowed2 = dir.palette.perKind[b.kind] ?? Object.keys(dir.palette.ramps), out = [];
+  for (const [role, list2] of Object.entries(MATERIAL_WORDS)) {
+    const hits = list2.filter((w) => words.has(w));
+    if (!hits.length) continue;
+    const ramp = dir.palette.materials[role] ?? (dir.palette.ramps[role] ? role : void 0);
+    if (!ramp) out.push(`names ${hits.map((h) => `"${h}"`).join(", ")} (${role}) but the direction has no ${role} material: it will be drawn in another one \u2014 add a ${role} ramp (or palette.materials.${role}) or reword the brief`);
+    else if (!allowed2.includes(ramp)) out.push(`names ${hits.map((h) => `"${h}"`).join(", ")} (${role}) but ${b.kind} colours leave out the ${ramp} ramp (palette.perKind.${b.kind}: ${allowed2.join(", ")}): add it to the direction before drawing, or reword the brief`);
+  }
+  return out;
+}
 function validateBrief(b, where = "brief") {
   const e = [];
   if (!isObj2(b)) return [`${where}: must be a mapping`];
@@ -15604,6 +15668,10 @@ function validateBrief(b, where = "brief") {
   if (b.object !== void 0) {
     if (typeof b.object !== "string" || !b.object.trim()) e.push(`${at}: object must be text`);
     else for (const m of effectObjectIssues({ kind: String(b.kind), object: b.object })) e.push(`${at}: ${m}`);
+  }
+  if (b.body !== void 0) {
+    if (!BODIES.includes(b.body)) e.push(`${at}: body must be one of ${BODIES.join(", ")}`);
+    else if (b.kind !== "character" && b.kind !== "creature") e.push(`${at}: body applies to characters and creatures`);
   }
   if (b.autotile !== void 0 && !["wang16", "blob47"].includes(b.autotile)) e.push(`${at}: autotile must be wang16 or blob47`);
   if (b.surface !== void 0 && !["wall", "floor", "ceiling", "sky"].includes(b.surface)) e.push(`${at}: surface must be wall, floor, ceiling or sky`);
@@ -15666,7 +15734,7 @@ function removeBrief(text, id) {
   items.splice(i, 1);
   return doc2.toString({ lineWidth: 120 });
 }
-var import_yaml, BRIEF_KINDS, IMPORTANCE, ID, COLOUR_WORDS, isObj2, briefDir;
+var import_yaml, BRIEF_KINDS, IMPORTANCE, BODIES, ID, COLOUR_WORDS, MATERIAL_WORDS, isObj2, briefDir;
 var init_briefs = __esm({
   "../artgen-core/src/w2/briefs.ts"() {
     "use strict";
@@ -15674,8 +15742,20 @@ var init_briefs = __esm({
     init_direction();
     BRIEF_KINDS = ["character", "creature", "prop", "tile", "tileset", "texture", "effect", "viewmodel", "ui-icon", "layer"];
     IMPORTANCE = ["hero", "standard", "filler"];
+    BODIES = ["humanoid", "quadruped", "serpent", "flyer", "large"];
     ID = /^[a-z][a-z0-9_-]*$/;
     COLOUR_WORDS = new Set("red orange yellow green blue purple violet pink white black grey gray brown gold golden silver amber crimson scarlet cyan teal magenta azure emerald jade turquoise indigo lilac lavender maroon ochre rust copper bronze ivory pale dark bright glowing glowy colorful colourful rainbow neon".split(" "));
+    MATERIAL_WORDS = {
+      wood: ["wood", "wooden", "oak", "pine", "plank", "planks", "timber", "lute", "staff", "staves", "bow", "club", "barrel", "crate", "door", "cart", "table", "chair", "shelf", "handle"],
+      metal: ["metal", "steel", "iron", "blade", "sword", "dagger", "axe", "armor", "armour", "mail", "chainmail", "plate", "helm", "helmet", "hoops", "chain", "chains", "knife", "gauntlet", "gauntlets", "cage", "anvil"],
+      glow: ["glow", "lava", "fire", "flame", "flames", "ember", "embers", "torch", "magic", "rune", "runes", "crystal", "lantern", "candle", "brazier", "spark", "sparks", "molten"],
+      dirt: ["dirt", "mud", "earth", "soil", "rubble", "sand", "gravel", "debris"],
+      stone: ["stone", "rock", "rocks", "boulder", "brick", "bricks", "marble", "granite", "cobble", "cobbles", "masonry", "statue"],
+      cloth: ["cloth", "robe", "robes", "cloak", "cape", "tunic", "dress", "banner", "rag", "rags", "hood", "sash", "scarf"],
+      leather: ["leather", "hide", "boots", "belt", "strap", "straps", "satchel", "pouch", "saddle"],
+      hair: ["hair", "fur", "mane", "beard", "furred"],
+      grass: ["grass", "moss", "leaves", "leaf", "vine", "vines", "shrub", "hedge"]
+    };
     isObj2 = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
     briefDir = (b) => `assets/${b.kind}/${b.id}`;
   }
@@ -16031,9 +16111,8 @@ function silhouetteOverlap(a, b) {
   }
   return u ? i / u : 0;
 }
-function roster(items, o) {
-  if (items.length > LETTERS.length) throw new Error(`roster: at most ${LETTERS.length} assets per sheet (got ${items.length}); pass a subset`);
-  const tol = o.tolerance ?? 0.2, Z = o.scale ?? 4, bodies = items.map((it) => body(it.grid));
+function page(items, bodies, o, key2) {
+  const Z = o.scale;
   const gap = 6, W3 = bodies.reduce((s2, b) => s2 + b.w + gap, gap), H = Math.max(1, ...bodies.map((b) => b.h)) + 4;
   const line = new Grid(W3, H).fill(0, 0, W3, H, o.bg);
   let x = gap;
@@ -16045,16 +16124,15 @@ function roster(items, o) {
   const lineup = new Grid(W3 * Z + 20, H * Z + H + 30).fill(0, 0, W3 * Z + 20, H * Z + H + 30, o.bg);
   lineup.blit(line, 10, 10);
   lineup.blit(line.scale(Z), 10, H + 20);
-  const r = rng(o.seed ?? 1), order = items.map((_, i) => i);
+  const r = rng(o.seed), order = items.map((_, i) => i);
   for (let i = order.length - 1; i > 0; i--) {
     const j = Math.floor(r() * (i + 1));
     [order[i], order[j]] = [order[j], order[i]];
   }
   const S3 = 5, cell = Math.max(8, ...bodies.map((b) => Math.max(b.w, b.h))) * S3 + 16, cols = Math.min(5, Math.max(1, items.length)), rows = Math.ceil(items.length / cols);
   const silhouettes = new Grid(cols * cell, Math.max(1, rows) * (cell + 12)).fill(0, 0, cols * cell, Math.max(1, rows) * (cell + 12), "#d8d8d8");
-  const key2 = {};
   order.forEach((ix, n) => {
-    const b = bodies[ix], cx = n % cols * cell, cy = Math.floor(n / cols) * (cell + 12), L = LETTERS[n];
+    const b = bodies[ix], cx = n % cols * cell, cy = Math.floor(n / cols) * (cell + 12), L = rosterLabel(o.from + n);
     key2[L] = items[ix].id;
     drawText(silhouettes, cx + 4, cy + 3, L, "#000000", 1);
     const ox = cx + (cell - b.w * S3 >> 1), oy = cy + 12 + cell - 8 - b.h * S3;
@@ -16063,16 +16141,23 @@ function roster(items, o) {
       silhouettes.set(cx + cell - b.w - 3 + k, cy + 3 + j, "#000000");
     }
   });
+  return { lineup, silhouettes, ids: items.map((it) => it.id) };
+}
+function roster(items, o) {
+  const tol = o.tolerance ?? 0.2, fail = o.heightFail ?? tol, bodies = items.map((it) => body(it.grid)), key2 = {};
+  const pages = [];
+  for (let i = 0; i < Math.max(1, items.length); i += ROSTER_PAGE)
+    pages.push(page(items.slice(i, i + ROSTER_PAGE), bodies.slice(i, i + ROSTER_PAGE), { bg: o.bg, seed: (o.seed ?? 1) + i, scale: o.scale ?? 4, from: i }, key2));
   const sizes = items.map((it, i) => {
-    const drawn = bodies[i].h;
+    const drawn = it.drawn ?? bodies[i].h;
     if (!it.height) return { id: it.id, kind: it.kind, drawn, flag: false };
-    const expected = it.height * o.pxPerMetre, dev = (drawn - expected) / expected;
-    return { id: it.id, kind: it.kind, drawn, height: it.height, expected: Math.round(expected * 10) / 10, dev: Math.round(dev * 100) / 100, flag: Math.abs(dev) > tol };
+    const expected = it.height * o.pxPerMetre, dev = (drawn - expected) / expected, limit = it.kind === "character" || it.kind === "creature" ? fail : tol;
+    return { id: it.id, kind: it.kind, drawn, height: it.height, expected: Math.round(expected * 10) / 10, dev: Math.round(dev * 100) / 100, flag: Math.abs(dev) > limit };
   });
   const pairs = [];
   for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) pairs.push({ a: items[i].id, b: items[j].id, overlap: Math.round(silhouetteOverlap(bodies[i], bodies[j]) * 1e3) / 1e3 });
   pairs.sort((p, q) => q.overlap - p.overlap);
-  return { lineup, silhouettes, key: key2, sizes, pairs: pairs.slice(0, o.topPairs ?? 5) };
+  return { lineup: pages[0].lineup, silhouettes: pages[0].silhouettes, pages, key: key2, sizes, pairs: pairs.slice(0, o.topPairs ?? 5) };
 }
 function rosterIssues(review, key2) {
   const out = {}, push = (id, s2) => {
@@ -16091,7 +16176,7 @@ function rosterIssues(review, key2) {
   }
   return out;
 }
-var LETTERS;
+var LETTERS, ROSTER_PAGE, rosterLabel;
 var init_roster = __esm({
   "../artgen-core/src/w2/roster.ts"() {
     "use strict";
@@ -16099,6 +16184,8 @@ var init_roster = __esm({
     init_grid();
     init_rng();
     LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    ROSTER_PAGE = 26;
+    rosterLabel = (n) => n < 26 ? LETTERS[n] : rosterLabel(Math.floor(n / 26) - 1) + LETTERS[n % 26];
   }
 });
 
@@ -16128,9 +16215,11 @@ function passRecords(ledger) {
       outTokens: tk.out ?? tk.edit ?? 0,
       inTokens: tk.in ?? 0,
       imageTokens: e.imageTokens ?? 0,
+      agentIn: tk.agentIn ?? 0,
       wallMs: typeof e.wallMs === "number" ? e.wallMs : void 0,
       model: e.model,
-      effort: e.effort
+      effort: e.effort,
+      reviewModel: typeof e.reviewModel === "string" ? e.reviewModel : void 0
     });
   }
   return out;
@@ -16157,7 +16246,7 @@ function analytics(ledger, metas) {
     const rs = recs.filter((r) => r.asset === id), bases = rs.filter((r) => r.version.startsWith("base")), fins = rs.filter((r) => r.stage === "finish");
     const r1 = rs.find((r) => r.pass === "r1")?.score, best = bases.length ? Math.max(...bases.filter((b) => b.stage !== "user").map((b) => b.score)) : void 0;
     const fin = fins[fins.length - 1], finBase = fin && rs.find((r) => r.version === ledger.find((e) => e.type === "score" && e.asset === id && e.version === fin.version)?.base);
-    const out = sum(rs.map((r) => r.outTokens + r.inTokens)), img = sum(rs.map((r) => r.imageTokens));
+    const out = sum(rs.map((r) => r.outTokens + r.inTokens)), img = sum(rs.map((r) => r.imageTokens)), agent = sum(rs.map((r) => r.agentIn));
     return {
       id,
       kind: meta7.get(id)?.kind ?? "?",
@@ -16169,7 +16258,7 @@ function analytics(ledger, metas) {
       passes: rs.length,
       outTokens: out,
       imageTokens: img,
-      cost: round(tokenCost(sum(rs.map((r) => r.outTokens)), img + sum(rs.map((r) => r.inTokens))), 4)
+      cost: round(tokenCost(sum(rs.map((r) => r.outTokens)), img + agent + sum(rs.map((r) => r.inTokens))), 4)
     };
   });
   const group = (f) => {
@@ -16195,21 +16284,37 @@ function analytics(ledger, metas) {
     mg.set(k, [...mg.get(k) ?? [], r]);
   }
   const models = [...mg].map(([k, rs]) => {
-    const [model, effort] = k.split("\0"), ds = rs.map((r) => r.delta).filter((d) => d !== void 0), tok = sum(rs.map((r) => r.outTokens + r.inTokens + r.imageTokens));
+    const [model, effort] = k.split("\0"), ds = rs.map((r) => r.delta).filter((d) => d !== void 0), tok = sum(rs.map((r) => r.outTokens + r.inTokens + r.imageTokens + r.agentIn));
     return { model, effort, n: rs.length, meanDelta: mean(ds), deltaPerKTok: tok ? round(sum(ds) / tok * 1e3, 3) : void 0 };
   });
-  const suggestions = [];
-  for (const kind of [...new Set(perAsset.map((a) => a.kind))]) {
-    const ofKind = (p) => recs.filter((r) => r.pass === p && meta7.get(r.asset)?.kind === kind && r.delta !== void 0).map((r) => r.delta);
-    const d3 = ofKind("r3"), d2 = ofKind("r2");
-    if (d3.length >= 3 && mean(d3) <= 0.1) suggestions.push(`${kind}: v3 adds ${mean(d3)} on average over ${d3.length} assets \u2014 try budget.perKind.${kind}.revisionPasses = 2`);
-    else if (d3.length >= 3 && mean(d3) >= 0.75) suggestions.push(`${kind}: v3 still adds ${mean(d3)} on average \u2014 a fourth revision may pay off (budget.perKind.${kind}.revisionPasses = 4)`);
-    if (d2.length >= 3 && mean(d2) <= 0) suggestions.push(`${kind}: v2 does not improve on v1 (${mean(d2)}) \u2014 look at the template or the review notes`);
+  const rg = /* @__PURE__ */ new Map();
+  for (const r of recs) {
+    const k = r.reviewModel ?? "unrecorded";
+    rg.set(k, [...rg.get(k) ?? [], r]);
   }
-  const ff = perAsset.map((a) => a.fromFinish).filter((x) => x !== void 0);
-  if (ff.length >= 3 && mean(ff) <= 0) suggestions.push(`the finishing pass adds ${mean(ff)} on average \u2014 check it is fixing what the review sheets show`);
-  const regRate = recs.filter((r) => r.stage === "revision" && (r.delta ?? 0) < 0).length / Math.max(1, recs.filter((r) => r.stage === "revision" && r.delta !== void 0).length);
-  if (recs.length >= 10 && regRate > 0.3) suggestions.push(`${Math.round(regRate * 100)}% of revisions regressed \u2014 change one thing per revision (R12 keeps the best, but each regression costs a pass)`);
+  const reviewers = [...rg].map(([model, rs]) => {
+    const ds = rs.map((r) => r.delta).filter((d) => d !== void 0), tok = sum(rs.map((r) => r.outTokens + r.inTokens + r.imageTokens + r.agentIn));
+    return { model, passes: [...new Set(rs.map((r) => r.pass.replace(/\d+$/, "")))].sort(), n: rs.length, meanDelta: mean(ds), deltaPerKTok: tok && ds.length ? round(sum(ds) / tok * 1e3, 3) : void 0 };
+  });
+  const suggestions = [];
+  const kinds = [...new Set(perAsset.map((a) => a.kind))];
+  const gainRules = (label, d3, d2, key2) => {
+    if (d3.length >= 3 && mean(d3) <= 0.1) suggestions.push(`${label}: v3 adds ${mean(d3)} on average over ${d3.length} assets \u2014 try ${key2}.revisionPasses = 2`);
+    else if (d3.length >= 3 && mean(d3) >= 0.75) suggestions.push(`${label}: v3 still adds ${mean(d3)} on average \u2014 a fourth revision may pay off (${key2}.revisionPasses = 4)`);
+    if (d2.length >= 3 && mean(d2) <= 0) suggestions.push(`${label}: v2 does not improve on v1 (${mean(d2)}) \u2014 look at the template or the review notes`);
+  };
+  const deltas = (p, kind) => recs.filter((r) => r.pass === p && (!kind || meta7.get(r.asset)?.kind === kind) && r.delta !== void 0).map((r) => r.delta);
+  for (const kind of kinds) gainRules(kind, deltas("r3", kind), deltas("r2", kind), `budget.perKind.${kind}`);
+  if (kinds.length > 1 && kinds.every((k) => deltas("r3", k).length < 3 && deltas("r2", k).length < 3)) gainRules("all kinds together", deltas("r3"), deltas("r2"), "budget");
+  const fRecs = recs.filter((r) => r.pass === "f" && r.delta !== void 0), allTok = sum(recs.map((r) => r.outTokens + r.inTokens + r.imageTokens + r.agentIn));
+  if (fRecs.length >= 3) {
+    const fMean = mean(fRecs.map((r) => r.delta)), fReg = fRecs.filter((r) => r.delta < 0).length / fRecs.length;
+    const fTok = sum(recs.filter((r) => r.stage === "finish").map((r) => r.outTokens + r.inTokens + r.imageTokens + r.agentIn)), share = allTok ? Math.round(100 * fTok / allTok) : 0;
+    if (fMean <= 0 || fReg >= 0.3)
+      suggestions.push(`the finishing pass adds ${fMean} on average and regressed ${Math.round(fReg * 100)}% of ${fRecs.length} assets, for ${share}% of the tokens \u2014 set review.finish = "auto" (finish only on a finish-level note or a base over approveMin), or check it fixes what the review sheets show`);
+  }
+  const revs = recs.filter((r) => r.stage === "revision" && r.delta !== void 0), regRate = revs.filter((r) => r.delta < 0).length / Math.max(1, revs.length);
+  if (recs.length >= 10 && regRate >= 0.3) suggestions.push(`${Math.round(regRate * 100)}% of revisions regressed \u2014 change one thing per revision (R12 keeps the best, but each regression costs a pass)`);
   const byReviewer = {}, own = /* @__PURE__ */ new Map();
   for (const e of ledger) if (e.type === "score" && !e.blind && e.asset !== "direction" && typeof e.score === "number") {
     const k = typeof e.reviewer === "string" ? e.reviewer : "unrecorded";
@@ -16221,7 +16326,8 @@ function analytics(ledger, metas) {
   const blindRows = [...blindLatest].filter(([k]) => own.has(k)).map(([k, e]) => ({ asset: e.asset, version: e.version, own: own.get(k), blind: e.score, gap: round(own.get(k) - e.score) }));
   const meanGap = mean(blindRows.map((b) => b.gap));
   if (blindRows.length >= 3 && meanGap >= 0.5) suggestions.push(`blind re-scores average ${meanGap} below the pipeline's own scores over ${blindRows.length} finals \u2014 run every review through the art-reviewer subagent, not the authoring agent`);
-  const totOut = sum(recs.map((r) => r.outTokens)), totIn = sum(recs.map((r) => r.inTokens)), totImg = sum(recs.map((r) => r.imageTokens));
+  const ff = perAsset.map((a) => a.fromFinish).filter((x) => x !== void 0);
+  const totOut = sum(recs.map((r) => r.outTokens)), totIn = sum(recs.map((r) => r.inTokens)), totImg = sum(recs.map((r) => r.imageTokens)), totAgent = sum(recs.map((r) => r.agentIn));
   return {
     assets: ids.length,
     passes,
@@ -16231,9 +16337,20 @@ function analytics(ledger, metas) {
     regressions: recs.filter((r) => r.delta !== void 0 && r.delta < 0).map((r) => ({ asset: r.asset, version: r.version, pass: r.pass, delta: r.delta })),
     userRevisionRate: { feedback: fb.length, finals, rate: finals ? round(new Set(fb.map((e) => e.asset)).size / finals) : void 0, byRoute },
     models,
+    reviewers,
     review: { byReviewer, blind: { n: blindRows.length, meanGap, over1: blindRows.filter((b) => b.gap > 1).length, assets: blindRows } },
     suggestions,
-    totals: { outTokens: totOut, inTokens: totIn, imageTokens: totImg, cost: round(tokenCost(totOut, totIn + totImg), 4), meanFromRevisions: mean(perAsset.map((a) => a.fromRevisions).filter((x) => x !== void 0)), meanFromFinish: mean(ff) }
+    totals: {
+      outTokens: totOut,
+      inTokens: totIn,
+      imageTokens: totImg,
+      cost: round(tokenCost(totOut, totIn + totImg + totAgent), 4),
+      meanFromRevisions: mean(perAsset.map((a) => a.fromRevisions).filter((x) => x !== void 0)),
+      meanFromFinish: mean(ff),
+      agentIn: totAgent,
+      agentInRecords: recs.filter((r) => r.agentIn > 0).length,
+      records: recs.length
+    }
   };
 }
 function analyticsMarkdown(r, title = "artgen pipeline analytics") {
@@ -16244,7 +16361,9 @@ ${r.assets} assets. Price basis: $${PRICE.inPerM}/M input (review images, measur
 `;
   md += `Totals: ${r.totals.outTokens} output tok, ${r.totals.imageTokens} review-image tok${r.totals.inTokens ? `, ${r.totals.inTokens} measured input tok` : ""}, est. $${r.totals.cost.toFixed(3)}. Average gain from revisions ${s(r.totals.meanFromRevisions, true)}, from the finishing pass ${s(r.totals.meanFromFinish, true)}.
 
-`;
+` + (r.totals.agentInRecords ? `Agent input (the context each maker and reviewer read) is in the cost for ${r.totals.agentInRecords} of ${r.totals.records} score records: ${r.totals.agentIn} tok.
+
+` : "The cost leaves out what the agents read (skills, direction, rigs): pass `score --agent-tokens-in <n>` to count it.\n\n");
   md += "## Per pass\n\n| Pass | n | Mean score | Mean \u0394 | Regressed | Gate pass | Output tok | Review tok | Mean wall s |\n|---|---|---|---|---|---|---|---|---|\n";
   for (const p of r.passes) md += `| ${p.pass} | ${p.n} | ${s(p.meanScore)} | ${s(p.meanDelta, true)} | ${p.regressed} | ${p.gatePass}/${p.n} | ${p.outTokens} | ${p.imageTokens} | ${s(p.meanWallS)} |
 `;
@@ -16279,6 +16398,9 @@ ${u.feedback} feedback rounds over ${u.finals} finished assets (rate ${s(u.rate)
   md += "\n## Model / effort per stage\n\n| Model | Effort | Passes | Mean \u0394 | \u0394 per 1k tok |\n|---|---|---|---|---|\n";
   for (const m of r.models) md += `| ${m.model} | ${m.effort} | ${m.n} | ${s(m.meanDelta, true)} | ${s(m.deltaPerKTok)} |
 `;
+  md += "\n## Review tiers\n\nPasses by the model that scored them (`models.reviewEarly` for r1/r2, `models.review` for the rest).\n\n| Reviewer model | Passes | n | Mean \u0394 | \u0394 per 1k tok |\n|---|---|---|---|---|\n";
+  for (const m of r.reviewers) md += `| ${m.model} | ${m.passes.join(", ")} | ${m.n} | ${s(m.meanDelta, true)} | ${s(m.deltaPerKTok)} |
+`;
   const rv = r.review;
   md += `
 ## Review independence
@@ -16293,7 +16415,7 @@ Scores by reviewer: ${Object.entries(rv.byReviewer).map(([k, v]) => `${k} ${v}`)
   md += `
 ## Budget suggestions
 
-${r.suggestions.length ? r.suggestions.map((x) => `- ${x}`).join("\n") : "- none: no kind crosses a threshold (v3 adding \u2264 0.1 or \u2265 0.75 over \u2265 3 assets, v2 not improving, finish \u2264 0, > 30% regressions)"}
+${r.suggestions.length ? r.suggestions.map((x) => `- ${x}`).join("\n") : "- none: nothing crosses a threshold (v3 adding \u2264 0.1 or \u2265 0.75 over \u2265 3 assets of a kind, or of the batch when every kind is smaller; v2 not improving; the first finish adding \u2264 0 or regressing \u2265 30% of \u2265 3 assets; \u2265 30% of revisions regressing)"}
 `;
   return md;
 }
@@ -16654,7 +16776,7 @@ var init_config = __esm({
       packs: { main: { include: ["*"] } },
       budget: { revisionPasses: 3, maxSheetEdge: 1568, maxUserIterations: 3, extraAutonomousRevisions: 1, tiers: { hero: { revisionPasses: 4 }, filler: { revisionPasses: 2 } } },
       models: { base: "default", revise: "default", finish: "default", review: "default" },
-      review: { blind: true, approveMin: 6.5, blindMaxGap: 1 },
+      review: { blind: true, approveMin: 6.5, blindMaxGap: 1, blindRevisions: 1, finish: "auto", earlyRoster: true, rosterRevisions: 1, heightFail: 0.15, sheetDetail: { r1: "low" } },
       gate: {}
     };
     INIT_CONFIG = {
@@ -19409,8 +19531,9 @@ async function renderVersion(a, version, opts = {}) {
     lint: render7.lint,
     periodic: a.brief.review?.periodic,
     autotile: a.brief.autotile,
-    ...a.brief.height && { height: { metres: a.brief.height, pxPerMetre: pxPerMetre(a.dir) } },
-    anim: animInput(render7)
+    ...a.brief.height && { height: { metres: a.brief.height, pxPerMetre: pxPerMetre(a.dir), frames: standFrames(render7), view: a.brief.view ?? a.dir.camera.view, body: a.brief.body } },
+    anim: animInput(render7),
+    ...a.project && { thresholds: { heightFail: projectConfig(a.project).review.heightFail } }
   });
   return { version: v.name, render: render7, strip: s2, grid, report: report2, source, base, patches, stale };
 }
@@ -19514,18 +19637,22 @@ function writeRender(a, r, out = outDir(a)) {
   return files;
 }
 async function reviewVersion(a, version, o = {}) {
-  const vs = versionsIn(a), cur = await renderVersion(a, version), R2 = a.brief.review ?? {}, sc = R2.scale ?? 4;
+  const vs = versionsIn(a), cur = await renderVersion(a, version), R2 = a.brief.review ?? {};
+  const pass = o.blind ? "b" : passOf(a, version), cfg = a.project ? projectConfig(a.project) : void 0;
+  const detail = o.blind ? "full" : o.detail ?? cfg?.review.sheetDetail?.[pass] ?? "full", low = detail === "low";
+  const sc = low ? Math.min(3, R2.scale ?? 4) : R2.scale ?? 4, multi = cur.render.facings.length > 1;
   const sil = !TILE_KINDS.has(a.brief.kind);
+  const scene = o.scene ? [{ label: "in the scene, 2x: background | floor | beside a wall", grid: sceneGrid(a.dir, firstFacing(cur.render)), scale: 2, silhouette: false }] : [];
   if (o.blind) {
     const sheet2 = reviewSheet({
       title: R2.label ?? a.brief.id,
       anchors: anchorsFor(a),
-      maxEdge: a.project ? projectConfig(a.project).budget?.maxSheetEdge : void 0,
-      rows: [{ label: a.brief.id, grid: cur.grid, scale: sc, bg: R2.bg ?? a.dir.background, context: contextFor(a, cur.grid), silhouette: sil }]
+      maxEdge: cfg?.budget?.maxSheetEdge,
+      rows: [{ label: a.brief.id, grid: cur.grid, scale: sc, bg: R2.bg ?? a.dir.background, context: contextFor(a, cur.grid), silhouette: sil }, ...scene]
     });
     const path2 = join4(outDir(a), `review-${version}-blind.png`), tokens2 = imageTokens(sheet2.w, sheet2.h);
     writeGrid(path2, sheet2);
-    appendLedger(a.ledgerPath, { type: "review", asset: a.brief.id, version, pass: "b", blind: true, sheet: relPath(a, path2), imageTokens: tokens2, by: "agent" });
+    appendLedger(a.ledgerPath, { type: "review", asset: a.brief.id, version, pass: "b", blind: true, sheet: relPath(a, path2), imageTokens: tokens2, detail, by: "agent" });
     return { path: path2, tokens: tokens2, render: cur };
   }
   const scores = new Map(ledgerFor(a).filter((e) => e.type === "score" && !e.blind && e.version).map((e) => [e.version, e.score]));
@@ -19537,19 +19664,33 @@ async function reviewVersion(a, version, o = {}) {
   }
   const v = parseVersion(version), prev = v.kind === "finish" ? cur.base : vs.filter((x) => parseVersion(x).kind === "base" && parseVersion(x).n < v.n).pop();
   const best = [...scores].filter(([k]) => parseVersion(k)?.kind === "base" && k !== prev && k !== version).sort((x, y) => y[1] - x[1])[0]?.[0];
-  const big = cur.render.cells.length > 8;
-  for (const other of [best, prev]) if (other) {
+  const big = cur.render.cells.length > 8 || low;
+  for (const other of low ? [prev] : [best, prev]) if (other) {
     const r = await renderVersion(a, other), grid = big ? firstFacing(r.render) : r.grid;
     rows.push({ label: rowLabel(r, scores.get(other)) + (big ? " | first facing" : ""), grid, scale: sc, bg: R2.bg ?? a.dir.background, context: ctx(grid), silhouette: sil });
   }
-  rows.push({ label: `>> ${rowLabel(cur)}`, grid: cur.grid, scale: sc, bg: R2.bg ?? a.dir.background, context: ctx(cur.grid), silhouette: sil });
-  const sheet = reviewSheet({ title: `${R2.label ?? a.brief.id} - ${version} (${passOf(a, version)})`, rows, anchors: anchorsFor(a), maxEdge: a.project ? projectConfig(a.project).budget?.maxSheetEdge : void 0 });
+  const curGrid = low && multi ? firstFacing(cur.render) : cur.grid;
+  rows.push({ label: `>> ${rowLabel(cur)}${low && multi ? " | first facing (low detail)" : ""}`, grid: curGrid, scale: sc, bg: R2.bg ?? a.dir.background, context: ctx(curGrid), silhouette: sil }, ...scene);
+  const sheet = reviewSheet({ title: `${R2.label ?? a.brief.id} - ${version} (${pass})`, rows, anchors: anchorsFor(a), maxEdge: cfg?.budget?.maxSheetEdge });
   const path = join4(outDir(a), `review-${version}.png`);
   writeGrid(path, sheet);
   writeRender(a, cur);
   const tokens = imageTokens(sheet.w, sheet.h);
-  appendLedger(a.ledgerPath, { type: "review", asset: a.brief.id, version, pass: passOf(a, version), sheet: relPath(a, path), imageTokens: tokens, by: "agent" });
+  appendLedger(a.ledgerPath, { type: "review", asset: a.brief.id, version, pass, sheet: relPath(a, path), imageTokens: tokens, detail, ...o.scene && { scene: true }, by: "agent" });
   return { path, tokens, render: cur };
+}
+function sceneGrid(dir, sprite) {
+  const ramps = dir.palette.ramps, ramp = ramps[dir.palette.materials.stone ?? "stone"] ?? ramps[dir.palette.materials.dirt ?? "dirt"] ?? Object.values(ramps)[0];
+  const step = (i) => ramp[Math.max(0, Math.min(ramp.length - 1, i))], mid = ramp.length >> 1;
+  const pw = sprite.w + 8, ph = sprite.h + 4, g = new Grid(pw * 3, ph);
+  g.fill(0, 0, pw, ph, dir.background ?? "#000000");
+  for (let k = 1; k < 3; k++) {
+    for (let y = 0; y < ph; y++) for (let x = 0; x < pw; x++) g.set(k * pw + x, y, ((x >> 2) + (y >> 2)) % 2 ? step(mid) : step(mid + 1));
+    if (k === 2) for (let y = 0; y < Math.round(ph * 0.66); y++) for (let x = 0; x < pw; x++)
+      g.set(k * pw + x, y, y % 4 === 3 || (x + (y >> 2) * 3) % 8 === 0 ? step(ramp.length - 1) : step(ramp.length - 2));
+  }
+  for (let k = 0; k < 3; k++) g.over(sprite, k * pw + 4, ph - sprite.h - 1);
+  return g;
 }
 async function scoreVersion(a, version, score, note = "", extra = {}) {
   const r = await renderVersion(a, version), v = parseVersion(version), pass = extra.blind === true ? "b" : passOf(a, version);
@@ -19614,7 +19755,7 @@ async function passState(a) {
 }
 function blindConfig(p) {
   const r = projectConfig(p).review;
-  return r.blind === false ? {} : { blind: { minScore: r.approveMin, maxGap: r.blindMaxGap } };
+  return { finish: r.finish, approveMin: r.approveMin, blindRevisions: r.blindRevisions, ...r.blind !== false && { blind: { minScore: r.approveMin, maxGap: r.blindMaxGap } } };
 }
 async function variantsSheet(a, version, n = 8) {
   const items = [], hashes = [];
@@ -19633,10 +19774,10 @@ function stageModel(a, pass) {
   const m = (a.project ? projectConfig(a.project).models : void 0) ?? {};
   const pick2 = (k) => {
     const v = m[k];
-    return typeof v === "string" ? { model: v, effort: "default" } : { model: String(v?.model ?? "default"), effort: String(v?.effort ?? "default") };
+    return v === void 0 ? void 0 : typeof v === "string" ? { model: v, effort: "default" } : { model: String(v?.model ?? "default"), effort: String(v?.effort ?? "default") };
   };
-  const st = pick2(stageKey(pass));
-  return { model: st.model, effort: st.effort, reviewModel: pick2("review").model };
+  const st = pick2(stageKey(pass)) ?? { model: "default", effort: "default" };
+  return { model: st.model, effort: st.effort, reviewModel: (pick2(reviewKey(pass)) ?? pick2("review"))?.model ?? "default" };
 }
 function anchorsFor(a) {
   if (!a.project || !a.dir.anchors?.length) return [];
@@ -19650,7 +19791,7 @@ function finalHash(a, version) {
   const src = sourceOf(a, version), base = finishBaseOf(src);
   return sourceHash((base ? sourceOf(a, base) + "\n" : "") + src);
 }
-var CHARS_PER_TOKEN, codeTokens, revisionPasses, feedbackOf, passOf, versionsIn, sourceOf, rowLabel, relPath, stageKey;
+var CHARS_PER_TOKEN, codeTokens, revisionPasses, feedbackOf, passOf, versionsIn, sourceOf, rowLabel, relPath, stageKey, reviewKey;
 var init_asset = __esm({
   "../artgen-cli/src/asset.ts"() {
     "use strict";
@@ -19662,14 +19803,16 @@ var init_asset = __esm({
     CHARS_PER_TOKEN = 3.5;
     codeTokens = (src) => Math.ceil(src.length / CHARS_PER_TOKEN);
     revisionPasses = (a) => a.budget?.revisionPasses ?? a.dir.pipeline.revisionPasses;
-    feedbackOf = (a) => ledgerFor(a).filter((e) => e.type === "feedback" && e.by === "user" && typeof e.opens === "string").map((e) => ({
+    feedbackOf = (a) => ledgerFor(a).filter((e) => e.type === "feedback" && (e.by === "user" || e.by === "agent") && typeof e.opens === "string").map((e) => ({
       route: e.route === "finish" ? "finish" : "base",
       opens: e.opens,
+      ...e.by === "agent" && { by: "agent", source: typeof e.source === "string" ? e.source : "agent" },
+      ...typeof e.on === "string" && { on: e.on },
       ...typeof e.note === "string" && { note: e.note },
       ...Array.isArray(e.region) && { region: e.region },
       ...typeof e.cell === "string" && { cell: e.cell }
     }));
-    passOf = (a, version) => passId(version, revisionPasses(a), a.project ? feedbackOf(a).map((f) => f.opens) : void 0);
+    passOf = (a, version) => passId(version, revisionPasses(a), a.project ? feedbackOf(a).filter((f) => f.by !== "agent").map((f) => f.opens) : void 0);
     versionsIn = (a) => readdirSync(a.path).map((f) => parseVersion(f)?.name).filter((v) => !!v).sort((x, y) => {
       const a1 = parseVersion(x), b1 = parseVersion(y);
       return a1.kind === b1.kind ? a1.n - b1.n : a1.kind === "base" ? -1 : 1;
@@ -19678,6 +19821,7 @@ var init_asset = __esm({
     rowLabel = (r, score) => `${r.version}${score !== void 0 ? ` (${score})` : ""} | hyg ${r.report.metrics.hygiene} col ${r.report.metrics.colors} orph ${r.report.metrics.orphanPct}% | gate ${r.report.pass ? "pass" : "FAIL"}${r.stale?.length ? " | FINISH-STALE" : ""}`;
     relPath = (a, p) => relative(dirname3(resolve2(a.ledgerPath)), resolve2(p)).split("\\").join("/");
     stageKey = (pass) => pass === "r1" ? "base" : pass.startsWith("f") ? "finish" : "revise";
+    reviewKey = (pass) => pass === "b" ? "blind" : pass === "r1" || pass === "r2" ? "reviewEarly" : "review";
   }
 });
 
@@ -20484,10 +20628,19 @@ function resolveAssetArg(p, arg) {
   }
   throw new Error(`${arg}: not an asset directory or a brief id in art/briefs.yaml`);
 }
+function templateFor(b, dir) {
+  const view = b.view ?? dir.camera.view, figure = ["character", "creature"].includes(b.kind);
+  if (figure && b.body && b.body !== "humanoid") return findTemplate(view, `creature-${b.body}`);
+  const walker = figure && ((b.directions ?? 1) > 1 || !!b.anims?.walk);
+  return walker ? findTemplate(view, "character-walk") : findTemplate(view, b.kind);
+}
+function briefWarnings(b, dir) {
+  const out = briefMaterialIssues(b, dir), t = templateFor(b, dir), view = b.view ?? dir.camera.view;
+  if (t.view !== view) out.push(`no ${view} template for it: it starts from ${t.view}/${t.kind} \u2014 check the review sheets for the ${view} camera`);
+  return out;
+}
 function scaffoldAsset(p, b, dir) {
-  const path = assetPathOf(p, b), view = b.view ?? dir.camera.view;
-  const walker = ["character", "creature"].includes(b.kind) && ((b.directions ?? 1) > 1 || !!b.anims?.walk);
-  const t = walker ? findTemplate(view, "character-walk") : findTemplate(view, b.kind), template = `${t.view}/${t.kind}`;
+  const path = assetPathOf(p, b), t = templateFor(b, dir), template = `${t.view}/${t.kind}`;
   if (existsSync11(join12(path, "base.v1.js"))) return { path, created: false, template };
   mkdirSync8(path, { recursive: true });
   const tb = readJson(join12(t.dir, "brief.json"));
@@ -20507,7 +20660,23 @@ async function assetRow(p, b) {
   const sc = s2.final ? [...ledger].reverse().find((e) => e.type === "score" && !e.blind && e.version === s2.final) : void 0;
   const ro = s2.final ? [...ledger].reverse().find((e) => e.type === "roster" && e.version === s2.final && Array.isArray(e.issues)) : void 0;
   const issues = [...effectObjectIssues(b).map((x) => `brief: ${x}`), ...s2.issues, ...(st.stale ?? []).map((x) => `finish-stale ${x}`), ...ro?.issues ?? []];
-  return { ...base, status: s2.status, final: s2.final, score: sc?.score, gate: sc?.conformance?.pass, issues, next: st.next, why: s2.why, imageTokens: imageTokens2, stale: st.stale };
+  const blind = s2.final ? blindScores(ledger).get(s2.final)?.score : void 0, score = sc?.score, eff = blind ?? score;
+  const top = st.next.action === "ready" ? st.next.top : void 0;
+  return {
+    ...base,
+    status: s2.status,
+    final: s2.final,
+    score,
+    gate: sc?.conformance?.pass,
+    issues,
+    next: st.next,
+    why: s2.why,
+    imageTokens: imageTokens2,
+    stale: st.stale,
+    ...blind !== void 0 && { blind },
+    ...eff !== void 0 && eff < projectConfig(p).review.approveMin && { belowBar: true },
+    ...top && { top }
+  };
 }
 async function projectStatus(p, ids) {
   requireLocked(p);
@@ -20520,12 +20689,13 @@ function requireLocked(p) {
   if (!d) throw new Error("no locked direction yet \u2014 run the art direction workflow first (`artgen direction lock <candidate>`)");
   return d;
 }
-function workPacket(row) {
+function workPacket(row, reviewed = true) {
   const st = row.next;
   if (!st || st.action === "ready") return void 0;
   const owns = row.path, base = { id: row.id, kind: row.kind, owns, step: st };
   if (st.action === "write-base" || st.action === "write-finish") return { ...base, writes: [`${owns}/${st.version}.js`], role: "maker" };
   if (st.action === "review" && st.version === "base.v1" && /^base\.v1 from the template/.test(row.why)) return { ...base, writes: [`${owns}/base.v1.js`], role: "maker" };
+  if (st.action === "review" && !reviewed) return { ...base, writes: [`${owns}/${st.version}.js`], role: "maker", resume: true };
   return { ...base, writes: [], role: "main" };
 }
 async function make(p, ids, o = {}) {
@@ -20533,13 +20703,16 @@ async function make(p, ids, o = {}) {
   if (ids?.length && !ids.includes("all")) {
     for (const id of ids) if (!briefs.some((b) => b.id === id)) throw new Error(`no brief ${id} in art/briefs.yaml`);
   }
-  const scaffolded = [], finals = [], overBudget = [], rows = [];
-  let next;
+  const scaffolded = [], finals = [], overBudget = [], rows = [], reviewed = /* @__PURE__ */ new Map();
   for (const b of briefs) {
     const sc = scaffoldAsset(p, b, dir);
     if (sc.created) scaffolded.push(rel2(p, join12(sc.path, "base.v1.js")));
     let row = await assetRow(p, b);
     const a = openAsset(sc.path), ledger = ledgerFor(a);
+    if (row.next?.action === "review") {
+      const v = row.next.version;
+      reviewed.set(b.id, ledger.some((e) => e.type === "review" && e.version === v && !e.blind));
+    }
     if (row.next?.action === "ready") {
       const fin = row.next.final;
       if (!ledger.some((e) => e.type === "status" && e.status === "final" && e.version === fin && e.sourceHash === finalHash(a, fin))) {
@@ -20553,15 +20726,30 @@ async function make(p, ids, o = {}) {
         overBudget.push(b.id);
       }
       row = { ...row, why: `over budget (${row.imageTokens} image tokens); left at ${best?.version ?? "nothing scored"}` };
-      rows.push(row);
-      continue;
     }
     rows.push(row);
-    if (!next && row.next && row.next.action !== "ready") next = { id: b.id, path: row.path, step: row.next };
   }
-  if (!o.parallel) return { rows, next, scaffolded, finals, overBudget };
-  const packets = rows.filter((r) => !r.why.startsWith("over budget")).map(workPacket).filter((x) => !!x), makers = packets.filter((x) => x.role === "maker");
-  return { rows, next, scaffolded, finals, overBudget, work: { makers: makers.slice(0, o.parallel), queued: makers.slice(o.parallel), main: packets.filter((x) => x.role === "main") } };
+  const live = rows.filter((r) => !DONE.includes(r.status) && !r.why.startsWith("over budget")), active = new Set((o.wave ? live.slice(0, o.wave) : live).map((r) => r.id));
+  const roster2 = earlyRoster(p, rows.filter((r) => active.has(r.id)));
+  const held = new Set(roster2?.ids ?? []), pending = rows.filter((r) => active.has(r.id) && r.next && r.next.action !== "ready" && !held.has(r.id));
+  const n0 = pending[0], next = n0 && { id: n0.id, path: n0.path, step: n0.next };
+  const finalRoster = rows.filter((r) => r.status === "final" && !TILE_KINDS.has(r.kind) && !ledgerFor(openAsset(join12(p.root, r.path))).some((e) => e.type === "roster" && e.version === r.final && Array.isArray(e.issues))).map((r) => r.id);
+  const res = { rows, ...next && { next }, scaffolded, finals, overBudget, ...roster2 && { roster: roster2 }, ...finalRoster.length >= 2 && { finalRoster } };
+  if (!o.parallel) return res;
+  const packets = pending.map((r) => workPacket(r, reviewed.get(r.id) ?? true)).filter((x) => !!x), makers = packets.filter((x) => x.role === "maker");
+  const waiting = rows.filter((r) => !active.has(r.id) && !DONE.includes(r.status) && !r.why.startsWith("over budget")).map((r) => workPacket(r, reviewed.get(r.id) ?? true)).filter((x) => !!x && x.role === "maker");
+  return { ...res, work: { makers: makers.slice(0, o.parallel), queued: [...makers.slice(o.parallel), ...waiting], main: packets.filter((x) => x.role === "main") } };
+}
+function earlyRoster(p, rows) {
+  if (!projectConfig(p).review.earlyRoster) return void 0;
+  const figures = rows.filter((r) => !TILE_KINDS.has(r.kind) && r.status !== "brief");
+  if (figures.length < 2) return void 0;
+  const atV1 = v1Rows(p, figures), ready2 = new Set(atV1.map((r) => r.id));
+  const beforeV1 = figures.filter((r) => !ready2.has(r.id) && r.next?.action !== "ready" && (r.next?.action === "review" || r.next?.action === "write-base") && "version" in r.next && r.next.version === "base.v1");
+  const uncovered = atV1.filter((r) => !ledgerFor(openAsset(join12(p.root, r.path))).some((e) => e.type === "roster" && e.version === "base.v1" && Array.isArray(e.issues)));
+  if (uncovered.length < 2 && !(uncovered.length && atV1.length >= 2)) return void 0;
+  if (beforeV1.length) return { stage: "v1", ids: uncovered.map((r) => r.id), why: `holding v2 for the v1 roster until ${beforeV1.map((r) => r.id).join(", ")} ${beforeV1.length > 1 ? "have" : "has"} a scored v1` };
+  return { stage: "v1", ids: uncovered.map((r) => r.id), why: "every v1 is scored: run the v1 roster (`roster --stage v1`, a fresh art-reviewer, `roster record`) before any v2 \u2014 its notes go into each v2 brief" };
 }
 function thumb(r) {
   const f = r.facings[0], cells = r.cells.filter((c) => c.facing === f);
@@ -20577,16 +20765,16 @@ async function gallery(p, opts = {}) {
   for (const r of rows) {
     const a = openAsset(join12(p.root, r.path)), v = await renderVersion(a, r.final);
     const rv = reviewOf(a, r.final);
-    const tag = `${r.id} ${r.final} ${r.score ?? "-"}${rv.blind !== void 0 ? ` b${rv.blind}` : rv.reviewer === "self" ? " SELF" : ""}${r.gate === false ? " GATE" : ""}${r.issues.length ? ` !${r.issues.length}` : ""}`;
+    const tag = `${r.id} ${r.final} ${r.score ?? "-"}${rv.blind !== void 0 ? ` b${rv.blind}` : rv.reviewer === "self" ? " SELF" : ""}${r.gate === false ? " GATE" : ""}${r.belowBar ? " BELOW BAR" : ""}${r.top ? ` final\u2260best ${r.top.version} ${r.top.score}` : ""}${r.issues.length ? ` !${r.issues.length}` : ""}`;
     items.push({ label: tag, grid: thumb(v.render), bg: a.brief.review?.bg ?? dir.background });
-    assets.push({ id: r.id, final: r.final, score: r.score, ...rv.blind !== void 0 && { blind: rv.blind }, ...rv.reviewer && { reviewer: rv.reviewer }, issues: r.issues });
+    assets.push({ id: r.id, final: r.final, score: r.score, ...rv.blind !== void 0 && { blind: rv.blind }, ...rv.reviewer && { reviewer: rv.reviewer }, issues: r.issues, ...r.belowBar && { belowBar: true }, ...r.top && { top: r.top } });
   }
   if (!items.length) return { sheets: [], tokens: 0, assets };
   const sheets = [];
   let tokens = 0;
   const n0 = (existsSync11(join12(p.art, "sheets")) ? readdirCount(join12(p.art, "sheets"), /^gallery-\d+\.png$/) : 0) + 1;
   for (let i = 0; i < items.length; i += 12) {
-    const page = items.slice(i, i + 12), sheet = contactSheet(`${dir.id} v${dir.version}: finished assets ${i + 1}-${i + page.length} of ${items.length} (score, b blind score, !issues)`, page, 4, Math.min(4, page.length));
+    const page2 = items.slice(i, i + 12), sheet = contactSheet(`${dir.id} v${dir.version}: finished assets ${i + 1}-${i + page2.length} of ${items.length} (score, b blind score, !issues; BELOW BAR under ${projectConfig(p).review.approveMin})`, page2, 4, Math.min(4, page2.length));
     const f = join12(p.art, "sheets", `gallery-${n0 + i / 12}.png`);
     writeGrid(f, sheet);
     sheets.push(rel2(p, f));
@@ -20595,29 +20783,51 @@ async function gallery(p, opts = {}) {
   appendLedger(ledgerFile(p), { type: "review", asset: "gallery", sheet: sheets.join(","), imageTokens: tokens, assets: assets.map((x) => x.id), by: "agent" });
   return { sheets, tokens, assets };
 }
-async function rosterRun(p, o = {}) {
-  const dir = requireLocked(p), briefs = readBriefs(p), ledgerAll = parseLedger(existsSync11(ledgerFile(p)) ? readFileSync8(ledgerFile(p), "utf8") : "");
-  const rows = (await projectStatus(p, o.ids?.length ? o.ids : void 0)).filter((r) => r.final), items = [], versions = {}, skipped = [];
+function v1Rows(p, rows) {
+  const out = [];
   for (const r of rows) {
-    const b = briefs.find((x) => x.id === r.id);
+    if (TILE_KINDS.has(r.kind) || r.status === "brief") continue;
+    const a = openAsset(join12(p.root, r.path)), vs = versionsIn(a);
+    if (!vs.includes("base.v1") || vs.includes("base.v2") || (a.budget?.revisionPasses ?? 3) < 2) continue;
+    if (ledgerFor(a).some((e) => e.type === "score" && !e.blind && e.version === "base.v1")) out.push(r);
+  }
+  return out;
+}
+async function rosterRun(p, o = {}) {
+  const dir = requireLocked(p), briefs = readBriefs(p), ledgerAll = parseLedger(existsSync11(ledgerFile(p)) ? readFileSync8(ledgerFile(p), "utf8") : ""), stage = o.stage ?? "final";
+  const ids = o.ids?.length ? o.ids : void 0;
+  const all = await projectStatus(p, ids), rows = stage === "v1" ? v1Rows(p, all) : all.filter((r) => r.final);
+  const items = [], versions = {}, skipped = [];
+  for (const r of rows) {
+    const b = briefs.find((x) => x.id === r.id), version = stage === "v1" ? "base.v1" : r.final;
     if (TILE_KINDS.has(b.kind)) {
       skipped.push(`${r.id} (${b.kind})`);
       continue;
     }
-    const v = await renderVersion(openAsset(join12(p.root, r.path)), r.final);
-    items.push({ id: r.id, kind: b.kind, grid: v.render.cells[0].grid, notes: b.notes, height: b.height });
-    versions[r.id] = r.final;
+    const v = await renderVersion(openAsset(join12(p.root, r.path)), version);
+    items.push({ id: r.id, kind: b.kind, grid: v.render.cells[0].grid, drawn: drawnHeight(standFrames(v.render)), notes: b.notes, height: b.height });
+    versions[r.id] = version;
   }
-  if (items.length < 2) throw new Error(`roster: needs at least two finished non-tile assets (have ${items.length})`);
+  if (items.length < 2) throw new Error(`roster: needs at least two ${stage === "v1" ? "non-tile assets with a scored base.v1 and no v2" : "finished non-tile assets"} (have ${items.length})`);
   const seed = o.seed ?? ledgerAll.filter((e) => e.type === "roster" && e.asset === "roster" && e.key).length + 1;
-  const res = roster(items, { bg: dir.background ?? "#202020", pxPerMetre: pxPerMetre(dir), seed });
-  const f = (n) => join12(p.art, "sheets", n);
-  writeGrid(f("roster-lineup.png"), res.lineup);
-  writeGrid(f("roster-silhouettes.png"), res.silhouettes);
-  writeJson(f("roster-assets.json"), { lineup: items.map((it) => it.id), assets: [...items].sort((a, b) => a.id.localeCompare(b.id)).map((it) => ({ id: it.id, kind: it.kind, notes: it.notes ?? "", ...it.height && { height: it.height } })) });
-  const tokens = imageTokens(res.lineup.w, res.lineup.h) + imageTokens(res.silhouettes.w, res.silhouettes.h);
-  appendLedger(ledgerFile(p), { type: "roster", asset: "roster", key: res.key, versions, seed, sizes: res.sizes, pairs: res.pairs, sheet: "sheets/roster-lineup.png,sheets/roster-silhouettes.png", imageTokens: tokens, by: "agent" });
-  return { lineup: rel2(p, f("roster-lineup.png")), silhouettes: rel2(p, f("roster-silhouettes.png")), assets: rel2(p, f("roster-assets.json")), tokens, seed, sizes: res.sizes, pairs: res.pairs, skipped };
+  const res = roster(items, { bg: dir.background ?? "#202020", pxPerMetre: pxPerMetre(dir), heightFail: projectConfig(p).review.heightFail, seed });
+  const f = (n) => join12(p.art, "sheets", n), many = res.pages.length > 1, sheets = [];
+  let tokens = 0;
+  res.pages.forEach((pg, i) => {
+    const sfx = many ? `-${i + 1}` : "";
+    writeGrid(f(`roster-lineup${sfx}.png`), pg.lineup);
+    writeGrid(f(`roster-silhouettes${sfx}.png`), pg.silhouettes);
+    sheets.push(rel2(p, f(`roster-lineup${sfx}.png`)), rel2(p, f(`roster-silhouettes${sfx}.png`)));
+    tokens += imageTokens(pg.lineup.w, pg.lineup.h) + imageTokens(pg.silhouettes.w, pg.silhouettes.h);
+  });
+  writeJson(f("roster-assets.json"), {
+    stage,
+    lineup: items.map((it) => it.id),
+    ...many && { pages: res.pages.map((pg, i) => ({ lineup: `roster-lineup-${i + 1}.png`, silhouettes: `roster-silhouettes-${i + 1}.png`, ids: pg.ids })) },
+    assets: [...items].sort((a, b) => a.id.localeCompare(b.id)).map((it) => ({ id: it.id, kind: it.kind, notes: it.notes ?? "", ...it.height && { height: it.height } }))
+  });
+  appendLedger(ledgerFile(p), { type: "roster", asset: "roster", stage, key: res.key, versions, seed, sizes: res.sizes, pairs: res.pairs, sheet: sheets.map((x) => relative7(p.art, join12(p.root, x)).split("\\").join("/")).join(","), imageTokens: tokens, by: "agent" });
+  return { lineup: sheets[0], silhouettes: sheets[1], sheets, assets: rel2(p, f("roster-assets.json")), tokens, seed, stage, sizes: res.sizes, pairs: res.pairs, skipped };
 }
 function rosterRecord(p, file, reviewer = "self") {
   const ledgerAll = parseLedger(existsSync11(ledgerFile(p)) ? readFileSync8(ledgerFile(p), "utf8") : "");
@@ -20636,13 +20846,14 @@ async function feedback(p, id, o) {
   const b = readBriefs(p).find((x) => x.id === id);
   if (!b) throw new Error(`no brief ${id}`);
   requireLocked(p);
-  const row = await assetRow(p, b);
+  const row = await assetRow(p, b), agent = o.by === "agent";
   if (!["final", "approved", "exported", "stale"].includes(row.status)) throw new Error(`${id} is ${row.status}: feedback applies to finished assets (wait for final)`);
-  const a = openAsset(assetPathOf(p, b)), iterations = feedbackOf(a).length + 1, max2 = a.budget?.maxUserIterations ?? 3;
-  if (iterations > max2 && !o.force) throw new Error(`${id}: ${iterations - 1} user iterations already (budget.maxUserIterations ${max2}) \u2014 escalate: talk it through with the user, or pass --force`);
+  const a = openAsset(assetPathOf(p, b)), mine = feedbackOf(a).filter((f) => f.by === "agent" === agent), iterations = mine.length + 1;
+  const max2 = agent ? projectConfig(p).review.rosterRevisions : a.budget?.maxUserIterations ?? 3;
+  if (iterations > max2 && !o.force) throw new Error(agent ? `${id}: ${iterations - 1} revisions from roster notes already (review.rosterRevisions ${max2}) \u2014 list the note for the user instead, or pass --force` : `${id}: ${iterations - 1} user iterations already (budget.maxUserIterations ${max2}) \u2014 escalate: talk it through with the user, or pass --force`);
   const vs = versionsIn(a), kind = o.route === "base" ? "base" : "finish";
   const opens = `${kind}.v${Math.max(0, ...vs.map(parseVersion).filter((v) => v.kind === kind).map((v) => v.n)) + 1}`;
-  appendLedger(ledgerFile(p), { type: "feedback", asset: id, route: o.route, opens, on: row.final, note: o.note, ...o.region && { region: o.region }, ...o.cell && { cell: o.cell }, by: "user" });
+  appendLedger(ledgerFile(p), { type: "feedback", asset: id, route: o.route, opens, on: row.final, note: o.note, ...o.region && { region: o.region }, ...o.cell && { cell: o.cell }, ...agent ? { by: "agent", source: o.source ?? "roster" } : { by: "user" } });
   return { opens, next: (await passState(openAsset(assetPathOf(p, b)))).next, iterations };
 }
 async function approve(p, id, note = "") {
@@ -20877,7 +21088,7 @@ function pooledAnalytics(dirs, o = {}) {
   }
   return { report: r, markdown: recommendMarkdown(r, o.title), ...applied && { applied } };
 }
-var briefsFile, ledgerFile, rel2, contractFile, allowed, assetPathOf, versionsInPath, readdirCount, parseAll;
+var briefsFile, ledgerFile, rel2, contractFile, allowed, assetPathOf, versionsInPath, DONE, readdirCount, parseAll;
 var init_w2 = __esm({
   "../artgen-cli/src/w2.ts"() {
     "use strict";
@@ -20897,6 +21108,7 @@ var init_w2 = __esm({
     allowed = (list2, id) => !!list2 && (list2.includes("*") || list2.includes(id));
     assetPathOf = (p, b) => join12(p.art, briefDir(b));
     versionsInPath = (path) => existsSync11(path) ? versionsIn({ path }) : [];
+    DONE = ["final", "approved", "exported"];
     readdirCount = (d, re) => readdirSync7(d).filter((f) => re.test(f)).length;
     parseAll = (f) => existsSync11(f) ? parseLedger(readFileSync8(f, "utf8")) : [];
   }
@@ -21532,7 +21744,9 @@ next: edit base.v1.js for the brief, then artgen review ${path}`, { files: r.fil
     return r.report.pass ? 0 : 1;
   }
   if (cmd === "review" && sub2) {
-    const a = asset(sub2), version = flag(args, "--version") ?? latest(sub2), r = await reviewVersion(a, version, { blind: args.includes("--blind") });
+    const detail = flag(args, "--detail");
+    if (detail !== void 0 && detail !== "low" && detail !== "full") throw new Error("review --detail low (first facing at 3\xD7, previous version only) | full (every facing, the best so far)");
+    const a = asset(sub2), version = flag(args, "--version") ?? latest(sub2), r = await reviewVersion(a, version, { blind: args.includes("--blind"), detail, scene: args.includes("--scene") });
     print(`review sheet ${r.path} (~${r.tokens} image tokens); gate ${r.render.report.pass ? "pass" : "FAIL"}`, { sheet: r.path, tokens: r.tokens, pass: r.render.report.pass, checks: r.render.report.checks });
     return 0;
   }
@@ -21550,6 +21764,11 @@ next: edit base.v1.js for the brief, then artgen review ${path}`, { files: r.fil
     }
     const a0 = asset(sub2);
     if (flag(args, "--tokens-in") || flag(args, "--tokens-out")) ex.measured = { in: +(flag(args, "--tokens-in") ?? 0), out: +(flag(args, "--tokens-out") ?? 0) };
+    if (flag(args, "--agent-tokens-in")) {
+      const n = +flag(args, "--agent-tokens-in");
+      if (!(n >= 0)) throw new Error("score --agent-tokens-in <n>: the total input tokens the agent read for this pass");
+      ex.measured = { ...ex.measured, agentIn: n };
+    }
     const e = await scoreVersion(a0, rest[0], score, flag(args, "--note") ?? "", ex);
     print(`scored ${e.asset} ${e.version} (${e.pass}${e.blind ? ", blind" : ""}, by ${e.reviewer}) ${score}; gate ${e.conformance?.pass ? "pass" : "FAIL"}${typeof e.gap === "number" ? `; ${e.gap} under its own score` : ""}`, e);
     return 0;
@@ -21639,7 +21858,8 @@ next: edit base.v1.js for the brief, then artgen review ${path}`, { files: r.fil
         ...flag(args, "--priority") && { priority: +flag(args, "--priority") },
         ...flag(args, "--notes") && { notes: flag(args, "--notes") },
         ...flag(args, "--height") && { height: +flag(args, "--height") },
-        ...flag(args, "--object") && { object: flag(args, "--object") }
+        ...flag(args, "--object") && { object: flag(args, "--object") },
+        ...flag(args, "--body") && { body: flag(args, "--body") }
       };
       if (b.importance && !IMPORTANCE.includes(b.importance)) throw new Error(`--importance: ${IMPORTANCE.join(" | ")}`);
       for (const d of list(args, "--durations") ?? []) {
@@ -21649,9 +21869,18 @@ next: edit base.v1.js for the brief, then artgen review ${path}`, { files: r.fil
       }
       if (b.kind === "effect" && !b.object) throw new Error(`brief add ${b.id}: an effect needs --object "<the drawable thing>" (e.g. "ice lance", "ring of fire") \u2014 without the word effect or colour words`);
       if (b.anims && !b.states) b.states = ["idle", ...Object.keys(b.anims).filter((s2) => s2 !== "idle")];
-      const all = addBrief(p, b, { breakContract: args.includes("--break-contract") });
-      print(`brief ${b.id} (${b.kind}) in art/briefs.yaml \u2014 ${all.length} briefs
-next: artgen make ${b.id}`, { brief: b, count: all.length });
+      const all = addBrief(p, b, { breakContract: args.includes("--break-contract") }), dir = lockedDirection(p), warnings = dir ? briefWarnings(b, dir) : [];
+      print(`brief ${b.id} (${b.kind}) in art/briefs.yaml \u2014 ${all.length} briefs${warnings.map((w) => `
+  warning: ${w}`).join("")}
+next: artgen make ${b.id}`, { brief: b, count: all.length, warnings });
+      return 0;
+    }
+    if (sub2 === "lint") {
+      const dir = lockedDirection(p);
+      if (!dir) throw new Error("brief lint: lock a direction first (it checks briefs against its ramps and templates)");
+      const ids = pos2(rest), rows = readBriefs(p).filter((b) => !ids.length || ids.includes(b.id)).map((b) => ({ id: b.id, warnings: briefWarnings(b, dir) })).filter((r) => r.warnings.length);
+      print(rows.length ? rows.map((r) => `${r.id}:
+${r.warnings.map((w) => `  ${w}`).join("\n")}`).join("\n") : "no brief warnings", rows);
       return 0;
     }
     if (sub2 === "rm" && rest[0]) {
@@ -21667,7 +21896,7 @@ next: artgen make ${b.id}`, { brief: b, count: all.length });
   }
   if (cmd === "make" || cmd === "status") {
     const p = requireProject(flag(args, "--root")), ids = pos2(args);
-    const table = (rows) => rows.map((r2) => `  ${r2.id.padEnd(16)} ${r2.status.padEnd(11)} ${r2.final ? `${r2.final} ${r2.score ?? "-"}${r2.gate === false ? " GATE FAIL" : ""}` : r2.next ? `${r2.next.action} ${"version" in r2.next ? r2.next.version : ""}` : ""}${r2.issues.length ? `
+    const table = (rows) => rows.map((r2) => `  ${r2.id.padEnd(16)} ${r2.status.padEnd(11)} ${r2.final ? `${r2.final} ${r2.score ?? "-"}${r2.blind !== void 0 ? ` b${r2.blind}` : ""}${r2.gate === false ? " GATE FAIL" : ""}${r2.belowBar ? " BELOW BAR" : ""}${r2.top ? ` final\u2260best (${r2.top.version} ${r2.top.score})` : ""}` : r2.next ? `${r2.next.action} ${"version" in r2.next ? r2.next.version : ""}` : ""}${r2.issues.length ? `
 ${r2.issues.map((i) => `      issue: ${i}`).join("\n")}` : ""}`).join("\n");
     if (cmd === "status") {
       const rows = await projectStatus(p, ids);
@@ -21676,8 +21905,10 @@ ${r2.issues.map((i) => `      issue: ${i}`).join("\n")}` : ""}`).join("\n");
     }
     const par = flag(args, "--parallel");
     if (par !== void 0 && !(+par >= 1)) throw new Error("make --parallel <n>: how many maker subagents to run at once (e.g. 4)");
-    const r = await make(p, ids, { parallel: par ? +par : void 0 });
-    const pk = (x) => `  ${x.id.padEnd(16)} ${x.step.action} ${"version" in x.step ? x.step.version : ""}${x.writes.length ? ` \u2192 writes ${x.writes.join(", ")}` : ""}`;
+    const wave = flag(args, "--wave");
+    if (wave !== void 0 && !(+wave >= 1)) throw new Error("make --wave <n>: how many assets to finish before starting more (e.g. 10)");
+    const r = await make(p, ids, { parallel: par ? +par : void 0, wave: wave ? +wave : void 0 });
+    const pk = (x) => `  ${x.id.padEnd(16)} ${x.step.action} ${"version" in x.step ? x.step.version : ""}${x.writes.length ? ` \u2192 writes ${x.writes.join(", ")}` : ""}${x.resume ? " (resume: written, never reviewed \u2014 check it, complete it, review it)" : ""}`;
     const counts = Object.entries(r.rows.reduce((m, x) => ({ ...m, [x.status]: (m[x.status] ?? 0) + 1 }), {})).map(([k, v]) => `${v} ${k}`).join(", ");
     print([
       ...r.scaffolded.length ? [`scaffolded from templates:
@@ -21692,14 +21923,15 @@ ${r2.issues.map((i) => `      issue: ${i}`).join("\n")}` : ""}`).join("\n");
         ...r.work.queued.length ? [`queued for the next round (${r.work.queued.length}):`, ...r.work.queued.map(pk)] : [],
         ...r.work.main.length ? ["main agent (reviews, blind re-scores \u2014 fresh art-reviewer per sheet):", ...r.work.main.map(pk)] : []
       ] : [],
-      r.next ? `next: ${r.next.id} \u2014 ${r.next.step.action} ${"version" in r.next.step ? r.next.step.version : ""} (${r.next.path}) \u2014 ${r.next.step.why}` : "next: nothing left in the pipeline \u2014 show the gallery to the user (artgen gallery)"
+      ...r.roster ? [`v1 roster: ${r.roster.ids.join(", ")} wait for it \u2014 ${r.roster.why}`] : [],
+      r.next ? `next: ${r.next.id} \u2014 ${r.next.step.action} ${"version" in r.next.step ? r.next.step.version : ""} (${r.next.path}) \u2014 ${r.next.step.why}` : r.roster ? "next: artgen roster --stage v1, a fresh art-reviewer in roster mode, then artgen roster record <its json> --reviewer art-reviewer" : r.finalRoster?.length ? `next: the final roster (${r.finalRoster.length} finals have no roster review): artgen roster, a fresh art-reviewer, artgen roster record \u2014 then the gallery` : "next: nothing left in the pipeline \u2014 show the gallery to the user (artgen gallery)"
     ].join("\n"), r);
     return 0;
   }
   if (cmd === "gallery") {
     const p = requireProject(flag(args, "--root")), r = await gallery(p, { ids: pos2(args) });
     print(r.sheets.length ? `gallery ${r.sheets.join(", ")} (~${r.tokens} image tokens)
-${r.assets.map((a) => `  ${a.id} ${a.final} ${a.score ?? "-"}${a.issues.length ? `
+${r.assets.map((a) => `  ${a.id} ${a.final} ${a.score ?? "-"}${a.blind !== void 0 ? ` b${a.blind}` : ""}${a.belowBar ? " BELOW BAR" : ""}${a.top ? ` final\u2260best (${a.top.version} ${a.top.score})` : ""}${a.issues.length ? `
 ${a.issues.map((i) => `    issue: ${i}`).join("\n")}` : ""}`).join("\n")}` : "no finished assets waiting for review", r);
     return 0;
   }
@@ -21707,9 +21939,11 @@ ${a.issues.map((i) => `    issue: ${i}`).join("\n")}` : ""}`).join("\n")}` : "no
     const route2 = flag(args, "--route"), note = flag(args, "--note");
     if (route2 !== "base" && route2 !== "finish") throw new Error("feedback: --route base (form, proportion, colour \u2192 new base) | finish (pixels \u2192 finish revision)");
     if (!note) throw new Error('feedback: --note "<what the user asked for>" is required');
-    const region = list(args, "--region")?.map(Number);
-    const r = await feedback(requireProject(flag(args, "--root")), sub2, { route: route2, note, region, cell: flag(args, "--cell"), force: args.includes("--force") });
-    print(`feedback recorded (user iteration ${r.iterations}): opens ${r.opens}
+    const region = list(args, "--region")?.map(Number), by = flag(args, "--by");
+    if (by !== void 0 && !["user", "roster", "agent"].includes(by)) throw new Error("feedback --by user (default) | roster | agent");
+    const agent = by === "roster" || by === "agent";
+    const r = await feedback(requireProject(flag(args, "--root")), sub2, { route: route2, note, region, cell: flag(args, "--cell"), force: args.includes("--force"), ...agent && { by: "agent", source: by } });
+    print(`feedback recorded (${agent ? `${by} revision` : "user iteration"} ${r.iterations}): opens ${r.opens}
 next: ${r.next.action} ${"version" in r.next ? r.next.version : ""} \u2014 ${r.next.why}`, r);
     return 0;
   }
@@ -21754,13 +21988,15 @@ next: artgen review ${sub2}`, r);
       print([`roster review recorded: ${lines.length} assets with open issues`, ...lines, ...r2.notes.map((n) => `  note: ${n}`), "they show in status and the gallery until the asset gets a new final"].join("\n"), r2);
       return 0;
     }
-    const r = await rosterRun(p, { ids: pos2(args), seed: flag(args, "--seed") ? +flag(args, "--seed") : void 0 });
+    const stage = flag(args, "--stage") ?? "final";
+    if (stage !== "v1" && stage !== "final") throw new Error("roster --stage v1 (every scored base.v1, before v2) | final (default)");
+    const r = await rosterRun(p, { ids: pos2(args), seed: flag(args, "--seed") ? +flag(args, "--seed") : void 0, stage });
     print([
-      `roster sheets: ${r.lineup}, ${r.silhouettes} (~${r.tokens} image tokens); asset list for the reviewer: ${r.assets}${r.skipped.length ? `; tiles left out: ${r.skipped.join(", ")}` : ""}`,
+      `roster (${r.stage}) sheets: ${r.sheets.join(", ")} (~${r.tokens} image tokens); asset list for the reviewer: ${r.assets}${r.skipped.length ? `; tiles left out: ${r.skipped.join(", ")}` : ""}`,
       "sizes (drawn body height vs brief height \xD7 px per metre):",
       ...r.sizes.map((x) => `  ${x.id.padEnd(16)} ${String(x.drawn).padStart(3)} px${x.expected !== void 0 ? `, expected ${x.expected} px for ${x.height} m (${x.dev >= 0 ? "+" : ""}${Math.round(x.dev * 100)} %)${x.flag ? " FLAG" : ""}` : " (no height in the brief)"}`),
       `most similar silhouettes: ${r.pairs.map((x) => `${x.a} ~ ${x.b} ${x.overlap}`).join(", ")}`,
-      "next: give the two sheets and the asset list (not the ledger) to a fresh art-reviewer in roster mode, then artgen roster record <its json> --reviewer art-reviewer"
+      `next: give the ${r.sheets.length} sheets and the asset list (not the ledger) to a fresh art-reviewer in roster mode, then artgen roster record <its json> --reviewer art-reviewer${r.stage === "v1" ? " (its notes go into each asset's v2 brief)" : ""}`
     ].join("\n"), r);
     return 0;
   }
@@ -21805,7 +22041,7 @@ var init_cli = __esm({
     init_w2();
     init_src();
     init_w1();
-    VERSION = true ? "0.9.0" : "dev";
+    VERSION = true ? "0.10.0" : "dev";
     parseSize = (s2) => {
       const m = s2?.match(/^(\d+)x(\d+)$/);
       return m ? [+m[1], +m[2]] : s2;
@@ -21822,15 +22058,15 @@ usage: artgen init
        artgen finish <assetDir> [--base base.vN]
        artgen pass status|next <assetDir>
        artgen render <assetDir> [--version base.vN|finish.vM] [--variant n] [--stages]
-       artgen review <assetDir> [--version v] [--blind]
-       artgen score <assetDir> <version> <score> [--note "..."] [--reviewer name] [--blind]
+       artgen review <assetDir> [--version v] [--blind] [--detail low|full] [--scene]
+       artgen score <assetDir> <version> <score> [--note "..."] [--reviewer name] [--blind] [--agent-tokens-in n]
        artgen variants <assetDir> [--version v] [--n 8]
        artgen report <dir> [--out REPORT.md] [--title "..."]
-       artgen brief add <id> --kind k [--view v] [--size key|WxH] [--states a,b] [--directions n] [--anims walk:4] [--durations attack=80/80/200/80] [--variants n] [--swaps red:cloth=accent] [--importance t] [--priority n] [--height metres] [--object "ice lance"] [--notes "..."] [--break-contract]
-       artgen brief list | rm <id>
-       artgen make [ids|all] [--parallel n] | status [ids] | gallery [ids]
-       artgen roster [ids] [--seed n] | roster record <review.json> [--reviewer name]
-       artgen feedback <id> --route base|finish --note "..." [--region x,y,w,h] [--cell s/f/n] | approve <id> [--note "..."]
+       artgen brief add <id> --kind k [--view v] [--size key|WxH] [--states a,b] [--directions n] [--anims walk:4] [--durations attack=80/80/200/80] [--variants n] [--swaps red:cloth=accent] [--importance t] [--priority n] [--height metres] [--body quadruped|serpent|flyer|large] [--object "ice lance"] [--notes "..."] [--break-contract]
+       artgen brief list | rm <id> | lint [ids]
+       artgen make [ids|all] [--parallel n] [--wave n] | status [ids] | gallery [ids]
+       artgen roster [ids] [--seed n] [--stage v1] | roster record <review.json> [--reviewer name]
+       artgen feedback <id> --route base|finish --note "..." [--region x,y,w,h] [--cell s/f/n] [--by roster] | approve <id> [--note "..."]
        artgen export [--pack name] [--include-drafts] [--runtime [--force]] [--break-contract id,\u2026|*] | restyle [--from N] | import-edit <id> <png> [--cell s/f/n]
        artgen analytics [--out file.md] | analytics --across <root>,<root>\u2026 [--apply] [--min-assets n] [--out file.md]
        artgen voxel <asset> [--version v] [--cell s/f/n] [--out dir] [--scale m]
