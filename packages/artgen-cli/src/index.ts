@@ -7,6 +7,7 @@ export * from './report.ts';
 export { main, VERSION } from './cli.ts';
 export * from './p6.ts';
 export * from './map.ts';
+export * from './dungeon.ts';
 export * from './project.ts';
 export * from './templates.ts';
 export * from './w1.ts';

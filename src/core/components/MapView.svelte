@@ -1,35 +1,43 @@
 <script lang="ts">
   /**
-   * The map on screen: the rendered SVG with zoom (wheel) and pan (drag with the pan tool, or the middle button), and a
-   * pointer layer in map units on top — brush strokes, clicks and the line being drawn. Only the view lives here; every
-   * change goes back to the tool as map coordinates.
+   * A map on screen (Terrain Map, Dungeon Map): the rendered SVG with zoom (wheel) and pan (drag with the `pan` tool, or
+   * the middle button), and a pointer layer in map units on top — brush strokes, dragged boxes and moves, clicks and the
+   * line being drawn. Only the view lives here; every change goes back to the tool as map coordinates.
    */
-  import type { MapTool } from './store.svelte';
-
   interface Props {
     svg: string;
     cols: number;
     rows: number;
     ppu: number;
-    tool: MapTool;
+    tool: string;
+    /** Tools that paint a brush stroke (`onstroke`). */
+    brushTools?: string[];
+    /** Tools that drag out a box (`ondrag`, drawn as a rectangle). */
+    boxTools?: string[];
+    /** Tools that drag from one point to another (`ondrag`, drawn as an arrow); a click without moving is `onpoint`. */
+    moveTools?: string[];
     /** Brush radius in map units. */
-    brush: number;
-    /** River / road points placed so far (x, y pairs). */
+    brush?: number;
+    /** Line points placed so far (x, y pairs). */
     pending: number[];
-    onstroke: (pts: number[]) => void;
+    /** Snap dragged boxes to whole cells. */
+    snapBox?: boolean;
+    onstroke?: (pts: number[]) => void;
+    ondrag?: (x0: number, y0: number, x1: number, y1: number) => void;
     onpoint: (x: number, y: number) => void;
     onfinish: () => void;
   }
-  let { svg, cols, rows, ppu, tool, brush, pending, onstroke, onpoint, onfinish }: Props = $props();
+  let { svg, cols, rows, ppu, tool, brushTools = [], boxTools = [], moveTools = [], brush = 1, pending, snapBox = true, onstroke, ondrag, onpoint, onfinish }: Props = $props();
 
-  const BRUSH: MapTool[] = ['paint', 'raise', 'lower'];
+  const BRUSH = $derived(brushTools);
   let box = $state<HTMLDivElement>();
   let scale = $state(1);
   let tx = $state(0);
   let ty = $state(0);
   let cursor = $state<[number, number] | null>(null);
   let stroke = $state<number[]>([]);
-  let drag: { mode: 'pan' | 'brush'; x: number; y: number; tx: number; ty: number } | null = null;
+  let drag: { mode: 'pan' | 'brush' | 'drag'; x: number; y: number; tx: number; ty: number } | null = null;
+  let span = $state<[number, number, number, number] | null>(null);
   let fitted = '';
 
   const W = $derived(cols * ppu);
@@ -71,6 +79,7 @@
     if (e.button === 1 || tool === 'pan') { drag = { mode: 'pan', x: e.clientX, y: e.clientY, tx, ty }; return; }
     const [x, y] = toMap(e);
     if (BRUSH.includes(tool)) { drag = { mode: 'brush', x: e.clientX, y: e.clientY, tx, ty }; stroke = [x, y]; return; }
+    if (boxTools.includes(tool) || moveTools.includes(tool)) { drag = { mode: 'drag', x: e.clientX, y: e.clientY, tx, ty }; span = [x, y, x, y]; return; }
     onpoint(x, y);
   }
 
@@ -78,6 +87,7 @@
     const [x, y] = toMap(e);
     cursor = [x, y];
     if (drag?.mode === 'pan') { tx = drag.tx + e.clientX - drag.x; ty = drag.ty + e.clientY - drag.y; return; }
+    if (drag?.mode === 'drag' && span) { span = [span[0], span[1], x, y]; return; }
     if (drag?.mode === 'brush') {
       const lx = stroke[stroke.length - 2], ly = stroke[stroke.length - 1];
       if (Math.hypot(x - lx, y - ly) >= Math.max(0.15, brush * 0.25)) stroke = [...stroke, x, y];
@@ -89,13 +99,26 @@
     if (drag?.mode === 'brush' && stroke.length) {
       const [x, y] = toMap(e), pts = [...stroke];
       if (Math.hypot(x - pts[pts.length - 2], y - pts[pts.length - 1]) > 0.05) pts.push(x, y);
-      onstroke(pts);
+      onstroke?.(pts);
     }
+    if (drag?.mode === 'drag' && span) {
+      const [x0, y0] = span, [x1, y1] = toMap(e), moved = Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 4;
+      if (!moved) onpoint(x0, y0);
+      else ondrag?.(x0, y0, x1, y1);
+    }
+    span = null;
     drag = null;
     stroke = [];
   }
 
   const line = (pts: number[]) => pts.reduce((s, v, i) => s + (i % 2 ? `,${v} ` : `${v}`), '');
+  /** The dragged box, snapped to whole cells when `snapBox`. */
+  const box4 = $derived.by(() => {
+    if (!span) return null;
+    const f = snapBox ? Math.floor : (v: number) => v, c = snapBox ? Math.ceil : (v: number) => v;
+    const x0 = f(Math.min(span[0], span[2])), y0 = f(Math.min(span[1], span[3])), x1 = c(Math.max(span[0], span[2])), y1 = c(Math.max(span[1], span[3]));
+    return [x0, y0, x1 - x0, y1 - y0];
+  });
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -122,6 +145,13 @@
         {#each { length: pending.length / 2 } as _, i}
           <circle cx={pending[i * 2]} cy={pending[i * 2 + 1]} r={4 / ppu / scale} fill="#d22" />
         {/each}
+      {/if}
+      {#if box4 && boxTools.includes(tool)}
+        <rect x={box4[0]} y={box4[1]} width={box4[2]} height={box4[3]} fill="rgba(210,34,34,0.12)" stroke="#d22" stroke-width={2 / ppu / scale} stroke-dasharray="{6 / ppu / scale} {4 / ppu / scale}" />
+      {/if}
+      {#if span && moveTools.includes(tool)}
+        <line x1={span[0]} y1={span[1]} x2={span[2]} y2={span[3]} stroke="#d22" stroke-width={2 / ppu / scale} stroke-dasharray="{6 / ppu / scale} {4 / ppu / scale}" />
+        <circle cx={span[2]} cy={span[3]} r={4 / ppu / scale} fill="#d22" />
       {/if}
       {#if cursor && BRUSH.includes(tool)}
         <circle cx={cursor[0]} cy={cursor[1]} r={brush} fill="none" stroke="#d22" stroke-width={1.5 / ppu / scale} />

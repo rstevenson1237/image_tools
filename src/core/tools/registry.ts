@@ -61,6 +61,15 @@ export const tools: ToolDefinition[] = [
     requiredWorkers: ['artgen'],
   },
   {
+    id: 'dungeon-map',
+    name: 'Dungeon Map',
+    blurb: 'TTRPG dungeons and lairs: rooms, corridors, doors, 10/5 ft grid; black & white.',
+    icon: '▦',
+    group: 'image',
+    load: () => import('../../tools/DungeonMap/index.svelte') as Loaded,
+    requiredWorkers: ['artgen'],
+  },
+  {
     id: 'art-direction',
     name: 'Art Direction',
     blurb: "Edit a game's palette and style settings, compare candidates, lock.",

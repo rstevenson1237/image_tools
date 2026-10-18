@@ -30,7 +30,8 @@ describe('artgen MCP server', () => {
   test('tools/list names the full tool set (SPEC §14) with input schemas', async () => {
     const r = (await handle({ jsonrpc: '2.0', id: 4, method: 'tools/list' }, root))!.result as { tools: { name: string; inputSchema: { type: string } }[] };
     expect(r.tools.map(t => t.name)).toEqual(['direction_get', 'direction_tile', 'pass_status', 'render', 'review', 'conformance', 'score', 'finish', 'make', 'status',
-      'gallery', 'feedback', 'approve', 'texture', 'fx', 'export', 'restyle', 'analytics', 'map_list', 'map_get', 'map_new', 'map_update', 'map_edit', 'map_overlay', 'map_render']);
+      'gallery', 'feedback', 'approve', 'texture', 'fx', 'export', 'restyle', 'analytics', 'map_list', 'map_get', 'map_new', 'map_update', 'map_edit', 'map_overlay', 'map_render',
+      'dungeon_list', 'dungeon_get', 'dungeon_new', 'dungeon_update', 'dungeon_generate', 'dungeon_edit', 'dungeon_overlay', 'dungeon_render']);
     expect(r.tools.every(t => t.inputSchema.type === 'object')).toBe(true);
   });
 
@@ -151,5 +152,34 @@ describe('artgen MCP server on a locked project (W2 tools)', () => {
     expect(existsSync(join(root, 'art/maps/isle/out/isle.bw.png'))).toBe(true);
     expect((await call('map_new', { id: '../../etc' })).isError).toBe(true);
     expect((await call('map_get', { id: '../isle' })).isError).toBe(true);
+  }, 60_000);
+
+  test('dungeons: one room, edit, overlay, generate, render (image); ids cannot leave art/dungeons', async () => {
+    expect((await call('dungeon_new', { id: 'cell', mode: 'room', shape: 'rect', w: 6, h: 6, number: 20, exits: [{ side: 'n' }, { side: 'e', door: 'secret' }] })).isError).toBeUndefined();
+    expect(JSON.parse((await call('dungeon_get', { id: 'cell' })).content[1].text!)).toMatchObject({ cols: 12, rows: 12, rooms: [{ id: 'r1', number: 20 }], corridors: [{ doors: ['door', null] }, { doors: ['secret', null] }] });
+    await call('dungeon_new', { id: 'crypt', mode: 'empty', cols: 30, rows: 20 });
+    await call('dungeon_edit', { id: 'crypt', ops: [
+      { op: 'add_room', shape: 'rect', at: '3,3', w: 6, h: 4, label: 'Hall' },
+      { op: 'add_room', shape: 'cave', at: [16, 4], w: 8, h: 6 },
+      { op: 'link', from: 'r1', to: 'r2', doors: ['door', null] },
+      { op: 'link', from: 'r2', to: [29, 15] },
+      { op: 'door', index: 1, end: 'from', kind: 'portcullis' },
+      { op: 'fit', margin: 2 },
+    ] });
+    expect((await call('dungeon_edit', { id: 'crypt', ops: [{ op: 'move_room', room: 'nope', at: '1,1' }] })).isError).toBe(true);
+    await call('dungeon_update', { id: 'crypt', grid_mode: '10+5', style: { hatch: 'full' }, title: 'Crypt' });
+    await call('dungeon_overlay', { id: 'crypt', add_labels: [{ text: 'Bones', at: 'C4', kind: 'note' }], add_symbols: [{ kind: 'stairs', x: 4, y: 4, angle: 90 }, { kind: 'pillar', at: '5,5' }] });
+    await call('dungeon_overlay', { id: 'crypt', remove_symbols: [1] });
+    expect((await call('dungeon_overlay', { id: 'crypt', add_symbols: [{ kind: 'dragon', x: 1, y: 1 }] })).isError).toBe(true);
+    const got = JSON.parse((await call('dungeon_get', { id: 'crypt' })).content[1].text!);
+    expect(got).toMatchObject({ title: 'Crypt', grid: { show: true, size: 2, sub: true }, style: { hatch: 'full' }, rooms: [{ id: 'r1', x: 2, y: 2, label: 'Hall' }, { id: 'r2', shape: 'cave' }], corridors: [{ doors: ['door', null] }, { doors: ['portcullis', null] }], overlay: { labels: [{ text: 'Bones', x: 2.5, y: 3.5 }], symbols: [{ kind: 'stairs', angle: 90 }] } });
+    await call('dungeon_generate', { id: 'crypt', seed: 3, gen: { rooms: 5 }, cols: 30, rows: 24 });
+    expect(JSON.parse((await call('dungeon_get', { id: 'crypt' })).content[1].text!).overlay.labels).toHaveLength(1);
+    expect(JSON.parse((await call('dungeon_list')).content[0].text!).dungeons.map((d: { id: string }) => d.id).sort()).toEqual(['cell', 'crypt']);
+    const r = await call('dungeon_render', { id: 'crypt' });
+    expect(r.content.map(c => c.type)).toEqual(['text', 'image']);
+    expect(JSON.parse(r.content[0].text!).files).toEqual(['art/dungeons/crypt/out/crypt.svg', 'art/dungeons/crypt/out/crypt.png']);
+    expect((await call('dungeon_new', { id: '../../etc' })).isError).toBe(true);
+    expect((await call('dungeon_get', { id: '../crypt' })).isError).toBe(true);
   }, 60_000);
 });

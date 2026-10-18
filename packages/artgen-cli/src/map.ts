@@ -102,14 +102,14 @@ export function shapeFrom(o: { circle?: string | number[]; poly?: string | numbe
 /** `on`/`off`/`true`/`false`/`yes`/`no` → boolean; undefined when unset. */
 export const onOff = (v: string | undefined): boolean | undefined => (v === undefined ? undefined : /^(on|true|yes|1)$/i.test(v));
 
-/** `grid=off,labels=off` (or bare names, meaning off) → layer switches. */
-export function parseLayers(v: string | undefined): Partial<Record<map.MapLayer, boolean>> | undefined {
+/** `grid=off,labels=off` (or bare names, meaning off) → layer switches; `names` are the layers there are. */
+export function parseLayers<L extends string = map.MapLayer>(v: string | undefined, names: readonly L[] = map.MAP_LAYERS as unknown as readonly L[]): Partial<Record<L, boolean>> | undefined {
   if (!v) return undefined;
-  const out: Partial<Record<map.MapLayer, boolean>> = {};
+  const out: Partial<Record<L, boolean>> = {};
   for (const part of v.split(',').map(s => s.trim()).filter(Boolean)) {
     const [name, val] = part.split('=');
-    if (!map.MAP_LAYERS.includes(name as map.MapLayer)) throw new Error(`--layers: unknown layer ${name} (${map.MAP_LAYERS.join(', ')})`);
-    out[name as map.MapLayer] = val === undefined ? false : onOff(val)!;
+    if (!names.includes(name as L)) throw new Error(`--layers: unknown layer ${name} (${names.join(', ')})`);
+    out[name as L] = val === undefined ? false : onOff(val)!;
   }
   return out;
 }
