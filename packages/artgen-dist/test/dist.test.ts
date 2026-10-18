@@ -29,8 +29,9 @@ describe('artgen-dist', () => {
       'dist/tools/artgen/resvg.wasm', 'dist/tools/artgen/VERSION', 'dist/tools/artgen/templates/topdown/character/base.js',
       'dist/claude/skills/artgen/SKILL.md', 'dist/claude/skills/art-direction/SKILL.md', 'dist/claude/agents/art-reviewer.md', 'dist/claude/agents/art-maker.md',
       'dist/claude/commands/artgen-init.md', 'dist/claude/commands/artgen-direction.md', 'dist/claude/skills/asset-production/SKILL.md',
-      ...['brief', 'make', 'review', 'feedback', 'approve', 'export', 'restyle', 'map'].map(c => `dist/claude/commands/artgen-${c}.md`),
+      ...['brief', 'make', 'review', 'feedback', 'approve', 'export', 'restyle', 'map', 'dungeon'].map(c => `dist/claude/commands/artgen-${c}.md`),
       'dist/claude/skills/terrain-map/SKILL.md', 'plugin/skills/terrain-map/SKILL.md', 'plugin/commands/map.md',
+      'dist/claude/skills/dungeon-map/SKILL.md', 'plugin/skills/dungeon-map/SKILL.md', 'plugin/commands/dungeon.md',
       'dist/tools/artgen/fonts/AlegreyaSans-Regular.ttf', 'dist/tools/artgen/fonts/OFL.txt', 'plugin/tools/artgen/fonts/AlegreyaSans-Bold.ttf',
       'dist/tools/artgen/templates/topdown/character-walk/base.js', 'plugin/commands/make.md',
       'dist/tools/artgen/runtime/index.ts', 'dist/tools/artgen/runtime/adapters/pixi.ts', 'dist/tools/artgen/runtime/adapters/three.ts',
@@ -80,6 +81,15 @@ describe('artgen-dist', () => {
     for (const f of ['isle.color.svg', 'isle.color.png', 'isle.bw.svg', 'isle.bw.png']) expect(existsSync(join(GAME, 'art/maps/isle/out', f)), f).toBe(true);
   });
 
+  test('dungeon from the committed files: single room → generated → label → render (bundled fonts)', () => {
+    const cli = (...a: string[]) => { const r = node(['tools/artgen/artgen.js', ...a]); expect(r.status, r.stderr + r.stdout).toBe(0); return r.stdout; };
+    cli('dungeon', 'new', 'cell', '--room', 'circle', '--room-size', '7x7', '--exits', 'n,s:secret');
+    cli('dungeon', 'new', 'lair', '--rooms', '5', '--size', '24x18', '--seed', '3');
+    cli('dungeon', 'label', 'lair', 'Ossuary', '--at', '5,5', '--kind', 'area');
+    expect(cli('dungeon', 'render', 'lair', '--ppu', '12')).toMatch(/lair\.png/);
+    for (const f of ['lair.svg', 'lair.png']) expect(existsSync(join(GAME, 'art/dungeons/lair/out', f)), f).toBe(true);
+  });
+
   test('session-equivalent W2 run from the committed files: brief → make → review/score → status → export (drafts)', () => {
     const cli = (...a: string[]) => { const r = node(['tools/artgen/artgen.js', ...a]); expect(r.status, r.stderr + r.stdout).toBe(0); return r.stdout; };
     cli('brief', 'add', 'wisp', '--kind', 'effect', '--object', 'will-o-wisp flame with orbiting sparks', '--anims', 'idle:4');
@@ -111,7 +121,7 @@ describe('artgen-dist', () => {
     const r = node(['tools/artgen/artgen-mcp.js'], msgs.map(m => JSON.stringify(m)).join('\n') + '\n');
     const out = r.stdout.trim().split('\n').map(l => JSON.parse(l));
     expect(out.map(m => m.id)).toEqual([1, 2, 3]);
-    expect(out[1].result.tools.map((t: { name: string }) => t.name)).toEqual(expect.arrayContaining(['make', 'approve', 'texture', 'fx', 'export', 'analytics']));
+    expect(out[1].result.tools.map((t: { name: string }) => t.name)).toEqual(expect.arrayContaining(['make', 'approve', 'texture', 'fx', 'export', 'analytics', 'map_render', 'dungeon_render']));
     expect(out[2].result.content.map((c: { type: string }) => c.type)).toEqual(['text', 'image']);
   });
 

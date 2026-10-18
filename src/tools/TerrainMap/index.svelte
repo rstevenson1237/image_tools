@@ -15,7 +15,7 @@
   import { project } from '../../core/project/store.svelte';
   import ProjectBar from '../../core/components/ProjectBar.svelte';
   import { downloadBlob, downloadText } from '../../core/utils/download';
-  import MapView from './MapView.svelte';
+  import MapView from '../../core/components/MapView.svelte';
   import { TerrainMapStore, type MapTool } from './store.svelte';
 
   const lease = acquire<ArtgenApi>('artgen');
@@ -343,7 +343,7 @@
         <span class="dim small">{TOOLS.find(t => t.id === store.tool)?.hint}</span>
       </div>
       <div class="stage">
-        <MapView bind:this={view} {svg} cols={spec.cols} rows={spec.rows} ppu={PREVIEW_PPU} tool={store.tool} brush={store.brush} {pending} {onstroke} {onpoint} onfinish={finishLine} />
+        <MapView bind:this={view} {svg} cols={spec.cols} rows={spec.rows} ppu={PREVIEW_PPU} tool={store.tool} brushTools={['paint', 'raise', 'lower']} brush={store.brush} {pending} {onstroke} {onpoint} onfinish={finishLine} />
       </div>
       <div class="footer">
         <span class="layers">

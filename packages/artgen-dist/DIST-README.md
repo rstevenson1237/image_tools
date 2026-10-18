@@ -27,9 +27,10 @@ that. Start with `/artgen-direction` (or ask Claude to set the art direction).
 
 - Skills: `artgen` (authoring and the pass pipeline), `art-direction` (setting the look), `asset-production` (briefs, the
   autonomous run, parallel rounds, gallery, approve/feedback, export, restyle), `terrain-map` (tabletop RPG maps: contours,
-  terrain, hex/square grid, labels and symbols, colour and B/W). Agents: `art-reviewer`, `art-maker`. Commands:
+  terrain, hex/square grid, labels and symbols, colour and B/W), `dungeon-map` (dungeon and lair maps: rooms, corridors,
+  doors, hatched rock, 10/5 ft grid, numbers, labels and symbols, black and white). Agents: `art-reviewer`, `art-maker`. Commands:
   `/artgen-init`, `/artgen-direction`, `/artgen-brief`, `/artgen-make`, `/artgen-review`, `/artgen-feedback`,
-  `/artgen-approve`, `/artgen-export`, `/artgen-restyle`, `/artgen-map`.
+  `/artgen-approve`, `/artgen-export`, `/artgen-restyle`, `/artgen-map`, `/artgen-dungeon`.
 - CLI: `node tools/artgen/artgen.js --help` (Node 20+). MCP server: `artgen` (`node tools/artgen/artgen-mcp.js`), the
   full tool set with image results. Python: the `artgen` client in the repo's `python/artgen` calls the same CLI.
 - `tools/artgen/MANIFEST.json` records installed file hashes; `update` replaces untouched files and keeps edited ones
@@ -38,6 +39,6 @@ that. Start with `/artgen-direction` (or ask Claude to set the art direction).
 ## Plugin layout (local sessions only)
 
 `plugin/` holds the same skills, agent and tools as a Claude Code plugin (commands `/artgen:init`,
-`/artgen:direction`, `/artgen:make`, `/artgen:map`, …); `.claude-plugin/marketplace.json` lists it. Clone this branch and run
+`/artgen:direction`, `/artgen:make`, `/artgen:map`, `/artgen:dungeon`, …); `.claude-plugin/marketplace.json` lists it. Clone this branch and run
 `/plugin marketplace add <path-to-clone>` then `/plugin install artgen@artgen`. Plugins don't load in cloud sessions,
 so use the committed install for anything you run on claude.ai/code.

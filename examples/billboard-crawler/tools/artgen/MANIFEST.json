@@ -6,6 +6,7 @@
     ".claude/commands/artgen-approve.md": "acd455a2d4a7b631",
     ".claude/commands/artgen-brief.md": "b466df003b9bae40",
     ".claude/commands/artgen-direction.md": "0da0d55f4db33896",
+    ".claude/commands/artgen-dungeon.md": "3d4686fa81052184",
     ".claude/commands/artgen-export.md": "7ad090d710955df5",
     ".claude/commands/artgen-feedback.md": "cee94dd049697086",
     ".claude/commands/artgen-init.md": "588c91dd180debef",
@@ -21,10 +22,11 @@
     ".claude/skills/artgen/references/review.md": "8e1cbc300bf0a8b2",
     ".claude/skills/artgen/references/t2.md": "30aae7fb64c025d3",
     ".claude/skills/asset-production/SKILL.md": "408ce9331806752e",
+    ".claude/skills/dungeon-map/SKILL.md": "fee611a04650fe6d",
     ".claude/skills/terrain-map/SKILL.md": "afb07f5e3a5d1f71",
     "tools/artgen/VERSION": "9d8c94f1ad3ea96b",
-    "tools/artgen/artgen-mcp.js": "3a9832a3d4e01d0f",
-    "tools/artgen/artgen.js": "a81eb59f82508259",
+    "tools/artgen/artgen-mcp.js": "a6e1c23145ce717f",
+    "tools/artgen/artgen.js": "481648f801819a9d",
     "tools/artgen/fonts/AlegreyaSans-Bold.ttf": "13883398da53d847",
     "tools/artgen/fonts/AlegreyaSans-Italic.ttf": "1b14be0cfa4e195e",
     "tools/artgen/fonts/AlegreyaSans-Regular.ttf": "9baa653a3d8a210a",
@@ -79,5 +81,5 @@
     "tools/artgen/templates/topdown/tileset/base.js": "abcbcd029bc258ed",
     "tools/artgen/templates/topdown/tileset/brief.json": "4f09b33e1e389ed3"
   },
-  "claudeMd": "701d69beab38a85c"
+  "claudeMd": "aa719374efabe88b"
 }

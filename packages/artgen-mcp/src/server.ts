@@ -4,7 +4,8 @@
  * `finish`, `make` (with the parallel round), `feedback`, `approve`, `gallery`, `texture`, `fx`, `export`, `restyle`
  * and `analytics`. Image results are returned as MCP image content (base64 PNG).
  *
- * Terrain maps (`map_*`) work on `art/maps/<id>/map.json`; a map id is a name, never a path.
+ * Terrain maps (`map_*`) work on `art/maps/<id>/map.json`, dungeon maps (`dungeon_*`) on `art/dungeons/<id>/dungeon.json`;
+ * a map or dungeon id is a name, never a path.
  *
  * Paths are sandboxed: every asset argument must resolve inside the project's `art/` folder (a brief id resolves
  * through art/briefs.yaml), and the quick-look tools (`texture`, `fx`) write only under art/sheets/. `export` writes
@@ -12,10 +13,10 @@
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve } from 'node:path';
-import { encodePNG, map, MATERIALS, parseDirection, PRESET_NAMES, type Grid, type Size } from 'artgen-core';
+import { dungeon, encodePNG, map, MATERIALS, parseDirection, PRESET_NAMES, type Grid, type Size } from 'artgen-core';
 import { BENCH_DIRECTIONS } from 'artgen-core/bench';
 import {
-  approve, candidateNames, createMap, describeMap, exportPacks, listMaps, readMap, renderMapFiles, updateMap, feedback, findProject, fxRun, gallery, loadCandidate, lockedDirection, make, openAsset, passState, projectAnalytics,
+  approve, candidateNames, cornerPoint, createDungeon, describeDungeon, gridMode, listDungeons, readDungeon, renderDungeonFiles, updateDungeon, createMap, describeMap, exportPacks, listMaps, readMap, renderMapFiles, updateMap, feedback, findProject, fxRun, gallery, loadCandidate, lockedDirection, make, openAsset, passState, projectAnalytics,
   readBriefs, renderVersion, requireLocked, restyle, reviewVersion, projectStatus, scoreVersion, textureRun, VERSION, versionsIn, writeNextFinish, writeTile, type Project,
 } from 'artgen-cli';
 
@@ -275,6 +276,143 @@ export const TOOLS: ToolDef[] = [
       const r = await renderMapFiles(p, a.id as string, { themes, ppu: typeof a.ppu === 'number' ? a.ppu : undefined, layers });
       const files = r.files.map(f => projRel(p, f));
       const look = typeof a.ppu === 'number' ? files.filter(f => f.endsWith('.png')) : (await renderMapFiles(p, a.id as string, { themes, ppu: 24, layers, formats: ['png'], out: join(p.art, 'maps', a.id as string, 'out', 'preview') })).files.map(f => projRel(p, f));
+      return [text({ ...r, files }), ...look.map(f => pngFile(join(p.root, f)))];
+    },
+  },
+  {
+    name: 'dungeon_list', description: 'Dungeon maps (TTRPG, black and white) in art/dungeons, plus the room shapes, door kinds, symbol kinds and label kinds the dungeon tools accept.',
+    inputSchema: obj({}),
+    async run(_a, p) { return [text({ dungeons: listDungeons(p), shapes: dungeon.ROOM_SHAPES, doors: dungeon.DOOR_KINDS, symbols: dungeon.SYMBOL_KINDS, labelKinds: dungeon.LABEL_KINDS, routes: dungeon.ROUTES })]; },
+  },
+  {
+    name: 'dungeon_get', description: 'A dungeon\'s file (art/dungeons/<id>/dungeon.json) and a readable summary: rooms with ids, corridors, labels and symbols with their indices.',
+    inputSchema: obj({ id: str }, ['id']),
+    async run(a, p) { const m = readDungeon(p, a.id as string); return [text(describeDungeon(m)), text(m)]; },
+  },
+  {
+    name: 'dungeon_new', description: 'Create a dungeon map. mode "generate" (default): rooms and corridors from the seed and gen settings ({rooms, minSize, maxSize, caves, round, loops, doors, corridorWidth, spacing, entrance}); "room": one room of shape rect|circle|octagon|cave, w × h cells, with exits [{side: n|e|s|w, door?: kind|null, at?: offset along the wall}] running off the map, a label and a number; "empty": nothing yet (add rooms with dungeon_edit). One cell is 5 ft. Render with dungeon_render.',
+    inputSchema: obj({ id: str, mode: { type: 'string', enum: ['generate', 'room', 'empty'] }, cols: num, rows: num, seed: num, title: str, gen: { type: 'object' }, shape: { type: 'string', enum: ['rect', 'circle', 'octagon', 'cave'] }, w: num, h: num, exits: { type: 'array', items: { type: 'object' } }, label: str, number: num }, ['id']),
+    async run(a, p) {
+      let m = dungeon.newDungeon(a.id as string, {
+        seed: typeof a.seed === 'number' ? a.seed : Math.floor(Math.random() * 1e6), ...(typeof a.cols === 'number' && { cols: a.cols }), ...(typeof a.rows === 'number' && { rows: a.rows }),
+        ...(typeof a.title === 'string' && { title: a.title }), ...(a.gen && typeof a.gen === 'object' ? { gen: { ...dungeon.DEFAULTS.gen, ...(a.gen as Json) } as dungeon.DungeonSpec['gen'] } : {}),
+      });
+      if (a.mode === 'room') m = dungeon.singleRoom(m, { shape: (a.shape ?? 'rect') as dungeon.RoomShape, w: Number(a.w ?? 8), h: Number(a.h ?? 8), exits: (a.exits ?? []) as never, label: a.label as string | undefined, number: typeof a.number === 'number' ? a.number : undefined });
+      else if (a.mode !== 'empty') m = dungeon.generateDungeon(m);
+      const r = createDungeon(p, m);
+      return [text({ file: r.file, summary: describeDungeon(r.dungeon) })];
+    },
+  },
+  {
+    name: 'dungeon_update', description: 'Change a dungeon\'s settings (not its rooms). grid_mode: "10" | "5" | "10+5" (10 ft lines with a fainter 5 ft sub-grid) | "none"; grid: {show, size (cells), sub, clip: floor|all}; style: {hatch: band|full|none, band (cells of hatching along the walls), wall (weight)}; scale: {perCell, unit}; gen: generator settings (used by dungeon_generate); title, numbers, scale_bar, compass, cols, rows.',
+    inputSchema: obj({ id: str, grid_mode: str, grid: { type: 'object' }, style: { type: 'object' }, scale: { type: 'object' }, gen: { type: 'object' }, title: str, numbers: bool, scale_bar: bool, compass: bool, cols: num, rows: num }, ['id']),
+    async run(a, p) {
+      const m = updateDungeon(p, a.id as string, m => {
+        for (const k of ['grid', 'style', 'scale', 'gen'] as const) if (a[k] && typeof a[k] === 'object') Object.assign(m[k], a[k]);
+        if (typeof a.grid_mode === 'string') m.grid = gridMode(m, a.grid_mode);
+        if (typeof a.title === 'string') { if (a.title) m.title = a.title; else delete m.title; }
+        if (typeof a.numbers === 'boolean') m.numbers = a.numbers;
+        if (typeof a.scale_bar === 'boolean') m.scaleBar = a.scale_bar;
+        if (typeof a.compass === 'boolean') m.compass = a.compass;
+        if (typeof a.cols === 'number') m.cols = a.cols;
+        if (typeof a.rows === 'number') m.rows = a.rows;
+      });
+      return [text(describeDungeon(m))];
+    },
+  },
+  {
+    name: 'dungeon_generate', description: 'Regenerate a dungeon\'s rooms and corridors from its seed and gen settings (replaces every room and corridor; labels and symbols stay). Pass seed / gen / cols / rows to change them first.',
+    inputSchema: obj({ id: str, seed: num, gen: { type: 'object' }, cols: num, rows: num }, ['id']),
+    async run(a, p) {
+      const m = updateDungeon(p, a.id as string, m => {
+        if (typeof a.seed === 'number') m.seed = a.seed;
+        if (a.gen && typeof a.gen === 'object') Object.assign(m.gen, a.gen);
+        if (typeof a.cols === 'number') m.cols = a.cols;
+        if (typeof a.rows === 'number') m.rows = a.rows;
+        return dungeon.generateDungeon(dungeon.parseDungeon(m));
+      });
+      return [text(describeDungeon(m))];
+    },
+  },
+  {
+    name: 'dungeon_edit', description: 'Change a dungeon\'s rooms and corridors, in order. Coordinates are cells (x right, y down; 1 cell = 5 ft); a point is [x,y], "x,y" or a cell name "C4". ops: {op:"add_room", shape: rect|circle|octagon|cave|poly, at: top-left, w, h, points? (poly: [x,y,…]), label?, number? (false hides it), id?} | {op:"move_room", room, at} | {op:"set_room", room, shape?, w?, h?, label?, number?} | {op:"remove_room", room} (and its corridors) | {op:"link", from: room id or point, to: room id or point (a point is an exit or dead end; past the map edge it runs off the map), width?, route?: auto|hv|vh|straight, via?: [x,y,…], doors?: [kind|null, kind|null]} | {op:"unlink", index} | {op:"door", index, end: from|to, kind: door|secret|locked|portcullis|arch|null} | {op:"fit", margin?}.',
+    inputSchema: obj({ id: str, ops: { type: 'array', items: { type: 'object' } } }, ['id', 'ops']),
+    async run(a, p) {
+      const m = updateDungeon(p, a.id as string, m => {
+        const pt = (v: unknown): [number, number] => (Array.isArray(v) ? [Number(v[0]), Number(v[1])] : dungeon.parsePoint(String(v)));
+        const corner = (v: unknown): [number, number] => (Array.isArray(v) ? pt(v) : cornerPoint(String(v)));
+        const room = (rid: unknown) => { const r = m.rooms.find(r => r.id === rid); if (!r) throw new Error(`no room ${String(rid)} (have: ${m.rooms.map(r => r.id).join(', ') || 'none'})`); return r; };
+        const end = (v: unknown): dungeon.CorridorEnd => (typeof v === 'string' && m.rooms.some(r => r.id === v) ? { room: v } : { at: pt(v) });
+        const corridor = (i: unknown) => { const c = m.corridors[Number(i)]; if (!c) throw new Error(`no corridor ${String(i)} (0..${m.corridors.length - 1})`); return c; };
+        let out = m;
+        for (const op of (a.ops as Json[]) ?? []) {
+          if (op.op === 'add_room') {
+            const shape = op.shape as dungeon.RoomShape, rid = typeof op.id === 'string' ? op.id : dungeon.nextRoomId(m);
+            const r: dungeon.Room = shape === 'poly'
+              ? { id: rid, shape, points: (op.points as number[]).map(Number), ...dungeon.polyBox((op.points as number[]).map(Number)) }
+              : { id: rid, shape, ...(([x, y]) => ({ x, y }))(corner(op.at ?? [op.x, op.y])), w: Number(op.w), h: Number(op.h) };
+            if (typeof op.label === 'string') r.label = op.label;
+            if (typeof op.number === 'number' || op.number === false) r.number = op.number;
+            m.rooms.push(r);
+          } else if (op.op === 'move_room') {
+            const r = room(op.room), [x, y] = corner(op.at ?? [op.x, op.y]), dx = x - r.x, dy = y - r.y;
+            r.x = x; r.y = y;
+            if (r.points) r.points = r.points.map((v, i) => v + (i % 2 ? dy : dx));
+          } else if (op.op === 'set_room') {
+            const r = room(op.room);
+            if (typeof op.shape === 'string') { r.shape = op.shape as dungeon.RoomShape; if (r.shape !== 'poly') delete r.points; }
+            if (typeof op.w === 'number') r.w = op.w;
+            if (typeof op.h === 'number') r.h = op.h;
+            if (typeof op.label === 'string') { if (op.label) r.label = op.label; else delete r.label; }
+            if (typeof op.number === 'number' || op.number === false) r.number = op.number;
+          } else if (op.op === 'remove_room') {
+            const r = room(op.room);
+            m.rooms = m.rooms.filter(x => x !== r);
+            m.corridors = m.corridors.filter(c => !(('room' in c.from && c.from.room === r.id) || ('room' in c.to && c.to.room === r.id)));
+          } else if (op.op === 'link') {
+            m.corridors.push({
+              from: end(op.from), to: end(op.to), ...(typeof op.width === 'number' && { width: op.width }), ...(typeof op.route === 'string' && { route: op.route as dungeon.Route }),
+              ...(Array.isArray(op.via) && { via: (op.via as number[]).map(Number) }), ...(Array.isArray(op.doors) && { doors: op.doors as [dungeon.DoorKind | null, dungeon.DoorKind | null] }),
+            });
+          } else if (op.op === 'unlink') { corridor(op.index); m.corridors.splice(Number(op.index), 1); }
+          else if (op.op === 'door') {
+            const c = corridor(op.index), d = c.doors ?? [null, null], kind = (op.kind ?? null) as dungeon.DoorKind | null;
+            c.doors = op.end === 'to' ? [d[0], kind] : [kind, d[1]];
+          } else if (op.op === 'fit') out = dungeon.fitDungeon(dungeon.parseDungeon(m), typeof op.margin === 'number' ? op.margin : 2);
+          else throw new Error(`unknown op ${String(op.op)} (add_room, move_room, set_room, remove_room, link, unlink, door, fit)`);
+          if (out !== m) Object.assign(m, out);
+        }
+      });
+      return [text(describeDungeon(m))];
+    },
+  },
+  {
+    name: 'dungeon_overlay', description: 'Labels and symbols over a dungeon (the follow-up layer). add_labels: [{text, at:"x,y"|"C4" or x,y, kind: name|note|area, size?, angle?}]; add_symbols: [{kind, at or x,y, scale?, angle?}] (kinds from dungeon_list: stairs, pillar, statue, altar, chest, trap, pit, pool, …); remove_labels / remove_symbols: indices (from dungeon_get); clear: "labels"|"symbols"|"all". Room names and numbers are room settings (dungeon_edit set_room).',
+    inputSchema: obj({ id: str, add_labels: { type: 'array', items: { type: 'object' } }, add_symbols: { type: 'array', items: { type: 'object' } }, remove_labels: { type: 'array', items: num }, remove_symbols: { type: 'array', items: num }, clear: str }, ['id']),
+    async run(a, p) {
+      const m = updateDungeon(p, a.id as string, m => {
+        const pt = (o: Json): [number, number] => (typeof o.at === 'string' ? dungeon.parsePoint(o.at) : Array.isArray(o.at) ? [Number(o.at[0]), Number(o.at[1])] : [Number(o.x), Number(o.y)]);
+        const drop = <T>(items: T[], idx: unknown) => { if (Array.isArray(idx)) for (const i of [...(idx as number[])].sort((x, y) => y - x)) { if (!items[i]) throw new Error(`no overlay item ${i}`); items.splice(i, 1); } };
+        if (a.clear === 'labels' || a.clear === 'all') m.overlay.labels = [];
+        if (a.clear === 'symbols' || a.clear === 'all') m.overlay.symbols = [];
+        drop(m.overlay.labels, a.remove_labels); drop(m.overlay.symbols, a.remove_symbols);
+        for (const l of (a.add_labels as Json[] | undefined) ?? []) { const [x, y] = pt(l); m.overlay.labels.push({ text: String(l.text), x, y, kind: (l.kind ?? 'name') as dungeon.LabelKind, ...(typeof l.size === 'number' && { size: l.size }), ...(typeof l.angle === 'number' && { angle: l.angle }) }); }
+        for (const s of (a.add_symbols as Json[] | undefined) ?? []) {
+          if (!dungeon.SYMBOLS[String(s.kind)]) throw new Error(`unknown symbol ${String(s.kind)} (have: ${dungeon.SYMBOL_KINDS.join(', ')})`);
+          const [x, y] = pt(s); m.overlay.symbols.push({ kind: String(s.kind), x, y, ...(typeof s.scale === 'number' && { scale: s.scale }), ...(typeof s.angle === 'number' && { angle: s.angle }) });
+        }
+      });
+      return [text({ labels: m.overlay.labels.map((l, i) => `${i}. ${l.kind} "${l.text}" at ${l.x},${l.y}`), symbols: m.overlay.symbols.map((s, i) => `${i}. ${s.kind} at ${s.x},${s.y}`) })];
+    },
+  },
+  {
+    name: 'dungeon_render', description: 'Render a dungeon to art/dungeons/<id>/out/ (black-and-white SVG + PNG) and return the PNG to look at. layers turns layers off/on: rock, floors, grid, doors, symbols, numbers, labels, title, scale, compass. ppu: pixels per cell (default 40; the returned image uses 24 unless set).',
+    inputSchema: obj({ id: str, ppu: num, layers: { type: 'object' } }, ['id']),
+    async run(a, p) {
+      const layers = a.layers as Partial<Record<dungeon.DungeonLayer, boolean>> | undefined;
+      const r = await renderDungeonFiles(p, a.id as string, { ppu: typeof a.ppu === 'number' ? a.ppu : undefined, layers });
+      const files = r.files.map(f => projRel(p, f));
+      const look = typeof a.ppu === 'number' ? files.filter(f => f.endsWith('.png')) : (await renderDungeonFiles(p, a.id as string, { ppu: 24, layers, formats: ['png'], out: join(p.art, 'dungeons', a.id as string, 'out', 'preview') })).files.map(f => projRel(p, f));
       return [text({ ...r, files }), ...look.map(f => pngFile(join(p.root, f)))];
     },
   },

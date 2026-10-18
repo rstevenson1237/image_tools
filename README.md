@@ -9,7 +9,7 @@ Two things for game developers live in this repo:
   revise loop, and waits for your approval. Approved art exports as atlas packs plus a tiny typed runtime for Pixi.js,
   three.js or Canvas 2D. Change the direction later and one command re-renders the whole set.
 - **The image tools** — a browser app (everything stays on your machine): a VTT token cutter, an SVG tracer, a terrain
-  map maker for tabletop RPGs, and three tools that open an artgen game's `art/` folder to edit the direction, review
+  map maker and a dungeon map maker for tabletop RPGs, and three tools that open an artgen game's `art/` folder to edit the direction, review
   and approve assets, and play them.
 
 ## artgen quickstart
@@ -40,6 +40,13 @@ with a ruined keep` (or `artgen map new|gen|edit|label|symbol|grid|render`, or t
 contour lines, shaded terrain, an optional square or hex grid, in colour and black & white, as SVG and PNG. The
 **Terrain Map** tool in the image tools opens, edits and saves the same file.
 
+**Dungeon maps.** `/artgen-dungeon a flooded crypt with eight rooms and a secret shrine` (or `artgen dungeon
+new|gen|room|link|door|grid|style|label|symbol|fit|render`, or the `dungeon_*` MCP tools) makes black-and-white dungeon
+and lair maps: a single room (rectangle, circle, octagon, cave or any polygon, with exits, a number and a name) or rooms
+joined by corridors and doors, generated from a seed or laid out by hand. White floors, thick walls and hatched rock,
+with an optional 10 ft grid and 5 ft sub-grid, room numbers, labels and symbols. A dungeon is
+`art/dungeons/<id>/dungeon.json`; the **Dungeon Map** tool in the image tools opens, edits and saves the same file.
+
 Later: `npx -y github:rstevenson1237/image_tools#artgen-dist update` (keeps your local edits), or pin a release with
 `#artgen-dist-v0.9.0` ([changelog](packages/artgen-dist/CHANGELOG.md)). `node tools/artgen/artgen.js --help` lists
 the CLI; the same tools are an MCP server (`artgen`) in every install, and `python/artgen` is a Python client.
@@ -67,6 +74,11 @@ experiments) is archived in [`docs/archive/artgen`](docs/archive/artgen/README.m
   with brushes (paint terrain, raise or lower ground, rivers, roads). Topographic contours over shaded terrain; add a
   square or hex grid, labels and symbols; export SVG or PNG in colour or black & white. Works on its own (open or
   download `map.json`) or on a game repo's `art/maps/`, which Claude Code edits with `/artgen-map`.
+- **Dungeon Map** — tabletop RPG dungeons and lairs in black and white: make one room with exits, or generate a
+  complex from a seed, then drag out rooms (rect, round, octagonal, cave, or any polygon), link them with corridors,
+  set doors (plain, secret, locked, portcullis, arch), move rooms; add a 10 ft / 5 ft grid, room numbers, labels and
+  symbols; export SVG or PNG. Works on its own or on a game repo's `art/dungeons/`, which Claude Code edits with
+  `/artgen-dungeon`.
 - **Art Direction** — open a game's `art/` folder (File System Access in Chromium; a zip round trip elsewhere), edit
   palette ramps and style settings with a live style tile, compare candidates, save a draft or lock a new version.
 - **Asset Review** — finished assets by status, the pass timeline with scores, version compare, conformance; approve,

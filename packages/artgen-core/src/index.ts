@@ -57,3 +57,4 @@ export * from './w2/recommend.ts';
 export * from './w2/edit.ts';
 export * from './w2/config.ts';
 export * as map from './map/index.ts';
+export * as dungeon from './dungeon/index.ts';

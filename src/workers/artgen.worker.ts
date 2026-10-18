@@ -10,7 +10,7 @@ import fontRegular from '../../packages/artgen-core/assets/fonts/AlegreyaSans-Re
 import fontBold from '../../packages/artgen-core/assets/fonts/AlegreyaSans-Bold.ttf?url';
 import fontItalic from '../../packages/artgen-core/assets/fonts/AlegreyaSans-Italic.ttf?url';
 import {
-  buildPack, encodePNG, extractPalette, decodePNG, Grid, initSvg, map, parseDirection, rasterizeSvg, setSvgFonts, sourceHash, validateDirection,
+  buildPack, dungeon, encodePNG, extractPalette, decodePNG, Grid, initSvg, map, parseDirection, rasterizeSvg, setSvgFonts, sourceHash, validateDirection,
   type Direction, type LedgerEntry, type PackManifest,
 } from 'artgen-core';
 import { RUNTIME_VERSION } from 'artgen-runtime';
@@ -35,6 +35,7 @@ function mapFieldFor(spec: map.MapSpec): map.MapField {
 }
 
 export interface MapRenderOptions { theme: map.ThemeName; ppu?: number; layers?: Partial<Record<map.MapLayer, boolean>> }
+export interface DungeonRenderOptions { ppu?: number; layers?: Partial<Record<dungeon.DungeonLayer, boolean>> }
 
 function current(): ArtProject {
   if (!project) throw new Error('no project loaded');
@@ -135,6 +136,20 @@ const api = {
   async mapPng(raw: unknown, o: MapRenderOptions): Promise<Uint8Array> {
     await svgReady; await loadMapFonts();
     const spec = map.parseMap(raw), ppu = o.ppu ?? 40, svg = map.renderMapSvg(spec, { ...o, ppu, field: mapFieldFor(spec) });
+    const png = encodePNG(rasterizeSvg(svg, spec.cols * ppu, spec.rows * ppu));
+    return Comlink.transfer(png, [png.buffer as ArrayBuffer]);
+  },
+
+  /** Dungeon Map: validate and render a dungeon to SVG (no project needed). */
+  dungeonSvg(raw: unknown, o: DungeonRenderOptions): { svg: string; rooms: number; corridors: number; doors: number } {
+    const spec = dungeon.parseDungeon(raw), layout = dungeon.layoutDungeon(spec);
+    return { svg: dungeon.renderDungeonSvg(spec, { ...o, layout }), rooms: spec.rooms.length, corridors: spec.corridors.length, doors: layout.doors.length };
+  },
+
+  /** Dungeon Map: PNG bytes, rasterised by the same resvg build and fonts as the CLI. */
+  async dungeonPng(raw: unknown, o: DungeonRenderOptions): Promise<Uint8Array> {
+    await svgReady; await loadMapFonts();
+    const spec = dungeon.parseDungeon(raw), ppu = o.ppu ?? 40, svg = dungeon.renderDungeonSvg(spec, { ...o, ppu });
     const png = encodePNG(rasterizeSvg(svg, spec.cols * ppu, spec.rows * ppu));
     return Comlink.transfer(png, [png.buffer as ArrayBuffer]);
   },
