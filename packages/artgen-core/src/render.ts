@@ -46,6 +46,11 @@ export interface Brief {
   notes?: string;
   /** Real-world height in metres (rev 9): the drawn body should be `height × pxPerMetre(dir)` px tall (conformance `height`). */
   height?: number;
+  /**
+   * Body plan of a character or creature (0.10.0): picks the starting rig (`creature-quadruped`, `-serpent`, `-flyer`,
+   * `-large`; `humanoid` = the walker). Low bodies (quadruped, serpent, flyer) only flag the height check.
+   */
+  body?: 'humanoid' | 'quadruped' | 'serpent' | 'flyer' | 'large';
   /** Effects: the drawable thing the effect is (`ice lance`, `ring of fire`), not a description of an effect (rev 9). */
   object?: string;
   /** Tilesets (P6b): frames of the first state are the autotile set in canonical order (16 Wang edges or 47 blob). */

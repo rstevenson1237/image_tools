@@ -5,9 +5,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { beforeAll, describe, expect, test } from 'vitest';
-import { applyFinish, generateCandidates, renderAsset, type AssetModule, type Brief, type FinishModule, type Grid } from 'artgen-core';
+import { applyFinish, conformance, generateCandidates, renderAsset, type AssetModule, type Brief, type FinishModule, type Grid } from 'artgen-core';
 import { initNodeSvg } from './node.ts';
-import { finishTemplate, newFinish, templatesRoot } from './templates.ts';
+import { findTemplate, finishTemplate, newFinish, templatesRoot } from './templates.ts';
 
 const load = async <T>(rel: string): Promise<T> => import(pathToFileURL(join(templatesRoot(), rel)).href) as Promise<T>;
 const [dir] = generateCandidates({ pitch: 'Grim swamp roguelike: bog goblins in the fog.' });
@@ -51,5 +51,33 @@ describe('character templates + finish-character.js', () => {
     writeFileSync(join(d, 'brief.json'), JSON.stringify({ id: 'x', kind: 'creature' }));
     expect(readFileSync(newFinish(d, 1, 'base.v2'), 'utf8')).toMatch(/^\/\/ finish\.v1 \(f\) on base\.v2 — character finish/);
     expect(readFileSync(newFinish(d, 2, 'base.v2', 'prop'), 'utf8')).toMatch(/^\/\/ finish\.v2 \(f\) on base\.v2 — the one direct-pixel pass/);
+  });
+});
+
+describe('body rigs and the iso walker (0.10.0)', () => {
+  beforeAll(async () => { await initNodeSvg(); });
+  const rigs = ['quadruped', 'serpent', 'flyer', 'large'].flatMap(b => ['topdown', 'iso'].map(v => `${v}/creature-${b}`));
+
+  test.each([...rigs, 'iso/character-walk'])('%s renders four facings and a walk on the palette, with face anchors on drawn eyes', async t => {
+    const mod = await load<AssetModule>(`${t}/base.js`), size: [number, number] = t.endsWith('large') ? [64, 64] : [32, 32];
+    const brief: Brief = { id: 'rig', kind: t.endsWith('walk') ? 'character' : 'creature', size, states: ['idle', 'walk'], directions: 4, anims: { idle: { frames: 2 }, walk: { frames: 4 } } };
+    const r = renderAsset(mod, { dir, brief });
+    expect(r.cells).toHaveLength(4 * 6);
+    const rep = conformance({ frames: r.cells.map(c => c.grid), dir, kind: brief.kind, size, symAxis: 'none' });
+    for (const id of ['palette', 'aa', 'line']) expect(rep.checks.find(c => c.id === id), `${t} ${id}: ${rep.checks.find(c => c.id === id)?.detail}`).toMatchObject({ status: 'pass' });
+    expect(r.cells.filter(c => c.anchors?.eye).length, t).toBeGreaterThan(0);
+    for (const c of r.cells) {
+      const k = `${t} ${c.state}/${c.facing}/${c.frame}`;
+      for (const e of ['eye', 'eye2'] as const) if (c.anchors?.[e]) expect(c.grid.get(...c.anchors[e]!), `${k} ${e}`).toBe(dir.palette.outline);
+      if (!t.endsWith('walk')) expect(c.anchors?.ground, k).toBeDefined();
+    }
+    // the face-first finish runs on it
+    const finish = await load<FinishModule>('finish-character.js');
+    expect(() => applyFinish(r, finish, dir)).not.toThrow();
+  });
+
+  test('iso briefs no longer fall back to the top-down walker; each body has a rig in both views', () => {
+    expect(findTemplate('iso', 'character-walk')).toMatchObject({ view: 'iso', fallback: false });
+    for (const t of rigs) { const [v, k] = t.split('/'); expect(findTemplate(v, k)).toMatchObject({ view: v, kind: k, fallback: false }); }
   });
 });

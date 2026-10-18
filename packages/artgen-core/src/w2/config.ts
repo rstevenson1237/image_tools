@@ -7,6 +7,32 @@ import type { Direction } from '../direction.ts';
 
 export interface BudgetCaps { revisionPasses?: number; extraAutonomousRevisions?: number; maxImageTokensPerAsset?: number }
 
+export type ModelSpec = string | { model: string; effort?: string };
+
+/** Review sheet detail: `low` = the first facing at 3×, beside the previous version only; `full` = every facing. */
+export type SheetDetail = 'low' | 'full';
+
+/**
+ * Review policy. `blind` (rev 9) adds a blind re-score by a fresh reviewer; the final is chosen on it, and a blind score
+ * under `approveMin`, or more than `blindMaxGap` under the version's own score, is an open issue that starts one extra
+ * revision from `blindRevisions` (on top of `budget.extraAutonomousRevisions`). The rest is from the first production
+ * run (0.10.0): `finish` runs the finishing pass `always`, `never`, or on `auto` only when the base's review names a
+ * finish-level problem or it clears `approveMin`; `earlyRoster` holds v2 until a roster review of every v1;
+ * `rosterRevisions` caps the revisions a roster note may open per asset (`feedback --by roster`); `heightFail` fails
+ * characters and creatures drawn further than that from their brief height; `sheetDetail` per pass (`r1: low`).
+ */
+export interface ReviewPolicy {
+  blind: boolean;
+  approveMin: number;
+  blindMaxGap: number;
+  blindRevisions: number;
+  finish: 'auto' | 'always' | 'never';
+  earlyRoster: boolean;
+  rosterRevisions: number;
+  heightFail: number;
+  sheetDetail: Record<string, SheetDetail>;
+}
+
 export interface ProjectConfig {
   version: number;
   export: { packDir: string; runtimeDir: string; assetsTs: string; maxAtlas?: number; padding?: number };
@@ -22,12 +48,12 @@ export interface ProjectConfig {
     tiers?: Record<string, BudgetCaps>;
   };
   /** Stage → model (and effort): `'default'` or `{ model, effort }`; stages run as subagents with that model. */
-  models: Record<'base' | 'revise' | 'finish' | 'review', string | { model: string; effort?: string }>;
   /**
-   * Review policy (rev 9): `blind` adds a blind re-score of every final by a fresh reviewer; a blind score under
-   * `approveMin`, or more than `blindMaxGap` under the final's own score, is an open issue (and one extra revision).
+   * Optional review tiers (0.10.0): `reviewEarly` scores r1 and r2 (a cheaper model is enough to steer early drafts),
+   * `blind` the blind re-scores and `roster` the roster reviews (the strong model: they decide what ships).
    */
-  review: { blind: boolean; approveMin: number; blindMaxGap: number };
+  models: Record<'base' | 'revise' | 'finish' | 'review', ModelSpec> & Partial<Record<'reviewEarly' | 'blind' | 'roster', ModelSpec>>;
+  review: ReviewPolicy;
   gate: Record<string, unknown>;
 }
 
@@ -39,7 +65,7 @@ export const DEFAULT_CONFIG: ProjectConfig = {
   packs: { main: { include: ['*'] } },
   budget: { revisionPasses: 3, maxSheetEdge: 1568, maxUserIterations: 3, extraAutonomousRevisions: 1, tiers: { hero: { revisionPasses: 4 }, filler: { revisionPasses: 2 } } },
   models: { base: 'default', revise: 'default', finish: 'default', review: 'default' },
-  review: { blind: true, approveMin: 6.5, blindMaxGap: 1 },
+  review: { blind: true, approveMin: 6.5, blindMaxGap: 1, blindRevisions: 1, finish: 'auto', earlyRoster: true, rosterRevisions: 1, heightFail: 0.15, sheetDetail: { r1: 'low' } },
   gate: {},
 };
 

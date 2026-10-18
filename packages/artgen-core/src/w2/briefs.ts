@@ -3,13 +3,15 @@
  * the CLI and the UI's project store do the file I/O. Edits go through the YAML document so comments survive.
  */
 import { isMap, isSeq, parseDocument, stringify, type Document, type YAMLMap, YAMLSeq } from 'yaml';
-import { VIEWS, type Size, type View } from '../direction.ts';
+import { VIEWS, type Direction, type Size, type View } from '../direction.ts';
 import type { Brief } from '../render.ts';
 
 export const BRIEF_KINDS = ['character', 'creature', 'prop', 'tile', 'tileset', 'texture', 'effect', 'viewmodel', 'ui-icon', 'layer'] as const;
 /** Importance tier (D19): hero assets may get more passes, filler fewer (`budget.tiers` in artgen.config.json). */
 export const IMPORTANCE = ['hero', 'standard', 'filler'] as const;
 export type Importance = (typeof IMPORTANCE)[number];
+/** Body plans (brief `body`): each non-humanoid one has its own starting rig in every view. */
+export const BODIES = ['humanoid', 'quadruped', 'serpent', 'flyer', 'large'] as const;
 
 export interface BriefEntry extends Brief {
   /** Ramp-to-ramp palette swaps exported as named variants (`red: { cloth: accent }`), tokens only (R11). */
@@ -44,6 +46,38 @@ export function effectObjectIssues(b: Pick<BriefEntry, 'kind' | 'object'>): stri
   if (colours.length) out.push(`object must not lean on colour words (${[...new Set(colours)].join(', ')}): colour comes from the direction`);
   return out;
 }
+/** Words that name a material, by the role ramp that draws it (templates and assets colour by these roles). */
+export const MATERIAL_WORDS: Record<string, string[]> = {
+  wood: ['wood', 'wooden', 'oak', 'pine', 'plank', 'planks', 'timber', 'lute', 'staff', 'staves', 'bow', 'club', 'barrel', 'crate', 'door', 'cart', 'table', 'chair', 'shelf', 'handle'],
+  metal: ['metal', 'steel', 'iron', 'blade', 'sword', 'dagger', 'axe', 'armor', 'armour', 'mail', 'chainmail', 'plate', 'helm', 'helmet', 'hoops', 'chain', 'chains', 'knife', 'gauntlet', 'gauntlets', 'cage', 'anvil'],
+  glow: ['glow', 'lava', 'fire', 'flame', 'flames', 'ember', 'embers', 'torch', 'magic', 'rune', 'runes', 'crystal', 'lantern', 'candle', 'brazier', 'spark', 'sparks', 'molten'],
+  dirt: ['dirt', 'mud', 'earth', 'soil', 'rubble', 'sand', 'gravel', 'debris'],
+  stone: ['stone', 'rock', 'rocks', 'boulder', 'brick', 'bricks', 'marble', 'granite', 'cobble', 'cobbles', 'masonry', 'statue'],
+  cloth: ['cloth', 'robe', 'robes', 'cloak', 'cape', 'tunic', 'dress', 'banner', 'rag', 'rags', 'hood', 'sash', 'scarf'],
+  leather: ['leather', 'hide', 'boots', 'belt', 'strap', 'straps', 'satchel', 'pouch', 'saddle'],
+  hair: ['hair', 'fur', 'mane', 'beard', 'furred'],
+  grass: ['grass', 'moss', 'leaves', 'leaf', 'vine', 'vines', 'shrub', 'hedge'],
+};
+
+/**
+ * Material lint (0.10.0): each material a brief names (in its id, object or notes) must have a ramp its kind may use,
+ * or the maker draws it in another material — the first production run lost doors and lava (tiles without wood or
+ * glow), rubble (props without dirt), lutes and staffs (characters without wood) and steel (creatures without metal).
+ * Returns warnings to show before any drawing starts; empty when every material has a ramp.
+ */
+export function briefMaterialIssues(b: Pick<BriefEntry, 'id' | 'kind' | 'notes' | 'object'>, dir: Pick<Direction, 'palette'>): string[] {
+  const words = new Set(`${b.id.replace(/[-_]/g, ' ')} ${b.object ?? ''} ${b.notes ?? ''}`.toLowerCase().match(/[a-z]+/g) ?? []);
+  const allowed = dir.palette.perKind[b.kind] ?? Object.keys(dir.palette.ramps), out: string[] = [];
+  for (const [role, list] of Object.entries(MATERIAL_WORDS)) {
+    const hits = list.filter(w => words.has(w));
+    if (!hits.length) continue;
+    const ramp = dir.palette.materials[role] ?? (dir.palette.ramps[role] ? role : undefined);
+    if (!ramp) out.push(`names ${hits.map(h => `"${h}"`).join(', ')} (${role}) but the direction has no ${role} material: it will be drawn in another one — add a ${role} ramp (or palette.materials.${role}) or reword the brief`);
+    else if (!allowed.includes(ramp)) out.push(`names ${hits.map(h => `"${h}"`).join(', ')} (${role}) but ${b.kind} colours leave out the ${ramp} ramp (palette.perKind.${b.kind}: ${allowed.join(', ')}): add it to the direction before drawing, or reword the brief`);
+  }
+  return out;
+}
+
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 
 /** Validate one brief; returns the errors (empty when valid). */
@@ -75,6 +109,10 @@ export function validateBrief(b: unknown, where = 'brief'): string[] {
   if (b.object !== undefined) {
     if (typeof b.object !== 'string' || !b.object.trim()) e.push(`${at}: object must be text`);
     else for (const m of effectObjectIssues({ kind: String(b.kind), object: b.object })) e.push(`${at}: ${m}`);
+  }
+  if (b.body !== undefined) {
+    if (!(BODIES as readonly string[]).includes(b.body as string)) e.push(`${at}: body must be one of ${BODIES.join(', ')}`);
+    else if (b.kind !== 'character' && b.kind !== 'creature') e.push(`${at}: body applies to characters and creatures`);
   }
   if (b.autotile !== undefined && !['wang16', 'blob47'].includes(b.autotile as string)) e.push(`${at}: autotile must be wang16 or blob47`);
   if (b.surface !== undefined && !['wall', 'floor', 'ceiling', 'sky'].includes(b.surface as string)) e.push(`${at}: surface must be wall, floor, ceiling or sky`);

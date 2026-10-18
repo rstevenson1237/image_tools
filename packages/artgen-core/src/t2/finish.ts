@@ -20,6 +20,7 @@ import { Grid } from '../lib/grid.ts';
 import { fitNormalMap } from '../lib/normals.ts';
 import * as post from '../lib/post.ts';
 import type { Anchors, Cell, RenderResult } from '../render.ts';
+import { TILE_KINDS } from '../qa/conformance.ts';
 
 export type Pt = [number, number];
 /** A point that remembers which anchor it came from (patches follow it). */
@@ -72,8 +73,11 @@ const N4: Pt[] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
 export type Px = ReturnType<typeof makePx>;
 
-/** Finishing ops bound to a direction; `record` receives every patch, `guard` the protected pixels. */
-export function makePx(dc: DirContext, record: (p: Omit<PatchRecord, 'cell'>) => void = () => {}, guard = new Set<string>()) {
+/**
+ * Finishing ops bound to a direction; `record` receives every patch, `guard` the protected pixels. `isoTile`: the cell
+ * is an iso ground tile, whose diamond rim is a deliberate 2:1 stair — `fix.jaggies` leaves the rim alone.
+ */
+export function makePx(dc: DirContext, record: (p: Omit<PatchRecord, 'cell'>) => void = () => {}, guard = new Set<string>(), o: { isoTile?: boolean } = {}) {
   const outline = dc.outline, rampOf = new Map<string, [string, number]>();
   for (const [name, r] of Object.entries(dc.pal)) r.forEach((c, i) => { if (!rampOf.has(c)) rampOf.set(c, [name, i]); });
   const [lx, ly] = dc.camera.light.map(Math.sign);
@@ -183,14 +187,18 @@ export function makePx(dc: DirContext, record: (p: Omit<PatchRecord, 'cell'>) =>
         });
         return batch(g, w);
       },
-      /** Thin 4-connected outline stairs to 8-connected: drop elbow pixels that only touch outline and empty space. */
-      jaggies(g: Grid, o?: OpOptions): Grid {
+      /**
+       * Thin 4-connected outline stairs to 8-connected: drop elbow pixels that only touch outline and empty space. On
+       * an iso tile the rim is left alone: its 2:1 stair is the diamond's edge, and thinning it breaks the tiling.
+       */
+      jaggies(g: Grid, op?: OpOptions): Grid {
         const isO = (x: number, y: number) => opaque(g, x, y) && g.get(x, y) === outline;
         // in place, in scan order: removing one elbow can make its neighbour necessary, so decisions see earlier ones
-        each(g, o, (x, y) => {
+        each(g, op, (x, y) => {
           if (!isO(x, y)) return;
           const n = N4.map(([dx, dy]) => isO(x + dx, y + dy));
           if (N4.some(([dx, dy], i) => !n[i] && opaque(g, x + dx, y + dy))) return; // touches fill: needed
+          if (o.isoTile && N4.some(([dx, dy]) => g.alpha(x + dx, y + dy) === 0)) return; // the diamond's rim
           const h = n[0] || n[1], v = n[2] || n[3];
           if (n.filter(Boolean).length === 2 && h && v) g.clear(x, y);
         });
@@ -351,11 +359,12 @@ export interface FinishResult {
 /** Apply a finish module to every cell of a render (west facings mirror the finished east cells). */
 export function applyFinish(r: RenderResult, mod: FinishModule, dir: Direction): FinishResult {
   const dc = dirContext(dir), patches: PatchRecord[] = [], done = new Map<string, Grid>();
+  const view = r.brief.view ?? dir.camera.view, isoTile = TILE_KINDS.has(r.brief.kind) && (view === 'iso' || !!(r.brief as { review?: { iso?: boolean } }).review?.iso);
   const keyOf = (c: Cell) => `${c.state}/${c.facing}/${c.frame}`;
   const sources = r.cells.filter(c => !c.mirrored);
   for (const c of sources) {
     const guard = new Set<string>(), cellKey = keyOf(c);
-    const px = makePx(dc, p => patches.push({ cell: cellKey, ...p }), guard);
+    const px = makePx(dc, p => patches.push({ cell: cellKey, ...p }), guard, { isoTile });
     const anchors = c.anchors ?? {};
     const ctx: FinishContext = {
       dir: dc, lib: { px, Grid }, state: c.state, facing: c.facing, frame: c.frame, anchors,
@@ -378,7 +387,7 @@ export function applyFinish(r: RenderResult, mod: FinishModule, dir: Direction):
       if (p.cell === k || own.has(p.anchor) || p.cell.split('/')[1] !== c.facing) continue;
       const [name, off] = splitAnchor(p.anchor!), a = c.anchors?.[name];
       if (!a) continue;
-      const g = done.get(k)!, px = makePx(dc, rec => patches.push({ cell: k, ...rec, replay: true }));
+      const g = done.get(k)!, px = makePx(dc, rec => patches.push({ cell: k, ...rec, replay: true }), undefined, { isoTile });
       const src = p as PatchRecord & { rows: string[]; key: Record<string, string>; mode: 'center' | 'topleft' };
       px.patch(g, Object.assign([a[0] + off[0], a[1] + off[1]] as Pt, { anchor: p.anchor }), src.rows, src.key, { anchor: src.mode });
       own.add(p.anchor);

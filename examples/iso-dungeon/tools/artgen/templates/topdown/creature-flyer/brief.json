@@ -1,0 +1,1 @@
+{ "kind": "creature", "size": "character", "body": "flyer", "states": ["idle", "walk"], "directions": 4, "anims": { "idle": { "frames": 4 }, "walk": { "frames": 4 } }, "review": { "scale": 4, "sym": "x" } }

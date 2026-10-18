@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { parseDirection } from '../direction.ts';
 import { Grid } from '../lib/grid.ts';
-import { bodyHeight, checkerWindows, conformance, histogramDistance, lintSource } from './conformance.ts';
+import { bodyHeight, checkerWindows, conformance, drawnHeight, histogramDistance, lintSource } from './conformance.ts';
 import { formatLedgerLine, imageTokens, parseLedger, sourceHash } from './ledger.ts';
 import { measure } from './metrics.ts';
 import { contactSheet, reviewSheet, silhouette } from './sheet.ts';
@@ -124,12 +124,26 @@ describe('rev 9: real-world height and silhouettes', () => {
     const g = block(); // body 10 px tall (the ground shadow is translucent and left out)
     expect(bodyHeight(g)).toBe(10);
     const h = (metres: number) => conformance({ frames: [g], dir, kind: 'prop', size: [12, 12], height: { metres, pxPerMetre: 10 } }).checks.find(c => c.id === 'height')!;
-    expect(h(1)).toMatchObject({ status: 'pass', detail: '10 px drawn, 10.0 px expected for 1 m (+0 %)' });
+    expect(h(1)).toMatchObject({ status: 'pass', detail: '10 px drawn, 10.0 px expected for 1 m (+0 %, limit ±20 %)' });
     expect(h(0.5)).toMatchObject({ status: 'flag', detail: expect.stringMatching(/\+100 %/) });
-    expect(h(2).detail).toMatch(/-50 %\); the 12 px frame is too short for it/);
+    expect(h(2).detail).toMatch(/-50 %, limit ±20 %\); the 12 px frame is too short for it/);
     expect(conformance({ frames: [g], dir, kind: 'tile', height: { metres: 1, pxPerMetre: 10 } }).checks.find(c => c.id === 'height')!.status).toBe('skip');
     // a flag never fails the gate
     expect(conformance({ frames: [g], dir, kind: 'prop', size: [12, 12], source: '', height: { metres: 0.5, pxPerMetre: 10 } }).pass).toBe(true);
+  });
+
+  test('0.10.0: with a project heightFail, an upright character or creature off by more fails; low bodies and fp only flag', () => {
+    const g = block(), at = (kind: string, metres: number, extra: object = {}) =>
+      conformance({ frames: [g], dir, kind, size: [12, 12], height: { metres, pxPerMetre: 10, ...extra }, thresholds: { heightFail: 0.15 } }).checks.find(c => c.id === 'height')!;
+    expect(at('creature', 1.3)).toMatchObject({ status: 'fail', detail: expect.stringMatching(/-23 %, limit ±15 %/) }); // family-d-cap: 49 px of 64
+    expect(at('creature', 1.1).status).toBe('pass');
+    expect(at('prop', 1.3).status).toBe('flag');
+    expect(at('creature', 1.3, { body: 'quadruped' }).status).toBe('flag');
+    expect(at('creature', 1.3, { view: 'fp' }).status).toBe('flag');
+    // measured over the stand frames: the tallest one counts, whichever cell comes first
+    const short = block(); short.clear(5, 1); for (let x = 0; x < 12; x++) short.clear(x, 1);
+    expect(drawnHeight([short, g])).toBe(10);
+    expect(conformance({ frames: [short], dir, kind: 'creature', height: { metres: 1, pxPerMetre: 10, frames: [short, g] }, thresholds: { heightFail: 0.15 } }).checks.find(c => c.id === 'height')!.status).toBe('pass');
   });
 
   test('review rows carry a black silhouette panel (opaque body only), unless turned off', () => {

@@ -8,7 +8,12 @@ import { drawText } from '../lib/font.ts';
 import { Grid } from '../lib/grid.ts';
 import { rng } from '../lib/rng.ts';
 
-export interface RosterItem { id: string; kind: string; grid: Grid; notes?: string; /** Real-world height in metres (brief). */ height?: number }
+export interface RosterItem {
+  id: string; kind: string; grid: Grid; notes?: string;
+  /** Real-world height in metres (brief). */ height?: number;
+  /** Drawn height in px, measured like the conformance gate (`drawnHeight(standFrames(render))`); default: `grid`'s body. */
+  drawn?: number;
+}
 
 /** Opaque body (alpha 255) bounding box and mask. */
 export interface Body { x0: number; y0: number; w: number; h: number; mask: Uint8Array }
@@ -35,26 +40,28 @@ export interface RosterSize { id: string; kind: string; drawn: number; height?: 
 export interface RosterPair { a: string; b: string; overlap: number }
 
 export interface RosterResult {
-  /** Colour lineup on one baseline: 1× strip on top, the same ×scale below; left to right in item order. */
+  /** Colour lineup on one baseline: 1× strip on top, the same ×scale below; left to right in item order (page 1). */
   lineup: Grid;
-  /** Shuffled, lettered black silhouettes (enlarged, plus 1× in each cell's corner). */
+  /** Shuffled, lettered black silhouettes (enlarged, plus 1× in each cell's corner) (page 1). */
   silhouettes: Grid;
-  /** Letter → asset id (keep it from the reviewer). */
+  /** Every page, `ROSTER_PAGE` assets each (one page for small sets). */
+  pages: { lineup: Grid; silhouettes: Grid; ids: string[] }[];
+  /** Label → asset id across all pages (keep it from the reviewer). */
   key: Record<string, string>;
   sizes: RosterSize[];
-  /** The most-overlapping silhouette pairs (the highest one was confused in every calibration roster). */
+  /** The most-overlapping silhouette pairs over the whole set (the highest one was confused in every calibration roster). */
   pairs: RosterPair[];
 }
 
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+/** Assets per roster sheet. */
+export const ROSTER_PAGE = 26;
+/** Silhouette label n: A..Z, then AA, AB, … (labels run on across pages, so every asset has one). */
+export const rosterLabel = (n: number): string => (n < 26 ? LETTERS[n] : rosterLabel(Math.floor(n / 26) - 1) + LETTERS[n % 26]);
 
-/**
- * Build the roster sheets and numbers. `pxPerMetre` turns brief heights into expected pixels; sizes off by more than
- * `tolerance` flag. `seed` shuffles the silhouettes (vary it between rounds so a reviewer can't learn the order).
- */
-export function roster(items: RosterItem[], o: { bg: string; pxPerMetre: number; tolerance?: number; seed?: number; scale?: number; topPairs?: number }): RosterResult {
-  if (items.length > LETTERS.length) throw new Error(`roster: at most ${LETTERS.length} assets per sheet (got ${items.length}); pass a subset`);
-  const tol = o.tolerance ?? 0.2, Z = o.scale ?? 4, bodies = items.map(it => body(it.grid));
+/** One sheet pair for ≤ ROSTER_PAGE items; silhouettes labelled from `from`. */
+function page(items: RosterItem[], bodies: Body[], o: { bg: string; seed: number; scale: number; from: number }, key: Record<string, string>) {
+  const Z = o.scale;
   // lineup: bodies bottom-aligned on one ground line, 1× then ×Z
   const gap = 6, W = bodies.reduce((s, b) => s + b.w + gap, gap), H = Math.max(1, ...bodies.map(b => b.h)) + 4;
   const line = new Grid(W, H).fill(0, 0, W, H, o.bg);
@@ -67,14 +74,13 @@ export function roster(items: RosterItem[], o: { bg: string; pxPerMetre: number;
   const lineup = new Grid(W * Z + 20, H * Z + H + 30).fill(0, 0, W * Z + 20, H * Z + H + 30, o.bg);
   lineup.blit(line, 10, 10);
   lineup.blit(line.scale(Z), 10, H + 20);
-  // silhouettes: seeded shuffle, lettered cells, enlarged + 1× in the corner
-  const r = rng(o.seed ?? 1), order = items.map((_, i) => i);
+  // silhouettes: seeded shuffle, labelled cells, enlarged + 1× in the corner
+  const r = rng(o.seed), order = items.map((_, i) => i);
   for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
   const S = 5, cell = Math.max(8, ...bodies.map(b => Math.max(b.w, b.h))) * S + 16, cols = Math.min(5, Math.max(1, items.length)), rows = Math.ceil(items.length / cols);
   const silhouettes = new Grid(cols * cell, Math.max(1, rows) * (cell + 12)).fill(0, 0, cols * cell, Math.max(1, rows) * (cell + 12), '#d8d8d8');
-  const key: Record<string, string> = {};
   order.forEach((ix, n) => {
-    const b = bodies[ix], cx = (n % cols) * cell, cy = Math.floor(n / cols) * (cell + 12), L = LETTERS[n];
+    const b = bodies[ix], cx = (n % cols) * cell, cy = Math.floor(n / cols) * (cell + 12), L = rosterLabel(o.from + n);
     key[L] = items[ix].id;
     drawText(silhouettes, cx + 4, cy + 3, L, '#000000', 1);
     const ox = cx + ((cell - b.w * S) >> 1), oy = cy + 12 + cell - 8 - b.h * S;
@@ -83,16 +89,29 @@ export function roster(items: RosterItem[], o: { bg: string; pxPerMetre: number;
       silhouettes.set(cx + cell - b.w - 3 + k, cy + 3 + j, '#000000');
     }
   });
+  return { lineup, silhouettes, ids: items.map(it => it.id) };
+}
+
+/**
+ * Build the roster sheets and numbers, paged `ROSTER_PAGE` assets per sheet pair. `pxPerMetre` turns brief heights
+ * into expected pixels; characters and creatures off by more than `heightFail` (the gate's limit), other kinds by more
+ * than `tolerance`, flag. `seed` shuffles the silhouettes (vary it between rounds so a reviewer can't learn the order).
+ */
+export function roster(items: RosterItem[], o: { bg: string; pxPerMetre: number; tolerance?: number; heightFail?: number; seed?: number; scale?: number; topPairs?: number }): RosterResult {
+  const tol = o.tolerance ?? 0.2, fail = o.heightFail ?? tol, bodies = items.map(it => body(it.grid)), key: Record<string, string> = {};
+  const pages: RosterResult['pages'] = [];
+  for (let i = 0; i < Math.max(1, items.length); i += ROSTER_PAGE)
+    pages.push(page(items.slice(i, i + ROSTER_PAGE), bodies.slice(i, i + ROSTER_PAGE), { bg: o.bg, seed: (o.seed ?? 1) + i, scale: o.scale ?? 4, from: i }, key));
   const sizes: RosterSize[] = items.map((it, i) => {
-    const drawn = bodies[i].h;
+    const drawn = it.drawn ?? bodies[i].h;
     if (!it.height) return { id: it.id, kind: it.kind, drawn, flag: false };
-    const expected = it.height * o.pxPerMetre, dev = (drawn - expected) / expected;
-    return { id: it.id, kind: it.kind, drawn, height: it.height, expected: Math.round(expected * 10) / 10, dev: Math.round(dev * 100) / 100, flag: Math.abs(dev) > tol };
+    const expected = it.height * o.pxPerMetre, dev = (drawn - expected) / expected, limit = it.kind === 'character' || it.kind === 'creature' ? fail : tol;
+    return { id: it.id, kind: it.kind, drawn, height: it.height, expected: Math.round(expected * 10) / 10, dev: Math.round(dev * 100) / 100, flag: Math.abs(dev) > limit };
   });
   const pairs: RosterPair[] = [];
   for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) pairs.push({ a: items[i].id, b: items[j].id, overlap: Math.round(silhouetteOverlap(bodies[i], bodies[j]) * 1000) / 1000 });
   pairs.sort((p, q) => q.overlap - p.overlap);
-  return { lineup, silhouettes, key, sizes, pairs: pairs.slice(0, o.topPairs ?? 5) };
+  return { lineup: pages[0].lineup, silhouettes: pages[0].silhouettes, pages, key, sizes, pairs: pairs.slice(0, o.topPairs ?? 5) };
 }
 
 /** What the roster reviewer returns (`artgen roster record <file>`). */

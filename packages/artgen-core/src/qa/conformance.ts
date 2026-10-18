@@ -7,6 +7,7 @@ import { luma, normHex, parseColor } from '../lib/color.ts';
 import type { Grid } from '../lib/grid.ts';
 import { isShadowPixel, measure, type Metrics } from './metrics.ts';
 import { animChecks, type AnimInput } from './anim.ts';
+import type { RenderResult } from '../render.ts';
 import { borderContrast, periodicPatch, repetitionIssues, repetitionMetric, seamMetric } from './tiles.ts';
 
 export type CheckStatus = 'pass' | 'fail' | 'flag' | 'skip';
@@ -24,8 +25,12 @@ export interface ConformanceInput {
   source?: string;
   /** T2+ scene lint messages (`RenderResult.lint`): R4/R11 violations fail, the rest flag. */
   lint?: string[];
-  /** Real-world height (brief `height`, metres) and the direction's world scale: the drawn body is checked against it. */
-  height?: { metres: number; pxPerMetre: number };
+  /**
+   * Real-world height (brief `height`, metres) and the direction's world scale: the drawn body is checked against it.
+   * `frames` are the cells it is measured on (`standFrames`: the first state of the first facing — what the roster
+   * measures too); default the first frame.
+   */
+  height?: { metres: number; pxPerMetre: number; frames?: Grid[]; /** Brief `view` (fp billboards scale with the corridor). */ view?: string; /** Brief `body`: low bodies are seen by their footprint. */ body?: string };
   /** Approved anchors of the same kind. */
   anchors?: Grid[];
   symAxis?: 'x' | 'y' | 'none';
@@ -51,6 +56,11 @@ export interface Thresholds {
   anchorMax: number;
   /** Max relative difference between the drawn body height and the brief's real-world height before flagging. */
   heightTolerance: number;
+  /**
+   * Upright characters and creatures (`FIGURE_KINDS`, not in first person, not a low `body`): a larger difference fails
+   * the gate. Projects set it from `review.heightFail`; unset (benchmarks, probes), the height only flags.
+   */
+  heightFail?: number;
   /** Tiles: max colour step across the wrap edges, relative to the interior's. */
   seamMax: number;
   /** Tiles: max luma difference between the tile's rim and its inside (a dark grout ring draws the grid). */
@@ -64,6 +74,23 @@ export function bodyHeight(g: Grid): number {
   for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) if (g.alpha(x, y) === 255) { if (top < 0) top = y; bottom = y; break; }
   return top < 0 ? 0 : bottom - top + 1;
 }
+
+/**
+ * Drawn height of a figure in px: the tallest opaque body over `frames`. Conformance and the roster both measure it
+ * this way, on `standFrames`, so the gate and the lineup never disagree about the same sprite.
+ */
+export const drawnHeight = (frames: Grid[]): number => Math.max(0, ...frames.map(bodyHeight));
+
+/** The cells a figure's height is measured on: every frame of the first state in the first facing. */
+export function standFrames(r: Pick<RenderResult, 'cells' | 'states' | 'facings'>): Grid[] {
+  const cs = r.cells.filter(c => c.state === r.states[0] && c.facing === r.facings[0]);
+  return (cs.length ? cs : r.cells.slice(0, 1)).map(c => c.grid);
+}
+
+/** Kinds drawn to the world scale whose height error fails the gate (others only flag it). */
+export const FIGURE_KINDS = new Set(['character', 'creature']);
+/** Bodies whose drawn height is not their standing height (seen along their length or in flight): height only flags. */
+export const LOW_BODIES = new Set(['quadruped', 'serpent', 'flyer']);
 
 const N4: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
@@ -220,14 +247,15 @@ export function conformance(input: ConformanceInput): ConformanceReport {
     add('lint', hard.length ? 'fail' : input.lint.length ? 'flag' : 'pass', input.lint.length ? input.lint.slice(0, 3).join(' | ') : 'clean');
   }
 
-  // real-world height (flag only, rev 9): assets drawn to one world scale, not to fill their frames
+  // real-world height (rev 9; 0.10.0: upright figures fail past `heightFail` when the project sets it, the rest flag)
   if (!input.height) add('height', 'skip', 'no real-world height in the brief');
   else if (kind && (TILE_KINDS.has(kind) || LAYER_KINDS.has(kind))) add('height', 'skip', `${kind}: ground plane or scenery`);
   else {
-    const want = input.height.metres * input.height.pxPerMetre, got = bodyHeight(frames[0]), dev = (got - want) / want;
-    const fits = !size || want <= size[1];
-    add('height', Math.abs(dev) <= th.heightTolerance ? 'pass' : 'flag',
-      `${got} px drawn, ${want.toFixed(1)} px expected for ${input.height.metres} m (${dev >= 0 ? '+' : ''}${Math.round(dev * 100)} %)${fits ? '' : `; the ${size![1]} px frame is too short for it`}`);
+    const want = input.height.metres * input.height.pxPerMetre, got = drawnHeight(input.height.frames ?? frames.slice(0, 1)), dev = (got - want) / want;
+    const h = input.height, fits = !size || want <= size[1];
+    const figure = th.heightFail !== undefined && !!kind && FIGURE_KINDS.has(kind) && h.view !== 'fp' && !LOW_BODIES.has(h.body ?? ''), limit = figure ? th.heightFail! : th.heightTolerance;
+    add('height', Math.abs(dev) <= limit ? 'pass' : figure ? 'fail' : 'flag',
+      `${got} px drawn, ${want.toFixed(1)} px expected for ${input.height.metres} m (${dev >= 0 ? '+' : ''}${Math.round(dev * 100)} %, limit ±${Math.round(limit * 100)} %)${fits ? '' : `; the ${size![1]} px frame is too short for it`}`);
   }
 
   // tiles (P6b): seams across the wrap and visible repetition when tiled (flags; `periodic` designs skip them)

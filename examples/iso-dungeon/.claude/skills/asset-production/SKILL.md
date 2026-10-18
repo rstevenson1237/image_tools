@@ -26,8 +26,19 @@ Kinds: `character creature prop tile tileset texture effect viewmodel ui-icon`. 
 `WxH`. `--swaps red:cloth=accent` adds a palette-swap variant (ramp → ramp, exported for the runtime). `--importance
 hero|standard|filler` picks the pass budget tier. `--height <metres>` gives the thing's real-world height (a barrel
 1, a rat 0.25, a pillar 3): every render then reports `height` against the direction's world scale, so props and
-creatures are drawn to one scale instead of filling their frames — give every non-tile brief one. Editing `briefs.yaml`
-by hand is fine; the CLI validates it.
+creatures are drawn to one scale instead of filling their frames — give every non-tile brief one. An upright
+character or creature drawn more than 15 % off its height **fails** the gate (`review.heightFail`); props only flag.
+Editing `briefs.yaml` by hand is fine; the CLI validates it.
+
+**Body.** `--body quadruped|serpent|flyer|large` starts a character or creature from its rig instead of the humanoid
+walker: wolves, rats, lizards and kobolds on all fours, snakes, eels and naga tails, bats, wasps and birds, dragons and
+other very large creatures (brief those on a large frame, `--size large`). Each rig has four facings, a walk and a
+`ground` anchor. Iso briefs start from the iso walker and iso rigs.
+
+**Materials.** `brief add` warns when a brief names a material its kind's ramps leave out (a lute or staff on a
+character without wood, steel on a creature without metal, lava on a tile without glow, rubble on a prop without dirt):
+the maker would draw it in another material. `node tools/artgen/artgen.js brief lint` lists the warnings for every brief. Settle each
+one before `make`: add the ramp to the direction (a new direction version) or reword the brief.
 
 **Effects name an object.** An effect brief needs `--object`: the thing a draftsman could draw from memory ("ice lance",
 "ring of fire", "a fan of playing cards"), described without the word *effect* and without colour words (colour comes
@@ -56,15 +67,20 @@ Do exactly the step it names, then call `make` again:
 |---|---|
 | `review base.v1` (fresh from the template) | first **adapt base.v1.js to the brief** (it is unscored, so editing it is allowed), then review |
 | `review <version>` | delegate to the **art-reviewer** subagent: it builds the sheet (`node tools/artgen/artgen.js review <id> --version v`), looks at it, and records `node tools/artgen/artgen.js score <id> <v> <0-10> --note "…" --reviewer art-reviewer` |
-| `blind-review <final>` | start a **new** art-reviewer subagent (never the one that reviewed the passes, never yourself) in blind mode: give it the asset id and version only. It runs `node tools/artgen/artgen.js review <id> --version <final> --blind`, judges that sheet alone, and records `node tools/artgen/artgen.js score <id> <final> <0-10> --blind --reviewer art-reviewer --note "…"`. Don't tell it the earlier scores |
+| `blind-review <version>` | start a **new** art-reviewer subagent (never the one that reviewed the passes, never yourself) in blind mode: give it the asset id and version only. It runs `node tools/artgen/artgen.js review <id> --version <version> --blind`, judges that sheet alone, and records `node tools/artgen/artgen.js score <id> <version> <0-10> --blind --reviewer art-reviewer --note "…"`. Don't tell it the earlier scores. The version is the best-scoring one so far — a base as often as a finish |
 | `write-base base.vN` (`r2`, `r3`) | copy the version it names in `from` (the best so far, R12) to `base.vN.js`, change **one thing** the last review note asked for, header comment says what |
-| `write-base` (`x1`) | the final failed the gate, or the blind re-score came in under the bar or more than a point under the final's own score: one extra autonomous revision within budget — fix the failing check, or what the blind reviewer named |
-| `write-finish finish.vM` | `node tools/artgen/artgen.js finish <id> --base <base>`, then fill in the ops the review asked for (`references/finishing.md`) |
+| `write-base` (`x1`) | the final failed the gate, or the blind re-score came in under the bar or more than a point under its own score, or a roster note opened it (`feedback --by roster`): one extra autonomous revision within budget — fix the failing check, or what the blind reviewer or the roster named |
+| `write-finish finish.vM` | `node tools/artgen/artgen.js finish <id> --base <base>`, then fill in the ops the review asked for (`references/finishing.md`). With `review.finish: auto` (the default) this step only comes when the base's review names a finish-level problem (outline, banding, clusters, jaggies, stray pixels) or the base already clears `approveMin` — so **name finish-level problems in review notes** when you see them |
 | `write-base` / `write-finish` (`u1`, `f2`…) | a user feedback round (§4): do what the user asked, nothing else |
 
-The pass machine already applies R12 (revise from the best), the finishing pass on the best base, the blind re-score of
-the final (`review.blind` in the config, on by default), the extra revision when the final fails the gate or the blind
-score, and finally marks the asset `final` with any open issues listed. Why blind: in artgen's calibration study, scores
+The pass machine already applies R12 (revise from the best), the finishing pass on the best base when it is worth it,
+the blind re-score (`review.blind` in the config, on by default), the extra revision when the final fails the gate or
+the blind score (`review.blindRevisions` has its own budget), and finally marks the asset `final` with any open issues
+listed. **The final is the best version, not the newest**: gate-passing versions first, then the best blind score, else
+the best own score — a finish that scores under its base ships the base. `status` and the gallery show `final≠best`
+when a higher own score lost on the gate or its blind score. A version the user approved stays the final until a newer
+one is written. In the first production run the finishing pass averaged −0.06 and regressed 30 % of assets for a third
+of the tokens, which is why it is no longer automatic (`review.finish: always` brings it back). Why blind: in artgen's calibration study, scores
 given by the reviewer that watched an asset improve ran half a point above blind scores and passed concept misses (a
 barrel that reads as a crate). Never score your own work: an asset you
 wrote is scored by the art-reviewer subagent; scores without `--reviewer` are recorded as `self` and shown as `SELF`. Animated assets: global
@@ -73,9 +89,19 @@ frames of the same facing — keep `anchors(ctx)` in the base correct for every 
 walk) are reviewed as one row per unique facing; the west facings are mirrors.
 
 **Stage models.** `art/artgen.config.json` → `models` maps stages (`base` = v1, `revise` = v2/v3/extra/user,
-`finish`, `review`) to a model and effort. When a stage names a model other than `default`, run that stage as a
-subagent with that model (the art-reviewer for `review`). Scores record the mapping; pass `--model`, `--effort`,
-`--tokens-in`, `--tokens-out`, `--ms` to `score` when you have measured values.
+`finish`, `review`) to a model and effort, plus optional review tiers: `reviewEarly` (the r1 and r2 reviews), `blind`
+(blind re-scores) and `roster` (roster reviews); a tier left out uses `review`. When a stage or tier names a model other
+than `default`, run it as a subagent with that model. Recommended: a cheaper, faster model for `reviewEarly` (early
+drafts only need steering), and the strong model for revisions, `blind` and `roster` — they decide what ships. Scores
+record the mapping; pass `--model`, `--effort`, `--tokens-in`, `--tokens-out`, `--ms` to `score` when you have measured
+values, and `--agent-tokens-in <n>` with the total input the maker or reviewer read for the pass (skills, direction,
+rigs) when you know it — without it analytics counts only code and review images, a fraction of the real cost.
+
+**Sheet detail.** `review.sheetDetail` maps passes to `low` or `full` (default `{ "r1": "low" }`); `review --detail
+low|full` overrides it. A low sheet shows the first facing at 3× beside the previous version only — about half the
+image tokens — which is enough to steer a first draft. Blind sheets are always full. `review --scene` adds the sprite at
+game zoom on the background, a floor and beside a wall: use it when contrast is in doubt (a dark creature for dark
+floors, brown cloth that could read as skin).
 
 **Budget.** `budget` in the config: `revisionPasses` (per `perKind` and per importance `tiers`),
 `extraAutonomousRevisions`, `maxImageTokensPerAsset` (over it, `make` finishes the asset as it is and lists why),
@@ -83,6 +109,12 @@ subagent with that model (the art-reviewer for `review`). Scores record the mapp
 `perKind` textures at 2 passes and props at 4 (artgen's own analytics: a third pass rarely helps a texture, a fourth
 still helps props); change them freely. Batches: `make` works through briefs in priority order; work one asset to `final`
 before the next unless the user asked for a quick pass over all.
+
+**v1 roster.** With two or more non-tile assets in the run, `make` holds every v2 until each asset has a scored v1 and
+a roster review of the v1s is recorded (`review.earlyRoster`, on by default): it prints `v1 roster: … wait for it` and,
+once every v1 is in, `next: artgen roster --stage v1`. Run it like the final roster (§3) with `--stage v1`; the
+findings (look-alike silhouettes, twins, a foe that reads as friendly, scale) go into each asset's v2 step, where they
+are cheap to fix.
 
 ### Parallel make (many assets)
 With several briefs in the pipeline, run them as **rounds** — one maker subagent per asset, all at once:
@@ -103,20 +135,34 @@ node tools/artgen/artgen.js make [ids|all] --parallel 4 --json   # `work.makers`
   mean a maker overstepped — revert them.
 - Use it for batches of 3+ assets; one or two go faster through the plain loop. Pick the round size (4 is a good
   default) by how many subagents you can run at once.
+- **Waves.** For big batches add `--wave <n>` (e.g. 10): only the first n unfinished assets get packets; the rest wait
+  in `queued` until those reach final. Fewer assets in flight means fewer half-done ones when a usage limit pauses
+  the run.
+- **Resume.** Everything `make` decides comes from the files and the ledger, so after a pause or a stalled subagent
+  just call `make --parallel` again and start fresh makers on the packets it returns. A packet marked `resume: true` is
+  a version file a maker wrote but never reviewed: the new maker checks it, completes it if it is unfinished, and
+  reviews it — it does not start over.
 
 ## 3. Roster review, then show the user (`/artgen-review`)
 When `make` reports nothing left, review the **roster** before the gallery — it catches what no single-asset review can
 (assets drawn to fill their frames, a brazier outshining the torch, friend and foe in one ramp, two styles in one game):
 1. `node tools/artgen/artgen.js roster` writes `art/sheets/roster-lineup.png` (every finished non-tile asset on one baseline),
    `art/sheets/roster-silhouettes.png` (shuffled, lettered black silhouettes) and `art/sheets/roster-assets.json`, and
-   prints the size table (drawn vs brief height) and the most similar silhouette pairs.
-2. Start a fresh **art-reviewer** in roster mode with those three files only. It returns the review JSON.
+   prints the size table (drawn vs brief height, measured as the gate measures it) and the most similar silhouette
+   pairs. Over 26 assets it pages in the same call: `roster-lineup-1.png`, `roster-silhouettes-1.png`, `-2`… with
+   labels running on past Z (AA, AB…); give the reviewer every page.
+2. Start a fresh **art-reviewer** in roster mode with those files only. It returns the review JSON.
 3. `node tools/artgen/artgen.js roster record <file> --reviewer art-reviewer` turns it into open issues on those finals (silhouettes
-   rated ≤ 2, wrong scale, lineup issues). Fix what the user would mind before showing them (feedback-style rounds are
-   yours to start: `make` takes new bases), or list it with the asset.
+   rated ≤ 2, wrong scale, lineup issues).
+4. Act on the issues the user would mind before showing them: `node tools/artgen/artgen.js feedback <id> --by roster --route base
+   --note "<the roster note>"` opens a revision recorded as **yours** (an extra autonomous revision within
+   `review.rosterRevisions`, never counted as the user's), then `make` runs it. List the rest with the asset.
 
 Then `node tools/artgen/artgen.js gallery` → open each `art/sheets/gallery-N.png` and show them to the user with a short line per asset:
-score, blind score (`b6.5` on the sheet; `SELF` means only the maker scored it) and open issues. `node tools/artgen/artgen.js status` lists every brief:
+score, blind score (`b6.5` on the sheet; `SELF` means only the maker scored it) and open issues. Assets whose blind
+score (else own score) is under `review.approveMin` are labelled **BELOW BAR**: present them separately, after the
+others, say they are under the bar and why, and ask whether to approve them as they are, give feedback, or leave them —
+never fold them into a batch approval. `node tools/artgen/artgen.js status` lists every brief:
 `brief → in-pipeline → final → approved → exported`, plus `revision` (user feedback in progress) and `stale`
 (approved, then the direction changed).
 

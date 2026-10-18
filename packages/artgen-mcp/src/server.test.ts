@@ -29,7 +29,7 @@ describe('artgen MCP server', () => {
 
   test('tools/list names the full tool set (SPEC §14) with input schemas', async () => {
     const r = (await handle({ jsonrpc: '2.0', id: 4, method: 'tools/list' }, root))!.result as { tools: { name: string; inputSchema: { type: string } }[] };
-    expect(r.tools.map(t => t.name)).toEqual(['direction_get', 'direction_tile', 'pass_status', 'render', 'review', 'conformance', 'score', 'finish', 'make', 'status',
+    expect(r.tools.map(t => t.name)).toEqual(['direction_get', 'direction_tile', 'pass_status', 'render', 'review', 'conformance', 'score', 'finish', 'make', 'brief_lint', 'status',
       'gallery', 'feedback', 'approve', 'texture', 'fx', 'export', 'restyle', 'analytics', 'map_list', 'map_get', 'map_new', 'map_update', 'map_edit', 'map_overlay', 'map_render',
       'dungeon_list', 'dungeon_get', 'dungeon_new', 'dungeon_update', 'dungeon_generate', 'dungeon_edit', 'dungeon_overlay', 'dungeon_render']);
     expect(r.tools.every(t => t.inputSchema.type === 'object')).toBe(true);

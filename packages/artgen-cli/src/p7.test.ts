@@ -1,7 +1,7 @@
 // P7: parallel make (maker packets per asset, the ledger as the one shared write, concurrent appends stay whole lines)
 // and analytics v2 (pooled recommendations across the fixture projects, --apply into a project's config).
 import { spawn } from 'node:child_process';
-import { cpSync, mkdtempSync, readFileSync } from 'node:fs';
+import { cpSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -52,9 +52,27 @@ describe('parallel make (P7)', () => {
 
     // the main agent scores (from a fresh reviewer); the next round's makers write v2
     for (const x of m.work.makers) await run('score', x.id, 'base.v1', '5', '--reviewer', 'art-reviewer', ...R);
+    // the early roster (0.10.0): v2 waits until every asset has a scored v1 and the v1 roster is recorded
     const m2 = await json('make', '--parallel', '4', ...R);
-    expect(m2.work.makers.map((x: { id: string; step: { version: string } }) => `${x.id} ${x.step.version}`)).toEqual(['goblin base.v2', 'crate base.v2', 'reed base.v2', 'stump base.v1']);
-    expect(m2.work.makers[0].writes).toEqual(['art/assets/character/goblin/base.v2.js']);
+    expect(m2.work.makers.map((x: { id: string; step: { version: string } }) => `${x.id} ${x.step.version}`)).toEqual(['stump base.v1']);
+    expect(m2.roster).toMatchObject({ stage: 'v1', ids: ['goblin', 'crate', 'reed'], why: expect.stringMatching(/until stump has a scored v1/) });
+    await run('review', 'stump', ...R);
+    await run('score', 'stump', 'base.v1', '5', '--reviewer', 'art-reviewer', ...R);
+    const m3 = await json('make', '--parallel', '4', ...R);
+    expect(m3.work.makers).toEqual([]);
+    expect(m3.roster.ids).toEqual(['goblin', 'crate', 'reed', 'stump']);
+    expect((await run('make', ...R)).out).toMatch(/next: artgen roster --stage v1/);
+    const ro = await json('roster', '--stage', 'v1', ...R);
+    expect(ro.stage).toBe('v1');
+    const key = ledger().filter(e => e.type === 'roster' && e.key).pop()!.key as Record<string, string>, letter = (id: string) => Object.keys(key).find(k => key[k] === id)!;
+    writeFileSync(join(root, 'v1-roster.json'), JSON.stringify({ silhouettes: [{ letter: letter('crate'), guess: 'a crate', readability: 4 }], lineup: [{ id: 'goblin', issues: ['reads as friendly, not hostile'] }] }));
+    await run('roster', 'record', join(root, 'v1-roster.json'), '--reviewer', 'art-reviewer', ...R);
+    // the notes ride into v2's brief
+    const m4 = await json('make', '--parallel', '4', ...R);
+    expect(m4.roster).toBeUndefined();
+    expect(m4.work.makers.map((x: { id: string; step: { version: string } }) => `${x.id} ${x.step.version}`)).toEqual(['goblin base.v2', 'crate base.v2', 'reed base.v2', 'stump base.v2']);
+    expect(m4.work.makers[0].writes).toEqual(['art/assets/character/goblin/base.v2.js']);
+    expect(m4.work.makers[0].step.why).toMatch(/roster review of base.v1 found: lineup: reads as friendly, not hostile/);
   }, 60_000);
 
   test('concurrent ledger appends from many processes stay whole lines', async () => {

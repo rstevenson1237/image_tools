@@ -1,0 +1,1 @@
+{ "kind": "creature", "size": "character", "body": "quadruped", "states": ["idle", "walk"], "directions": 4, "anims": { "walk": { "frames": 4 } }, "review": { "scale": 4, "sym": "none" } }
