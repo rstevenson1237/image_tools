@@ -10,9 +10,9 @@ import { basename, dirname, join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
   applyFinish, animInput, onionSkin, fpRole, fpShots, assembleSheet, budgetFor, finishBaseOf, conformance, contactSheet, parseBriefs, finishSnapshot, finishStale, Grid, imageTokens, iso, parseDirection, parseLedger,
-  parseVersion, passId, planPasses, pxPerMetre, renderAsset, resolveSize, reviewSheet, sourceHash, stackStrip, parallaxStrip, TILE_KINDS, viewContext, autotileCount, autotileMap, autotileSheet,
-  type AssetBudget, type AssetModule, type BriefEntry, type ConformanceReport, type FeedbackOpen, type Direction, type FinishModule, type LedgerEntry, type PassState,
-  type PatchRecord, type RenderResult,
+  parseVersion, passId, planPasses, pxPerMetre, renderAsset, resolveSize, reviewSheet, sourceHash, stackStrip, standFrames, parallaxStrip, TILE_KINDS, viewContext, autotileCount, autotileMap, autotileSheet,
+  type AssetBudget, type AssetModule, type BriefEntry, type ConformanceReport, type FeedbackOpen, type Direction, type FinishModule, type LedgerEntry, type PassState, type PlanInput,
+  type PatchRecord, type RenderResult, type SheetDetail,
 } from 'artgen-core';
 import { BENCH_DIRECTIONS } from 'artgen-core/bench';
 import { strip } from './bench.ts';
@@ -98,15 +98,16 @@ export function openAsset(path: string, opts: { direction?: string; ledger?: str
 /** Revision passes for an asset: its budget, else the direction's. */
 export const revisionPasses = (a: AssetDir): number => a.budget?.revisionPasses ?? a.dir.pipeline.revisionPasses;
 
-/** User feedback that opened U-stage versions, in ledger order. */
+/** Feedback that opened versions, in ledger order: the user's (U stage) and the agent's from roster notes (`by: agent`). */
 export const feedbackOf = (a: AssetDir): FeedbackOpen[] =>
-  ledgerFor(a).filter(e => e.type === 'feedback' && e.by === 'user' && typeof e.opens === 'string').map(e => ({
-    route: e.route === 'finish' ? 'finish' : 'base', opens: e.opens as string,
+  ledgerFor(a).filter(e => e.type === 'feedback' && (e.by === 'user' || e.by === 'agent') && typeof e.opens === 'string').map(e => ({
+    route: e.route === 'finish' ? 'finish' : 'base', opens: e.opens as string, ...(e.by === 'agent' && { by: 'agent' as const, source: typeof e.source === 'string' ? e.source : 'agent' }),
+    ...(typeof e.on === 'string' && { on: e.on }),
     ...(typeof e.note === 'string' && { note: e.note }), ...(Array.isArray(e.region) && { region: e.region as number[] }), ...(typeof e.cell === 'string' && { cell: e.cell }),
   }));
 
 /** Ledger pass id of a version for this asset (feedback-aware: r, x, u, f). */
-export const passOf = (a: AssetDir, version: string): string => passId(version, revisionPasses(a), a.project ? feedbackOf(a).map(f => f.opens) : undefined);
+export const passOf = (a: AssetDir, version: string): string => passId(version, revisionPasses(a), a.project ? feedbackOf(a).filter(f => f.by !== 'agent').map(f => f.opens) : undefined);
 
 export const versionsIn = (a: AssetDir): string[] =>
   readdirSync(a.path).map(f => parseVersion(f)?.name).filter((v): v is string => !!v)
@@ -163,7 +164,8 @@ export async function renderVersion(a: AssetDir, version: string, opts: { varian
   const report = conformance({
     frames: render.cells.map(c => c.grid), dir: a.dir, kind: a.brief.kind, size: resolveSize(a.dir, a.brief.size, a.brief.kind),
     source: src, symAxis: a.brief.review?.sym ?? 'x', lint: render.lint, periodic: a.brief.review?.periodic, autotile: a.brief.autotile,
-    ...(a.brief.height && { height: { metres: a.brief.height, pxPerMetre: pxPerMetre(a.dir) } }), anim: animInput(render),
+    ...(a.brief.height && { height: { metres: a.brief.height, pxPerMetre: pxPerMetre(a.dir), frames: standFrames(render), view: a.brief.view ?? a.dir.camera.view, body: a.brief.body } }), anim: animInput(render),
+    ...(a.project && { thresholds: { heightFail: projectConfig(a.project).review.heightFail } }),
   });
   return { version: v.name, render, strip: s, grid, report, source, base, patches, stale };
 }
@@ -282,19 +284,28 @@ const rowLabel = (r: VersionRender, score?: number) =>
  * Review sheet (R7): reference (if any), the best-so-far and previous versions, then the version under review;
  * checker, scaled, in-context and silhouette panels. Records a `review` ledger line with the image-token estimate.
  * `blind` (rev 9): the version alone, labelled with the asset id only — no earlier versions, no scores, no pass — for
- * a fresh reviewer's blind re-score of a final.
+ * a fresh reviewer's blind re-score of a final (always full detail).
+ * `detail` (0.10.0): `low` shows the first facing at 3× beside the previous version only — enough to steer an early
+ * draft for about half the image tokens; `full` every facing and the best-so-far. Default: `review.sheetDetail[pass]`
+ * in artgen.config.json (`r1: low`), else full.
+ * `scene`: adds the sprite at game zoom on the direction background, a floor and beside a wall, where contrast
+ * problems show that black review panels hide (a dark eel on a dark floor, a brown torso that reads as skin).
  */
-export async function reviewVersion(a: AssetDir, version: string, o: { blind?: boolean } = {}): Promise<{ path: string; tokens: number; render: VersionRender }> {
-  const vs = versionsIn(a), cur = await renderVersion(a, version), R = a.brief.review ?? {}, sc = R.scale ?? 4;
+export async function reviewVersion(a: AssetDir, version: string, o: { blind?: boolean; detail?: SheetDetail; scene?: boolean } = {}): Promise<{ path: string; tokens: number; render: VersionRender }> {
+  const vs = versionsIn(a), cur = await renderVersion(a, version), R = a.brief.review ?? {};
+  const pass = o.blind ? 'b' : passOf(a, version), cfg = a.project ? projectConfig(a.project) : undefined;
+  const detail: SheetDetail = o.blind ? 'full' : o.detail ?? cfg?.review.sheetDetail?.[pass] ?? 'full', low = detail === 'low';
+  const sc = low ? Math.min(3, R.scale ?? 4) : R.scale ?? 4, multi = cur.render.facings.length > 1;
   const sil = !TILE_KINDS.has(a.brief.kind);
+  const scene = o.scene ? [{ label: 'in the scene, 2x: background | floor | beside a wall', grid: sceneGrid(a.dir, firstFacing(cur.render)), scale: 2, silhouette: false }] : [];
   if (o.blind) {
     const sheet = reviewSheet({
-      title: R.label ?? a.brief.id, anchors: anchorsFor(a), maxEdge: a.project ? projectConfig(a.project).budget?.maxSheetEdge : undefined,
-      rows: [{ label: a.brief.id, grid: cur.grid, scale: sc, bg: R.bg ?? a.dir.background, context: contextFor(a, cur.grid), silhouette: sil }],
+      title: R.label ?? a.brief.id, anchors: anchorsFor(a), maxEdge: cfg?.budget?.maxSheetEdge,
+      rows: [{ label: a.brief.id, grid: cur.grid, scale: sc, bg: R.bg ?? a.dir.background, context: contextFor(a, cur.grid), silhouette: sil }, ...scene],
     });
     const path = join(outDir(a), `review-${version}-blind.png`), tokens = imageTokens(sheet.w, sheet.h);
     writeGrid(path, sheet);
-    appendLedger(a.ledgerPath, { type: 'review', asset: a.brief.id, version, pass: 'b', blind: true, sheet: relPath(a, path), imageTokens: tokens, by: 'agent' });
+    appendLedger(a.ledgerPath, { type: 'review', asset: a.brief.id, version, pass: 'b', blind: true, sheet: relPath(a, path), imageTokens: tokens, detail, by: 'agent' });
     return { path, tokens, render: cur };
   }
   const scores = new Map(ledgerFor(a).filter(e => e.type === 'score' && !e.blind && e.version).map(e => [e.version!, e.score as number]));
@@ -307,19 +318,40 @@ export async function reviewVersion(a: AssetDir, version: string, o: { blind?: b
   const v = parseVersion(version)!, prev = v.kind === 'finish' ? cur.base : vs.filter(x => parseVersion(x)!.kind === 'base' && parseVersion(x)!.n < v.n).pop();
   const best = [...scores].filter(([k]) => parseVersion(k)?.kind === 'base' && k !== prev && k !== version).sort((x, y) => y[1] - x[1])[0]?.[0];
   // big sheets (8 facings × walk): earlier versions show their first facing only, so the version under review stays legible
-  const big = cur.render.cells.length > 8;
-  for (const other of [best, prev]) if (other) {
+  const big = cur.render.cells.length > 8 || low;
+  for (const other of low ? [prev] : [best, prev]) if (other) {
     const r = await renderVersion(a, other), grid = big ? firstFacing(r.render) : r.grid;
     rows.push({ label: rowLabel(r, scores.get(other)) + (big ? ' | first facing' : ''), grid, scale: sc, bg: R.bg ?? a.dir.background, context: ctx(grid), silhouette: sil });
   }
-  rows.push({ label: `>> ${rowLabel(cur)}`, grid: cur.grid, scale: sc, bg: R.bg ?? a.dir.background, context: ctx(cur.grid), silhouette: sil });
-  const sheet = reviewSheet({ title: `${R.label ?? a.brief.id} - ${version} (${passOf(a, version)})`, rows, anchors: anchorsFor(a), maxEdge: a.project ? projectConfig(a.project).budget?.maxSheetEdge : undefined });
+  const curGrid = low && multi ? firstFacing(cur.render) : cur.grid;
+  rows.push({ label: `>> ${rowLabel(cur)}${low && multi ? ' | first facing (low detail)' : ''}`, grid: curGrid, scale: sc, bg: R.bg ?? a.dir.background, context: ctx(curGrid), silhouette: sil }, ...scene);
+  const sheet = reviewSheet({ title: `${R.label ?? a.brief.id} - ${version} (${pass})`, rows, anchors: anchorsFor(a), maxEdge: cfg?.budget?.maxSheetEdge });
   const path = join(outDir(a), `review-${version}.png`);
   writeGrid(path, sheet);
   writeRender(a, cur);
   const tokens = imageTokens(sheet.w, sheet.h);
-  appendLedger(a.ledgerPath, { type: 'review', asset: a.brief.id, version, pass: passOf(a, version), sheet: relPath(a, path), imageTokens: tokens, by: 'agent' });
+  appendLedger(a.ledgerPath, { type: 'review', asset: a.brief.id, version, pass, sheet: relPath(a, path), imageTokens: tokens, detail, ...(o.scene && { scene: true }), by: 'agent' });
   return { path, tokens, render: cur };
+}
+
+/**
+ * The sprite in a stand-in scene at 1× (the sheet scales it to game zoom): on the direction background, on a floor
+ * of the ground ramp (stone, else dirt, else the first ramp), and on that floor in front of a wall of its darker steps.
+ */
+export function sceneGrid(dir: Direction, sprite: Grid): Grid {
+  const ramps = dir.palette.ramps, ramp = ramps[dir.palette.materials.stone ?? 'stone'] ?? ramps[dir.palette.materials.dirt ?? 'dirt'] ?? Object.values(ramps)[0];
+  const step = (i: number) => ramp[Math.max(0, Math.min(ramp.length - 1, i))], mid = ramp.length >> 1;
+  const pw = sprite.w + 8, ph = sprite.h + 4, g = new Grid(pw * 3, ph);
+  g.fill(0, 0, pw, ph, dir.background ?? '#000000');
+  for (let k = 1; k < 3; k++) {
+    // floor: 4 px flagstones in two steps of the ramp
+    for (let y = 0; y < ph; y++) for (let x = 0; x < pw; x++) g.set(k * pw + x, y, ((x >> 2) + (y >> 2)) % 2 ? step(mid) : step(mid + 1));
+    // wall: the top two thirds behind the sprite, bricks in the ramp's darker steps
+    if (k === 2) for (let y = 0; y < Math.round(ph * 0.66); y++) for (let x = 0; x < pw; x++)
+      g.set(k * pw + x, y, y % 4 === 3 || (x + (y >> 2) * 3) % 8 === 0 ? step(ramp.length - 1) : step(ramp.length - 2));
+  }
+  for (let k = 0; k < 3; k++) g.over(sprite, k * pw + 4, ph - sprite.h - 1);
+  return g;
 }
 
 /** Path as recorded in the ledger: relative to the ledger's folder. */
@@ -372,10 +404,10 @@ export async function passState(a: AssetDir): Promise<PassState & { stale?: stri
   return st;
 }
 
-/** Blind re-score settings for the pass machine (rev 9): `review.blind` in artgen.config.json, on by default. */
-function blindConfig(p: Project): { blind?: { minScore: number; maxGap: number } } {
+/** Review policy for the pass machine: the blind re-score (rev 9), the finishing-pass policy and the blind budget. */
+function blindConfig(p: Project): Pick<PlanInput, 'blind' | 'finish' | 'approveMin' | 'blindRevisions'> {
   const r = projectConfig(p).review;
-  return r.blind === false ? {} : { blind: { minScore: r.approveMin, maxGap: r.blindMaxGap } };
+  return { finish: r.finish, approveMin: r.approveMin, blindRevisions: r.blindRevisions, ...(r.blind !== false && { blind: { minScore: r.approveMin, maxGap: r.blindMaxGap } }) };
 }
 
 /** Contact sheet of `n` seeded variants (variant 0 = defaults) and how many are distinct. */
@@ -396,12 +428,18 @@ export async function variantsSheet(a: AssetDir, version: string, n = 8): Promis
 /** Pipeline stage of a pass → `models` key in artgen.config.json. */
 export const stageKey = (pass: string): 'base' | 'revise' | 'finish' => (pass === 'r1' ? 'base' : pass.startsWith('f') ? 'finish' : 'revise');
 
-/** Model + effort recorded with a score: the config's mapping for the stage (`'default'` = the session's model). */
+/** The review tier that scores a pass: `blind` for blind re-scores, `reviewEarly` for r1/r2, else `review`. */
+export const reviewKey = (pass: string): 'review' | 'reviewEarly' | 'blind' => (pass === 'b' ? 'blind' : pass === 'r1' || pass === 'r2' ? 'reviewEarly' : 'review');
+
+/**
+ * Model + effort recorded with a score: the config's mapping for the stage (`'default'` = the session's model), and
+ * the reviewer's model for the pass's review tier (a tier left out of the config falls back to `models.review`).
+ */
 export function stageModel(a: AssetDir, pass: string): { model: string; effort: string; reviewModel: string } {
   const m = (a.project ? projectConfig(a.project).models : undefined) ?? {};
-  const pick = (k: string) => { const v = (m as Record<string, unknown>)[k]; return typeof v === 'string' ? { model: v, effort: 'default' } : { model: String((v as { model?: string })?.model ?? 'default'), effort: String((v as { effort?: string })?.effort ?? 'default') }; };
-  const st = pick(stageKey(pass));
-  return { model: st.model, effort: st.effort, reviewModel: pick('review').model };
+  const pick = (k: string) => { const v = (m as Record<string, unknown>)[k]; return v === undefined ? undefined : typeof v === 'string' ? { model: v, effort: 'default' } : { model: String((v as { model?: string })?.model ?? 'default'), effort: String((v as { effort?: string })?.effort ?? 'default') }; };
+  const st = pick(stageKey(pass)) ?? { model: 'default', effort: 'default' };
+  return { model: st.model, effort: st.effort, reviewModel: (pick(reviewKey(pass)) ?? pick('review'))?.model ?? 'default' };
 }
 
 /** The project's anchors of the asset's kind (fallback: all anchors), shown under every review sheet (R7). */

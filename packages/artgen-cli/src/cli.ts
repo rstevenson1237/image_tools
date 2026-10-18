@@ -19,8 +19,10 @@
  * Pipeline (asset directories):
  *   artgen pass status|next <assetDir>             pipeline state (v1 → v2 → v3 → finish → ready)
  *   artgen render <assetDir> [--version v] [--variant n] [--stages]
- *   artgen review <assetDir> [--version v] [--blind]  review sheet: reference, best, v(n−1), v(n); --blind: the final alone
- *   artgen score <assetDir> <version> <0-10> [--note "…"] [--reviewer name] [--blind]
+ *   artgen review <assetDir> [--version v] [--blind] [--detail low|full] [--scene]
+ *                                                   review sheet: reference, best, v(n−1), v(n); --blind: the version alone;
+ *                                                   --detail low: first facing at 3×; --scene: on a floor, beside a wall
+ *   artgen score <assetDir> <version> <0-10> [--note "…"] [--reviewer name] [--blind] [--agent-tokens-in n]
  *   artgen variants <assetDir> [--version v] [--n 8]
  *   artgen report <dir> [--out REPORT.md] [--title "…"]
  * Asset commands take --direction <file|bench name> and --ledger <file> overrides.
@@ -28,14 +30,16 @@
  * Production (W2, PLAN P3) — briefs in art/briefs.yaml; asset args take a brief id or a directory:
  *   artgen brief add <id> --kind k [--view v] [--size key|WxH] [--states a,b] [--directions 8] [--anims walk:4,attack:3]
  *                    [--variants n] [--swaps red:cloth=accent] [--importance hero|standard|filler] [--priority n] [--notes "…"]
- *   artgen brief list | rm <id>
- *   artgen make [ids|all] [--parallel n]            one tick of the autonomous run: scaffold, mark finals, name the next step;
- *                                                   --parallel: a round of up to n maker packets (one subagent per asset) + main steps
+ *                    [--height m] [--body quadruped|serpent|flyer|large]   (warns about materials its kind can't colour)
+ *   artgen brief list | rm <id> | lint [ids]
+ *   artgen make [ids|all] [--parallel n] [--wave n] one tick of the autonomous run: scaffold, mark finals, hold v2 for the v1
+ *                                                   roster, name the next step; --parallel: a round of up to n maker packets (one
+ *                                                   subagent per asset) + main steps; --wave: n assets in flight at once
  *   artgen status [ids]                             brief → in-pipeline → final → approved → exported (+ revision, stale)
- *   artgen gallery [ids]                            sheet of finished assets for the user (score, open issues)
- *   artgen feedback <id> --route base|finish --note "…" [--region x,y,w,h] [--cell state/facing/frame]
+ *   artgen gallery [ids]                            sheet of finished assets for the user (score, open issues, BELOW BAR)
+ *   artgen feedback <id> --route base|finish --note "…" [--region x,y,w,h] [--cell state/facing/frame] [--by roster]
  *   artgen approve <id> [--note "…"]                user approval (R6: passing gate + review sheet)
- *   artgen roster [ids] [--seed n] | roster record <review.json> [--reviewer name]
+ *   artgen roster [ids] [--seed n] [--stage v1] | roster record <review.json> [--reviewer name]   (pages past 26 assets)
        artgen export [--pack name] [--include-drafts] [--runtime [--force]] [--break-contract id,…|*]
  *                                                   atlases + pack.json + Aseprite JSON + assets.ts; --runtime vendors the W3
  *                                                   runtime + adapters (artgen.config.json `runtime.adapters`) into runtimeDir
@@ -72,9 +76,9 @@ import { report } from './report.ts';
 import { cornerPoint, corridorEnd, createDungeon, describeDungeon, doorPair, gridMode, listDungeons, readDungeon, renderDungeonFiles, updateDungeon } from './dungeon.ts';
 import { createMap, describeMap, listMaps, numbers, onOff, parseLayers, readMap, renderMapFiles, shapeFrom, updateMap } from './map.ts';
 import { newAsset } from './templates.ts';
-import { addBrief, approve, exportPacks, feedback, gallery, importEdit, make, pooledAnalytics, projectAnalytics, projectStatus, readBriefs, removeBriefFile, resolveAssetArg, restyle, rosterRecord, rosterRun, writeNextFinish, type WorkPacket } from './w2.ts';
+import { addBrief, approve, briefWarnings, exportPacks, feedback, gallery, importEdit, make, pooledAnalytics, projectAnalytics, projectStatus, readBriefs, removeBriefFile, resolveAssetArg, restyle, rosterRecord, rosterRun, writeNextFinish, type WorkPacket } from './w2.ts';
 import { IMPORTANCE, type BriefEntry, type Importance } from 'artgen-core';
-import { lock, readInterview, show, writeAnchors, writeCandidates, writeDraft, writeMix, writeTile } from './w1.ts';
+import { lockedDirection, lock, readInterview, show, writeAnchors, writeCandidates, writeDraft, writeMix, writeTile } from './w1.ts';
 
 declare const __ARTGEN_VERSION__: string | undefined;
 /** Set by the artgen-dist build; `dev` when run from this repo. */
@@ -117,15 +121,15 @@ usage: artgen init
        artgen finish <assetDir> [--base base.vN]
        artgen pass status|next <assetDir>
        artgen render <assetDir> [--version base.vN|finish.vM] [--variant n] [--stages]
-       artgen review <assetDir> [--version v] [--blind]
-       artgen score <assetDir> <version> <score> [--note "..."] [--reviewer name] [--blind]
+       artgen review <assetDir> [--version v] [--blind] [--detail low|full] [--scene]
+       artgen score <assetDir> <version> <score> [--note "..."] [--reviewer name] [--blind] [--agent-tokens-in n]
        artgen variants <assetDir> [--version v] [--n 8]
        artgen report <dir> [--out REPORT.md] [--title "..."]
-       artgen brief add <id> --kind k [--view v] [--size key|WxH] [--states a,b] [--directions n] [--anims walk:4] [--durations attack=80/80/200/80] [--variants n] [--swaps red:cloth=accent] [--importance t] [--priority n] [--height metres] [--object "ice lance"] [--notes "..."] [--break-contract]
-       artgen brief list | rm <id>
-       artgen make [ids|all] [--parallel n] | status [ids] | gallery [ids]
-       artgen roster [ids] [--seed n] | roster record <review.json> [--reviewer name]
-       artgen feedback <id> --route base|finish --note "..." [--region x,y,w,h] [--cell s/f/n] | approve <id> [--note "..."]
+       artgen brief add <id> --kind k [--view v] [--size key|WxH] [--states a,b] [--directions n] [--anims walk:4] [--durations attack=80/80/200/80] [--variants n] [--swaps red:cloth=accent] [--importance t] [--priority n] [--height metres] [--body quadruped|serpent|flyer|large] [--object "ice lance"] [--notes "..."] [--break-contract]
+       artgen brief list | rm <id> | lint [ids]
+       artgen make [ids|all] [--parallel n] [--wave n] | status [ids] | gallery [ids]
+       artgen roster [ids] [--seed n] [--stage v1] | roster record <review.json> [--reviewer name]
+       artgen feedback <id> --route base|finish --note "..." [--region x,y,w,h] [--cell s/f/n] [--by roster] | approve <id> [--note "..."]
        artgen export [--pack name] [--include-drafts] [--runtime [--force]] [--break-contract id,…|*] | restyle [--from N] | import-edit <id> <png> [--cell s/f/n]
        artgen analytics [--out file.md] | analytics --across <root>,<root>… [--apply] [--min-assets n] [--out file.md]
        artgen voxel <asset> [--version v] [--cell s/f/n] [--out dir] [--scale m]
@@ -631,7 +635,9 @@ export async function main(argv: string[]): Promise<number> {
     return r.report.pass ? 0 : 1;
   }
   if (cmd === 'review' && sub) {
-    const a = asset(sub), version = flag(args, '--version') ?? latest(sub), r = await reviewVersion(a, version, { blind: args.includes('--blind') });
+    const detail = flag(args, '--detail');
+    if (detail !== undefined && detail !== 'low' && detail !== 'full') throw new Error('review --detail low (first facing at 3×, previous version only) | full (every facing, the best so far)');
+    const a = asset(sub), version = flag(args, '--version') ?? latest(sub), r = await reviewVersion(a, version, { blind: args.includes('--blind'), detail, scene: args.includes('--scene') });
     print(`review sheet ${r.path} (~${r.tokens} image tokens); gate ${r.render.report.pass ? 'pass' : 'FAIL'}`, { sheet: r.path, tokens: r.tokens, pass: r.render.report.pass, checks: r.render.report.checks });
     return 0;
   }
@@ -651,6 +657,12 @@ export async function main(argv: string[]): Promise<number> {
     }
     const a0 = asset(sub);
     if (flag(args, '--tokens-in') || flag(args, '--tokens-out')) ex.measured = { in: +(flag(args, '--tokens-in') ?? 0), out: +(flag(args, '--tokens-out') ?? 0) };
+    // the context the maker or reviewer agent read for this pass (skills, direction, rigs): what the orchestration costs
+    if (flag(args, '--agent-tokens-in')) {
+      const n = +flag(args, '--agent-tokens-in')!;
+      if (!(n >= 0)) throw new Error('score --agent-tokens-in <n>: the total input tokens the agent read for this pass');
+      ex.measured = { ...(ex.measured as object | undefined), agentIn: n };
+    }
     const e = await scoreVersion(a0, rest[0], score, flag(args, '--note') ?? '', ex);
     print(`scored ${e.asset} ${e.version} (${e.pass}${e.blind ? ', blind' : ''}, by ${e.reviewer}) ${score}; gate ${e.conformance?.pass ? 'pass' : 'FAIL'}${typeof e.gap === 'number' ? `; ${e.gap} under its own score` : ''}`, e);
     return 0;
@@ -715,7 +727,7 @@ export async function main(argv: string[]): Promise<number> {
         ...(swaps && { swaps: swaps.reduce((m, x) => { const [n, pair] = x.split(':'), [from, to] = pair.split('='); (m[n] ??= {})[from] = to; return m; }, {} as Record<string, Record<string, string>>) }),
         ...(flag(args, '--importance') && { importance: flag(args, '--importance') as Importance }), ...(flag(args, '--priority') && { priority: +flag(args, '--priority')! }),
         ...(flag(args, '--notes') && { notes: flag(args, '--notes') }), ...(flag(args, '--height') && { height: +flag(args, '--height')! }),
-        ...(flag(args, '--object') && { object: flag(args, '--object') }),
+        ...(flag(args, '--object') && { object: flag(args, '--object') }), ...(flag(args, '--body') && { body: flag(args, '--body') as BriefEntry['body'] }),
       };
       if (b.importance && !IMPORTANCE.includes(b.importance)) throw new Error(`--importance: ${IMPORTANCE.join(' | ')}`);
       for (const d of list(args, '--durations') ?? []) {
@@ -726,8 +738,15 @@ export async function main(argv: string[]): Promise<number> {
       // new effect briefs name the drawable thing up front (rev 9); older briefs without one show it as an open issue
       if (b.kind === 'effect' && !b.object) throw new Error(`brief add ${b.id}: an effect needs --object "<the drawable thing>" (e.g. "ice lance", "ring of fire") — without the word effect or colour words`);
       if (b.anims && !b.states) b.states = ['idle', ...Object.keys(b.anims).filter(s => s !== 'idle')];
-      const all = addBrief(p, b, { breakContract: args.includes('--break-contract') });
-      print(`brief ${b.id} (${b.kind}) in art/briefs.yaml — ${all.length} briefs\nnext: artgen make ${b.id}`, { brief: b, count: all.length });
+      const all = addBrief(p, b, { breakContract: args.includes('--break-contract') }), dir = lockedDirection(p), warnings = dir ? briefWarnings(b, dir) : [];
+      print(`brief ${b.id} (${b.kind}) in art/briefs.yaml — ${all.length} briefs${warnings.map(w => `\n  warning: ${w}`).join('')}\nnext: artgen make ${b.id}`, { brief: b, count: all.length, warnings });
+      return 0;
+    }
+    if (sub === 'lint') {
+      const dir = lockedDirection(p);
+      if (!dir) throw new Error('brief lint: lock a direction first (it checks briefs against its ramps and templates)');
+      const ids = pos2(rest), rows = readBriefs(p).filter(b => !ids.length || ids.includes(b.id)).map(b => ({ id: b.id, warnings: briefWarnings(b, dir) })).filter(r => r.warnings.length);
+      print(rows.length ? rows.map(r => `${r.id}:\n${r.warnings.map(w => `  ${w}`).join('\n')}`).join('\n') : 'no brief warnings', rows);
       return 0;
     }
     if (sub === 'rm' && rest[0]) { const ok = removeBriefFile(p, rest[0]); print(ok ? `removed ${rest[0]} (asset sources are kept)` : `no brief ${rest[0]}`, { removed: ok }); return ok ? 0 : 1; }
@@ -739,12 +758,14 @@ export async function main(argv: string[]): Promise<number> {
   }
   if (cmd === 'make' || cmd === 'status') {
     const p = requireProject(flag(args, '--root')), ids = pos2(args);
-    const table = (rows: Awaited<ReturnType<typeof projectStatus>>) => rows.map(r => `  ${r.id.padEnd(16)} ${r.status.padEnd(11)} ${r.final ? `${r.final} ${r.score ?? '-'}${r.gate === false ? ' GATE FAIL' : ''}` : (r.next ? `${r.next.action} ${'version' in r.next ? r.next.version : ''}` : '')}${r.issues.length ? `\n${r.issues.map(i => `      issue: ${i}`).join('\n')}` : ''}`).join('\n');
+    const table = (rows: Awaited<ReturnType<typeof projectStatus>>) => rows.map(r => `  ${r.id.padEnd(16)} ${r.status.padEnd(11)} ${r.final ? `${r.final} ${r.score ?? '-'}${r.blind !== undefined ? ` b${r.blind}` : ''}${r.gate === false ? ' GATE FAIL' : ''}${r.belowBar ? ' BELOW BAR' : ''}${r.top ? ` final≠best (${r.top.version} ${r.top.score})` : ''}` : (r.next ? `${r.next.action} ${'version' in r.next ? r.next.version : ''}` : '')}${r.issues.length ? `\n${r.issues.map(i => `      issue: ${i}`).join('\n')}` : ''}`).join('\n');
     if (cmd === 'status') { const rows = await projectStatus(p, ids); print(table(rows) || 'no briefs yet', rows); return 0; }
     const par = flag(args, '--parallel');
     if (par !== undefined && !(+par >= 1)) throw new Error('make --parallel <n>: how many maker subagents to run at once (e.g. 4)');
-    const r = await make(p, ids, { parallel: par ? +par : undefined });
-    const pk = (x: WorkPacket) => `  ${x.id.padEnd(16)} ${x.step.action} ${'version' in x.step ? x.step.version : ''}${x.writes.length ? ` → writes ${x.writes.join(', ')}` : ''}`;
+    const wave = flag(args, '--wave');
+    if (wave !== undefined && !(+wave >= 1)) throw new Error('make --wave <n>: how many assets to finish before starting more (e.g. 10)');
+    const r = await make(p, ids, { parallel: par ? +par : undefined, wave: wave ? +wave : undefined });
+    const pk = (x: WorkPacket) => `  ${x.id.padEnd(16)} ${x.step.action} ${'version' in x.step ? x.step.version : ''}${x.writes.length ? ` → writes ${x.writes.join(', ')}` : ''}${x.resume ? ' (resume: written, never reviewed — check it, complete it, review it)' : ''}`;
     const counts = Object.entries(r.rows.reduce((m, x) => ({ ...m, [x.status]: (m[x.status] ?? 0) + 1 }), {} as Record<string, number>)).map(([k, v]) => `${v} ${k}`).join(', ');
     print([
       ...(r.scaffolded.length ? [`scaffolded from templates:\n  ${r.scaffolded.join('\n  ')}`] : []), ...(r.finals.length ? [`marked final: ${r.finals.join(', ')}`] : []),
@@ -754,22 +775,29 @@ export async function main(argv: string[]): Promise<number> {
         ...r.work.makers.map(pk), ...(r.work.queued.length ? [`queued for the next round (${r.work.queued.length}):`, ...r.work.queued.map(pk)] : []),
         ...(r.work.main.length ? ['main agent (reviews, blind re-scores — fresh art-reviewer per sheet):', ...r.work.main.map(pk)] : []),
       ] : []),
-      r.next ? `next: ${r.next.id} — ${r.next.step.action} ${'version' in r.next.step ? r.next.step.version : ''} (${r.next.path}) — ${r.next.step.why}` : 'next: nothing left in the pipeline — show the gallery to the user (artgen gallery)',
+      ...(r.roster ? [`v1 roster: ${r.roster.ids.join(', ')} wait for it — ${r.roster.why}`] : []),
+      r.next ? `next: ${r.next.id} — ${r.next.step.action} ${'version' in r.next.step ? r.next.step.version : ''} (${r.next.path}) — ${r.next.step.why}`
+        : r.roster ? 'next: artgen roster --stage v1, a fresh art-reviewer in roster mode, then artgen roster record <its json> --reviewer art-reviewer'
+        : r.finalRoster?.length ? `next: the final roster (${r.finalRoster.length} finals have no roster review): artgen roster, a fresh art-reviewer, artgen roster record — then the gallery`
+        : 'next: nothing left in the pipeline — show the gallery to the user (artgen gallery)',
     ].join('\n'), r);
     return 0;
   }
   if (cmd === 'gallery') {
     const p = requireProject(flag(args, '--root')), r = await gallery(p, { ids: pos2(args) });
-    print(r.sheets.length ? `gallery ${r.sheets.join(', ')} (~${r.tokens} image tokens)\n${r.assets.map(a => `  ${a.id} ${a.final} ${a.score ?? '-'}${a.issues.length ? `\n${a.issues.map(i => `    issue: ${i}`).join('\n')}` : ''}`).join('\n')}` : 'no finished assets waiting for review', r);
+    print(r.sheets.length ? `gallery ${r.sheets.join(', ')} (~${r.tokens} image tokens)\n${r.assets.map(a => `  ${a.id} ${a.final} ${a.score ?? '-'}${a.blind !== undefined ? ` b${a.blind}` : ''}${a.belowBar ? ' BELOW BAR' : ''}${a.top ? ` final≠best (${a.top.version} ${a.top.score})` : ''}${a.issues.length ? `\n${a.issues.map(i => `    issue: ${i}`).join('\n')}` : ''}`).join('\n')}` : 'no finished assets waiting for review', r);
     return 0;
   }
   if (cmd === 'feedback' && sub) {
     const route = flag(args, '--route'), note = flag(args, '--note');
     if (route !== 'base' && route !== 'finish') throw new Error('feedback: --route base (form, proportion, colour → new base) | finish (pixels → finish revision)');
     if (!note) throw new Error('feedback: --note "<what the user asked for>" is required');
-    const region = list(args, '--region')?.map(Number);
-    const r = await feedback(requireProject(flag(args, '--root')), sub, { route, note, region, cell: flag(args, '--cell'), force: args.includes('--force') });
-    print(`feedback recorded (user iteration ${r.iterations}): opens ${r.opens}\nnext: ${r.next.action} ${'version' in r.next ? r.next.version : ''} — ${r.next.why}`, r);
+    const region = list(args, '--region')?.map(Number), by = flag(args, '--by');
+    // --by roster | agent: the agent acting on a roster note — recorded as the agent's, never as the user's
+    if (by !== undefined && !['user', 'roster', 'agent'].includes(by)) throw new Error('feedback --by user (default) | roster | agent');
+    const agent = by === 'roster' || by === 'agent';
+    const r = await feedback(requireProject(flag(args, '--root')), sub, { route, note, region, cell: flag(args, '--cell'), force: args.includes('--force'), ...(agent && { by: 'agent' as const, source: by }) });
+    print(`feedback recorded (${agent ? `${by} revision` : 'user iteration'} ${r.iterations}): opens ${r.opens}\nnext: ${r.next.action} ${'version' in r.next ? r.next.version : ''} — ${r.next.why}`, r);
     return 0;
   }
   if (cmd === 'approve' && sub) {
@@ -811,13 +839,15 @@ export async function main(argv: string[]): Promise<number> {
       print([`roster review recorded: ${lines.length} assets with open issues`, ...lines, ...r.notes.map(n => `  note: ${n}`), 'they show in status and the gallery until the asset gets a new final'].join('\n'), r);
       return 0;
     }
-    const r = await rosterRun(p, { ids: pos2(args), seed: flag(args, '--seed') ? +flag(args, '--seed')! : undefined });
+    const stage = flag(args, '--stage') ?? 'final';
+    if (stage !== 'v1' && stage !== 'final') throw new Error('roster --stage v1 (every scored base.v1, before v2) | final (default)');
+    const r = await rosterRun(p, { ids: pos2(args), seed: flag(args, '--seed') ? +flag(args, '--seed')! : undefined, stage });
     print([
-      `roster sheets: ${r.lineup}, ${r.silhouettes} (~${r.tokens} image tokens); asset list for the reviewer: ${r.assets}${r.skipped.length ? `; tiles left out: ${r.skipped.join(', ')}` : ''}`,
+      `roster (${r.stage}) sheets: ${r.sheets.join(', ')} (~${r.tokens} image tokens); asset list for the reviewer: ${r.assets}${r.skipped.length ? `; tiles left out: ${r.skipped.join(', ')}` : ''}`,
       'sizes (drawn body height vs brief height × px per metre):',
       ...r.sizes.map(x => `  ${x.id.padEnd(16)} ${String(x.drawn).padStart(3)} px${x.expected !== undefined ? `, expected ${x.expected} px for ${x.height} m (${x.dev! >= 0 ? '+' : ''}${Math.round(x.dev! * 100)} %)${x.flag ? ' FLAG' : ''}` : ' (no height in the brief)'}`),
       `most similar silhouettes: ${r.pairs.map(x => `${x.a} ~ ${x.b} ${x.overlap}`).join(', ')}`,
-      'next: give the two sheets and the asset list (not the ledger) to a fresh art-reviewer in roster mode, then artgen roster record <its json> --reviewer art-reviewer',
+      `next: give the ${r.sheets.length} sheets and the asset list (not the ledger) to a fresh art-reviewer in roster mode, then artgen roster record <its json> --reviewer art-reviewer${r.stage === 'v1' ? ' (its notes go into each asset\'s v2 brief)' : ''}`,
     ].join('\n'), r);
     return 0;
   }

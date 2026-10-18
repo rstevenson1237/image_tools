@@ -2,7 +2,7 @@
  * artgen MCP server (SPEC §14): JSON-RPC 2.0 over stdio, newline-delimited, no SDK dependency so it bundles into
  * one file for the committed install. P2 served the W1 and pipeline tools, P3 added `status`; P7 completes the set:
  * `finish`, `make` (with the parallel round), `feedback`, `approve`, `gallery`, `texture`, `fx`, `export`, `restyle`
- * and `analytics`. Image results are returned as MCP image content (base64 PNG).
+ * and `analytics`; 0.10.0 adds `brief_lint`. Image results are returned as MCP image content (base64 PNG).
  *
  * Terrain maps (`map_*`) work on `art/maps/<id>/map.json`, dungeon maps (`dungeon_*`) on `art/dungeons/<id>/dungeon.json`;
  * a map or dungeon id is a name, never a path.
@@ -16,7 +16,7 @@ import { isAbsolute, join, relative, resolve } from 'node:path';
 import { dungeon, encodePNG, map, MATERIALS, parseDirection, PRESET_NAMES, type Grid, type Size } from 'artgen-core';
 import { BENCH_DIRECTIONS } from 'artgen-core/bench';
 import {
-  approve, candidateNames, cornerPoint, createDungeon, describeDungeon, gridMode, listDungeons, readDungeon, renderDungeonFiles, updateDungeon, createMap, describeMap, exportPacks, listMaps, readMap, renderMapFiles, updateMap, feedback, findProject, fxRun, gallery, loadCandidate, lockedDirection, make, openAsset, passState, projectAnalytics,
+  approve, briefWarnings, candidateNames, cornerPoint, createDungeon, describeDungeon, gridMode, listDungeons, readDungeon, renderDungeonFiles, updateDungeon, createMap, describeMap, exportPacks, listMaps, readMap, renderMapFiles, updateMap, feedback, findProject, fxRun, gallery, loadCandidate, lockedDirection, make, openAsset, passState, projectAnalytics,
   readBriefs, renderVersion, requireLocked, restyle, reviewVersion, projectStatus, scoreVersion, textureRun, VERSION, versionsIn, writeNextFinish, writeTile, type Project,
 } from 'artgen-cli';
 
@@ -88,11 +88,11 @@ export const TOOLS: ToolDef[] = [
     },
   },
   {
-    name: 'review', description: 'Build the review sheet for a version (best so far, v(n-1), v(n), checker + scaled + in context + silhouette), log it to the ledger and return it. blind: the version alone (no earlier versions, scores or notes) for a fresh reviewer\'s blind re-score of a final.',
-    inputSchema: obj({ asset: str, version: str, blind: { type: 'boolean' }, direction: str }, ['asset']),
+    name: 'review', description: 'Build the review sheet for a version (best so far, v(n-1), v(n), checker + scaled + in context + silhouette), log it to the ledger and return it. blind: the version alone (no earlier versions, scores or notes) for a fresh reviewer\'s blind re-score of a version. detail: low = the first facing at 3x beside the previous version only (about half the image tokens; the default for r1), full = every facing and the best so far. scene: add the sprite at game zoom on the background, a floor and beside a wall (contrast check).',
+    inputSchema: obj({ asset: str, version: str, blind: { type: 'boolean' }, detail: { type: 'string', enum: ['low', 'full'] }, scene: bool, direction: str }, ['asset']),
     async run(a, p) {
       const ad = asset(p, a), vs = versionsIn(ad), version = typeof a.version === 'string' ? a.version : vs[vs.length - 1];
-      const r = await reviewVersion(ad, version, { blind: a.blind === true });
+      const r = await reviewVersion(ad, version, { blind: a.blind === true, ...((a.detail === 'low' || a.detail === 'full') && { detail: a.detail }), scene: a.scene === true });
       return [text({ sheet: relative(p.root, r.path), imageTokens: r.tokens, pass: r.render.report.pass, checks: r.render.report.checks }), pngFile(r.path)];
     },
   },
@@ -105,13 +105,13 @@ export const TOOLS: ToolDef[] = [
     },
   },
   {
-    name: 'score', description: 'Record a 0-10 visual score for a reviewed version (the art-reviewer verdict) with gate results and token estimates. reviewer: who scored (the subagent name; omitted = self). blind: a blind re-score from the blind sheet (needs a reviewer).',
-    inputSchema: obj({ asset: str, version: str, score: num, note: str, reviewer: str, blind: { type: 'boolean' }, direction: str }, ['asset', 'version', 'score']),
+    name: 'score', description: 'Record a 0-10 visual score for a reviewed version (the art-reviewer verdict) with gate results and token estimates. reviewer: who scored (the subagent name; omitted = self). blind: a blind re-score from the blind sheet (needs a reviewer). agent_tokens_in: the total input tokens the maker or reviewer agent read for this pass, when known (analytics counts what the orchestration costs).',
+    inputSchema: obj({ asset: str, version: str, score: num, note: str, reviewer: str, blind: { type: 'boolean' }, agent_tokens_in: num, direction: str }, ['asset', 'version', 'score']),
     async run(a, p) {
       const s = a.score as number, reviewer = typeof a.reviewer === 'string' && a.reviewer ? a.reviewer : 'self';
       if (!(s >= 0 && s <= 10)) throw new Error('score must be 0-10');
       if (a.blind === true && reviewer === 'self') throw new Error('a blind re-score needs reviewer: it comes from a fresh reviewer that saw only the blind sheet');
-      return [text(await scoreVersion(asset(p, a), a.version as string, s, typeof a.note === 'string' ? a.note : '', { reviewer, ...(a.blind === true && { blind: true }) }))];
+      return [text(await scoreVersion(asset(p, a), a.version as string, s, typeof a.note === 'string' ? a.note : '', { reviewer, ...(a.blind === true && { blind: true }), ...(typeof a.agent_tokens_in === 'number' && a.agent_tokens_in >= 0 && { measured: { agentIn: a.agent_tokens_in } }) }))];
     },
   },
   {
@@ -123,9 +123,18 @@ export const TOOLS: ToolDef[] = [
     },
   },
   {
-    name: 'make', description: 'One tick of the autonomous production run: scaffold missing assets from templates, mark finished pipelines final, and name the next step. parallel: n also returns a round of up to n maker packets (one subagent per asset; each writes only its own files, then runs render + review) and the main agent\'s review steps.',
-    inputSchema: obj({ ids: { ...strs, description: 'brief ids; default all' }, parallel: { ...num, description: 'maker subagents per round' } }),
-    async run(a, p) { return [text(await make(p, ids(a), { parallel: typeof a.parallel === 'number' && a.parallel >= 1 ? a.parallel : undefined }))]; },
+    name: 'make', description: 'One tick of the autonomous production run: scaffold missing assets from templates, mark finished pipelines final, and name the next step. parallel: n also returns a round of up to n maker packets (one subagent per asset; each writes only its own files, then runs render + review; resume: true = a version written but never reviewed, complete and review it) and the main agent\'s review steps. wave: finish n assets before starting more (survives usage-limit pauses: call make again, the ledger is the state). roster: assets held at v1 for the v1 roster review (artgen roster --stage v1); finalRoster: finals with no roster review yet.',
+    inputSchema: obj({ ids: { ...strs, description: 'brief ids; default all' }, parallel: { ...num, description: 'maker subagents per round' }, wave: { ...num, description: 'assets in flight at once; the rest wait until those reach final' } }),
+    async run(a, p) { return [text(await make(p, ids(a), { parallel: typeof a.parallel === 'number' && a.parallel >= 1 ? a.parallel : undefined, wave: typeof a.wave === 'number' && a.wave >= 1 ? a.wave : undefined }))]; },
+  },
+  {
+    name: 'brief_lint', description: 'Warnings for briefs before any drawing starts: materials a brief names (wood, steel, lava, rubble…) that its kind\'s ramps leave out, and briefs with no template for their view.',
+    inputSchema: obj({ ids: { ...strs, description: 'brief ids; default all' } }),
+    async run(a, p) {
+      const dir = requireLocked(p), want = ids(a);
+      const rows = readBriefs(p).filter(b => !want?.length || want.includes(b.id)).map(b => ({ id: b.id, warnings: briefWarnings(b, dir) })).filter(r => r.warnings.length);
+      return [text(rows.length ? rows : 'no brief warnings')];
+    },
   },
   {
     name: 'status', description: 'Production status of every brief in art/briefs.yaml (brief, in-pipeline, final, approved, exported, revision, stale), with the final version, score, open issues and the next pipeline step.',
@@ -141,12 +150,13 @@ export const TOOLS: ToolDef[] = [
     },
   },
   {
-    name: 'feedback', description: 'Record the user\'s feedback on a finished asset (by: user) and open a U-stage iteration. route base = form, proportion, colour (new base); finish = pixel fixes (finish revision). Pass the user\'s own words as note; region x,y,w,h in sprite pixels of cell state/facing/frame.',
-    inputSchema: obj({ id: str, route: { type: 'string', enum: ['base', 'finish'] }, note: str, region: { type: 'array', items: num }, cell: str, force: bool }, ['id', 'route', 'note']),
+    name: 'feedback', description: 'Record feedback on a finished asset and open a revision. by: user (default) = the user\'s words, a U-stage iteration; by: roster = the agent acting on a roster note — recorded as the agent\'s (an extra autonomous revision within review.rosterRevisions), never as the user\'s. route base = form, proportion, colour (new base); finish = pixel fixes (finish revision). region x,y,w,h in sprite pixels of cell state/facing/frame.',
+    inputSchema: obj({ id: str, route: { type: 'string', enum: ['base', 'finish'] }, note: str, by: { type: 'string', enum: ['user', 'roster', 'agent'] }, region: { type: 'array', items: num }, cell: str, force: bool }, ['id', 'route', 'note']),
     async run(a, p) {
       if (a.route !== 'base' && a.route !== 'finish') throw new Error('route: base | finish');
-      if (typeof a.note !== 'string' || !a.note) throw new Error('note: the user\'s words are required');
-      return [text(await feedback(p, a.id as string, { route: a.route, note: a.note, region: Array.isArray(a.region) ? (a.region as number[]) : undefined, cell: typeof a.cell === 'string' ? a.cell : undefined, force: a.force === true }))];
+      if (typeof a.note !== 'string' || !a.note) throw new Error('note: the user\'s words (or the roster note) are required');
+      const agent = a.by === 'roster' || a.by === 'agent';
+      return [text(await feedback(p, a.id as string, { route: a.route, note: a.note, region: Array.isArray(a.region) ? (a.region as number[]) : undefined, cell: typeof a.cell === 'string' ? a.cell : undefined, force: a.force === true, ...(agent && { by: 'agent' as const, source: a.by as string }) }))];
     },
   },
   {

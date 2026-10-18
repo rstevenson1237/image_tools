@@ -13,7 +13,7 @@
 import {
   analytics, applyFinish, assetStatus, blindScores, briefDir, briefOrder, budgetFor, conformance, describeDirection,
   effectObjectIssues, encodePNG, finishBaseOf, finishStale, formatLedgerLine, Grid, isPlaceholderDirection, iso, lockDirection,
-  mergeConfig, parseBriefs, parseDirection, parseLedger, parseVersion, passId, planPasses, PROBE_KINDS, pxPerMetre, animInput,
+  mergeConfig, parseBriefs, parseDirection, parseLedger, parseVersion, passId, planPasses, PROBE_KINDS, pxPerMetre, animInput, standFrames,
   renderAsset, FACINGS, resolveSize, sourceHash, styleSheet, styleTile, TILE_KINDS, validateDirection, decodePNG, viewContext, stackStrip, parallaxStrip, fpRole, fpShots, autotileCount, autotileMap,
   type AnalyticsReport, type AssetBudget, type AssetMeta, type AssetModule, type AssetStatus, type BriefEntry,
   type ConformanceReport, type Direction, type FeedbackOpen, type FinishModule, type LedgerEntry, type NextStep,
@@ -174,15 +174,17 @@ export class ArtProject {
   }
 
   feedbackOf(id: string): FeedbackOpen[] {
-    return this.ledgerFor(id).filter(e => e.type === 'feedback' && e.by === 'user' && typeof e.opens === 'string')
+    // the user's feedback, and the agent's from roster notes (`feedback --by roster`, an extra autonomous revision)
+    return this.ledgerFor(id).filter(e => e.type === 'feedback' && (e.by === 'user' || e.by === 'agent') && typeof e.opens === 'string')
       .map(e => ({
-        route: e.route === 'finish' ? 'finish' : 'base', opens: e.opens as string,
+        route: e.route === 'finish' ? 'finish' : 'base', opens: e.opens as string, ...(e.by === 'agent' && { by: 'agent' as const, source: typeof e.source === 'string' ? e.source : 'agent' }),
+        ...(typeof e.on === 'string' && { on: e.on }),
         ...(typeof e.note === 'string' && { note: e.note }), ...(Array.isArray(e.region) && { region: e.region as number[] }), ...(typeof e.cell === 'string' && { cell: e.cell }),
       }));
   }
 
   passOf(a: AssetCtx, version: string): string {
-    return passId(version, a.budget.revisionPasses, this.feedbackOf(a.id).map(f => f.opens));
+    return passId(version, a.budget.revisionPasses, this.feedbackOf(a.id).filter(f => f.by !== 'agent').map(f => f.opens));
   }
 
   private async module<T>(path: string): Promise<T> { return (await this.load(path)) as T; }
@@ -210,7 +212,8 @@ export class ArtProject {
     const report = conformance({
       frames: render.cells.map(c => c.grid), dir: a.dir, kind: a.brief.kind, size: resolveSize(a.dir, a.brief.size, a.brief.kind),
       source: src, symAxis: a.brief.review?.sym ?? 'x', lint: render.lint, periodic: a.brief.review?.periodic, autotile: a.brief.autotile,
-      ...(a.brief.height && { height: { metres: a.brief.height, pxPerMetre: pxPerMetre(a.dir) } }), anim: animInput(render),
+      ...(a.brief.height && { height: { metres: a.brief.height, pxPerMetre: pxPerMetre(a.dir), frames: standFrames(render), view: a.brief.view ?? a.dir.camera.view, body: a.brief.body } }), anim: animInput(render),
+      thresholds: { heightFail: this.config().review.heightFail },
     });
     const out = { version: v.name, render, report, source, base, patches, stale };
     this.renders.set(key, out);
@@ -223,6 +226,7 @@ export class ArtProject {
     const st = planPasses({
       asset: a.id, versions, ledger: this.ledgerFor(a.id), revisionPasses: a.budget.revisionPasses, finishPass: a.dir.pipeline.finishPass, finishBase,
       feedback: this.feedbackOf(a.id), extraRevisions: a.budget.extraRevisions,
+      finish: cfg.review.finish, approveMin: cfg.review.approveMin, blindRevisions: cfg.review.blindRevisions,
       ...(cfg.review.blind !== false && { blind: { minScore: cfg.review.approveMin, maxGap: cfg.review.blindMaxGap } }),
     });
     const lastFinish = versions.filter(v => v.startsWith('finish.')).pop();
@@ -335,7 +339,7 @@ export class ArtProject {
     if (!o.note.trim()) throw new Error('write what should change');
     const row = await this.row(b, dir);
     if (!['final', 'approved', 'exported', 'stale'].includes(row.status)) throw new Error(`${id} is ${row.status}: feedback applies to finished assets (wait for final)`);
-    const a = this.asset(id, dir), iterations = this.feedbackOf(id).length + 1, max = a.budget.maxUserIterations;
+    const a = this.asset(id, dir), iterations = this.feedbackOf(id).filter(f => f.by !== 'agent').length + 1, max = a.budget.maxUserIterations;
     if (iterations > max && !o.force) throw new Error(`${id}: ${iterations - 1} user iterations already (budget.maxUserIterations ${max}) — talk it through with Claude Code, or force it`);
     const kind = o.route === 'base' ? 'base' : 'finish', vs = this.versionsIn(a.path);
     const opens = `${kind}.v${Math.max(0, ...vs.map(parseVersion).filter(v => v!.kind === kind).map(v => v!.n)) + 1}`;

@@ -42,8 +42,10 @@ describe('rev 9: blind re-score, reviewer records, heights, roster', () => {
   beforeAll(async () => {
     await run('init', ...R);
     // these runs script exactly three revision passes per asset: drop init's per-kind budgets (props at 4)
-    const cfg = readJson<{ budget: { perKind?: unknown } }>(art('artgen.config.json'));
+    const cfg = readJson<{ budget: { perKind?: unknown }; review?: Record<string, unknown> }>(art('artgen.config.json'));
     delete cfg.budget.perKind;
+    // and one extra revision in all: the blind miss below spends the shared extra budget (no separate blind budget)
+    cfg.review = { ...cfg.review, blindRevisions: 0 };
     writeJson(art('artgen.config.json'), cfg);
     await run('direction', 'candidates', '--pitch', 'Damp crypt crawler: knights, barrels and torchlight.', ...R);
     await run('direction', 'lock', 'a', ...R);
@@ -103,6 +105,28 @@ describe('rev 9: blind re-score, reviewer records, heights, roster', () => {
     expect(rows.find((x: { id: string }) => x.id === 'hero').issues).toEqual([]);
     // a new roster round reshuffles
     expect((await json('roster', ...R)).seed).toBe(2);
+  }, 120_000);
+
+  test('0.10.0: a roster note opens a revision recorded as the agent\'s; low-detail and scene sheets; brief lint', async () => {
+    const f = await json('feedback', 'barrel', '--by', 'roster', '--route', 'base', '--note', 'reads as a door or a coffin', ...R);
+    expect(f.next).toMatchObject({ action: 'write-base', pass: expect.stringMatching(/^x\d$/), why: expect.stringMatching(/roster note .*roster: "reads as a door or a coffin"/) });
+    const fb = ledger().filter(e => e.type === 'feedback').pop()!;
+    expect(fb).toMatchObject({ asset: 'barrel', by: 'agent', source: 'roster', on: 'finish.v1' });
+    // never the user's: no `revision` status; it is back in the pipeline until the revision is done
+    expect((await json('status', 'barrel', ...R))[0].status).not.toBe('revision');
+    await expect(run('feedback', 'barrel', '--by', 'roster', '--route', 'base', '--note', 'again', ...R)).rejects.toThrow(/in-pipeline/);
+    // review detail: the low sheet costs fewer image tokens than the full one; --scene adds a row
+    const full = await json('review', 'hero', '--version', 'base.v1', '--detail', 'full', ...R), low = await json('review', 'hero', '--version', 'base.v1', '--detail', 'low', ...R);
+    expect(low.tokens).toBeLessThan(full.tokens);
+    expect((await json('review', 'hero', '--version', 'base.v1', '--detail', 'low', '--scene', ...R)).tokens).toBeGreaterThan(low.tokens);
+    expect(ledger().filter(e => e.type === 'review' && e.asset === 'hero').slice(-3).map(e => e.detail)).toEqual(['full', 'low', 'low']);
+    // brief lint: lute and staff on a character whose ramps have no wood
+    const cfg = readJson<{ palette: { perKind: Record<string, string[]> } }>(art('direction.json'));
+    const added = await json('brief', 'add', 'bard', '--kind', 'character', '--height', '1.7', '--notes', 'plays a lute', ...R);
+    const hasWood = (cfg.palette.perKind.character ?? []).includes('wood');
+    expect(added.warnings.some((w: string) => /"lute" \(wood\)/.test(w))).toBe(!hasWood);
+    expect((await run('brief', 'lint', ...R)).out).toMatch(hasWood ? /no brief warnings|bard/ : /bard:\n {2}names "lute"/);
+    await run('brief', 'rm', 'bard', ...R);
   }, 120_000);
 
   test('analytics: who scored, and the blind gaps', async () => {

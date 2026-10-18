@@ -16,8 +16,8 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFi
 import { dirname, join, relative, resolve } from 'node:path';
 import {
   analytics, analyticsMarkdown, assetsTs, assetStatus, blindScores, briefContract, effectObjectIssues, briefDir, briefOrder, buildPack, contactSheet, contractOf, diffContract,
-  editOps, Grid, imageTokens, mirrorFacing, pxPerMetre, roster, rosterIssues, TILE_KINDS, type RosterItem, type RosterPair, type RosterReview, type RosterSize, parseBriefs, parseLedger, parseVersion, removeBrief, restyleDiff, restyleSheet, tokenDiffMask, upsertBrief,
-  applyRecommendations, mergeConfig, recommend, recommendMarkdown, type LedgerSet,
+  editOps, Grid, imageTokens, mirrorFacing, pxPerMetre, roster, drawnHeight, standFrames, rosterIssues, TILE_KINDS, type RosterItem, type RosterPair, type RosterReview, type RosterSize, parseBriefs, parseLedger, parseVersion, removeBrief, restyleDiff, restyleSheet, tokenDiffMask, upsertBrief,
+  applyRecommendations, briefMaterialIssues, mergeConfig, recommend, recommendMarkdown, type LedgerSet,
   type AnimContract, type AssetMeta, type AssetStatus, type BriefEntry, type Direction, type LedgerEntry, type NextStep, type PackInput, type RenderResult,
 } from 'artgen-core';
 import {
@@ -28,7 +28,7 @@ import { RUNTIME_VERSION } from 'artgen-runtime';
 import { appendLedger, readGrid, writeGrid } from './node.ts';
 import { vendorRuntime, type VendorResult } from './runtime.ts';
 import { projectConfig, readJson, writeJson, type Project } from './project.ts';
-import { findTemplate, newFinish } from './templates.ts';
+import { findTemplate, newFinish, type TemplateRef } from './templates.ts';
 import { directionVersion, lockedDirection } from './w1.ts';
 
 const briefsFile = (p: Project) => join(p.art, 'briefs.yaml');
@@ -82,12 +82,27 @@ export function resolveAssetArg(p: Project | null, arg: string): string {
   throw new Error(`${arg}: not an asset directory or a brief id in art/briefs.yaml`);
 }
 
+/**
+ * The template a brief starts from: a non-humanoid `body` its rig (`creature-quadruped`, `-serpent`, `-flyer`,
+ * `-large`); figures that turn or walk the walker (facings + walk cycle, `character-walk`); else the kind's template.
+ */
+export function templateFor(b: BriefEntry, dir: Direction): TemplateRef {
+  const view = b.view ?? dir.camera.view, figure = ['character', 'creature'].includes(b.kind);
+  if (figure && b.body && b.body !== 'humanoid') return findTemplate(view, `creature-${b.body}`);
+  const walker = figure && ((b.directions ?? 1) > 1 || !!b.anims?.walk);
+  return walker ? findTemplate(view, 'character-walk') : findTemplate(view, b.kind);
+}
+
+/** Warnings to show when a brief is written (`brief add`, `brief lint`): materials its kind can't colour, a template from another view. */
+export function briefWarnings(b: BriefEntry, dir: Direction): string[] {
+  const out = briefMaterialIssues(b, dir), t = templateFor(b, dir), view = b.view ?? dir.camera.view;
+  if (t.view !== view) out.push(`no ${view} template for it: it starts from ${t.view}/${t.kind} — check the review sheets for the ${view} camera`);
+  return out;
+}
+
 /** Create the asset directory for a brief: `brief.json` (template + review settings) and `base.v1.js` from the template. */
 export function scaffoldAsset(p: Project, b: BriefEntry, dir: Direction): { path: string; created: boolean; template: string } {
-  const path = assetPathOf(p, b), view = b.view ?? dir.camera.view;
-  // figures that turn or walk start from the walker (facings + walk cycle)
-  const walker = ['character', 'creature'].includes(b.kind) && ((b.directions ?? 1) > 1 || !!b.anims?.walk);
-  const t = walker ? findTemplate(view, 'character-walk') : findTemplate(view, b.kind), template = `${t.view}/${t.kind}`;
+  const path = assetPathOf(p, b), t = templateFor(b, dir), template = `${t.view}/${t.kind}`;
   if (existsSync(join(path, 'base.v1.js'))) return { path, created: false, template };
   mkdirSync(path, { recursive: true });
   const tb = readJson<{ review?: unknown }>(join(t.dir, 'brief.json'));
@@ -109,6 +124,12 @@ export interface AssetRow {
   why: string;
   imageTokens: number;
   stale?: string[];
+  /** Blind re-score of the final (rev 9). */
+  blind?: number;
+  /** The final's blind score (else its own) is under `review.approveMin`: the gallery labels it BELOW BAR. */
+  belowBar?: boolean;
+  /** A higher own score than the final's, lost on the gate or the blind score (`final≠best` in status and the gallery). */
+  top?: { version: string; score: number };
 }
 
 /** Status of one brief's asset (derived from the ledger and the pass machine). */
@@ -125,7 +146,12 @@ export async function assetRow(p: Project, b: BriefEntry): Promise<AssetRow> {
   // roster findings (rev 9) stand while the final they were made on is still the final
   const ro = s.final ? [...ledger].reverse().find(e => e.type === 'roster' && e.version === s.final && Array.isArray(e.issues)) : undefined;
   const issues = [...effectObjectIssues(b).map(x => `brief: ${x}`), ...s.issues, ...(st.stale ?? []).map(x => `finish-stale ${x}`), ...((ro?.issues as string[] | undefined) ?? [])];
-  return { ...base, status: s.status, final: s.final, score: sc?.score as number | undefined, gate: sc?.conformance?.pass, issues, next: st.next, why: s.why, imageTokens, stale: st.stale };
+  const blind = s.final ? blindScores(ledger).get(s.final)?.score : undefined, score = sc?.score as number | undefined, eff = blind ?? score;
+  const top = st.next.action === 'ready' ? st.next.top : undefined;
+  return {
+    ...base, status: s.status, final: s.final, score, gate: sc?.conformance?.pass, issues, next: st.next, why: s.why, imageTokens, stale: st.stale,
+    ...(blind !== undefined && { blind }), ...(eff !== undefined && eff < projectConfig(p).review.approveMin && { belowBar: true }), ...(top && { top }),
+  };
 }
 
 const versionsInPath = (path: string) => (existsSync(path) ? versionsIn({ path } as AssetDir) : []);
@@ -147,9 +173,14 @@ export function requireLocked(p: Project): Direction {
  * One unit of a parallel `make` round (P7). `maker` packets are authoring steps for one subagent each: it owns `owns`
  * (the asset's directory), writes only `writes` there (renders and sheets land in the same directory's `out/`) and
  * appends to the ledger through `artgen review` — the one shared write. `main` packets (reviews, blind re-scores) stay
- * with the main agent, which also runs the roster review once the round is done.
+ * with the main agent, which also runs the roster reviews. `resume`: a version file is written but was never reviewed —
+ * its maker stopped (a usage-limit pause, a crash); the next maker checks the file, completes it if unfinished, and
+ * reviews it instead of starting over.
  */
-export interface WorkPacket { id: string; kind: string; owns: string; step: NextStep; writes: string[]; role: 'maker' | 'main' }
+export interface WorkPacket { id: string; kind: string; owns: string; step: NextStep; writes: string[]; role: 'maker' | 'main'; resume?: boolean }
+
+/** The early roster (`review.earlyRoster`): assets held at v1 until a roster review of the whole set's v1s is recorded. */
+export interface RosterStep { stage: 'v1'; ids: string[]; why: string }
 
 export interface MakeResult {
   rows: AssetRow[];
@@ -157,35 +188,47 @@ export interface MakeResult {
   scaffolded: string[];
   finals: string[];
   overBudget: string[];
-  /** With `parallel`: makers for this round (up to `parallel`), makers that wait for the next round, and the main agent's steps. */
+  /** The main agent runs the v1 roster review before these assets get their v2 (`artgen roster --stage v1`). */
+  roster?: RosterStep;
+  /** Finished non-tile assets whose final has no roster review yet (the final roster runs before the gallery). */
+  finalRoster?: string[];
+  /**
+   * With `parallel`: makers for this round (up to `parallel`), makers that wait for the next round (or, with `wave`, for
+   * the assets ahead of them to reach final), and the main agent's steps.
+   */
   work?: { makers: WorkPacket[]; queued: WorkPacket[]; main: WorkPacket[] };
 }
 
-/** The work packet for an asset's next step (none when it is ready). A template base.v1 nobody reviewed yet is authoring. */
-export function workPacket(row: AssetRow): WorkPacket | undefined {
+/** The work packet for an asset's next step (none when it is ready). `reviewed`: the version's review sheet exists. */
+export function workPacket(row: AssetRow, reviewed = true): WorkPacket | undefined {
   const st = row.next;
   if (!st || st.action === 'ready') return undefined;
   const owns = row.path, base = { id: row.id, kind: row.kind, owns, step: st };
   if (st.action === 'write-base' || st.action === 'write-finish') return { ...base, writes: [`${owns}/${st.version}.js`], role: 'maker' };
   if (st.action === 'review' && st.version === 'base.v1' && /^base\.v1 from the template/.test(row.why)) return { ...base, writes: [`${owns}/base.v1.js`], role: 'maker' };
+  if (st.action === 'review' && !reviewed) return { ...base, writes: [`${owns}/${st.version}.js`], role: 'maker', resume: true };
   return { ...base, writes: [], role: 'main' };
 }
 
+const DONE: AssetStatus[] = ['final', 'approved', 'exported'];
+
 /**
  * One tick of the autonomous run (`/artgen:make`, D10): scaffold missing asset dirs from templates, record `final`
- * (with open issues) for every asset whose pipeline is complete, stop assets over their image-token budget, and name
- * the next step for the first unfinished asset in priority order. The agent does that step and calls make again.
+ * (with open issues) for every asset whose pipeline is complete, stop assets over their image-token budget, hold v2
+ * for the early roster, and name the next step for the first unfinished asset in priority order. The agent does that
+ * step and calls make again. Everything is derived from the files and the ledger, so a respawned agent resumes where
+ * the last one stopped.
  */
-export async function make(p: Project, ids?: string[], o: { parallel?: number } = {}): Promise<MakeResult> {
+export async function make(p: Project, ids?: string[], o: { parallel?: number; wave?: number } = {}): Promise<MakeResult> {
   const dir = requireLocked(p), briefs = briefOrder(readBriefs(p)).filter(b => !ids?.length || ids.includes(b.id) || ids.includes('all'));
   if (ids?.length && !ids.includes('all')) for (const id of ids) if (!briefs.some(b => b.id === id)) throw new Error(`no brief ${id} in art/briefs.yaml`);
-  const scaffolded: string[] = [], finals: string[] = [], overBudget: string[] = [], rows: AssetRow[] = [];
-  let next: MakeResult['next'];
+  const scaffolded: string[] = [], finals: string[] = [], overBudget: string[] = [], rows: AssetRow[] = [], reviewed = new Map<string, boolean>();
   for (const b of briefs) {
     const sc = scaffoldAsset(p, b, dir);
     if (sc.created) scaffolded.push(rel(p, join(sc.path, 'base.v1.js')));
     let row = await assetRow(p, b);
     const a = openAsset(sc.path), ledger = ledgerFor(a);
+    if (row.next?.action === 'review') { const v = row.next.version; reviewed.set(b.id, ledger.some(e => e.type === 'review' && e.version === v && !e.blind)); }
     if (row.next?.action === 'ready') {
       const fin = row.next.final;
       if (!ledger.some(e => e.type === 'status' && e.status === 'final' && e.version === fin && e.sourceHash === finalHash(a, fin))) {
@@ -200,15 +243,38 @@ export async function make(p: Project, ids?: string[], o: { parallel?: number } 
         overBudget.push(b.id);
       }
       row = { ...row, why: `over budget (${row.imageTokens} image tokens); left at ${best?.version ?? 'nothing scored'}` };
-      rows.push(row);
-      continue;
     }
     rows.push(row);
-    if (!next && row.next && row.next.action !== 'ready') next = { id: b.id, path: row.path, step: row.next };
   }
-  if (!o.parallel) return { rows, next, scaffolded, finals, overBudget };
-  const packets = rows.filter(r => !r.why.startsWith('over budget')).map(workPacket).filter((x): x is WorkPacket => !!x), makers = packets.filter(x => x.role === 'maker');
-  return { rows, next, scaffolded, finals, overBudget, work: { makers: makers.slice(0, o.parallel), queued: makers.slice(o.parallel), main: packets.filter(x => x.role === 'main') } };
+  // waves (--wave n): only the first n unfinished assets in priority order are worked on; the rest wait their turn
+  const live = rows.filter(r => !DONE.includes(r.status) && !r.why.startsWith('over budget')), active = new Set((o.wave ? live.slice(0, o.wave) : live).map(r => r.id));
+  const roster = earlyRoster(p, rows.filter(r => active.has(r.id)));
+  const held = new Set(roster?.ids ?? []), pending = rows.filter(r => active.has(r.id) && r.next && r.next.action !== 'ready' && !held.has(r.id));
+  const n0 = pending[0], next = n0 && { id: n0.id, path: n0.path, step: n0.next! };
+  const finalRoster = rows.filter(r => r.status === 'final' && !TILE_KINDS.has(r.kind) && !ledgerFor(openAsset(join(p.root, r.path))).some(e => e.type === 'roster' && e.version === r.final && Array.isArray(e.issues))).map(r => r.id);
+  const res: MakeResult = { rows, ...(next && { next }), scaffolded, finals, overBudget, ...(roster && { roster }), ...(finalRoster.length >= 2 && { finalRoster }) };
+  if (!o.parallel) return res;
+  const packets = pending.map(r => workPacket(r, reviewed.get(r.id) ?? true)).filter((x): x is WorkPacket => !!x), makers = packets.filter(x => x.role === 'maker');
+  const waiting = rows.filter(r => !active.has(r.id) && !DONE.includes(r.status) && !r.why.startsWith('over budget')).map(r => workPacket(r, reviewed.get(r.id) ?? true)).filter((x): x is WorkPacket => !!x && x.role === 'maker');
+  return { ...res, work: { makers: makers.slice(0, o.parallel), queued: [...makers.slice(o.parallel), ...waiting], main: packets.filter(x => x.role === 'main') } };
+}
+
+/**
+ * The early roster (0.10.0): the roster review found most real faults (look-alike casters, twin goblin and kobold, a
+ * bandit that didn't read as hostile), all cheap to fix at v1. Once every active non-tile asset has a scored v1, those
+ * not yet in a v1 roster wait for `roster --stage v1` + `roster record`; its notes go into each v2 brief.
+ */
+function earlyRoster(p: Project, rows: AssetRow[]): RosterStep | undefined {
+  if (!projectConfig(p).review.earlyRoster) return undefined;
+  const figures = rows.filter(r => !TILE_KINDS.has(r.kind) && r.status !== 'brief');
+  if (figures.length < 2) return undefined;
+  const atV1 = v1Rows(p, figures), ready = new Set(atV1.map(r => r.id));
+  // still drawing or reviewing a v1 somewhere: wait for the whole set before showing it side by side
+  const beforeV1 = figures.filter(r => !ready.has(r.id) && r.next?.action !== 'ready' && (r.next?.action === 'review' || r.next?.action === 'write-base') && 'version' in r.next && r.next.version === 'base.v1');
+  const uncovered = atV1.filter(r => !ledgerFor(openAsset(join(p.root, r.path))).some(e => e.type === 'roster' && e.version === 'base.v1' && Array.isArray(e.issues)));
+  if (uncovered.length < 2 && !(uncovered.length && atV1.length >= 2)) return undefined;
+  if (beforeV1.length) return { stage: 'v1', ids: uncovered.map(r => r.id), why: `holding v2 for the v1 roster until ${beforeV1.map(r => r.id).join(', ')} ${beforeV1.length > 1 ? 'have' : 'has'} a scored v1` };
+  return { stage: 'v1', ids: uncovered.map(r => r.id), why: 'every v1 is scored: run the v1 roster (`roster --stage v1`, a fresh art-reviewer, `roster record`) before any v2 — its notes go into each v2 brief' };
 }
 
 /** Render a final as one row per state of the first facing (gallery / restyle thumbnails). */
@@ -217,7 +283,7 @@ function thumb(r: RenderResult): Grid {
   return cells.length > 1 ? strip({ ...r, cells }) : cells[0].grid;
 }
 
-export interface GalleryResult { sheets: string[]; tokens: number; assets: { id: string; final: string; score?: number; blind?: number; reviewer?: string; issues: string[] }[] }
+export interface GalleryResult { sheets: string[]; tokens: number; assets: { id: string; final: string; score?: number; blind?: number; reviewer?: string; issues: string[]; belowBar?: boolean; top?: { version: string; score: number } }[] }
 
 /** Who scored a final and its blind re-score, from the asset's ledger (rev 9). */
 function reviewOf(a: AssetDir, final: string): { reviewer?: string; blind?: number } {
@@ -233,16 +299,17 @@ export async function gallery(p: Project, opts: { ids?: string[]; statuses?: Ass
     const a = openAsset(join(p.root, r.path)), v = await renderVersion(a, r.final!);
     const rv = reviewOf(a, r.final!);
     // score, then the blind re-score (b) or SELF when only the authoring agent scored it
-    const tag = `${r.id} ${r.final} ${r.score ?? '-'}${rv.blind !== undefined ? ` b${rv.blind}` : rv.reviewer === 'self' ? ' SELF' : ''}${r.gate === false ? ' GATE' : ''}${r.issues.length ? ` !${r.issues.length}` : ''}`;
+    // BELOW BAR: under review.approveMin (blind score, else own); final≠best: a higher-scoring version lost on the gate or blind score
+    const tag = `${r.id} ${r.final} ${r.score ?? '-'}${rv.blind !== undefined ? ` b${rv.blind}` : rv.reviewer === 'self' ? ' SELF' : ''}${r.gate === false ? ' GATE' : ''}${r.belowBar ? ' BELOW BAR' : ''}${r.top ? ` final≠best ${r.top.version} ${r.top.score}` : ''}${r.issues.length ? ` !${r.issues.length}` : ''}`;
     items.push({ label: tag, grid: thumb(v.render), bg: a.brief.review?.bg ?? dir.background });
-    assets.push({ id: r.id, final: r.final!, score: r.score, ...(rv.blind !== undefined && { blind: rv.blind }), ...(rv.reviewer && { reviewer: rv.reviewer }), issues: r.issues });
+    assets.push({ id: r.id, final: r.final!, score: r.score, ...(rv.blind !== undefined && { blind: rv.blind }), ...(rv.reviewer && { reviewer: rv.reviewer }), issues: r.issues, ...(r.belowBar && { belowBar: true }), ...(r.top && { top: r.top }) });
   }
   if (!items.length) return { sheets: [], tokens: 0, assets };
   const sheets: string[] = [];
   let tokens = 0;
   const n0 = (existsSync(join(p.art, 'sheets')) ? readdirCount(join(p.art, 'sheets'), /^gallery-\d+\.png$/) : 0) + 1;
   for (let i = 0; i < items.length; i += 12) {
-    const page = items.slice(i, i + 12), sheet = contactSheet(`${dir.id} v${dir.version}: finished assets ${i + 1}-${i + page.length} of ${items.length} (score, b blind score, !issues)`, page, 4, Math.min(4, page.length));
+    const page = items.slice(i, i + 12), sheet = contactSheet(`${dir.id} v${dir.version}: finished assets ${i + 1}-${i + page.length} of ${items.length} (score, b blind score, !issues; BELOW BAR under ${projectConfig(p).review.approveMin})`, page, 4, Math.min(4, page.length));
     const f = join(p.art, 'sheets', `gallery-${n0 + i / 12}.png`);
     writeGrid(f, sheet);
     sheets.push(rel(p, f));
@@ -254,33 +321,57 @@ export async function gallery(p: Project, opts: { ids?: string[]; statuses?: Ass
 
 const readdirCount = (d: string, re: RegExp): number => readdirSync(d).filter(f => re.test(f)).length;
 
-export interface RosterRun { lineup: string; silhouettes: string; assets: string; tokens: number; seed: number; sizes: RosterSize[]; pairs: RosterPair[]; skipped: string[] }
+export interface RosterRun { lineup: string; silhouettes: string; sheets: string[]; assets: string; tokens: number; seed: number; stage: 'v1' | 'final'; sizes: RosterSize[]; pairs: RosterPair[]; skipped: string[] }
+
+/** Assets whose `base.v1` is scored and no `base.v2` is written yet (the early roster, `review.earlyRoster`). */
+export function v1Rows(p: Project, rows: AssetRow[]): AssetRow[] {
+  const out: AssetRow[] = [];
+  for (const r of rows) {
+    if (TILE_KINDS.has(r.kind) || r.status === 'brief') continue;
+    const a = openAsset(join(p.root, r.path)), vs = versionsIn(a);
+    if (!vs.includes('base.v1') || vs.includes('base.v2') || (a.budget?.revisionPasses ?? 3) < 2) continue;
+    if (ledgerFor(a).some(e => e.type === 'score' && !e.blind && e.version === 'base.v1')) out.push(r);
+  }
+  return out;
+}
 
 /**
- * Roster review sheets (rev 9): every finished non-tile asset's final, first frame. Writes the lineup, the shuffled
- * silhouette sheet and `roster-assets.json` (alphabetical ids, kinds, notes — all the reviewer may read besides the
- * two sheets); the letter key goes only into the ledger. Prints the size table and the most-overlapping pairs.
+ * Roster review sheets (rev 9): every finished non-tile asset's final (or with `stage: 'v1'`, every asset's scored
+ * `base.v1` before its v2 — the cheap time to fix structure). Writes the lineups and shuffled silhouette sheets, paged
+ * `ROSTER_PAGE` assets per pair (`roster-lineup.png`, or `-1.png`, `-2.png`… for bigger sets), and `roster-assets.json`
+ * (alphabetical ids, kinds, notes — all the reviewer may read besides the sheets); the label key goes only into the
+ * ledger. Heights are measured as the conformance gate measures them (`drawnHeight(standFrames)`).
  */
-export async function rosterRun(p: Project, o: { ids?: string[]; seed?: number } = {}): Promise<RosterRun> {
-  const dir = requireLocked(p), briefs = readBriefs(p), ledgerAll = parseLedger(existsSync(ledgerFile(p)) ? readFileSync(ledgerFile(p), 'utf8') : '');
-  const rows = (await projectStatus(p, o.ids?.length ? o.ids : undefined)).filter(r => r.final), items: RosterItem[] = [], versions: Record<string, string> = {}, skipped: string[] = [];
+export async function rosterRun(p: Project, o: { ids?: string[]; seed?: number; stage?: 'v1' | 'final' } = {}): Promise<RosterRun> {
+  const dir = requireLocked(p), briefs = readBriefs(p), ledgerAll = parseLedger(existsSync(ledgerFile(p)) ? readFileSync(ledgerFile(p), 'utf8') : ''), stage = o.stage ?? 'final';
+  const ids = o.ids?.length ? o.ids : undefined;
+  const all = await projectStatus(p, ids), rows = stage === 'v1' ? v1Rows(p, all) : all.filter(r => r.final);
+  const items: RosterItem[] = [], versions: Record<string, string> = {}, skipped: string[] = [];
   for (const r of rows) {
-    const b = briefs.find(x => x.id === r.id)!;
+    const b = briefs.find(x => x.id === r.id)!, version = stage === 'v1' ? 'base.v1' : r.final!;
     if (TILE_KINDS.has(b.kind)) { skipped.push(`${r.id} (${b.kind})`); continue; }
-    const v = await renderVersion(openAsset(join(p.root, r.path)), r.final!);
-    items.push({ id: r.id, kind: b.kind, grid: v.render.cells[0].grid, notes: b.notes, height: b.height });
-    versions[r.id] = r.final!;
+    const v = await renderVersion(openAsset(join(p.root, r.path)), version);
+    items.push({ id: r.id, kind: b.kind, grid: v.render.cells[0].grid, drawn: drawnHeight(standFrames(v.render)), notes: b.notes, height: b.height });
+    versions[r.id] = version;
   }
-  if (items.length < 2) throw new Error(`roster: needs at least two finished non-tile assets (have ${items.length})`);
+  if (items.length < 2) throw new Error(`roster: needs at least two ${stage === 'v1' ? 'non-tile assets with a scored base.v1 and no v2' : 'finished non-tile assets'} (have ${items.length})`);
   const seed = o.seed ?? ledgerAll.filter(e => e.type === 'roster' && e.asset === 'roster' && e.key).length + 1;
-  const res = roster(items, { bg: dir.background ?? '#202020', pxPerMetre: pxPerMetre(dir), seed });
-  const f = (n: string) => join(p.art, 'sheets', n);
-  writeGrid(f('roster-lineup.png'), res.lineup);
-  writeGrid(f('roster-silhouettes.png'), res.silhouettes);
-  writeJson(f('roster-assets.json'), { lineup: items.map(it => it.id), assets: [...items].sort((a, b) => a.id.localeCompare(b.id)).map(it => ({ id: it.id, kind: it.kind, notes: it.notes ?? '', ...(it.height && { height: it.height }) })) });
-  const tokens = imageTokens(res.lineup.w, res.lineup.h) + imageTokens(res.silhouettes.w, res.silhouettes.h);
-  appendLedger(ledgerFile(p), { type: 'roster', asset: 'roster', key: res.key, versions, seed, sizes: res.sizes, pairs: res.pairs, sheet: 'sheets/roster-lineup.png,sheets/roster-silhouettes.png', imageTokens: tokens, by: 'agent' });
-  return { lineup: rel(p, f('roster-lineup.png')), silhouettes: rel(p, f('roster-silhouettes.png')), assets: rel(p, f('roster-assets.json')), tokens, seed, sizes: res.sizes, pairs: res.pairs, skipped };
+  const res = roster(items, { bg: dir.background ?? '#202020', pxPerMetre: pxPerMetre(dir), heightFail: projectConfig(p).review.heightFail, seed });
+  const f = (n: string) => join(p.art, 'sheets', n), many = res.pages.length > 1, sheets: string[] = [];
+  let tokens = 0;
+  res.pages.forEach((pg, i) => {
+    const sfx = many ? `-${i + 1}` : '';
+    writeGrid(f(`roster-lineup${sfx}.png`), pg.lineup);
+    writeGrid(f(`roster-silhouettes${sfx}.png`), pg.silhouettes);
+    sheets.push(rel(p, f(`roster-lineup${sfx}.png`)), rel(p, f(`roster-silhouettes${sfx}.png`)));
+    tokens += imageTokens(pg.lineup.w, pg.lineup.h) + imageTokens(pg.silhouettes.w, pg.silhouettes.h);
+  });
+  writeJson(f('roster-assets.json'), {
+    stage, lineup: items.map(it => it.id), ...(many && { pages: res.pages.map((pg, i) => ({ lineup: `roster-lineup-${i + 1}.png`, silhouettes: `roster-silhouettes-${i + 1}.png`, ids: pg.ids })) }),
+    assets: [...items].sort((a, b) => a.id.localeCompare(b.id)).map(it => ({ id: it.id, kind: it.kind, notes: it.notes ?? '', ...(it.height && { height: it.height }) })),
+  });
+  appendLedger(ledgerFile(p), { type: 'roster', asset: 'roster', stage, key: res.key, versions, seed, sizes: res.sizes, pairs: res.pairs, sheet: sheets.map(x => relative(p.art, join(p.root, x)).split('\\').join('/')).join(','), imageTokens: tokens, by: 'agent' });
+  return { lineup: sheets[0], silhouettes: sheets[1], sheets, assets: rel(p, f('roster-assets.json')), tokens, seed, stage, sizes: res.sizes, pairs: res.pairs, skipped };
 }
 
 /** Record a roster review (`RosterReview` JSON from a fresh reviewer): per-asset open issues on the finals it saw. */
@@ -298,18 +389,25 @@ export function rosterRecord(p: Project, file: string, reviewer = 'self'): { iss
   return { issues, notes: review.notes ?? [] };
 }
 
-/** User feedback on a finished asset: starts a U-stage iteration (`base` = form/colour, `finish` = pixels). */
-export async function feedback(p: Project, id: string, o: { route: 'base' | 'finish'; note: string; region?: number[]; cell?: string; force?: boolean }): Promise<{ opens: string; next: NextStep; iterations: number }> {
+/**
+ * Feedback on a finished asset. The user's (`by: user`, default) starts a U-stage iteration (`base` = form/colour,
+ * `finish` = pixels). The agent's (`by: agent`, `source: roster` — acting on a roster note) opens an extra autonomous
+ * revision recorded as the agent's, within `review.rosterRevisions` per asset; the user's iteration budget is untouched.
+ */
+export async function feedback(p: Project, id: string, o: { route: 'base' | 'finish'; note: string; region?: number[]; cell?: string; force?: boolean; by?: 'user' | 'agent'; source?: string }): Promise<{ opens: string; next: NextStep; iterations: number }> {
   const b = readBriefs(p).find(x => x.id === id);
   if (!b) throw new Error(`no brief ${id}`);
   requireLocked(p);
-  const row = await assetRow(p, b);
+  const row = await assetRow(p, b), agent = o.by === 'agent';
   if (!['final', 'approved', 'exported', 'stale'].includes(row.status)) throw new Error(`${id} is ${row.status}: feedback applies to finished assets (wait for final)`);
-  const a = openAsset(assetPathOf(p, b)), iterations = feedbackOf(a).length + 1, max = a.budget?.maxUserIterations ?? 3;
-  if (iterations > max && !o.force) throw new Error(`${id}: ${iterations - 1} user iterations already (budget.maxUserIterations ${max}) — escalate: talk it through with the user, or pass --force`);
+  const a = openAsset(assetPathOf(p, b)), mine = feedbackOf(a).filter(f => (f.by === 'agent') === agent), iterations = mine.length + 1;
+  const max = agent ? projectConfig(p).review.rosterRevisions : a.budget?.maxUserIterations ?? 3;
+  if (iterations > max && !o.force) throw new Error(agent
+    ? `${id}: ${iterations - 1} revisions from roster notes already (review.rosterRevisions ${max}) — list the note for the user instead, or pass --force`
+    : `${id}: ${iterations - 1} user iterations already (budget.maxUserIterations ${max}) — escalate: talk it through with the user, or pass --force`);
   const vs = versionsIn(a), kind = o.route === 'base' ? 'base' : 'finish';
   const opens = `${kind}.v${Math.max(0, ...vs.map(parseVersion).filter(v => v!.kind === kind).map(v => v!.n)) + 1}`;
-  appendLedger(ledgerFile(p), { type: 'feedback', asset: id, route: o.route, opens, on: row.final, note: o.note, ...(o.region && { region: o.region }), ...(o.cell && { cell: o.cell }), by: 'user' });
+  appendLedger(ledgerFile(p), { type: 'feedback', asset: id, route: o.route, opens, on: row.final, note: o.note, ...(o.region && { region: o.region }), ...(o.cell && { cell: o.cell }), ...(agent ? { by: 'agent', source: o.source ?? 'roster' } : { by: 'user' }) });
   return { opens, next: (await passState(openAsset(assetPathOf(p, b)))).next, iterations };
 }
 
