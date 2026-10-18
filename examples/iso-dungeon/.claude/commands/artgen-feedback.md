@@ -4,4 +4,5 @@ argument-hint: <brief id> <what to change>
 ---
 Use the asset-production skill §4: pick the route (`base` for form/proportion/colour, `finish` for pixel-level), record
 it with `node tools/artgen/artgen.js feedback <id> --route <route> --note "<the user's words>"`, then run `node tools/artgen/artgen.js make <id>` until the
-asset is final again and show it. Feedback: $ARGUMENTS
+asset is final again and show it. (A roster note you act on yourself is `--by roster`, never the user's feedback.)
+Feedback: $ARGUMENTS

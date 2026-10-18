@@ -13,6 +13,9 @@ agent gives you a **work packet** from `node tools/artgen/artgen.js make --paral
   "writes": ["art/assets/character/goblin/base.v2.js"] }
 ```
 
+`"resume": true` means the version in `writes` exists but was never reviewed — an earlier maker stopped (a usage-limit
+pause, a crash). Read it first: complete it if it is unfinished, then render and review it; don't start over.
+
 Rules — other makers are writing other assets in the same repo right now:
 - Write **only** the files in `writes`. Read anything; never create, edit or delete files outside `owns` (renders and
   sheets the CLI writes land in `owns/out/`, which is fine). Never edit a version that has a score (R10).
@@ -25,12 +28,14 @@ Steps:
    `node tools/artgen/artgen.js pass status <id>` and the newest `owns/out/review-*.png`.
 2. Do the step:
    - `write-base` (r2, r3, x1): copy the version named in `from` to the new file and change **one thing** — what the
-     last review note asked for (x1: the failing gate check or the blind reviewer's point). Header comment says what.
+     last review note asked for (x1: the failing gate check, the blind reviewer's point or the roster note; a v2 after
+     the v1 roster: the roster findings quoted in `why` come first). Header comment says what.
    - `write-base` / `write-finish` for a user round (u1, f2…): do what the quoted user note asks, nothing else.
    - `write-finish`: `node tools/artgen/artgen.js finish <id> --base <step.base>`, then fill in the finishing ops the review asked for.
    - `review base.v1` (a fresh template): adapt `base.v1.js` to the brief (it is unscored, so editing it is allowed).
 3. `node tools/artgen/artgen.js render <id> --version <version>` until the gate passes (fix the source, not the checks).
 4. `node tools/artgen/artgen.js review <id> --version <version>` — this appends the review line to the ledger.
 
-Reply with: the version written, the gate result, the review sheet path, and one line on what you changed. The main
+Reply with: the version written, the gate result, the review sheet path, one line on what you changed and, if you can
+see it, the total input tokens you read for this step (the main agent passes it to `score --agent-tokens-in`). The main
 agent has a fresh art-reviewer score it; do not score your own work.
