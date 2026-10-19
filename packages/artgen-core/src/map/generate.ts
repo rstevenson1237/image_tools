@@ -3,9 +3,9 @@
  * traced downhill, every sample classified into a terrain, and the readability pass (small patches merged away).
  */
 import { rng } from '../lib/rng.ts';
-import { pGradient } from '../tex/noise.ts';
+import { pGradient } from '../lib/noise.ts';
 import { RESOLUTION, TERRAINS, type MapSpec, type Shape, type Terrain } from './spec.ts';
-import { chaikin, simplifyLine, type Line } from './trace.ts';
+import { chaikin, simplifyLine, type Line } from '../lib/trace.ts';
 
 export interface MapLine {
   pts: number[];

@@ -16,10 +16,16 @@ describe('dungeon maps', () => {
     expect(d).toMatchObject({ cols: 40, rows: 30, grid: { show: true, size: 2, sub: true, clip: 'floor' }, style: { hatch: 'band' }, scale: { perCell: 5, unit: 'ft' } });
     expect(D.validateDungeon(d)).toEqual([]);
     expect(D.validateDungeon({ ...d, id: '../x', rooms: [{ id: 'a', shape: 'hex', x: 1, y: 1, w: 0, h: 2 }], corridors: [{ from: { room: 'zz' }, to: { at: [1] }, doors: ['gate', null] }] })).toEqual(expect.arrayContaining([
-      expect.stringContaining('id'), expect.stringContaining('rooms[0].shape'), expect.stringContaining('rooms[0]: x, y and w, h'),
+      expect.stringContaining('id'), expect.stringContaining('rooms[0].shape'), expect.stringContaining('rooms[0].w'),
       expect.stringContaining('corridors[0].from.room'), expect.stringContaining('corridors[0].to.at'), expect.stringContaining('corridors[0].doors'),
     ]));
     expect(D.validateDungeon({ ...d, rooms: [...rooms(), rooms()[0]] })).toEqual([expect.stringContaining('used twice')]);
+    // check: every problem with its JSON path, on a file as a consumer writes it (defaults not yet filled in)
+    expect(D.checkDungeon({ id: 'x', seed: 1, rooms: [{ id: 'a', shape: 'rect', x: 1, y: 1, w: 0, h: 2 }], corridors: [{ from: { room: 'a' }, to: { room: 'zz' } }] })).toEqual({
+      version: 1, errors: [{ path: 'rooms[0].w', message: 'at least 1 cell' }, { path: 'corridors[0].to.room', message: 'no room "zz"' }],
+    });
+    expect(D.checkDungeon({ id: 'x', seed: 1, version: 2 }).errors).toEqual([{ path: 'version', message: expect.stringContaining('format version 2') }]);
+    expect(D.checkDungeon({ id: 'x', seed: 1 })).toEqual({ version: 1, errors: [] });
     expect(D.parseDungeon({ id: 'old', seed: 3 })).toMatchObject({ cols: 40, gen: { rooms: 8 }, overlay: { labels: [] } });
     expect(D.parseDungeon({ id: 'p', seed: 1, rooms: [{ id: 'l', shape: 'poly', points: [1, 1, 5, 1, 5, 6, 3, 6, 3, 3, 1, 3] }] }).rooms[0]).toMatchObject({ x: 1, y: 1, w: 4, h: 5 });
     expect(M.dungeon.newDungeon).toBe(D.newDungeon);

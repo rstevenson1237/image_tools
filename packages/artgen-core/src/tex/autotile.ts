@@ -10,7 +10,7 @@
  */
 import type { DirContext } from '../direction.ts';
 import { Grid } from '../lib/grid.ts';
-import { pGradient } from './noise.ts';
+import { pGradient } from '../lib/noise.ts';
 
 export const N = 1, NE = 2, E = 4, SE = 8, S = 16, SW = 32, W = 64, NW = 128;
 

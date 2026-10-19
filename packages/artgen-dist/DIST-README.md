@@ -36,6 +36,14 @@ that. Start with `/artgen-direction` (or ask Claude to set the art direction).
 - `tools/artgen/MANIFEST.json` records installed file hashes; `update` replaces untouched files and keeps edited ones
   unless `--force`. `--dry-run` shows the plan.
 
+## Maps only (`maps/`)
+
+A repo that builds tabletop maps and nothing else needs none of the above. `maps/` holds `artgen-maps.js` (the `map`,
+`dungeon` and `formats` commands, no pixel-art pipeline), `resvg.wasm` (PNG output only), `fonts/` (optional) and
+`VERSION`. Copy the folder at a commit of this branch into the repo's own `tools/artgen/` and commit it; nothing runs at
+install (steps in the CHANGELOG). Every command takes `--file <path>` in place of an id and needs no project:
+`node tools/artgen/artgen-maps.js dungeon check --file F.a.json --json`, then `dungeon fit` and `dungeon render --format svg`.
+
 ## Plugin layout (local sessions only)
 
 `plugin/` holds the same skills, agent and tools as a Claude Code plugin (commands `/artgen:init`,

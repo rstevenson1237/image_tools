@@ -5,4 +5,4 @@ export { gridGeometry, type GridCell } from './gridlines.ts';
 export { SYMBOLS, SYMBOL_KINDS } from './symbols.ts';
 export { THEME, THEMES, PATTERNS, type MapTheme, type ThemeName, type TerrainStyle } from './theme.ts';
 export { renderMapSvg, layersFor, fieldKey, terrainRegions, contourLines, MAP_LAYERS, FONT_FAMILY, type MapLayer, type RenderMapOptions } from './render.ts';
-export { isolines, chaikin, simplifyLine, pathData, type Line } from './trace.ts';
+export { isolines, chaikin, simplifyLine, pathData, type Line } from '../lib/trace.ts';

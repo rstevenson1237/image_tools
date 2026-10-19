@@ -3,7 +3,7 @@
  * renderer draws from this; the web tool uses it to find what was clicked.
  */
 import { rng } from '../lib/rng.ts';
-import { chaikin } from '../map/trace.ts';
+import { chaikin } from '../lib/trace.ts';
 import type { CorridorEnd, DoorKind, DungeonSpec, Room } from './spec.ts';
 
 export interface RoomGeom { room: Room; index: number; outline: number[]; cx: number; cy: number; number?: number }

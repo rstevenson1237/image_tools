@@ -20,59 +20,84 @@
  *   artgen dungeon fit <id> [--margin 2] | render <id> [--format svg|png|both] [--ppu 40] [--layers grid=off,labels=off] [--out dir]
  *   artgen dungeon show <id> | list
  */
-import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
-import { join, relative } from 'node:path';
-import { dungeon, encodePNG, rasterizeSvg } from 'artgen-core';
-import { initNodeMapSvg } from './node.ts';
-import { readJson, writeJson, type Project } from './project.ts';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join, relative, resolve } from 'node:path';
+import { dungeon, encodePNG, rasterizeSvg } from 'artgen-core/maps';
+import { initNodeMapSvg } from './node-svg.ts';
+import { fileStem, readJson, writeJson, type FileRef, type Project } from './projectfs.ts';
 
 type DungeonSpec = dungeon.DungeonSpec;
+
+/** A dungeon in a project (its id) or a file by path (`--file`, no project). */
+export type DungeonRef = string | FileRef;
 
 export const dungeonsDir = (p: Project): string => join(p.art, 'dungeons');
 
 /** `art/dungeons/<id>/dungeon.json`; ids are names, never paths, so nothing outside `art/dungeons` is touched. */
-export function dungeonFile(p: Project, id: string): string {
-  if (!/^[\w-]+$/.test(id ?? '')) throw new Error(`dungeon id ${JSON.stringify(id)}: letters, digits, - and _ only`);
-  return join(dungeonsDir(p), id, 'dungeon.json');
+export function dungeonFile(p: Project | null, ref: DungeonRef): string {
+  if (typeof ref !== 'string') return resolve(ref.file);
+  if (!/^[\w-]+$/.test(ref ?? '')) throw new Error(`dungeon id ${JSON.stringify(ref)}: letters, digits, - and _ only`);
+  if (!p) throw new Error('no artgen project here: name the dungeon file with --file <path>');
+  return join(dungeonsDir(p), ref, 'dungeon.json');
 }
 
-export function listDungeons(p: Project): { id: string; size: string; title?: string; rooms: number; corridors: number; labels: number; symbols: number }[] {
+/** A file path as shown to the user: from the project root, else from the working directory. */
+const shown = (p: Project | null, f: string): string => relative(p?.root ?? process.cwd(), f);
+
+export const dungeonSummary = (m: DungeonSpec) =>
+  ({ id: m.id, size: `${m.cols}x${m.rows}`, ...(m.title && { title: m.title }), rooms: m.rooms.length, corridors: m.corridors.length, labels: m.overlay.labels.length, symbols: m.overlay.symbols.length });
+
+export function listDungeons(p: Project): ReturnType<typeof dungeonSummary>[] {
   if (!existsSync(dungeonsDir(p))) return [];
-  return readdirSync(dungeonsDir(p), { withFileTypes: true }).filter(d => d.isDirectory() && existsSync(join(dungeonsDir(p), d.name, 'dungeon.json'))).map(d => {
-    const m = readDungeon(p, d.name);
-    return { id: m.id, size: `${m.cols}x${m.rows}`, ...(m.title && { title: m.title }), rooms: m.rooms.length, corridors: m.corridors.length, labels: m.overlay.labels.length, symbols: m.overlay.symbols.length };
-  });
+  return readdirSync(dungeonsDir(p), { withFileTypes: true }).filter(d => d.isDirectory() && existsSync(join(dungeonsDir(p), d.name, 'dungeon.json'))).map(d => dungeonSummary(readDungeon(p, d.name)));
 }
 
-export function readDungeon(p: Project, id: string): DungeonSpec {
-  const f = dungeonFile(p, id);
-  if (!existsSync(f)) throw new Error(`no dungeon ${id} (${relative(p.root, f)}) — artgen dungeon new ${id}`);
+export function readDungeon(p: Project | null, ref: DungeonRef): DungeonSpec {
+  const f = dungeonFile(p, ref);
+  if (!existsSync(f)) throw new Error(typeof ref === 'string' ? `no dungeon ${ref} (${shown(p, f)}) — artgen dungeon new ${ref}` : `no dungeon file ${shown(p, f)} — artgen dungeon new --file ${ref.file}`);
   return dungeon.parseDungeon(readJson(f));
 }
 
-export function writeDungeon(p: Project, m: DungeonSpec): string {
-  const spec = dungeon.parseDungeon(m), f = dungeonFile(p, spec.id);
+/** Validate and write a dungeon; `ref` is where (default: the project's file for the dungeon's own id). */
+export function writeDungeon(p: Project | null, m: DungeonSpec, ref: DungeonRef = m.id): string {
+  const spec = dungeon.parseDungeon(m), f = dungeonFile(p, ref);
   writeJson(f, spec);
-  return relative(p.root, f);
+  return shown(p, f);
 }
 
-export function createDungeon(p: Project, m: DungeonSpec, force = false): { file: string; dungeon: DungeonSpec } {
-  if (existsSync(dungeonFile(p, m.id)) && !force) throw new Error(`dungeon ${m.id} already exists (edit it, or pick another id)`);
-  return { file: writeDungeon(p, m), dungeon: m };
+export function createDungeon(p: Project | null, m: DungeonSpec, force = false, at: DungeonRef = m.id): { file: string; dungeon: DungeonSpec } {
+  if (existsSync(dungeonFile(p, at)) && !force) throw new Error(typeof at === 'string' ? `dungeon ${m.id} already exists (edit it, or pick another id)` : `${shown(p, dungeonFile(p, at))} already exists (edit it, or --force)`);
+  return { file: writeDungeon(p, m, at), dungeon: m };
 }
 
 /** Read, change, validate and write a dungeon in one step; `change` may return a replacement spec. */
-export function updateDungeon(p: Project, id: string, change: (m: DungeonSpec) => DungeonSpec | void): DungeonSpec {
-  const m = readDungeon(p, id), next = change(m) ?? m;
-  writeDungeon(p, next);
+export function updateDungeon(p: Project | null, ref: DungeonRef, change: (m: DungeonSpec) => DungeonSpec | void): DungeonSpec {
+  const m = readDungeon(p, ref), next = change(m) ?? m;
+  writeDungeon(p, next, ref);
   return next;
+}
+
+/** What `dungeon check` finds in a file as a consumer wrote it: the format version and every problem with its JSON path. */
+export interface DungeonCheck { file: string; ok: boolean; errors: dungeon.Issue[] }
+
+export function checkDungeonFile(p: Project | null, ref: DungeonRef): DungeonCheck {
+  const f = dungeonFile(p, ref);
+  let raw: unknown;
+  try { raw = JSON.parse(readFileSync(f, 'utf8')); } catch (e) {
+    const missing = (e as NodeJS.ErrnoException).code === 'ENOENT';
+    return { file: shown(p, f), ok: false, errors: [{ path: '', message: missing ? `no such file: ${shown(p, f)}` : `not JSON: ${(e as Error).message}` }] };
+  }
+  const r = dungeon.checkDungeon(raw);
+  return { file: shown(p, f), ok: !r.errors.length, errors: r.errors };
 }
 
 export interface DungeonRender { files: string[]; rooms: number; corridors: number; doors: number; size: [number, number] }
 
 /** Render a dungeon to SVG and/or PNG (black and white). */
-export async function renderDungeonFiles(p: Project, id: string, o: { formats?: ('svg' | 'png')[]; ppu?: number; layers?: Partial<Record<dungeon.DungeonLayer, boolean>>; out?: string } = {}): Promise<DungeonRender> {
-  const m = readDungeon(p, id), layout = dungeon.layoutDungeon(m), ppu = o.ppu ?? 40, out = o.out ?? join(dungeonsDir(p), id, 'out');
+export async function renderDungeonFiles(p: Project | null, ref: DungeonRef, o: { formats?: ('svg' | 'png')[]; ppu?: number; layers?: Partial<Record<dungeon.DungeonLayer, boolean>>; out?: string } = {}): Promise<DungeonRender> {
+  // a project dungeon renders to its out/ folder as <id>.…; a file renders beside itself as <file name>.…
+  const m = readDungeon(p, ref), layout = dungeon.layoutDungeon(m), ppu = o.ppu ?? 40, id = typeof ref === 'string' ? ref : fileStem(ref.file);
+  const out = o.out ?? (typeof ref === 'string' ? join(dungeonsDir(p!), id, 'out') : dirname(dungeonFile(p, ref)));
   const formats = o.formats ?? ['svg', 'png'], files: string[] = [];
   if (formats.includes('png')) await initNodeMapSvg();
   mkdirSync(out, { recursive: true });

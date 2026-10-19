@@ -10,7 +10,7 @@ import { autotile, autotileCovers, autotileIndexOf, autotileMask, BLOB47 } from 
 import { isoBlockTile, isoFloorTile } from './iso.ts';
 import { lsystem, turtle } from './lsystem.ts';
 import { material, MATERIALS } from './materials.ts';
-import { pGradient, pValue, pWorley } from './noise.ts';
+import { pGradient, pValue, pWorley } from '../lib/noise.ts';
 import { wfc, type WfcTile } from './wfc.ts';
 
 const RAMPS = {

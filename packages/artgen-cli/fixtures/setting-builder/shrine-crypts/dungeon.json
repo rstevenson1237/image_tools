@@ -1,0 +1,182 @@
+{
+  "id": "m-crypts",
+  "version": 1,
+  "title": "M Crypts",
+  "cols": 44,
+  "rows": 40,
+  "seed": 1,
+  "scale": {
+    "perCell": 5,
+    "unit": "ft"
+  },
+  "rooms": [
+    {
+      "id": "r1",
+      "shape": "rect",
+      "x": 28,
+      "y": 30,
+      "w": 8,
+      "h": 1,
+      "label": "M.6 The Crypt Stair",
+      "number": 6
+    },
+    {
+      "id": "r2",
+      "shape": "rect",
+      "x": 26,
+      "y": 14,
+      "w": 12,
+      "h": 4,
+      "label": "M.7 The Ossuary",
+      "number": 7
+    },
+    {
+      "id": "r3",
+      "shape": "rect",
+      "x": 2,
+      "y": 14,
+      "w": 14,
+      "h": 4,
+      "label": "M.8 The Makers' Niches",
+      "number": 8
+    },
+    {
+      "id": "r4",
+      "shape": "rect",
+      "x": 29,
+      "y": -2,
+      "w": 6,
+      "h": 6,
+      "label": "M.9 The Priests' Tomb",
+      "number": 9
+    },
+    {
+      "id": "r5",
+      "shape": "rect",
+      "x": -3,
+      "y": 24,
+      "w": 2,
+      "h": 2,
+      "label": "M.13 The Passage Landing",
+      "number": 13
+    }
+  ],
+  "corridors": [
+    {
+      "from": {
+        "room": "r1"
+      },
+      "to": {
+        "room": "r2"
+      },
+      "doors": [
+        "arch",
+        "arch"
+      ]
+    },
+    {
+      "from": {
+        "room": "r2"
+      },
+      "to": {
+        "room": "r3"
+      },
+      "doors": [
+        null,
+        null
+      ]
+    },
+    {
+      "from": {
+        "room": "r2"
+      },
+      "to": {
+        "room": "r4"
+      },
+      "doors": [
+        "door",
+        null
+      ]
+    },
+    {
+      "from": {
+        "room": "r5"
+      },
+      "to": {
+        "room": "r3"
+      },
+      "doors": [
+        null,
+        "secret"
+      ]
+    },
+    {
+      "from": {
+        "room": "r1"
+      },
+      "to": {
+        "at": [
+          20,
+          30.5
+        ]
+      },
+      "doors": [
+        null,
+        null
+      ]
+    },
+    {
+      "from": {
+        "room": "r4"
+      },
+      "to": {
+        "at": [
+          22,
+          1
+        ]
+      },
+      "doors": [
+        null,
+        null
+      ]
+    },
+    {
+      "from": {
+        "room": "r5"
+      },
+      "to": {
+        "at": [
+          -2,
+          31
+        ]
+      },
+      "doors": [
+        null,
+        null
+      ]
+    }
+  ],
+  "overlay": {
+    "labels": [
+      {
+        "text": "up to M.2",
+        "x": 20,
+        "y": 29.5,
+        "kind": "note"
+      },
+      {
+        "text": "up to M.10",
+        "x": 22,
+        "y": 0,
+        "kind": "note"
+      },
+      {
+        "text": "down to L.5",
+        "x": -2,
+        "y": 32,
+        "kind": "note"
+      }
+    ],
+    "symbols": []
+  }
+}

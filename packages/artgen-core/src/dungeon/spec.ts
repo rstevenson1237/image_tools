@@ -166,7 +166,8 @@ export function validateDungeon(raw: unknown): string[] {
     else if (ids.has(r.id)) e.push(`${at}.id: ${r.id} is used twice`);
     else ids.add(r.id);
     if (!ROOM_SHAPES.includes(r?.shape)) e.push(`${at}.shape: one of ${ROOM_SHAPES.join(', ')}`);
-    if (![r?.x, r?.y].every(isNum) || !isNum(r?.w) || !isNum(r?.h) || r.w < 1 || r.h < 1) e.push(`${at}: x, y and w, h ≥ 1`);
+    for (const k of ['x', 'y'] as const) if (!isNum(r?.[k])) e.push(`${at}.${k}: a number (cells)`);
+    for (const k of ['w', 'h'] as const) if (!isNum(r?.[k]) || r[k] < 1) e.push(`${at}.${k}: at least 1 cell`);
     if (r?.shape === 'poly' && !(nums(r.points) && r.points.length >= 6 && r.points.length % 2 === 0)) e.push(`${at}.points: at least 3 x,y pairs`);
     if (r?.label !== undefined && typeof r.label !== 'string') e.push(`${at}.label: text`);
     if (r?.number !== undefined && r.number !== false && !isNum(r.number)) e.push(`${at}.number: a number or false`);
@@ -196,18 +197,43 @@ export function polyBox(points: number[]): { x: number; y: number; w: number; h:
   return { x, y, w: Math.max(1, Math.max(...xs) - x), h: Math.max(1, Math.max(...ys) - y) };
 }
 
-/** Fill missing fields from the defaults (older or hand-written files), then validate; throws on errors. */
-export function parseDungeon(raw: unknown): DungeonSpec {
-  const r = readFormat(raw, 'dungeon', DUNGEON_FORMAT, MIGRATIONS) as Partial<DungeonSpec>, d = DEFAULTS;
+/** Fill the defaults into a file already read at the current format. */
+function withDefaults(r: Partial<DungeonSpec>): DungeonSpec {
+  const d = DEFAULTS;
   const rooms = (Array.isArray(r.rooms) ? r.rooms : []).map(room => (room?.shape === 'poly' && Array.isArray(room.points) && room.points.length >= 6 && room.x === undefined ? { ...room, ...polyBox(room.points) } : room));
   const m = {
     ...structuredClone(d), ...r, version: DUNGEON_FORMAT,
     gen: { ...d.gen, ...r.gen }, grid: { ...d.grid, ...r.grid }, style: { ...d.style, ...r.style }, scale: { ...d.scale, ...r.scale },
     rooms, corridors: r.corridors ?? [], overlay: { labels: r.overlay?.labels ?? [], symbols: r.overlay?.symbols ?? [] },
   } as DungeonSpec;
+  return m;
+}
+
+/** Fill missing fields from the defaults (older or hand-written files), then validate; throws on errors. */
+export function parseDungeon(raw: unknown): DungeonSpec {
+  const r = readFormat(raw, 'dungeon', DUNGEON_FORMAT, MIGRATIONS) as Partial<DungeonSpec>, m = withDefaults(r);
   const errors = validateDungeon(m);
   if (errors.length) throw new Error(`invalid dungeon${typeof r.id === 'string' ? ` ${r.id}` : ''}:\n  ${errors.join('\n  ')}`);
   return m;
+}
+
+/** A problem in a file: where (a JSON path, empty for the file as a whole) and what. */
+export interface Issue { path: string; message: string }
+
+/** A `path: message` string from a validator as an {@link Issue}. */
+export const toIssue = (s: string): Issue => {
+  const i = s.indexOf(': ');
+  return i < 0 ? { path: '', message: s } : { path: s.slice(0, i), message: s.slice(i + 2) };
+};
+
+/** Every problem with a dungeon file as written by a consumer (not yet filled with defaults), each with its JSON path. */
+export function checkDungeon(raw: unknown): { version: number | null; errors: Issue[] } {
+  let r: Partial<DungeonSpec>;
+  try { r = readFormat(raw, 'dungeon', DUNGEON_FORMAT, MIGRATIONS) as Partial<DungeonSpec>; } catch (err) {
+    const v = (raw as { version?: unknown } | null)?.version;
+    return { version: typeof v === 'number' ? v : null, errors: [{ path: 'version', message: (err as Error).message }] };
+  }
+  return { version: DUNGEON_FORMAT, errors: validateDungeon(withDefaults(r)).map(toIssue) };
 }
 
 /** `x,y` in cells, or a cell name (`C4`, also `cell:C4`) to that cell's centre. */

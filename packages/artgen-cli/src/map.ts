@@ -18,60 +18,71 @@
  *   artgen map show <id> | list
  */
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
-import { join, relative } from 'node:path';
-import { encodePNG, map, rasterizeSvg } from 'artgen-core';
-import { initNodeMapSvg } from './node.ts';
-import { readJson, writeJson, type Project } from './project.ts';
+import { dirname, join, relative, resolve } from 'node:path';
+import { encodePNG, map, rasterizeSvg } from 'artgen-core/maps';
+import { initNodeMapSvg } from './node-svg.ts';
+import { fileStem, readJson, writeJson, type FileRef, type Project } from './projectfs.ts';
 
 type MapSpec = map.MapSpec;
 
+/** A map in a project (its id) or a file by path (`--file`, no project). */
+export type MapRef = string | FileRef;
+
 export const mapsDir = (p: Project): string => join(p.art, 'maps');
 
-/** `art/maps/<id>/map.json`; ids are names, never paths, so nothing outside `art/maps` is touched. */
-export function mapFile(p: Project, id: string): string {
-  if (!/^[\w-]+$/.test(id ?? '')) throw new Error(`map id ${JSON.stringify(id)}: letters, digits, - and _ only`);
-  return join(mapsDir(p), id, 'map.json');
+/** `art/maps/<id>/map.json`; ids are names, never paths, so nothing outside `art/maps` is touched. A `{ file }` is that path. */
+export function mapFile(p: Project | null, ref: MapRef): string {
+  if (typeof ref !== 'string') return resolve(ref.file);
+  if (!/^[\w-]+$/.test(ref ?? '')) throw new Error(`map id ${JSON.stringify(ref)}: letters, digits, - and _ only`);
+  if (!p) throw new Error('no artgen project here: name the map file with --file <path>');
+  return join(mapsDir(p), ref, 'map.json');
 }
 
-export function listMaps(p: Project): { id: string; preset: string; size: string; title?: string; edits: number; labels: number; symbols: number }[] {
+/** A file path as shown to the user: from the project root, else from the working directory. */
+const shown = (p: Project | null, f: string): string => relative(p?.root ?? process.cwd(), f);
+
+export const mapSummary = (m: MapSpec) =>
+  ({ id: m.id, preset: m.preset, size: `${m.cols}x${m.rows}`, ...(m.title && { title: m.title }), edits: m.edits.length, labels: m.overlay.labels.length, symbols: m.overlay.symbols.length });
+
+export function listMaps(p: Project): ReturnType<typeof mapSummary>[] {
   if (!existsSync(mapsDir(p))) return [];
-  return readdirSync(mapsDir(p), { withFileTypes: true }).filter(d => d.isDirectory() && existsSync(join(mapsDir(p), d.name, 'map.json'))).map(d => {
-    const m = readMap(p, d.name);
-    return { id: m.id, preset: m.preset, size: `${m.cols}x${m.rows}`, ...(m.title && { title: m.title }), edits: m.edits.length, labels: m.overlay.labels.length, symbols: m.overlay.symbols.length };
-  });
+  return readdirSync(mapsDir(p), { withFileTypes: true }).filter(d => d.isDirectory() && existsSync(join(mapsDir(p), d.name, 'map.json'))).map(d => mapSummary(readMap(p, d.name)));
 }
 
-export function readMap(p: Project, id: string): MapSpec {
-  const f = mapFile(p, id);
-  if (!existsSync(f)) throw new Error(`no map ${id} (${relative(p.root, f)}) — artgen map new ${id}`);
+export function readMap(p: Project | null, ref: MapRef): MapSpec {
+  const f = mapFile(p, ref);
+  if (!existsSync(f)) throw new Error(typeof ref === 'string' ? `no map ${ref} (${shown(p, f)}) — artgen map new ${ref}` : `no map file ${shown(p, f)} — artgen map new --file ${ref.file}`);
   return map.parseMap(readJson(f));
 }
 
-export function writeMap(p: Project, m: MapSpec): string {
-  const spec = map.parseMap(m), f = mapFile(p, spec.id);
+/** Validate and write a map; `ref` is where (default: the project's file for the map's own id). */
+export function writeMap(p: Project | null, m: MapSpec, ref: MapRef = m.id): string {
+  const spec = map.parseMap(m), f = mapFile(p, ref);
   writeJson(f, spec);
-  return relative(p.root, f);
+  return shown(p, f);
 }
 
-export function createMap(p: Project, id: string, preset: map.Preset, over: Partial<MapSpec> = {}, force = false): { file: string; map: MapSpec } {
-  if (existsSync(mapFile(p, id)) && !force) throw new Error(`map ${id} already exists (edit it, or pick another id)`);
+export function createMap(p: Project | null, id: string, preset: map.Preset, over: Partial<MapSpec> = {}, force = false, at: MapRef = id): { file: string; map: MapSpec } {
+  if (existsSync(mapFile(p, at)) && !force) throw new Error(typeof at === 'string' ? `map ${id} already exists (edit it, or pick another id)` : `${shown(p, mapFile(p, at))} already exists (edit it, or --force)`);
   const m = map.newMap(id, preset, over);
-  return { file: writeMap(p, m), map: m };
+  return { file: writeMap(p, m, at), map: m };
 }
 
 /** Read, change, validate and write a map in one step. */
-export function updateMap(p: Project, id: string, change: (m: MapSpec) => void): MapSpec {
-  const m = readMap(p, id);
+export function updateMap(p: Project | null, ref: MapRef, change: (m: MapSpec) => void): MapSpec {
+  const m = readMap(p, ref);
   change(m);
-  writeMap(p, m);
+  writeMap(p, m, ref);
   return m;
 }
 
 export interface MapRender { files: string[]; terrains: string[]; rivers: number; size: [number, number] }
 
 /** Render a map to SVG and/or PNG in one or both themes. */
-export async function renderMapFiles(p: Project, id: string, o: { themes?: map.ThemeName[]; formats?: ('svg' | 'png')[]; ppu?: number; layers?: Partial<Record<map.MapLayer, boolean>>; out?: string } = {}): Promise<MapRender> {
-  const m = readMap(p, id), field = map.generateMap(m), ppu = o.ppu ?? 40, out = o.out ?? join(mapsDir(p), id, 'out');
+export async function renderMapFiles(p: Project | null, ref: MapRef, o: { themes?: map.ThemeName[]; formats?: ('svg' | 'png')[]; ppu?: number; layers?: Partial<Record<map.MapLayer, boolean>>; out?: string } = {}): Promise<MapRender> {
+  // a project map renders to its out/ folder as <id>.…; a file renders beside itself as <file name>.…
+  const m = readMap(p, ref), field = map.generateMap(m), ppu = o.ppu ?? 40, id = typeof ref === 'string' ? ref : fileStem(ref.file);
+  const out = o.out ?? (typeof ref === 'string' ? join(mapsDir(p!), id, 'out') : dirname(mapFile(p, ref)));
   const formats = o.formats ?? ['svg', 'png'], files: string[] = [];
   if (formats.includes('png')) await initNodeMapSvg();
   mkdirSync(out, { recursive: true });

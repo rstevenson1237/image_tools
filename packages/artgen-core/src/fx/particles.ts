@@ -12,7 +12,7 @@
 import type { DirContext } from '../direction.ts';
 import { Grid } from '../lib/grid.ts';
 import { rng } from '../lib/rng.ts';
-import { pValue } from '../tex/noise.ts';
+import { pValue } from '../lib/noise.ts';
 
 export type P2 = [number, number];
 type Range = number | [number, number];
