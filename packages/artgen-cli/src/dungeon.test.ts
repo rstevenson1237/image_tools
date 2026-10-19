@@ -58,7 +58,8 @@ describe('artgen dungeon', () => {
     await run('dungeon', 'room', 'crypt', 'rm', 'r1', ...R);
     expect(spec('crypt')).toMatchObject({ rooms: [{ id: 'r2' }, { id: 'ell' }], corridors: [] });
     const list = await run('dungeon', 'list', '--json', ...R);
-    expect(JSON.parse(list.out)).toEqual(expect.arrayContaining([expect.objectContaining({ id: 'crypt', rooms: 2, labels: 1, symbols: 1 })]));
+    expect(JSON.parse(list.out)).toMatchObject({ version: 1 });
+    expect(JSON.parse(list.out).items).toEqual(expect.arrayContaining([expect.objectContaining({ id: 'crypt', rooms: 2, labels: 1, symbols: 1 })]));
   });
 
   test('generate, regenerate with new settings, render SVG + PNG; layers turn off', async () => {

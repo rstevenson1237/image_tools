@@ -56,5 +56,6 @@ export * from './w2/analytics.ts';
 export * from './w2/recommend.ts';
 export * from './w2/edit.ts';
 export * from './w2/config.ts';
+export { readFormat, type Migration } from './format.ts';
 export * as map from './map/index.ts';
 export * as dungeon from './dungeon/index.ts';

@@ -39,7 +39,8 @@ describe('artgen map', () => {
     expect(spec()).toMatchObject({ grid: { type: 'hex', coords: true }, overlay: { labels: [{ text: 'Ashford', kind: 'place' }], symbols: [{ kind: 'town', x: 6, y: 6 }] } });
     expect(spec().overlay.labels[0].x).toBeCloseTo(1 / Math.sqrt(3) + 1.5 / Math.sqrt(3));
     const list = await run('map', 'list', '--json', ...R);
-    expect(JSON.parse(list.out)).toEqual([expect.objectContaining({ id: 'vale', size: '20x14', edits: 2, labels: 1, symbols: 1 })]);
+    expect(JSON.parse(list.out)).toMatchObject({ version: 1 });
+    expect(JSON.parse(list.out).items).toEqual([expect.objectContaining({ id: 'vale', size: '20x14', edits: 2, labels: 1, symbols: 1 })]);
   });
 
   test('render writes SVG and PNG in both themes; layers turn off', async () => {

@@ -5,6 +5,7 @@
  *
  * Coordinates are grid cells (x right, y down); by default one cell is 5 ft. A room's `x, y` is its top-left corner.
  */
+import { readFormat, type Migration } from '../format.ts';
 
 export const ROOM_SHAPES = ['rect', 'circle', 'octagon', 'cave', 'poly'] as const;
 export type RoomShape = (typeof ROOM_SHAPES)[number];
@@ -63,7 +64,7 @@ export interface DungeonSymbol { kind: string; x: number; y: number; scale?: num
 
 export interface DungeonSpec {
   id: string;
-  version: 1;
+  version: typeof DUNGEON_FORMAT;
   cols: number;
   rows: number;
   seed: number;
@@ -108,13 +109,18 @@ export const DEFAULTS: Omit<DungeonSpec, 'id' | 'seed' | 'version' | 'rooms' | '
   numbers: true, scaleBar: true, compass: false,
 };
 
+/** The dungeon file format (`format.ts` says what bumps it). */
+export const DUNGEON_FORMAT = 1;
+
+const MIGRATIONS: Record<number, Migration> = {};
+
 export const MAX_SIDE = 160;
 
 /** A new dungeon with the defaults; `over` replaces any top-level field or merges into gen/grid/style/scale. */
 export function newDungeon(id: string, over: Partial<DungeonSpec> = {}): DungeonSpec {
   const d = structuredClone(DEFAULTS);
   return parseDungeon({
-    ...d, ...over, id, version: 1, seed: over.seed ?? 1,
+    ...d, ...over, id, version: DUNGEON_FORMAT, seed: over.seed ?? 1,
     gen: { ...d.gen, ...over.gen }, grid: { ...d.grid, ...over.grid }, style: { ...d.style, ...over.style }, scale: { ...d.scale, ...over.scale },
     rooms: over.rooms ?? [], corridors: over.corridors ?? [], overlay: over.overlay ?? { labels: [], symbols: [] },
   });
@@ -192,10 +198,10 @@ export function polyBox(points: number[]): { x: number; y: number; w: number; h:
 
 /** Fill missing fields from the defaults (older or hand-written files), then validate; throws on errors. */
 export function parseDungeon(raw: unknown): DungeonSpec {
-  const r = (raw ?? {}) as Partial<DungeonSpec>, d = DEFAULTS;
+  const r = readFormat(raw, 'dungeon', DUNGEON_FORMAT, MIGRATIONS) as Partial<DungeonSpec>, d = DEFAULTS;
   const rooms = (Array.isArray(r.rooms) ? r.rooms : []).map(room => (room?.shape === 'poly' && Array.isArray(room.points) && room.points.length >= 6 && room.x === undefined ? { ...room, ...polyBox(room.points) } : room));
   const m = {
-    ...structuredClone(d), ...r, version: 1,
+    ...structuredClone(d), ...r, version: DUNGEON_FORMAT,
     gen: { ...d.gen, ...r.gen }, grid: { ...d.grid, ...r.grid }, style: { ...d.style, ...r.style }, scale: { ...d.scale, ...r.scale },
     rooms, corridors: r.corridors ?? [], overlay: { labels: r.overlay?.labels ?? [], symbols: r.overlay?.symbols ?? [] },
   } as DungeonSpec;

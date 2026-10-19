@@ -62,6 +62,8 @@
  * Dungeon maps (TTRPG; art/dungeons/<id>/dungeon.json, see dungeon.ts):
  *   artgen dungeon new|gen|room|link|unlink|door|grid|style|label|symbol|overlay|fit|render|show|list|symbols
  *
+ * File formats: artgen formats [--json]   the map and dungeon file format versions this artgen reads and writes
+ *
  * Benchmark (this repo): artgen bench [--direction benchmark|alt|<file>] [--out <dir>] [--stages] [--update-golden]
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -155,6 +157,7 @@ usage: artgen init
        artgen dungeon label <id> "Text" --at x,y|C4 [--kind name|note|area] [--size f] [--angle deg] | symbol <id> <kind> --at x,y|C4 [--scale f] [--angle deg] | symbols
        artgen dungeon overlay <id> rm label|symbol <i> | clear [labels|symbols] | fit <id> [--margin 2]
        artgen dungeon render <id> [--format svg|png|both] [--ppu 40] [--layers grid=off,labels=off] [--out dir] | show <id> | list
+       artgen formats   (the map and dungeon file format versions this artgen reads; a newer file is refused)
        artgen bench [--direction benchmark|alt|<file>] [--out <dir>] [--stages] [--ledger <file>] [--update-golden]
        artgen --version | --help
 
@@ -175,8 +178,13 @@ function toolDirection(cmd: string, root: string | undefined, override: string |
 
 const num = (args: string[], name: string): number | undefined => { const v = flag(args, name); if (v === undefined) return undefined; if (!Number.isFinite(+v)) throw new Error(`${name}: a number`); return +v; };
 
+/** A `--json` result of a map or dungeon command with the `version` of the format it reports on (a list becomes `{ version, items }`). */
+const withVersion = (data: unknown, version: number): unknown =>
+  data && typeof data === 'object' && !Array.isArray(data) ? { version, ...data } : { version, items: data };
+
 /** `artgen map …` (terrain maps, map.ts). */
-async function mapCommand(sub: string | undefined, args: string[], print: (human: string, data: unknown) => void): Promise<number> {
+async function mapCommand(sub: string | undefined, args: string[], emit: (human: string, data: unknown) => void): Promise<number> {
+  const print = (human: string, data: unknown) => emit(human, withVersion(data, map.MAP_FORMAT));
   const p = requireProject(flag(args, '--root'));
   const pos = args.filter((a, i) => !a.startsWith('--') && !(i > 0 && args[i - 1].startsWith('--') && args[i - 1] !== '--json')).slice(1), id = pos[0];
   const need = (what: string) => { if (!id) throw new Error(`map ${sub}: ${what}`); return id; };
@@ -313,7 +321,8 @@ function roomNumber(args: string[]): number | false | undefined {
 }
 
 /** `artgen dungeon …` (dungeon maps, dungeon.ts). */
-async function dungeonCommand(sub: string | undefined, args: string[], print: (human: string, data: unknown) => void): Promise<number> {
+async function dungeonCommand(sub: string | undefined, args: string[], emit: (human: string, data: unknown) => void): Promise<number> {
+  const print = (human: string, data: unknown) => emit(human, withVersion(data, dungeon.DUNGEON_FORMAT));
   const p = requireProject(flag(args, '--root'));
   const pos = args.filter((a, i) => !a.startsWith('--') && !(i > 0 && args[i - 1].startsWith('--') && args[i - 1] !== '--json')).slice(1), id = pos[0];
   const need = (what: string) => { if (!id) throw new Error(`dungeon ${sub}: ${what}`); return id; };
@@ -681,6 +690,11 @@ export async function main(argv: string[]): Promise<number> {
   if (cmd === 'voxel' && sub) {
     const r = await voxelExport(asset(sub), { version: flag(args, '--version'), cell: flag(args, '--cell'), out: flag(args, '--out'), scale: flag(args, '--scale') ? +flag(args, '--scale')! : undefined });
     print(`${r.cell}: ${r.voxels} voxels, ${r.materials} materials, ${r.size.join('x')}\n  ${r.vox}\n  ${r.glb}`, r);
+    return 0;
+  }
+  if (cmd === 'formats') {
+    const formats = { map: map.MAP_FORMAT, dungeon: dungeon.DUNGEON_FORMAT };
+    print(Object.entries(formats).map(([k, v]) => `${k} ${v}`).join('\n'), formats);
     return 0;
   }
   if (cmd === 'map') return mapCommand(sub, args, print);
