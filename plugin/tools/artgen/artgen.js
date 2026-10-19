@@ -819,7 +819,7 @@ var init_esm = __esm({
       var _a2 = hTree(lf, 15), dlt = _a2.t, mlb = _a2.l;
       var _b2 = hTree(df, 15), ddt = _b2.t, mdb = _b2.l;
       var _c = lc(dlt), lclt = _c.c, nlc = _c.n;
-      var _d = lc(ddt), lcdt = _d.c, ndc = _d.n;
+      var _d2 = lc(ddt), lcdt = _d2.c, ndc = _d2.n;
       var lcfreq = new u16(19);
       for (var i = 0; i < lclt.length; ++i)
         ++lcfreq[lclt[i] & 31];
@@ -2915,7 +2915,7 @@ var init_params = __esm({
   }
 });
 
-// ../artgen-core/src/tex/noise.ts
+// ../artgen-core/src/lib/noise.ts
 function pValue(x, y, o) {
   const oct = o.octaves ?? 1, g = o.gain ?? 0.5, seed = o.seed ?? 1;
   let sum2 = 0, amp = 1, norm2 = 0, cx = o.cells ?? 4, cy = o.cellsY ?? cx;
@@ -2984,7 +2984,7 @@ function blurWrap(f, w, h, r) {
 }
 var hash2, mod, smooth;
 var init_noise = __esm({
-  "../artgen-core/src/tex/noise.ts"() {
+  "../artgen-core/src/lib/noise.ts"() {
     "use strict";
     hash2 = (i, j, seed) => {
       let h = Math.imul(i, 374761393) ^ Math.imul(j, 668265263) ^ Math.imul(seed, 2246822519);
@@ -7112,9 +7112,9 @@ function planPasses(input) {
   const baseOf = (v) => parseVersion(v)?.kind === "finish" ? input.finishBase?.[v] ?? best.version : v;
   const open = fb?.filter((f) => !vs.some((v) => v.name === f.opens)).pop();
   if (open) {
-    const shown = open.on && vs.some((v) => v.name === open.on) ? baseOf(open.on) : bound ?? best.version, who = open.by === "agent" ? `${open.source ?? "agent"} note` : "user feedback";
-    if (open.route === "base") return state({ action: "write-base", version: open.opens, pass: pid(open.opens), from: shown, why: `${who} (form, proportion, colour): new base from ${shown}, the version ${open.by === "agent" ? "the note is about" : "the user saw"}${userWords(open)}` });
-    return state({ action: "write-finish", version: open.opens, pass: pid(open.opens), base: shown, why: `${who} (pixels): finish revision on ${shown}${userWords(open)}` });
+    const shown3 = open.on && vs.some((v) => v.name === open.on) ? baseOf(open.on) : bound ?? best.version, who = open.by === "agent" ? `${open.source ?? "agent"} note` : "user feedback";
+    if (open.route === "base") return state({ action: "write-base", version: open.opens, pass: pid(open.opens), from: shown3, why: `${who} (form, proportion, colour): new base from ${shown3}, the version ${open.by === "agent" ? "the note is about" : "the user saw"}${userWords(open)}` });
+    return state({ action: "write-finish", version: open.opens, pass: pid(open.opens), base: shown3, why: `${who} (pixels): finish revision on ${shown3}${userWords(open)}` });
   }
   const iApprove = input.ledger.map((e) => e.type === "approve" && e.by === "user").lastIndexOf(true);
   const approved = iApprove >= 0 ? input.ledger[iApprove].version : void 0;
@@ -16960,7 +16960,7 @@ var init_spec = __esm({
   }
 });
 
-// ../artgen-core/src/map/trace.ts
+// ../artgen-core/src/lib/trace.ts
 function isolines(f, w, h, t) {
   const segs2 = [];
   const hk = (i, j) => `h${j * w + i}`, vk = (i, j) => `v${j * w + i}`;
@@ -17107,7 +17107,7 @@ function pathData(lines, k = 1) {
 }
 var lineLength;
 var init_trace = __esm({
-  "../artgen-core/src/map/trace.ts"() {
+  "../artgen-core/src/lib/trace.ts"() {
     "use strict";
     lineLength = (p) => {
       let s2 = 0;
@@ -17483,12 +17483,12 @@ function generateMap(spec) {
     });
   }
   for (let n = 0; n < N3; n++) if (isWater(simple[n])) elev[n] = 0;
-  const shown = (x, y) => {
+  const shown3 = (x, y) => {
     const i = Math.floor(x * res), j = Math.floor(y * res);
     return i >= 0 && j >= 0 && i < w && j < h && isWater(simple[j * w + i]);
   };
   const rivers = mains.map((m) => {
-    const fit = m.mouth ? toShore(m.pts, shown) : null;
+    const fit = m.mouth ? toShore(m.pts, shown3) : null;
     return riverRibbon(fit ?? m.pts, m.width, !!fit);
   });
   return { res, w, h, elevation: elev, terrain: simple, rivers, roads };
@@ -17668,6 +17668,25 @@ var init_theme = __esm({
   }
 });
 
+// ../artgen-core/src/lib/svgdraw.ts
+function haloText(text, x, y, size, color, th, attrs = "") {
+  const a = `x="${n1(x)}" y="${n1(y)}" font-size="${n1(size)}" text-anchor="middle" ${attrs}`;
+  return `<text ${a} fill="none" stroke="${th.halo}" stroke-width="${n1(size * 0.22)}" stroke-linejoin="round" stroke-opacity="0.9">${esc(text)}</text><text ${a} fill="${color}">${esc(text)}</text>`;
+}
+function compassSvg(cx, cy, r, u, th) {
+  return `<g id="compass" stroke="${th.ink}" stroke-width="${n1(u)}" stroke-linejoin="round"><circle cx="${n1(cx)}" cy="${n1(cy)}" r="${n1(r)}" fill="${th.paper}" fill-opacity="0.85"/><path d="M${n1(cx)} ${n1(cy - r * 0.9)}L${n1(cx + r * 0.3)} ${n1(cy)}L${n1(cx)} ${n1(cy + r * 0.9)}L${n1(cx - r * 0.3)} ${n1(cy)}Z" fill="${th.paper}"/><path d="M${n1(cx)} ${n1(cy - r * 0.9)}L${n1(cx + r * 0.3)} ${n1(cy)}L${n1(cx - r * 0.3)} ${n1(cy)}Z" fill="${th.ink}"/><text x="${n1(cx)}" y="${n1(cy - r - 4 * u)}" font-size="${n1(13 * u)}" font-weight="700" text-anchor="middle" fill="${th.ink}" stroke="none">N</text></g>`;
+}
+var esc, n1, FONT_FAMILY, FONT;
+var init_svgdraw = __esm({
+  "../artgen-core/src/lib/svgdraw.ts"() {
+    "use strict";
+    esc = (t) => t.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+    n1 = (v) => (Math.round(v * 10) / 10).toString();
+    FONT_FAMILY = "Alegreya Sans";
+    FONT = `'${FONT_FAMILY}', 'Segoe UI', Helvetica, Arial, sans-serif`;
+  }
+});
+
 // ../artgen-core/src/map/render.ts
 function layersFor(spec, over = {}) {
   const on = Object.fromEntries(MAP_LAYERS.map((l) => [l, true]));
@@ -17734,17 +17753,10 @@ function symbolSvg(kind, x, y, size, th) {
   const s2 = SYMBOLS[kind] ?? SYMBOLS.poi;
   return `<g transform="translate(${n1(x)} ${n1(y)}) scale(${(size / 20).toFixed(3)})">${s2.svg.replaceAll("{ink}", th.ink).replaceAll("{fill}", th.symbolFill)}</g>`;
 }
-function haloText(text, x, y, size, color, th, attrs = "") {
-  const a = `x="${n1(x)}" y="${n1(y)}" font-size="${n1(size)}" text-anchor="middle" ${attrs}`;
-  return `<text ${a} fill="none" stroke="${th.halo}" stroke-width="${n1(size * 0.22)}" stroke-linejoin="round" stroke-opacity="0.9">${esc(text)}</text><text ${a} fill="${color}">${esc(text)}</text>`;
-}
 function scaleCells(spec) {
   const target = spec.cols / 5;
   for (const n of [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30, 40, 50]) if (n >= target * 0.75) return n;
   return Math.max(1, Math.round(target));
-}
-function compassSvg(cx, cy, r, u, th) {
-  return `<g id="compass" stroke="${th.ink}" stroke-width="${n1(u)}" stroke-linejoin="round"><circle cx="${n1(cx)}" cy="${n1(cy)}" r="${n1(r)}" fill="${th.paper}" fill-opacity="0.85"/><path d="M${n1(cx)} ${n1(cy - r * 0.9)}L${n1(cx + r * 0.3)} ${n1(cy)}L${n1(cx)} ${n1(cy + r * 0.9)}L${n1(cx - r * 0.3)} ${n1(cy)}Z" fill="${th.paper}"/><path d="M${n1(cx)} ${n1(cy - r * 0.9)}L${n1(cx + r * 0.3)} ${n1(cy)}L${n1(cx - r * 0.3)} ${n1(cy)}Z" fill="${th.ink}"/><text x="${n1(cx)}" y="${n1(cy - r - 4 * u)}" font-size="${n1(13 * u)}" font-weight="700" text-anchor="middle" fill="${th.ink}" stroke="none">N</text></g>`;
 }
 function renderMapSvg(spec, o = {}) {
   const th = THEME[o.theme ?? "color"], k = o.ppu ?? 40, W3 = spec.cols * k, H = spec.rows * k, u = k / 40;
@@ -17847,7 +17859,7 @@ function renderMapSvg(spec, o = {}) {
   }
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W3}" height="${H}" viewBox="0 0 ${W3} ${H}" font-family="${FONT}"><defs>${patternDefs(th, tile)}${defs.join("")}<clipPath id="map-clip"><rect width="${W3}" height="${H}"/></clipPath></defs><g clip-path="url(#map-clip)">${parts.join("")}</g></svg>`;
 }
-var MAP_LAYERS, FONT_FAMILY, FONT, fieldKey, esc, n1;
+var MAP_LAYERS, fieldKey;
 var init_render2 = __esm({
   "../artgen-core/src/map/render.ts"() {
     "use strict";
@@ -17856,13 +17868,10 @@ var init_render2 = __esm({
     init_spec();
     init_symbols();
     init_theme();
+    init_svgdraw();
     init_trace();
     MAP_LAYERS = ["terrain", "rivers", "roads", "contours", "grid", "symbols", "labels", "legend", "scale", "compass", "title"];
-    FONT_FAMILY = "Alegreya Sans";
-    FONT = `'${FONT_FAMILY}', 'Segoe UI', Helvetica, Arial, sans-serif`;
     fieldKey = (s2) => JSON.stringify([s2.preset, s2.cols, s2.rows, s2.seed, s2.gen, s2.edits]);
-    esc = (t) => t.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-    n1 = (v) => (Math.round(v * 10) / 10).toString();
   }
 });
 
@@ -17971,7 +17980,8 @@ function validateDungeon(raw) {
     else if (ids.has(r.id)) e.push(`${at}.id: ${r.id} is used twice`);
     else ids.add(r.id);
     if (!ROOM_SHAPES.includes(r?.shape)) e.push(`${at}.shape: one of ${ROOM_SHAPES.join(", ")}`);
-    if (![r?.x, r?.y].every(isNum2) || !isNum2(r?.w) || !isNum2(r?.h) || r.w < 1 || r.h < 1) e.push(`${at}: x, y and w, h \u2265 1`);
+    for (const k of ["x", "y"]) if (!isNum2(r?.[k])) e.push(`${at}.${k}: a number (cells)`);
+    for (const k of ["w", "h"]) if (!isNum2(r?.[k]) || r[k] < 1) e.push(`${at}.${k}: at least 1 cell`);
     if (r?.shape === "poly" && !(nums2(r.points) && r.points.length >= 6 && r.points.length % 2 === 0)) e.push(`${at}.points: at least 3 x,y pairs`);
     if (r?.label !== void 0 && typeof r.label !== "string") e.push(`${at}.label: text`);
     if (r?.number !== void 0 && r.number !== false && !isNum2(r.number)) e.push(`${at}.number: a number or false`);
@@ -18002,8 +18012,8 @@ function polyBox(points) {
   const x = Math.min(...xs), y = Math.min(...ys);
   return { x, y, w: Math.max(1, Math.max(...xs) - x), h: Math.max(1, Math.max(...ys) - y) };
 }
-function parseDungeon(raw) {
-  const r = readFormat(raw, "dungeon", DUNGEON_FORMAT, MIGRATIONS2), d = DEFAULTS2;
+function withDefaults(r) {
+  const d = DEFAULTS2;
   const rooms = (Array.isArray(r.rooms) ? r.rooms : []).map((room) => room?.shape === "poly" && Array.isArray(room.points) && room.points.length >= 6 && room.x === void 0 ? { ...room, ...polyBox(room.points) } : room);
   const m = {
     ...structuredClone(d),
@@ -18017,10 +18027,24 @@ function parseDungeon(raw) {
     corridors: r.corridors ?? [],
     overlay: { labels: r.overlay?.labels ?? [], symbols: r.overlay?.symbols ?? [] }
   };
+  return m;
+}
+function parseDungeon(raw) {
+  const r = readFormat(raw, "dungeon", DUNGEON_FORMAT, MIGRATIONS2), m = withDefaults(r);
   const errors = validateDungeon(m);
   if (errors.length) throw new Error(`invalid dungeon${typeof r.id === "string" ? ` ${r.id}` : ""}:
   ${errors.join("\n  ")}`);
   return m;
+}
+function checkDungeon(raw) {
+  let r;
+  try {
+    r = readFormat(raw, "dungeon", DUNGEON_FORMAT, MIGRATIONS2);
+  } catch (err2) {
+    const v = raw?.version;
+    return { version: typeof v === "number" ? v : null, errors: [{ path: "version", message: err2.message }] };
+  }
+  return { version: DUNGEON_FORMAT, errors: validateDungeon(withDefaults(r)).map(toIssue) };
 }
 function parsePoint2(at) {
   const xy = at.match(/^\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*$/);
@@ -18036,7 +18060,7 @@ function nextRoomId(spec) {
   const used = new Set(spec.rooms.map((r) => r.id));
   for (let n = spec.rooms.length + 1; ; n++) if (!used.has(`r${n}`)) return `r${n}`;
 }
-var ROOM_SHAPES, DOOR_KINDS, DOOR_NAMES, ROUTES, HATCH_STYLES, LABEL_KINDS2, DEFAULTS2, DUNGEON_FORMAT, MIGRATIONS2, MAX_SIDE2, isNum2, nums2, isPoint;
+var ROOM_SHAPES, DOOR_KINDS, DOOR_NAMES, ROUTES, HATCH_STYLES, LABEL_KINDS2, DEFAULTS2, DUNGEON_FORMAT, MIGRATIONS2, MAX_SIDE2, isNum2, nums2, isPoint, toIssue;
 var init_spec2 = __esm({
   "../artgen-core/src/dungeon/spec.ts"() {
     "use strict";
@@ -18070,6 +18094,10 @@ var init_spec2 = __esm({
     isNum2 = (v) => typeof v === "number" && Number.isFinite(v);
     nums2 = (v) => Array.isArray(v) && v.every(isNum2);
     isPoint = (v) => nums2(v) && v.length === 2;
+    toIssue = (s2) => {
+      const i = s2.indexOf(": ");
+      return i < 0 ? { path: "", message: s2 } : { path: s2.slice(0, i), message: s2.slice(i + 2) };
+    };
   }
 });
 
@@ -18502,19 +18530,18 @@ function renderDungeonSvg(spec, o = {}) {
     const fs = 24 * u, w = Math.max(120 * u, spec.title.length * fs * 0.62 + 30 * u);
     parts.push(`<g id="title">${box(pad, pad, w, fs * 1.7)}<text x="${n1(pad + w / 2)}" y="${n1(pad + fs * 1.18)}" font-size="${n1(fs)}" font-weight="700" letter-spacing="${n1(fs * 0.06)}" text-anchor="middle" fill="${INK2}">${esc(spec.title)}</text></g>`);
   }
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W3}" height="${H}" viewBox="0 0 ${W3} ${H}" font-family="${FONT2}"><defs>${defs.join("")}<clipPath id="map-clip"><rect width="${W3}" height="${H}"/></clipPath></defs><g clip-path="url(#map-clip)">${parts.join("")}</g></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W3}" height="${H}" viewBox="0 0 ${W3} ${H}" font-family="${FONT}"><defs>${defs.join("")}<clipPath id="map-clip"><rect width="${W3}" height="${H}"/></clipPath></defs><g clip-path="url(#map-clip)">${parts.join("")}</g></svg>`;
 }
-var DUNGEON_LAYERS, FONT2, INK2, PAPER, TH;
+var DUNGEON_LAYERS, INK2, PAPER, TH;
 var init_render3 = __esm({
   "../artgen-core/src/dungeon/render.ts"() {
     "use strict";
     init_rng();
-    init_render2();
+    init_svgdraw();
     init_trace();
     init_layout();
     init_symbols2();
     DUNGEON_LAYERS = ["rock", "floors", "grid", "doors", "symbols", "numbers", "labels", "title", "scale", "compass"];
-    FONT2 = `'${FONT_FAMILY}', 'Segoe UI', Helvetica, Arial, sans-serif`;
     INK2 = "#000000";
     PAPER = "#ffffff";
     TH = { ink: INK2, paper: PAPER, halo: PAPER };
@@ -18536,6 +18563,7 @@ __export(dungeon_exports, {
   ROUTES: () => ROUTES,
   SYMBOLS: () => SYMBOLS2,
   SYMBOL_KINDS: () => SYMBOL_KINDS2,
+  checkDungeon: () => checkDungeon,
   contentBox: () => contentBox,
   dungeonLayersFor: () => dungeonLayersFor,
   fitDungeon: () => fitDungeon,
@@ -18550,6 +18578,7 @@ __export(dungeon_exports, {
   renderDungeonSvg: () => renderDungeonSvg,
   roomOutline: () => roomOutline,
   singleRoom: () => singleRoom,
+  toIssue: () => toIssue,
   validateDungeon: () => validateDungeon
 });
 var init_dungeon = __esm({
@@ -19250,20 +19279,57 @@ var init_bench = __esm({
   }
 });
 
-// ../artgen-cli/src/node.ts
-import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+// ../artgen-core/src/maps.ts
+var init_maps = __esm({
+  "../artgen-core/src/maps.ts"() {
+    "use strict";
+    init_map();
+    init_dungeon();
+    init_format();
+    init_png();
+    init_svg();
+  }
+});
+
+// ../artgen-cli/src/node-svg.ts
+import { existsSync, readFileSync } from "node:fs";
 import { createRequire as createRequire2 } from "node:module";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 function initNodeSvg() {
   const local = fileURLToPath(new URL("./resvg.wasm", import.meta.url));
-  return initSvg(readFileSync(existsSync(local) ? local : require3.resolve("@resvg/resvg-wasm/index_bg.wasm")));
+  let file = local;
+  if (!existsSync(local)) {
+    try {
+      file = require3.resolve("@resvg/resvg-wasm/index_bg.wasm");
+    } catch {
+      throw new Error(`PNG output needs resvg.wasm next to this script (${local}) \u2014 copy it from artgen-dist maps/, or render --format svg`);
+    }
+  }
+  return initSvg(readFileSync(file));
 }
 async function initNodeMapSvg() {
   await initNodeSvg();
   const local = fileURLToPath(new URL("./fonts/", import.meta.url)), dir = existsSync(join(local, MAP_FONTS[0])) ? local : fileURLToPath(new URL("../../artgen-core/assets/fonts/", import.meta.url));
+  if (!MAP_FONTS.every((f) => existsSync(join(dir, f)))) {
+    console.error(`note: no fonts/ next to this script (${local}); labels are left out of the PNG`);
+    return;
+  }
   setSvgFonts(MAP_FONTS.map((f) => new Uint8Array(readFileSync(join(dir, f)))), map_exports.FONT_FAMILY);
 }
+var require3, MAP_FONTS;
+var init_node_svg = __esm({
+  "../artgen-cli/src/node-svg.ts"() {
+    "use strict";
+    init_maps();
+    require3 = createRequire2(import.meta.url);
+    MAP_FONTS = ["AlegreyaSans-Regular.ttf", "AlegreyaSans-Bold.ttf", "AlegreyaSans-Italic.ttf"];
+  }
+});
+
+// ../artgen-cli/src/node.ts
+import { appendFileSync, mkdirSync, readFileSync as readFileSync2, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 function writeGrid(path, g) {
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, encodePNG(g));
@@ -19272,23 +19338,22 @@ function appendLedger(path, entry) {
   mkdirSync(dirname(path), { recursive: true });
   appendFileSync(path, formatLedgerLine({ ts: (/* @__PURE__ */ new Date()).toISOString(), ...entry }) + "\n");
 }
-var require3, MAP_FONTS, readGrid;
+var readGrid;
 var init_node = __esm({
   "../artgen-cli/src/node.ts"() {
     "use strict";
     init_src();
-    require3 = createRequire2(import.meta.url);
-    MAP_FONTS = ["AlegreyaSans-Regular.ttf", "AlegreyaSans-Bold.ttf", "AlegreyaSans-Italic.ttf"];
-    readGrid = (path) => decodePNG(new Uint8Array(readFileSync(path)));
+    init_node_svg();
+    readGrid = (path) => decodePNG(new Uint8Array(readFileSync2(path)));
   }
 });
 
 // ../artgen-cli/src/bench.ts
-import { existsSync as existsSync2, readFileSync as readFileSync2, writeFileSync as writeFileSync2 } from "node:fs";
+import { existsSync as existsSync2, readFileSync as readFileSync3, writeFileSync as writeFileSync2 } from "node:fs";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
 import { join as join2 } from "node:path";
 function benchSource(a) {
-  return readFileSync2(join2(BENCH_ROOT, "assets", a.file), "utf8");
+  return readFileSync3(join2(BENCH_ROOT, "assets", a.file), "utf8");
 }
 function strip(r) {
   const g = new Grid(r.size[0] * r.cells.length, r.size[1]);
@@ -19297,7 +19362,7 @@ function strip(r) {
 }
 function resolveDirection(name) {
   if (BENCH_DIRECTIONS[name]) return parseDirection(BENCH_DIRECTIONS[name]);
-  return parseDirection(JSON.parse(readFileSync2(name, "utf8")));
+  return parseDirection(JSON.parse(readFileSync3(name, "utf8")));
 }
 async function runBench(dir, opts = {}) {
   await initNodeSvg();
@@ -19399,9 +19464,9 @@ var init_bench2 = __esm({
   }
 });
 
-// ../artgen-cli/src/project.ts
-import { existsSync as existsSync3, mkdirSync as mkdirSync2, readFileSync as readFileSync3, writeFileSync as writeFileSync3 } from "node:fs";
-import { dirname as dirname2, join as join3, resolve } from "node:path";
+// ../artgen-cli/src/projectfs.ts
+import { existsSync as existsSync3, mkdirSync as mkdirSync2, readFileSync as readFileSync4, writeFileSync as writeFileSync3 } from "node:fs";
+import { basename, dirname as dirname2, extname, join as join3, resolve } from "node:path";
 function findProject(start = process.cwd()) {
   for (let d = resolve(start); ; d = dirname2(d)) {
     if (existsSync3(join3(d, "art", CONFIG_FILE))) return { root: d, art: join3(d, "art") };
@@ -19413,45 +19478,64 @@ function requireProject(start) {
   if (!p) throw new Error("no artgen project here (art/artgen.config.json not found up the tree) \u2014 run `artgen init` in the game repo root");
   return p;
 }
+var CONFIG_FILE, fileStem, fileId, readJson, writeJson;
+var init_projectfs = __esm({
+  "../artgen-cli/src/projectfs.ts"() {
+    "use strict";
+    CONFIG_FILE = "artgen.config.json";
+    fileStem = (file) => basename(file, extname(file));
+    fileId = (file) => fileStem(file).replace(/[^\w-]+/g, "-").replace(/^-+|-+$/g, "") || "map";
+    readJson = (p) => JSON.parse(readFileSync4(p, "utf8"));
+    writeJson = (p, v) => {
+      mkdirSync2(dirname2(p), { recursive: true });
+      writeFileSync3(p, JSON.stringify(v, null, 2) + "\n");
+    };
+  }
+});
+
+// ../artgen-cli/src/project.ts
+import { existsSync as existsSync4, mkdirSync as mkdirSync3, writeFileSync as writeFileSync4 } from "node:fs";
+import { dirname as dirname3, join as join4 } from "node:path";
 function initProject(root) {
-  const art = join3(root, "art"), created = [];
+  const art = join4(root, "art"), created = [];
   const dir = (p) => {
-    if (!existsSync3(p)) {
-      mkdirSync2(p, { recursive: true });
+    if (!existsSync4(p)) {
+      mkdirSync3(p, { recursive: true });
       created.push(p);
     }
   };
   const file = (p, text) => {
-    if (!existsSync3(p)) {
-      mkdirSync2(dirname2(p), { recursive: true });
-      writeFileSync3(p, text);
+    if (!existsSync4(p)) {
+      mkdirSync3(dirname3(p), { recursive: true });
+      writeFileSync4(p, text);
       created.push(p);
     }
   };
   dir(art);
-  file(join3(art, "direction.json"), JSON.stringify(EMPTY_DIRECTION, null, 2) + "\n");
-  file(join3(art, "briefs.yaml"), "# Asset briefs. One entry per asset: id, kind, view, size, states, directions, anims, notes.\n[]\n");
-  for (const d of ["assets", "anchors", "refs", "candidates", "probes", "sheets"]) dir(join3(art, d));
-  file(join3(art, "assets", ".gitkeep"), "");
-  file(join3(art, "anchors", ".gitkeep"), "");
-  file(join3(art, "refs", "README.md"), "Reference images for the art direction interview. `artgen palette extract art/refs/<image>.png` pulls a palette from one.\n");
-  file(join3(art, "ledger.jsonl"), "");
-  file(join3(art, CONFIG_FILE), JSON.stringify(INIT_CONFIG, null, 2) + "\n");
-  file(join3(art, ".gitignore"), ART_GITIGNORE);
-  file(join3(art, "package.json"), JSON.stringify({ private: true, type: "module", description: "artgen asset sources (ESM)" }, null, 2) + "\n");
+  file(join4(art, "direction.json"), JSON.stringify(EMPTY_DIRECTION, null, 2) + "\n");
+  file(join4(art, "briefs.yaml"), "# Asset briefs. One entry per asset: id, kind, view, size, states, directions, anims, notes.\n[]\n");
+  for (const d of ["assets", "anchors", "refs", "candidates", "probes", "sheets"]) dir(join4(art, d));
+  file(join4(art, "assets", ".gitkeep"), "");
+  file(join4(art, "anchors", ".gitkeep"), "");
+  file(join4(art, "refs", "README.md"), "Reference images for the art direction interview. `artgen palette extract art/refs/<image>.png` pulls a palette from one.\n");
+  file(join4(art, "ledger.jsonl"), "");
+  file(join4(art, CONFIG_FILE), JSON.stringify(INIT_CONFIG, null, 2) + "\n");
+  file(join4(art, ".gitignore"), ART_GITIGNORE);
+  file(join4(art, "package.json"), JSON.stringify({ private: true, type: "module", description: "artgen asset sources (ESM)" }, null, 2) + "\n");
   return { project: { root, art }, created };
 }
 function projectConfig(p) {
-  const f = join3(p.art, CONFIG_FILE);
-  return mergeConfig(existsSync3(f) ? readJson(f) : {});
+  const f = join4(p.art, CONFIG_FILE);
+  return mergeConfig(existsSync4(f) ? readJson(f) : {});
 }
-var CONFIG_FILE, EMPTY_DIRECTION, ART_GITIGNORE, readJson, writeJson;
+var EMPTY_DIRECTION, ART_GITIGNORE;
 var init_project = __esm({
   "../artgen-cli/src/project.ts"() {
     "use strict";
+    init_projectfs();
     init_src();
+    init_projectfs();
     init_src();
-    CONFIG_FILE = "artgen.config.json";
     EMPTY_DIRECTION = {
       id: "untitled",
       version: 0,
@@ -19464,22 +19548,17 @@ sheets/*
 !sheets/approved/
 **/out/
 `;
-    readJson = (p) => JSON.parse(readFileSync3(p, "utf8"));
-    writeJson = (p, v) => {
-      mkdirSync2(dirname2(p), { recursive: true });
-      writeFileSync3(p, JSON.stringify(v, null, 2) + "\n");
-    };
   }
 });
 
 // ../artgen-cli/src/asset.ts
-import { existsSync as existsSync4, readdirSync, readFileSync as readFileSync4, writeFileSync as writeFileSync4 } from "node:fs";
-import { basename, dirname as dirname3, join as join4, relative, resolve as resolve2 } from "node:path";
+import { existsSync as existsSync5, readdirSync, readFileSync as readFileSync5, writeFileSync as writeFileSync5 } from "node:fs";
+import { basename as basename2, dirname as dirname4, join as join5, relative, resolve as resolve2 } from "node:path";
 import { pathToFileURL } from "node:url";
 function projectBrief(p, id) {
-  const f = join4(p.art, "briefs.yaml");
-  if (!existsSync4(f)) return void 0;
-  const r = parseBriefs(readFileSync4(f, "utf8"));
+  const f = join5(p.art, "briefs.yaml");
+  if (!existsSync5(f)) return void 0;
+  const r = parseBriefs(readFileSync5(f, "utf8"));
   if (!r.ok) throw new Error(`art/briefs.yaml:
   ${r.errors.join("\n  ")}`);
   return r.briefs.find((b) => b.id === id);
@@ -19497,15 +19576,15 @@ function editTokens(prev, src) {
   return codeTokens(added);
 }
 function findUp(start, name) {
-  for (let d = resolve2(start); ; d = dirname3(d)) {
-    if (existsSync4(join4(d, name))) return join4(d, name);
-    if (dirname3(d) === d) return null;
+  for (let d = resolve2(start); ; d = dirname4(d)) {
+    if (existsSync5(join5(d, name))) return join5(d, name);
+    if (dirname4(d) === d) return null;
   }
 }
 function openAsset(path, opts = {}) {
-  const briefPath = join4(path, "brief.json"), project2 = findProject(path) ?? void 0;
-  const local = existsSync4(briefPath) ? JSON.parse(readFileSync4(briefPath, "utf8")) : void 0;
-  const id = local?.id ?? basename(resolve2(path)), fromYaml = project2 ? projectBrief(project2, id) : void 0;
+  const briefPath = join5(path, "brief.json"), project2 = findProject(path) ?? void 0;
+  const local = existsSync5(briefPath) ? JSON.parse(readFileSync5(briefPath, "utf8")) : void 0;
+  const id = local?.id ?? basename2(resolve2(path)), fromYaml = project2 ? projectBrief(project2, id) : void 0;
   if (!local && !fromYaml) throw new Error(`${path}: no brief.json and no brief "${id}" in art/briefs.yaml`);
   const brief = { ...local, ...fromYaml, id };
   const dname = opts.direction ?? brief.direction;
@@ -19514,39 +19593,39 @@ function openAsset(path, opts = {}) {
   else {
     const file = opts.direction ? resolve2(opts.direction) : dname ? resolve2(path, dname) : findUp(path, "direction.json");
     if (!file) throw new Error(`${path}: no direction (brief.direction, --direction or a direction.json up the tree)`);
-    const raw = JSON.parse(readFileSync4(file, "utf8"));
+    const raw = JSON.parse(readFileSync5(file, "utf8"));
     if (isPlaceholderDirection(raw)) throw new Error(`${file} is not locked yet \u2014 lock one with \`artgen direction lock <candidate>\`, or pass --direction art/candidates/<name>.json`);
     dir = parseDirection(raw);
   }
-  const ledgerPath2 = opts.ledger ?? findUp(path, "ledger.jsonl") ?? join4(dirname3(resolve2(path)), "ledger.jsonl");
+  const ledgerPath2 = opts.ledger ?? findUp(path, "ledger.jsonl") ?? join5(dirname4(resolve2(path)), "ledger.jsonl");
   const cfg = project2 ? projectConfig(project2) : void 0;
   return { path, brief, dir, ledgerPath: ledgerPath2, ...project2 && { project: project2 }, budget: budgetFor(cfg, brief, dir) };
 }
 function ledgerFor(a) {
-  return existsSync4(a.ledgerPath) ? parseLedger(readFileSync4(a.ledgerPath, "utf8")).filter((e) => e.asset === a.brief.id) : [];
+  return existsSync5(a.ledgerPath) ? parseLedger(readFileSync5(a.ledgerPath, "utf8")).filter((e) => e.asset === a.brief.id) : [];
 }
 async function load(file) {
-  return await import(`${pathToFileURL(resolve2(file)).href}?h=${sourceHash(readFileSync4(file, "utf8"))}`);
+  return await import(`${pathToFileURL(resolve2(file)).href}?h=${sourceHash(readFileSync5(file, "utf8"))}`);
 }
 async function renderVersion(a, version, opts = {}) {
   await initNodeSvg();
   const v = parseVersion(version);
   if (!v) throw new Error(`bad version ${version}`);
-  const file = join4(a.path, `${v.name}.js`);
-  if (!existsSync4(file)) throw new Error(`${file} does not exist`);
-  const source = readFileSync4(file, "utf8");
+  const file = join5(a.path, `${v.name}.js`);
+  if (!existsSync5(file)) throw new Error(`${file} does not exist`);
+  const source = readFileSync5(file, "utf8");
   let render7, base, patches, stale, src = source;
   if (v.kind === "base") render7 = renderAsset(await load(file), { dir: a.dir, brief: a.brief, variant: opts.variant, stages: opts.stages, onScene: opts.onScene });
   else {
     const fin = await load(file);
     base = fin.base;
     if (!parseVersion(base ?? "")) throw new Error(`${file}: export const base = 'base.vN' is required`);
-    const baseRender = renderAsset(await load(join4(a.path, `${base}.js`)), { dir: a.dir, brief: a.brief, variant: opts.variant, stages: opts.stages, onScene: opts.onScene });
+    const baseRender = renderAsset(await load(join5(a.path, `${base}.js`)), { dir: a.dir, brief: a.brief, variant: opts.variant, stages: opts.stages, onScene: opts.onScene });
     const f = applyFinish(baseRender, fin, a.dir);
     render7 = f.render;
     patches = f.patches;
-    const snap2 = join4(a.path, `${v.name}.snapshot.json`);
-    if (existsSync4(snap2) && !opts.variant) stale = finishStale(JSON.parse(readFileSync4(snap2, "utf8")), patches);
+    const snap2 = join5(a.path, `${v.name}.snapshot.json`);
+    if (existsSync5(snap2) && !opts.variant) stale = finishStale(JSON.parse(readFileSync5(snap2, "utf8")), patches);
     src = sourceOf(a, base) + "\n" + source;
   }
   const s2 = strip(render7), grid = reviewGrid(render7, a.dir);
@@ -19657,10 +19736,10 @@ function layoutGrid(r) {
   return assembleSheet({ ...r, facings, cells: r.cells.filter((c) => facings.includes(c.facing)) }, 1).grid;
 }
 function outDir(a) {
-  return join4(a.path, "out");
+  return join5(a.path, "out");
 }
 function writeRender(a, r, out = outDir(a)) {
-  const sc = a.brief.review?.scale ?? 4, files = [join4(out, `${r.version}.png`), join4(out, `${r.version}@${sc}x.png`)];
+  const sc = a.brief.review?.scale ?? 4, files = [join5(out, `${r.version}.png`), join5(out, `${r.version}@${sc}x.png`)];
   writeGrid(files[0], r.strip);
   writeGrid(files[1], r.strip.scale(sc));
   return files;
@@ -19679,7 +19758,7 @@ async function reviewVersion(a, version, o = {}) {
       maxEdge: cfg?.budget?.maxSheetEdge,
       rows: [{ label: a.brief.id, grid: cur.grid, scale: sc, bg: R2.bg ?? a.dir.background, context: contextFor(a, cur.grid), silhouette: sil }, ...scene]
     });
-    const path2 = join4(outDir(a), `review-${version}-blind.png`), tokens2 = imageTokens(sheet2.w, sheet2.h);
+    const path2 = join5(outDir(a), `review-${version}-blind.png`), tokens2 = imageTokens(sheet2.w, sheet2.h);
     writeGrid(path2, sheet2);
     appendLedger(a.ledgerPath, { type: "review", asset: a.brief.id, version, pass: "b", blind: true, sheet: relPath(a, path2), imageTokens: tokens2, detail, by: "agent" });
     return { path: path2, tokens: tokens2, render: cur };
@@ -19701,7 +19780,7 @@ async function reviewVersion(a, version, o = {}) {
   const curGrid = low && multi ? firstFacing(cur.render) : cur.grid;
   rows.push({ label: `>> ${rowLabel(cur)}${low && multi ? " | first facing (low detail)" : ""}`, grid: curGrid, scale: sc, bg: R2.bg ?? a.dir.background, context: ctx(curGrid), silhouette: sil }, ...scene);
   const sheet = reviewSheet({ title: `${R2.label ?? a.brief.id} - ${version} (${pass})`, rows, anchors: anchorsFor(a), maxEdge: cfg?.budget?.maxSheetEdge });
-  const path = join4(outDir(a), `review-${version}.png`);
+  const path = join5(outDir(a), `review-${version}.png`);
   writeGrid(path, sheet);
   writeRender(a, cur);
   const tokens = imageTokens(sheet.w, sheet.h);
@@ -19728,8 +19807,8 @@ async function scoreVersion(a, version, score, note = "", extra = {}) {
   const blind = extra.blind === true, reviews = ledgerFor(a).filter((e) => e.type === "review" && e.version === version && !!e.blind === blind);
   if (blind && !reviews.length) throw new Error(`${a.brief.id} ${version}: no blind sheet yet \u2014 artgen review ${a.brief.id} --version ${version} --blind, and give only that sheet to the reviewer`);
   if (v.kind === "finish" && r.patches) {
-    const snap2 = join4(a.path, `${version}.snapshot.json`);
-    if (!existsSync4(snap2)) writeFileSync4(snap2, JSON.stringify(finishSnapshot(r.patches)) + "\n");
+    const snap2 = join5(a.path, `${version}.snapshot.json`);
+    if (!existsSync5(snap2)) writeFileSync5(snap2, JSON.stringify(finishSnapshot(r.patches)) + "\n");
   }
   const ledger = ledgerFor(a), prevTs = ledger.length ? Date.parse(ledger[ledger.length - 1].ts) : NaN;
   const scores = new Map(ledger.filter((e) => e.type === "score" && !e.blind && e.version).map((e) => [e.version, e.score]));
@@ -19776,7 +19855,7 @@ async function passState(a) {
     ...a.project && { feedback: feedbackOf(a), extraRevisions: a.budget?.extraRevisions ?? 0, ...blindConfig(a.project) }
   });
   const lastFinish = versions.filter((v) => v.startsWith("finish.")).pop();
-  if (lastFinish && existsSync4(join4(a.path, `${lastFinish}.snapshot.json`))) {
+  if (lastFinish && existsSync5(join5(a.path, `${lastFinish}.snapshot.json`))) {
     const stale = (await renderVersion(a, lastFinish)).stale;
     if (stale?.length) return { ...st, stale };
   }
@@ -19795,7 +19874,7 @@ async function variantsSheet(a, version, n = 8) {
   }
   const distinct = new Set(hashes).size, cols = Math.min(4, n);
   const sheet = contactSheet(`${a.brief.id} ${version}: ${n} variants, ${distinct} distinct`, items, a.brief.review?.scale ?? 4, cols);
-  const path = join4(outDir(a), `variants-${version}.png`);
+  const path = join5(outDir(a), `variants-${version}.png`);
   writeGrid(path, sheet);
   return { path, distinct, hashes };
 }
@@ -19810,7 +19889,7 @@ function stageModel(a, pass) {
 }
 function anchorsFor(a) {
   if (!a.project || !a.dir.anchors?.length) return [];
-  const all = a.dir.anchors.map((f) => ({ label: basename(f, ".png"), file: resolve2(a.project.art, f) })).filter((x) => existsSync4(x.file));
+  const all = a.dir.anchors.map((f) => ({ label: basename2(f, ".png"), file: resolve2(a.project.art, f) })).filter((x) => existsSync5(x.file));
   const same = all.filter((x) => x.label === a.brief.kind || a.brief.kind === "creature" && x.label === "character" || ["tileset", "texture"].includes(a.brief.kind) && x.label === "tile");
   return (same.length ? same : all).map((x) => ({ label: `anchor ${x.label}`, grid: readGrid(x.file) }));
 }
@@ -19846,17 +19925,17 @@ var init_asset = __esm({
       const a1 = parseVersion(x), b1 = parseVersion(y);
       return a1.kind === b1.kind ? a1.n - b1.n : a1.kind === "base" ? -1 : 1;
     });
-    sourceOf = (a, version) => readFileSync4(join4(a.path, `${version}.js`), "utf8");
+    sourceOf = (a, version) => readFileSync5(join5(a.path, `${version}.js`), "utf8");
     rowLabel = (r, score) => `${r.version}${score !== void 0 ? ` (${score})` : ""} | hyg ${r.report.metrics.hygiene} col ${r.report.metrics.colors} orph ${r.report.metrics.orphanPct}% | gate ${r.report.pass ? "pass" : "FAIL"}${r.stale?.length ? " | FINISH-STALE" : ""}`;
-    relPath = (a, p) => relative(dirname3(resolve2(a.ledgerPath)), resolve2(p)).split("\\").join("/");
+    relPath = (a, p) => relative(dirname4(resolve2(a.ledgerPath)), resolve2(p)).split("\\").join("/");
     stageKey = (pass) => pass === "r1" ? "base" : pass.startsWith("f") ? "finish" : "revise";
     reviewKey = (pass) => pass === "b" ? "blind" : pass === "r1" || pass === "r2" ? "reviewEarly" : "review";
   }
 });
 
 // ../artgen-cli/src/p6.ts
-import { mkdirSync as mkdirSync3, writeFileSync as writeFileSync5 } from "node:fs";
-import { join as join5, relative as relative2 } from "node:path";
+import { mkdirSync as mkdirSync4, writeFileSync as writeFileSync6 } from "node:fs";
+import { join as join6, relative as relative2 } from "node:path";
 async function voxelExport(a, o = {}) {
   const version = o.version ?? versionsIn(a).filter((v) => v.startsWith("base.")).pop();
   if (!version) throw new Error(`${a.brief.id}: no base version`);
@@ -19866,11 +19945,11 @@ async function voxelExport(a, o = {}) {
   } });
   const first = r.render.cells[0], cell = o.cell ?? `${first.state}/${first.facing}/${first.frame}`, scene = scenes.get(cell);
   if (!scene) throw new Error(`${a.brief.id} ${version}: ${scenes.size ? `no 3D scene for cell ${cell} (have ${[...scenes.keys()].join(", ")})` : "renders no 3D-mode scene (ctx.lib.t2.scene3d)"}`);
-  const set = scene.voxelSet(), vox = voxFromSet(set), out = o.out ?? join5(a.path, "out");
-  mkdirSync3(out, { recursive: true });
-  const id = a.brief.id, voxFile = join5(out, `${id}.vox`), glbFile = join5(out, `${id}.glb`);
-  writeFileSync5(voxFile, encodeVox(vox));
-  writeFileSync5(glbFile, voxelGlb(set, { scale: o.scale ?? 0.1, name: id }));
+  const set = scene.voxelSet(), vox = voxFromSet(set), out = o.out ?? join6(a.path, "out");
+  mkdirSync4(out, { recursive: true });
+  const id = a.brief.id, voxFile = join6(out, `${id}.vox`), glbFile = join6(out, `${id}.glb`);
+  writeFileSync6(voxFile, encodeVox(vox));
+  writeFileSync6(glbFile, voxelGlb(set, { scale: o.scale ?? 0.1, name: id }));
   return { vox: relative2(process.cwd(), voxFile), glb: relative2(process.cwd(), glbFile), voxels: set.cells.length, materials: set.mats.length, size: vox.size, cell };
 }
 function textureRun(dir, name, o) {
@@ -19878,7 +19957,7 @@ function textureRun(dir, name, o) {
   const [w, h] = o.size, t = material(name, dirContext(dir), { w, h, seed: o.seed, ramps: o.ramps, scale: o.scale });
   const pre = new Grid(w * 3, h * 3);
   for (let j = 0; j < 3; j++) for (let i = 0; i < 3; i++) pre.blit(t.grid, i * w, j * h);
-  const files = [join5(o.out, `${name}.png`), join5(o.out, `${name}.n.png`), join5(o.out, `${name}-3x3@4x.png`)];
+  const files = [join6(o.out, `${name}.png`), join6(o.out, `${name}.n.png`), join6(o.out, `${name}-3x3@4x.png`)];
   writeGrid(files[0], t.grid);
   writeGrid(files[1], t.normal);
   writeGrid(files[2], pre.scale(4));
@@ -19888,18 +19967,18 @@ function textureRun(dir, name, o) {
 async function animPreview(a, o = {}) {
   const version = o.version ?? versionsIn(a).pop();
   if (!version) throw new Error(`${a.brief.id}: no versions yet`);
-  const { render: r } = await renderVersion(a, version), out = o.out ?? join5(a.path, "out"), sc = o.scale ?? a.brief.review?.scale ?? 4;
+  const { render: r } = await renderVersion(a, version), out = o.out ?? join6(a.path, "out"), sc = o.scale ?? a.brief.review?.scale ?? 4;
   const defs = stateDefs(a.brief, a.dir, Object.fromEntries(r.states.map((s2) => [s2, r.frames[s2] / Math.max(1, Math.floor(a.brief.anims?.[s2]?.sub ?? 1))])));
   const states2 = o.state ? [o.state] : r.states, facings = o.facing ? [o.facing] : [r.facings[0]];
   for (const s2 of states2) if (!r.states.includes(s2)) throw new Error(`${a.brief.id}: no state ${s2} (has ${r.states.join(", ")})`);
   for (const f of facings) if (!r.facings.includes(f)) throw new Error(`${a.brief.id}: no facing ${f} (has ${r.facings.join(", ")})`);
-  mkdirSync3(out, { recursive: true });
+  mkdirSync4(out, { recursive: true });
   const res = { files: [], states: [] };
   for (const s2 of states2) for (const f of facings) {
     const frames = r.cells.filter((c) => c.state === s2 && c.facing === f).sort((x, y) => x.frame - y.frame).map((c) => c.grid.scale(sc)), d = displayDurations(defs[s2]);
-    const base = join5(out, `${a.brief.id}-${version}-${s2}-${f}`);
-    writeFileSync5(`${base}.gif`, encodeGIF(frames, d));
-    writeFileSync5(`${base}.apng`, encodeAPNG(frames, d));
+    const base = join6(out, `${a.brief.id}-${version}-${s2}-${f}`);
+    writeFileSync6(`${base}.gif`, encodeGIF(frames, d));
+    writeFileSync6(`${base}.apng`, encodeAPNG(frames, d));
     res.files.push(relative2(process.cwd(), `${base}.gif`), relative2(process.cwd(), `${base}.apng`));
     res.states.push({ state: s2, facing: f, frames: frames.length, ms: d.reduce((x, y) => x + y, 0) });
   }
@@ -19910,15 +19989,15 @@ function fxRun(dir, name, o) {
   const line = dir.line.outer === "none" ? false : (g) => dir.line.outer === "selout" ? post_exports.selout(g, Object.values(dc.pal), dc.outline) : post_exports.outline(g, dc.outline);
   const layers = preset(name, { w, h, duration });
   const frames = Array.from({ length: o.frames }, (_, i) => particles(dc, { w, h, t: i / o.frames, duration, layers, seed: o.seed ?? 1, line }));
-  mkdirSync3(o.out, { recursive: true });
+  mkdirSync4(o.out, { recursive: true });
   const strip2 = new Grid(o.frames * (w + 1) - 1, h);
   frames.forEach((f, i) => strip2.blit(f, i * (w + 1), 0));
-  const files = [join5(o.out, `${name}.png`), join5(o.out, `${name}-onion@${sc}x.png`), join5(o.out, `${name}.gif`), join5(o.out, `${name}.apng`)];
+  const files = [join6(o.out, `${name}.png`), join6(o.out, `${name}-onion@${sc}x.png`), join6(o.out, `${name}.gif`), join6(o.out, `${name}.apng`)];
   writeGrid(files[0], strip2);
   writeGrid(files[1], onionSkin(frames).scale(sc));
   const big = frames.map((f) => f.scale(sc)), d = frames.map(() => Math.round(1e3 / fps));
-  writeFileSync5(files[2], encodeGIF(big, d));
-  writeFileSync5(files[3], encodeAPNG(big, d));
+  writeFileSync6(files[2], encodeGIF(big, d));
+  writeFileSync6(files[3], encodeAPNG(big, d));
   return { files: files.map((f) => relative2(process.cwd(), f)), fill: fillQA(frames, dir), frames: o.frames };
 }
 var init_p6 = __esm({
@@ -19931,10 +20010,10 @@ var init_p6 = __esm({
 });
 
 // ../artgen-cli/src/report.ts
-import { existsSync as existsSync5, readdirSync as readdirSync2, writeFileSync as writeFileSync6 } from "node:fs";
-import { join as join6, resolve as resolve3 } from "node:path";
+import { existsSync as existsSync6, readdirSync as readdirSync2, writeFileSync as writeFileSync7 } from "node:fs";
+import { join as join7, resolve as resolve3 } from "node:path";
 function assetDirs(root) {
-  return readdirSync2(root, { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync5(join6(root, d.name, "brief.json"))).map((d) => join6(root, d.name));
+  return readdirSync2(root, { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync6(join7(root, d.name, "brief.json"))).map((d) => join7(root, d.name));
 }
 async function report(root, opts = {}) {
   const assets = assetDirs(root).map((p) => openAsset(p));
@@ -19989,7 +20068,7 @@ Price basis (same as artlab): $${PRICE2.inPerM}/M input (review images), $${PRIC
 Totals: ${tot.out} output tok, ${tot.inp} review tok, est. $${cost(tot.out, tot.inp).toFixed(3)}. Average gain from revisions ${avg((s2) => s2.revisionGain)}, from the finishing pass ${avg((s2) => s2.finishGain)}. ${summaries.filter((s2) => s2.met).length}/${summaries.length} assets at or above target.
 `;
   if (opts.out) {
-    writeFileSync6(opts.out, md);
+    writeFileSync7(opts.out, md);
     await finalComparison(assets, summaries, resolve3(opts.out, "..", "final-comparison.png"));
   }
   return { markdown: md, summaries };
@@ -20022,50 +20101,62 @@ var init_report = __esm({
 });
 
 // ../artgen-cli/src/dungeon.ts
-import { existsSync as existsSync6, mkdirSync as mkdirSync4, readdirSync as readdirSync3, writeFileSync as writeFileSync7 } from "node:fs";
-import { join as join7, relative as relative3 } from "node:path";
-function dungeonFile(p, id) {
-  if (!/^[\w-]+$/.test(id ?? "")) throw new Error(`dungeon id ${JSON.stringify(id)}: letters, digits, - and _ only`);
-  return join7(dungeonsDir(p), id, "dungeon.json");
+import { existsSync as existsSync7, mkdirSync as mkdirSync5, readdirSync as readdirSync3, readFileSync as readFileSync6, writeFileSync as writeFileSync8 } from "node:fs";
+import { dirname as dirname5, join as join8, relative as relative3, resolve as resolve4 } from "node:path";
+function dungeonFile(p, ref) {
+  if (typeof ref !== "string") return resolve4(ref.file);
+  if (!/^[\w-]+$/.test(ref ?? "")) throw new Error(`dungeon id ${JSON.stringify(ref)}: letters, digits, - and _ only`);
+  if (!p) throw new Error("no artgen project here: name the dungeon file with --file <path>");
+  return join8(dungeonsDir(p), ref, "dungeon.json");
 }
 function listDungeons(p) {
-  if (!existsSync6(dungeonsDir(p))) return [];
-  return readdirSync3(dungeonsDir(p), { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync6(join7(dungeonsDir(p), d.name, "dungeon.json"))).map((d) => {
-    const m = readDungeon(p, d.name);
-    return { id: m.id, size: `${m.cols}x${m.rows}`, ...m.title && { title: m.title }, rooms: m.rooms.length, corridors: m.corridors.length, labels: m.overlay.labels.length, symbols: m.overlay.symbols.length };
-  });
+  if (!existsSync7(dungeonsDir(p))) return [];
+  return readdirSync3(dungeonsDir(p), { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync7(join8(dungeonsDir(p), d.name, "dungeon.json"))).map((d) => dungeonSummary(readDungeon(p, d.name)));
 }
-function readDungeon(p, id) {
-  const f = dungeonFile(p, id);
-  if (!existsSync6(f)) throw new Error(`no dungeon ${id} (${relative3(p.root, f)}) \u2014 artgen dungeon new ${id}`);
+function readDungeon(p, ref) {
+  const f = dungeonFile(p, ref);
+  if (!existsSync7(f)) throw new Error(typeof ref === "string" ? `no dungeon ${ref} (${shown(p, f)}) \u2014 artgen dungeon new ${ref}` : `no dungeon file ${shown(p, f)} \u2014 artgen dungeon new --file ${ref.file}`);
   return dungeon_exports.parseDungeon(readJson(f));
 }
-function writeDungeon(p, m) {
-  const spec = dungeon_exports.parseDungeon(m), f = dungeonFile(p, spec.id);
+function writeDungeon(p, m, ref = m.id) {
+  const spec = dungeon_exports.parseDungeon(m), f = dungeonFile(p, ref);
   writeJson(f, spec);
-  return relative3(p.root, f);
+  return shown(p, f);
 }
-function createDungeon(p, m, force = false) {
-  if (existsSync6(dungeonFile(p, m.id)) && !force) throw new Error(`dungeon ${m.id} already exists (edit it, or pick another id)`);
-  return { file: writeDungeon(p, m), dungeon: m };
+function createDungeon(p, m, force = false, at = m.id) {
+  if (existsSync7(dungeonFile(p, at)) && !force) throw new Error(typeof at === "string" ? `dungeon ${m.id} already exists (edit it, or pick another id)` : `${shown(p, dungeonFile(p, at))} already exists (edit it, or --force)`);
+  return { file: writeDungeon(p, m, at), dungeon: m };
 }
-function updateDungeon(p, id, change) {
-  const m = readDungeon(p, id), next = change(m) ?? m;
-  writeDungeon(p, next);
+function updateDungeon(p, ref, change) {
+  const m = readDungeon(p, ref), next = change(m) ?? m;
+  writeDungeon(p, next, ref);
   return next;
 }
-async function renderDungeonFiles(p, id, o = {}) {
-  const m = readDungeon(p, id), layout2 = dungeon_exports.layoutDungeon(m), ppu = o.ppu ?? 40, out = o.out ?? join7(dungeonsDir(p), id, "out");
+function checkDungeonFile(p, ref) {
+  const f = dungeonFile(p, ref);
+  let raw;
+  try {
+    raw = JSON.parse(readFileSync6(f, "utf8"));
+  } catch (e) {
+    const missing = e.code === "ENOENT";
+    return { file: shown(p, f), ok: false, errors: [{ path: "", message: missing ? `no such file: ${shown(p, f)}` : `not JSON: ${e.message}` }] };
+  }
+  const r = dungeon_exports.checkDungeon(raw);
+  return { file: shown(p, f), ok: !r.errors.length, errors: r.errors };
+}
+async function renderDungeonFiles(p, ref, o = {}) {
+  const m = readDungeon(p, ref), layout2 = dungeon_exports.layoutDungeon(m), ppu = o.ppu ?? 40, id = typeof ref === "string" ? ref : fileStem(ref.file);
+  const out = o.out ?? (typeof ref === "string" ? join8(dungeonsDir(p), id, "out") : dirname5(dungeonFile(p, ref)));
   const formats = o.formats ?? ["svg", "png"], files = [];
   if (formats.includes("png")) await initNodeMapSvg();
-  mkdirSync4(out, { recursive: true });
-  const svg4 = dungeon_exports.renderDungeonSvg(m, { ppu, layers: o.layers, layout: layout2 }), base = join7(out, id);
+  mkdirSync5(out, { recursive: true });
+  const svg4 = dungeon_exports.renderDungeonSvg(m, { ppu, layers: o.layers, layout: layout2 }), base = join8(out, id);
   if (formats.includes("svg")) {
-    writeFileSync7(`${base}.svg`, svg4);
+    writeFileSync8(`${base}.svg`, svg4);
     files.push(`${base}.svg`);
   }
   if (formats.includes("png")) {
-    writeFileSync7(`${base}.png`, encodePNG(rasterizeSvg(svg4, m.cols * ppu, m.rows * ppu)));
+    writeFileSync8(`${base}.png`, encodePNG(rasterizeSvg(svg4, m.cols * ppu, m.rows * ppu)));
     files.push(`${base}.png`);
   }
   return { files: files.map((f) => relative3(process.cwd(), f)), rooms: m.rooms.length, corridors: m.corridors.length, doors: layout2.doors.length, size: [m.cols * ppu, m.rows * ppu] };
@@ -20110,65 +20201,67 @@ function describeDungeon(m) {
     ${i}. ${s2.kind} at ${s2.x},${s2.y}${s2.angle ? ` turned ${s2.angle}\xB0` : ""}`).join("")}`
   ].join("\n");
 }
-var dungeonsDir;
+var dungeonsDir, shown, dungeonSummary;
 var init_dungeon2 = __esm({
   "../artgen-cli/src/dungeon.ts"() {
     "use strict";
-    init_src();
-    init_node();
-    init_project();
-    dungeonsDir = (p) => join7(p.art, "dungeons");
+    init_maps();
+    init_node_svg();
+    init_projectfs();
+    dungeonsDir = (p) => join8(p.art, "dungeons");
+    shown = (p, f) => relative3(p?.root ?? process.cwd(), f);
+    dungeonSummary = (m) => ({ id: m.id, size: `${m.cols}x${m.rows}`, ...m.title && { title: m.title }, rooms: m.rooms.length, corridors: m.corridors.length, labels: m.overlay.labels.length, symbols: m.overlay.symbols.length });
   }
 });
 
 // ../artgen-cli/src/map.ts
-import { existsSync as existsSync7, mkdirSync as mkdirSync5, readdirSync as readdirSync4, writeFileSync as writeFileSync8 } from "node:fs";
-import { join as join8, relative as relative4 } from "node:path";
-function mapFile(p, id) {
-  if (!/^[\w-]+$/.test(id ?? "")) throw new Error(`map id ${JSON.stringify(id)}: letters, digits, - and _ only`);
-  return join8(mapsDir(p), id, "map.json");
+import { existsSync as existsSync8, mkdirSync as mkdirSync6, readdirSync as readdirSync4, writeFileSync as writeFileSync9 } from "node:fs";
+import { dirname as dirname6, join as join9, relative as relative4, resolve as resolve5 } from "node:path";
+function mapFile(p, ref) {
+  if (typeof ref !== "string") return resolve5(ref.file);
+  if (!/^[\w-]+$/.test(ref ?? "")) throw new Error(`map id ${JSON.stringify(ref)}: letters, digits, - and _ only`);
+  if (!p) throw new Error("no artgen project here: name the map file with --file <path>");
+  return join9(mapsDir(p), ref, "map.json");
 }
 function listMaps(p) {
-  if (!existsSync7(mapsDir(p))) return [];
-  return readdirSync4(mapsDir(p), { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync7(join8(mapsDir(p), d.name, "map.json"))).map((d) => {
-    const m = readMap(p, d.name);
-    return { id: m.id, preset: m.preset, size: `${m.cols}x${m.rows}`, ...m.title && { title: m.title }, edits: m.edits.length, labels: m.overlay.labels.length, symbols: m.overlay.symbols.length };
-  });
+  if (!existsSync8(mapsDir(p))) return [];
+  return readdirSync4(mapsDir(p), { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync8(join9(mapsDir(p), d.name, "map.json"))).map((d) => mapSummary(readMap(p, d.name)));
 }
-function readMap(p, id) {
-  const f = mapFile(p, id);
-  if (!existsSync7(f)) throw new Error(`no map ${id} (${relative4(p.root, f)}) \u2014 artgen map new ${id}`);
+function readMap(p, ref) {
+  const f = mapFile(p, ref);
+  if (!existsSync8(f)) throw new Error(typeof ref === "string" ? `no map ${ref} (${shown2(p, f)}) \u2014 artgen map new ${ref}` : `no map file ${shown2(p, f)} \u2014 artgen map new --file ${ref.file}`);
   return map_exports.parseMap(readJson(f));
 }
-function writeMap(p, m) {
-  const spec = map_exports.parseMap(m), f = mapFile(p, spec.id);
+function writeMap(p, m, ref = m.id) {
+  const spec = map_exports.parseMap(m), f = mapFile(p, ref);
   writeJson(f, spec);
-  return relative4(p.root, f);
+  return shown2(p, f);
 }
-function createMap(p, id, preset2, over = {}, force = false) {
-  if (existsSync7(mapFile(p, id)) && !force) throw new Error(`map ${id} already exists (edit it, or pick another id)`);
+function createMap(p, id, preset2, over = {}, force = false, at = id) {
+  if (existsSync8(mapFile(p, at)) && !force) throw new Error(typeof at === "string" ? `map ${id} already exists (edit it, or pick another id)` : `${shown2(p, mapFile(p, at))} already exists (edit it, or --force)`);
   const m = map_exports.newMap(id, preset2, over);
-  return { file: writeMap(p, m), map: m };
+  return { file: writeMap(p, m, at), map: m };
 }
-function updateMap(p, id, change) {
-  const m = readMap(p, id);
+function updateMap(p, ref, change) {
+  const m = readMap(p, ref);
   change(m);
-  writeMap(p, m);
+  writeMap(p, m, ref);
   return m;
 }
-async function renderMapFiles(p, id, o = {}) {
-  const m = readMap(p, id), field = map_exports.generateMap(m), ppu = o.ppu ?? 40, out = o.out ?? join8(mapsDir(p), id, "out");
+async function renderMapFiles(p, ref, o = {}) {
+  const m = readMap(p, ref), field = map_exports.generateMap(m), ppu = o.ppu ?? 40, id = typeof ref === "string" ? ref : fileStem(ref.file);
+  const out = o.out ?? (typeof ref === "string" ? join9(mapsDir(p), id, "out") : dirname6(mapFile(p, ref)));
   const formats = o.formats ?? ["svg", "png"], files = [];
   if (formats.includes("png")) await initNodeMapSvg();
-  mkdirSync5(out, { recursive: true });
+  mkdirSync6(out, { recursive: true });
   for (const theme of o.themes ?? ["color"]) {
-    const svg4 = map_exports.renderMapSvg(m, { theme, ppu, layers: o.layers, field }), base = join8(out, `${id}.${theme}`);
+    const svg4 = map_exports.renderMapSvg(m, { theme, ppu, layers: o.layers, field }), base = join9(out, `${id}.${theme}`);
     if (formats.includes("svg")) {
-      writeFileSync8(`${base}.svg`, svg4);
+      writeFileSync9(`${base}.svg`, svg4);
       files.push(`${base}.svg`);
     }
     if (formats.includes("png")) {
-      writeFileSync8(`${base}.png`, encodePNG(rasterizeSvg(svg4, m.cols * ppu, m.rows * ppu)));
+      writeFileSync9(`${base}.png`, encodePNG(rasterizeSvg(svg4, m.cols * ppu, m.rows * ppu)));
       files.push(`${base}.png`);
     }
   }
@@ -20215,942 +20308,21 @@ function describeMap(m) {
     ${i}. ${s2.kind} at ${s2.x},${s2.y}`).join("")}`
   ].join("\n");
 }
-var mapsDir, onOff;
+var mapsDir, shown2, mapSummary, onOff;
 var init_map2 = __esm({
   "../artgen-cli/src/map.ts"() {
     "use strict";
-    init_src();
-    init_node();
-    init_project();
-    mapsDir = (p) => join8(p.art, "maps");
+    init_maps();
+    init_node_svg();
+    init_projectfs();
+    mapsDir = (p) => join9(p.art, "maps");
+    shown2 = (p, f) => relative4(p?.root ?? process.cwd(), f);
+    mapSummary = (m) => ({ id: m.id, preset: m.preset, size: `${m.cols}x${m.rows}`, ...m.title && { title: m.title }, edits: m.edits.length, labels: m.overlay.labels.length, symbols: m.overlay.symbols.length });
     onOff = (v) => v === void 0 ? void 0 : /^(on|true|yes|1)$/i.test(v);
   }
 });
 
-// ../artgen-cli/src/templates.ts
-import { existsSync as existsSync8, mkdirSync as mkdirSync6, readFileSync as readFileSync5, writeFileSync as writeFileSync9 } from "node:fs";
-import { dirname as dirname4, join as join9, resolve as resolve4 } from "node:path";
-import { fileURLToPath as fileURLToPath3 } from "node:url";
-function templatesRoot() {
-  const here = dirname4(fileURLToPath3(import.meta.url));
-  for (const p of [join9(here, "templates"), join9(here, "..", "templates")]) if (existsSync8(join9(p, "finish.js"))) return p;
-  throw new Error(`artgen templates not found next to ${here}`);
-}
-function findTemplate(view, kind) {
-  const root = templatesRoot(), alias = KIND_ALIAS[kind] ?? kind;
-  for (const [v, k] of [[view, kind], ["topdown", kind], [view, alias], ["topdown", alias], [view, "prop"], ["topdown", "prop"]]) {
-    const dir = join9(root, v, k);
-    if (existsSync8(join9(dir, "base.js"))) return { view: v, kind: k, dir, fallback: v !== view || k !== kind };
-  }
-  throw new Error(`no template for ${view}/${kind}`);
-}
-function newAsset(path, o) {
-  const t = findTemplate(o.view, o.kind), base = join9(path, "base.v1.js");
-  if (existsSync8(base)) throw new Error(`${base} exists \u2014 write the next version instead (R10)`);
-  mkdirSync6(path, { recursive: true });
-  const brief = {
-    id: o.id,
-    ...JSON.parse(readFileSync5(join9(t.dir, "brief.json"), "utf8")),
-    kind: o.kind,
-    view: o.view,
-    ...o.size && { size: o.size },
-    ...o.states && { states: o.states },
-    ...o.directions && { directions: o.directions },
-    ...o.notes && { notes: o.notes }
-  };
-  writeFileSync9(join9(path, "brief.json"), JSON.stringify(brief, null, 2) + "\n");
-  writeFileSync9(base, fill(readFileSync5(join9(t.dir, "base.js"), "utf8"), { ID: o.id }));
-  return { files: [join9(path, "brief.json"), base], template: t };
-}
-function newFinish(path, n, base, kind) {
-  const file = join9(path, `finish.v${n}.js`);
-  if (existsSync8(file)) throw new Error(`${file} exists`);
-  if (kind === void 0 && existsSync8(join9(path, "brief.json"))) kind = JSON.parse(readFileSync5(join9(path, "brief.json"), "utf8")).kind;
-  writeFileSync9(file, fill(readFileSync5(finishTemplate(kind), "utf8"), { BASE: base, N: String(n) }));
-  return resolve4(file);
-}
-var KIND_ALIAS, fill, FACE_KINDS, finishTemplate;
-var init_templates = __esm({
-  "../artgen-cli/src/templates.ts"() {
-    "use strict";
-    KIND_ALIAS = { creature: "character", tileset: "tile", texture: "tile", viewmodel: "prop", "ui-icon": "prop" };
-    fill = (text, vars) => text.replace(/\{\{(\w+)\}\}/g, (m, k) => vars[k] ?? m);
-    FACE_KINDS = /* @__PURE__ */ new Set(["character", "creature"]);
-    finishTemplate = (kind) => join9(templatesRoot(), kind && FACE_KINDS.has(kind) ? "finish-character.js" : "finish.js");
-  }
-});
-
-// ../artgen-runtime/src/autotile.ts
-function reduceCorners2(m) {
-  let r = m & (N2 | E2 | S2 | W2);
-  if (m & NE2 && m & N2 && m & E2) r |= NE2;
-  if (m & SE2 && m & S2 && m & E2) r |= SE2;
-  if (m & SW2 && m & S2 && m & W2) r |= SW2;
-  if (m & NW2 && m & N2 && m & W2) r |= NW2;
-  return r;
-}
-var N2, NE2, E2, SE2, S2, SW2, W2, NW2, BLOB472, BLOB_INDEX;
-var init_autotile2 = __esm({
-  "../artgen-runtime/src/autotile.ts"() {
-    "use strict";
-    N2 = 1;
-    NE2 = 2;
-    E2 = 4;
-    SE2 = 8;
-    S2 = 16;
-    SW2 = 32;
-    W2 = 64;
-    NW2 = 128;
-    BLOB472 = [...new Set(Array.from({ length: 256 }, (_, m) => reduceCorners2(m)))].sort((a, b) => a - b);
-    BLOB_INDEX = new Map(BLOB472.map((m, i) => [m, i]));
-  }
-});
-
-// ../artgen-runtime/src/facing.ts
-var TAU;
-var init_facing = __esm({
-  "../artgen-runtime/src/facing.ts"() {
-    "use strict";
-    TAU = Math.PI * 2;
-  }
-});
-
-// ../artgen-runtime/src/stack.ts
-var init_stack = __esm({
-  "../artgen-runtime/src/stack.ts"() {
-    "use strict";
-  }
-});
-
-// ../artgen-runtime/src/pack.ts
-var RUNTIME_VERSION;
-var init_pack2 = __esm({
-  "../artgen-runtime/src/pack.ts"() {
-    "use strict";
-    init_autotile2();
-    init_facing();
-    init_stack();
-    RUNTIME_VERSION = "1.2.1";
-  }
-});
-
-// ../artgen-runtime/src/coords.ts
-var init_coords = __esm({
-  "../artgen-runtime/src/coords.ts"() {
-    "use strict";
-  }
-});
-
-// ../artgen-runtime/src/index.ts
-var init_src2 = __esm({
-  "../artgen-runtime/src/index.ts"() {
-    "use strict";
-    init_pack2();
-    init_facing();
-    init_autotile2();
-    init_stack();
-    init_coords();
-  }
-});
-
-// ../artgen-cli/src/runtime.ts
-import { createHash } from "node:crypto";
-import { existsSync as existsSync9, mkdirSync as mkdirSync7, readdirSync as readdirSync5, readFileSync as readFileSync6, rmSync, writeFileSync as writeFileSync10 } from "node:fs";
-import { dirname as dirname5, join as join10, relative as relative5 } from "node:path";
-import { fileURLToPath as fileURLToPath4 } from "node:url";
-function runtimeRoot() {
-  const here = dirname5(fileURLToPath4(import.meta.url));
-  for (const p of [join10(here, "runtime"), join10(here, "..", "..", "artgen-runtime", "src")]) if (existsSync9(join10(p, "pack.ts"))) return p;
-  throw new Error(`artgen runtime sources not found next to ${here}`);
-}
-function runtimeFiles(adapters, root = runtimeRoot()) {
-  const ts = (d) => existsSync9(d) ? readdirSync5(d).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts") && f !== "testkit.ts" && f !== "contract.ts") : [];
-  const available = ts(join10(root, "adapters")).map((f) => f.replace(/\.ts$/, ""));
-  for (const a of adapters) if (!available.includes(a)) throw new Error(`unknown runtime adapter "${a}" in artgen.config.json (available: ${available.join(", ")})`);
-  return [...ts(root).sort(), ...[...new Set(adapters)].map((a) => `adapters/${a}.ts`)];
-}
-function vendorRuntime(p, o = {}) {
-  const cfg = projectConfig(p), root = runtimeRoot(), adapters = cfg.runtime.adapters, files = runtimeFiles(adapters, root);
-  const dir = join10(p.root, cfg.export.runtimeDir), stampFile = join10(dir, STAMP);
-  const old = existsSync9(stampFile) ? readJson(stampFile) : null;
-  const generator = o.generator ?? "artgen";
-  const r = { dir: relative5(p.root, dir).split("\\").join("/"), version: RUNTIME_VERSION, from: old?.runtime ?? null, adapters, written: [], unchanged: [], kept: [], removed: [] };
-  const hashes = {};
-  const edited = (f) => {
-    const dest = join10(dir, f);
-    return existsSync9(dest) && old?.files[f] !== void 0 && sha(readFileSync6(dest, "utf8")) !== old.files[f];
-  };
-  for (const f of files) {
-    const text = vendoredSource(f, root), h = sha(text), dest = join10(dir, f);
-    if (existsSync9(dest)) {
-      const cur = sha(readFileSync6(dest, "utf8"));
-      if (cur === h) {
-        r.unchanged.push(f);
-        hashes[f] = h;
-        continue;
-      }
-      if (!o.force && (old?.files[f] === void 0 || edited(f))) {
-        r.kept.push(f);
-        hashes[f] = old?.files[f] ?? cur;
-        continue;
-      }
-    }
-    mkdirSync7(dirname5(dest), { recursive: true });
-    writeFileSync10(dest, text);
-    r.written.push(f);
-    hashes[f] = h;
-  }
-  for (const f of Object.keys(old?.files ?? {})) {
-    if (files.includes(f) || !existsSync9(join10(dir, f))) continue;
-    if (!o.force && edited(f)) {
-      r.kept.push(f);
-      hashes[f] = old.files[f];
-      continue;
-    }
-    rmSync(join10(dir, f));
-    r.removed.push(f);
-  }
-  writeJson(stampFile, { runtime: RUNTIME_VERSION, generator, adapters, files: hashes });
-  return r;
-}
-var STAMP, sha, HEADER, vendoredSource;
-var init_runtime = __esm({
-  "../artgen-cli/src/runtime.ts"() {
-    "use strict";
-    init_src2();
-    init_project();
-    STAMP = "runtime.json";
-    sha = (s2) => createHash("sha256").update(s2).digest("hex").slice(0, 16);
-    HEADER = `// Vendored by \`artgen export --runtime\` (artgen-runtime ${RUNTIME_VERSION}). Local edits are detected and kept;
-// re-export with --force to overwrite them. Source: packages/artgen-runtime in rstevenson1237/image_tools.
-`;
-    vendoredSource = (file, root = runtimeRoot()) => HEADER + readFileSync6(join10(root, file), "utf8");
-  }
-});
-
-// ../artgen-cli/src/w1.ts
-import { existsSync as existsSync10, readdirSync as readdirSync6, readFileSync as readFileSync7 } from "node:fs";
-import { basename as basename2, join as join11, relative as relative6 } from "node:path";
-function directionVersion(p, version) {
-  const f = directionFile(p, version);
-  if (existsSync10(f)) return parseDirection(readJson(f));
-  const cur = lockedDirection(p);
-  if (cur?.version === version) return cur;
-  throw new Error(`direction v${version} is not archived (art/directions/v${version}.json) \u2014 directions locked by older artgen versions are archived on the next lock`);
-}
-function candidateNames(p) {
-  if (!existsSync10(cdir(p))) return [];
-  return readdirSync6(cdir(p)).filter((f) => f.endsWith(".json")).map((f) => f.slice(0, -5)).sort((x, y) => (x.length === 1 ? 0 : 1) - (y.length === 1 ? 0 : 1) || x.localeCompare(y, "en", { numeric: true }));
-}
-function loadCandidate(p, name) {
-  const file = existsSync10(join11(cdir(p), `${name}.json`)) ? join11(cdir(p), `${name}.json`) : name;
-  if (!existsSync10(file)) throw new Error(`no candidate ${name} (have: ${candidateNames(p).join(", ") || "none \u2014 run direction candidates"})`);
-  return parseDirection(readJson(file));
-}
-function lockedDirection(p) {
-  const f = join11(p.art, "direction.json");
-  if (!existsSync10(f)) return null;
-  const raw = readJson(f);
-  return isPlaceholderDirection(raw) ? null : parseDirection(raw);
-}
-function ensureProbes(p, view) {
-  const created = [], fallbacks = [];
-  for (const kind of PROBE_KINDS) {
-    const d = probeDir(p, kind);
-    if (existsSync10(join11(d, "brief.json"))) continue;
-    const r = newAsset(d, { id: `probe-${kind}`, kind, view });
-    created.push(...r.files.map((f) => rel(p, f)));
-    if (r.template.fallback) fallbacks.push(`${kind}: ${view} has no template yet, used ${r.template.view}/${r.template.kind}`);
-  }
-  return { created, fallbacks };
-}
-function writeCandidates(p, iv) {
-  const ivFile = join11(p.art, "interview.json");
-  writeJson(ivFile, iv);
-  const dirs = generateCandidates(iv), out = [];
-  dirs.forEach((d, i) => {
-    const name = "abc"[i], file = join11(cdir(p), `${name}.json`);
-    writeJson(file, d);
-    out.push({ name, file: rel(p, file), summary: [d.theme.notes ?? "", ...describeDirection(d)] });
-  });
-  const probes = ensureProbes(p, iv.view ?? "topdown");
-  appendLedger(ledgerPath(p), { type: "note", asset: "direction", note: `candidates ${out.map((c) => c.name).join(", ")} from interview`, by: "agent" });
-  return { interview: rel(p, ivFile), candidates: out, probes: probes.created, fallbacks: probes.fallbacks };
-}
-function probeVersion(a) {
-  const vs = versionsIn(a);
-  if (!vs.length) throw new Error(`${a.path}: no base.vN.js`);
-  return [...vs].reverse().find((v) => v.startsWith("finish.")) ?? vs.filter((v) => v.startsWith("base.")).pop();
-}
-function probeAsset(p, kind, dir) {
-  const path = probeDir(p, kind), brief = readJson(join11(path, "brief.json"));
-  return { path, brief: { ...brief, id: brief.id ?? `probe-${kind}` }, dir, ledgerPath: ledgerPath(p) };
-}
-async function renderProbes(p, dir, opts = {}) {
-  const renders = {};
-  for (const kind of PROBE_KINDS) {
-    const a = probeAsset(p, kind, dir);
-    renders[kind] = await renderVersion(a, opts.versions?.[kind] ?? probeVersion(a));
-  }
-  const cell = (k) => renders[k].render.cells[0].grid;
-  const images = { character: cell("character"), prop: cell("prop"), tile: cell("tile"), effect: renders.effect.render.cells.map((c) => c.grid) };
-  return { renders, images };
-}
-async function writeTile(p, names) {
-  const list2 = names?.length ? names : candidateNames(p);
-  if (!list2.length) throw new Error("no candidates \u2014 run `artgen direction candidates` first");
-  const columns = [], info = [], hashes = [];
-  for (const name of list2) {
-    const dir = loadCandidate(p, name), { renders, images } = await renderProbes(p, dir);
-    const gates = Object.fromEntries(Object.entries(renders).map(([k, r]) => [k, r.report.pass]));
-    const failing = Object.entries(renders).flatMap(([k, r]) => r.report.checks.filter((c) => c.status === "fail").map((c) => `${k}.${c.id}: ${c.detail}`));
-    columns.push({ label: `${name.length === 1 ? name.toUpperCase() : name} - ${dir.id}`, notes: describeDirection(dir), dir, probes: images, gates });
-    info.push({ name, id: dir.id, gates, failing });
-    hashes.push(images.character.hash() + images.prop.hash());
-  }
-  const versions = PROBE_KINDS.map((k) => `${k} ${probeVersion(probeAsset(p, k, loadCandidate(p, list2[0])))}`).join(", ");
-  const round3 = (existsSync10(cdir(p)) ? readdirSync6(cdir(p)).filter((f) => /^style-tile-r\d+\.png$/.test(f)).length : 0) + 1;
-  const sheet = styleTile(`style tile round ${round3}: ${versions}`, columns);
-  const path = join11(cdir(p), `style-tile-r${round3}.png`);
-  writeGrid(path, sheet);
-  const tokens = imageTokens(sheet.w, sheet.h);
-  appendLedger(ledgerPath(p), { type: "review", asset: "direction", version: `tile-r${round3}`, sheet: relative6(p.art, path).split("\\").join("/"), imageTokens: tokens, candidates: list2, by: "agent" });
-  const dirs = list2.map((n) => loadCandidate(p, n)), lumas = dirs.map(paletteLuma);
-  let minGap = Infinity;
-  for (let i = 0; i < lumas.length; i++) for (let j = i + 1; j < lumas.length; j++) minGap = Math.min(minGap, Math.abs(lumas[i] - lumas[j]));
-  return { path: rel(p, path), round: round3, tokens, columns: info, distinct: { pairs: new Set(hashes).size, minLumaGap: Number.isFinite(minGap) ? Math.round(minGap * 10) / 10 : 0 } };
-}
-function writeMix(p, base, take, name) {
-  const n = name ?? `mix${candidateNames(p).filter((c) => c.startsWith("mix")).length + 1}`;
-  const parts = {};
-  for (const [part, src] of Object.entries(take)) {
-    if (!MIX_PARTS.includes(part)) throw new Error(`unknown part ${part} (have: ${MIX_PARTS.join(", ")})`);
-    parts[part] = loadCandidate(p, src);
-  }
-  const b = loadCandidate(p, base), d = mixDirections(b, parts, `${b.id.replace(/-[a-z]$/, "")}-${n}`);
-  d.theme.notes = `mix ${n}: ${base.toUpperCase()} as the base${Object.entries(take).map(([k, v]) => `, ${k} from ${String(v).toUpperCase()}`).join("")}`;
-  const file = join11(cdir(p), `${n}.json`);
-  writeJson(file, d);
-  appendLedger(ledgerPath(p), { type: "note", asset: "direction", note: d.theme.notes, by: "user" });
-  return { name: n, file: rel(p, file), dir: d };
-}
-function writeDraft(p, from, name = "next") {
-  const src = from ? loadCandidate(p, from) : lockedDirection(p);
-  if (!src) throw new Error("nothing to start from: no locked direction; use --from <candidate>");
-  const d = { ...JSON.parse(JSON.stringify(src)), status: "draft" };
-  const file = join11(cdir(p), `${name}.json`);
-  writeJson(file, d);
-  return { name, file: rel(p, file) };
-}
-async function writeAnchors(p) {
-  const dir = lockedDirection(p);
-  if (!dir) throw new Error("art/direction.json is not locked yet \u2014 run `artgen direction lock <candidate>`");
-  const { renders, images } = await renderProbes(p, dir), files = [], list2 = [];
-  const strip2 = (fs) => {
-    const g = new Grid(fs.reduce((n, f) => n + f.w, 0) + fs.length - 1, Math.max(...fs.map((f) => f.h)));
-    let x = 0;
-    for (const f of fs) {
-      g.blit(f, x, 0);
-      x += f.w + 1;
-    }
-    return g;
-  };
-  for (const kind of PROBE_KINDS) {
-    const g = kind === "effect" ? strip2(images.effect) : images[kind];
-    const f = join11(p.art, "anchors", `${kind}.png`);
-    writeGrid(f, g);
-    files.push(relative6(p.art, f).split("\\").join("/"));
-    list2.push({ label: kind, grid: g });
-  }
-  const file = join11(p.art, "direction.json"), raw = readJson(file);
-  writeJson(file, { ...raw, anchors: files });
-  const sheet = join11(p.art, "direction.png");
-  writeGrid(sheet, styleSheet({ ...dir, anchors: files }, list2));
-  const versions = Object.fromEntries(Object.entries(renders).map(([k, r]) => [k, r.version]));
-  appendLedger(ledgerPath(p), { type: "note", asset: "direction", version: `v${dir.version}`, note: `anchors from probes ${Object.entries(versions).map(([k, v]) => `${k} ${v}`).join(", ")}`, by: "agent" });
-  return { anchors: files.map((f) => `art/${f}`), sheet: rel(p, sheet), versions, gates: Object.fromEntries(Object.entries(renders).map(([k, r]) => [k, r.report.pass])) };
-}
-async function lock(p, name, opts = {}) {
-  const chosen = loadCandidate(p, name), prev = lockedDirection(p);
-  const d = lockDirection(chosen, prev, opts.id);
-  d.theme = { ...d.theme, notes: `${d.theme.notes ?? ""}${opts.note ? `. ${opts.note}` : ""}`.trim() };
-  const file = join11(p.art, "direction.json");
-  if (prev && !existsSync10(directionFile(p, prev.version))) writeJson(directionFile(p, prev.version), readJson(file));
-  writeJson(file, d);
-  appendLedger(ledgerPath(p), { type: "approve", asset: "direction", version: `v${d.version}`, note: `locked ${name}${opts.note ? `: ${opts.note}` : ""}`, direction: { id: d.id, version: d.version }, by: "user" });
-  const anchors = await writeAnchors(p);
-  writeJson(directionFile(p, d.version), readJson(file));
-  return { direction: lockedDirection(p), file: rel(p, file), ...anchors };
-}
-function show(p) {
-  const locked = lockedDirection(p);
-  const candidates = candidateNames(p).map((n) => {
-    const raw = readJson(join11(cdir(p), `${n}.json`)), r = validateDirection(raw);
-    return r.ok ? { name: n, id: r.direction.id, status: r.direction.status, summary: describeDirection(r.direction) } : { name: n, id: "?", status: "invalid", summary: r.errors.slice(0, 3) };
-  });
-  const tiles = existsSync10(cdir(p)) ? readdirSync6(cdir(p)).filter((f) => /^style-tile-r\d+\.png$/.test(f)).sort((a, b) => parseInt(a.slice(12)) - parseInt(b.slice(12))).map((f) => rel(p, join11(cdir(p), f))) : [];
-  const probes = {};
-  for (const k of PROBE_KINDS) if (existsSync10(join11(probeDir(p, k), "brief.json"))) {
-    const a = { path: probeDir(p, k), brief: readJson(join11(probeDir(p, k), "brief.json")), dir: void 0, ledgerPath: ledgerPath(p) };
-    probes[k] = versionsIn(a).join(" ");
-  }
-  const history = existsSync10(ledgerPath(p)) ? ledgerFor({ brief: { id: "direction" }, ledgerPath: ledgerPath(p) }).length : 0;
-  return { locked, candidates, tiles, probes, history };
-}
-var cdir, probeDir, ledgerPath, rel, directionFile, readInterview;
-var init_w1 = __esm({
-  "../artgen-cli/src/w1.ts"() {
-    "use strict";
-    init_src();
-    init_asset();
-    init_node();
-    init_project();
-    init_templates();
-    cdir = (p) => join11(p.art, "candidates");
-    probeDir = (p, kind) => join11(p.art, "probes", kind);
-    ledgerPath = (p) => join11(p.art, "ledger.jsonl");
-    rel = (p, f) => relative6(p.root, f).split("\\").join("/");
-    directionFile = (p, version) => join11(p.art, "directions", `v${version}.json`);
-    readInterview = (file) => {
-      const iv = JSON.parse(readFileSync7(file, "utf8"));
-      if (!iv.pitch) throw new Error(`${basename2(file)}: "pitch" is required`);
-      return iv;
-    };
-  }
-});
-
-// ../artgen-cli/src/w2.ts
-import { copyFileSync, existsSync as existsSync11, mkdirSync as mkdirSync8, readdirSync as readdirSync7, readFileSync as readFileSync8, writeFileSync as writeFileSync11 } from "node:fs";
-import { dirname as dirname6, join as join12, relative as relative7, resolve as resolve5 } from "node:path";
-function readBriefs(p) {
-  if (!existsSync11(briefsFile(p))) return [];
-  const r = parseBriefs(readFileSync8(briefsFile(p), "utf8"));
-  if (!r.ok) throw new Error(`art/briefs.yaml:
-  ${r.errors.join("\n  ")}`);
-  return r.briefs;
-}
-function readContract(p, id) {
-  return existsSync11(contractFile(p, id)) ? readJson(contractFile(p, id)) : void 0;
-}
-function addBrief(p, b, o = {}) {
-  const old = readContract(p, b.id), dir = old && lockedDirection(p);
-  if (old && dir && !o.breakContract) {
-    const d = diffContract(old, briefContract(b, dir, old));
-    if (d.breaking.length) throw new Error(`brief ${b.id} would break its exported animation contract (art/contracts/${b.id}.json):
-  ${d.breaking.join("\n  ")}
-game code may depend on it; re-run with --break-contract if that is intended`);
-  }
-  const text = existsSync11(briefsFile(p)) ? readFileSync8(briefsFile(p), "utf8") : "";
-  writeFileSync11(briefsFile(p), upsertBrief(text, b));
-  return readBriefs(p);
-}
-function removeBriefFile(p, id) {
-  const text = readFileSync8(briefsFile(p), "utf8"), out = removeBrief(text, id);
-  if (out !== text) writeFileSync11(briefsFile(p), out);
-  return out !== text;
-}
-function resolveAssetArg(p, arg) {
-  if (existsSync11(arg)) return arg;
-  if (p) {
-    const b = readBriefs(p).find((x) => x.id === arg);
-    if (b) return assetPathOf(p, b);
-  }
-  throw new Error(`${arg}: not an asset directory or a brief id in art/briefs.yaml`);
-}
-function templateFor(b, dir) {
-  const view = b.view ?? dir.camera.view, figure = ["character", "creature"].includes(b.kind);
-  if (figure && b.body && b.body !== "humanoid") return findTemplate(view, `creature-${b.body}`);
-  const walker = figure && ((b.directions ?? 1) > 1 || !!b.anims?.walk);
-  return walker ? findTemplate(view, "character-walk") : findTemplate(view, b.kind);
-}
-function briefWarnings(b, dir) {
-  const out = briefMaterialIssues(b, dir), t = templateFor(b, dir), view = b.view ?? dir.camera.view;
-  if (t.view !== view) out.push(`no ${view} template for it: it starts from ${t.view}/${t.kind} \u2014 check the review sheets for the ${view} camera`);
-  return out;
-}
-function scaffoldAsset(p, b, dir) {
-  const path = assetPathOf(p, b), t = templateFor(b, dir), template = `${t.view}/${t.kind}`;
-  if (existsSync11(join12(path, "base.v1.js"))) return { path, created: false, template };
-  mkdirSync8(path, { recursive: true });
-  const tb = readJson(join12(t.dir, "brief.json"));
-  if (!existsSync11(join12(path, "brief.json"))) writeJson(join12(path, "brief.json"), { id: b.id, template, review: tb.review ?? {} });
-  writeFileSync11(join12(path, "base.v1.js"), readFileSync8(join12(t.dir, "base.js"), "utf8").replace(/\{\{ID\}\}/g, b.id));
-  return { path, created: true, template };
-}
-async function assetRow(p, b) {
-  const path = assetPathOf(p, b);
-  const base = { id: b.id, kind: b.kind, path: rel2(p, path), issues: effectObjectIssues(b).map((x) => `brief: ${x}`), imageTokens: 0 };
-  if (!existsSync11(join12(path, "base.v1.js")) && !versionsInPath(path).length) return { ...base, status: "brief", why: "not started" };
-  const a = openAsset(path), st = await passState(a), ledger = ledgerFor(a);
-  const imageTokens2 = ledger.filter((e) => e.type === "review").reduce((n, e) => n + (e.imageTokens ?? 0), 0);
-  if (!ledger.length && st.next.action === "review" && st.next.version === "base.v1") return { ...base, status: "in-pipeline", next: st.next, why: "base.v1 from the template: adapt it to the brief, then review", imageTokens: imageTokens2 };
-  const fh = st.next.action === "ready" ? finalHash(a, st.next.final) : void 0;
-  const s2 = assetStatus({ ledger, next: st.next, direction: { id: a.dir.id, version: a.dir.version }, finalHash: fh });
-  const sc = s2.final ? [...ledger].reverse().find((e) => e.type === "score" && !e.blind && e.version === s2.final) : void 0;
-  const ro = s2.final ? [...ledger].reverse().find((e) => e.type === "roster" && e.version === s2.final && Array.isArray(e.issues)) : void 0;
-  const issues = [...effectObjectIssues(b).map((x) => `brief: ${x}`), ...s2.issues, ...(st.stale ?? []).map((x) => `finish-stale ${x}`), ...ro?.issues ?? []];
-  const blind = s2.final ? blindScores(ledger).get(s2.final)?.score : void 0, score = sc?.score, eff = blind ?? score;
-  const top = st.next.action === "ready" ? st.next.top : void 0;
-  return {
-    ...base,
-    status: s2.status,
-    final: s2.final,
-    score,
-    gate: sc?.conformance?.pass,
-    issues,
-    next: st.next,
-    why: s2.why,
-    imageTokens: imageTokens2,
-    stale: st.stale,
-    ...blind !== void 0 && { blind },
-    ...eff !== void 0 && eff < projectConfig(p).review.approveMin && { belowBar: true },
-    ...top && { top }
-  };
-}
-async function projectStatus(p, ids) {
-  requireLocked(p);
-  const rows = [];
-  for (const b of briefOrder(readBriefs(p))) if (!ids?.length || ids.includes(b.id)) rows.push(await assetRow(p, b));
-  return rows;
-}
-function requireLocked(p) {
-  const d = lockedDirection(p);
-  if (!d) throw new Error("no locked direction yet \u2014 run the art direction workflow first (`artgen direction lock <candidate>`)");
-  return d;
-}
-function workPacket(row, reviewed = true) {
-  const st = row.next;
-  if (!st || st.action === "ready") return void 0;
-  const owns = row.path, base = { id: row.id, kind: row.kind, owns, step: st };
-  if (st.action === "write-base" || st.action === "write-finish") return { ...base, writes: [`${owns}/${st.version}.js`], role: "maker" };
-  if (st.action === "review" && st.version === "base.v1" && /^base\.v1 from the template/.test(row.why)) return { ...base, writes: [`${owns}/base.v1.js`], role: "maker" };
-  if (st.action === "review" && !reviewed) return { ...base, writes: [`${owns}/${st.version}.js`], role: "maker", resume: true };
-  return { ...base, writes: [], role: "main" };
-}
-async function make(p, ids, o = {}) {
-  const dir = requireLocked(p), briefs = briefOrder(readBriefs(p)).filter((b) => !ids?.length || ids.includes(b.id) || ids.includes("all"));
-  if (ids?.length && !ids.includes("all")) {
-    for (const id of ids) if (!briefs.some((b) => b.id === id)) throw new Error(`no brief ${id} in art/briefs.yaml`);
-  }
-  const scaffolded = [], finals = [], overBudget = [], rows = [], reviewed = /* @__PURE__ */ new Map();
-  for (const b of briefs) {
-    const sc = scaffoldAsset(p, b, dir);
-    if (sc.created) scaffolded.push(rel2(p, join12(sc.path, "base.v1.js")));
-    let row = await assetRow(p, b);
-    const a = openAsset(sc.path), ledger = ledgerFor(a);
-    if (row.next?.action === "review") {
-      const v = row.next.version;
-      reviewed.set(b.id, ledger.some((e) => e.type === "review" && e.version === v && !e.blind));
-    }
-    if (row.next?.action === "ready") {
-      const fin = row.next.final;
-      if (!ledger.some((e) => e.type === "status" && e.status === "final" && e.version === fin && e.sourceHash === finalHash(a, fin))) {
-        appendLedger(ledgerFile(p), { type: "status", asset: b.id, status: "final", version: fin, sourceHash: finalHash(a, fin), issues: row.issues, direction: { id: dir.id, version: dir.version }, by: "agent" });
-        finals.push(b.id);
-      }
-    } else if (row.next && a.budget?.maxImageTokens && row.imageTokens >= a.budget.maxImageTokens) {
-      const st = await passState(a), best = st.rows.filter((r) => r.score !== void 0).sort((x, y) => y.score - x.score)[0];
-      if (best && !ledger.some((e) => e.type === "status" && e.status === "final" && e.version === best.version)) {
-        appendLedger(ledgerFile(p), { type: "status", asset: b.id, status: "final", version: best.version, sourceHash: finalHash(a, best.version), issues: [`budget: ${row.imageTokens} review-image tokens \u2265 ${a.budget.maxImageTokens}`], direction: { id: dir.id, version: dir.version }, by: "agent" });
-        overBudget.push(b.id);
-      }
-      row = { ...row, why: `over budget (${row.imageTokens} image tokens); left at ${best?.version ?? "nothing scored"}` };
-    }
-    rows.push(row);
-  }
-  const live = rows.filter((r) => !DONE.includes(r.status) && !r.why.startsWith("over budget")), active = new Set((o.wave ? live.slice(0, o.wave) : live).map((r) => r.id));
-  const roster2 = earlyRoster(p, rows.filter((r) => active.has(r.id)));
-  const held = new Set(roster2?.ids ?? []), pending = rows.filter((r) => active.has(r.id) && r.next && r.next.action !== "ready" && !held.has(r.id));
-  const n0 = pending[0], next = n0 && { id: n0.id, path: n0.path, step: n0.next };
-  const finalRoster = rows.filter((r) => r.status === "final" && !TILE_KINDS.has(r.kind) && !ledgerFor(openAsset(join12(p.root, r.path))).some((e) => e.type === "roster" && e.version === r.final && Array.isArray(e.issues))).map((r) => r.id);
-  const res = { rows, ...next && { next }, scaffolded, finals, overBudget, ...roster2 && { roster: roster2 }, ...finalRoster.length >= 2 && { finalRoster } };
-  if (!o.parallel) return res;
-  const packets = pending.map((r) => workPacket(r, reviewed.get(r.id) ?? true)).filter((x) => !!x), makers = packets.filter((x) => x.role === "maker");
-  const waiting = rows.filter((r) => !active.has(r.id) && !DONE.includes(r.status) && !r.why.startsWith("over budget")).map((r) => workPacket(r, reviewed.get(r.id) ?? true)).filter((x) => !!x && x.role === "maker");
-  return { ...res, work: { makers: makers.slice(0, o.parallel), queued: [...makers.slice(o.parallel), ...waiting], main: packets.filter((x) => x.role === "main") } };
-}
-function earlyRoster(p, rows) {
-  if (!projectConfig(p).review.earlyRoster) return void 0;
-  const figures = rows.filter((r) => !TILE_KINDS.has(r.kind) && r.status !== "brief");
-  if (figures.length < 2) return void 0;
-  const atV1 = v1Rows(p, figures), ready2 = new Set(atV1.map((r) => r.id));
-  const beforeV1 = figures.filter((r) => !ready2.has(r.id) && r.next?.action !== "ready" && (r.next?.action === "review" || r.next?.action === "write-base") && "version" in r.next && r.next.version === "base.v1");
-  const uncovered = atV1.filter((r) => !ledgerFor(openAsset(join12(p.root, r.path))).some((e) => e.type === "roster" && e.version === "base.v1" && Array.isArray(e.issues)));
-  if (uncovered.length < 2 && !(uncovered.length && atV1.length >= 2)) return void 0;
-  if (beforeV1.length) return { stage: "v1", ids: uncovered.map((r) => r.id), why: `holding v2 for the v1 roster until ${beforeV1.map((r) => r.id).join(", ")} ${beforeV1.length > 1 ? "have" : "has"} a scored v1` };
-  return { stage: "v1", ids: uncovered.map((r) => r.id), why: "every v1 is scored: run the v1 roster (`roster --stage v1`, a fresh art-reviewer, `roster record`) before any v2 \u2014 its notes go into each v2 brief" };
-}
-function thumb(r) {
-  const f = r.facings[0], cells = r.cells.filter((c) => c.facing === f);
-  return cells.length > 1 ? strip({ ...r, cells }) : cells[0].grid;
-}
-function reviewOf(a, final) {
-  const ledger = ledgerFor(a), own = [...ledger].reverse().find((e) => e.type === "score" && !e.blind && e.version === final);
-  return { reviewer: typeof own?.reviewer === "string" ? own.reviewer : void 0, blind: blindScores(ledger).get(final)?.score };
-}
-async function gallery(p, opts = {}) {
-  const dir = requireLocked(p), want = opts.statuses ?? ["final"], rows = (await projectStatus(p, opts.ids)).filter((r) => r.final && (opts.ids?.length || want.includes(r.status)));
-  const items = [], assets = [];
-  for (const r of rows) {
-    const a = openAsset(join12(p.root, r.path)), v = await renderVersion(a, r.final);
-    const rv = reviewOf(a, r.final);
-    const tag = `${r.id} ${r.final} ${r.score ?? "-"}${rv.blind !== void 0 ? ` b${rv.blind}` : rv.reviewer === "self" ? " SELF" : ""}${r.gate === false ? " GATE" : ""}${r.belowBar ? " BELOW BAR" : ""}${r.top ? ` final\u2260best ${r.top.version} ${r.top.score}` : ""}${r.issues.length ? ` !${r.issues.length}` : ""}`;
-    items.push({ label: tag, grid: thumb(v.render), bg: a.brief.review?.bg ?? dir.background });
-    assets.push({ id: r.id, final: r.final, score: r.score, ...rv.blind !== void 0 && { blind: rv.blind }, ...rv.reviewer && { reviewer: rv.reviewer }, issues: r.issues, ...r.belowBar && { belowBar: true }, ...r.top && { top: r.top } });
-  }
-  if (!items.length) return { sheets: [], tokens: 0, assets };
-  const sheets = [];
-  let tokens = 0;
-  const n0 = (existsSync11(join12(p.art, "sheets")) ? readdirCount(join12(p.art, "sheets"), /^gallery-\d+\.png$/) : 0) + 1;
-  for (let i = 0; i < items.length; i += 12) {
-    const page2 = items.slice(i, i + 12), sheet = contactSheet(`${dir.id} v${dir.version}: finished assets ${i + 1}-${i + page2.length} of ${items.length} (score, b blind score, !issues; BELOW BAR under ${projectConfig(p).review.approveMin})`, page2, 4, Math.min(4, page2.length));
-    const f = join12(p.art, "sheets", `gallery-${n0 + i / 12}.png`);
-    writeGrid(f, sheet);
-    sheets.push(rel2(p, f));
-    tokens += imageTokens(sheet.w, sheet.h);
-  }
-  appendLedger(ledgerFile(p), { type: "review", asset: "gallery", sheet: sheets.join(","), imageTokens: tokens, assets: assets.map((x) => x.id), by: "agent" });
-  return { sheets, tokens, assets };
-}
-function v1Rows(p, rows) {
-  const out = [];
-  for (const r of rows) {
-    if (TILE_KINDS.has(r.kind) || r.status === "brief") continue;
-    const a = openAsset(join12(p.root, r.path)), vs = versionsIn(a);
-    if (!vs.includes("base.v1") || vs.includes("base.v2") || (a.budget?.revisionPasses ?? 3) < 2) continue;
-    if (ledgerFor(a).some((e) => e.type === "score" && !e.blind && e.version === "base.v1")) out.push(r);
-  }
-  return out;
-}
-async function rosterRun(p, o = {}) {
-  const dir = requireLocked(p), briefs = readBriefs(p), ledgerAll = parseLedger(existsSync11(ledgerFile(p)) ? readFileSync8(ledgerFile(p), "utf8") : ""), stage = o.stage ?? "final";
-  const ids = o.ids?.length ? o.ids : void 0;
-  const all = await projectStatus(p, ids), rows = stage === "v1" ? v1Rows(p, all) : all.filter((r) => r.final);
-  const items = [], versions = {}, skipped = [];
-  for (const r of rows) {
-    const b = briefs.find((x) => x.id === r.id), version = stage === "v1" ? "base.v1" : r.final;
-    if (TILE_KINDS.has(b.kind)) {
-      skipped.push(`${r.id} (${b.kind})`);
-      continue;
-    }
-    const v = await renderVersion(openAsset(join12(p.root, r.path)), version);
-    items.push({ id: r.id, kind: b.kind, grid: v.render.cells[0].grid, drawn: drawnHeight(standFrames(v.render)), notes: b.notes, height: b.height });
-    versions[r.id] = version;
-  }
-  if (items.length < 2) throw new Error(`roster: needs at least two ${stage === "v1" ? "non-tile assets with a scored base.v1 and no v2" : "finished non-tile assets"} (have ${items.length})`);
-  const seed = o.seed ?? ledgerAll.filter((e) => e.type === "roster" && e.asset === "roster" && e.key).length + 1;
-  const res = roster(items, { bg: dir.background ?? "#202020", pxPerMetre: pxPerMetre(dir), heightFail: projectConfig(p).review.heightFail, seed });
-  const f = (n) => join12(p.art, "sheets", n), many = res.pages.length > 1, sheets = [];
-  let tokens = 0;
-  res.pages.forEach((pg, i) => {
-    const sfx = many ? `-${i + 1}` : "";
-    writeGrid(f(`roster-lineup${sfx}.png`), pg.lineup);
-    writeGrid(f(`roster-silhouettes${sfx}.png`), pg.silhouettes);
-    sheets.push(rel2(p, f(`roster-lineup${sfx}.png`)), rel2(p, f(`roster-silhouettes${sfx}.png`)));
-    tokens += imageTokens(pg.lineup.w, pg.lineup.h) + imageTokens(pg.silhouettes.w, pg.silhouettes.h);
-  });
-  writeJson(f("roster-assets.json"), {
-    stage,
-    lineup: items.map((it) => it.id),
-    ...many && { pages: res.pages.map((pg, i) => ({ lineup: `roster-lineup-${i + 1}.png`, silhouettes: `roster-silhouettes-${i + 1}.png`, ids: pg.ids })) },
-    assets: [...items].sort((a, b) => a.id.localeCompare(b.id)).map((it) => ({ id: it.id, kind: it.kind, notes: it.notes ?? "", ...it.height && { height: it.height } }))
-  });
-  appendLedger(ledgerFile(p), { type: "roster", asset: "roster", stage, key: res.key, versions, seed, sizes: res.sizes, pairs: res.pairs, sheet: sheets.map((x) => relative7(p.art, join12(p.root, x)).split("\\").join("/")).join(","), imageTokens: tokens, by: "agent" });
-  return { lineup: sheets[0], silhouettes: sheets[1], sheets, assets: rel2(p, f("roster-assets.json")), tokens, seed, stage, sizes: res.sizes, pairs: res.pairs, skipped };
-}
-function rosterRecord(p, file, reviewer = "self") {
-  const ledgerAll = parseLedger(existsSync11(ledgerFile(p)) ? readFileSync8(ledgerFile(p), "utf8") : "");
-  const run = [...ledgerAll].reverse().find((e) => e.type === "roster" && e.asset === "roster" && e.key);
-  if (!run) throw new Error("roster record: run `artgen roster` first");
-  const review = readJson(resolve5(file)), key2 = run.key, versions = run.versions;
-  const issues = rosterIssues(review, key2);
-  for (const id of Object.values(key2)) {
-    const s2 = (review.silhouettes ?? []).find((x) => key2[x.letter] === id);
-    appendLedger(ledgerFile(p), { type: "roster", asset: id, version: versions[id], issues: issues[id] ?? [], ...s2 && { readability: s2.readability, guess: s2.guess }, reviewer, by: "agent" });
-  }
-  appendLedger(ledgerFile(p), { type: "roster", asset: "roster", recorded: true, notes: review.notes ?? [], reviewer, by: "agent" });
-  return { issues, notes: review.notes ?? [] };
-}
-async function feedback(p, id, o) {
-  const b = readBriefs(p).find((x) => x.id === id);
-  if (!b) throw new Error(`no brief ${id}`);
-  requireLocked(p);
-  const row = await assetRow(p, b), agent = o.by === "agent";
-  if (!["final", "approved", "exported", "stale"].includes(row.status)) throw new Error(`${id} is ${row.status}: feedback applies to finished assets (wait for final)`);
-  const a = openAsset(assetPathOf(p, b)), mine = feedbackOf(a).filter((f) => f.by === "agent" === agent), iterations = mine.length + 1;
-  const max2 = agent ? projectConfig(p).review.rosterRevisions : a.budget?.maxUserIterations ?? 3;
-  if (iterations > max2 && !o.force) throw new Error(agent ? `${id}: ${iterations - 1} revisions from roster notes already (review.rosterRevisions ${max2}) \u2014 list the note for the user instead, or pass --force` : `${id}: ${iterations - 1} user iterations already (budget.maxUserIterations ${max2}) \u2014 escalate: talk it through with the user, or pass --force`);
-  const vs = versionsIn(a), kind = o.route === "base" ? "base" : "finish";
-  const opens = `${kind}.v${Math.max(0, ...vs.map(parseVersion).filter((v) => v.kind === kind).map((v) => v.n)) + 1}`;
-  appendLedger(ledgerFile(p), { type: "feedback", asset: id, route: o.route, opens, on: row.final, note: o.note, ...o.region && { region: o.region }, ...o.cell && { cell: o.cell }, ...agent ? { by: "agent", source: o.source ?? "roster" } : { by: "user" } });
-  return { opens, next: (await passState(openAsset(assetPathOf(p, b)))).next, iterations };
-}
-async function approve(p, id, note = "") {
-  const b = readBriefs(p).find((x) => x.id === id);
-  if (!b) throw new Error(`no brief ${id}`);
-  const dir = requireLocked(p), row = await assetRow(p, b);
-  if (row.status !== "final") throw new Error(`${id} is ${row.status}: only a final asset can be approved${row.status === "stale" ? " (run restyle first)" : ""}`);
-  const a = openAsset(assetPathOf(p, b)), r = await renderVersion(a, row.final);
-  if (!r.report.pass) throw new Error(`${id} ${row.final}: the gate fails (${r.report.checks.filter((c) => c.status === "fail").map((c) => c.id).join(", ")}) \u2014 give feedback instead (R6)`);
-  const sheet = [...ledgerFor(a)].reverse().find((e2) => e2.type === "review" && e2.version === row.final)?.sheet;
-  if (!sheet) throw new Error(`${id} ${row.final}: no review sheet yet \u2014 artgen review first (R6)`);
-  const kept = join12(p.art, "sheets", "approved", `${id}-${row.final}.png`), src = resolve5(dirname6(ledgerFile(p)), String(sheet));
-  if (existsSync11(src)) {
-    mkdirSync8(dirname6(kept), { recursive: true });
-    copyFileSync(src, kept);
-  }
-  const rv = reviewOf(a, row.final), cfg = projectConfig(p).review, warnings = [];
-  if (rv.blind === void 0) warnings.push(rv.reviewer === "self" || !rv.reviewer ? "scored only by the agent that made it, with no blind re-score" : "no blind re-score of the final");
-  warnings.push(...row.issues.filter((x) => x.startsWith("blind re-score")));
-  if (rv.blind !== void 0 && rv.blind < cfg.approveMin && !warnings.some((x) => x.startsWith("blind re-score"))) warnings.push(`blind re-score ${rv.blind} is under ${cfg.approveMin}`);
-  const e = { type: "approve", asset: id, version: row.final, sourceHash: finalHash(a, row.final), outputHash: r.strip.hash(), sheet: existsSync11(kept) ? relative7(p.art, kept).split("\\").join("/") : sheet, direction: { id: dir.id, version: dir.version }, note, ...warnings.length && { warnings }, by: "user" };
-  appendLedger(ledgerFile(p), e);
-  return { ts: (/* @__PURE__ */ new Date()).toISOString(), ...e };
-}
-async function writeNextFinish(path, o = {}) {
-  const vs = versionsIn({ path }), n = vs.filter((v) => v.startsWith("finish.")).length + 1;
-  let base = o.base;
-  if (!base) {
-    const st = await (async () => {
-      try {
-        return await passState(openAsset(path, o));
-      } catch {
-        return void 0;
-      }
-    })();
-    base = st?.next.action === "write-finish" ? st.next.base : st?.best?.version ?? vs.filter((v) => v.startsWith("base.")).pop();
-  }
-  if (!base) throw new Error(`${path}: no base version to finish`);
-  const kind = (() => {
-    try {
-      return openAsset(path, o).brief.kind;
-    } catch {
-      return void 0;
-    }
-  })();
-  return { file: newFinish(path, n, base, kind), base };
-}
-function inPack(b, pack, include) {
-  if (b.pack) return b.pack === pack;
-  return include.some((pat) => pat.startsWith("kind:") ? b.kind === pat.slice(5) : new RegExp(`^${pat.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*")}$`).test(b.id));
-}
-async function exportPacks(p, o = {}) {
-  const dir = requireLocked(p), cfg = projectConfig(p), rows = await projectStatus(p), briefs = readBriefs(p);
-  const ok = (s2) => s2 === "approved" || s2 === "exported" || o.includeDrafts && s2 === "final";
-  const skipped = rows.filter((r) => !ok(r.status)).map((r) => ({ id: r.id, status: r.status }));
-  const out = [], forTs = [];
-  const builds = [];
-  for (const [pack, def] of Object.entries(cfg.packs)) {
-    if (o.packs?.length && !o.packs.includes(pack)) continue;
-    const inputs = [];
-    for (const r of rows) {
-      const b = briefs.find((x) => x.id === r.id);
-      if (!ok(r.status) || !inPack(b, pack, def.include)) continue;
-      const a = openAsset(join12(p.root, r.path)), n = Math.max(1, b.variants ?? 1), renders = [];
-      for (let k = 0; k < n; k++) renders.push((await renderVersion(a, r.final, { variant: k })).render);
-      inputs.push({ brief: a.brief, view: a.brief.view ?? dir.camera.view, renders, version: r.final, sourceHash: finalHash(a, r.final), draft: r.status === "final" });
-    }
-    if (!inputs.length) continue;
-    builds.push({ pack, inputs, built: buildPack(pack, dir, inputs, { generator: o.generator, runtime: RUNTIME_VERSION, maxSize: cfg.export.maxAtlas, padding: cfg.export.padding }) });
-  }
-  const contracts = [], refused = [], seen = /* @__PURE__ */ new Set();
-  for (const { built } of builds) for (const [id, a] of Object.entries(built.manifest.assets)) {
-    if (seen.has(id)) continue;
-    seen.add(id);
-    const next = contractOf(id, a), old = readContract(p, id);
-    if (!old) {
-      contracts.push({ next, change: { id, change: "created", notes: [] } });
-      continue;
-    }
-    const d = diffContract(old, next);
-    if (d.breaking.length && !allowed(o.breakContract, id)) refused.push(`${id}: ${d.breaking.join("; ")}`);
-    else if (d.breaking.length || d.added.length) contracts.push({ next, change: { id, change: d.breaking.length ? "broken" : "extended", notes: [...d.breaking, ...d.added.map((x) => `added ${x}`)] } });
-  }
-  if (refused.length) throw new Error(`export refused: the animation contract changed for
-  ${refused.join("\n  ")}
-game code indexes these states and frames (art/contracts/<id>.json). Restore the brief's anims/states/directions and the base's anchors, or re-run with --break-contract <id> once the game code is updated`);
-  for (const { pack, built, inputs } of builds) {
-    const pdir = join12(p.root, cfg.export.packDir, pack);
-    built.atlases.forEach((g, i) => {
-      writeGrid(join12(pdir, built.manifest.atlases[i]), g);
-      writeJson(join12(pdir, built.manifest.atlases[i].replace(/\.png$/, ".aseprite.json")), built.aseprite[i]);
-    });
-    built.normals?.forEach((g, i) => writeGrid(join12(pdir, built.manifest.normals[i]), g));
-    writeJson(join12(pdir, "pack.json"), built.manifest);
-    for (const inp of inputs) appendLedger(ledgerFile(p), { type: "export", asset: inp.brief.id, version: inp.version, sourceHash: inp.sourceHash, pack, direction: { id: dir.id, version: dir.version }, ...inp.draft && { draft: true }, by: "agent" });
-    out.push({ pack, dir: rel2(p, pdir), atlases: built.manifest.atlases.map((f) => rel2(p, join12(pdir, f))), assets: inputs.map((i) => i.brief.id), drafts: built.manifest.drafts ?? [] });
-    const pub = cfg.export.packDir.replace(/\\/g, "/").replace(/^\.?\/?/, "");
-    forTs.push({ manifest: built.manifest, url: pub.startsWith("public/") || pub === "public" ? `/${pub.slice(7)}${pub.length > 7 ? "/" : ""}${pack}/pack.json`.replace(/\/+/g, "/") : `${pub}/${pack}/pack.json` });
-  }
-  for (const { next, change } of contracts) {
-    writeJson(contractFile(p, next.asset), next);
-    appendLedger(ledgerFile(p), { type: "contract", asset: next.asset, change: change.change, ...change.notes.length && { notes: change.notes }, by: "agent" });
-  }
-  const tsFile = join12(p.root, cfg.export.assetsTs);
-  if (forTs.length) {
-    mkdirSync8(dirname6(tsFile), { recursive: true });
-    writeFileSync11(tsFile, assetsTs(forTs));
-  }
-  const runtime = o.runtime ? vendorRuntime(p, { force: o.force, generator: o.generator }) : void 0;
-  return { packs: out, assetsTs: forTs.length ? rel2(p, tsFile) : "", skipped, contracts: contracts.map((c) => c.change), ...runtime && { runtime } };
-}
-async function restyle(p, o = {}) {
-  const to = requireLocked(p), from = directionVersion(p, o.from ?? to.version - 1);
-  if (from.version === to.version) throw new Error(`nothing to restyle: direction is v${to.version}`);
-  const rows = (await projectStatus(p)).filter((r) => r.final), sheetRows = [], assets = [];
-  const fromFile = join12(p.art, "directions", `v${from.version}.json`);
-  for (const r of rows) {
-    const path = join12(p.root, r.path), a = openAsset(path), old = openAsset(path, { direction: existsSync11(fromFile) ? fromFile : void 0 });
-    if (!existsSync11(fromFile)) old.dir = from;
-    const [before, after] = [await renderVersion(old, r.final), await renderVersion(a, r.final)];
-    const d = restyleDiff(before.strip, after.strip, from, to);
-    sheetRows.push({ label: `${r.id} ${r.final}: ${d.changedPct}% px changed, tokens kept ${Math.round(d.tokenSame * 100)}%${after.report.pass ? "" : " GATE FAIL"}${after.stale?.length ? " FINISH-STALE" : ""}`, before: thumb(before.render), after: thumb(after.render), mask: tokenDiffMask(thumb(before.render), thumb(after.render), from, to), bg: to.background });
-    assets.push({ id: r.id, final: r.final, changedPct: d.changedPct, tokenSame: d.tokenSame, consistent: d.consistent, gate: after.report.pass, stale: after.stale ?? [] });
-    appendLedger(ledgerFile(p), { type: "restyle", asset: r.id, version: r.final, from: { id: from.id, version: from.version }, direction: { id: to.id, version: to.version }, changedPct: d.changedPct, tokenSame: d.tokenSame, consistent: d.consistent, gate: after.report.pass, outputHash: after.strip.hash(), ...after.stale?.length && { stale: after.stale }, by: "agent" });
-  }
-  const sheet = restyleSheet(`restyle ${from.id} v${from.version} -> ${to.id} v${to.version}`, sheetRows);
-  const f = join12(p.art, "sheets", `restyle-v${from.version}-v${to.version}.png`);
-  writeGrid(f, sheet);
-  return { from: from.version, to: to.version, sheet: rel2(p, f), tokens: imageTokens(sheet.w, sheet.h), assets };
-}
-async function importEdit(p, id, png, o = {}) {
-  const b = readBriefs(p).find((x) => x.id === id);
-  if (!b) throw new Error(`no brief ${id}`);
-  const dir = requireLocked(p), row = await assetRow(p, b);
-  if (!row.final) throw new Error(`${id} is ${row.status}: import-edit applies to a finished asset`);
-  const a = openAsset(assetPathOf(p, b)), r = await renderVersion(a, row.final), edited = readGrid(resolve5(png)), [w, h] = r.render.size;
-  const cells = r.render.cells;
-  let pieces;
-  if (o.cell) {
-    const idx = cells.findIndex((c) => `${c.state}/${c.facing}/${c.frame}` === o.cell);
-    if (idx < 0) throw new Error(`no cell ${o.cell} (cells are state/facing/frame)`);
-    pieces = [{ idx, grid: edited }];
-  } else if (edited.w === r.strip.w && edited.h === r.strip.h) {
-    pieces = cells.map((_, i) => {
-      const g = new Grid(w, h);
-      g.blit(crop(edited, i * w, 0, w, h), 0, 0);
-      return { idx: i, grid: g };
-    });
-  } else if (cells.length === 1) pieces = [{ idx: 0, grid: edited }];
-  else throw new Error(`${png} is ${edited.w}x${edited.h}; expected the ${r.strip.w}x${r.strip.h} strip (out/${row.final}.png) or --cell state/facing/frame`);
-  const edits = {};
-  let pixels = 0, snapped = 0, conflicts = 0;
-  for (const { idx, grid } of pieces) {
-    const c = cells[idx], e = editOps(c.grid, grid, dir);
-    if (!e.ops.length) continue;
-    snapped += e.snapped;
-    const key2 = c.mirrored ? `${c.state}/${mirrorFacing(c.facing)}/${c.frame}` : `${c.state}/${c.facing}/${c.frame}`;
-    const ops = c.mirrored ? e.ops.map(([x, y, t]) => [w - 1 - x, y, t]) : e.ops;
-    if (edits[key2]) {
-      conflicts += ops.length;
-      if (c.mirrored) continue;
-    }
-    edits[key2] = ops;
-    pixels += ops.length;
-  }
-  if (!pixels) throw new Error(`${png}: no pixel differs from ${row.final}`);
-  const vs = versionsIn(a), n = Math.max(0, ...vs.map(parseVersion).filter((v) => v.kind === "finish").map((v) => v.n)) + 1;
-  const fin = parseVersion(row.final), base = fin.kind === "finish" ? r.base : row.final, prev = fin.kind === "finish" ? row.final : void 0;
-  const file = join12(a.path, `finish.v${n}.js`);
-  const body2 = Object.entries(edits).map(([k, ops]) => `  '${k}': ${JSON.stringify(ops)},`).join("\n");
-  writeFileSync11(file, `// finish.v${n} \u2014 hand edit imported from ${relative7(a.path, resolve5(png)).split("\\").join("/")} (artgen import-edit):
-// ${pixels} pixels in ${Object.keys(edits).length} cells, as colour tokens so the edit survives a restyle.${prev ? ` Replays ${prev} first.` : ""}
-${prev ? `import * as prev from './${prev}.js';
-` : ""}export const base = '${base}';
-export const meta = { notes: 'hand edit (import-edit)' };
-
-const EDITS = {
-${body2}
-};
-
-export function finish(g, ctx) {
-${prev ? "  g = prev.finish(g, ctx) ?? g;\n" : ""}  for (const [x, y, t] of EDITS[\`\${ctx.state}/\${ctx.facing}/\${ctx.frame}\`] ?? []) {
-    if (t === null) g.clear(x, y); else ctx.lib.px.set(g, [x, y], t);
-  }
-  return g;
-}
-`);
-  appendLedger(ledgerFile(p), { type: "import-edit", asset: id, version: `finish.v${n}`, on: row.final, file: rel2(p, resolve5(png)), pixels, snapped, by: "user" });
-  appendLedger(ledgerFile(p), { type: "feedback", asset: id, route: "finish", opens: `finish.v${n}`, on: row.final, note: `hand edit: ${pixels} px (import-edit)`, by: "user" });
-  return { file: rel2(p, file), pixels, cells: Object.keys(edits).length, snapped, conflicts };
-}
-function crop(g, x0, y0, w, h) {
-  const out = new Grid(w, h);
-  for (let y = 0; y < h; y++) out.d.set(g.d.subarray(((y0 + y) * g.w + x0) * 4, ((y0 + y) * g.w + x0 + w) * 4), y * w * 4);
-  return out;
-}
-function projectAnalytics(p, title) {
-  const dir = requireLocked(p), all = parseAll(ledgerFile(p)), metas = projectMetas(p, dir);
-  const ids = new Set(metas.map((m) => m.id)), report2 = analytics(all.filter((e) => ids.has(e.asset) || e.asset === "gallery"), metas);
-  return { report: report2, markdown: analyticsMarkdown(report2, title ?? `${dir.id}: pipeline analytics`) };
-}
-function projectMetas(p, dir) {
-  return readBriefs(p).map((b) => {
-    const bj = join12(assetPathOf(p, b), "brief.json"), local = existsSync11(bj) ? readJson(bj) : {};
-    const size = Array.isArray(b.size) ? b.size.join("x") : b.size ?? b.kind;
-    return { id: b.id, kind: b.kind, view: b.view ?? dir?.camera.view, size, template: local.template, importance: b.importance ?? "standard" };
-  });
-}
-function ledgerSet(dir) {
-  const root = resolve5(dir), name = relative7(process.cwd(), root).split("\\").join("/") || ".";
-  if (existsSync11(join12(root, "art", "artgen.config.json"))) {
-    const p = { root, art: join12(root, "art") };
-    return { project: name, ledger: parseAll(ledgerFile(p)), metas: projectMetas(p, lockedDirection(p)), config: projectConfig(p) };
-  }
-  if (!existsSync11(join12(root, "ledger.jsonl"))) throw new Error(`${dir}: neither a project (art/artgen.config.json) nor a folder with ledger.jsonl`);
-  const metas = [];
-  for (const d of readdirSync7(root, { withFileTypes: true })) {
-    const bj = join12(root, d.name, "brief.json");
-    if (!d.isDirectory() || !existsSync11(bj)) continue;
-    const b = readJson(bj);
-    metas.push({ id: b.id ?? d.name, kind: b.kind, view: b.view, size: Array.isArray(b.size) ? b.size.join("x") : b.size, template: b.template, importance: b.importance ?? "standard" });
-  }
-  return { project: name, ledger: parseAll(join12(root, "ledger.jsonl")), metas };
-}
-function pooledAnalytics(dirs, o = {}) {
-  const r = recommend(dirs.map(ledgerSet), { minAssets: o.minAssets });
-  let applied;
-  if (o.apply) {
-    const f = join12(o.apply.art, "artgen.config.json"), raw = readJson(f), next = applyRecommendations(mergeConfig(raw), r.patch);
-    writeJson(f, { ...raw, budget: { ...raw.budget, ...next.budget.perKind && { perKind: next.budget.perKind } }, models: next.models });
-    applied = rel2(o.apply, f);
-  }
-  return { report: r, markdown: recommendMarkdown(r, o.title), ...applied && { applied } };
-}
-var briefsFile, ledgerFile, rel2, contractFile, allowed, assetPathOf, versionsInPath, DONE, readdirCount, parseAll;
-var init_w2 = __esm({
-  "../artgen-cli/src/w2.ts"() {
-    "use strict";
-    init_src();
-    init_asset();
-    init_bench2();
-    init_src2();
-    init_node();
-    init_runtime();
-    init_project();
-    init_templates();
-    init_w1();
-    briefsFile = (p) => join12(p.art, "briefs.yaml");
-    ledgerFile = (p) => join12(p.art, "ledger.jsonl");
-    rel2 = (p, f) => relative7(p.root, f).split("\\").join("/");
-    contractFile = (p, id) => join12(p.art, "contracts", `${id}.json`);
-    allowed = (list2, id) => !!list2 && (list2.includes("*") || list2.includes(id));
-    assetPathOf = (p, b) => join12(p.art, briefDir(b));
-    versionsInPath = (path) => existsSync11(path) ? versionsIn({ path }) : [];
-    DONE = ["final", "approved", "exported"];
-    readdirCount = (d, re) => readdirSync7(d).filter((f) => re.test(f)).length;
-    parseAll = (f) => existsSync11(f) ? parseLedger(readFileSync8(f, "utf8")) : [];
-  }
-});
-
-// ../artgen-cli/src/cli.ts
-var cli_exports = {};
-__export(cli_exports, {
-  VERSION: () => VERSION,
-  main: () => main
-});
-import { existsSync as existsSync12, readFileSync as readFileSync9, writeFileSync as writeFileSync12 } from "node:fs";
-import { join as join13 } from "node:path";
+// ../artgen-cli/src/maps-cli.ts
 function flag(args, name) {
   const i = args.indexOf(name);
   return i >= 0 ? args[i + 1] : void 0;
@@ -21159,35 +20331,20 @@ function list(args, name) {
   const v = flag(args, name);
   return v === void 0 ? void 0 : v.split(",").map((s2) => s2.trim()).filter(Boolean);
 }
-function readColors(src, n = 16) {
-  if (/^#?[0-9a-f]{6}(,#?[0-9a-f]{6})*$/i.test(src)) return src.split(",").map((c) => "#" + c.replace("#", "").toLowerCase());
-  if (!existsSync12(src)) throw new Error(`${src}: not found`);
-  if (src.endsWith(".png")) return extractPalette(readGrid(src), n).colors;
-  const text = readFileSync9(src, "utf8");
-  return src.endsWith(".gpl") ? parseGpl(text) : parseHexPalette(text);
-}
-function toolDirection(cmd, root, override) {
-  const p = findProject(root), file = override ?? (p ? join13(p.art, "direction.json") : void 0);
-  const fix = "lock one first (artgen direction candidates \u2192 tile \u2192 lock, or /artgen-direction in Claude Code), or pass --direction <file|benchmark>";
-  if (override && !existsSync12(override) && ["benchmark", "alt"].includes(override)) return { p, dir: resolveDirection(override) };
-  if (override && !existsSync12(override)) throw new Error(`${cmd}: --direction ${override}: no such file (or bench direction: benchmark, alt)`);
-  if (!file || !existsSync12(file)) throw new Error(`${cmd}: no art direction found \u2014 ${fix}`);
-  const raw = JSON.parse(readFileSync9(file, "utf8")), v = validateDirection(raw);
-  if (!v.ok) throw new Error(raw?.status === "draft" && !override ? `${cmd}: the art direction is still a draft \u2014 ${fix}` : `${cmd}: ${file} is not a valid direction:
-  ${v.errors.join("\n  ")}`);
-  return { p, dir: parseDirection(raw) };
-}
 async function mapCommand(sub2, args, emit) {
   const print = (human, data) => emit(human, withVersion(data, map_exports.MAP_FORMAT));
-  const p = requireProject(flag(args, "--root"));
-  const pos = args.filter((a, i) => !a.startsWith("--") && !(i > 0 && args[i - 1].startsWith("--") && args[i - 1] !== "--json")).slice(1), id = pos[0];
+  const file = flag(args, "--file"), p = file || sub2 === "symbols" ? null : requireProject(flag(args, "--root"));
+  const pos = args.filter((a, i) => !a.startsWith("--") && !(i > 0 && args[i - 1].startsWith("--") && args[i - 1] !== "--json")).slice(1);
+  if (file && sub2 !== "new") pos.unshift("");
+  const id = pos[0];
   const need2 = (what) => {
+    if (file) return { file };
     if (!id) throw new Error(`map ${sub2}: ${what}`);
     return id;
   };
-  const next = (i) => `next: artgen map render ${i}`;
+  const next = (i) => file ? `next: artgen map render --file ${file}` : `next: artgen map render ${i ?? id}`;
   if (sub2 === "list") {
-    const ms = listMaps(p);
+    const ms = file ? [mapSummary(readMap(null, { file }))] : listMaps(p);
     print(ms.length ? ms.map((m) => `${m.id.padEnd(16)} ${m.preset.padEnd(9)} ${m.size.padEnd(7)} ${m.edits} edits, ${m.labels} labels, ${m.symbols} symbols${m.title ? `  "${m.title}"` : ""}`).join("\n") : "no maps yet: artgen map new <id>", ms);
     return 0;
   }
@@ -21205,15 +20362,15 @@ async function mapCommand(sub2, args, emit) {
     if (!map_exports.PRESETS.includes(preset2)) throw new Error(`--preset: ${map_exports.PRESETS.join(" or ")}`);
     const sz = flag(args, "--size")?.match(/^(\d+)x(\d+)$/), grid = flag(args, "--grid");
     if (flag(args, "--size") && !sz) throw new Error("--size: COLSxROWS, e.g. 30x22");
-    const r = createMap(p, need2("<id> is required"), preset2, {
+    const r = createMap(p, file ? id ?? fileId(file) : need2("<id> is required"), preset2, {
       seed: num(args, "--seed") ?? Math.floor(Math.random() * 1e6),
       ...sz && { cols: +sz[1], rows: +sz[2] },
       ...flag(args, "--title") && { title: flag(args, "--title") },
       ...grid && { grid: { ...map_exports.PRESET_DEFAULTS[preset2].grid, type: grid } }
-    }, args.includes("--force"));
+    }, args.includes("--force"), file ? { file } : void 0);
     print(`${r.file}
 ${describeMap(r.map)}
-${next(id)}`, { file: r.file, map: r.map });
+${next(r.map.id)}`, { file: r.file, map: r.map });
     return 0;
   }
   if (sub2 === "gen") {
@@ -21334,7 +20491,7 @@ ${next(m.id)}`, m);
       layers: parseLayers(flag(args, "--layers")),
       out: flag(args, "--out")
     });
-    print([`${id} ${r.size.join("\xD7")} px: ${r.terrains.join(", ")}${r.rivers ? `, ${r.rivers} rivers` : ""}`, ...r.files.map((f) => `  ${f}`)].join("\n"), r);
+    print([`${file ?? id} ${r.size.join("\xD7")} px: ${r.terrains.join(", ")}${r.rivers ? `, ${r.rivers} rivers` : ""}`, ...r.files.map((f) => `  ${f}`)].join("\n"), r);
     return 0;
   }
   throw new Error("map: new | gen | edit | grid | label | symbol | symbols | overlay | set | render | show | list (artgen --help)");
@@ -21355,15 +20512,18 @@ function roomNumber(args) {
 }
 async function dungeonCommand(sub2, args, emit) {
   const print = (human, data) => emit(human, withVersion(data, dungeon_exports.DUNGEON_FORMAT));
-  const p = requireProject(flag(args, "--root"));
-  const pos = args.filter((a, i) => !a.startsWith("--") && !(i > 0 && args[i - 1].startsWith("--") && args[i - 1] !== "--json")).slice(1), id = pos[0];
+  const file = flag(args, "--file"), p = file || sub2 === "symbols" ? null : requireProject(flag(args, "--root"));
+  const pos = args.filter((a, i) => !a.startsWith("--") && !(i > 0 && args[i - 1].startsWith("--") && args[i - 1] !== "--json")).slice(1);
+  if (file && sub2 !== "new") pos.unshift("");
+  const id = pos[0];
   const need2 = (what) => {
+    if (file) return { file };
     if (!id) throw new Error(`dungeon ${sub2}: ${what}`);
     return id;
   };
-  const next = (i) => `next: artgen dungeon render ${i}`;
+  const next = (i) => file ? `next: artgen dungeon render --file ${file}` : `next: artgen dungeon render ${i ?? id}`;
   if (sub2 === "list") {
-    const ds = listDungeons(p);
+    const ds = file ? [dungeonSummary(readDungeon(null, { file }))] : listDungeons(p);
     print(ds.length ? ds.map((d) => `${d.id.padEnd(16)} ${d.size.padEnd(7)} ${d.rooms} rooms, ${d.corridors} corridors, ${d.labels} labels, ${d.symbols} symbols${d.title ? `  "${d.title}"` : ""}`).join("\n") : "no dungeons yet: artgen dungeon new <id>", ds);
     return 0;
   }
@@ -21387,7 +20547,7 @@ async function dungeonCommand(sub2, args, emit) {
     if (onOff(flag(args, "--entrance")) !== void 0) m.gen.entrance = onOff(flag(args, "--entrance"));
   };
   if (sub2 === "new") {
-    const base = dungeon_exports.newDungeon(need2("<id> is required"), { seed: Math.floor(Math.random() * 1e6), ...flag(args, "--title") && { title: flag(args, "--title") } });
+    const base = dungeon_exports.newDungeon(file ? id ?? fileId(file) : need2("<id> is required"), { seed: Math.floor(Math.random() * 1e6), ...flag(args, "--title") && { title: flag(args, "--title") } });
     genFlags(base);
     let m = dungeon_exports.parseDungeon(base);
     const shape = flag(args, "--room");
@@ -21401,7 +20561,7 @@ async function dungeonCommand(sub2, args, emit) {
       });
       m = dungeon_exports.singleRoom(m, { shape, w, h, exits, label: flag(args, "--label"), number: roomNumber(args) });
     } else if (!args.includes("--empty")) m = dungeon_exports.generateDungeon(m);
-    const r = createDungeon(p, m, args.includes("--force"));
+    const r = createDungeon(p, m, args.includes("--force"), file ? { file } : void 0);
     print(`${r.file}
 ${describeDungeon(r.dungeon)}
 ${next(r.dungeon.id)}`, r);
@@ -21586,6 +20746,11 @@ ${next(m.id)}`, sub2 === "label" ? m.overlay.labels : m.overlay.symbols);
     print(`${m.id}: ${m.overlay.labels.length} labels, ${m.overlay.symbols.length} symbols`, m.overlay);
     return 0;
   }
+  if (sub2 === "check") {
+    const r = checkDungeonFile(p, need2("<id>"));
+    print(r.ok ? `${r.file}: ok` : [`${r.file}: ${r.errors.length} error${r.errors.length === 1 ? "" : "s"}`, ...r.errors.map((e) => `  ${e.path || "(file)"}: ${e.message}`)].join("\n"), r);
+    return r.ok ? 0 : 1;
+  }
   if (sub2 === "fit") {
     const m = updateDungeon(p, need2("<id>"), (m2) => dungeon_exports.fitDungeon(m2, num(args, "--margin") ?? 2));
     print(`${m.id}: ${m.cols}\xD7${m.rows} cells
@@ -21601,10 +20766,997 @@ ${next(m.id)}`, { cols: m.cols, rows: m.rows });
       layers: parseLayers(flag(args, "--layers"), dungeon_exports.DUNGEON_LAYERS),
       out: flag(args, "--out")
     });
-    print([`${id} ${r.size.join("\xD7")} px: ${r.rooms} rooms, ${r.corridors} corridors, ${r.doors} doors`, ...r.files.map((f) => `  ${f}`)].join("\n"), r);
+    print([`${file ?? id} ${r.size.join("\xD7")} px: ${r.rooms} rooms, ${r.corridors} corridors, ${r.doors} doors`, ...r.files.map((f) => `  ${f}`)].join("\n"), r);
     return 0;
   }
-  throw new Error("dungeon: new | gen | room | link | unlink | door | grid | style | label | symbol | symbols | overlay | fit | render | show | list (artgen --help)");
+  throw new Error("dungeon: new | gen | room | link | unlink | door | grid | style | label | symbol | symbols | overlay | check | fit | render | show | list (artgen --help)");
+}
+function formatsCommand(emit) {
+  const formats = { map: map_exports.MAP_FORMAT, dungeon: dungeon_exports.DUNGEON_FORMAT };
+  emit(Object.entries(formats).map(([k, v]) => `${k} ${v}`).join("\n"), formats);
+  return 0;
+}
+var num, MAP_USAGE, withVersion;
+var init_maps_cli = __esm({
+  "../artgen-cli/src/maps-cli.ts"() {
+    "use strict";
+    init_maps();
+    init_dungeon2();
+    init_map2();
+    init_projectfs();
+    num = (args, name) => {
+      const v = flag(args, name);
+      if (v === void 0) return void 0;
+      if (!Number.isFinite(+v)) throw new Error(`${name}: a number`);
+      return +v;
+    };
+    MAP_USAGE = `       artgen map new <id> [--preset regional|local] [--size 30x22] [--grid hex|square|none] [--seed n] [--title "..."]
+       artgen map gen <id> [--seed n] [--land mixed|island|inland] [--sea f] [--moisture f] [--roughness f] [--relief f] [--rivers n] [--simplify n] [--feature n] [--interval n] [--max-elevation n] [--topo-labels on|off]
+       artgen map edit <id> paint --terrain t <shape> | elevate --amount \xB1f <shape> | river --points x,y,\u2026 [--width w] [--delta off] | road --points x,y,\u2026 | undo
+                  <shape>: --circle x,y,r | --poly x,y,x,y,\u2026 | --stroke x,y,\u2026 --width w   (terrains: ${map_exports.TERRAINS.join(", ")})
+       artgen map grid <id> hex|square|none [--size n] [--coords on|off]
+       artgen map label <id> "Text" --at x,y|0304|C4 [--kind region|place|water|note] [--size f] [--angle deg]
+       artgen map symbol <id> <kind> --at x,y|0304|C4 [--scale f] | map symbols | map overlay <id> rm label|symbol <i> | clear [labels|symbols]
+       artgen map set <id> [--title "..."] [--legend on|off] [--scale-bar on|off] [--compass on|off] [--per-cell n] [--unit mi]
+       artgen map render <id> [--theme color|bw|both] [--format svg|png|both] [--ppu 40] [--layers grid=off,labels=off] [--out dir]
+       artgen map show <id> | list
+       artgen dungeon new <id> [--size 40x30] [--seed n] [--title "..."] [--empty] | new <id> --room rect|circle|octagon|cave --room-size 8x6 [--exits n,e:secret,s:none,w] [--label "..."] [--number n|off]
+       artgen dungeon gen <id> [--seed n] [--rooms n] [--min-size n] [--max-size n] [--caves f] [--round f] [--loops f] [--doors f] [--corridor-width n] [--spacing n] [--entrance on|off] [--size 40x30]
+       artgen dungeon room <id> add <shape> --at x,y|C4 --size WxH [--points x,y,\u2026] [--label "..."] [--number n|off] [--room-id r9] | move <rid> --at x,y | set <rid> [--shape s] [--size WxH] [--label "..."] [--number n|off] | rm <rid>
+       artgen dungeon link <id> <room> <room|x,y|C4> [--width 1] [--route auto|hv|vh|straight] [--via x,y,\u2026] [--doors door,none] | unlink <id> <i> | door <id> <i> from|to <kind|none>
+                  (shapes: ${dungeon_exports.ROOM_SHAPES.join(", ")}; doors: ${dungeon_exports.DOOR_KINDS.join(", ")})
+       artgen dungeon grid <id> 10|5|10+5|none [--clip floor|all] | style <id> [--hatch band|full|none] [--band n] [--wall f] [--numbers on|off] [--scale-bar on|off] [--compass on|off] [--title "..."] [--per-cell n] [--unit ft]
+       artgen dungeon label <id> "Text" --at x,y|C4 [--kind name|note|area] [--size f] [--angle deg] | symbol <id> <kind> --at x,y|C4 [--scale f] [--angle deg] | symbols
+       artgen dungeon overlay <id> rm label|symbol <i> | clear [labels|symbols] | fit <id> [--margin 2]
+       artgen dungeon check <id> [--json]   every error in the file with its JSON path; exits 1 when there are any
+       artgen dungeon render <id> [--format svg|png|both] [--ppu 40] [--layers grid=off,labels=off] [--out dir] | show <id> | list
+       artgen formats   (the map and dungeon file format versions this artgen reads; a newer file is refused)
+       (map and dungeon commands take --file <path> in place of <id>: no project needed; renders go beside the file or to --out)`;
+    withVersion = (data, version) => data && typeof data === "object" && !Array.isArray(data) ? { version, ...data } : { version, items: data };
+  }
+});
+
+// ../artgen-cli/src/templates.ts
+import { existsSync as existsSync9, mkdirSync as mkdirSync7, readFileSync as readFileSync7, writeFileSync as writeFileSync10 } from "node:fs";
+import { dirname as dirname7, join as join10, resolve as resolve6 } from "node:path";
+import { fileURLToPath as fileURLToPath3 } from "node:url";
+function templatesRoot() {
+  const here = dirname7(fileURLToPath3(import.meta.url));
+  for (const p of [join10(here, "templates"), join10(here, "..", "templates")]) if (existsSync9(join10(p, "finish.js"))) return p;
+  throw new Error(`artgen templates not found next to ${here}`);
+}
+function findTemplate(view, kind) {
+  const root = templatesRoot(), alias = KIND_ALIAS[kind] ?? kind;
+  for (const [v, k] of [[view, kind], ["topdown", kind], [view, alias], ["topdown", alias], [view, "prop"], ["topdown", "prop"]]) {
+    const dir = join10(root, v, k);
+    if (existsSync9(join10(dir, "base.js"))) return { view: v, kind: k, dir, fallback: v !== view || k !== kind };
+  }
+  throw new Error(`no template for ${view}/${kind}`);
+}
+function newAsset(path, o) {
+  const t = findTemplate(o.view, o.kind), base = join10(path, "base.v1.js");
+  if (existsSync9(base)) throw new Error(`${base} exists \u2014 write the next version instead (R10)`);
+  mkdirSync7(path, { recursive: true });
+  const brief = {
+    id: o.id,
+    ...JSON.parse(readFileSync7(join10(t.dir, "brief.json"), "utf8")),
+    kind: o.kind,
+    view: o.view,
+    ...o.size && { size: o.size },
+    ...o.states && { states: o.states },
+    ...o.directions && { directions: o.directions },
+    ...o.notes && { notes: o.notes }
+  };
+  writeFileSync10(join10(path, "brief.json"), JSON.stringify(brief, null, 2) + "\n");
+  writeFileSync10(base, fill(readFileSync7(join10(t.dir, "base.js"), "utf8"), { ID: o.id }));
+  return { files: [join10(path, "brief.json"), base], template: t };
+}
+function newFinish(path, n, base, kind) {
+  const file = join10(path, `finish.v${n}.js`);
+  if (existsSync9(file)) throw new Error(`${file} exists`);
+  if (kind === void 0 && existsSync9(join10(path, "brief.json"))) kind = JSON.parse(readFileSync7(join10(path, "brief.json"), "utf8")).kind;
+  writeFileSync10(file, fill(readFileSync7(finishTemplate(kind), "utf8"), { BASE: base, N: String(n) }));
+  return resolve6(file);
+}
+var KIND_ALIAS, fill, FACE_KINDS, finishTemplate;
+var init_templates = __esm({
+  "../artgen-cli/src/templates.ts"() {
+    "use strict";
+    KIND_ALIAS = { creature: "character", tileset: "tile", texture: "tile", viewmodel: "prop", "ui-icon": "prop" };
+    fill = (text, vars) => text.replace(/\{\{(\w+)\}\}/g, (m, k) => vars[k] ?? m);
+    FACE_KINDS = /* @__PURE__ */ new Set(["character", "creature"]);
+    finishTemplate = (kind) => join10(templatesRoot(), kind && FACE_KINDS.has(kind) ? "finish-character.js" : "finish.js");
+  }
+});
+
+// ../artgen-runtime/src/autotile.ts
+function reduceCorners2(m) {
+  let r = m & (N2 | E2 | S2 | W2);
+  if (m & NE2 && m & N2 && m & E2) r |= NE2;
+  if (m & SE2 && m & S2 && m & E2) r |= SE2;
+  if (m & SW2 && m & S2 && m & W2) r |= SW2;
+  if (m & NW2 && m & N2 && m & W2) r |= NW2;
+  return r;
+}
+var N2, NE2, E2, SE2, S2, SW2, W2, NW2, BLOB472, BLOB_INDEX;
+var init_autotile2 = __esm({
+  "../artgen-runtime/src/autotile.ts"() {
+    "use strict";
+    N2 = 1;
+    NE2 = 2;
+    E2 = 4;
+    SE2 = 8;
+    S2 = 16;
+    SW2 = 32;
+    W2 = 64;
+    NW2 = 128;
+    BLOB472 = [...new Set(Array.from({ length: 256 }, (_, m) => reduceCorners2(m)))].sort((a, b) => a - b);
+    BLOB_INDEX = new Map(BLOB472.map((m, i) => [m, i]));
+  }
+});
+
+// ../artgen-runtime/src/facing.ts
+var TAU;
+var init_facing = __esm({
+  "../artgen-runtime/src/facing.ts"() {
+    "use strict";
+    TAU = Math.PI * 2;
+  }
+});
+
+// ../artgen-runtime/src/stack.ts
+var init_stack = __esm({
+  "../artgen-runtime/src/stack.ts"() {
+    "use strict";
+  }
+});
+
+// ../artgen-runtime/src/pack.ts
+var RUNTIME_VERSION;
+var init_pack2 = __esm({
+  "../artgen-runtime/src/pack.ts"() {
+    "use strict";
+    init_autotile2();
+    init_facing();
+    init_stack();
+    RUNTIME_VERSION = "1.2.1";
+  }
+});
+
+// ../artgen-runtime/src/coords.ts
+var init_coords = __esm({
+  "../artgen-runtime/src/coords.ts"() {
+    "use strict";
+  }
+});
+
+// ../artgen-runtime/src/index.ts
+var init_src2 = __esm({
+  "../artgen-runtime/src/index.ts"() {
+    "use strict";
+    init_pack2();
+    init_facing();
+    init_autotile2();
+    init_stack();
+    init_coords();
+  }
+});
+
+// ../artgen-cli/src/runtime.ts
+import { createHash } from "node:crypto";
+import { existsSync as existsSync10, mkdirSync as mkdirSync8, readdirSync as readdirSync5, readFileSync as readFileSync8, rmSync, writeFileSync as writeFileSync11 } from "node:fs";
+import { dirname as dirname8, join as join11, relative as relative5 } from "node:path";
+import { fileURLToPath as fileURLToPath4 } from "node:url";
+function runtimeRoot() {
+  const here = dirname8(fileURLToPath4(import.meta.url));
+  for (const p of [join11(here, "runtime"), join11(here, "..", "..", "artgen-runtime", "src")]) if (existsSync10(join11(p, "pack.ts"))) return p;
+  throw new Error(`artgen runtime sources not found next to ${here}`);
+}
+function runtimeFiles(adapters, root = runtimeRoot()) {
+  const ts = (d) => existsSync10(d) ? readdirSync5(d).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts") && f !== "testkit.ts" && f !== "contract.ts") : [];
+  const available = ts(join11(root, "adapters")).map((f) => f.replace(/\.ts$/, ""));
+  for (const a of adapters) if (!available.includes(a)) throw new Error(`unknown runtime adapter "${a}" in artgen.config.json (available: ${available.join(", ")})`);
+  return [...ts(root).sort(), ...[...new Set(adapters)].map((a) => `adapters/${a}.ts`)];
+}
+function vendorRuntime(p, o = {}) {
+  const cfg = projectConfig(p), root = runtimeRoot(), adapters = cfg.runtime.adapters, files = runtimeFiles(adapters, root);
+  const dir = join11(p.root, cfg.export.runtimeDir), stampFile = join11(dir, STAMP);
+  const old = existsSync10(stampFile) ? readJson(stampFile) : null;
+  const generator = o.generator ?? "artgen";
+  const r = { dir: relative5(p.root, dir).split("\\").join("/"), version: RUNTIME_VERSION, from: old?.runtime ?? null, adapters, written: [], unchanged: [], kept: [], removed: [] };
+  const hashes = {};
+  const edited = (f) => {
+    const dest = join11(dir, f);
+    return existsSync10(dest) && old?.files[f] !== void 0 && sha(readFileSync8(dest, "utf8")) !== old.files[f];
+  };
+  for (const f of files) {
+    const text = vendoredSource(f, root), h = sha(text), dest = join11(dir, f);
+    if (existsSync10(dest)) {
+      const cur = sha(readFileSync8(dest, "utf8"));
+      if (cur === h) {
+        r.unchanged.push(f);
+        hashes[f] = h;
+        continue;
+      }
+      if (!o.force && (old?.files[f] === void 0 || edited(f))) {
+        r.kept.push(f);
+        hashes[f] = old?.files[f] ?? cur;
+        continue;
+      }
+    }
+    mkdirSync8(dirname8(dest), { recursive: true });
+    writeFileSync11(dest, text);
+    r.written.push(f);
+    hashes[f] = h;
+  }
+  for (const f of Object.keys(old?.files ?? {})) {
+    if (files.includes(f) || !existsSync10(join11(dir, f))) continue;
+    if (!o.force && edited(f)) {
+      r.kept.push(f);
+      hashes[f] = old.files[f];
+      continue;
+    }
+    rmSync(join11(dir, f));
+    r.removed.push(f);
+  }
+  writeJson(stampFile, { runtime: RUNTIME_VERSION, generator, adapters, files: hashes });
+  return r;
+}
+var STAMP, sha, HEADER, vendoredSource;
+var init_runtime = __esm({
+  "../artgen-cli/src/runtime.ts"() {
+    "use strict";
+    init_src2();
+    init_project();
+    STAMP = "runtime.json";
+    sha = (s2) => createHash("sha256").update(s2).digest("hex").slice(0, 16);
+    HEADER = `// Vendored by \`artgen export --runtime\` (artgen-runtime ${RUNTIME_VERSION}). Local edits are detected and kept;
+// re-export with --force to overwrite them. Source: packages/artgen-runtime in rstevenson1237/image_tools.
+`;
+    vendoredSource = (file, root = runtimeRoot()) => HEADER + readFileSync8(join11(root, file), "utf8");
+  }
+});
+
+// ../artgen-cli/src/w1.ts
+import { existsSync as existsSync11, readdirSync as readdirSync6, readFileSync as readFileSync9 } from "node:fs";
+import { basename as basename3, join as join12, relative as relative6 } from "node:path";
+function directionVersion(p, version) {
+  const f = directionFile(p, version);
+  if (existsSync11(f)) return parseDirection(readJson(f));
+  const cur = lockedDirection(p);
+  if (cur?.version === version) return cur;
+  throw new Error(`direction v${version} is not archived (art/directions/v${version}.json) \u2014 directions locked by older artgen versions are archived on the next lock`);
+}
+function candidateNames(p) {
+  if (!existsSync11(cdir(p))) return [];
+  return readdirSync6(cdir(p)).filter((f) => f.endsWith(".json")).map((f) => f.slice(0, -5)).sort((x, y) => (x.length === 1 ? 0 : 1) - (y.length === 1 ? 0 : 1) || x.localeCompare(y, "en", { numeric: true }));
+}
+function loadCandidate(p, name) {
+  const file = existsSync11(join12(cdir(p), `${name}.json`)) ? join12(cdir(p), `${name}.json`) : name;
+  if (!existsSync11(file)) throw new Error(`no candidate ${name} (have: ${candidateNames(p).join(", ") || "none \u2014 run direction candidates"})`);
+  return parseDirection(readJson(file));
+}
+function lockedDirection(p) {
+  const f = join12(p.art, "direction.json");
+  if (!existsSync11(f)) return null;
+  const raw = readJson(f);
+  return isPlaceholderDirection(raw) ? null : parseDirection(raw);
+}
+function ensureProbes(p, view) {
+  const created = [], fallbacks = [];
+  for (const kind of PROBE_KINDS) {
+    const d = probeDir(p, kind);
+    if (existsSync11(join12(d, "brief.json"))) continue;
+    const r = newAsset(d, { id: `probe-${kind}`, kind, view });
+    created.push(...r.files.map((f) => rel(p, f)));
+    if (r.template.fallback) fallbacks.push(`${kind}: ${view} has no template yet, used ${r.template.view}/${r.template.kind}`);
+  }
+  return { created, fallbacks };
+}
+function writeCandidates(p, iv) {
+  const ivFile = join12(p.art, "interview.json");
+  writeJson(ivFile, iv);
+  const dirs = generateCandidates(iv), out = [];
+  dirs.forEach((d, i) => {
+    const name = "abc"[i], file = join12(cdir(p), `${name}.json`);
+    writeJson(file, d);
+    out.push({ name, file: rel(p, file), summary: [d.theme.notes ?? "", ...describeDirection(d)] });
+  });
+  const probes = ensureProbes(p, iv.view ?? "topdown");
+  appendLedger(ledgerPath(p), { type: "note", asset: "direction", note: `candidates ${out.map((c) => c.name).join(", ")} from interview`, by: "agent" });
+  return { interview: rel(p, ivFile), candidates: out, probes: probes.created, fallbacks: probes.fallbacks };
+}
+function probeVersion(a) {
+  const vs = versionsIn(a);
+  if (!vs.length) throw new Error(`${a.path}: no base.vN.js`);
+  return [...vs].reverse().find((v) => v.startsWith("finish.")) ?? vs.filter((v) => v.startsWith("base.")).pop();
+}
+function probeAsset(p, kind, dir) {
+  const path = probeDir(p, kind), brief = readJson(join12(path, "brief.json"));
+  return { path, brief: { ...brief, id: brief.id ?? `probe-${kind}` }, dir, ledgerPath: ledgerPath(p) };
+}
+async function renderProbes(p, dir, opts = {}) {
+  const renders = {};
+  for (const kind of PROBE_KINDS) {
+    const a = probeAsset(p, kind, dir);
+    renders[kind] = await renderVersion(a, opts.versions?.[kind] ?? probeVersion(a));
+  }
+  const cell = (k) => renders[k].render.cells[0].grid;
+  const images = { character: cell("character"), prop: cell("prop"), tile: cell("tile"), effect: renders.effect.render.cells.map((c) => c.grid) };
+  return { renders, images };
+}
+async function writeTile(p, names) {
+  const list2 = names?.length ? names : candidateNames(p);
+  if (!list2.length) throw new Error("no candidates \u2014 run `artgen direction candidates` first");
+  const columns = [], info = [], hashes = [];
+  for (const name of list2) {
+    const dir = loadCandidate(p, name), { renders, images } = await renderProbes(p, dir);
+    const gates = Object.fromEntries(Object.entries(renders).map(([k, r]) => [k, r.report.pass]));
+    const failing = Object.entries(renders).flatMap(([k, r]) => r.report.checks.filter((c) => c.status === "fail").map((c) => `${k}.${c.id}: ${c.detail}`));
+    columns.push({ label: `${name.length === 1 ? name.toUpperCase() : name} - ${dir.id}`, notes: describeDirection(dir), dir, probes: images, gates });
+    info.push({ name, id: dir.id, gates, failing });
+    hashes.push(images.character.hash() + images.prop.hash());
+  }
+  const versions = PROBE_KINDS.map((k) => `${k} ${probeVersion(probeAsset(p, k, loadCandidate(p, list2[0])))}`).join(", ");
+  const round3 = (existsSync11(cdir(p)) ? readdirSync6(cdir(p)).filter((f) => /^style-tile-r\d+\.png$/.test(f)).length : 0) + 1;
+  const sheet = styleTile(`style tile round ${round3}: ${versions}`, columns);
+  const path = join12(cdir(p), `style-tile-r${round3}.png`);
+  writeGrid(path, sheet);
+  const tokens = imageTokens(sheet.w, sheet.h);
+  appendLedger(ledgerPath(p), { type: "review", asset: "direction", version: `tile-r${round3}`, sheet: relative6(p.art, path).split("\\").join("/"), imageTokens: tokens, candidates: list2, by: "agent" });
+  const dirs = list2.map((n) => loadCandidate(p, n)), lumas = dirs.map(paletteLuma);
+  let minGap = Infinity;
+  for (let i = 0; i < lumas.length; i++) for (let j = i + 1; j < lumas.length; j++) minGap = Math.min(minGap, Math.abs(lumas[i] - lumas[j]));
+  return { path: rel(p, path), round: round3, tokens, columns: info, distinct: { pairs: new Set(hashes).size, minLumaGap: Number.isFinite(minGap) ? Math.round(minGap * 10) / 10 : 0 } };
+}
+function writeMix(p, base, take, name) {
+  const n = name ?? `mix${candidateNames(p).filter((c) => c.startsWith("mix")).length + 1}`;
+  const parts = {};
+  for (const [part, src] of Object.entries(take)) {
+    if (!MIX_PARTS.includes(part)) throw new Error(`unknown part ${part} (have: ${MIX_PARTS.join(", ")})`);
+    parts[part] = loadCandidate(p, src);
+  }
+  const b = loadCandidate(p, base), d = mixDirections(b, parts, `${b.id.replace(/-[a-z]$/, "")}-${n}`);
+  d.theme.notes = `mix ${n}: ${base.toUpperCase()} as the base${Object.entries(take).map(([k, v]) => `, ${k} from ${String(v).toUpperCase()}`).join("")}`;
+  const file = join12(cdir(p), `${n}.json`);
+  writeJson(file, d);
+  appendLedger(ledgerPath(p), { type: "note", asset: "direction", note: d.theme.notes, by: "user" });
+  return { name: n, file: rel(p, file), dir: d };
+}
+function writeDraft(p, from, name = "next") {
+  const src = from ? loadCandidate(p, from) : lockedDirection(p);
+  if (!src) throw new Error("nothing to start from: no locked direction; use --from <candidate>");
+  const d = { ...JSON.parse(JSON.stringify(src)), status: "draft" };
+  const file = join12(cdir(p), `${name}.json`);
+  writeJson(file, d);
+  return { name, file: rel(p, file) };
+}
+async function writeAnchors(p) {
+  const dir = lockedDirection(p);
+  if (!dir) throw new Error("art/direction.json is not locked yet \u2014 run `artgen direction lock <candidate>`");
+  const { renders, images } = await renderProbes(p, dir), files = [], list2 = [];
+  const strip2 = (fs) => {
+    const g = new Grid(fs.reduce((n, f) => n + f.w, 0) + fs.length - 1, Math.max(...fs.map((f) => f.h)));
+    let x = 0;
+    for (const f of fs) {
+      g.blit(f, x, 0);
+      x += f.w + 1;
+    }
+    return g;
+  };
+  for (const kind of PROBE_KINDS) {
+    const g = kind === "effect" ? strip2(images.effect) : images[kind];
+    const f = join12(p.art, "anchors", `${kind}.png`);
+    writeGrid(f, g);
+    files.push(relative6(p.art, f).split("\\").join("/"));
+    list2.push({ label: kind, grid: g });
+  }
+  const file = join12(p.art, "direction.json"), raw = readJson(file);
+  writeJson(file, { ...raw, anchors: files });
+  const sheet = join12(p.art, "direction.png");
+  writeGrid(sheet, styleSheet({ ...dir, anchors: files }, list2));
+  const versions = Object.fromEntries(Object.entries(renders).map(([k, r]) => [k, r.version]));
+  appendLedger(ledgerPath(p), { type: "note", asset: "direction", version: `v${dir.version}`, note: `anchors from probes ${Object.entries(versions).map(([k, v]) => `${k} ${v}`).join(", ")}`, by: "agent" });
+  return { anchors: files.map((f) => `art/${f}`), sheet: rel(p, sheet), versions, gates: Object.fromEntries(Object.entries(renders).map(([k, r]) => [k, r.report.pass])) };
+}
+async function lock(p, name, opts = {}) {
+  const chosen = loadCandidate(p, name), prev = lockedDirection(p);
+  const d = lockDirection(chosen, prev, opts.id);
+  d.theme = { ...d.theme, notes: `${d.theme.notes ?? ""}${opts.note ? `. ${opts.note}` : ""}`.trim() };
+  const file = join12(p.art, "direction.json");
+  if (prev && !existsSync11(directionFile(p, prev.version))) writeJson(directionFile(p, prev.version), readJson(file));
+  writeJson(file, d);
+  appendLedger(ledgerPath(p), { type: "approve", asset: "direction", version: `v${d.version}`, note: `locked ${name}${opts.note ? `: ${opts.note}` : ""}`, direction: { id: d.id, version: d.version }, by: "user" });
+  const anchors = await writeAnchors(p);
+  writeJson(directionFile(p, d.version), readJson(file));
+  return { direction: lockedDirection(p), file: rel(p, file), ...anchors };
+}
+function show(p) {
+  const locked = lockedDirection(p);
+  const candidates = candidateNames(p).map((n) => {
+    const raw = readJson(join12(cdir(p), `${n}.json`)), r = validateDirection(raw);
+    return r.ok ? { name: n, id: r.direction.id, status: r.direction.status, summary: describeDirection(r.direction) } : { name: n, id: "?", status: "invalid", summary: r.errors.slice(0, 3) };
+  });
+  const tiles = existsSync11(cdir(p)) ? readdirSync6(cdir(p)).filter((f) => /^style-tile-r\d+\.png$/.test(f)).sort((a, b) => parseInt(a.slice(12)) - parseInt(b.slice(12))).map((f) => rel(p, join12(cdir(p), f))) : [];
+  const probes = {};
+  for (const k of PROBE_KINDS) if (existsSync11(join12(probeDir(p, k), "brief.json"))) {
+    const a = { path: probeDir(p, k), brief: readJson(join12(probeDir(p, k), "brief.json")), dir: void 0, ledgerPath: ledgerPath(p) };
+    probes[k] = versionsIn(a).join(" ");
+  }
+  const history = existsSync11(ledgerPath(p)) ? ledgerFor({ brief: { id: "direction" }, ledgerPath: ledgerPath(p) }).length : 0;
+  return { locked, candidates, tiles, probes, history };
+}
+var cdir, probeDir, ledgerPath, rel, directionFile, readInterview;
+var init_w1 = __esm({
+  "../artgen-cli/src/w1.ts"() {
+    "use strict";
+    init_src();
+    init_asset();
+    init_node();
+    init_project();
+    init_templates();
+    cdir = (p) => join12(p.art, "candidates");
+    probeDir = (p, kind) => join12(p.art, "probes", kind);
+    ledgerPath = (p) => join12(p.art, "ledger.jsonl");
+    rel = (p, f) => relative6(p.root, f).split("\\").join("/");
+    directionFile = (p, version) => join12(p.art, "directions", `v${version}.json`);
+    readInterview = (file) => {
+      const iv = JSON.parse(readFileSync9(file, "utf8"));
+      if (!iv.pitch) throw new Error(`${basename3(file)}: "pitch" is required`);
+      return iv;
+    };
+  }
+});
+
+// ../artgen-cli/src/w2.ts
+import { copyFileSync, existsSync as existsSync12, mkdirSync as mkdirSync9, readdirSync as readdirSync7, readFileSync as readFileSync10, writeFileSync as writeFileSync12 } from "node:fs";
+import { dirname as dirname9, join as join13, relative as relative7, resolve as resolve7 } from "node:path";
+function readBriefs(p) {
+  if (!existsSync12(briefsFile(p))) return [];
+  const r = parseBriefs(readFileSync10(briefsFile(p), "utf8"));
+  if (!r.ok) throw new Error(`art/briefs.yaml:
+  ${r.errors.join("\n  ")}`);
+  return r.briefs;
+}
+function readContract(p, id) {
+  return existsSync12(contractFile(p, id)) ? readJson(contractFile(p, id)) : void 0;
+}
+function addBrief(p, b, o = {}) {
+  const old = readContract(p, b.id), dir = old && lockedDirection(p);
+  if (old && dir && !o.breakContract) {
+    const d = diffContract(old, briefContract(b, dir, old));
+    if (d.breaking.length) throw new Error(`brief ${b.id} would break its exported animation contract (art/contracts/${b.id}.json):
+  ${d.breaking.join("\n  ")}
+game code may depend on it; re-run with --break-contract if that is intended`);
+  }
+  const text = existsSync12(briefsFile(p)) ? readFileSync10(briefsFile(p), "utf8") : "";
+  writeFileSync12(briefsFile(p), upsertBrief(text, b));
+  return readBriefs(p);
+}
+function removeBriefFile(p, id) {
+  const text = readFileSync10(briefsFile(p), "utf8"), out = removeBrief(text, id);
+  if (out !== text) writeFileSync12(briefsFile(p), out);
+  return out !== text;
+}
+function resolveAssetArg(p, arg) {
+  if (existsSync12(arg)) return arg;
+  if (p) {
+    const b = readBriefs(p).find((x) => x.id === arg);
+    if (b) return assetPathOf(p, b);
+  }
+  throw new Error(`${arg}: not an asset directory or a brief id in art/briefs.yaml`);
+}
+function templateFor(b, dir) {
+  const view = b.view ?? dir.camera.view, figure = ["character", "creature"].includes(b.kind);
+  if (figure && b.body && b.body !== "humanoid") return findTemplate(view, `creature-${b.body}`);
+  const walker = figure && ((b.directions ?? 1) > 1 || !!b.anims?.walk);
+  return walker ? findTemplate(view, "character-walk") : findTemplate(view, b.kind);
+}
+function briefWarnings(b, dir) {
+  const out = briefMaterialIssues(b, dir), t = templateFor(b, dir), view = b.view ?? dir.camera.view;
+  if (t.view !== view) out.push(`no ${view} template for it: it starts from ${t.view}/${t.kind} \u2014 check the review sheets for the ${view} camera`);
+  return out;
+}
+function scaffoldAsset(p, b, dir) {
+  const path = assetPathOf(p, b), t = templateFor(b, dir), template = `${t.view}/${t.kind}`;
+  if (existsSync12(join13(path, "base.v1.js"))) return { path, created: false, template };
+  mkdirSync9(path, { recursive: true });
+  const tb = readJson(join13(t.dir, "brief.json"));
+  if (!existsSync12(join13(path, "brief.json"))) writeJson(join13(path, "brief.json"), { id: b.id, template, review: tb.review ?? {} });
+  writeFileSync12(join13(path, "base.v1.js"), readFileSync10(join13(t.dir, "base.js"), "utf8").replace(/\{\{ID\}\}/g, b.id));
+  return { path, created: true, template };
+}
+async function assetRow(p, b) {
+  const path = assetPathOf(p, b);
+  const base = { id: b.id, kind: b.kind, path: rel2(p, path), issues: effectObjectIssues(b).map((x) => `brief: ${x}`), imageTokens: 0 };
+  if (!existsSync12(join13(path, "base.v1.js")) && !versionsInPath(path).length) return { ...base, status: "brief", why: "not started" };
+  const a = openAsset(path), st = await passState(a), ledger = ledgerFor(a);
+  const imageTokens2 = ledger.filter((e) => e.type === "review").reduce((n, e) => n + (e.imageTokens ?? 0), 0);
+  if (!ledger.length && st.next.action === "review" && st.next.version === "base.v1") return { ...base, status: "in-pipeline", next: st.next, why: "base.v1 from the template: adapt it to the brief, then review", imageTokens: imageTokens2 };
+  const fh = st.next.action === "ready" ? finalHash(a, st.next.final) : void 0;
+  const s2 = assetStatus({ ledger, next: st.next, direction: { id: a.dir.id, version: a.dir.version }, finalHash: fh });
+  const sc = s2.final ? [...ledger].reverse().find((e) => e.type === "score" && !e.blind && e.version === s2.final) : void 0;
+  const ro = s2.final ? [...ledger].reverse().find((e) => e.type === "roster" && e.version === s2.final && Array.isArray(e.issues)) : void 0;
+  const issues = [...effectObjectIssues(b).map((x) => `brief: ${x}`), ...s2.issues, ...(st.stale ?? []).map((x) => `finish-stale ${x}`), ...ro?.issues ?? []];
+  const blind = s2.final ? blindScores(ledger).get(s2.final)?.score : void 0, score = sc?.score, eff = blind ?? score;
+  const top = st.next.action === "ready" ? st.next.top : void 0;
+  return {
+    ...base,
+    status: s2.status,
+    final: s2.final,
+    score,
+    gate: sc?.conformance?.pass,
+    issues,
+    next: st.next,
+    why: s2.why,
+    imageTokens: imageTokens2,
+    stale: st.stale,
+    ...blind !== void 0 && { blind },
+    ...eff !== void 0 && eff < projectConfig(p).review.approveMin && { belowBar: true },
+    ...top && { top }
+  };
+}
+async function projectStatus(p, ids) {
+  requireLocked(p);
+  const rows = [];
+  for (const b of briefOrder(readBriefs(p))) if (!ids?.length || ids.includes(b.id)) rows.push(await assetRow(p, b));
+  return rows;
+}
+function requireLocked(p) {
+  const d = lockedDirection(p);
+  if (!d) throw new Error("no locked direction yet \u2014 run the art direction workflow first (`artgen direction lock <candidate>`)");
+  return d;
+}
+function workPacket(row, reviewed = true) {
+  const st = row.next;
+  if (!st || st.action === "ready") return void 0;
+  const owns = row.path, base = { id: row.id, kind: row.kind, owns, step: st };
+  if (st.action === "write-base" || st.action === "write-finish") return { ...base, writes: [`${owns}/${st.version}.js`], role: "maker" };
+  if (st.action === "review" && st.version === "base.v1" && /^base\.v1 from the template/.test(row.why)) return { ...base, writes: [`${owns}/base.v1.js`], role: "maker" };
+  if (st.action === "review" && !reviewed) return { ...base, writes: [`${owns}/${st.version}.js`], role: "maker", resume: true };
+  return { ...base, writes: [], role: "main" };
+}
+async function make(p, ids, o = {}) {
+  const dir = requireLocked(p), briefs = briefOrder(readBriefs(p)).filter((b) => !ids?.length || ids.includes(b.id) || ids.includes("all"));
+  if (ids?.length && !ids.includes("all")) {
+    for (const id of ids) if (!briefs.some((b) => b.id === id)) throw new Error(`no brief ${id} in art/briefs.yaml`);
+  }
+  const scaffolded = [], finals = [], overBudget = [], rows = [], reviewed = /* @__PURE__ */ new Map();
+  for (const b of briefs) {
+    const sc = scaffoldAsset(p, b, dir);
+    if (sc.created) scaffolded.push(rel2(p, join13(sc.path, "base.v1.js")));
+    let row = await assetRow(p, b);
+    const a = openAsset(sc.path), ledger = ledgerFor(a);
+    if (row.next?.action === "review") {
+      const v = row.next.version;
+      reviewed.set(b.id, ledger.some((e) => e.type === "review" && e.version === v && !e.blind));
+    }
+    if (row.next?.action === "ready") {
+      const fin = row.next.final;
+      if (!ledger.some((e) => e.type === "status" && e.status === "final" && e.version === fin && e.sourceHash === finalHash(a, fin))) {
+        appendLedger(ledgerFile(p), { type: "status", asset: b.id, status: "final", version: fin, sourceHash: finalHash(a, fin), issues: row.issues, direction: { id: dir.id, version: dir.version }, by: "agent" });
+        finals.push(b.id);
+      }
+    } else if (row.next && a.budget?.maxImageTokens && row.imageTokens >= a.budget.maxImageTokens) {
+      const st = await passState(a), best = st.rows.filter((r) => r.score !== void 0).sort((x, y) => y.score - x.score)[0];
+      if (best && !ledger.some((e) => e.type === "status" && e.status === "final" && e.version === best.version)) {
+        appendLedger(ledgerFile(p), { type: "status", asset: b.id, status: "final", version: best.version, sourceHash: finalHash(a, best.version), issues: [`budget: ${row.imageTokens} review-image tokens \u2265 ${a.budget.maxImageTokens}`], direction: { id: dir.id, version: dir.version }, by: "agent" });
+        overBudget.push(b.id);
+      }
+      row = { ...row, why: `over budget (${row.imageTokens} image tokens); left at ${best?.version ?? "nothing scored"}` };
+    }
+    rows.push(row);
+  }
+  const live = rows.filter((r) => !DONE.includes(r.status) && !r.why.startsWith("over budget")), active = new Set((o.wave ? live.slice(0, o.wave) : live).map((r) => r.id));
+  const roster2 = earlyRoster(p, rows.filter((r) => active.has(r.id)));
+  const held = new Set(roster2?.ids ?? []), pending = rows.filter((r) => active.has(r.id) && r.next && r.next.action !== "ready" && !held.has(r.id));
+  const n0 = pending[0], next = n0 && { id: n0.id, path: n0.path, step: n0.next };
+  const finalRoster = rows.filter((r) => r.status === "final" && !TILE_KINDS.has(r.kind) && !ledgerFor(openAsset(join13(p.root, r.path))).some((e) => e.type === "roster" && e.version === r.final && Array.isArray(e.issues))).map((r) => r.id);
+  const res = { rows, ...next && { next }, scaffolded, finals, overBudget, ...roster2 && { roster: roster2 }, ...finalRoster.length >= 2 && { finalRoster } };
+  if (!o.parallel) return res;
+  const packets = pending.map((r) => workPacket(r, reviewed.get(r.id) ?? true)).filter((x) => !!x), makers = packets.filter((x) => x.role === "maker");
+  const waiting = rows.filter((r) => !active.has(r.id) && !DONE.includes(r.status) && !r.why.startsWith("over budget")).map((r) => workPacket(r, reviewed.get(r.id) ?? true)).filter((x) => !!x && x.role === "maker");
+  return { ...res, work: { makers: makers.slice(0, o.parallel), queued: [...makers.slice(o.parallel), ...waiting], main: packets.filter((x) => x.role === "main") } };
+}
+function earlyRoster(p, rows) {
+  if (!projectConfig(p).review.earlyRoster) return void 0;
+  const figures = rows.filter((r) => !TILE_KINDS.has(r.kind) && r.status !== "brief");
+  if (figures.length < 2) return void 0;
+  const atV1 = v1Rows(p, figures), ready2 = new Set(atV1.map((r) => r.id));
+  const beforeV1 = figures.filter((r) => !ready2.has(r.id) && r.next?.action !== "ready" && (r.next?.action === "review" || r.next?.action === "write-base") && "version" in r.next && r.next.version === "base.v1");
+  const uncovered = atV1.filter((r) => !ledgerFor(openAsset(join13(p.root, r.path))).some((e) => e.type === "roster" && e.version === "base.v1" && Array.isArray(e.issues)));
+  if (uncovered.length < 2 && !(uncovered.length && atV1.length >= 2)) return void 0;
+  if (beforeV1.length) return { stage: "v1", ids: uncovered.map((r) => r.id), why: `holding v2 for the v1 roster until ${beforeV1.map((r) => r.id).join(", ")} ${beforeV1.length > 1 ? "have" : "has"} a scored v1` };
+  return { stage: "v1", ids: uncovered.map((r) => r.id), why: "every v1 is scored: run the v1 roster (`roster --stage v1`, a fresh art-reviewer, `roster record`) before any v2 \u2014 its notes go into each v2 brief" };
+}
+function thumb(r) {
+  const f = r.facings[0], cells = r.cells.filter((c) => c.facing === f);
+  return cells.length > 1 ? strip({ ...r, cells }) : cells[0].grid;
+}
+function reviewOf(a, final) {
+  const ledger = ledgerFor(a), own = [...ledger].reverse().find((e) => e.type === "score" && !e.blind && e.version === final);
+  return { reviewer: typeof own?.reviewer === "string" ? own.reviewer : void 0, blind: blindScores(ledger).get(final)?.score };
+}
+async function gallery(p, opts = {}) {
+  const dir = requireLocked(p), want = opts.statuses ?? ["final"], rows = (await projectStatus(p, opts.ids)).filter((r) => r.final && (opts.ids?.length || want.includes(r.status)));
+  const items = [], assets = [];
+  for (const r of rows) {
+    const a = openAsset(join13(p.root, r.path)), v = await renderVersion(a, r.final);
+    const rv = reviewOf(a, r.final);
+    const tag = `${r.id} ${r.final} ${r.score ?? "-"}${rv.blind !== void 0 ? ` b${rv.blind}` : rv.reviewer === "self" ? " SELF" : ""}${r.gate === false ? " GATE" : ""}${r.belowBar ? " BELOW BAR" : ""}${r.top ? ` final\u2260best ${r.top.version} ${r.top.score}` : ""}${r.issues.length ? ` !${r.issues.length}` : ""}`;
+    items.push({ label: tag, grid: thumb(v.render), bg: a.brief.review?.bg ?? dir.background });
+    assets.push({ id: r.id, final: r.final, score: r.score, ...rv.blind !== void 0 && { blind: rv.blind }, ...rv.reviewer && { reviewer: rv.reviewer }, issues: r.issues, ...r.belowBar && { belowBar: true }, ...r.top && { top: r.top } });
+  }
+  if (!items.length) return { sheets: [], tokens: 0, assets };
+  const sheets = [];
+  let tokens = 0;
+  const n0 = (existsSync12(join13(p.art, "sheets")) ? readdirCount(join13(p.art, "sheets"), /^gallery-\d+\.png$/) : 0) + 1;
+  for (let i = 0; i < items.length; i += 12) {
+    const page2 = items.slice(i, i + 12), sheet = contactSheet(`${dir.id} v${dir.version}: finished assets ${i + 1}-${i + page2.length} of ${items.length} (score, b blind score, !issues; BELOW BAR under ${projectConfig(p).review.approveMin})`, page2, 4, Math.min(4, page2.length));
+    const f = join13(p.art, "sheets", `gallery-${n0 + i / 12}.png`);
+    writeGrid(f, sheet);
+    sheets.push(rel2(p, f));
+    tokens += imageTokens(sheet.w, sheet.h);
+  }
+  appendLedger(ledgerFile(p), { type: "review", asset: "gallery", sheet: sheets.join(","), imageTokens: tokens, assets: assets.map((x) => x.id), by: "agent" });
+  return { sheets, tokens, assets };
+}
+function v1Rows(p, rows) {
+  const out = [];
+  for (const r of rows) {
+    if (TILE_KINDS.has(r.kind) || r.status === "brief") continue;
+    const a = openAsset(join13(p.root, r.path)), vs = versionsIn(a);
+    if (!vs.includes("base.v1") || vs.includes("base.v2") || (a.budget?.revisionPasses ?? 3) < 2) continue;
+    if (ledgerFor(a).some((e) => e.type === "score" && !e.blind && e.version === "base.v1")) out.push(r);
+  }
+  return out;
+}
+async function rosterRun(p, o = {}) {
+  const dir = requireLocked(p), briefs = readBriefs(p), ledgerAll = parseLedger(existsSync12(ledgerFile(p)) ? readFileSync10(ledgerFile(p), "utf8") : ""), stage = o.stage ?? "final";
+  const ids = o.ids?.length ? o.ids : void 0;
+  const all = await projectStatus(p, ids), rows = stage === "v1" ? v1Rows(p, all) : all.filter((r) => r.final);
+  const items = [], versions = {}, skipped = [];
+  for (const r of rows) {
+    const b = briefs.find((x) => x.id === r.id), version = stage === "v1" ? "base.v1" : r.final;
+    if (TILE_KINDS.has(b.kind)) {
+      skipped.push(`${r.id} (${b.kind})`);
+      continue;
+    }
+    const v = await renderVersion(openAsset(join13(p.root, r.path)), version);
+    items.push({ id: r.id, kind: b.kind, grid: v.render.cells[0].grid, drawn: drawnHeight(standFrames(v.render)), notes: b.notes, height: b.height });
+    versions[r.id] = version;
+  }
+  if (items.length < 2) throw new Error(`roster: needs at least two ${stage === "v1" ? "non-tile assets with a scored base.v1 and no v2" : "finished non-tile assets"} (have ${items.length})`);
+  const seed = o.seed ?? ledgerAll.filter((e) => e.type === "roster" && e.asset === "roster" && e.key).length + 1;
+  const res = roster(items, { bg: dir.background ?? "#202020", pxPerMetre: pxPerMetre(dir), heightFail: projectConfig(p).review.heightFail, seed });
+  const f = (n) => join13(p.art, "sheets", n), many = res.pages.length > 1, sheets = [];
+  let tokens = 0;
+  res.pages.forEach((pg, i) => {
+    const sfx = many ? `-${i + 1}` : "";
+    writeGrid(f(`roster-lineup${sfx}.png`), pg.lineup);
+    writeGrid(f(`roster-silhouettes${sfx}.png`), pg.silhouettes);
+    sheets.push(rel2(p, f(`roster-lineup${sfx}.png`)), rel2(p, f(`roster-silhouettes${sfx}.png`)));
+    tokens += imageTokens(pg.lineup.w, pg.lineup.h) + imageTokens(pg.silhouettes.w, pg.silhouettes.h);
+  });
+  writeJson(f("roster-assets.json"), {
+    stage,
+    lineup: items.map((it) => it.id),
+    ...many && { pages: res.pages.map((pg, i) => ({ lineup: `roster-lineup-${i + 1}.png`, silhouettes: `roster-silhouettes-${i + 1}.png`, ids: pg.ids })) },
+    assets: [...items].sort((a, b) => a.id.localeCompare(b.id)).map((it) => ({ id: it.id, kind: it.kind, notes: it.notes ?? "", ...it.height && { height: it.height } }))
+  });
+  appendLedger(ledgerFile(p), { type: "roster", asset: "roster", stage, key: res.key, versions, seed, sizes: res.sizes, pairs: res.pairs, sheet: sheets.map((x) => relative7(p.art, join13(p.root, x)).split("\\").join("/")).join(","), imageTokens: tokens, by: "agent" });
+  return { lineup: sheets[0], silhouettes: sheets[1], sheets, assets: rel2(p, f("roster-assets.json")), tokens, seed, stage, sizes: res.sizes, pairs: res.pairs, skipped };
+}
+function rosterRecord(p, file, reviewer = "self") {
+  const ledgerAll = parseLedger(existsSync12(ledgerFile(p)) ? readFileSync10(ledgerFile(p), "utf8") : "");
+  const run = [...ledgerAll].reverse().find((e) => e.type === "roster" && e.asset === "roster" && e.key);
+  if (!run) throw new Error("roster record: run `artgen roster` first");
+  const review = readJson(resolve7(file)), key2 = run.key, versions = run.versions;
+  const issues = rosterIssues(review, key2);
+  for (const id of Object.values(key2)) {
+    const s2 = (review.silhouettes ?? []).find((x) => key2[x.letter] === id);
+    appendLedger(ledgerFile(p), { type: "roster", asset: id, version: versions[id], issues: issues[id] ?? [], ...s2 && { readability: s2.readability, guess: s2.guess }, reviewer, by: "agent" });
+  }
+  appendLedger(ledgerFile(p), { type: "roster", asset: "roster", recorded: true, notes: review.notes ?? [], reviewer, by: "agent" });
+  return { issues, notes: review.notes ?? [] };
+}
+async function feedback(p, id, o) {
+  const b = readBriefs(p).find((x) => x.id === id);
+  if (!b) throw new Error(`no brief ${id}`);
+  requireLocked(p);
+  const row = await assetRow(p, b), agent = o.by === "agent";
+  if (!["final", "approved", "exported", "stale"].includes(row.status)) throw new Error(`${id} is ${row.status}: feedback applies to finished assets (wait for final)`);
+  const a = openAsset(assetPathOf(p, b)), mine = feedbackOf(a).filter((f) => f.by === "agent" === agent), iterations = mine.length + 1;
+  const max2 = agent ? projectConfig(p).review.rosterRevisions : a.budget?.maxUserIterations ?? 3;
+  if (iterations > max2 && !o.force) throw new Error(agent ? `${id}: ${iterations - 1} revisions from roster notes already (review.rosterRevisions ${max2}) \u2014 list the note for the user instead, or pass --force` : `${id}: ${iterations - 1} user iterations already (budget.maxUserIterations ${max2}) \u2014 escalate: talk it through with the user, or pass --force`);
+  const vs = versionsIn(a), kind = o.route === "base" ? "base" : "finish";
+  const opens = `${kind}.v${Math.max(0, ...vs.map(parseVersion).filter((v) => v.kind === kind).map((v) => v.n)) + 1}`;
+  appendLedger(ledgerFile(p), { type: "feedback", asset: id, route: o.route, opens, on: row.final, note: o.note, ...o.region && { region: o.region }, ...o.cell && { cell: o.cell }, ...agent ? { by: "agent", source: o.source ?? "roster" } : { by: "user" } });
+  return { opens, next: (await passState(openAsset(assetPathOf(p, b)))).next, iterations };
+}
+async function approve(p, id, note = "") {
+  const b = readBriefs(p).find((x) => x.id === id);
+  if (!b) throw new Error(`no brief ${id}`);
+  const dir = requireLocked(p), row = await assetRow(p, b);
+  if (row.status !== "final") throw new Error(`${id} is ${row.status}: only a final asset can be approved${row.status === "stale" ? " (run restyle first)" : ""}`);
+  const a = openAsset(assetPathOf(p, b)), r = await renderVersion(a, row.final);
+  if (!r.report.pass) throw new Error(`${id} ${row.final}: the gate fails (${r.report.checks.filter((c) => c.status === "fail").map((c) => c.id).join(", ")}) \u2014 give feedback instead (R6)`);
+  const sheet = [...ledgerFor(a)].reverse().find((e2) => e2.type === "review" && e2.version === row.final)?.sheet;
+  if (!sheet) throw new Error(`${id} ${row.final}: no review sheet yet \u2014 artgen review first (R6)`);
+  const kept = join13(p.art, "sheets", "approved", `${id}-${row.final}.png`), src = resolve7(dirname9(ledgerFile(p)), String(sheet));
+  if (existsSync12(src)) {
+    mkdirSync9(dirname9(kept), { recursive: true });
+    copyFileSync(src, kept);
+  }
+  const rv = reviewOf(a, row.final), cfg = projectConfig(p).review, warnings = [];
+  if (rv.blind === void 0) warnings.push(rv.reviewer === "self" || !rv.reviewer ? "scored only by the agent that made it, with no blind re-score" : "no blind re-score of the final");
+  warnings.push(...row.issues.filter((x) => x.startsWith("blind re-score")));
+  if (rv.blind !== void 0 && rv.blind < cfg.approveMin && !warnings.some((x) => x.startsWith("blind re-score"))) warnings.push(`blind re-score ${rv.blind} is under ${cfg.approveMin}`);
+  const e = { type: "approve", asset: id, version: row.final, sourceHash: finalHash(a, row.final), outputHash: r.strip.hash(), sheet: existsSync12(kept) ? relative7(p.art, kept).split("\\").join("/") : sheet, direction: { id: dir.id, version: dir.version }, note, ...warnings.length && { warnings }, by: "user" };
+  appendLedger(ledgerFile(p), e);
+  return { ts: (/* @__PURE__ */ new Date()).toISOString(), ...e };
+}
+async function writeNextFinish(path, o = {}) {
+  const vs = versionsIn({ path }), n = vs.filter((v) => v.startsWith("finish.")).length + 1;
+  let base = o.base;
+  if (!base) {
+    const st = await (async () => {
+      try {
+        return await passState(openAsset(path, o));
+      } catch {
+        return void 0;
+      }
+    })();
+    base = st?.next.action === "write-finish" ? st.next.base : st?.best?.version ?? vs.filter((v) => v.startsWith("base.")).pop();
+  }
+  if (!base) throw new Error(`${path}: no base version to finish`);
+  const kind = (() => {
+    try {
+      return openAsset(path, o).brief.kind;
+    } catch {
+      return void 0;
+    }
+  })();
+  return { file: newFinish(path, n, base, kind), base };
+}
+function inPack(b, pack, include) {
+  if (b.pack) return b.pack === pack;
+  return include.some((pat) => pat.startsWith("kind:") ? b.kind === pat.slice(5) : new RegExp(`^${pat.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*")}$`).test(b.id));
+}
+async function exportPacks(p, o = {}) {
+  const dir = requireLocked(p), cfg = projectConfig(p), rows = await projectStatus(p), briefs = readBriefs(p);
+  const ok = (s2) => s2 === "approved" || s2 === "exported" || o.includeDrafts && s2 === "final";
+  const skipped = rows.filter((r) => !ok(r.status)).map((r) => ({ id: r.id, status: r.status }));
+  const out = [], forTs = [];
+  const builds = [];
+  for (const [pack, def] of Object.entries(cfg.packs)) {
+    if (o.packs?.length && !o.packs.includes(pack)) continue;
+    const inputs = [];
+    for (const r of rows) {
+      const b = briefs.find((x) => x.id === r.id);
+      if (!ok(r.status) || !inPack(b, pack, def.include)) continue;
+      const a = openAsset(join13(p.root, r.path)), n = Math.max(1, b.variants ?? 1), renders = [];
+      for (let k = 0; k < n; k++) renders.push((await renderVersion(a, r.final, { variant: k })).render);
+      inputs.push({ brief: a.brief, view: a.brief.view ?? dir.camera.view, renders, version: r.final, sourceHash: finalHash(a, r.final), draft: r.status === "final" });
+    }
+    if (!inputs.length) continue;
+    builds.push({ pack, inputs, built: buildPack(pack, dir, inputs, { generator: o.generator, runtime: RUNTIME_VERSION, maxSize: cfg.export.maxAtlas, padding: cfg.export.padding }) });
+  }
+  const contracts = [], refused = [], seen = /* @__PURE__ */ new Set();
+  for (const { built } of builds) for (const [id, a] of Object.entries(built.manifest.assets)) {
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const next = contractOf(id, a), old = readContract(p, id);
+    if (!old) {
+      contracts.push({ next, change: { id, change: "created", notes: [] } });
+      continue;
+    }
+    const d = diffContract(old, next);
+    if (d.breaking.length && !allowed(o.breakContract, id)) refused.push(`${id}: ${d.breaking.join("; ")}`);
+    else if (d.breaking.length || d.added.length) contracts.push({ next, change: { id, change: d.breaking.length ? "broken" : "extended", notes: [...d.breaking, ...d.added.map((x) => `added ${x}`)] } });
+  }
+  if (refused.length) throw new Error(`export refused: the animation contract changed for
+  ${refused.join("\n  ")}
+game code indexes these states and frames (art/contracts/<id>.json). Restore the brief's anims/states/directions and the base's anchors, or re-run with --break-contract <id> once the game code is updated`);
+  for (const { pack, built, inputs } of builds) {
+    const pdir = join13(p.root, cfg.export.packDir, pack);
+    built.atlases.forEach((g, i) => {
+      writeGrid(join13(pdir, built.manifest.atlases[i]), g);
+      writeJson(join13(pdir, built.manifest.atlases[i].replace(/\.png$/, ".aseprite.json")), built.aseprite[i]);
+    });
+    built.normals?.forEach((g, i) => writeGrid(join13(pdir, built.manifest.normals[i]), g));
+    writeJson(join13(pdir, "pack.json"), built.manifest);
+    for (const inp of inputs) appendLedger(ledgerFile(p), { type: "export", asset: inp.brief.id, version: inp.version, sourceHash: inp.sourceHash, pack, direction: { id: dir.id, version: dir.version }, ...inp.draft && { draft: true }, by: "agent" });
+    out.push({ pack, dir: rel2(p, pdir), atlases: built.manifest.atlases.map((f) => rel2(p, join13(pdir, f))), assets: inputs.map((i) => i.brief.id), drafts: built.manifest.drafts ?? [] });
+    const pub = cfg.export.packDir.replace(/\\/g, "/").replace(/^\.?\/?/, "");
+    forTs.push({ manifest: built.manifest, url: pub.startsWith("public/") || pub === "public" ? `/${pub.slice(7)}${pub.length > 7 ? "/" : ""}${pack}/pack.json`.replace(/\/+/g, "/") : `${pub}/${pack}/pack.json` });
+  }
+  for (const { next, change } of contracts) {
+    writeJson(contractFile(p, next.asset), next);
+    appendLedger(ledgerFile(p), { type: "contract", asset: next.asset, change: change.change, ...change.notes.length && { notes: change.notes }, by: "agent" });
+  }
+  const tsFile = join13(p.root, cfg.export.assetsTs);
+  if (forTs.length) {
+    mkdirSync9(dirname9(tsFile), { recursive: true });
+    writeFileSync12(tsFile, assetsTs(forTs));
+  }
+  const runtime = o.runtime ? vendorRuntime(p, { force: o.force, generator: o.generator }) : void 0;
+  return { packs: out, assetsTs: forTs.length ? rel2(p, tsFile) : "", skipped, contracts: contracts.map((c) => c.change), ...runtime && { runtime } };
+}
+async function restyle(p, o = {}) {
+  const to = requireLocked(p), from = directionVersion(p, o.from ?? to.version - 1);
+  if (from.version === to.version) throw new Error(`nothing to restyle: direction is v${to.version}`);
+  const rows = (await projectStatus(p)).filter((r) => r.final), sheetRows = [], assets = [];
+  const fromFile = join13(p.art, "directions", `v${from.version}.json`);
+  for (const r of rows) {
+    const path = join13(p.root, r.path), a = openAsset(path), old = openAsset(path, { direction: existsSync12(fromFile) ? fromFile : void 0 });
+    if (!existsSync12(fromFile)) old.dir = from;
+    const [before, after] = [await renderVersion(old, r.final), await renderVersion(a, r.final)];
+    const d = restyleDiff(before.strip, after.strip, from, to);
+    sheetRows.push({ label: `${r.id} ${r.final}: ${d.changedPct}% px changed, tokens kept ${Math.round(d.tokenSame * 100)}%${after.report.pass ? "" : " GATE FAIL"}${after.stale?.length ? " FINISH-STALE" : ""}`, before: thumb(before.render), after: thumb(after.render), mask: tokenDiffMask(thumb(before.render), thumb(after.render), from, to), bg: to.background });
+    assets.push({ id: r.id, final: r.final, changedPct: d.changedPct, tokenSame: d.tokenSame, consistent: d.consistent, gate: after.report.pass, stale: after.stale ?? [] });
+    appendLedger(ledgerFile(p), { type: "restyle", asset: r.id, version: r.final, from: { id: from.id, version: from.version }, direction: { id: to.id, version: to.version }, changedPct: d.changedPct, tokenSame: d.tokenSame, consistent: d.consistent, gate: after.report.pass, outputHash: after.strip.hash(), ...after.stale?.length && { stale: after.stale }, by: "agent" });
+  }
+  const sheet = restyleSheet(`restyle ${from.id} v${from.version} -> ${to.id} v${to.version}`, sheetRows);
+  const f = join13(p.art, "sheets", `restyle-v${from.version}-v${to.version}.png`);
+  writeGrid(f, sheet);
+  return { from: from.version, to: to.version, sheet: rel2(p, f), tokens: imageTokens(sheet.w, sheet.h), assets };
+}
+async function importEdit(p, id, png, o = {}) {
+  const b = readBriefs(p).find((x) => x.id === id);
+  if (!b) throw new Error(`no brief ${id}`);
+  const dir = requireLocked(p), row = await assetRow(p, b);
+  if (!row.final) throw new Error(`${id} is ${row.status}: import-edit applies to a finished asset`);
+  const a = openAsset(assetPathOf(p, b)), r = await renderVersion(a, row.final), edited = readGrid(resolve7(png)), [w, h] = r.render.size;
+  const cells = r.render.cells;
+  let pieces;
+  if (o.cell) {
+    const idx = cells.findIndex((c) => `${c.state}/${c.facing}/${c.frame}` === o.cell);
+    if (idx < 0) throw new Error(`no cell ${o.cell} (cells are state/facing/frame)`);
+    pieces = [{ idx, grid: edited }];
+  } else if (edited.w === r.strip.w && edited.h === r.strip.h) {
+    pieces = cells.map((_, i) => {
+      const g = new Grid(w, h);
+      g.blit(crop(edited, i * w, 0, w, h), 0, 0);
+      return { idx: i, grid: g };
+    });
+  } else if (cells.length === 1) pieces = [{ idx: 0, grid: edited }];
+  else throw new Error(`${png} is ${edited.w}x${edited.h}; expected the ${r.strip.w}x${r.strip.h} strip (out/${row.final}.png) or --cell state/facing/frame`);
+  const edits = {};
+  let pixels = 0, snapped = 0, conflicts = 0;
+  for (const { idx, grid } of pieces) {
+    const c = cells[idx], e = editOps(c.grid, grid, dir);
+    if (!e.ops.length) continue;
+    snapped += e.snapped;
+    const key2 = c.mirrored ? `${c.state}/${mirrorFacing(c.facing)}/${c.frame}` : `${c.state}/${c.facing}/${c.frame}`;
+    const ops = c.mirrored ? e.ops.map(([x, y, t]) => [w - 1 - x, y, t]) : e.ops;
+    if (edits[key2]) {
+      conflicts += ops.length;
+      if (c.mirrored) continue;
+    }
+    edits[key2] = ops;
+    pixels += ops.length;
+  }
+  if (!pixels) throw new Error(`${png}: no pixel differs from ${row.final}`);
+  const vs = versionsIn(a), n = Math.max(0, ...vs.map(parseVersion).filter((v) => v.kind === "finish").map((v) => v.n)) + 1;
+  const fin = parseVersion(row.final), base = fin.kind === "finish" ? r.base : row.final, prev = fin.kind === "finish" ? row.final : void 0;
+  const file = join13(a.path, `finish.v${n}.js`);
+  const body2 = Object.entries(edits).map(([k, ops]) => `  '${k}': ${JSON.stringify(ops)},`).join("\n");
+  writeFileSync12(file, `// finish.v${n} \u2014 hand edit imported from ${relative7(a.path, resolve7(png)).split("\\").join("/")} (artgen import-edit):
+// ${pixels} pixels in ${Object.keys(edits).length} cells, as colour tokens so the edit survives a restyle.${prev ? ` Replays ${prev} first.` : ""}
+${prev ? `import * as prev from './${prev}.js';
+` : ""}export const base = '${base}';
+export const meta = { notes: 'hand edit (import-edit)' };
+
+const EDITS = {
+${body2}
+};
+
+export function finish(g, ctx) {
+${prev ? "  g = prev.finish(g, ctx) ?? g;\n" : ""}  for (const [x, y, t] of EDITS[\`\${ctx.state}/\${ctx.facing}/\${ctx.frame}\`] ?? []) {
+    if (t === null) g.clear(x, y); else ctx.lib.px.set(g, [x, y], t);
+  }
+  return g;
+}
+`);
+  appendLedger(ledgerFile(p), { type: "import-edit", asset: id, version: `finish.v${n}`, on: row.final, file: rel2(p, resolve7(png)), pixels, snapped, by: "user" });
+  appendLedger(ledgerFile(p), { type: "feedback", asset: id, route: "finish", opens: `finish.v${n}`, on: row.final, note: `hand edit: ${pixels} px (import-edit)`, by: "user" });
+  return { file: rel2(p, file), pixels, cells: Object.keys(edits).length, snapped, conflicts };
+}
+function crop(g, x0, y0, w, h) {
+  const out = new Grid(w, h);
+  for (let y = 0; y < h; y++) out.d.set(g.d.subarray(((y0 + y) * g.w + x0) * 4, ((y0 + y) * g.w + x0 + w) * 4), y * w * 4);
+  return out;
+}
+function projectAnalytics(p, title) {
+  const dir = requireLocked(p), all = parseAll(ledgerFile(p)), metas = projectMetas(p, dir);
+  const ids = new Set(metas.map((m) => m.id)), report2 = analytics(all.filter((e) => ids.has(e.asset) || e.asset === "gallery"), metas);
+  return { report: report2, markdown: analyticsMarkdown(report2, title ?? `${dir.id}: pipeline analytics`) };
+}
+function projectMetas(p, dir) {
+  return readBriefs(p).map((b) => {
+    const bj = join13(assetPathOf(p, b), "brief.json"), local = existsSync12(bj) ? readJson(bj) : {};
+    const size = Array.isArray(b.size) ? b.size.join("x") : b.size ?? b.kind;
+    return { id: b.id, kind: b.kind, view: b.view ?? dir?.camera.view, size, template: local.template, importance: b.importance ?? "standard" };
+  });
+}
+function ledgerSet(dir) {
+  const root = resolve7(dir), name = relative7(process.cwd(), root).split("\\").join("/") || ".";
+  if (existsSync12(join13(root, "art", "artgen.config.json"))) {
+    const p = { root, art: join13(root, "art") };
+    return { project: name, ledger: parseAll(ledgerFile(p)), metas: projectMetas(p, lockedDirection(p)), config: projectConfig(p) };
+  }
+  if (!existsSync12(join13(root, "ledger.jsonl"))) throw new Error(`${dir}: neither a project (art/artgen.config.json) nor a folder with ledger.jsonl`);
+  const metas = [];
+  for (const d of readdirSync7(root, { withFileTypes: true })) {
+    const bj = join13(root, d.name, "brief.json");
+    if (!d.isDirectory() || !existsSync12(bj)) continue;
+    const b = readJson(bj);
+    metas.push({ id: b.id ?? d.name, kind: b.kind, view: b.view, size: Array.isArray(b.size) ? b.size.join("x") : b.size, template: b.template, importance: b.importance ?? "standard" });
+  }
+  return { project: name, ledger: parseAll(join13(root, "ledger.jsonl")), metas };
+}
+function pooledAnalytics(dirs, o = {}) {
+  const r = recommend(dirs.map(ledgerSet), { minAssets: o.minAssets });
+  let applied;
+  if (o.apply) {
+    const f = join13(o.apply.art, "artgen.config.json"), raw = readJson(f), next = applyRecommendations(mergeConfig(raw), r.patch);
+    writeJson(f, { ...raw, budget: { ...raw.budget, ...next.budget.perKind && { perKind: next.budget.perKind } }, models: next.models });
+    applied = rel2(o.apply, f);
+  }
+  return { report: r, markdown: recommendMarkdown(r, o.title), ...applied && { applied } };
+}
+var briefsFile, ledgerFile, rel2, contractFile, allowed, assetPathOf, versionsInPath, DONE, readdirCount, parseAll;
+var init_w2 = __esm({
+  "../artgen-cli/src/w2.ts"() {
+    "use strict";
+    init_src();
+    init_asset();
+    init_bench2();
+    init_src2();
+    init_node();
+    init_runtime();
+    init_project();
+    init_templates();
+    init_w1();
+    briefsFile = (p) => join13(p.art, "briefs.yaml");
+    ledgerFile = (p) => join13(p.art, "ledger.jsonl");
+    rel2 = (p, f) => relative7(p.root, f).split("\\").join("/");
+    contractFile = (p, id) => join13(p.art, "contracts", `${id}.json`);
+    allowed = (list2, id) => !!list2 && (list2.includes("*") || list2.includes(id));
+    assetPathOf = (p, b) => join13(p.art, briefDir(b));
+    versionsInPath = (path) => existsSync12(path) ? versionsIn({ path }) : [];
+    DONE = ["final", "approved", "exported"];
+    readdirCount = (d, re) => readdirSync7(d).filter((f) => re.test(f)).length;
+    parseAll = (f) => existsSync12(f) ? parseLedger(readFileSync10(f, "utf8")) : [];
+  }
+});
+
+// ../artgen-cli/src/cli.ts
+var cli_exports = {};
+__export(cli_exports, {
+  VERSION: () => VERSION,
+  main: () => main
+});
+import { existsSync as existsSync13, readFileSync as readFileSync11, writeFileSync as writeFileSync13 } from "node:fs";
+import { join as join14 } from "node:path";
+function readColors(src, n = 16) {
+  if (/^#?[0-9a-f]{6}(,#?[0-9a-f]{6})*$/i.test(src)) return src.split(",").map((c) => "#" + c.replace("#", "").toLowerCase());
+  if (!existsSync13(src)) throw new Error(`${src}: not found`);
+  if (src.endsWith(".png")) return extractPalette(readGrid(src), n).colors;
+  const text = readFileSync11(src, "utf8");
+  return src.endsWith(".gpl") ? parseGpl(text) : parseHexPalette(text);
+}
+function toolDirection(cmd, root, override) {
+  const p = findProject(root), file = override ?? (p ? join14(p.art, "direction.json") : void 0);
+  const fix = "lock one first (artgen direction candidates \u2192 tile \u2192 lock, or /artgen-direction in Claude Code), or pass --direction <file|benchmark>";
+  if (override && !existsSync13(override) && ["benchmark", "alt"].includes(override)) return { p, dir: resolveDirection(override) };
+  if (override && !existsSync13(override)) throw new Error(`${cmd}: --direction ${override}: no such file (or bench direction: benchmark, alt)`);
+  if (!file || !existsSync13(file)) throw new Error(`${cmd}: no art direction found \u2014 ${fix}`);
+  const raw = JSON.parse(readFileSync11(file, "utf8")), v = validateDirection(raw);
+  if (!v.ok) throw new Error(raw?.status === "draft" && !override ? `${cmd}: the art direction is still a draft \u2014 ${fix}` : `${cmd}: ${file} is not a valid direction:
+  ${v.errors.join("\n  ")}`);
+  return { p, dir: parseDirection(raw) };
 }
 async function main(argv) {
   const [cmd, sub2, ...rest] = argv, args = [sub2, ...rest].filter((a) => a !== void 0);
@@ -21635,14 +21787,14 @@ async function main(argv) {
     return 0;
   }
   if (cmd === "direction" && sub2 === "validate" && rest[0]) {
-    const r = validateDirection(JSON.parse(readFileSync9(rest[0], "utf8")));
+    const r = validateDirection(JSON.parse(readFileSync11(rest[0], "utf8")));
     console.log(r.ok ? `ok: ${r.direction.id} v${r.direction.version}` : r.errors.join("\n"));
     return r.ok ? 0 : 1;
   }
   if (cmd === "direction") {
     const p = requireProject(flag(args, "--root")), pos = rest.filter((a, i) => !a.startsWith("--") && !(i > 0 && rest[i - 1].startsWith("--") && rest[i - 1] !== "--json"));
     if (sub2 === "candidates") {
-      const from = flag(args, "--from"), base = from ? readInterview(from) : existsSync12(join13(p.art, "interview.json")) ? readJson(join13(p.art, "interview.json")) : {};
+      const from = flag(args, "--from"), base = from ? readInterview(from) : existsSync13(join14(p.art, "interview.json")) ? readJson(join14(p.art, "interview.json")) : {};
       const iv = {
         ...base,
         pitch: flag(args, "--pitch") ?? base.pitch ?? "",
@@ -21715,8 +21867,8 @@ style sheet: ${r.sheet}`, r);
     if (sub2 === "import" || sub2 === "extract") {
       const colors = readColors(rest[0], +(flag(args, "--n") ?? 16)), ramps = rampsFromColors(colors);
       if (args.includes("--interview")) {
-        const p = requireProject(flag(args, "--root")), f = join13(p.art, "interview.json");
-        const iv = existsSync12(f) ? readJson(f) : { pitch: "" };
+        const p = requireProject(flag(args, "--root")), f = join14(p.art, "interview.json");
+        const iv = existsSync13(f) ? readJson(f) : { pitch: "" };
         writeJson(f, { ...iv, colors });
       }
       if (flag(args, "--swatch")) {
@@ -21734,12 +21886,12 @@ ${Object.entries(ramps).map(([k, r]) => `  ${k}: ${r.join(" ")}`).join("\n")}${a
     if (!kind) throw new Error("new: --kind is required (character, creature, prop, tile, effect, \u2026)");
     const p = findProject(flag(args, "--root")), view = flag(args, "--view") ?? (p && (() => {
       try {
-        return readJson(join13(p.art, "direction.json")).camera?.view;
+        return readJson(join14(p.art, "direction.json")).camera?.view;
       } catch {
         return void 0;
       }
     })()) ?? "topdown";
-    const path = flag(args, "--dir") ?? (p ? join13(p.art, "assets", kind, sub2) : sub2);
+    const path = flag(args, "--dir") ?? (p ? join14(p.art, "assets", kind, sub2) : sub2);
     const r = newAsset(path, { id: sub2, kind, view, size: parseSize(flag(args, "--size")), states: list(args, "--states"), directions: flag(args, "--directions") ? +flag(args, "--directions") : void 0, notes: flag(args, "--notes") });
     print(`${sub2}: ${r.files.join(", ")} (template ${r.template.view}/${r.template.kind}${r.template.fallback ? ", fallback" : ""})
 next: edit base.v1.js for the brief, then artgen review ${path}`, { files: r.files, template: r.template });
@@ -21764,8 +21916,8 @@ next: edit base.v1.js for the brief, then artgen review ${path}`, { files: r.fil
     const a = asset(sub2), version = flag(args, "--version") ?? latest(sub2), stages = args.includes("--stages") ? /* @__PURE__ */ new Map() : void 0;
     const variant = +(flag(args, "--variant") ?? 0);
     const r = await renderVersion(a, version, { variant, stages });
-    const files = writeRender(a, r, variant ? join13(a.path, "out", `variant-${variant}`) : void 0);
-    if (stages) for (const [k, g] of stages) writeGrid(join13(a.path, "out", "stages", version, `${k.replace(/\//g, "_")}.png`), g);
+    const files = writeRender(a, r, variant ? join14(a.path, "out", `variant-${variant}`) : void 0);
+    if (stages) for (const [k, g] of stages) writeGrid(join14(a.path, "out", "stages", version, `${k.replace(/\//g, "_")}.png`), g);
     print(
       `${a.brief.id} ${version}: ${r.report.pass ? "gate pass" : "gate FAIL"}  ${r.report.checks.map((c) => `${c.id}:${c.status}`).join(" ")}
   ${files.join("\n  ")}${r.stale?.length ? `
@@ -21821,11 +21973,7 @@ next: edit base.v1.js for the brief, then artgen review ${path}`, { files: r.fil
   ${r.glb}`, r);
     return 0;
   }
-  if (cmd === "formats") {
-    const formats = { map: map_exports.MAP_FORMAT, dungeon: dungeon_exports.DUNGEON_FORMAT };
-    print(Object.entries(formats).map(([k, v]) => `${k} ${v}`).join("\n"), formats);
-    return 0;
-  }
+  if (cmd === "formats") return formatsCommand(print);
   if (cmd === "map") return mapCommand(sub2, args, print);
   if (cmd === "dungeon") return dungeonCommand(sub2, args, print);
   if (cmd === "texture") {
@@ -21841,7 +21989,7 @@ next: edit base.v1.js for the brief, then artgen review ${path}`, { files: r.fil
       m[k] = v;
       return m;
     }, {});
-    const r = textureRun(dir, sub2, { size, seed: flag(args, "--seed") ? +flag(args, "--seed") : void 0, ramps, scale: flag(args, "--scale") ? +flag(args, "--scale") : void 0, out: flag(args, "--out") ?? (p ? join13(p.art, "sheets", "textures") : "artgen-out") });
+    const r = textureRun(dir, sub2, { size, seed: flag(args, "--seed") ? +flag(args, "--seed") : void 0, ramps, scale: flag(args, "--scale") ? +flag(args, "--scale") : void 0, out: flag(args, "--out") ?? (p ? join14(p.art, "sheets", "textures") : "artgen-out") });
     print([
       `${sub2} ${size.join("x")} (ramps ${Object.entries(r.ramps).map(([k, v]) => `${k}=${v}`).join(", ")})`,
       ...r.files.map((f) => `  ${f}`),
@@ -21862,7 +22010,7 @@ next: edit base.v1.js for the brief, then artgen review ${path}`, { files: r.fil
     if (!sub2) throw new Error("fx: name a preset (artgen fx --list)");
     const { p, dir } = toolDirection("fx", flag(args, "--root"), flag(args, "--direction"));
     const sz = parseSize(flag(args, "--size") ?? "32"), size = Array.isArray(sz) ? sz : [+sz, +sz];
-    const r = fxRun(dir, sub2, { size, frames: +(flag(args, "--frames") ?? 8), seed: flag(args, "--seed") ? +flag(args, "--seed") : void 0, scale: flag(args, "--scale") ? +flag(args, "--scale") : void 0, out: flag(args, "--out") ?? (p ? join13(p.art, "sheets", "fx") : "artgen-out") });
+    const r = fxRun(dir, sub2, { size, frames: +(flag(args, "--frames") ?? 8), seed: flag(args, "--seed") ? +flag(args, "--seed") : void 0, scale: flag(args, "--scale") ? +flag(args, "--scale") : void 0, out: flag(args, "--out") ?? (p ? join14(p.art, "sheets", "fx") : "artgen-out") });
     print([`${sub2} ${size.join("x")} \xD7 ${r.frames} frames`, ...r.files.map((f) => `  ${f}`), `interior ${r.fill.interior.join(" ")} \xB7 brightest ${r.fill.brightest.join(" ")}`].join("\n"), r);
     return 0;
   }
@@ -22041,14 +22189,14 @@ next: artgen review ${sub2}`, r);
     if (across2) {
       if (!across2.length) throw new Error("analytics --across <project root>[,<root>\u2026]: the projects (or bench folders with a ledger.jsonl) to pool");
       const r2 = pooledAnalytics(across2, { apply: args.includes("--apply") ? requireProject(flag(args, "--root")) : void 0, minAssets: flag(args, "--min-assets") ? +flag(args, "--min-assets") : void 0 });
-      if (flag(args, "--out")) writeFileSync12(flag(args, "--out"), r2.markdown);
+      if (flag(args, "--out")) writeFileSync13(flag(args, "--out"), r2.markdown);
       print(r2.markdown + (r2.applied ? `
 applied to ${r2.applied}` : ""), { ...r2.report, ...r2.applied && { applied: r2.applied } });
       return 0;
     }
     const r = projectAnalytics(requireProject(flag(args, "--root")));
     if (flag(args, "--out")) {
-      writeFileSync12(flag(args, "--out"), r.markdown);
+      writeFileSync13(flag(args, "--out"), r.markdown);
     }
     print(r.markdown, r.report);
     return 0;
@@ -22060,7 +22208,7 @@ applied to ${r2.applied}` : ""), { ...r2.report, ...r2.applied && { applied: r2.
   console.error(`artgen: unknown command '${[cmd, sub2].filter(Boolean).join(" ")}' \u2014 run artgen --help for the list`);
   return 1;
 }
-var VERSION, parseSize, USAGE, num, withVersion;
+var VERSION, parseSize, USAGE;
 var init_cli = __esm({
   "../artgen-cli/src/cli.ts"() {
     "use strict";
@@ -22071,8 +22219,7 @@ var init_cli = __esm({
     init_project();
     init_p6();
     init_report();
-    init_dungeon2();
-    init_map2();
+    init_maps_cli();
     init_templates();
     init_w2();
     init_src();
@@ -22109,38 +22256,12 @@ usage: artgen init
        artgen texture <material> [--size 32|WxH] [--seed n] [--ramps base=stone,\u2026] [--scale k] [--out dir] | texture --list
        artgen anim <asset> [--version v] [--state s] [--facing f] [--scale n] [--out dir]
        artgen fx <preset> [--size 32|WxH] [--frames 8] [--seed n] [--scale n] [--out dir] | fx --list
-       artgen map new <id> [--preset regional|local] [--size 30x22] [--grid hex|square|none] [--seed n] [--title "..."]
-       artgen map gen <id> [--seed n] [--land mixed|island|inland] [--sea f] [--moisture f] [--roughness f] [--relief f] [--rivers n] [--simplify n] [--feature n] [--interval n] [--max-elevation n] [--topo-labels on|off]
-       artgen map edit <id> paint --terrain t <shape> | elevate --amount \xB1f <shape> | river --points x,y,\u2026 [--width w] [--delta off] | road --points x,y,\u2026 | undo
-                  <shape>: --circle x,y,r | --poly x,y,x,y,\u2026 | --stroke x,y,\u2026 --width w   (terrains: ${map_exports.TERRAINS.join(", ")})
-       artgen map grid <id> hex|square|none [--size n] [--coords on|off]
-       artgen map label <id> "Text" --at x,y|0304|C4 [--kind region|place|water|note] [--size f] [--angle deg]
-       artgen map symbol <id> <kind> --at x,y|0304|C4 [--scale f] | map symbols | map overlay <id> rm label|symbol <i> | clear [labels|symbols]
-       artgen map set <id> [--title "..."] [--legend on|off] [--scale-bar on|off] [--compass on|off] [--per-cell n] [--unit mi]
-       artgen map render <id> [--theme color|bw|both] [--format svg|png|both] [--ppu 40] [--layers grid=off,labels=off] [--out dir]
-       artgen map show <id> | list
-       artgen dungeon new <id> [--size 40x30] [--seed n] [--title "..."] [--empty] | new <id> --room rect|circle|octagon|cave --room-size 8x6 [--exits n,e:secret,s:none,w] [--label "..."] [--number n|off]
-       artgen dungeon gen <id> [--seed n] [--rooms n] [--min-size n] [--max-size n] [--caves f] [--round f] [--loops f] [--doors f] [--corridor-width n] [--spacing n] [--entrance on|off] [--size 40x30]
-       artgen dungeon room <id> add <shape> --at x,y|C4 --size WxH [--points x,y,\u2026] [--label "..."] [--number n|off] [--room-id r9] | move <rid> --at x,y | set <rid> [--shape s] [--size WxH] [--label "..."] [--number n|off] | rm <rid>
-       artgen dungeon link <id> <room> <room|x,y|C4> [--width 1] [--route auto|hv|vh|straight] [--via x,y,\u2026] [--doors door,none] | unlink <id> <i> | door <id> <i> from|to <kind|none>
-                  (shapes: ${dungeon_exports.ROOM_SHAPES.join(", ")}; doors: ${dungeon_exports.DOOR_KINDS.join(", ")})
-       artgen dungeon grid <id> 10|5|10+5|none [--clip floor|all] | style <id> [--hatch band|full|none] [--band n] [--wall f] [--numbers on|off] [--scale-bar on|off] [--compass on|off] [--title "..."] [--per-cell n] [--unit ft]
-       artgen dungeon label <id> "Text" --at x,y|C4 [--kind name|note|area] [--size f] [--angle deg] | symbol <id> <kind> --at x,y|C4 [--scale f] [--angle deg] | symbols
-       artgen dungeon overlay <id> rm label|symbol <i> | clear [labels|symbols] | fit <id> [--margin 2]
-       artgen dungeon render <id> [--format svg|png|both] [--ppu 40] [--layers grid=off,labels=off] [--out dir] | show <id> | list
-       artgen formats   (the map and dungeon file format versions this artgen reads; a newer file is refused)
+${MAP_USAGE}
        artgen bench [--direction benchmark|alt|<file>] [--out <dir>] [--stages] [--ledger <file>] [--update-golden]
        artgen --version | --help
 
 Commands take --json (machine-readable output) and --root <game repo>; asset commands also take
 --direction <file|benchmark|alt> and --ledger <file>.`;
-    num = (args, name) => {
-      const v = flag(args, name);
-      if (v === void 0) return void 0;
-      if (!Number.isFinite(+v)) throw new Error(`${name}: a number`);
-      return +v;
-    };
-    withVersion = (data, version) => data && typeof data === "object" && !Array.isArray(data) ? { version, ...data } : { version, items: data };
   }
 });
 
