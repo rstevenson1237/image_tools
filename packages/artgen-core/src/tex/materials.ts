@@ -15,7 +15,7 @@ import type { DirContext } from '../direction.ts';
 import { Grid } from '../lib/grid.ts';
 import { normalFromHeight } from '../lib/normals.ts';
 import { bandIndices } from '../t2/raster.ts';
-import { blurWrap, pGradient, pValue, pWorley } from './noise.ts';
+import { blurWrap, pGradient, pValue, pWorley } from '../lib/noise.ts';
 
 export interface MaterialOptions {
   w: number;

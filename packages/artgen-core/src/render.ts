@@ -18,7 +18,7 @@ import { autotile, autotileCount, autotileMask, type AutotileOptions } from './t
 import { isoBlockTile, isoFloorTile, type IsoBlockOptions } from './tex/iso.ts';
 import { lsystem, lsystemSpecs, turtle } from './tex/lsystem.ts';
 import { material, type MaterialOptions } from './tex/materials.ts';
-import { pGradient, pValue, pWorley } from './tex/noise.ts';
+import { pGradient, pValue, pWorley } from './lib/noise.ts';
 import { wfc } from './tex/wfc.ts';
 import { Proc } from './t2/proc.ts';
 import { sky, type SkyOptions } from './views/fp.ts';

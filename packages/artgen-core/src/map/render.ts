@@ -8,13 +8,14 @@ import { gridGeometry } from './gridlines.ts';
 import { TERRAIN_NAMES, TERRAINS, type MapSpec, type Terrain } from './spec.ts';
 import { SYMBOLS } from './symbols.ts';
 import { PATTERNS, THEME, type MapTheme, type ThemeName } from './theme.ts';
-import { chaikin, isolines, lineLength, pathData, simplifyLine, type Line } from './trace.ts';
+import { compassSvg, esc, FONT, FONT_FAMILY, haloText, n1 } from '../lib/svgdraw.ts';
+import { chaikin, isolines, lineLength, pathData, simplifyLine, type Line } from '../lib/trace.ts';
+
+export { FONT_FAMILY };
 
 export const MAP_LAYERS = ['terrain', 'rivers', 'roads', 'contours', 'grid', 'symbols', 'labels', 'legend', 'scale', 'compass', 'title'] as const;
 export type MapLayer = (typeof MAP_LAYERS)[number];
 
-export const FONT_FAMILY = 'Alegreya Sans';
-const FONT = `'${FONT_FAMILY}', 'Segoe UI', Helvetica, Arial, sans-serif`;
 
 export interface RenderMapOptions {
   theme?: ThemeName;
@@ -28,9 +29,6 @@ export interface RenderMapOptions {
 
 /** The part of a map that decides its terrain: when this key is unchanged, the generated field can be reused. */
 export const fieldKey = (s: MapSpec): string => JSON.stringify([s.preset, s.cols, s.rows, s.seed, s.gen, s.edits]);
-
-export const esc = (t: string) => t.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
-export const n1 = (v: number) => (Math.round(v * 10) / 10).toString();
 
 /** Which layers render: everything on, decorations as the map says, then the caller's overrides. */
 export function layersFor(spec: MapSpec, over: Partial<Record<MapLayer, boolean>> = {}): Record<MapLayer, boolean> {
@@ -98,22 +96,11 @@ function symbolSvg(kind: string, x: number, y: number, size: number, th: MapThem
   return `<g transform="translate(${n1(x)} ${n1(y)}) scale(${(size / 20).toFixed(3)})">${s.svg.replaceAll('{ink}', th.ink).replaceAll('{fill}', th.symbolFill)}</g>`;
 }
 
-/** Text with a paper-coloured halo so it stays legible over any terrain. */
-export function haloText(text: string, x: number, y: number, size: number, color: string, th: Pick<MapTheme, 'halo'>, attrs = ''): string {
-  const a = `x="${n1(x)}" y="${n1(y)}" font-size="${n1(size)}" text-anchor="middle" ${attrs}`;
-  return `<text ${a} fill="none" stroke="${th.halo}" stroke-width="${n1(size * 0.22)}" stroke-linejoin="round" stroke-opacity="0.9">${esc(text)}</text><text ${a} fill="${color}">${esc(text)}</text>`;
-}
-
 /** A round number of cells for the scale bar, about a fifth of the map wide. */
 function scaleCells(spec: MapSpec): number {
   const target = spec.cols / 5;
   for (const n of [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30, 40, 50]) if (n >= target * 0.75) return n;
   return Math.max(1, Math.round(target));
-}
-
-/** A north arrow in a disc, `r` across, centred on cx, cy. */
-export function compassSvg(cx: number, cy: number, r: number, u: number, th: Pick<MapTheme, 'ink' | 'paper'>): string {
-  return `<g id="compass" stroke="${th.ink}" stroke-width="${n1(u)}" stroke-linejoin="round"><circle cx="${n1(cx)}" cy="${n1(cy)}" r="${n1(r)}" fill="${th.paper}" fill-opacity="0.85"/><path d="M${n1(cx)} ${n1(cy - r * 0.9)}L${n1(cx + r * 0.3)} ${n1(cy)}L${n1(cx)} ${n1(cy + r * 0.9)}L${n1(cx - r * 0.3)} ${n1(cy)}Z" fill="${th.paper}"/><path d="M${n1(cx)} ${n1(cy - r * 0.9)}L${n1(cx + r * 0.3)} ${n1(cy)}L${n1(cx - r * 0.3)} ${n1(cy)}Z" fill="${th.ink}"/><text x="${n1(cx)}" y="${n1(cy - r - 4 * u)}" font-size="${n1(13 * u)}" font-weight="700" text-anchor="middle" fill="${th.ink}" stroke="none">N</text></g>`;
 }
 
 export function renderMapSvg(spec: MapSpec, o: RenderMapOptions = {}): string {

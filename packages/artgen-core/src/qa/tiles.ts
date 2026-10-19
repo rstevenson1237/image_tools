@@ -11,7 +11,7 @@
  * repeating every tile. Calibrated on the P3 fixtures' tiles that blind review called out (calibration.md).
  */
 import type { Grid } from '../lib/grid.ts';
-import { blurWrap } from '../tex/noise.ts';
+import { blurWrap } from '../lib/noise.ts';
 
 const lumaAt = (g: Grid, x: number, y: number) => { const i = (y * g.w + x) * 4; return 0.299 * g.d[i] + 0.587 * g.d[i + 1] + 0.114 * g.d[i + 2]; };
 const diff = (g: Grid, a: number, b: number) => {

@@ -11,7 +11,7 @@ import { dirContext, type DirContext, type Direction } from '../direction.ts';
 import { material } from '../tex/materials.ts';
 import { parseColor } from '../lib/color.ts';
 import { Grid } from '../lib/grid.ts';
-import { pGradient, pValue } from '../tex/noise.ts';
+import { pGradient, pValue } from '../lib/noise.ts';
 
 export interface Billboard { grid: Grid; /** map position (tiles) */ x: number; y: number; /** height in tiles (default: grid height / 64) */ height?: number }
 

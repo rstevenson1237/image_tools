@@ -7,8 +7,8 @@
  * top, so where a corridor runs into a room (or two rooms overlap) the walls between them disappear on their own.
  */
 import { rng } from '../lib/rng.ts';
-import { compassSvg, esc, FONT_FAMILY, haloText, n1 } from '../map/render.ts';
-import { pathData } from '../map/trace.ts';
+import { compassSvg, esc, FONT, haloText, n1 } from '../lib/svgdraw.ts';
+import { pathData } from '../lib/trace.ts';
 import { layoutDungeon, type DoorGeom, type DungeonLayout } from './layout.ts';
 import type { DungeonSpec } from './spec.ts';
 import { SYMBOLS } from './symbols.ts';
@@ -16,7 +16,6 @@ import { SYMBOLS } from './symbols.ts';
 export const DUNGEON_LAYERS = ['rock', 'floors', 'grid', 'doors', 'symbols', 'numbers', 'labels', 'title', 'scale', 'compass'] as const;
 export type DungeonLayer = (typeof DUNGEON_LAYERS)[number];
 
-const FONT = `'${FONT_FAMILY}', 'Segoe UI', Helvetica, Arial, sans-serif`;
 const INK = '#000000', PAPER = '#ffffff', TH = { ink: INK, paper: PAPER, halo: PAPER };
 
 export interface RenderDungeonOptions {
