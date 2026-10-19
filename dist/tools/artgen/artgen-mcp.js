@@ -16810,6 +16810,33 @@ var init_svgdraw = __esm({
   }
 });
 
+// ../artgen-core/src/lib/view.ts
+function clampCrop(c, cols, rows) {
+  const x0 = Math.max(0, c[0]), y0 = Math.max(0, c[1]), x1 = Math.min(cols, c[0] + c[2]), y1 = Math.min(rows, c[1] + c[3]);
+  if (!(x1 > x0 && y1 > y0)) throw new Error(`crop ${c.join(",")} is outside the sheet (0,0,${cols},${rows})`);
+  return [r3(x0), r3(y0), r3(x1 - x0), r3(y1 - y0)];
+}
+function frameOf(crop, cols, rows, k) {
+  const [x, y, w, h] = crop ? clampCrop(crop, cols, rows) : [0, 0, cols, rows];
+  return { x: x * k, y: y * k, w: w * k, h: h * k, r: (x + w) * k, b: (y + h) * k };
+}
+function fitPpu(w, h, fit) {
+  const f = fit.unit === "mm" ? PX_PER_MM : 1;
+  return Math.min(fit.w * f / w, fit.h * f / h);
+}
+function sizeAttrs(f, unit = "px") {
+  const s2 = unit === "mm" ? (v) => `${Math.round(v / PX_PER_MM * 100) / 100}mm` : (v) => String(r3(v));
+  return `width="${s2(f.w)}" height="${s2(f.h)}" viewBox="${r3(f.x)} ${r3(f.y)} ${r3(f.w)} ${r3(f.h)}"`;
+}
+var PX_PER_MM, r3;
+var init_view = __esm({
+  "../artgen-core/src/lib/view.ts"() {
+    "use strict";
+    PX_PER_MM = 96 / 25.4;
+    r3 = (v) => Math.round(v * 1e3) / 1e3;
+  }
+});
+
 // ../artgen-core/src/map/render.ts
 function layersFor(spec, over = {}) {
   const on = Object.fromEntries(MAP_LAYERS.map((l) => [l, true]));
@@ -16876,13 +16903,13 @@ function symbolSvg(kind, x, y, size, th) {
   const s2 = SYMBOLS[kind] ?? SYMBOLS.poi;
   return `<g transform="translate(${n1(x)} ${n1(y)}) scale(${(size / 20).toFixed(3)})">${s2.svg.replaceAll("{ink}", th.ink).replaceAll("{fill}", th.symbolFill)}</g>`;
 }
-function scaleCells(spec) {
-  const target = spec.cols / 5;
+function scaleCells(width) {
+  const target = width / 5;
   for (const n of [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30, 40, 50]) if (n >= target * 0.75) return n;
   return Math.max(1, Math.round(target));
 }
 function renderMapSvg(spec, o = {}) {
-  const th = THEME[o.theme ?? "color"], k = o.ppu ?? 40, W3 = spec.cols * k, H = spec.rows * k, u = k / 40;
+  const th = THEME[o.theme ?? "color"], k = o.ppu ?? 40, W3 = spec.cols * k, H = spec.rows * k, u = k / 40, fr = frameOf(o.crop, spec.cols, spec.rows, k);
   const f = o.field ?? generateMap(spec), on = layersFor(spec, o.layers), tile = Math.max(9, Math.min(24, k * 0.4)) * (th.name === "bw" ? 1.4 : 1);
   const parts = [];
   const used = terrainsUsed(f);
@@ -16951,7 +16978,7 @@ function renderMapSvg(spec, o = {}) {
     const rows = used.map((t) => [t, TERRAIN_NAMES[t]]);
     if (f.rivers.length) rows.push(["river", "River"]);
     if (f.roads.length) rows.push(["road", "Road"]);
-    const rh = 18 * u, fs = 12 * u, bw = 150 * u, bh = rows.length * rh + 12 * u, x = W3 - bw - pad, y = H - bh - pad;
+    const rh = 18 * u, fs = 12 * u, bw = 150 * u, bh = rows.length * rh + 12 * u, x = fr.r - bw - pad, y = fr.b - bh - pad;
     let g = box(x, y, bw, bh);
     rows.forEach(([t, name], i) => {
       const sx = x + 8 * u, sy = y + 6 * u + i * rh + 2 * u, sw = 24 * u, sh = rh - 5 * u;
@@ -16967,20 +16994,20 @@ function renderMapSvg(spec, o = {}) {
     parts.push(`<g id="legend">${g}</g>`);
   }
   if (on.scale) {
-    const n = scaleCells(spec), len = n * k, fs = 11 * u, x = pad + 8 * u, y = H - pad - 20 * u, seg = 4;
-    let g = box(pad, y - 18 * u, len + 34 * u, 40 * u);
+    const n = scaleCells(fr.w / k), len = n * k, fs = 11 * u, x = fr.x + pad + 8 * u, y = fr.b - pad - 20 * u, seg = 4;
+    let g = box(fr.x + pad, y - 18 * u, len + 34 * u, 40 * u);
     for (let i = 0; i < seg; i++) g += `<rect x="${n1(x + len / seg * i)}" y="${n1(y)}" width="${n1(len / seg)}" height="${n1(5 * u)}" fill="${i % 2 ? th.paper : th.ink}" stroke="${th.ink}" stroke-width="${n1(0.8 * u)}"/>`;
     g += `<text x="${n1(x)}" y="${n1(y - 5 * u)}" font-size="${n1(fs)}" fill="${th.ink}" text-anchor="middle">0</text>`;
     g += `<text x="${n1(x + len)}" y="${n1(y - 5 * u)}" font-size="${n1(fs)}" fill="${th.ink}" text-anchor="middle">${n * spec.scale.perCell} ${esc(spec.scale.unit)}</text>`;
     g += `<text x="${n1(x + len / 2)}" y="${n1(y + 16 * u)}" font-size="${n1(fs * 0.85)}" fill="${th.ink}" text-anchor="middle">1 ${spec.grid.type === "hex" ? "hex" : "square"} = ${spec.scale.perCell} ${esc(spec.scale.unit)}</text>`;
     parts.push(`<g id="scale">${g}</g>`);
   }
-  if (on.compass) parts.push(compassSvg(W3 - pad - 18 * u - 4 * u, pad + 18 * u + 14 * u, 18 * u, u, th));
+  if (on.compass) parts.push(compassSvg(fr.r - pad - 18 * u - 4 * u, fr.y + pad + 18 * u + 14 * u, 18 * u, u, th));
   if (on.title && spec.title) {
     const fs = 26 * u, w = Math.max(120 * u, spec.title.length * fs * 0.62 + 30 * u);
-    parts.push(`<g id="title">${box(pad, pad, w, fs * 1.7)}<text x="${n1(pad + w / 2)}" y="${n1(pad + fs * 1.18)}" font-size="${n1(fs)}" font-weight="700" letter-spacing="${n1(fs * 0.06)}" text-anchor="middle" fill="${th.ink}">${esc(spec.title)}</text></g>`);
+    parts.push(`<g id="title">${box(fr.x + pad, fr.y + pad, w, fs * 1.7)}<text x="${n1(fr.x + pad + w / 2)}" y="${n1(fr.y + pad + fs * 1.18)}" font-size="${n1(fs)}" font-weight="700" letter-spacing="${n1(fs * 0.06)}" text-anchor="middle" fill="${th.ink}">${esc(spec.title)}</text></g>`);
   }
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W3}" height="${H}" viewBox="0 0 ${W3} ${H}" font-family="${FONT}"><defs>${patternDefs(th, tile)}${defs.join("")}<clipPath id="map-clip"><rect width="${W3}" height="${H}"/></clipPath></defs><g clip-path="url(#map-clip)">${parts.join("")}</g></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" ${sizeAttrs(fr, o.unit)} font-family="${FONT}"><defs>${patternDefs(th, tile)}${defs.join("")}<clipPath id="map-clip"><rect x="${fr.x}" y="${fr.y}" width="${fr.w}" height="${fr.h}"/></clipPath></defs><g clip-path="url(#map-clip)">${parts.join("")}</g></svg>`;
 }
 var MAP_LAYERS, fieldKey;
 var init_render2 = __esm({
@@ -16992,6 +17019,7 @@ var init_render2 = __esm({
     init_symbols();
     init_theme();
     init_svgdraw();
+    init_view();
     init_trace();
     MAP_LAYERS = ["terrain", "rivers", "roads", "contours", "grid", "symbols", "labels", "legend", "scale", "compass", "title"];
     fieldKey = (s2) => JSON.stringify([s2.preset, s2.cols, s2.rows, s2.seed, s2.gen, s2.edits]);
@@ -17707,6 +17735,49 @@ function fitDungeon(spec, margin = 2) {
   out.rows = Math.max(4, Math.ceil(box[3] + dy + margin));
   return out;
 }
+function stretch(path, from, to) {
+  const out = [];
+  let at = 0;
+  const point = (i, t) => [path[i] + (path[i + 2] - path[i]) * t, path[i + 1] + (path[i + 3] - path[i + 1]) * t];
+  for (let i = 0; i + 3 < path.length; i += 2) {
+    const len = Math.hypot(path[i + 2] - path[i], path[i + 3] - path[i + 1]);
+    if (len > 0 && at + len > from && at < to) {
+      out.push(...point(i, Math.max(0, (from - at) / len)), ...point(i, Math.min(1, (to - at) / len)));
+    }
+    at += len;
+  }
+  return out;
+}
+function findRoom(l, ref) {
+  const hits = [(g) => g.room.id === ref, (g) => g.room.label === ref, (g) => g.room.label?.split(/\s+/)[0] === ref].map((test) => l.rooms.filter(test)).find((h) => h.length);
+  if (!hits) throw new Error(`--room: no room ${ref} (ids: ${l.rooms.map((g) => g.room.id).join(", ")}; labels: ${l.rooms.flatMap((g) => g.room.label ? [g.room.label.split(/\s+/)[0]] : []).join(", ")})`);
+  if (hits.length > 1) throw new Error(`--room: ${ref} names ${hits.length} rooms (${hits.map((g) => g.room.id).join(", ")}); use an id`);
+  return hits[0];
+}
+function roomCrop(spec, ids2, margin = 2, l = layoutDungeon(spec)) {
+  if (!ids2.length) throw new Error("--room: at least one room id");
+  const xs = [], ys = [];
+  const add2 = (p, pad) => {
+    for (let i = 0; i < p.length; i += 2) {
+      xs.push(p[i] - pad, p[i] + pad);
+      ys.push(p[i + 1] - pad, p[i + 1] + pad);
+    }
+  };
+  for (const ref of ids2) {
+    const g = findRoom(l, ref), id = g.room.id;
+    add2(g.outline, 0.5);
+    spec.corridors.forEach((sc, i) => {
+      const c = l.corridors[i];
+      [sc.from, sc.to].forEach((e, end) => {
+        const x = c.ends[end];
+        if (!("room" in e) || e.room !== id || !x) return;
+        add2(stretch(end === 0 ? c.pts : reversed(c.pts), x.along, x.along + margin), c.width / 2 + 0.5);
+      });
+    });
+  }
+  const x0 = Math.min(...xs), y0 = Math.min(...ys);
+  return [x0, y0, Math.max(...xs) - x0, Math.max(...ys) - y0];
+}
 var idSeed, snap, reversed;
 var init_layout = __esm({
   "../artgen-core/src/dungeon/layout.ts"() {
@@ -17900,13 +17971,13 @@ function doorSvg(dr, k, t, u) {
   }
   return out;
 }
-function scaleCells2(spec) {
-  const target = spec.cols / 5;
+function scaleCells2(width) {
+  const target = width / 5;
   for (const n of [2, 4, 6, 8, 10, 12, 16, 20, 24, 30, 40]) if (n >= target * 0.75) return n;
   return Math.max(1, Math.round(target));
 }
 function renderDungeonSvg(spec, o = {}) {
-  const k = o.ppu ?? 40, W3 = spec.cols * k, H = spec.rows * k, u = k / 40, t = 0.14 * k * spec.style.wall;
+  const k = o.ppu ?? 40, W3 = spec.cols * k, H = spec.rows * k, u = k / 40, t = 0.14 * k * spec.style.wall, fr = frameOf(o.crop, spec.cols, spec.rows, k);
   const l = o.layout ?? layoutDungeon(spec), on = dungeonLayersFor(spec, o.layers);
   const parts = [`<rect width="${W3}" height="${H}" fill="${PAPER}"/>`], defs = [];
   const roomD = pathData(l.rooms.map((g) => ({ pts: g.outline, closed: true })), k);
@@ -17964,20 +18035,20 @@ function renderDungeonSvg(spec, o = {}) {
   const box = (x, y, w, h) => `<rect x="${n1(x)}" y="${n1(y)}" width="${n1(w)}" height="${n1(h)}" rx="${n1(4 * u)}" fill="${PAPER}" stroke="${INK2}" stroke-width="${n1(u)}"/>`;
   const pad = 12 * u;
   if (on.scale) {
-    const n = scaleCells2(spec), len = n * k, fs = 11 * u, x = pad + 8 * u, y = H - pad - 20 * u, seg = Math.min(4, n);
-    let g = box(pad, y - 18 * u, len + 34 * u, 40 * u);
+    const n = scaleCells2(fr.w / k), len = n * k, fs = 11 * u, x = fr.x + pad + 8 * u, y = fr.b - pad - 20 * u, seg = Math.min(4, n);
+    let g = box(fr.x + pad, y - 18 * u, len + 34 * u, 40 * u);
     for (let i = 0; i < seg; i++) g += `<rect x="${n1(x + len / seg * i)}" y="${n1(y)}" width="${n1(len / seg)}" height="${n1(5 * u)}" fill="${i % 2 ? PAPER : INK2}" stroke="${INK2}" stroke-width="${n1(0.8 * u)}"/>`;
     g += `<text x="${n1(x)}" y="${n1(y - 5 * u)}" font-size="${n1(fs)}" fill="${INK2}" text-anchor="middle">0</text>`;
     g += `<text x="${n1(x + len)}" y="${n1(y - 5 * u)}" font-size="${n1(fs)}" fill="${INK2}" text-anchor="middle">${n * spec.scale.perCell} ${esc(spec.scale.unit)}</text>`;
     g += `<text x="${n1(x + len / 2)}" y="${n1(y + 16 * u)}" font-size="${n1(fs * 0.85)}" fill="${INK2}" text-anchor="middle">1 square = ${spec.scale.perCell} ${esc(spec.scale.unit)}</text>`;
     parts.push(`<g id="scale">${g}</g>`);
   }
-  if (on.compass) parts.push(compassSvg(W3 - pad - 22 * u, pad + 32 * u, 18 * u, u, TH));
+  if (on.compass) parts.push(compassSvg(fr.r - pad - 22 * u, fr.y + pad + 32 * u, 18 * u, u, TH));
   if (on.title && spec.title) {
     const fs = 24 * u, w = Math.max(120 * u, spec.title.length * fs * 0.62 + 30 * u);
-    parts.push(`<g id="title">${box(pad, pad, w, fs * 1.7)}<text x="${n1(pad + w / 2)}" y="${n1(pad + fs * 1.18)}" font-size="${n1(fs)}" font-weight="700" letter-spacing="${n1(fs * 0.06)}" text-anchor="middle" fill="${INK2}">${esc(spec.title)}</text></g>`);
+    parts.push(`<g id="title">${box(fr.x + pad, fr.y + pad, w, fs * 1.7)}<text x="${n1(fr.x + pad + w / 2)}" y="${n1(fr.y + pad + fs * 1.18)}" font-size="${n1(fs)}" font-weight="700" letter-spacing="${n1(fs * 0.06)}" text-anchor="middle" fill="${INK2}">${esc(spec.title)}</text></g>`);
   }
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W3}" height="${H}" viewBox="0 0 ${W3} ${H}" font-family="${FONT}"><defs>${defs.join("")}<clipPath id="map-clip"><rect width="${W3}" height="${H}"/></clipPath></defs><g clip-path="url(#map-clip)">${parts.join("")}</g></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" ${sizeAttrs(fr, o.unit)} font-family="${FONT}"><defs>${defs.join("")}<clipPath id="map-clip"><rect x="${fr.x}" y="${fr.y}" width="${fr.w}" height="${fr.h}"/></clipPath></defs><g clip-path="url(#map-clip)">${parts.join("")}</g></svg>`;
 }
 var DUNGEON_LAYERS, INK2, PAPER, TH;
 var init_render3 = __esm({
@@ -17986,6 +18057,7 @@ var init_render3 = __esm({
     init_rng();
     init_svgdraw();
     init_trace();
+    init_view();
     init_layout();
     init_symbols2();
     DUNGEON_LAYERS = ["rock", "floors", "grid", "doors", "symbols", "numbers", "labels", "title", "scale", "compass"];
@@ -18103,6 +18175,7 @@ __export(dungeon_exports, {
   parsePoint: () => parsePoint2,
   polyBox: () => polyBox,
   renderDungeonSvg: () => renderDungeonSvg,
+  roomCrop: () => roomCrop,
   roomOutline: () => roomOutline,
   singleRoom: () => singleRoom,
   toIssue: () => toIssue,
@@ -18497,6 +18570,7 @@ var init_maps = __esm({
     init_format();
     init_png();
     init_svg();
+    init_view();
   }
 });
 
@@ -19036,31 +19110,119 @@ var init_p6 = __esm({
   }
 });
 
-// ../artgen-cli/src/dungeon.ts
-import { existsSync as existsSync5, mkdirSync as mkdirSync5, readdirSync as readdirSync2, readFileSync as readFileSync5, writeFileSync as writeFileSync6 } from "node:fs";
+// ../artgen-cli/src/map.ts
+import { existsSync as existsSync5, mkdirSync as mkdirSync5, readdirSync as readdirSync2, writeFileSync as writeFileSync6 } from "node:fs";
 import { dirname as dirname5, join as join7, relative as relative3, resolve as resolve3 } from "node:path";
-function dungeonFile(p, ref) {
+function mapFile(p, ref) {
   if (typeof ref !== "string") return resolve3(ref.file);
+  if (!/^[\w-]+$/.test(ref ?? "")) throw new Error(`map id ${JSON.stringify(ref)}: letters, digits, - and _ only`);
+  if (!p) throw new Error("no artgen project here: name the map file with --file <path>");
+  return join7(mapsDir(p), ref, "map.json");
+}
+function listMaps(p) {
+  if (!existsSync5(mapsDir(p))) return [];
+  return readdirSync2(mapsDir(p), { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync5(join7(mapsDir(p), d.name, "map.json"))).map((d) => mapSummary(readMap(p, d.name)));
+}
+function readMap(p, ref) {
+  const f = mapFile(p, ref);
+  if (!existsSync5(f)) throw new Error(typeof ref === "string" ? `no map ${ref} (${shown(p, f)}) \u2014 artgen map new ${ref}` : `no map file ${shown(p, f)} \u2014 artgen map new --file ${ref.file}`);
+  return map_exports.parseMap(readJson(f));
+}
+function writeMap(p, m, ref = m.id) {
+  const spec = map_exports.parseMap(m), f = mapFile(p, ref);
+  writeJson(f, spec);
+  return shown(p, f);
+}
+function createMap(p, id, preset2, over = {}, force = false, at = id) {
+  if (existsSync5(mapFile(p, at)) && !force) throw new Error(typeof at === "string" ? `map ${id} already exists (edit it, or pick another id)` : `${shown(p, mapFile(p, at))} already exists (edit it, or --force)`);
+  const m = map_exports.newMap(id, preset2, over);
+  return { file: writeMap(p, m, at), map: m };
+}
+function updateMap(p, ref, change) {
+  const m = readMap(p, ref);
+  change(m);
+  writeMap(p, m, ref);
+  return m;
+}
+async function renderMapFiles(p, ref, o = {}) {
+  const m = readMap(p, ref), field = map_exports.generateMap(m), id = typeof ref === "string" ? ref : fileStem(ref.file);
+  const out = o.out ?? (typeof ref === "string" ? join7(mapsDir(p), id, "out") : dirname5(mapFile(p, ref)));
+  const formats = o.formats ?? ["svg", "png"], files = [];
+  if (o.fit && o.ppu !== void 0) throw new Error("--fit and --ppu both set the scale: use one");
+  const crop = clampCrop(o.crop ?? [0, 0, m.cols, m.rows], m.cols, m.rows), ppu = o.fit ? fitPpu(crop[2], crop[3], o.fit) : o.ppu ?? 40;
+  const size = [Math.round(crop[2] * ppu), Math.round(crop[3] * ppu)], unit = o.fit?.unit ?? "px";
+  if (formats.includes("png")) await initNodeMapSvg();
+  mkdirSync5(out, { recursive: true });
+  for (const theme of o.themes ?? ["color"]) {
+    const svg = map_exports.renderMapSvg(m, { theme, ppu, layers: o.layers, field, ...o.crop && { crop }, unit }), base = join7(out, `${id}.${theme}`);
+    if (formats.includes("svg")) {
+      writeFileSync6(`${base}.svg`, svg);
+      files.push(`${base}.svg`);
+    }
+    if (formats.includes("png")) {
+      writeFileSync6(`${base}.png`, encodePNG(rasterizeSvg(svg, size[0], size[1])));
+      files.push(`${base}.png`);
+    }
+  }
+  return { files: files.map((f) => relative3(process.cwd(), f)), terrains: map_exports.terrainsUsed(field), rivers: field.rivers.length, size, crop, ppu, svg: svgSize(crop, ppu, unit) };
+}
+function svgSize(crop, ppu, unit) {
+  const f = unit === "mm" ? 96 / 25.4 : 1, r = (v) => Math.round(v * ppu / f * 100) / 100;
+  return { width: r(crop[2]), height: r(crop[3]), unit };
+}
+function describeMap(m) {
+  const g = m.gen;
+  return [
+    `${m.id}${m.title ? ` "${m.title}"` : ""}: ${m.preset}, ${m.cols}\xD7${m.rows} ${m.grid.type === "hex" ? "hexes" : "cells"} of ${m.scale.perCell} ${m.scale.unit}, seed ${m.seed}`,
+    `  gen: land ${g.land}, sea ${g.sea}, moisture ${g.moisture}, roughness ${g.roughness}, relief ${g.relief}, rivers ${g.rivers}, simplify ${g.simplify}, feature ${g.feature}`,
+    `  topo: every ${m.topo.interval} ${m.topo.unit} up to ${m.topo.maxElevation}, major every ${m.topo.majorEvery}${m.topo.labels ? ", labelled" : ""}`,
+    `  grid: ${m.grid.type}${m.grid.type !== "none" ? ` size ${m.grid.size}${m.grid.coords ? ", coordinates" : ""}` : ""}; legend ${m.legend ? "on" : "off"}, scale bar ${m.scaleBar ? "on" : "off"}, compass ${m.compass ? "on" : "off"}`,
+    `  edits (${m.edits.length}):${m.edits.map((e, i) => `
+    ${i}. ${e.op}${e.op === "paint" ? ` ${e.terrain}` : e.op === "elevate" ? ` ${e.amount}` : ""} ${"shape" in e ? JSON.stringify(e.shape) : JSON.stringify(e.points)}`).join("")}`,
+    `  labels (${m.overlay.labels.length}):${m.overlay.labels.map((l, i) => `
+    ${i}. ${l.kind} "${l.text}" at ${l.x},${l.y}`).join("")}`,
+    `  symbols (${m.overlay.symbols.length}):${m.overlay.symbols.map((s2, i) => `
+    ${i}. ${s2.kind} at ${s2.x},${s2.y}`).join("")}`
+  ].join("\n");
+}
+var mapsDir, shown, mapSummary;
+var init_map2 = __esm({
+  "../artgen-cli/src/map.ts"() {
+    "use strict";
+    init_maps();
+    init_node_svg();
+    init_projectfs();
+    mapsDir = (p) => join7(p.art, "maps");
+    shown = (p, f) => relative3(p?.root ?? process.cwd(), f);
+    mapSummary = (m) => ({ id: m.id, preset: m.preset, size: `${m.cols}x${m.rows}`, ...m.title && { title: m.title }, edits: m.edits.length, labels: m.overlay.labels.length, symbols: m.overlay.symbols.length });
+  }
+});
+
+// ../artgen-cli/src/dungeon.ts
+import { existsSync as existsSync6, mkdirSync as mkdirSync6, readdirSync as readdirSync3, readFileSync as readFileSync5, writeFileSync as writeFileSync7 } from "node:fs";
+import { dirname as dirname6, join as join8, relative as relative4, resolve as resolve4 } from "node:path";
+function dungeonFile(p, ref) {
+  if (typeof ref !== "string") return resolve4(ref.file);
   if (!/^[\w-]+$/.test(ref ?? "")) throw new Error(`dungeon id ${JSON.stringify(ref)}: letters, digits, - and _ only`);
   if (!p) throw new Error("no artgen project here: name the dungeon file with --file <path>");
-  return join7(dungeonsDir(p), ref, "dungeon.json");
+  return join8(dungeonsDir(p), ref, "dungeon.json");
 }
 function listDungeons(p) {
-  if (!existsSync5(dungeonsDir(p))) return [];
-  return readdirSync2(dungeonsDir(p), { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync5(join7(dungeonsDir(p), d.name, "dungeon.json"))).map((d) => dungeonSummary(readDungeon(p, d.name)));
+  if (!existsSync6(dungeonsDir(p))) return [];
+  return readdirSync3(dungeonsDir(p), { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync6(join8(dungeonsDir(p), d.name, "dungeon.json"))).map((d) => dungeonSummary(readDungeon(p, d.name)));
 }
 function readDungeon(p, ref) {
   const f = dungeonFile(p, ref);
-  if (!existsSync5(f)) throw new Error(typeof ref === "string" ? `no dungeon ${ref} (${shown(p, f)}) \u2014 artgen dungeon new ${ref}` : `no dungeon file ${shown(p, f)} \u2014 artgen dungeon new --file ${ref.file}`);
+  if (!existsSync6(f)) throw new Error(typeof ref === "string" ? `no dungeon ${ref} (${shown2(p, f)}) \u2014 artgen dungeon new ${ref}` : `no dungeon file ${shown2(p, f)} \u2014 artgen dungeon new --file ${ref.file}`);
   return dungeon_exports.parseDungeon(readJson(f));
 }
 function writeDungeon(p, m, ref = m.id) {
   const spec = dungeon_exports.parseDungeon(m), f = dungeonFile(p, ref);
   writeJson(f, spec);
-  return shown(p, f);
+  return shown2(p, f);
 }
 function createDungeon(p, m, force = false, at = m.id) {
-  if (existsSync5(dungeonFile(p, at)) && !force) throw new Error(typeof at === "string" ? `dungeon ${m.id} already exists (edit it, or pick another id)` : `${shown(p, dungeonFile(p, at))} already exists (edit it, or --force)`);
+  if (existsSync6(dungeonFile(p, at)) && !force) throw new Error(typeof at === "string" ? `dungeon ${m.id} already exists (edit it, or pick another id)` : `${shown2(p, dungeonFile(p, at))} already exists (edit it, or --force)`);
   return { file: writeDungeon(p, m, at), dungeon: m };
 }
 function updateDungeon(p, ref, change) {
@@ -19069,21 +19231,27 @@ function updateDungeon(p, ref, change) {
   return next;
 }
 async function renderDungeonFiles(p, ref, o = {}) {
-  const m = readDungeon(p, ref), layout2 = dungeon_exports.layoutDungeon(m), ppu = o.ppu ?? 40, id = typeof ref === "string" ? ref : fileStem(ref.file);
-  const out = o.out ?? (typeof ref === "string" ? join7(dungeonsDir(p), id, "out") : dirname5(dungeonFile(p, ref)));
+  const m = readDungeon(p, ref), layout2 = dungeon_exports.layoutDungeon(m), id = typeof ref === "string" ? ref : fileStem(ref.file);
+  const out = o.out ?? (typeof ref === "string" ? join8(dungeonsDir(p), id, "out") : dirname6(dungeonFile(p, ref)));
   const formats = o.formats ?? ["svg", "png"], files = [];
+  if (o.fit && o.ppu !== void 0) throw new Error("--fit and --ppu both set the scale: use one");
+  if (o.crop && o.rooms?.length) throw new Error("--crop and --room both set the window: use one");
+  if (o.margin !== void 0 && !o.rooms?.length) throw new Error("--margin goes with --room");
+  const window = o.rooms?.length ? dungeon_exports.roomCrop(m, o.rooms, o.margin, layout2) : o.crop;
+  const crop = clampCrop(window ?? [0, 0, m.cols, m.rows], m.cols, m.rows), ppu = o.fit ? fitPpu(crop[2], crop[3], o.fit) : o.ppu ?? 40;
+  const size = [Math.round(crop[2] * ppu), Math.round(crop[3] * ppu)], unit = o.fit?.unit ?? "px";
   if (formats.includes("png")) await initNodeMapSvg();
-  mkdirSync5(out, { recursive: true });
-  const svg = dungeon_exports.renderDungeonSvg(m, { ppu, layers: o.layers, layout: layout2 }), base = join7(out, id);
+  mkdirSync6(out, { recursive: true });
+  const svg = dungeon_exports.renderDungeonSvg(m, { ppu, layers: o.layers, layout: layout2, ...window && { crop }, unit }), base = join8(out, id);
   if (formats.includes("svg")) {
-    writeFileSync6(`${base}.svg`, svg);
+    writeFileSync7(`${base}.svg`, svg);
     files.push(`${base}.svg`);
   }
   if (formats.includes("png")) {
-    writeFileSync6(`${base}.png`, encodePNG(rasterizeSvg(svg, m.cols * ppu, m.rows * ppu)));
+    writeFileSync7(`${base}.png`, encodePNG(rasterizeSvg(svg, size[0], size[1])));
     files.push(`${base}.png`);
   }
-  return { files: files.map((f) => relative3(process.cwd(), f)), rooms: m.rooms.length, corridors: m.corridors.length, doors: layout2.doors.length, size: [m.cols * ppu, m.rows * ppu] };
+  return { files: files.map((f) => relative4(process.cwd(), f)), rooms: m.rooms.length, corridors: m.corridors.length, doors: layout2.doors.length, size, crop, ppu, svg: svgSize(crop, ppu, unit) };
 }
 function cornerPoint(at) {
   const [x, y] = dungeon_exports.parsePoint(at);
@@ -19113,97 +19281,17 @@ function describeDungeon(m) {
     ${i}. ${s2.kind} at ${s2.x},${s2.y}${s2.angle ? ` turned ${s2.angle}\xB0` : ""}`).join("")}`
   ].join("\n");
 }
-var dungeonsDir, shown, dungeonSummary;
+var dungeonsDir, shown2, dungeonSummary;
 var init_dungeon2 = __esm({
   "../artgen-cli/src/dungeon.ts"() {
     "use strict";
     init_maps();
+    init_map2();
     init_node_svg();
     init_projectfs();
-    dungeonsDir = (p) => join7(p.art, "dungeons");
-    shown = (p, f) => relative3(p?.root ?? process.cwd(), f);
-    dungeonSummary = (m) => ({ id: m.id, size: `${m.cols}x${m.rows}`, ...m.title && { title: m.title }, rooms: m.rooms.length, corridors: m.corridors.length, labels: m.overlay.labels.length, symbols: m.overlay.symbols.length });
-  }
-});
-
-// ../artgen-cli/src/map.ts
-import { existsSync as existsSync6, mkdirSync as mkdirSync6, readdirSync as readdirSync3, writeFileSync as writeFileSync7 } from "node:fs";
-import { dirname as dirname6, join as join8, relative as relative4, resolve as resolve4 } from "node:path";
-function mapFile(p, ref) {
-  if (typeof ref !== "string") return resolve4(ref.file);
-  if (!/^[\w-]+$/.test(ref ?? "")) throw new Error(`map id ${JSON.stringify(ref)}: letters, digits, - and _ only`);
-  if (!p) throw new Error("no artgen project here: name the map file with --file <path>");
-  return join8(mapsDir(p), ref, "map.json");
-}
-function listMaps(p) {
-  if (!existsSync6(mapsDir(p))) return [];
-  return readdirSync3(mapsDir(p), { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync6(join8(mapsDir(p), d.name, "map.json"))).map((d) => mapSummary(readMap(p, d.name)));
-}
-function readMap(p, ref) {
-  const f = mapFile(p, ref);
-  if (!existsSync6(f)) throw new Error(typeof ref === "string" ? `no map ${ref} (${shown2(p, f)}) \u2014 artgen map new ${ref}` : `no map file ${shown2(p, f)} \u2014 artgen map new --file ${ref.file}`);
-  return map_exports.parseMap(readJson(f));
-}
-function writeMap(p, m, ref = m.id) {
-  const spec = map_exports.parseMap(m), f = mapFile(p, ref);
-  writeJson(f, spec);
-  return shown2(p, f);
-}
-function createMap(p, id, preset2, over = {}, force = false, at = id) {
-  if (existsSync6(mapFile(p, at)) && !force) throw new Error(typeof at === "string" ? `map ${id} already exists (edit it, or pick another id)` : `${shown2(p, mapFile(p, at))} already exists (edit it, or --force)`);
-  const m = map_exports.newMap(id, preset2, over);
-  return { file: writeMap(p, m, at), map: m };
-}
-function updateMap(p, ref, change) {
-  const m = readMap(p, ref);
-  change(m);
-  writeMap(p, m, ref);
-  return m;
-}
-async function renderMapFiles(p, ref, o = {}) {
-  const m = readMap(p, ref), field = map_exports.generateMap(m), ppu = o.ppu ?? 40, id = typeof ref === "string" ? ref : fileStem(ref.file);
-  const out = o.out ?? (typeof ref === "string" ? join8(mapsDir(p), id, "out") : dirname6(mapFile(p, ref)));
-  const formats = o.formats ?? ["svg", "png"], files = [];
-  if (formats.includes("png")) await initNodeMapSvg();
-  mkdirSync6(out, { recursive: true });
-  for (const theme of o.themes ?? ["color"]) {
-    const svg = map_exports.renderMapSvg(m, { theme, ppu, layers: o.layers, field }), base = join8(out, `${id}.${theme}`);
-    if (formats.includes("svg")) {
-      writeFileSync7(`${base}.svg`, svg);
-      files.push(`${base}.svg`);
-    }
-    if (formats.includes("png")) {
-      writeFileSync7(`${base}.png`, encodePNG(rasterizeSvg(svg, m.cols * ppu, m.rows * ppu)));
-      files.push(`${base}.png`);
-    }
-  }
-  return { files: files.map((f) => relative4(process.cwd(), f)), terrains: map_exports.terrainsUsed(field), rivers: field.rivers.length, size: [m.cols * ppu, m.rows * ppu] };
-}
-function describeMap(m) {
-  const g = m.gen;
-  return [
-    `${m.id}${m.title ? ` "${m.title}"` : ""}: ${m.preset}, ${m.cols}\xD7${m.rows} ${m.grid.type === "hex" ? "hexes" : "cells"} of ${m.scale.perCell} ${m.scale.unit}, seed ${m.seed}`,
-    `  gen: land ${g.land}, sea ${g.sea}, moisture ${g.moisture}, roughness ${g.roughness}, relief ${g.relief}, rivers ${g.rivers}, simplify ${g.simplify}, feature ${g.feature}`,
-    `  topo: every ${m.topo.interval} ${m.topo.unit} up to ${m.topo.maxElevation}, major every ${m.topo.majorEvery}${m.topo.labels ? ", labelled" : ""}`,
-    `  grid: ${m.grid.type}${m.grid.type !== "none" ? ` size ${m.grid.size}${m.grid.coords ? ", coordinates" : ""}` : ""}; legend ${m.legend ? "on" : "off"}, scale bar ${m.scaleBar ? "on" : "off"}, compass ${m.compass ? "on" : "off"}`,
-    `  edits (${m.edits.length}):${m.edits.map((e, i) => `
-    ${i}. ${e.op}${e.op === "paint" ? ` ${e.terrain}` : e.op === "elevate" ? ` ${e.amount}` : ""} ${"shape" in e ? JSON.stringify(e.shape) : JSON.stringify(e.points)}`).join("")}`,
-    `  labels (${m.overlay.labels.length}):${m.overlay.labels.map((l, i) => `
-    ${i}. ${l.kind} "${l.text}" at ${l.x},${l.y}`).join("")}`,
-    `  symbols (${m.overlay.symbols.length}):${m.overlay.symbols.map((s2, i) => `
-    ${i}. ${s2.kind} at ${s2.x},${s2.y}`).join("")}`
-  ].join("\n");
-}
-var mapsDir, shown2, mapSummary;
-var init_map2 = __esm({
-  "../artgen-cli/src/map.ts"() {
-    "use strict";
-    init_maps();
-    init_node_svg();
-    init_projectfs();
-    mapsDir = (p) => join8(p.art, "maps");
+    dungeonsDir = (p) => join8(p.art, "dungeons");
     shown2 = (p, f) => relative4(p?.root ?? process.cwd(), f);
-    mapSummary = (m) => ({ id: m.id, preset: m.preset, size: `${m.cols}x${m.rows}`, ...m.title && { title: m.title }, edits: m.edits.length, labels: m.overlay.labels.length, symbols: m.overlay.symbols.length });
+    dungeonSummary = (m) => ({ id: m.id, size: `${m.cols}x${m.rows}`, ...m.title && { title: m.title }, rooms: m.rooms.length, corridors: m.corridors.length, labels: m.overlay.labels.length, symbols: m.overlay.symbols.length });
   }
 });
 
@@ -19224,7 +19312,8 @@ var init_maps_cli = __esm({
        artgen map label <id> "Text" --at x,y|0304|C4 [--kind region|place|water|note] [--size f] [--angle deg]
        artgen map symbol <id> <kind> --at x,y|0304|C4 [--scale f] | map symbols | map overlay <id> rm label|symbol <i> | clear [labels|symbols]
        artgen map set <id> [--title "..."] [--legend on|off] [--scale-bar on|off] [--compass on|off] [--per-cell n] [--unit mi]
-       artgen map render <id> [--theme color|bw|both] [--format svg|png|both] [--ppu 40] [--layers grid=off,labels=off] [--out dir]
+       artgen map render <id> [--theme color|bw|both] [--format svg|png|both] [--ppu 40 | --fit 180x260mm|px] [--crop x,y,w,h[cells]] [--layers grid=off,labels=off] [--out dir]
+         (--crop is a window on the full render, in map units or, with "cells" after it, grid cells; --fit picks the ppu that fits the crop or the whole map in the box)
        artgen map show <id> | list
        artgen map facts <id> [--at x,y \u2026 | C4 | 0304] [--area x,y,x,y,\u2026] [--above river|lowest] [--radius n] [--json]
                   the ground as numbers: --at gives each point's terrain, height, slope and nearest river and road; --area the terrain shares, lowest and highest
@@ -19240,7 +19329,8 @@ var init_maps_cli = __esm({
        artgen dungeon overlay <id> rm label|symbol <i> | clear [labels|symbols] | fit <id> [--margin 2]
        artgen dungeon check <id> [--json]   every error in the file with its JSON path; exits 1 when there are any
        artgen dungeon facts <id> [--json]   each room's box and doors, each corridor's ends and length, the exits, the overlapping rooms and the rooms no corridor reaches
-       artgen dungeon render <id> [--format svg|png|both] [--ppu 40] [--layers grid=off,labels=off] [--out dir] | show <id> | list
+       artgen dungeon render <id> [--format svg|png|both] [--ppu 40 | --fit 180x260mm|px] [--crop x,y,w,h] [--room id|F.3 \u2026 [--margin 2]] [--layers grid=off,labels=off] [--out dir] | show <id> | list
+         (--room, repeated, crops round those rooms, their doors and the first --margin cells of each corridor)
        artgen formats   (the map and dungeon file format versions this artgen reads; a newer file is refused)
        (map and dungeon commands take --file <path> in place of <id>: no project needed; renders go beside the file or to --out)`;
   }

@@ -62,7 +62,7 @@ node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" map set <id> --title "The Dr
 ```
 node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" map render <id> [--theme color|bw|both] [--format svg|png|both] [--ppu 60] [--layers grid=off,labels=off]
 ```
-`--ppu` is pixels per cell (default 40; use 70+ for print or a VTT battle map at 70 px per square). `--layers` turns
+`--ppu` is pixels per cell (default 40; use 70+ for print or a VTT battle map at 70 px per square). `--fit 180x260mm` picks the ppu that fits a page instead. `--crop x,y,w,h` renders a window of the map, in map units (`…cells` for grid cells); what is inside it matches the full render. `--layers` turns
 any of `terrain rivers roads contours grid symbols labels legend scale compass title` off — e.g. a clean player copy
 without labels, or a terrain-only image to letter by hand. Give the user the file paths and show the PNGs.
 
