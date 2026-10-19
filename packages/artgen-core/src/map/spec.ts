@@ -5,6 +5,7 @@
  *
  * Coordinates are map units: one unit is one grid cell (a square, or a hex across its flats). `cols × rows` units.
  */
+import { readFormat, type Migration } from '../format.ts';
 
 export const TERRAINS = ['deep', 'water', 'marsh', 'sand', 'desert', 'grass', 'scrub', 'forest', 'rock', 'snow'] as const;
 export type Terrain = (typeof TERRAINS)[number];
@@ -42,7 +43,7 @@ export interface MapSymbol { kind: string; x: number; y: number; scale?: number 
 
 export interface MapSpec {
   id: string;
-  version: 1;
+  version: typeof MAP_FORMAT;
   preset: Preset;
   cols: number;
   rows: number;
@@ -99,12 +100,17 @@ export const PRESET_DEFAULTS: Record<Preset, Defaults> = {
   },
 };
 
-export const MAX_SIDE = 120;
+/** The map file format (`format.ts` says what bumps it). */
+export const MAP_FORMAT = 1;
+
+const MIGRATIONS: Record<number, Migration> = {};
+
+export const MAX_SIDE = 200;
 
 /** A new map with the preset's defaults; `over` replaces any top-level field or merges into gen/topo/grid/scale. */
 export function newMap(id: string, preset: Preset = 'regional', over: Partial<MapSpec> = {}): MapSpec {
   const d = structuredClone(PRESET_DEFAULTS[preset]);
-  return parseMap({ ...d, ...over, id, version: 1, preset, seed: over.seed ?? 1, gen: { ...d.gen, ...over.gen }, topo: { ...d.topo, ...over.topo }, grid: { ...d.grid, ...over.grid }, scale: { ...d.scale, ...over.scale }, edits: over.edits ?? [], overlay: over.overlay ?? { labels: [], symbols: [] } });
+  return parseMap({ ...d, ...over, id, version: MAP_FORMAT, preset, seed: over.seed ?? 1, gen: { ...d.gen, ...over.gen }, topo: { ...d.topo, ...over.topo }, grid: { ...d.grid, ...over.grid }, scale: { ...d.scale, ...over.scale }, edits: over.edits ?? [], overlay: over.overlay ?? { labels: [], symbols: [] } });
 }
 
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
@@ -163,9 +169,9 @@ export function validateMap(raw: unknown): string[] {
 
 /** Fill missing fields from the preset defaults (older or hand-written files), then validate; throws on errors. */
 export function parseMap(raw: unknown): MapSpec {
-  const r = (raw ?? {}) as Partial<MapSpec>, d = PRESET_DEFAULTS[PRESETS.includes(r.preset as Preset) ? r.preset! : 'regional'];
+  const r = readFormat(raw, 'map', MAP_FORMAT, MIGRATIONS) as Partial<MapSpec>, d = PRESET_DEFAULTS[PRESETS.includes(r.preset as Preset) ? r.preset! : 'regional'];
   const m = {
-    ...structuredClone(d), ...r, version: 1,
+    ...structuredClone(d), ...r, version: MAP_FORMAT,
     gen: { ...d.gen, ...r.gen }, topo: { ...d.topo, ...r.topo }, grid: { ...d.grid, ...r.grid }, scale: { ...d.scale, ...r.scale },
     edits: r.edits ?? [], overlay: { labels: r.overlay?.labels ?? [], symbols: r.overlay?.symbols ?? [] },
   } as MapSpec;

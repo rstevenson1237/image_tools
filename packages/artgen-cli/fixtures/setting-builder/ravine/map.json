@@ -1,0 +1,281 @@
+{
+  "cols": 16,
+  "rows": 184,
+  "gen": {
+    "land": "inland",
+    "sea": 0.08,
+    "moisture": 0.55,
+    "roughness": 0.4,
+    "relief": 0.3,
+    "rivers": 1,
+    "simplify": 2,
+    "feature": 14
+  },
+  "topo": {
+    "maxElevation": 40,
+    "interval": 5,
+    "majorEvery": 4,
+    "unit": "ft",
+    "labels": false
+  },
+  "grid": {
+    "type": "none",
+    "size": 1,
+    "coords": false
+  },
+  "scale": {
+    "perCell": 10,
+    "unit": "yd"
+  },
+  "legend": true,
+  "scaleBar": true,
+  "compass": false,
+  "seed": 7,
+  "title": "E The Ravine",
+  "id": "e",
+  "version": 1,
+  "preset": "local",
+  "edits": [
+    {
+      "op": "river",
+      "points": [
+        8,
+        4,
+        8,
+        180
+      ],
+      "width": 2,
+      "delta": false
+    },
+    {
+      "op": "paint",
+      "terrain": "rock",
+      "shape": {
+        "poly": [
+          0,
+          0,
+          4,
+          0,
+          4,
+          184,
+          0,
+          184
+        ]
+      }
+    },
+    {
+      "op": "paint",
+      "terrain": "rock",
+      "shape": {
+        "poly": [
+          12,
+          0,
+          16,
+          0,
+          16,
+          184,
+          12,
+          184
+        ]
+      }
+    },
+    {
+      "op": "elevate",
+      "amount": 0.6,
+      "shape": {
+        "poly": [
+          0,
+          0,
+          4,
+          0,
+          4,
+          184,
+          0,
+          184
+        ]
+      }
+    },
+    {
+      "op": "elevate",
+      "amount": 0.6,
+      "shape": {
+        "poly": [
+          12,
+          0,
+          16,
+          0,
+          16,
+          184,
+          12,
+          184
+        ]
+      }
+    },
+    {
+      "op": "road",
+      "points": [
+        8,
+        180,
+        12,
+        179,
+        8,
+        135,
+        8,
+        40,
+        6,
+        4,
+        10,
+        4
+      ]
+    }
+  ],
+  "overlay": {
+    "labels": [
+      {
+        "text": "E.5 The Hobgoblin Ledge",
+        "x": 13.2,
+        "y": 120,
+        "kind": "place",
+        "size": 0.5
+      },
+      {
+        "text": "E.9 The Shrine Stair",
+        "x": 11.2,
+        "y": 4,
+        "kind": "place",
+        "size": 0.5
+      },
+      {
+        "text": "E.6 The Gnoll Ledge",
+        "x": 13.2,
+        "y": 80,
+        "kind": "place",
+        "size": 0.5
+      },
+      {
+        "text": "E.2 The Kobold Ledge",
+        "x": 2.8,
+        "y": 150,
+        "kind": "place",
+        "size": 0.5
+      },
+      {
+        "text": "E.8 The Maze Door",
+        "x": 4.8,
+        "y": 4,
+        "kind": "place",
+        "size": 0.5
+      },
+      {
+        "text": "E.4 The Orc Ledge",
+        "x": 2.8,
+        "y": 60,
+        "kind": "place",
+        "size": 0.5
+      },
+      {
+        "text": "E.7 The Dry Fork",
+        "x": 13.2,
+        "y": 40,
+        "kind": "place",
+        "size": 0.5
+      },
+      {
+        "text": "E.10 The Owlbear's Rim",
+        "x": 13.399999999999999,
+        "y": 20,
+        "kind": "place",
+        "size": 0.5
+      },
+      {
+        "text": "E.3 The Goblin Ledge",
+        "x": 2.8,
+        "y": 110,
+        "kind": "place",
+        "size": 0.5
+      },
+      {
+        "text": "E.12 The Tithe Niche",
+        "x": 11,
+        "y": 4,
+        "kind": "place",
+        "size": 0.5
+      },
+      {
+        "text": "E.11 The Rim Track",
+        "x": 13.399999999999999,
+        "y": 80,
+        "kind": "place",
+        "size": 0.5
+      }
+    ],
+    "symbols": [
+      {
+        "kind": "cave",
+        "x": 12,
+        "y": 120,
+        "scale": 0.6
+      },
+      {
+        "kind": "ruin",
+        "x": 10,
+        "y": 4,
+        "scale": 0.6
+      },
+      {
+        "kind": "cave",
+        "x": 12,
+        "y": 80,
+        "scale": 0.6
+      },
+      {
+        "kind": "cave",
+        "x": 4,
+        "y": 150,
+        "scale": 0.6
+      },
+      {
+        "kind": "cave",
+        "x": 6,
+        "y": 4,
+        "scale": 0.6
+      },
+      {
+        "kind": "cave",
+        "x": 4,
+        "y": 60,
+        "scale": 0.6
+      },
+      {
+        "kind": "cave",
+        "x": 12,
+        "y": 40,
+        "scale": 0.6
+      },
+      {
+        "kind": "skull",
+        "x": 12.2,
+        "y": 20,
+        "scale": 0.6
+      },
+      {
+        "kind": "cave",
+        "x": 4,
+        "y": 110,
+        "scale": 0.6
+      },
+      {
+        "kind": "treasure",
+        "x": 9.8,
+        "y": 4,
+        "scale": 0.6
+      },
+      {
+        "kind": "poi",
+        "x": 12.2,
+        "y": 80,
+        "scale": 0.6
+      }
+    ]
+  }
+}

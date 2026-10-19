@@ -1,0 +1,177 @@
+{
+  "cols": 39,
+  "rows": 15,
+  "gen": {
+    "rooms": 8,
+    "minSize": 3,
+    "maxSize": 8,
+    "caves": 0.15,
+    "round": 0.1,
+    "loops": 0.25,
+    "doors": 0.6,
+    "corridorWidth": 1,
+    "spacing": 2,
+    "entrance": true
+  },
+  "grid": {
+    "show": true,
+    "size": 2,
+    "sub": true,
+    "clip": "floor"
+  },
+  "style": {
+    "hatch": "band",
+    "band": 0.9,
+    "wall": 1
+  },
+  "scale": {
+    "perCell": 5,
+    "unit": "ft"
+  },
+  "numbers": true,
+  "scaleBar": true,
+  "compass": false,
+  "seed": 732232,
+  "title": "F Kobold Warren",
+  "id": "f",
+  "version": 1,
+  "rooms": [
+    {
+      "id": "r1",
+      "shape": "rect",
+      "x": 29,
+      "y": 5,
+      "w": 8,
+      "h": 1,
+      "label": "F.1 The Rattle Passage",
+      "number": 1
+    },
+    {
+      "id": "r2",
+      "shape": "rect",
+      "x": 21,
+      "y": 5,
+      "w": 8,
+      "h": 1,
+      "label": "F.2 The Pit Run",
+      "number": 2
+    },
+    {
+      "id": "r3",
+      "shape": "rect",
+      "x": 10,
+      "y": 2,
+      "w": 6,
+      "h": 6,
+      "label": "F.3 The Burrows",
+      "number": 3
+    },
+    {
+      "id": "r4",
+      "shape": "rect",
+      "x": 11,
+      "y": 10,
+      "w": 4,
+      "h": 3,
+      "label": "F.4 The Tribute Store",
+      "number": 4
+    },
+    {
+      "id": "r5",
+      "shape": "rect",
+      "x": 2,
+      "y": 4,
+      "w": 3,
+      "h": 2,
+      "label": "F.5 The Chief's Den",
+      "number": 5
+    }
+  ],
+  "corridors": [
+    {
+      "from": {
+        "room": "r1"
+      },
+      "to": {
+        "at": [
+          35,
+          5
+        ]
+      },
+      "doors": [
+        null,
+        null
+      ]
+    },
+    {
+      "from": {
+        "room": "r1"
+      },
+      "to": {
+        "room": "r2"
+      },
+      "doors": [
+        null,
+        null
+      ]
+    },
+    {
+      "from": {
+        "room": "r2"
+      },
+      "to": {
+        "room": "r3"
+      },
+      "doors": [
+        null,
+        null
+      ]
+    },
+    {
+      "from": {
+        "room": "r3"
+      },
+      "to": {
+        "room": "r4"
+      },
+      "doors": [
+        "door",
+        null
+      ]
+    },
+    {
+      "from": {
+        "room": "r3"
+      },
+      "to": {
+        "room": "r5"
+      },
+      "doors": [
+        "door",
+        null
+      ]
+    }
+  ],
+  "overlay": {
+    "labels": [
+      {
+        "text": "to E.2",
+        "x": 35,
+        "y": 4,
+        "kind": "note"
+      }
+    ],
+    "symbols": [
+      {
+        "kind": "trap",
+        "x": 19,
+        "y": 5
+      },
+      {
+        "kind": "trap",
+        "x": 8,
+        "y": 5
+      }
+    ]
+  }
+}

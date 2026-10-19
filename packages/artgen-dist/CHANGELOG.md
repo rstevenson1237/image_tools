@@ -2,6 +2,34 @@
 
 Releases of the committed install (`artgen-dist`), the MCP server, the runtime it vendors and the Python client.
 
+## Unreleased
+
+Reads: **map format 1**, **dungeon format 1**. `artgen formats --json` prints `{"map": 1, "dungeon": 1}`.
+
+**File format versions** (`map.json`, `dungeon.json`)
+- The `version` in the file is read, no longer overwritten. A file without one reads as 1; a file at an older version is
+  migrated on read; a file at a newer version is refused, with an error naming both versions
+  (`map is format version 2; this artgen reads map format 1 and older`).
+- The rule is the animation contract's: additions (an optional field, an enum value) extend a format and keep its
+  version, and a consumer ignores what it does not know. Removing or renaming a field, changing a field's meaning, unit
+  or default, or making a field required is a break. A break bumps the version in the same change, with a migration
+  from the previous version (`packages/artgen-core/src/format.ts`), the consumer fixtures migrated with it and a line
+  here (`map format 1 -> 2: …`).
+- `artgen formats [--json]` reports both versions. Every `--json` result of a `map` or `dungeon` command carries the
+  `version` of its format. A result that was a bare list (`map list`, `map symbols`, `dungeon list`, `dungeon symbols`
+  and the room, link, door, label, symbol, overlay and grid commands) is now `{ "version": 1, "items": [...] }`.
+
+**Consumer fixtures** (`packages/artgen-cli/fixtures/<consumer>/<case>/`, run by `npm test -w artgen-cli`)
+- `setting-builder/`: `warren` (a dungeon block: five rooms, an exit, two traps), `ravine` (a 1-mile gorge map at 10
+  yards a square) and `keep` (thirteen buildings, hatching off). Each holds the file as the consumer's converter wrote
+  it and a `case.md` with the consumer's commit, the exact command, the facts it must go on drawing and what it does
+  not yet draw well. The tests parse each at the format version its `case.md` states, render it to SVG and PNG in each
+  theme, check the render is the same twice, and check its facts. They check structure, never pixels.
+
+**Limits**
+- A map may be up to 200 squares a side (was 120), so a 1-mile gorge fits at 10 yards a square. Raising a limit
+  extends map format 1: files that were valid stay valid.
+
 ## 0.10.0 — 2026-10-18
 
 Two new map tools for tabletop RPGs, and the fixes from the first production run: 70 assets in megadungeon, 371
