@@ -47,6 +47,25 @@ draw rivers from the source down, never from the mouth up.
 Terrains: `deep water marsh sand desert grass scrub forest rock snow`. Edits apply in order on top of the generated
 terrain, so a later paint wins; `gen` keeps every edit. If the user wants "the same map but …", edit — don't reseed.
 
+## 2b. State what the ground must be, and check it
+When a consumer (a campaign tool, a brief) needs a place to be a certain ground — a wood here, marsh by the road, hills of 150
+to 400 ft, a stream through these points, no river across the road — write it as `require` in `map.json` instead of painting
+it. The generator shapes the ground to each requirement (it does not paint over it), and `map check` says which are met:
+```
+"require": [
+  {"id": "C-ground", "kind": "terrain", "area": {"poly": [48,55, 58,51, 70,56, 74,64]}, "terrain": "forest", "share": 0.8},
+  {"id": "E-hills",  "kind": "height",  "area": {"circle": [58,20,20]}, "low": 150, "high": 400},
+  {"id": "E-stream", "kind": "path", "path": "stream", "points": [62,14, 60,53]},
+  {"id": "B-road",   "kind": "path", "path": "road",   "points": [52,140, 54,98]},
+  {"id": "B-clear",  "kind": "clear", "area": {"stroke": [52,140, 54,98], "width": 10}}
+]
+node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" map check <id> [--json]     # C-ground terrain forest 0.71 < 0.80 unmet   (exit 1 when any is unmet)
+```
+An unmet requirement is named, never fixed behind your back: change the requirement, the area or the seed (`map gen --seed`),
+knowing which one failed. `gen.rivers` is a count: set it to 0 for no rivers but the streams you require. Areas are shapes as
+edits take them (`circle`, `poly`, `stroke`); each fades out over `blend` (default `gen.feature`) beyond its area. A `height`'s `high`
+may not exceed `topo.maxElevation` (`map gen <id> --max-elevation 450`).
+
 ## 3. Grid, labels and symbols (the follow-up layers)
 ```
 node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" map grid <id> hex|square|none [--size 1] [--coords on|off]

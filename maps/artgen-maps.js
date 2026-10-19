@@ -20,6 +20,7 @@ __export(map_exports, {
   PATTERNS: () => PATTERNS,
   PRESETS: () => PRESETS,
   PRESET_DEFAULTS: () => PRESET_DEFAULTS,
+  REQUIREMENT_KINDS: () => REQUIREMENT_KINDS,
   RESOLUTION: () => RESOLUTION,
   SYMBOLS: () => SYMBOLS,
   SYMBOL_KINDS: () => SYMBOL_KINDS,
@@ -30,6 +31,8 @@ __export(map_exports, {
   areaOutline: () => areaOutline,
   cellCenter: () => cellCenter,
   chaikin: () => chaikin,
+  checkMap: () => checkMap,
+  checkRequirements: () => checkRequirements,
   contourLines: () => contourLines,
   coverage: () => coverage,
   feetIn: () => feetIn,
@@ -84,6 +87,7 @@ var PRESETS = ["regional", "local"];
 var LAND_MODES = ["mixed", "island", "inland"];
 var GRID_TYPES = ["none", "square", "hex"];
 var LABEL_KINDS = ["region", "place", "water", "note"];
+var REQUIREMENT_KINDS = ["terrain", "height", "path", "clear"];
 var RESOLUTION = { regional: 8, local: 6 };
 var PRESET_DEFAULTS = {
   regional: {
@@ -126,6 +130,42 @@ function shapeErrors(s, at2) {
   if ("stroke" in o) return nums(o.stroke) && o.stroke.length >= 2 && o.stroke.length % 2 === 0 && isNum(o.width) && o.width > 0 ? [] : [`${at2}.stroke: x,y pairs and width > 0`];
   return [`${at2}: unknown shape (circle, poly or stroke)`];
 }
+function requirementErrors(m) {
+  const e = [], list2 = m.require;
+  if (list2 === void 0) return e;
+  if (!Array.isArray(list2)) return ["require: an array"];
+  const seen = /* @__PURE__ */ new Set(), top = isNum(m.topo?.maxElevation) ? m.topo.maxElevation : Infinity;
+  list2.forEach((r, i) => {
+    const at2 = `require[${i}]`;
+    if (!r || typeof r !== "object") {
+      e.push(`${at2}: an object`);
+      return;
+    }
+    if (typeof r.id !== "string" || !/^[\w.-]+$/.test(r.id)) e.push(`${at2}.id: letters, digits, - . and _ only`);
+    else if (seen.has(r.id)) e.push(`${at2}.id: ${r.id} is used twice`);
+    else seen.add(r.id);
+    if (r.blend !== void 0 && !(isNum(r.blend) && r.blend >= 0)) e.push(`${at2}.blend: map units, 0 or more`);
+    if (r.kind === "terrain") {
+      e.push(...shapeErrors(r.area, `${at2}.area`));
+      if (!TERRAINS.includes(r.terrain)) e.push(`${at2}.terrain: one of ${TERRAINS.join(", ")}`);
+      else if (r.terrain === "snow" && m.preset === "local") e.push(`${at2}.terrain: snow does not appear on a local map`);
+      if (!isNum(r.share) || r.share <= 0 || r.share > 1) e.push(`${at2}.share: above 0 and at most 1`);
+    } else if (r.kind === "height") {
+      e.push(...shapeErrors(r.area, `${at2}.area`));
+      if (!isNum(r.low) || !isNum(r.high) || r.low < 0 || r.high <= r.low) e.push(`${at2}: low and high, 0 \u2264 low < high`);
+      else if (r.high > top) e.push(`${at2}.high: at most topo.maxElevation (${top})`);
+      if (r.share !== void 0 && !(isNum(r.share) && r.share > 0 && r.share <= 1)) e.push(`${at2}.share: above 0 and at most 1`);
+    } else if (r.kind === "path") {
+      if (r.path !== "stream" && r.path !== "road") e.push(`${at2}.path: stream or road`);
+      if (!nums(r.points) || r.points.length < 4 || r.points.length % 2) e.push(`${at2}.points: at least 2 x,y pairs`);
+      if (r.tolerance !== void 0 && !(isNum(r.tolerance) && r.tolerance > 0)) e.push(`${at2}.tolerance: map units, above 0`);
+      if (r.width !== void 0 && !(isNum(r.width) && r.width > 0)) e.push(`${at2}.width: > 0`);
+      if (r.delta !== void 0 && typeof r.delta !== "boolean") e.push(`${at2}.delta: true or false`);
+    } else if (r.kind === "clear") e.push(...shapeErrors(r.area, `${at2}.area`));
+    else e.push(`${at2}.kind: ${REQUIREMENT_KINDS.join(", ")}`);
+  });
+  return e;
+}
 function validateMap(raw) {
   const e = [];
   if (!raw || typeof raw !== "object") return ["map: expected an object"];
@@ -161,6 +201,7 @@ function validateMap(raw) {
       if (ed.op === "river" && ed.delta !== void 0 && typeof ed.delta !== "boolean") e.push(`${at2}.delta: true or false`);
     } else e.push(`${at2}.op: paint, elevate, river or road`);
   });
+  e.push(...requirementErrors(m));
   const o = m.overlay;
   if (!o || !Array.isArray(o.labels) || !Array.isArray(o.symbols)) e.push("overlay: { labels: [], symbols: [] }");
   else {
@@ -186,10 +227,26 @@ function parseMap(raw) {
     edits: r.edits ?? [],
     overlay: { labels: r.overlay?.labels ?? [], symbols: r.overlay?.symbols ?? [] }
   };
+  if (r.require === void 0) delete m.require;
   const errors = validateMap(m);
   if (errors.length) throw new Error(`invalid map${typeof r.id === "string" ? ` ${r.id}` : ""}:
   ${errors.join("\n  ")}`);
   return m;
+}
+function checkMap(raw) {
+  let r;
+  try {
+    r = readFormat(raw, "map", MAP_FORMAT, MIGRATIONS);
+  } catch (err) {
+    const v = raw?.version;
+    return { version: typeof v === "number" ? v : null, errors: [{ path: "version", message: err.message }] };
+  }
+  const d = PRESET_DEFAULTS[PRESETS.includes(r.preset) ? r.preset : "regional"];
+  const m = { ...structuredClone(d), ...r, gen: { ...d.gen, ...r.gen }, topo: { ...d.topo, ...r.topo }, grid: { ...d.grid, ...r.grid }, scale: { ...d.scale, ...r.scale }, edits: r.edits ?? [], overlay: { labels: r.overlay?.labels ?? [], symbols: r.overlay?.symbols ?? [] } };
+  return { version: MAP_FORMAT, errors: validateMap(m).map((s) => {
+    const i = s.indexOf(": ");
+    return i < 0 ? { path: "", message: s } : { path: s.slice(0, i), message: s.slice(i + 2) };
+  }) };
 }
 function cellCenter(spec, ref) {
   const s = spec.grid.size;
@@ -249,6 +306,331 @@ function pGradient(x, y, o) {
     cy *= 2;
   }
   return Math.max(0, Math.min(1, 0.5 + sum / norm * 0.75));
+}
+
+// ../artgen-core/src/map/geometry.ts
+function coverage(s, x, y, soft = false) {
+  const fall = (d, r) => d >= r ? 0 : !soft || d <= r * 0.4 ? 1 : 0.5 + 0.5 * Math.cos((d - r * 0.4) / (r * 0.6) * Math.PI);
+  if ("circle" in s) return fall(Math.hypot(x - s.circle[0], y - s.circle[1]), s.circle[2]);
+  if ("poly" in s) {
+    const p = s.poly;
+    let inside = false;
+    for (let i = 0, j = p.length - 2; i < p.length; j = i, i += 2) {
+      if (p[i + 1] > y !== p[j + 1] > y && x < (p[j] - p[i]) * (y - p[i + 1]) / (p[j + 1] - p[i + 1]) + p[i]) inside = !inside;
+    }
+    return inside ? 1 : 0;
+  }
+  return fall(distToPolyline(s.stroke, x, y), s.width / 2);
+}
+function distToPolyline(p, x, y) {
+  if (p.length === 2) return Math.hypot(x - p[0], y - p[1]);
+  let best = Infinity;
+  for (let i = 2; i < p.length; i += 2) {
+    const ax = p[i - 2], ay = p[i - 1], dx = p[i] - ax, dy = p[i + 1] - ay, l2 = dx * dx + dy * dy;
+    const t = l2 ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2)) : 0;
+    best = Math.min(best, Math.hypot(x - ax - t * dx, y - ay - t * dy));
+  }
+  return best;
+}
+function bbox(s) {
+  if ("circle" in s) {
+    const [x, y, r] = s.circle;
+    return [x - r, y - r, x + r, y + r];
+  }
+  const p = "poly" in s ? s.poly : s.stroke, pad = "stroke" in s ? s.width / 2 : 0;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (let i = 0; i < p.length; i += 2) {
+    x0 = Math.min(x0, p[i]);
+    x1 = Math.max(x1, p[i]);
+    y0 = Math.min(y0, p[i + 1]);
+    y1 = Math.max(y1, p[i + 1]);
+  }
+  return [x0 - pad, y0 - pad, x1 + pad, y1 + pad];
+}
+function eachCovered(f, s, soft, fn) {
+  const [x0, y0, x1, y1] = bbox(s), r = f.res;
+  for (let j = Math.max(0, Math.floor(y0 * r)); j < Math.min(f.h, Math.ceil(y1 * r) + 1); j++)
+    for (let i = Math.max(0, Math.floor(x0 * r)); i < Math.min(f.w, Math.ceil(x1 * r) + 1); i++) {
+      const c = coverage(s, (i + 0.5) / r, (j + 0.5) / r, soft);
+      if (c > 0) fn(j * f.w + i, c);
+    }
+}
+function distanceTo(f, s, reach, inside = false) {
+  const out = new Float32Array(f.w * f.h).fill(inside ? 0 : reach), r = f.res, pad = Math.ceil(reach * r) + 1;
+  const [bx0, by0, bx1, by1] = bbox(s);
+  const x0 = Math.max(0, Math.floor(bx0 * r) - pad), y0 = Math.max(0, Math.floor(by0 * r) - pad), x1 = Math.min(f.w - 1, Math.ceil(bx1 * r) + pad), y1 = Math.min(f.h - 1, Math.ceil(by1 * r) + pad);
+  const ww = x1 - x0 + 1, hh = y1 - y0 + 1, big = 1e9, d = new Float32Array(ww * hh).fill(big);
+  for (let j = 0; j < hh; j++) for (let i = 0; i < ww; i++) if (coverage(s, (x0 + i + 0.5) / r, (y0 + j + 0.5) / r) > 0 !== inside) d[j * ww + i] = 0;
+  const D = Math.SQRT2;
+  for (let j = 0; j < hh; j++) for (let i = 0; i < ww; i++) {
+    let v = d[j * ww + i];
+    if (i > 0) v = Math.min(v, d[j * ww + i - 1] + 1);
+    if (j > 0) {
+      v = Math.min(v, d[(j - 1) * ww + i] + 1);
+      if (i > 0) v = Math.min(v, d[(j - 1) * ww + i - 1] + D);
+      if (i < ww - 1) v = Math.min(v, d[(j - 1) * ww + i + 1] + D);
+    }
+    d[j * ww + i] = v;
+  }
+  for (let j = hh - 1; j >= 0; j--) for (let i = ww - 1; i >= 0; i--) {
+    let v = d[j * ww + i];
+    if (i < ww - 1) v = Math.min(v, d[j * ww + i + 1] + 1);
+    if (j < hh - 1) {
+      v = Math.min(v, d[(j + 1) * ww + i] + 1);
+      if (i < ww - 1) v = Math.min(v, d[(j + 1) * ww + i + 1] + D);
+      if (i > 0) v = Math.min(v, d[(j + 1) * ww + i - 1] + D);
+    }
+    d[j * ww + i] = v;
+  }
+  for (let j = 0; j < hh; j++) for (let i = 0; i < ww; i++) out[(y0 + j) * f.w + x0 + i] = Math.min(reach, d[j * ww + i] / r) * (inside && d[j * ww + i] === 0 ? 0 : 1);
+  return out;
+}
+
+// ../artgen-core/src/map/shape.ts
+var WET_EDGE = /* @__PURE__ */ new Set(["forest", "grass", "scrub", "desert", "marsh"]);
+function bands(t, local) {
+  const dry = [0.08, (local ? 0.7 : 0.64) - 0.12];
+  switch (t) {
+    case "forest":
+      return { e: dry, m: [0.65, 0.75] };
+    case "grass":
+      return { e: dry, m: [0.42, 0.55] };
+    case "scrub":
+      return { e: dry, m: [0.25, 0.35] };
+    case "desert":
+      return { e: dry, m: [0.03, 0.15] };
+    case "marsh":
+      return { e: [8e-3, 0.15], m: [0.82, 0.95] };
+    case "sand":
+      return { e: [8e-3, 0.03], m: [0.05, 0.6] };
+    case "rock":
+      return { e: local ? [0.76, 1] : [0.68, 0.8] };
+    case "snow":
+      return { e: [0.88, 1] };
+    default:
+      return {};
+  }
+}
+function weights(spec, f, area, blend, mode) {
+  if (!(blend > 0)) {
+    const w2 = new Float32Array(f.w * f.h);
+    eachCovered(f, area, false, (i) => {
+      w2[i] = 1;
+    });
+    return w2;
+  }
+  const out = distanceTo(f, area, blend), wet = mode === "wet";
+  const inner = wet ? distanceTo(f, area, blend, true) : null;
+  let core2 = 0;
+  if (inner) for (let n = 0; n < inner.length; n++) core2 = Math.max(core2, inner[n]);
+  const lead = inner ? Math.min(blend * 0.2, core2 * 0.2) : 0, amp = inner ? Math.min(blend * 0.3, core2 * 0.3) : blend * 0.4, ramp = blend * 0.25;
+  const noise = (scale, seed) => ({ w: f.w * 4, h: f.h * 4, cells: Math.max(2, Math.round(4 * spec.cols / (spec.gen.feature * scale))), cellsY: Math.max(2, Math.round(4 * spec.rows / (spec.gen.feature * scale))), octaves: 2, seed: spec.seed + seed });
+  const waves = mode === "wet" ? [noise(0.26, 303), noise(0.11, 509)] : mode === "land" ? [noise(1, 709)] : [];
+  const w = new Float32Array(f.w * f.h);
+  for (let n = 0; n < w.length; n++) {
+    const d = out[n], deep = inner ? inner[n] : 0;
+    if (d >= blend) continue;
+    if (d <= 0 && (!inner || deep >= lead + amp)) {
+      w[n] = 1;
+      continue;
+    }
+    const i = n % f.w, j = (n - i) / f.w, signed = d > 0 ? d : -deep;
+    let v = 0;
+    if (waves.length) v = Math.max(-1, Math.min(1, (waves.reduce((t, o) => t + pGradient(i + f.w, j + f.h, o), 0) - waves.length / 2) * (wet ? 2.6 : 3)));
+    const a = inner ? amp : amp * Math.min(1, signed / ramp), s = Math.max(0, signed + lead + v * a) / (blend + lead);
+    w[n] = s >= 1 ? 0 : (1 - s) ** 3;
+  }
+  return w;
+}
+var intersect = (a, b) => {
+  const lo = Math.max(a[0], b[0]), hi = Math.min(a[1], b[1]);
+  return lo <= hi ? [lo, hi] : null;
+};
+function streamCurve(p) {
+  const n = p.length / 2, out = [p[0], p[1]], P = (i) => [p[Math.max(0, Math.min(n - 1, i)) * 2], p[Math.max(0, Math.min(n - 1, i)) * 2 + 1]];
+  for (let i = 0; i < n - 1; i++) {
+    const [p0, p1, p2, p3] = [P(i - 1), P(i), P(i + 1), P(i + 2)], k = Math.max(2, Math.ceil(Math.hypot(p2[0] - p1[0], p2[1] - p1[1]) / 0.5));
+    for (let s = 1; s <= k; s++) {
+      const t = s / k, t2 = t * t, t3 = t2 * t;
+      out.push(...[0, 1].map((a) => 0.5 * (2 * p1[a] + (p2[a] - p0[a]) * t + (2 * p0[a] - 5 * p1[a] + 4 * p2[a] - p3[a]) * t2 + (3 * p1[a] - p0[a] - 3 * p2[a] + p3[a]) * t3)));
+    }
+  }
+  return out;
+}
+function shapeGround(spec, f, raw, seaLevel, margin) {
+  const list2 = spec.require ?? [], local = spec.preset === "local", N = f.w * f.h, feature = spec.gen.feature;
+  const base = Float32Array.from(raw, (v) => Math.max(0, Math.min(1, v)));
+  const toRaw = (e) => seaLevel + e * (1 - seaLevel);
+  const blendOf = (r) => r.blend ?? feature;
+  for (const r of list2) {
+    if (r.kind !== "path" || r.path !== "stream") continue;
+    const p = streamCurve(r.points), valley = Math.min(feature * 0.5, 4), steps = [];
+    for (let i = 0; i < p.length - 2; i += 2) {
+      const len = Math.hypot(p[i + 2] - p[i], p[i + 3] - p[i + 1]), k = Math.max(1, Math.ceil(len * f.res));
+      for (let s = 0; s < k; s++) steps.push([p[i] + (p[i + 2] - p[i]) * s / k, p[i + 1] + (p[i + 3] - p[i + 1]) * s / k]);
+    }
+    steps.push([p[p.length - 2], p[p.length - 1]]);
+    const at2 = (x, y) => raw[Math.min(f.h - 1, Math.max(0, Math.floor(y * f.res))) * f.w + Math.min(f.w - 1, Math.max(0, Math.floor(x * f.res)))];
+    const bed = steps.map(([x, y]) => at2(x, y)), floor = Math.max(seaLevel + 4e-3, 0);
+    for (let i = 1; i < bed.length; i++) bed[i] = Math.min(bed[i], bed[i - 1]);
+    const win = Math.max(1, Math.round(f.res)), smooth2 = bed.map((_, i) => {
+      let s = 0, c = 0;
+      for (let k = Math.max(0, i - win); k <= Math.min(bed.length - 1, i + win); k++) {
+        s += bed[k];
+        c++;
+      }
+      return Math.max(floor, s / c);
+    });
+    const strokes = steps.length, reach = valley;
+    const best = new Float32Array(N).fill(reach), bedAt = new Float32Array(N);
+    for (let k = 0; k < strokes; k++) {
+      const [sx, sy] = steps[k], x0 = Math.max(0, Math.floor((sx - reach) * f.res)), x1 = Math.min(f.w - 1, Math.ceil((sx + reach) * f.res)), y0 = Math.max(0, Math.floor((sy - reach) * f.res)), y1 = Math.min(f.h - 1, Math.ceil((sy + reach) * f.res));
+      for (let j = y0; j <= y1; j++) for (let i = x0; i <= x1; i++) {
+        const d = Math.hypot((i + 0.5) / f.res - sx, (j + 0.5) / f.res - sy), n = j * f.w + i;
+        if (d < best[n]) {
+          best[n] = d;
+          bedAt[n] = smooth2[k];
+        }
+      }
+    }
+    for (let n = 0; n < N; n++) {
+      if (best[n] >= reach) continue;
+      const wgt = 0.5 + 0.5 * Math.cos(best[n] / reach * Math.PI), target = Math.min(raw[n], bedAt[n]);
+      raw[n] += (target - raw[n]) * wgt;
+    }
+  }
+  const heights = list2.filter((r) => r.kind === "height");
+  const heightW = new Map(heights.map((h) => [h, weights(spec, f, h.area, blendOf(h), "height")]));
+  const toBand = (h) => [Math.max(h.low / spec.topo.maxElevation, 2e-3), Math.min(h.high / spec.topo.maxElevation, 1)];
+  const pull = (w, lo, hi, profile = base) => {
+    for (let n = 0; n < N; n++) if (w[n] > 0) raw[n] += (lo + (hi - lo) * profile[n] - raw[n]) * w[n];
+  };
+  const rise = (h) => {
+    const depth = distanceTo(f, h.area, Math.min(Math.max(blendOf(h), 1) * 4, 80), true);
+    let core2 = 0;
+    for (let n = 0; n < N; n++) core2 = Math.max(core2, depth[n]);
+    return Float32Array.from(base, (b, n) => core2 > 0 ? Math.min(1, 0.7 * (depth[n] / core2) + 0.3 * b) : b);
+  };
+  const moist = [], ground2 = [];
+  const terrains = list2.flatMap((r) => r.kind === "terrain" ? [{ r, w: weights(spec, f, r.area, blendOf(r), WET_EDGE.has(r.terrain) ? "wet" : "land"), b: bands(r.terrain, local) }] : []);
+  const within = (a, b) => {
+    let inside = 0, total = 0;
+    for (let n = 0; n < N; n++) if (a[n] === 1) {
+      total++;
+      if (b[n] === 1) inside++;
+    }
+    return total ? inside / total : 0;
+  };
+  const heightBand = new Map(heights.map((h) => [h, toBand(h)]));
+  for (const t of terrains) {
+    if (t.r.terrain === "water" || t.r.terrain === "deep") {
+      const gap = Math.max(0.08, seaLevel * 0.35), lo = t.r.terrain === "deep" ? 0 : seaLevel - gap * 0.9, hi = t.r.terrain === "deep" ? Math.max(0, seaLevel - gap * 1.15) : seaLevel - 4e-3;
+      if (hi > lo) pull(t.w, lo, hi);
+      if (t.b.m) moist.push({ w: t.w, band: t.b.m });
+      continue;
+    }
+    if (t.b.m) moist.push({ w: t.w, band: t.b.m });
+    if (!t.b.e) continue;
+    let e = t.b.e;
+    for (const h of heights) {
+      const hw = heightW.get(h), hb = heightBand.get(h);
+      if (within(t.w, hw) > 0.5) e = intersect(e, hb) ?? hb;
+      if (within(hw, t.w) > 0.5) heightBand.set(h, intersect(hb, t.b.e) ?? hb);
+    }
+    ground2.push({ w: t.w, band: e });
+  }
+  for (const g of ground2) pull(g.w, toRaw(g.band[0]), toRaw(g.band[1]));
+  for (const h of heights) {
+    const [lo, hi] = heightBand.get(h);
+    pull(heightW.get(h), toRaw(lo), toRaw(hi), rise(h));
+  }
+  const clear = list2.filter((r) => r.kind === "clear");
+  let blocked = null;
+  for (const c of clear) {
+    blocked ??= new Uint8Array(N);
+    const d = distanceTo(f, c.area, margin + 0.01);
+    for (let n = 0; n < N; n++) if (d[n] <= margin) blocked[n] = 1;
+  }
+  return {
+    moisture(n, m) {
+      for (const { w, band } of moist) if (w[n] > 0) m += (band[0] + (band[1] - band[0]) * Math.max(0, Math.min(1, m)) - m) * w[n];
+      return m;
+    },
+    blocked,
+    clear
+  };
+}
+function streamsOf(spec) {
+  return (spec.require ?? []).flatMap((r) => r.kind === "path" && r.path === "stream" ? [{ id: r.id, points: r.points, width: r.width, delta: r.delta }] : []);
+}
+function routeRoad(points, f, elev, wet) {
+  const step = Math.max(1, Math.round(f.res / 2)), W = Math.ceil(f.w / step), H = Math.ceil(f.h / step), unit = step / f.res;
+  const at2 = (i, j) => Math.min(f.h - 1, j * step + (step >> 1)) * f.w + Math.min(f.w - 1, i * step + (step >> 1));
+  const cell = (x, y) => [Math.max(0, Math.min(W - 1, Math.floor(x * f.res / step))), Math.max(0, Math.min(H - 1, Math.floor(y * f.res / step)))];
+  const out = [points[0], points[1]];
+  for (let p = 2; p < points.length; p += 2) {
+    const [si, sj] = cell(points[p - 2], points[p - 1]), [ti, tj] = cell(points[p], points[p + 1]);
+    const dist = new Float32Array(W * H).fill(Infinity), from = new Int32Array(W * H).fill(-1), done = new Uint8Array(W * H), heap2 = [], key = new Float32Array(W * H);
+    const less = (a, b) => key[a] < key[b];
+    const push = (n) => {
+      heap2.push(n);
+      let c = heap2.length - 1;
+      while (c) {
+        const q = c - 1 >> 1;
+        if (!less(heap2[c], heap2[q])) break;
+        [heap2[c], heap2[q]] = [heap2[q], heap2[c]];
+        c = q;
+      }
+    };
+    const pop = () => {
+      const top = heap2[0], last = heap2.pop();
+      if (heap2.length) {
+        heap2[0] = last;
+        let c = 0;
+        for (; ; ) {
+          const l = c * 2 + 1, r = l + 1;
+          let m = c;
+          if (l < heap2.length && less(heap2[l], heap2[m])) m = l;
+          if (r < heap2.length && less(heap2[r], heap2[m])) m = r;
+          if (m === c) break;
+          [heap2[c], heap2[m]] = [heap2[m], heap2[c]];
+          c = m;
+        }
+      }
+      return top;
+    };
+    const goal = tj * W + ti, h = (i, j) => Math.hypot(i - ti, j - tj) * unit;
+    dist[sj * W + si] = 0;
+    key[sj * W + si] = h(si, sj);
+    push(sj * W + si);
+    while (heap2.length) {
+      const n = pop();
+      if (done[n]) continue;
+      done[n] = 1;
+      if (n === goal) break;
+      const i = n % W, j = (n - i) / W;
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+        const x = i + di, y = j + dj, m = y * W + x;
+        if (!di && !dj || x < 0 || y < 0 || x >= W || y >= H || done[m]) continue;
+        const len = Math.hypot(di, dj) * unit, rise = Math.abs(elev[at2(x, y)] - elev[at2(i, j)]);
+        const c = dist[n] + len + rise * 40 + (wet[at2(x, y)] ? len * 3 : 0);
+        if (c < dist[m]) {
+          dist[m] = c;
+          from[m] = n;
+          key[m] = c + h(x, y);
+          push(m);
+        }
+      }
+    }
+    const path = [];
+    for (let n = goal; n >= 0 && n !== sj * W + si; n = from[n]) {
+      const i = n % W, j = (n - i) / W;
+      path.push((i + 0.5) * step / f.res, (j + 0.5) * step / f.res);
+    }
+    for (let k = path.length - 2; k >= 0; k -= 2) out.push(path[k], path[k + 1]);
+    out.push(points[p], points[p + 1]);
+  }
+  return out;
 }
 
 // ../artgen-core/src/lib/trace.ts
@@ -405,52 +787,6 @@ function pathData(lines, k = 1) {
 // ../artgen-core/src/map/generate.ts
 var T = Object.fromEntries(TERRAINS.map((t, i) => [t, i]));
 var isWater = (t) => t === T.deep || t === T.water;
-function coverage(s, x, y, soft = false) {
-  const fall = (d, r) => d >= r ? 0 : !soft || d <= r * 0.4 ? 1 : 0.5 + 0.5 * Math.cos((d - r * 0.4) / (r * 0.6) * Math.PI);
-  if ("circle" in s) return fall(Math.hypot(x - s.circle[0], y - s.circle[1]), s.circle[2]);
-  if ("poly" in s) {
-    const p = s.poly;
-    let inside = false;
-    for (let i = 0, j = p.length - 2; i < p.length; j = i, i += 2) {
-      if (p[i + 1] > y !== p[j + 1] > y && x < (p[j] - p[i]) * (y - p[i + 1]) / (p[j + 1] - p[i + 1]) + p[i]) inside = !inside;
-    }
-    return inside ? 1 : 0;
-  }
-  return fall(distToPolyline(s.stroke, x, y), s.width / 2);
-}
-function distToPolyline(p, x, y) {
-  if (p.length === 2) return Math.hypot(x - p[0], y - p[1]);
-  let best = Infinity;
-  for (let i = 2; i < p.length; i += 2) {
-    const ax = p[i - 2], ay = p[i - 1], dx = p[i] - ax, dy = p[i + 1] - ay, l2 = dx * dx + dy * dy;
-    const t = l2 ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2)) : 0;
-    best = Math.min(best, Math.hypot(x - ax - t * dx, y - ay - t * dy));
-  }
-  return best;
-}
-function bbox(s) {
-  if ("circle" in s) {
-    const [x, y, r] = s.circle;
-    return [x - r, y - r, x + r, y + r];
-  }
-  const p = "poly" in s ? s.poly : s.stroke, pad = "stroke" in s ? s.width / 2 : 0;
-  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-  for (let i = 0; i < p.length; i += 2) {
-    x0 = Math.min(x0, p[i]);
-    x1 = Math.max(x1, p[i]);
-    y0 = Math.min(y0, p[i + 1]);
-    y1 = Math.max(y1, p[i + 1]);
-  }
-  return [x0 - pad, y0 - pad, x1 + pad, y1 + pad];
-}
-function eachCovered(f, s, soft, fn) {
-  const [x0, y0, x1, y1] = bbox(s), r = f.res;
-  for (let j = Math.max(0, Math.floor(y0 * r)); j < Math.min(f.h, Math.ceil(y1 * r) + 1); j++)
-    for (let i = Math.max(0, Math.floor(x0 * r)); i < Math.min(f.w, Math.ceil(x1 * r) + 1); i++) {
-      const c = coverage(s, (i + 0.5) / r, (j + 0.5) / r, soft);
-      if (c > 0) fn(j * f.w + i, c);
-    }
-}
 function quantile(f, q) {
   if (q <= 0) return -Infinity;
   const s = Float32Array.from(f).sort();
@@ -543,11 +879,11 @@ function fillDepressions(h, w, hh, water) {
   }
   return out;
 }
-function traceRivers(spec, filled, elev, water, w, h, res, wet) {
+function traceRivers(spec, filled, elev, water, w, h, res, wet, blocked) {
   const n = spec.gen.rivers;
   if (!n) return [];
   const r = rng(spec.seed * 31 + 7), cands = [];
-  for (let k = 0; k < elev.length; k++) if (!water[k] && elev[k] > 0.4 && elev[k] < 0.85) cands.push(k);
+  for (let k = 0; k < elev.length; k++) if (!water[k] && !blocked?.[k] && elev[k] > 0.4 && elev[k] < 0.85) cands.push(k);
   cands.sort((a, b) => elev[b] - elev[a]);
   const spacing = Math.max(spec.cols, spec.rows) / (n + 1) * res, sources = [];
   for (let tries = 0; tries < 400 && sources.length < n && cands.length; tries++) {
@@ -570,7 +906,7 @@ function traceRivers(spec, filled, elev, water, w, h, res, wet) {
       let best = -1, low = filled[k];
       for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
         const xx = x + di, yy = y + dj, m = yy * w + xx;
-        if (!di && !dj || xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
+        if (!di && !dj || xx < 0 || yy < 0 || xx >= w || yy >= h || blocked?.[m]) continue;
         if (filled[m] < low) {
           low = filled[m];
           best = m;
@@ -733,11 +1069,12 @@ function classify(e, m, local) {
 function generateMap(spec) {
   const res = RESOLUTION[spec.preset], w = spec.cols * res, h = spec.rows * res, N = w * h, g = spec.gen;
   const field = { res, w, h };
-  const raw = heightField(spec, w, h), sea = quantile(raw, g.sea);
+  const raw = heightField(spec, w, h), sea = quantile(raw, g.sea), seaLevel = Number.isFinite(sea) ? sea : -0.01;
   for (const ed of spec.edits) if (ed.op === "elevate") eachCovered(field, ed.shape, true, (i, c) => {
     raw[i] = Math.max(0, Math.min(1.2, raw[i] + ed.amount * c));
   });
-  const water = new Uint8Array(N), elev = new Float32Array(N), seaLevel = Number.isFinite(sea) ? sea : -0.01;
+  const shaped = spec.require?.length ? shapeGround(spec, field, raw, seaLevel, riverWidth(spec) / 2 + 0.6) : null;
+  const water = new Uint8Array(N), elev = new Float32Array(N);
   for (let n = 0; n < N; n++) {
     if (raw[n] < seaLevel) water[n] = 1;
     else elev[n] = Math.min(1, (raw[n] - seaLevel) / (1 - seaLevel || 1));
@@ -750,12 +1087,14 @@ function generateMap(spec) {
       open[i] = v;
     });
   }
-  const mains = traceRivers(spec, fillDepressions(raw, w, h, water), elev, open, w, h, res, wet).map((r) => ({ ...r, width: riverWidth(spec), source: "generated" }));
+  const mains = traceRivers(spec, fillDepressions(raw, w, h, water), elev, open, w, h, res, wet, shaped?.blocked ?? null).map((r) => ({ ...r, width: riverWidth(spec), source: "generated" }));
   for (const ed of spec.edits) if (ed.op === "river") mains.push({ pts: smoothLine(ed.points, res), width: ed.width ?? riverWidth(spec), mouth: ed.delta !== false, source: "edit" });
+  for (const s of streamsOf(spec)) mains.push({ pts: smoothLine(streamCurve(s.points), res), width: s.width ?? riverWidth(spec), mouth: s.delta !== false, source: "required", for: s.id });
   const roads = [];
   for (const ed of spec.edits) {
     if (ed.op === "road") roads.push({ pts: smoothLine(ed.points, res), width: spec.preset === "local" ? 0.5 : 0.08 });
   }
+  for (const r of spec.require ?? []) if (r.kind === "path" && r.path === "road") roads.push({ pts: smoothLine(routeRoad(r.points, field, elev, open), res), width: spec.preset === "local" ? 0.5 : 0.08, for: r.id });
   for (const rv of mains) markLine(rv.pts, rv.width, w, h, res, wet);
   const near = new Float32Array(N);
   for (let n = 0; n < N; n++) near[n] = water[n] || wet[n] ? 1 : 0;
@@ -768,7 +1107,8 @@ function generateMap(spec) {
       continue;
     }
     const m = 0.5 + (pGradient(i + w, j + h, mopts) - 0.5) * 1.8 + nearB[n] * 0.25 + (g.moisture - 0.5) * 0.9 - elev[n] * 0.12;
-    terrain[n] = classify(elev[n], Math.max(0, Math.min(1, m)), spec.preset === "local");
+    const wet01 = Math.max(0, Math.min(1, m));
+    terrain[n] = classify(elev[n], shaped ? shaped.moisture(n, wet01) : wet01, spec.preset === "local");
   }
   const minArea = Math.round(Math.pow(g.simplify * res * 0.55, 2));
   const simple = simplifyTerrain(terrain, w, h, Math.ceil(g.simplify), minArea);
@@ -784,10 +1124,16 @@ function generateMap(spec) {
     return i >= 0 && j >= 0 && i < w && j < h && isWater(simple[j * w + i]);
   };
   const rivers = mains.map((m) => {
-    const fit = m.mouth ? toShore(m.pts, shown3) : null;
-    return { ...riverRibbon(fit ?? m.pts, m.width, !!fit), source: m.source };
+    let fit = m.mouth ? toShore(m.pts, shown3) : null;
+    if (fit && m.source === "required" && fit.length < m.pts.length) fit = null;
+    if (fit && m.source === "generated" && shaped?.clear.length && touches(fit, shaped.clear.map((c) => c.area))) fit = null;
+    return { ...riverRibbon(fit ?? m.pts, m.width, !!fit), source: m.source, ...m.for !== void 0 && { for: m.for } };
   });
   return { res, w, h, elevation: elev, terrain: simple, rivers, roads };
+}
+function touches(pts, shapes) {
+  for (let i = 0; i < pts.length; i += 2) for (const s of shapes) if (coverage(s, pts[i], pts[i + 1]) > 0) return true;
+  return false;
 }
 function terrainsUsed(f) {
   const count = new Array(TERRAINS.length).fill(0);
@@ -1278,6 +1624,11 @@ function samplesIn(f, poly) {
       if (coverage({ poly }, (i + 0.5) / f.res, (j + 0.5) / f.res)) out.push(j * f.w + i);
   return out;
 }
+function samplesOf(f, s) {
+  const out = [];
+  eachCovered(f, s, false, (i) => out.push(i));
+  return out.sort((a, b) => a - b);
+}
 function extremes(g, f, spec, ids) {
   let lo = -1, hi = -1;
   const n = ids ? ids.length : f.elevation.length;
@@ -1436,7 +1787,7 @@ function mapFacts(spec, q = {}, field = generateMap(spec)) {
   if (!out.points && !out.areas) {
     const line = (l) => ({ name: l.name, ...l.source && { source: l.source }, points: listed(g, l.pts), length: g.length(pathLength(l.pts)), ...l.mouth !== void 0 && { mouth: l.mouth } });
     out.features = {
-      rivers: g.lines.filter((l) => l.kind === "river" && l.source === "edit").map(line),
+      rivers: g.lines.filter((l) => l.kind === "river" && l.source !== "generated").map(line),
       generatedRivers: g.lines.filter((l) => l.kind === "river" && l.source === "generated").map(line),
       roads: g.lines.filter((l) => l.kind === "road").map(line),
       ...summits(g, field, spec),
@@ -1445,6 +1796,50 @@ function mapFacts(spec, q = {}, field = generateMap(spec)) {
     };
   }
   return out;
+}
+
+// ../artgen-core/src/map/require.ts
+var two2 = (v) => v.toFixed(2);
+function distanceToLines(lines, x, y) {
+  let best = Infinity;
+  for (const p of lines) for (let i = 2; i < p.length; i += 2) {
+    const ax = p[i - 2], ay = p[i - 1], dx = p[i] - ax, dy = p[i + 1] - ay, l2 = dx * dx + dy * dy, t = l2 ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2)) : 0;
+    best = Math.min(best, Math.hypot(x - ax - t * dx, y - ay - t * dy));
+  }
+  return best;
+}
+function measure(spec, f, r) {
+  if (r.kind === "terrain") {
+    const ids = samplesOf(f, r.area), measured = (shares(f, ids).find((s) => s.terrain === r.terrain)?.share ?? 0) / 100;
+    return { what: r.terrain, measured, needed: r.share, op: ">=", met: measured >= r.share - 1e-9 };
+  }
+  if (r.kind === "height") {
+    const ids = samplesOf(f, r.area), top = spec.topo.maxElevation, eps = top * 1e-6, need = r.share ?? 0.9;
+    const inside = ids.filter((n) => {
+      const h = f.elevation[n] * top;
+      return h >= r.low - eps && h <= r.high + eps;
+    }).length;
+    const measured = ids.length ? Math.round(inside / ids.length * 100) / 100 : 0;
+    return { what: `${r.low}-${r.high} ${spec.topo.unit}`, measured, needed: need, op: ">=", met: measured >= need - 1e-9 };
+  }
+  if (r.kind === "path") {
+    const lines = r.path === "stream" ? f.rivers.filter((v) => v.for === r.id).map((v) => v.pts) : f.roads.filter((v) => v.for === r.id).map((v) => v.pts), tol = r.tolerance ?? 1;
+    let far = 0;
+    for (let i = 0; i < r.points.length; i += 2) far = Math.max(far, distanceToLines(lines, r.points[i], r.points[i + 1]));
+    const measured = Number.isFinite(far) ? Math.round(far * 100) / 100 : null;
+    return { what: r.path, measured, needed: tol, op: "<=", met: measured !== null && measured <= tol + 1e-9 };
+  }
+  const crossing = f.rivers.filter((v) => v.source === "generated" && [v.pts, v.outline].some((p) => {
+    for (let i = 0; i < p.length; i += 2) if (coverage(r.area, p[i], p[i + 1]) > 0) return true;
+    return false;
+  }));
+  return { what: "rivers", measured: crossing.length, needed: 0, op: "<=", met: crossing.length === 0 };
+}
+function checkRequirements(spec, field = generateMap(spec)) {
+  return (spec.require ?? []).map((r) => {
+    const m = measure(spec, field, r), cmp = m.met ? m.op : m.op === ">=" ? "<" : ">";
+    return { id: r.id, kind: r.kind, ...m, text: `${r.id} ${r.kind} ${m.what} ${m.measured === null ? "no path" : two2(m.measured)} ${cmp} ${two2(m.needed)} ${m.met ? "met" : "unmet"}` };
+  });
 }
 
 // ../artgen-core/src/dungeon/index.ts
@@ -3579,11 +3974,11 @@ function rasterizeSvg(svg, w, h) {
 }
 
 // ../artgen-cli/src/dungeon.ts
-import { existsSync as existsSync4, mkdirSync as mkdirSync3, readdirSync as readdirSync2, readFileSync as readFileSync3, writeFileSync as writeFileSync3 } from "node:fs";
+import { existsSync as existsSync4, mkdirSync as mkdirSync3, readdirSync as readdirSync2, readFileSync as readFileSync4, writeFileSync as writeFileSync3 } from "node:fs";
 import { dirname as dirname3, join as join4, relative as relative2, resolve as resolve3 } from "node:path";
 
 // ../artgen-cli/src/map.ts
-import { existsSync as existsSync3, mkdirSync as mkdirSync2, readdirSync, writeFileSync as writeFileSync2 } from "node:fs";
+import { existsSync as existsSync3, mkdirSync as mkdirSync2, readdirSync, readFileSync as readFileSync3, writeFileSync as writeFileSync2 } from "node:fs";
 import { dirname as dirname2, join as join3, relative, resolve as resolve2 } from "node:path";
 
 // ../artgen-cli/src/node-svg.ts
@@ -3673,6 +4068,20 @@ function updateMap(p, ref, change) {
   writeMap(p, m, ref);
   return m;
 }
+function checkMapFile(p, ref) {
+  const f = mapFile(p, ref);
+  let raw;
+  try {
+    raw = JSON.parse(readFileSync3(f, "utf8"));
+  } catch (e) {
+    const missing = e.code === "ENOENT";
+    return { file: shown(p, f), ok: false, errors: [{ path: "", message: missing ? `no such file: ${shown(p, f)}` : `not JSON: ${e.message}` }], requirements: [], unmet: [] };
+  }
+  const { errors } = map_exports.checkMap(raw);
+  if (errors.length) return { file: shown(p, f), ok: false, errors, requirements: [], unmet: [] };
+  const requirements = map_exports.checkRequirements(map_exports.parseMap(raw)), unmet = requirements.filter((r) => !r.met).map((r) => r.id);
+  return { file: shown(p, f), ok: !unmet.length, errors, requirements, unmet };
+}
 async function renderMapFiles(p, ref, o = {}) {
   const m = readMap(p, ref), field = map_exports.generateMap(m), id = typeof ref === "string" ? ref : fileStem(ref.file);
   const out = o.out ?? (typeof ref === "string" ? join3(mapsDir(p), id, "out") : dirname2(mapFile(p, ref)));
@@ -3733,6 +4142,8 @@ function describeMap(m) {
     `  gen: land ${g.land}, sea ${g.sea}, moisture ${g.moisture}, roughness ${g.roughness}, relief ${g.relief}, rivers ${g.rivers}, simplify ${g.simplify}, feature ${g.feature}`,
     `  topo: every ${m.topo.interval} ${m.topo.unit} up to ${m.topo.maxElevation}, major every ${m.topo.majorEvery}${m.topo.labels ? ", labelled" : ""}`,
     `  grid: ${m.grid.type}${m.grid.type !== "none" ? ` size ${m.grid.size}${m.grid.coords ? ", coordinates" : ""}` : ""}; legend ${m.legend ? "on" : "off"}, scale bar ${m.scaleBar ? "on" : "off"}, compass ${m.compass ? "on" : "off"}`,
+    ...m.require?.length ? [`  require (${m.require.length}):${m.require.map((r) => `
+    ${r.id} ${r.kind}${r.kind === "terrain" ? ` ${r.terrain} ${r.share}` : r.kind === "height" ? ` ${r.low}-${r.high} ${m.topo.unit}` : r.kind === "path" ? ` ${r.path}` : ""}`).join("")}`] : [],
     `  edits (${m.edits.length}):${m.edits.map((e, i) => `
     ${i}. ${e.op}${e.op === "paint" ? ` ${e.terrain}` : e.op === "elevate" ? ` ${e.amount}` : ""} ${"shape" in e ? JSON.stringify(e.shape) : JSON.stringify(e.points)}`).join("")}`,
     `  labels (${m.overlay.labels.length}):${m.overlay.labels.map((l, i) => `
@@ -3818,7 +4229,7 @@ function checkDungeonFile(p, ref) {
   const f = dungeonFile(p, ref);
   let raw;
   try {
-    raw = JSON.parse(readFileSync3(f, "utf8"));
+    raw = JSON.parse(readFileSync4(f, "utf8"));
   } catch (e) {
     const missing = e.code === "ENOENT";
     return { file: shown2(p, f), ok: false, errors: [{ path: "", message: missing ? `no such file: ${shown2(p, f)}` : `not JSON: ${e.message}` }] };
@@ -3940,6 +4351,7 @@ var MAP_USAGE = `       artgen map new <id> [--preset regional|local] [--size 30
                   the ground as numbers: --at gives each point's terrain, height, slope and nearest river and road; --area the terrain shares, lowest and highest
                   ground and the rivers and roads that cross it; neither gives the whole map's rivers, roads, hilltops, hollows and terrain shares.
                   Positions in map units, lengths also in the scale unit, heights in topo.unit and whole multiples of topo.interval
+       artgen map check <id> [--json]   the file's format errors with their JSON paths, then each \`require\` entry measured: \`C-forest terrain forest 0.71 < 0.80 unmet\`; exits 1 on any error or unmet requirement
        artgen dungeon new <id> [--size 40x30] [--seed n] [--title "..."] [--empty] | new <id> --room rect|circle|octagon|cave --room-size 8x6 [--exits n,e:secret,s:none,w] [--label "..."] [--number n|off]
        artgen dungeon gen <id> [--seed n] [--rooms n] [--min-size n] [--max-size n] [--caves f] [--round f] [--loops f] [--doors f] [--corridor-width n] [--spacing n] [--entrance on|off] [--size 40x30]
        artgen dungeon room <id> add <shape> --at x,y|C4 --size WxH [--points x,y,\u2026] [--label "..."] [--number n|off] [--room-id r9] | move <rid> --at x,y | set <rid> [--shape s] [--size WxH] [--label "..."] [--number n|off] | rm <rid>
@@ -4109,6 +4521,11 @@ ${next(m.id)}`, m);
     print(describeMapFacts(r), r);
     return 0;
   }
+  if (sub === "check") {
+    const r = checkMapFile(p, need("<id>"));
+    print(r.errors.length ? [`${r.file}: ${r.errors.length} error${r.errors.length === 1 ? "" : "s"}`, ...r.errors.map((e) => `  ${e.path || "(file)"}: ${e.message}`)].join("\n") : [`${r.file}: ${r.requirements.length ? r.ok ? `all ${r.requirements.length} requirements met` : `${r.unmet.length} of ${r.requirements.length} requirements unmet` : "ok, no requirements"}`, ...r.requirements.map((q) => `  ${q.text}`)].join("\n"), r);
+    return r.ok ? 0 : 1;
+  }
   if (sub === "render") {
     const theme = flag(args, "--theme") ?? "both", format = flag(args, "--format") ?? "both";
     if (!["color", "bw", "both"].includes(theme)) throw new Error("--theme: color, bw or both");
@@ -4124,7 +4541,7 @@ ${next(m.id)}`, m);
     print([`${file ?? id} ${r.size.join("\xD7")} px, ${r.ppu} px a unit, window ${r.crop.join(",")}: ${r.terrains.join(", ")}${r.rivers ? `, ${r.rivers} rivers` : ""}`, ...r.files.map((f) => `  ${f}`)].join("\n"), r);
     return 0;
   }
-  throw new Error("map: new | gen | edit | grid | label | symbol | symbols | overlay | set | render | show | facts | list (artgen --help)");
+  throw new Error("map: new | gen | edit | grid | label | symbol | symbols | overlay | set | render | show | facts | check | list (artgen --help)");
 }
 function sizeFlag(args, name) {
   const v = flag(args, name);
@@ -4436,7 +4853,7 @@ ${MAP_USAGE}
   if (cmd === "dungeon") return dungeonCommand(sub, args, print);
   throw new Error(`artgen-maps: ${cmd}: not a command here; this bundle has map, dungeon and formats (--help)`);
 }
-var MAPS_VERSION = `${true ? "0.10.0" : "dev"} (${true ? "28571a1" : "unknown"})`;
+var MAPS_VERSION = `${true ? "0.10.0" : "dev"} (${true ? "a2aec6e" : "unknown"})`;
 
 // ../artgen-cli/src/maps-bin.ts
 mapsMain(process.argv.slice(2)).then((code) => process.exit(code), (e) => {
