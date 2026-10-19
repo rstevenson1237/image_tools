@@ -254,6 +254,13 @@
         "size": 1
       }
     ],
-    "symbols": []
+    "symbols": [
+      {
+        "kind": "castle",
+        "x": 54,
+        "y": 90,
+        "scale": 1
+      }
+    ]
   }
 }

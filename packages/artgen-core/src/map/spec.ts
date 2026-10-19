@@ -30,20 +30,24 @@ export type LabelKind = (typeof LABEL_KINDS)[number];
 /** Where an edit applies: a disc, a polygon (x,y pairs) or a brush stroke (a polyline with a width). */
 export type Shape = { circle: [number, number, number] } | { poly: number[] } | { stroke: number[]; width: number };
 
-export type MapEdit =
+/** Who wrote an entry (`origin`, optional so the format version is unchanged); none means a hand entry (see `sync`). */
+export interface Origin { origin?: string }
+
+export type MapEdit = Origin & (
   | { op: 'paint'; terrain: Terrain; shape: Shape }
   /** Raise (amount > 0) or lower the ground, in fractions of the full height range (-1..1), with a soft edge. */
   | { op: 'elevate'; amount: number; shape: Shape }
   /** A river: thin at its first point, `width` (map units) at its last; a delta where it ends in water unless `delta: false`. */
   | { op: 'river'; points: number[]; width?: number; delta?: boolean }
-  | { op: 'road'; points: number[] };
+  | { op: 'road'; points: number[] }
+);
 
 /**
  * What the ground must be, stated by the consumer (`require` in `map.json`). Generation shapes the ground to meet each
  * one, with the edge blended over `gen.feature` (or `blend`, in map units) outside the area; `artgen map check` measures
  * each and says which are met. The `id` is the consumer's own, and unique in the file.
  */
-export type Requirement = { id: string; blend?: number } & (
+export type Requirement = Origin & { id: string; blend?: number } & (
   /** `share` (0..1) of the area is `terrain`. */
   | { kind: 'terrain'; area: Shape; terrain: Terrain; share: number }
   /** `share` (0..1, default 0.9) of the area stands between `low` and `high`, in `topo.unit` above the waterline. */
@@ -56,8 +60,8 @@ export type Requirement = { id: string; blend?: number } & (
 export type RequirementKind = Requirement['kind'];
 export const REQUIREMENT_KINDS = ['terrain', 'height', 'path', 'clear'] as const;
 
-export interface MapLabel { text: string; x: number; y: number; kind: LabelKind; size?: number; angle?: number }
-export interface MapSymbol { kind: string; x: number; y: number; scale?: number }
+export interface MapLabel extends Origin { text: string; x: number; y: number; kind: LabelKind; size?: number; angle?: number }
+export interface MapSymbol extends Origin { kind: string; x: number; y: number; scale?: number; angle?: number }
 
 export interface MapSpec {
   id: string;
@@ -136,6 +140,12 @@ export function newMap(id: string, preset: Preset = 'regional', over: Partial<Ma
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 const nums = (v: unknown): v is number[] => Array.isArray(v) && v.every(isNum);
 
+/** `origin`, when an entry has one, is a non-empty string. */
+function originError(entry: unknown, at: string, e: string[]): void {
+  const v = (entry as { origin?: unknown } | null)?.origin;
+  if (v !== undefined && (typeof v !== 'string' || !v)) e.push(`${at}.origin: a non-empty string`);
+}
+
 function shapeErrors(s: unknown, at: string): string[] {
   if (!s || typeof s !== 'object') return [`${at}: shape required ({circle:[x,y,r]}, {poly:[x,y,…]} or {stroke:[x,y,…], width})`];
   const o = s as Record<string, unknown>;
@@ -157,6 +167,7 @@ function requirementErrors(m: Partial<MapSpec>): string[] {
     else if (seen.has(r.id)) e.push(`${at}.id: ${r.id} is used twice`);
     else seen.add(r.id);
     if (r.blend !== undefined && !(isNum(r.blend) && r.blend >= 0)) e.push(`${at}.blend: map units, 0 or more`);
+    originError(r, at, e);
     if (r.kind === 'terrain') {
       e.push(...shapeErrors(r.area, `${at}.area`));
       if (!TERRAINS.includes(r.terrain)) e.push(`${at}.terrain: one of ${TERRAINS.join(', ')}`);
@@ -211,13 +222,14 @@ export function validateMap(raw: unknown): string[] {
       if (ed.op === 'river' && ed.delta !== undefined && typeof ed.delta !== 'boolean') e.push(`${at}.delta: true or false`);
     }
     else e.push(`${at}.op: paint, elevate, river or road`);
+    originError(ed, at, e);
   });
   e.push(...requirementErrors(m));
   const o = m.overlay;
   if (!o || !Array.isArray(o.labels) || !Array.isArray(o.symbols)) e.push('overlay: { labels: [], symbols: [] }');
   else {
-    o.labels.forEach((l, i) => { if (typeof l?.text !== 'string' || !isNum(l.x) || !isNum(l.y) || !LABEL_KINDS.includes(l.kind)) e.push(`overlay.labels[${i}]: text, x, y, kind (${LABEL_KINDS.join('|')})`); });
-    o.symbols.forEach((s, i) => { if (typeof s?.kind !== 'string' || !isNum(s.x) || !isNum(s.y)) e.push(`overlay.symbols[${i}]: kind, x, y`); });
+    o.labels.forEach((l, i) => { if (typeof l?.text !== 'string' || !isNum(l.x) || !isNum(l.y) || !LABEL_KINDS.includes(l.kind)) e.push(`overlay.labels[${i}]: text, x, y, kind (${LABEL_KINDS.join('|')})`); else originError(l, `overlay.labels[${i}]`, e); });
+    o.symbols.forEach((s, i) => { if (typeof s?.kind !== 'string' || !isNum(s.x) || !isNum(s.y)) e.push(`overlay.symbols[${i}]: kind, x, y`); else { if (s.angle !== undefined && !isNum(s.angle)) e.push(`overlay.symbols[${i}].angle: degrees`); originError(s, `overlay.symbols[${i}]`, e); } });
   }
   return e;
 }

@@ -1,0 +1,86 @@
+{
+  "cols": 66,
+  "rows": 54,
+  "gen": {
+    "land": "inland",
+    "sea": 0.02,
+    "moisture": 0.55,
+    "roughness": 0.4,
+    "relief": 0.3,
+    "rivers": 0,
+    "simplify": 2,
+    "feature": 14
+  },
+  "topo": {
+    "maxElevation": 40,
+    "interval": 5,
+    "majorEvery": 4,
+    "unit": "ft",
+    "labels": false
+  },
+  "grid": {
+    "type": "square",
+    "size": 1,
+    "coords": false
+  },
+  "scale": {
+    "perCell": 10,
+    "unit": "ft"
+  },
+  "legend": false,
+  "scaleBar": false,
+  "compass": false,
+  "seed": 11,
+  "id": "a-sheet",
+  "version": 1,
+  "preset": "local",
+  "edits": [
+    {
+      "op": "elevate",
+      "amount": 0.45,
+      "shape": {
+        "circle": [
+          32,
+          28,
+          15
+        ]
+      },
+      "origin": "tables"
+    },
+    {
+      "op": "paint",
+      "terrain": "forest",
+      "shape": {
+        "poly": [
+          0,
+          0,
+          66,
+          0,
+          66,
+          9.5,
+          0,
+          9.5
+        ]
+      },
+      "origin": "tables"
+    },
+    {
+      "op": "road",
+      "points": [
+        0,
+        31,
+        2,
+        29.5,
+        4.5,
+        28,
+        7,
+        28
+      ],
+      "origin": "tables"
+    }
+  ],
+  "overlay": {
+    "labels": [],
+    "symbols": []
+  }
+}

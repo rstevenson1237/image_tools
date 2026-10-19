@@ -23,7 +23,12 @@ export const SYMBOLS: Record<string, { name: string; svg: string }> = {
   tree: { name: 'Tree', svg: '<path d="M0 8V2" stroke="{ink}" stroke-width="1.6"/><circle cy="-2" r="5.5" fill="{fill}" stroke="{ink}" stroke-width="1.4"/>' },
   skull: { name: 'Danger', svg: '<path d="M-6 -1A6 6 0 1 1 6 -1V3H3V6H-3V3H-6Z" fill="{fill}" stroke="{ink}" stroke-width="1.4" stroke-linejoin="round"/><circle cx="-2.4" cy="-1" r="1.6" fill="{ink}"/><circle cx="2.4" cy="-1" r="1.6" fill="{ink}"/>' },
   door: { name: 'Door / entrance', svg: '<rect x="-4.5" y="-7" width="9" height="14" fill="{fill}" stroke="{ink}" stroke-width="1.5"/><circle cx="2" cy="0.5" r="1" fill="{ink}"/>' },
+  'cave-mouth': { name: 'Cave mouth (in a cliff, facing its angle)', svg: '<path d="M-3 -9.5V9.5" fill="none" stroke="{ink}" stroke-width="1.8" stroke-linecap="round"/><path d="M-3 -6A6 6 0 0 1 -3 6Z" fill="{ink}" stroke="{ink}" stroke-width="1" stroke-linejoin="round"/><path d="M-3 -3.4A3.4 3.4 0 0 1 -3 3.4Z" fill="{fill}"/>' },
+  gate: { name: 'Gate (a break in a wall line)', svg: '<path d="M-9.5 0H-5M5 0H9.5" fill="none" stroke="{ink}" stroke-width="3" stroke-linecap="butt"/><rect x="-6" y="-3.2" width="3" height="6.4" fill="{fill}" stroke="{ink}" stroke-width="1.2"/><rect x="3" y="-3.2" width="3" height="6.4" fill="{fill}" stroke="{ink}" stroke-width="1.2"/><path d="M-3 0H3" stroke="{ink}" stroke-width="1" stroke-dasharray="1.4 1.2"/>' },
   treasure: { name: 'Treasure', svg: '<rect x="-7" y="-2" width="14" height="8" fill="{fill}" stroke="{ink}" stroke-width="1.4"/><path d="M-7 -2Q-7 -7 0 -7Q7 -7 7 -2M-1.5 -2V2H1.5V-2" fill="none" stroke="{ink}" stroke-width="1.4"/>' },
 };
+
+/** Symbols with a direction: `angle` turns them (degrees clockwise from east, as the dungeon symbols turn). */
+export const DIRECTED = ['cave-mouth', 'gate'];
 
 export const SYMBOL_KINDS = Object.keys(SYMBOLS);

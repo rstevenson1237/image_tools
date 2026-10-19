@@ -28,3 +28,9 @@ The generated seed (732232) is not part of what the case states.
 ## Does not yet draw well
 
 Nothing noted. Single-cell-high rooms (F.1, F.2) are legible but tight at small scale.
+
+## Origins and a hand edit (artgen A8)
+
+Every room, corridor, label and trap carries `origin: tables`. Two hand edits sit on top of them: a `web` symbol in F.3 (no origin: a hand entry) and F.4 moved
+one cell east by hand (`x` 11 to 12, recorded as `hand: ["x"]`; the table still says 11). Synced from a file with F.5 removed (and the corridor F.3-F.5
+with it): the web is kept; F.4's hand `x` is reported and the table's 11 kept; nothing refers to F.5 afterwards.

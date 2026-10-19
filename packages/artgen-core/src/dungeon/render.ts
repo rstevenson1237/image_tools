@@ -10,11 +10,16 @@ import { rng } from '../lib/rng.ts';
 import { compassSvg, esc, FONT, haloText, n1 } from '../lib/svgdraw.ts';
 import { pathData } from '../lib/trace.ts';
 import { frameOf, sizeAttrs, type Crop, type SizeUnit } from '../lib/view.ts';
+import type { MapField } from '../map/generate.ts';
+import type { MapSpec } from '../map/spec.ts';
+import { PAGE_PT, PAGE_SYMBOL_MM, pageUnit, placeLabels, pointsToPx, textBox, type Box, type PlaceLabel } from '../lib/page.ts';
 import { layoutDungeon, type DoorGeom, type DungeonLayout } from './layout.ts';
-import type { DungeonSpec } from './spec.ts';
+import type { DungeonLabel, DungeonSpec, Room } from './spec.ts';
 import { SYMBOLS } from './symbols.ts';
+import { underlaySvg } from './underlay.ts';
+import { layoutWalls } from './walls.ts';
 
-export const DUNGEON_LAYERS = ['rock', 'floors', 'grid', 'doors', 'symbols', 'numbers', 'labels', 'title', 'scale', 'compass'] as const;
+export const DUNGEON_LAYERS = ['underlay', 'rock', 'floors', 'buildings', 'enclosure', 'grid', 'doors', 'symbols', 'cellars', 'numbers', 'labels', 'legend', 'title', 'scale', 'compass'] as const;
 export type DungeonLayer = (typeof DUNGEON_LAYERS)[number];
 
 const INK = '#000000', PAPER = '#ffffff', TH = { ink: INK, paper: PAPER, halo: PAPER };
@@ -30,12 +35,64 @@ export interface RenderDungeonOptions {
   crop?: Crop;
   /** The unit of the SVG's width and height (default px). */
   unit?: SizeUnit;
+  /** The map named by the file's `underlay` (read by the caller: the engine reads no files). Without it the underlay is not drawn. */
+  underlay?: { map: MapSpec; field?: MapField };
+  /**
+   * Output pixels per millimetre on the page (`--fit` sets it, `--page-scale` gives it). Label sizes, symbol sizes and
+   * stroke widths are then set in points and millimetres on the page, and labels are kept off one another. Unset: sizes
+   * follow `ppu`.
+   */
+  pageScale?: number;
 }
+
+/** A tone for the roof of a `building`, and the line along its ridge. */
+const ROOF = '#dcdcdc', RIDGE = '#8c8c8c';
+
+/** What a room is, whatever the file leaves out. */
+const fillOf = (r: Room) => r.fill ?? 'floor';
+
+/** A label that found no free spot on the page, with its index in `overlay.labels`. */
+export interface UnplacedLabel { index: number; text: string }
+
+const BASE_PX = { area: 24, name: 15, note: 12 } as const;
+
+/** A label's font size in pixels: its kind's default (points on the page with a page scale, else relative to `u`) times `size`. */
+function labelSize(l: DungeonLabel, u: number, pageScale?: number): number {
+  return (pageScale ? pointsToPx(PAGE_PT.dungeon[l.kind], pageScale) : BASE_PX[l.kind] * u) * (l.size ?? 1);
+}
+
+/** The room number and name sizes in pixels. */
+const numberSize = (u: number, pageScale?: number) => (pageScale ? pointsToPx(PAGE_PT.dungeon.number, pageScale) : 19 * u);
+const nameSize = (u: number, pageScale?: number) => (pageScale ? pointsToPx(PAGE_PT.dungeon.room, pageScale) : 15 * u);
+
+/**
+ * Where each overlay label is drawn, and the labels that could not be kept clear of the others or of a symbol or a room's
+ * badge and name (only with a page scale, when the labels are moved).
+ */
+export function dungeonLabelLayout(spec: DungeonSpec, k: number, pageScale?: number, l: DungeonLayout = layoutDungeon(spec), numbers = spec.numbers): { at: { x: number; y: number }[]; unplaced: UnplacedLabel[] } {
+  const raw = spec.overlay.labels.map(lb => ({ x: lb.x * k, y: lb.y * k }));
+  if (!pageScale) return { at: raw, unplaced: [] };
+  const u = pageUnit(pageScale), obstacles: Box[] = spec.overlay.symbols.map(s => { const z = PAGE_SYMBOL_MM * pageScale * (s.scale ?? 1); return { x: s.x * k - z / 2, y: s.y * k - z / 2, w: z, h: z }; });
+  for (const g of l.rooms) {
+    const x = g.cx * k, y = g.cy * k, fs = numberSize(u, pageScale), badge = numbers && g.number !== undefined;
+    if (badge) { const txt = String(g.number), bh = fs * 1.45, bw = Math.max(bh, txt.length * fs * 0.62 + fs * 0.7); obstacles.push({ x: x - bw / 2, y: y - bh / 2, w: bw, h: bh }); }
+    if (g.room.label) obstacles.push(textBox(g.room.label, x, y + (badge ? fs * 1.6 : fs * 0.3), nameSize(u, pageScale), { bold: true }));
+  }
+  const items: PlaceLabel[] = spec.overlay.labels.map(lb => {
+    const size = labelSize(lb, u, pageScale), text = lb.kind === 'area' ? lb.text.toUpperCase() : lb.text;
+    return { x: lb.x * k, y: lb.y * k, box: textBox(text, lb.x * k, lb.y * k + size * 0.35, size, { bold: lb.kind !== 'note', spacing: lb.kind === 'area' ? size * 0.16 : 0 }), clear: 0 };
+  });
+  const placed = placeLabels(items, obstacles, { x: 0, y: 0, w: spec.cols * k, h: spec.rows * k }, pageScale * 0.3);
+  return { at: placed.map(p => ({ x: p.x, y: p.y })), unplaced: placed.flatMap((p, index) => (p.placed ? [] : [{ index, text: spec.overlay.labels[index].text }])) };
+}
+
+/** The legend's name for a symbol: its name up to the first bracket. */
+export const LEGEND_NAMES = (kind: string): string => (SYMBOLS[kind] ?? SYMBOLS.trap).name.split(' (')[0];
 
 /** Which layers render: everything on, the optional ones as the file says, then the caller's overrides. */
 export function dungeonLayersFor(spec: DungeonSpec, over: Partial<Record<DungeonLayer, boolean>> = {}): Record<DungeonLayer, boolean> {
   const on = Object.fromEntries(DUNGEON_LAYERS.map(l => [l, true])) as Record<DungeonLayer, boolean>;
-  on.rock = spec.style.hatch !== 'none'; on.grid = spec.grid.show; on.numbers = spec.numbers;
+  on.rock = spec.style.hatch !== 'none'; on.underlay = !!spec.underlay; on.enclosure = !!spec.walls?.length; on.legend = !!spec.legend; on.grid = spec.grid.show; on.numbers = spec.numbers;
   on.scale = spec.scaleBar; on.compass = spec.compass; on.title = !!spec.title;
   return { ...on, ...over };
 }
@@ -88,11 +145,13 @@ function scaleCells(width: number): number {
 }
 
 export function renderDungeonSvg(spec: DungeonSpec, o: RenderDungeonOptions = {}): string {
-  const k = o.ppu ?? 40, W = spec.cols * k, H = spec.rows * k, u = k / 40, t = 0.14 * k * spec.style.wall, fr = frameOf(o.crop, spec.cols, spec.rows, k);
+  const k = o.ppu ?? 40, W = spec.cols * k, H = spec.rows * k, u = o.pageScale ? pageUnit(o.pageScale) : k / 40, t = 0.14 * k * spec.style.wall, fr = frameOf(o.crop, spec.cols, spec.rows, k);
   const l = o.layout ?? layoutDungeon(spec), on = dungeonLayersFor(spec, o.layers);
   const parts: string[] = [`<rect width="${W}" height="${H}" fill="${PAPER}"/>`], defs: string[] = [];
-  const roomD = pathData(l.rooms.map(g => ({ pts: g.outline, closed: true })), k);
+  const roomD = pathData(l.rooms.filter(g => fillOf(g.room) === 'floor').map(g => ({ pts: g.outline, closed: true })), k);
   const corr = l.corridors.map(c => ({ d: pathData([{ pts: c.pts, closed: false }], k), w: c.width * k }));
+
+  if (on.underlay && spec.underlay && o.underlay) parts.push(underlaySvg(spec, o.underlay.map, k, o.underlay.field));
 
   if (on.rock && spec.style.hatch !== 'none') {
     defs.push(hatchPattern(k));
@@ -108,6 +167,40 @@ export function renderDungeonSvg(spec: DungeonSpec, o: RenderDungeonOptions = {}
     (roomD ? `<path d="${roomD}" fill="${fill}"${extra ? ` stroke="${fill}" stroke-width="${n1(extra * 2)}" stroke-linejoin="miter"` : ''}/>` : '') +
     corr.map(c => `<path d="${c.d}" fill="none" stroke="${fill}" stroke-width="${n1(c.w + extra * 2)}" stroke-linecap="square" stroke-linejoin="miter"/>`).join('');
   if (on.floors) parts.push(`<g id="floors"><g id="walls">${floor(INK, t)}</g><g id="floor">${floor(PAPER, 0)}</g></g>`);
+
+  const ofFill = (f: string) => l.rooms.filter(g => fillOf(g.room) === f);
+  if (on.buildings && ofFill('building').length) {
+    const sw = n1(Math.max(1, t * 0.55));
+    parts.push(`<g id="buildings">${ofFill('building').map(g => {
+      const d = pathData([{ pts: g.outline, closed: true }], k), r = g.room;
+      // the roof's ridge runs along the long side, a cell short of each end
+      const long = r.w >= r.h, inset = Math.min(0.5, (long ? r.h : r.w) / 2), ridge = r.shape === 'rect' || r.shape === 'octagon' ? (long
+        ? `M${n1((r.x + inset) * k)} ${n1((r.y + r.h / 2) * k)}H${n1((r.x + r.w - inset) * k)}` : `M${n1((r.x + r.w / 2) * k)} ${n1((r.y + inset) * k)}V${n1((r.y + r.h - inset) * k)}`) : '';
+      return `<path d="${d}" fill="${ROOF}" stroke="${INK}" stroke-width="${sw}" stroke-linejoin="miter"/>${ridge ? `<path d="${ridge}" stroke="${RIDGE}" stroke-width="${n1(Math.max(1, t * 0.5))}" stroke-linecap="round"/>` : ''}`;
+    }).join('')}</g>`);
+  }
+
+  if (on.enclosure && spec.walls?.length) {
+    const defs2: string[] = [];
+    let g = '';
+    for (const w of layoutWalls(spec, l)) {
+      const ring = pathData([{ pts: w.ring, closed: true }], k), th = w.thickness * k, cut = w.gates.map(gt => `<rect x="${n1(-gt.width * k / 2)}" y="${n1(-th)}" width="${n1(gt.width * k)}" height="${n1(2 * th)}" transform="translate(${n1(gt.x * k)} ${n1(gt.y * k)}) rotate(${n1(gt.angle)})" fill="#000"/>`).join('');
+      const mid = `gates-${w.index}`;
+      if (cut) defs2.push(`<mask id="${mid}" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}"><rect width="${W}" height="${H}" fill="#fff"/>${cut}</mask>`);
+      g += `<g id="wall-${w.index}"><g${cut ? ` mask="url(#${mid})"` : ''}><path d="${ring}" fill="none" stroke="${INK}" stroke-width="${n1(th)}" stroke-linejoin="miter"/></g>`;
+      const tower = (tw: { x: number; y: number; shape: string; size: number }) => {
+        const r = (tw.size * k) / 2, ring2 = Math.max(1, th * 0.4);
+        return tw.shape === 'square'
+          ? `<rect x="${n1(tw.x * k - r)}" y="${n1(tw.y * k - r)}" width="${n1(2 * r)}" height="${n1(2 * r)}" fill="${PAPER}" stroke="${INK}" stroke-width="${n1(ring2)}"/>`
+          : `<circle cx="${n1(tw.x * k)}" cy="${n1(tw.y * k)}" r="${n1(r)}" fill="${PAPER}" stroke="${INK}" stroke-width="${n1(ring2)}"/>`;
+      };
+      g += w.towers.map(tower).join('');
+      g += w.gates.map(gt => `<g transform="translate(${n1(gt.x * k)} ${n1(gt.y * k)}) rotate(${n1(gt.angle)}) scale(${((gt.width * k) / 10).toFixed(3)})">${SYMBOLS.gate.svg.replaceAll('{ink}', INK).replaceAll('{fill}', PAPER)}</g>`).join('');
+      g += '</g>';
+    }
+    defs.push(...defs2);
+    parts.push(`<g id="enclosure">${g}</g>`);
+  }
 
   if (on.grid && spec.grid.show) {
     const s = spec.grid.size, line = (step: number) => {
@@ -129,35 +222,53 @@ export function renderDungeonSvg(spec: DungeonSpec, o: RenderDungeonOptions = {}
   if (on.symbols && spec.overlay.symbols.length)
     parts.push(`<g id="symbols">${spec.overlay.symbols.map(s => {
       const sym = SYMBOLS[s.kind] ?? SYMBOLS.trap;
-      return `<g transform="translate(${n1(s.x * k)} ${n1(s.y * k)})${s.angle ? ` rotate(${n1(s.angle)})` : ''} scale(${((k / 20) * (s.scale ?? 1)).toFixed(3)})">${sym.svg.replaceAll('{ink}', INK).replaceAll('{fill}', PAPER)}</g>`;
+      return `<g transform="translate(${n1(s.x * k)} ${n1(s.y * k)})${s.angle ? ` rotate(${n1(s.angle)})` : ''} scale(${(((o.pageScale ? PAGE_SYMBOL_MM * o.pageScale : k) / 20) * (s.scale ?? 1)).toFixed(3)})">${sym.svg.replaceAll('{ink}', INK).replaceAll('{fill}', PAPER)}</g>`;
     }).join('')}</g>`);
+
+  if (on.cellars && ofFill('cellar').length)
+    parts.push(`<g id="cellars" fill="none" stroke="${INK}" stroke-width="${n1(Math.max(1.4 * u, t * 0.7))}" stroke-dasharray="${n1(6 * u)} ${n1(4 * u)}" stroke-linejoin="round">${ofFill('cellar').map(g => `<path d="${pathData([{ pts: g.outline, closed: true }], k)}"/>`).join('')}</g>`);
 
   if (on.numbers || on.labels) {
     let nums = '', names = '';
     for (const g of l.rooms) {
       const x = g.cx * k, y = g.cy * k, badge = on.numbers && g.number !== undefined;
       if (badge) {
-        const txt = String(g.number), fs = 19 * u, bh = fs * 1.45, bw = Math.max(bh, txt.length * fs * 0.62 + fs * 0.7);
+        const txt = String(g.number), fs = numberSize(u, o.pageScale), bh = fs * 1.45, bw = Math.max(bh, txt.length * fs * 0.62 + fs * 0.7);
         nums += `<rect x="${n1(x - bw / 2)}" y="${n1(y - bh / 2)}" width="${n1(bw)}" height="${n1(bh)}" rx="${n1(bh * 0.32)}" fill="${INK}"/><text x="${n1(x)}" y="${n1(y + fs * 0.36)}" font-size="${n1(fs)}" font-weight="700" text-anchor="middle" fill="${PAPER}">${esc(txt)}</text>`;
       }
-      if (on.labels && g.room.label) names += haloText(g.room.label, x, y + (badge ? 31 * u : 5 * u), 15 * u, INK, TH, 'font-weight="700"');
+      if (on.labels && g.room.label) names += haloText(g.room.label, x, y + (badge ? numberSize(u, o.pageScale) * (31 / 19) : 5 * u), nameSize(u, o.pageScale), INK, TH, 'font-weight="700"');
     }
     if (nums) parts.push(`<g id="numbers">${nums}</g>`);
     if (names) parts.push(`<g id="room-labels">${names}</g>`);
   }
 
   if (on.labels && spec.overlay.labels.length) {
-    const g = spec.overlay.labels.map(lb => {
-      const base = { area: 24, name: 15, note: 12 }[lb.kind] * u * (lb.size ?? 1);
+    const at = dungeonLabelLayout(spec, k, o.pageScale, l, on.numbers).at;
+    const g = spec.overlay.labels.map((lb, i) => {
+      const base = labelSize(lb, u, o.pageScale), lx = at[i].x / k, ly = at[i].y / k;
       const attrs = lb.kind === 'area' ? `font-weight="700" letter-spacing="${n1(base * 0.16)}"` : lb.kind === 'name' ? 'font-weight="700"' : 'font-style="italic"';
-      const tx = haloText(lb.kind === 'area' ? lb.text.toUpperCase() : lb.text, lb.x * k, lb.y * k + base * 0.35, base, INK, TH, attrs);
-      return lb.angle ? `<g transform="rotate(${n1(lb.angle)} ${n1(lb.x * k)} ${n1(lb.y * k)})">${tx}</g>` : tx;
+      const tx = haloText(lb.kind === 'area' ? lb.text.toUpperCase() : lb.text, lx * k, ly * k + base * 0.35, base, INK, TH, attrs);
+      return lb.angle ? `<g transform="rotate(${n1(lb.angle)} ${n1(lx * k)} ${n1(ly * k)})">${tx}</g>` : tx;
     }).join('');
     parts.push(`<g id="labels">${g}</g>`);
   }
 
   const box = (x: number, y: number, w: number, h: number) => `<rect x="${n1(x)}" y="${n1(y)}" width="${n1(w)}" height="${n1(h)}" rx="${n1(4 * u)}" fill="${PAPER}" stroke="${INK}" stroke-width="${n1(u)}"/>`;
   const pad = 12 * u;
+
+  if (on.legend) {
+    const kinds = [...new Set(spec.overlay.symbols.map(s => s.kind))];
+    if (kinds.length) {
+      const rh = 22 * u, fs = 12 * u, bw = 190 * u, bh = kinds.length * rh + 12 * u, x = fr.r - bw - pad, y = fr.b - bh - pad;
+      let g = box(x, y, bw, bh);
+      kinds.forEach((kind, i) => {
+        const sy = y + 6 * u + i * rh + rh / 2, sym = SYMBOLS[kind] ?? SYMBOLS.trap;
+        g += `<g transform="translate(${n1(x + 18 * u)} ${n1(sy)}) scale(${((18 * u) / 20).toFixed(3)})">${sym.svg.replaceAll('{ink}', INK).replaceAll('{fill}', PAPER)}</g>`;
+        g += `<text x="${n1(x + 36 * u)}" y="${n1(sy + fs * 0.35)}" font-size="${n1(fs)}" fill="${INK}">${esc(LEGEND_NAMES(kind))}</text>`;
+      });
+      parts.push(`<g id="legend">${g}</g>`);
+    }
+  }
 
   if (on.scale) {
     const n = scaleCells(fr.w / k), len = n * k, fs = 11 * u, x = fr.x + pad + 8 * u, y = fr.b - pad - 20 * u, seg = Math.min(4, n);

@@ -44,7 +44,8 @@
       "w": 8,
       "h": 1,
       "label": "F.1 The Rattle Passage",
-      "number": 1
+      "number": 1,
+      "origin": "tables"
     },
     {
       "id": "r2",
@@ -54,7 +55,8 @@
       "w": 8,
       "h": 1,
       "label": "F.2 The Pit Run",
-      "number": 2
+      "number": 2,
+      "origin": "tables"
     },
     {
       "id": "r3",
@@ -64,17 +66,22 @@
       "w": 6,
       "h": 6,
       "label": "F.3 The Burrows",
-      "number": 3
+      "number": 3,
+      "origin": "tables"
     },
     {
       "id": "r4",
       "shape": "rect",
-      "x": 11,
+      "x": 12,
       "y": 10,
       "w": 4,
       "h": 3,
       "label": "F.4 The Tribute Store",
-      "number": 4
+      "number": 4,
+      "origin": "tables",
+      "hand": [
+        "x"
+      ]
     },
     {
       "id": "r5",
@@ -84,7 +91,8 @@
       "w": 3,
       "h": 2,
       "label": "F.5 The Chief's Den",
-      "number": 5
+      "number": 5,
+      "origin": "tables"
     }
   ],
   "corridors": [
@@ -101,7 +109,8 @@
       "doors": [
         null,
         null
-      ]
+      ],
+      "origin": "tables"
     },
     {
       "from": {
@@ -113,7 +122,8 @@
       "doors": [
         null,
         null
-      ]
+      ],
+      "origin": "tables"
     },
     {
       "from": {
@@ -125,7 +135,8 @@
       "doors": [
         null,
         null
-      ]
+      ],
+      "origin": "tables"
     },
     {
       "from": {
@@ -137,7 +148,8 @@
       "doors": [
         "door",
         null
-      ]
+      ],
+      "origin": "tables"
     },
     {
       "from": {
@@ -149,7 +161,8 @@
       "doors": [
         "door",
         null
-      ]
+      ],
+      "origin": "tables"
     }
   ],
   "overlay": {
@@ -158,19 +171,27 @@
         "text": "to E.2",
         "x": 35,
         "y": 4,
-        "kind": "note"
+        "kind": "note",
+        "origin": "tables"
       }
     ],
     "symbols": [
       {
         "kind": "trap",
         "x": 19,
-        "y": 5
+        "y": 5,
+        "origin": "tables"
       },
       {
         "kind": "trap",
         "x": 8,
-        "y": 5
+        "y": 5,
+        "origin": "tables"
+      },
+      {
+        "kind": "web",
+        "x": 12.5,
+        "y": 3.5
       }
     ]
   }

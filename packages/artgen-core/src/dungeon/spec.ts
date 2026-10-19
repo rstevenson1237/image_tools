@@ -26,6 +26,14 @@ export type HatchStyle = (typeof HATCH_STYLES)[number];
 export const LABEL_KINDS = ['name', 'note', 'area'] as const;
 export type LabelKind = (typeof LABEL_KINDS)[number];
 
+/** What a room is: `floor` (a dungeon room), `building` (roofed, a plain tone, thin walls), `yard` (open ground, no walls, the underlay showing through) or `cellar` (a dashed outline, drawn above everything else). */
+export const ROOM_FILLS = ['floor', 'building', 'yard', 'cellar'] as const;
+export type RoomFill = (typeof ROOM_FILLS)[number];
+
+export const WALL_TOWER_SHAPES = ['round', 'square'] as const;
+export const GATE_KINDS = ['gate', 'postern'] as const;
+export type GateKind = (typeof GATE_KINDS)[number];
+
 export interface Room {
   id: string;
   shape: RoomShape;
@@ -41,6 +49,12 @@ export interface Room {
   label?: string;
   /** The number on the room's badge; `false` hides it. Unset rooms are numbered in file order. */
   number?: number | false;
+  /** What the room is (default `floor`). */
+  fill?: RoomFill;
+  /** Who wrote the entry; none means a hand entry (see `sync`). Optional, so the format version is unchanged. */
+  origin?: string;
+  /** The fields a hand edit changed on an entry of some origin (`["x"]`); a sync reports them when it takes the origin's value back. */
+  hand?: string[];
 }
 
 /** A corridor end: a room (it starts at the room's centre) or a point (an exit stub, a dead end, or off the map). */
@@ -57,10 +71,27 @@ export interface Corridor {
   via?: number[];
   /** A door where the corridor leaves each end (null or unset: an open passage). */
   doors?: [DoorKind | null, DoorKind | null];
+  origin?: string;
 }
 
-export interface DungeonLabel { text: string; x: number; y: number; kind: LabelKind; size?: number; angle?: number }
-export interface DungeonSymbol { kind: string; x: number; y: number; scale?: number; angle?: number }
+export interface DungeonLabel { text: string; x: number; y: number; kind: LabelKind; size?: number; angle?: number; origin?: string }
+export interface DungeonSymbol { kind: string; x: number; y: number; scale?: number; angle?: number; origin?: string }
+
+/**
+ * The ground under the rooms: a map file's terrain, contours and roads, cropped to the dungeon's extent. `map` is the
+ * map file's path (from this file's folder), `origin` the map unit at the dungeon's top-left corner, and `scale` the
+ * map units in one dungeon cell (a 5 ft cell on a 10 ft sheet: 0.5). The map's own legend, title, compass and scale bar
+ * are not drawn.
+ */
+export interface Underlay { map: string; origin: [number, number]; scale: number; theme?: 'color' | 'bw' }
+
+/** Towers on a wall: `round` or `square`, `size` cells across (default 3), at the hull's corners or at the listed vertex indices. */
+export interface WallTowers { shape: (typeof WALL_TOWER_SHAPES)[number]; size?: number; at?: 'corners' | number[] }
+/** A gate or postern: a point near the wall (snapped onto it), the room it opens into and its width in cells (default 2, a postern 1). A gate has a tower each side, a postern none. */
+export interface WallGate { at: [number, number]; kind: GateKind; room?: string; width?: number }
+/** An enclosing wall: round the hull of `rooms` plus `inset` cells (default 1), or along `poly` as given. */
+export interface Wall { id?: string; rooms?: string[]; poly?: number[]; thickness?: number; inset?: number; towers?: WallTowers; gates?: WallGate[]; origin?: string }
+
 
 export interface DungeonSpec {
   id: string;
@@ -98,6 +129,12 @@ export interface DungeonSpec {
   rooms: Room[];
   corridors: Corridor[];
   overlay: { labels: DungeonLabel[]; symbols: DungeonSymbol[] };
+  /** Optional: the ground under the rooms (see {@link Underlay}). */
+  underlay?: Underlay;
+  /** Optional: walls, towers and gates (see {@link Wall}). */
+  walls?: Wall[];
+  /** A key of the symbols used, in the corner (default off). */
+  legend?: boolean;
 }
 
 export const DEFAULTS: Omit<DungeonSpec, 'id' | 'seed' | 'version' | 'rooms' | 'corridors' | 'overlay'> = {
@@ -138,6 +175,56 @@ function endErrors(e: unknown, at: string, ids: Set<string>): string[] {
   return [`${at}: {room: id} or {at: [x, y]}`];
 }
 
+/** `origin`, when an entry has one, is a non-empty string. */
+export function originError(entry: unknown, at: string, e: string[]): void {
+  const v = (entry as { origin?: unknown } | null)?.origin;
+  if (v !== undefined && (typeof v !== 'string' || !v)) e.push(`${at}.origin: a non-empty string`);
+}
+
+function enclosureErrors(m: Partial<DungeonSpec>, ids: Set<string>): string[] {
+  const e: string[] = [];
+  if (m.legend !== undefined && typeof m.legend !== 'boolean') e.push('legend: true or false');
+  const u = m.underlay;
+  if (u !== undefined) {
+    if (!u || typeof u !== 'object' || typeof u.map !== 'string' || !u.map) e.push('underlay.map: the map file\'s path');
+    else {
+      if (!isPoint(u.origin)) e.push('underlay.origin: [x, y] in map units');
+      if (!isNum(u.scale) || u.scale <= 0) e.push('underlay.scale: map units in one cell, above 0');
+      if (u.theme !== undefined && u.theme !== 'color' && u.theme !== 'bw') e.push('underlay.theme: color or bw');
+    }
+  }
+  const walls = m.walls;
+  if (walls === undefined) return e;
+  if (!Array.isArray(walls)) return [...e, 'walls: an array'];
+  walls.forEach((w, i) => {
+    const at = `walls[${i}]`;
+    if (!w || typeof w !== 'object') { e.push(`${at}: an object`); return; }
+    if (w.rooms !== undefined) {
+      if (!Array.isArray(w.rooms) || !w.rooms.length) e.push(`${at}.rooms: room ids`);
+      else for (const r of w.rooms) if (!ids.has(r)) e.push(`${at}.rooms: no room ${JSON.stringify(r)}`);
+    }
+    if (w.poly !== undefined && !(nums(w.poly) && w.poly.length >= 6 && w.poly.length % 2 === 0)) e.push(`${at}.poly: at least 3 x,y pairs`);
+    if (w.rooms === undefined && w.poly === undefined) e.push(`${at}: rooms (ids) or poly`);
+    if (w.thickness !== undefined && !(isNum(w.thickness) && w.thickness > 0 && w.thickness <= 4)) e.push(`${at}.thickness: cells, above 0 and at most 4`);
+    if (w.inset !== undefined && !(isNum(w.inset) && w.inset >= 0)) e.push(`${at}.inset: cells, 0 or more`);
+    const t = w.towers;
+    if (t !== undefined) {
+      if (!t || !WALL_TOWER_SHAPES.includes(t.shape)) e.push(`${at}.towers.shape: ${WALL_TOWER_SHAPES.join(' or ')}`);
+      if (t?.size !== undefined && !(isNum(t.size) && t.size > 0)) e.push(`${at}.towers.size: cells, above 0`);
+      if (t?.at !== undefined && t.at !== 'corners' && !(nums(t.at) && t.at.every(Number.isInteger))) e.push(`${at}.towers.at: "corners" or vertex indices`);
+    }
+    (w.gates === undefined ? [] : Array.isArray(w.gates) ? w.gates : (e.push(`${at}.gates: an array`), [])).forEach((g, j) => {
+      const ga = `${at}.gates[${j}]`;
+      if (!isPoint(g?.at)) e.push(`${ga}.at: [x, y] in cells`);
+      if (!GATE_KINDS.includes(g?.kind)) e.push(`${ga}.kind: ${GATE_KINDS.join(' or ')}`);
+      if (g?.room !== undefined && !ids.has(g.room)) e.push(`${ga}.room: no room ${JSON.stringify(g.room)}`);
+      if (g?.width !== undefined && !(isNum(g.width) && g.width > 0)) e.push(`${ga}.width: cells, above 0`);
+    });
+    originError(w, at, e);
+  });
+  return e;
+}
+
 /** Every problem with a dungeon file, as readable messages (empty when it is valid). */
 export function validateDungeon(raw: unknown): string[] {
   const e: string[] = [];
@@ -171,6 +258,9 @@ export function validateDungeon(raw: unknown): string[] {
     if (r?.shape === 'poly' && !(nums(r.points) && r.points.length >= 6 && r.points.length % 2 === 0)) e.push(`${at}.points: at least 3 x,y pairs`);
     if (r?.label !== undefined && typeof r.label !== 'string') e.push(`${at}.label: text`);
     if (r?.number !== undefined && r.number !== false && !isNum(r.number)) e.push(`${at}.number: a number or false`);
+    if (r?.fill !== undefined && !ROOM_FILLS.includes(r.fill)) e.push(`${at}.fill: one of ${ROOM_FILLS.join(', ')}`);
+    if (r?.hand !== undefined && !(Array.isArray(r.hand) && r.hand.every(f => typeof f === 'string'))) e.push(`${at}.hand: field names`);
+    originError(r, at, e);
   });
   (Array.isArray(m.corridors) ? m.corridors : (e.push('corridors: an array'), [])).forEach((c, i) => {
     const at = `corridors[${i}]`;
@@ -180,12 +270,14 @@ export function validateDungeon(raw: unknown): string[] {
     if (c?.via !== undefined && !(nums(c.via) && c.via.length % 2 === 0)) e.push(`${at}.via: x,y pairs`);
     if (c?.doors !== undefined && !(Array.isArray(c.doors) && c.doors.length === 2 && c.doors.every(d => d === null || DOOR_KINDS.includes(d))))
       e.push(`${at}.doors: [from, to], each null or one of ${DOOR_KINDS.join(', ')}`);
+    originError(c, at, e);
   });
+  e.push(...enclosureErrors(m, ids));
   const o = m.overlay;
   if (!o || !Array.isArray(o.labels) || !Array.isArray(o.symbols)) e.push('overlay: { labels: [], symbols: [] }');
   else {
-    o.labels.forEach((l, i) => { if (typeof l?.text !== 'string' || !isNum(l.x) || !isNum(l.y) || !LABEL_KINDS.includes(l.kind)) e.push(`overlay.labels[${i}]: text, x, y, kind (${LABEL_KINDS.join('|')})`); });
-    o.symbols.forEach((s, i) => { if (typeof s?.kind !== 'string' || !isNum(s.x) || !isNum(s.y)) e.push(`overlay.symbols[${i}]: kind, x, y`); });
+    o.labels.forEach((l, i) => { if (typeof l?.text !== 'string' || !isNum(l.x) || !isNum(l.y) || !LABEL_KINDS.includes(l.kind)) e.push(`overlay.labels[${i}]: text, x, y, kind (${LABEL_KINDS.join('|')})`); else originError(l, `overlay.labels[${i}]`, e); });
+    o.symbols.forEach((s, i) => { if (typeof s?.kind !== 'string' || !isNum(s.x) || !isNum(s.y)) e.push(`overlay.symbols[${i}]: kind, x, y`); else originError(s, `overlay.symbols[${i}]`, e); });
   }
   return e;
 }

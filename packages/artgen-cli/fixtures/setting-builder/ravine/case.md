@@ -55,3 +55,14 @@ squares long, past the old limit of 120 squares a side, which is why artgen rais
 
 - The river, 2 squares wide, fills the gorge floor and leaves the ledges as the only dry ground.
 - Symbols are small against 10-yard squares; labels stay readable.
+
+## Symbols and sizes on the page (artgen A6, A7) and origins (A8)
+
+- The cave mouths are `cave-mouth`, turned to face across the gorge: the west-wall mouths (E.2, E.3, E.4, at x = 4) face east (angle 0), the east-wall
+  mouths (E.5, E.6, E.7, at x = 12) face west (angle 180), and E.8, at the head of the gorge, faces south into it (angle 90).
+- The labels lost their `size: 0.5`: a label's `size` is a multiple of its kind's default (9 pt for a place), so half-size labels would be 4.5 pt on the page.
+- Rendered `--fit 180x260mm` in windows of 16 x 23 squares (`--crop 0,0,16,23` and the next ones down the strip: a 184-square strip cannot be one page at
+  a size that reads), every place label is at least 7 pt on the page and no two labels overlap.
+- Every mark, the road and the five requirements carry `origin: tables`. Two hand edits follow them: a hand `elevate` of -0.05 along the stream's
+  channel (the "nudge") and one of 0.1 on the west wall. A sync from a file with E.2 moved 3 squares north keeps both, in order, after the generated
+  edits, and E.2's mark moves; the stream is where it was.

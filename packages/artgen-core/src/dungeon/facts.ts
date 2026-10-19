@@ -10,6 +10,7 @@
  */
 import { roundTo } from '../lib/round.ts';
 import { inPolygon, layoutDungeon, type DungeonLayout } from './layout.ts';
+import { wallFacts, type WallFacts } from './walls.ts';
 import type { CorridorEnd, DoorKind, DungeonSpec } from './spec.ts';
 
 export const RULES = {
@@ -88,6 +89,8 @@ export interface DungeonFacts {
   overlaps: OverlapFacts[];
   /** Rooms no corridor starts or ends at. */
   unreached: string[];
+  /** Each wall's corners, towers and gates and the rooms it encloses (only when the file has `walls`). */
+  walls?: WallFacts[];
 }
 
 export function dungeonFacts(spec: DungeonSpec, layout: DungeonLayout = layoutDungeon(spec)): DungeonFacts {
@@ -140,5 +143,6 @@ export function dungeonFacts(spec: DungeonSpec, layout: DungeonLayout = layoutDu
   return {
     version: spec.version, id: spec.id, size: { cols: spec.cols, rows: spec.rows }, unit: { map: 'cell', scale: spec.scale.unit }, rules: RULES,
     rooms, corridors, exits, overlaps, unreached: rooms.filter(r => !reached.has(r.id)).map(r => r.id),
+    ...(spec.walls?.length && { walls: wallFacts(spec, layout) }),
   };
 }
