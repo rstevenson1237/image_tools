@@ -60,6 +60,29 @@ Reads: **map format 1**, **dungeon format 1**. `artgen formats --json` prints `{
   that does not exist and a room 0 cells wide: `check` exits 1 naming `rooms[4].w` and `corridors[5].to.room`).
   `warren` also runs in path mode with no project.
 
+**Crop and fit renders** (`map render`, `dungeon render`; for a consumer that prints a sheet whole and cuts maps from it)
+- `--crop x,y,w,h` renders a window on the full sheet. The coordinates are map units (cells, for a dungeon), the same as
+  `--at`; on a map, `--crop x,y,w,h cells` (written `…,46cells`) gives them in grid cells. The window is cut from the full
+  render, so the terrain, rivers, roads, contours, symbols and labels inside it are the full sheet's own drawing,
+  nothing is regenerated for it, and a label or symbol the window edge cuts is drawn clipped, not moved. A window
+  past the sheet is cut to it; one wholly outside is an error.
+- `--room id [--margin n]` on `dungeon render` crops round a room, its doors and the first `n` cells (default 2) of each
+  corridor that leaves it. `id` is the room's id or its label's first word (`F.3` for `F.3 The Hall`). Repeat `--room`
+  to crop round all of them (`--room A.9 --room A.13`). `--room` and `--crop` are exclusive.
+- `--fit WxH[mm|px]` picks the `ppu` that fits the crop, or the whole map, in the box with its aspect kept (px when no
+  unit). With `mm` the SVG's `width` and `height` are in millimetres (96 px to the inch), so one side is exactly the
+  box's (`--fit 180x260mm` on the 16 x 184 ravine: 260 mm tall, 22.61 mm wide). `--fit` and `--ppu` are exclusive.
+- Furniture follows the crop: the legend, scale bar, compass and title sit inside the window's frame, and the scale bar
+  is sized to the window. Grid lines and grid coordinates, and room numbers, stay the full sheet's: a square on a region
+  map has the name it has on the sheet.
+- `--json` of a render adds `crop` (the window drawn, in map units; the whole sheet when none was given), `ppu` (the
+  one used), and `svg` (`{width, height, unit}`, as written in the SVG); `size` stays the render in pixels. The SVG's
+  `viewBox` is the window in sheet pixels, so a crop and the full render share coordinates. A render with none of the new
+  flags is unchanged, byte for byte.
+- Tests: `src/crop.test.ts` on the `ravine` (16 x 46 crop round E.2, `--fit 180x260mm` whole), `warren` (`--room F.3
+  --margin 2`) and `keep` (`--room A.9 --room A.13`) fixtures; a crop's sheet layers are compared with the full
+  render's as SVG text.
+
 **Facts read back from a map** (`artgen map facts`, `artgen dungeon facts`; both take `--file` or an id, and `--json`)
 - `artgen map facts --file … [--at x,y …] [--area x,y,x,y,…] [--above river|lowest] [--radius n]`. For each `--at` point (map
   units, or a cell name such as `C4`): the terrain, the height in `topo.unit`, the slope (the gradient in `topo.unit` per

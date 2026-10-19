@@ -17,13 +17,14 @@
  *   artgen dungeon label <id> "Text" --at x,y|C4 [--kind name|note|area] [--size f] [--angle deg]
  *   artgen dungeon symbol <id> <kind> --at x,y|C4 [--scale f] [--angle deg] | artgen dungeon symbols
  *   artgen dungeon overlay <id> rm label|symbol <index> | clear [labels|symbols]
- *   artgen dungeon fit <id> [--margin 2] | render <id> [--format svg|png|both] [--ppu 40] [--layers grid=off,labels=off] [--out dir]
+ *   artgen dungeon fit <id> [--margin 2] | render <id> [--format svg|png|both] [--ppu 40 | --fit 180x260mm] [--crop x,y,w,h] [--room id [--margin 2]]… [--layers grid=off,labels=off] [--out dir]
  *   artgen dungeon show <id> | list
  *   artgen dungeon facts <id>   rooms, corridors, exits, overlaps and unreached rooms, as numbers (--json)
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
-import { dungeon, encodePNG, rasterizeSvg } from 'artgen-core/maps';
+import { clampCrop, dungeon, encodePNG, fitPpu, rasterizeSvg, type Crop, type Fit, type SizeUnit } from 'artgen-core/maps';
+import { svgSize } from './map.ts';
 import { initNodeMapSvg } from './node-svg.ts';
 import { fileStem, readJson, writeJson, type FileRef, type Project } from './projectfs.ts';
 
@@ -92,20 +93,34 @@ export function checkDungeonFile(p: Project | null, ref: DungeonRef): DungeonChe
   return { file: shown(p, f), ok: !r.errors.length, errors: r.errors };
 }
 
-export interface DungeonRender { files: string[]; rooms: number; corridors: number; doors: number; size: [number, number] }
+export interface DungeonRender {
+  files: string[]; rooms: number; corridors: number; doors: number;
+  /** The render in pixels. */
+  size: [number, number];
+  /** The window drawn, in cells (the whole sheet when there is no crop), and the pixels per cell it was drawn at. */
+  crop: Crop; ppu: number;
+  /** The SVG's own width and height, in its unit (`--fit` in mm gives millimetres). */
+  svg: { width: number; height: number; unit: SizeUnit };
+}
 
 /** Render a dungeon to SVG and/or PNG (black and white). */
-export async function renderDungeonFiles(p: Project | null, ref: DungeonRef, o: { formats?: ('svg' | 'png')[]; ppu?: number; layers?: Partial<Record<dungeon.DungeonLayer, boolean>>; out?: string } = {}): Promise<DungeonRender> {
+export async function renderDungeonFiles(p: Project | null, ref: DungeonRef, o: { formats?: ('svg' | 'png')[]; ppu?: number; crop?: Crop; fit?: Fit; rooms?: string[]; margin?: number; layers?: Partial<Record<dungeon.DungeonLayer, boolean>>; out?: string } = {}): Promise<DungeonRender> {
   // a project dungeon renders to its out/ folder as <id>.…; a file renders beside itself as <file name>.…
-  const m = readDungeon(p, ref), layout = dungeon.layoutDungeon(m), ppu = o.ppu ?? 40, id = typeof ref === 'string' ? ref : fileStem(ref.file);
+  const m = readDungeon(p, ref), layout = dungeon.layoutDungeon(m), id = typeof ref === 'string' ? ref : fileStem(ref.file);
   const out = o.out ?? (typeof ref === 'string' ? join(dungeonsDir(p!), id, 'out') : dirname(dungeonFile(p, ref)));
   const formats = o.formats ?? ['svg', 'png'], files: string[] = [];
+  if (o.fit && o.ppu !== undefined) throw new Error('--fit and --ppu both set the scale: use one');
+  if (o.crop && o.rooms?.length) throw new Error('--crop and --room both set the window: use one');
+  if (o.margin !== undefined && !o.rooms?.length) throw new Error('--margin goes with --room');
+  const window = o.rooms?.length ? dungeon.roomCrop(m, o.rooms, o.margin, layout) : o.crop;
+  const crop = clampCrop(window ?? [0, 0, m.cols, m.rows], m.cols, m.rows), ppu = o.fit ? fitPpu(crop[2], crop[3], o.fit) : o.ppu ?? 40;
+  const size: [number, number] = [Math.round(crop[2] * ppu), Math.round(crop[3] * ppu)], unit = o.fit?.unit ?? 'px';
   if (formats.includes('png')) await initNodeMapSvg();
   mkdirSync(out, { recursive: true });
-  const svg = dungeon.renderDungeonSvg(m, { ppu, layers: o.layers, layout }), base = join(out, id);
+  const svg = dungeon.renderDungeonSvg(m, { ppu, layers: o.layers, layout, ...(window && { crop }), unit }), base = join(out, id);
   if (formats.includes('svg')) { writeFileSync(`${base}.svg`, svg); files.push(`${base}.svg`); }
-  if (formats.includes('png')) { writeFileSync(`${base}.png`, encodePNG(rasterizeSvg(svg, m.cols * ppu, m.rows * ppu))); files.push(`${base}.png`); }
-  return { files: files.map(f => relative(process.cwd(), f)), rooms: m.rooms.length, corridors: m.corridors.length, doors: layout.doors.length, size: [m.cols * ppu, m.rows * ppu] };
+  if (formats.includes('png')) { writeFileSync(`${base}.png`, encodePNG(rasterizeSvg(svg, size[0], size[1]))); files.push(`${base}.png`); }
+  return { files: files.map(f => relative(process.cwd(), f)), rooms: m.rooms.length, corridors: m.corridors.length, doors: layout.doors.length, size, crop, ppu, svg: svgSize(crop, ppu, unit) };
 }
 
 /** A room's top-left corner: `x,y` as given, or a cell name (`C4`) meaning that cell's corner. */

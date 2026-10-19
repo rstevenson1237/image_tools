@@ -61,7 +61,7 @@ Rooms are numbered in file order on a black badge; set a room's own number or na
 ```
 node tools/artgen/artgen.js dungeon render <id> [--format svg|png|both] [--ppu 70] [--layers grid=off,numbers=off,labels=off]
 ```
-`--ppu` is pixels per cell (default 40; 70 for a VTT at 70 px per 5 ft square, more for print). `--layers` turns any of
+`--ppu` is pixels per cell (default 40; 70 for a VTT at 70 px per 5 ft square, more for print). `--fit 180x260mm` picks the ppu that fits a page instead. `--crop x,y,w,h` renders a window of the sheet, and `--room <id|F.3> [--margin 2]` (repeatable) the window round a room, its doors and the start of its corridors. `--layers` turns any of
 `rock floors grid doors symbols numbers labels title scale compass` off — e.g. a player copy without numbers. Secret
 doors are drawn in every copy; for a player handout, make a copy of the dungeon and set them to `none` there. Give the
 user the file paths and show the PNG.
