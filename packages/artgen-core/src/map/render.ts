@@ -9,6 +9,7 @@ import { TERRAIN_NAMES, TERRAINS, type MapSpec, type Terrain } from './spec.ts';
 import { SYMBOLS } from './symbols.ts';
 import { PATTERNS, THEME, type MapTheme, type ThemeName } from './theme.ts';
 import { compassSvg, esc, FONT, FONT_FAMILY, haloText, n1 } from '../lib/svgdraw.ts';
+import { frameOf, sizeAttrs, type Crop, type SizeUnit } from '../lib/view.ts';
 import { chaikin, isolines, lineLength, pathData, simplifyLine, type Line } from '../lib/trace.ts';
 
 export { FONT_FAMILY };
@@ -25,6 +26,10 @@ export interface RenderMapOptions {
   layers?: Partial<Record<MapLayer, boolean>>;
   /** A field already generated from this spec (the web tool reuses it while only the overlay changes). */
   field?: MapField;
+  /** A window on the sheet, in map units: the render is the full sheet's, cut to it, with the furniture inside the window. */
+  crop?: Crop;
+  /** The unit of the SVG's width and height (default px). */
+  unit?: SizeUnit;
 }
 
 /** The part of a map that decides its terrain: when this key is unchanged, the generated field can be reused. */
@@ -97,14 +102,14 @@ function symbolSvg(kind: string, x: number, y: number, size: number, th: MapThem
 }
 
 /** A round number of cells for the scale bar, about a fifth of the map wide. */
-function scaleCells(spec: MapSpec): number {
-  const target = spec.cols / 5;
+function scaleCells(width: number): number {
+  const target = width / 5;
   for (const n of [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30, 40, 50]) if (n >= target * 0.75) return n;
   return Math.max(1, Math.round(target));
 }
 
 export function renderMapSvg(spec: MapSpec, o: RenderMapOptions = {}): string {
-  const th = THEME[o.theme ?? 'color'], k = o.ppu ?? 40, W = spec.cols * k, H = spec.rows * k, u = k / 40;
+  const th = THEME[o.theme ?? 'color'], k = o.ppu ?? 40, W = spec.cols * k, H = spec.rows * k, u = k / 40, fr = frameOf(o.crop, spec.cols, spec.rows, k);
   const f = o.field ?? generateMap(spec), on = layersFor(spec, o.layers), tile = Math.max(9, Math.min(24, k * 0.4)) * (th.name === 'bw' ? 1.4 : 1);
   const parts: string[] = [];
   const used = terrainsUsed(f);
@@ -187,7 +192,7 @@ export function renderMapSvg(spec: MapSpec, o: RenderMapOptions = {}): string {
     const rows: [string, string][] = used.map(t => [t, TERRAIN_NAMES[t]]);
     if (f.rivers.length) rows.push(['river', 'River']);
     if (f.roads.length) rows.push(['road', 'Road']);
-    const rh = 18 * u, fs = 12 * u, bw = 150 * u, bh = rows.length * rh + 12 * u, x = W - bw - pad, y = H - bh - pad;
+    const rh = 18 * u, fs = 12 * u, bw = 150 * u, bh = rows.length * rh + 12 * u, x = fr.r - bw - pad, y = fr.b - bh - pad;
     let g = box(x, y, bw, bh);
     rows.forEach(([t, name], i) => {
       const sx = x + 8 * u, sy = y + 6 * u + i * rh + 2 * u, sw = 24 * u, sh = rh - 5 * u;
@@ -204,8 +209,8 @@ export function renderMapSvg(spec: MapSpec, o: RenderMapOptions = {}): string {
   }
 
   if (on.scale) {
-    const n = scaleCells(spec), len = n * k, fs = 11 * u, x = pad + 8 * u, y = H - pad - 20 * u, seg = 4;
-    let g = box(pad, y - 18 * u, len + 34 * u, 40 * u);
+    const n = scaleCells(fr.w / k), len = n * k, fs = 11 * u, x = fr.x + pad + 8 * u, y = fr.b - pad - 20 * u, seg = 4;
+    let g = box(fr.x + pad, y - 18 * u, len + 34 * u, 40 * u);
     for (let i = 0; i < seg; i++) g += `<rect x="${n1(x + (len / seg) * i)}" y="${n1(y)}" width="${n1(len / seg)}" height="${n1(5 * u)}" fill="${i % 2 ? th.paper : th.ink}" stroke="${th.ink}" stroke-width="${n1(0.8 * u)}"/>`;
     g += `<text x="${n1(x)}" y="${n1(y - 5 * u)}" font-size="${n1(fs)}" fill="${th.ink}" text-anchor="middle">0</text>`;
     g += `<text x="${n1(x + len)}" y="${n1(y - 5 * u)}" font-size="${n1(fs)}" fill="${th.ink}" text-anchor="middle">${n * spec.scale.perCell} ${esc(spec.scale.unit)}</text>`;
@@ -213,12 +218,12 @@ export function renderMapSvg(spec: MapSpec, o: RenderMapOptions = {}): string {
     parts.push(`<g id="scale">${g}</g>`);
   }
 
-  if (on.compass) parts.push(compassSvg(W - pad - 18 * u - 4 * u, pad + 18 * u + 14 * u, 18 * u, u, th));
+  if (on.compass) parts.push(compassSvg(fr.r - pad - 18 * u - 4 * u, fr.y + pad + 18 * u + 14 * u, 18 * u, u, th));
 
   if (on.title && spec.title) {
     const fs = 26 * u, w = Math.max(120 * u, spec.title.length * fs * 0.62 + 30 * u);
-    parts.push(`<g id="title">${box(pad, pad, w, fs * 1.7)}<text x="${n1(pad + w / 2)}" y="${n1(pad + fs * 1.18)}" font-size="${n1(fs)}" font-weight="700" letter-spacing="${n1(fs * 0.06)}" text-anchor="middle" fill="${th.ink}">${esc(spec.title)}</text></g>`);
+    parts.push(`<g id="title">${box(fr.x + pad, fr.y + pad, w, fs * 1.7)}<text x="${n1(fr.x + pad + w / 2)}" y="${n1(fr.y + pad + fs * 1.18)}" font-size="${n1(fs)}" font-weight="700" letter-spacing="${n1(fs * 0.06)}" text-anchor="middle" fill="${th.ink}">${esc(spec.title)}</text></g>`);
   }
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="${FONT}"><defs>${patternDefs(th, tile)}${defs.join('')}<clipPath id="map-clip"><rect width="${W}" height="${H}"/></clipPath></defs><g clip-path="url(#map-clip)">${parts.join('')}</g></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" ${sizeAttrs(fr, o.unit)} font-family="${FONT}"><defs>${patternDefs(th, tile)}${defs.join('')}<clipPath id="map-clip"><rect x="${fr.x}" y="${fr.y}" width="${fr.w}" height="${fr.h}"/></clipPath></defs><g clip-path="url(#map-clip)">${parts.join('')}</g></svg>`;
 }

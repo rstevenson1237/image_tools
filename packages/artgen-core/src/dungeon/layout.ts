@@ -174,3 +174,51 @@ export function fitDungeon(spec: DungeonSpec, margin = 2): DungeonSpec {
   out.rows = Math.max(4, Math.ceil(box[3] + dy + margin));
   return out;
 }
+
+/** The points of a path from `from` to `to` along its length (the cut ends interpolated). */
+function stretch(path: number[], from: number, to: number): number[] {
+  const out: number[] = [];
+  let at = 0;
+  const point = (i: number, t: number) => [path[i] + (path[i + 2] - path[i]) * t, path[i + 1] + (path[i + 3] - path[i + 1]) * t];
+  for (let i = 0; i + 3 < path.length; i += 2) {
+    const len = Math.hypot(path[i + 2] - path[i], path[i + 3] - path[i + 1]);
+    if (len > 0 && at + len > from && at < to) {
+      out.push(...point(i, Math.max(0, (from - at) / len)), ...point(i, Math.min(1, (to - at) / len)));
+    }
+    at += len;
+  }
+  return out;
+}
+
+/** A room by its id, else by its label (`F.3 Hall` → `F.3`, or the whole label). */
+function findRoom(l: DungeonLayout, ref: string): RoomGeom {
+  const hits = [(g: RoomGeom) => g.room.id === ref, (g: RoomGeom) => g.room.label === ref, (g: RoomGeom) => g.room.label?.split(/\s+/)[0] === ref]
+    .map(test => l.rooms.filter(test)).find(h => h.length);
+  if (!hits) throw new Error(`--room: no room ${ref} (ids: ${l.rooms.map(g => g.room.id).join(', ')}; labels: ${l.rooms.flatMap(g => g.room.label ? [g.room.label.split(/\s+/)[0]] : []).join(', ')})`);
+  if (hits.length > 1) throw new Error(`--room: ${ref} names ${hits.length} rooms (${hits.map(g => g.room.id).join(', ')}); use an id`);
+  return hits[0];
+}
+
+/**
+ * The window (x, y, w, h in cells) round the rooms `ids` (ids or label codes): each room, its doors and the first `margin` cells of every
+ * corridor that leaves it, and half a cell of wall round the lot.
+ */
+export function roomCrop(spec: DungeonSpec, ids: string[], margin = 2, l = layoutDungeon(spec)): [number, number, number, number] {
+  if (!ids.length) throw new Error('--room: at least one room id');
+  const xs: number[] = [], ys: number[] = [];
+  const add = (p: number[], pad: number) => { for (let i = 0; i < p.length; i += 2) { xs.push(p[i] - pad, p[i] + pad); ys.push(p[i + 1] - pad, p[i + 1] + pad); } };
+  for (const ref of ids) {
+    const g = findRoom(l, ref), id = g.room.id;
+    add(g.outline, 0.5);
+    spec.corridors.forEach((sc, i) => {
+      const c = l.corridors[i];
+      ([sc.from, sc.to] as const).forEach((e, end) => {
+        const x = c.ends[end];
+        if (!('room' in e) || e.room !== id || !x) return;
+        add(stretch(end === 0 ? c.pts : reversed(c.pts), x.along, x.along + margin), c.width / 2 + 0.5);
+      });
+    });
+  }
+  const x0 = Math.min(...xs), y0 = Math.min(...ys);
+  return [x0, y0, Math.max(...xs) - x0, Math.max(...ys) - y0];
+}

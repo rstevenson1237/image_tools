@@ -14,13 +14,13 @@
  *   artgen map symbol <id> <kind> --at x,y|0304|C4 [--scale f] | artgen map symbols
  *   artgen map overlay <id> rm label|symbol <index> | clear [labels|symbols]
  *   artgen map set <id> [--title "…"] [--legend on|off] [--scale-bar on|off] [--compass on|off] [--per-cell n --unit mi]
- *   artgen map render <id> [--theme color|bw|both] [--format svg|png|both] [--ppu 40] [--layers grid=off,labels=off] [--out dir]
+ *   artgen map render <id> [--theme color|bw|both] [--format svg|png|both] [--ppu 40 | --fit 180x260mm] [--crop x,y,w,h[cells]] [--layers grid=off,labels=off] [--out dir]
  *   artgen map show <id> | list
  *   artgen map facts <id> [--at x,y …] [--area x,y,x,y,…] [--above river|lowest] [--radius n]   the ground, as numbers (--json)
  */
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
-import { encodePNG, map, rasterizeSvg } from 'artgen-core/maps';
+import { clampCrop, encodePNG, fitPpu, map, rasterizeSvg, type Crop, type Fit, type SizeUnit } from 'artgen-core/maps';
 import { initNodeMapSvg } from './node-svg.ts';
 import { fileStem, readJson, writeJson, type FileRef, type Project } from './projectfs.ts';
 
@@ -77,22 +77,39 @@ export function updateMap(p: Project | null, ref: MapRef, change: (m: MapSpec) =
   return m;
 }
 
-export interface MapRender { files: string[]; terrains: string[]; rivers: number; size: [number, number] }
+export interface MapRender {
+  files: string[]; terrains: string[]; rivers: number;
+  /** The render in pixels. */
+  size: [number, number];
+  /** The window drawn, in map units (the whole sheet when there is no crop), and the pixels per unit it was drawn at. */
+  crop: Crop; ppu: number;
+  /** The SVG's own width and height, in its unit (`--fit` in mm gives millimetres). */
+  svg: { width: number; height: number; unit: SizeUnit };
+}
 
 /** Render a map to SVG and/or PNG in one or both themes. */
-export async function renderMapFiles(p: Project | null, ref: MapRef, o: { themes?: map.ThemeName[]; formats?: ('svg' | 'png')[]; ppu?: number; layers?: Partial<Record<map.MapLayer, boolean>>; out?: string } = {}): Promise<MapRender> {
+export async function renderMapFiles(p: Project | null, ref: MapRef, o: { themes?: map.ThemeName[]; formats?: ('svg' | 'png')[]; ppu?: number; crop?: Crop; fit?: Fit; layers?: Partial<Record<map.MapLayer, boolean>>; out?: string } = {}): Promise<MapRender> {
   // a project map renders to its out/ folder as <id>.…; a file renders beside itself as <file name>.…
-  const m = readMap(p, ref), field = map.generateMap(m), ppu = o.ppu ?? 40, id = typeof ref === 'string' ? ref : fileStem(ref.file);
+  const m = readMap(p, ref), field = map.generateMap(m), id = typeof ref === 'string' ? ref : fileStem(ref.file);
   const out = o.out ?? (typeof ref === 'string' ? join(mapsDir(p!), id, 'out') : dirname(mapFile(p, ref)));
   const formats = o.formats ?? ['svg', 'png'], files: string[] = [];
+  if (o.fit && o.ppu !== undefined) throw new Error('--fit and --ppu both set the scale: use one');
+  const crop = clampCrop(o.crop ?? [0, 0, m.cols, m.rows], m.cols, m.rows), ppu = o.fit ? fitPpu(crop[2], crop[3], o.fit) : o.ppu ?? 40;
+  const size: [number, number] = [Math.round(crop[2] * ppu), Math.round(crop[3] * ppu)], unit = o.fit?.unit ?? 'px';
   if (formats.includes('png')) await initNodeMapSvg();
   mkdirSync(out, { recursive: true });
   for (const theme of o.themes ?? ['color']) {
-    const svg = map.renderMapSvg(m, { theme, ppu, layers: o.layers, field }), base = join(out, `${id}.${theme}`);
+    const svg = map.renderMapSvg(m, { theme, ppu, layers: o.layers, field, ...(o.crop && { crop }), unit }), base = join(out, `${id}.${theme}`);
     if (formats.includes('svg')) { writeFileSync(`${base}.svg`, svg); files.push(`${base}.svg`); }
-    if (formats.includes('png')) { writeFileSync(`${base}.png`, encodePNG(rasterizeSvg(svg, m.cols * ppu, m.rows * ppu))); files.push(`${base}.png`); }
+    if (formats.includes('png')) { writeFileSync(`${base}.png`, encodePNG(rasterizeSvg(svg, size[0], size[1]))); files.push(`${base}.png`); }
   }
-  return { files: files.map(f => relative(process.cwd(), f)), terrains: map.terrainsUsed(field), rivers: field.rivers.length, size: [m.cols * ppu, m.rows * ppu] };
+  return { files: files.map(f => relative(process.cwd(), f)), terrains: map.terrainsUsed(field), rivers: field.rivers.length, size, crop, ppu, svg: svgSize(crop, ppu, unit) };
+}
+
+/** The SVG's width and height in its unit, as the renderer writes them. */
+export function svgSize(crop: Crop, ppu: number, unit: SizeUnit): { width: number; height: number; unit: SizeUnit } {
+  const f = unit === 'mm' ? 96 / 25.4 : 1, r = (v: number) => Math.round((v * ppu) / f * 100) / 100;
+  return { width: r(crop[2]), height: r(crop[3]), unit };
 }
 
 /** Comma list of numbers (`--points 1,2,3,4`). */
