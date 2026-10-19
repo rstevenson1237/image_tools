@@ -3965,8 +3965,8 @@ var init_proc = __esm({
           this.stage?.(`proc-${name}`, r.toGrid());
         }
         if (isScene) {
-          const ground = st.ground === "auto" ? autoGround(r) : st.ground;
-          return this.source.finalize(r, { ...st.shadow && { shadow: st.shadow }, ...ground && { groundShadow: ground } });
+          const ground2 = st.ground === "auto" ? autoGround(r) : st.ground;
+          return this.source.finalize(r, { ...st.shadow && { shadow: st.shadow }, ...ground2 && { groundShadow: ground2 } });
         }
         let g = r.toGrid();
         const src = this.source;
@@ -7150,9 +7150,9 @@ function obliqueRoom(w, h, dir, frontRatio = dir.camera.oblique?.frontRatio ?? 0
   return g;
 }
 function sideStrip(w, h, dir) {
-  const g = new Grid(w, h), sky2 = dir.background ?? tones(dir, "stone").lo, ground = tones(dir, "grass"), dirt = tones(dir, "dirt");
+  const g = new Grid(w, h), sky2 = dir.background ?? tones(dir, "stone").lo, ground2 = tones(dir, "grass"), dirt = tones(dir, "dirt");
   const gy = h - Math.max(2, Math.round(h / 10));
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) g.set(x, y, y < gy ? sky2 : y === gy ? ground.hi : (x + y) % 5 ? dirt.mid : dirt.lo);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) g.set(x, y, y < gy ? sky2 : y === gy ? ground2.hi : (x + y) % 5 ? dirt.mid : dirt.lo);
   return g;
 }
 function rotateGrid(g, rad, out = new Grid(g.w, g.h)) {
@@ -16577,8 +16577,8 @@ function generateMap(spec) {
       open[i] = v;
     });
   }
-  const mains = traceRivers(spec, fillDepressions(raw, w, h, water), elev, open, w, h, res, wet).map((r) => ({ ...r, width: riverWidth(spec) }));
-  for (const ed of spec.edits) if (ed.op === "river") mains.push({ pts: smoothLine(ed.points, res), width: ed.width ?? riverWidth(spec), mouth: ed.delta !== false });
+  const mains = traceRivers(spec, fillDepressions(raw, w, h, water), elev, open, w, h, res, wet).map((r) => ({ ...r, width: riverWidth(spec), source: "generated" }));
+  for (const ed of spec.edits) if (ed.op === "river") mains.push({ pts: smoothLine(ed.points, res), width: ed.width ?? riverWidth(spec), mouth: ed.delta !== false, source: "edit" });
   const roads = [];
   for (const ed of spec.edits) {
     if (ed.op === "road") roads.push({ pts: smoothLine(ed.points, res), width: spec.preset === "local" ? 0.5 : 0.08 });
@@ -16612,7 +16612,7 @@ function generateMap(spec) {
   };
   const rivers = mains.map((m) => {
     const fit = m.mouth ? toShore(m.pts, shown3) : null;
-    return riverRibbon(fit ?? m.pts, m.width, !!fit);
+    return { ...riverRibbon(fit ?? m.pts, m.width, !!fit), source: m.source };
   });
   return { res, w, h, elevation: elev, terrain: simple, rivers, roads };
 }
@@ -16998,9 +16998,325 @@ var init_render2 = __esm({
   }
 });
 
+// ../artgen-core/src/lib/round.ts
+function roundTo(v, step) {
+  const out = Math.round(v / step) * step;
+  return +(out === 0 ? 0 : out).toFixed(6);
+}
+function percentShares(counts) {
+  const total = counts.reduce((s2, [, c]) => s2 + c, 0);
+  if (!total) return [];
+  const raw = counts.map(([k, c]) => ({ k, share: Math.floor(c / total * 100), rem: c / total * 100 % 1 }));
+  let left = 100 - raw.reduce((s2, r) => s2 + r.share, 0);
+  for (const r of [...raw].sort((a, b) => b.rem - a.rem || raw.indexOf(a) - raw.indexOf(b))) {
+    if (left <= 0) break;
+    r.share++;
+    left--;
+  }
+  return raw.filter((r) => r.share > 0).map((r) => [r.k, r.share]);
+}
+var init_round = __esm({
+  "../artgen-core/src/lib/round.ts"() {
+    "use strict";
+  }
+});
+
+// ../artgen-core/src/map/facts.ts
+function feetIn(unit) {
+  const u = unit.trim().toLowerCase().replace(/\.$/, "").replace(/s$/, "");
+  return LENGTH_IN_FEET[u] ?? LENGTH_IN_FEET[`${u}s`] ?? null;
+}
+function ground(spec, f) {
+  const { res, w, h } = f, top = spec.topo.maxElevation, step = spec.topo.interval, per = spec.scale.perCell;
+  const rnd = (v) => roundTo(v, RULES.position);
+  const length = (map) => {
+    const m = rnd(map);
+    return { map: m, scale: rnd(m * per) };
+  };
+  const pt = (x, y) => [rnd(x), rnd(y)];
+  const shown3 = (height2) => roundTo(height2, step);
+  const sample2 = (i, j) => f.elevation[Math.min(h - 1, Math.max(0, j)) * w + Math.min(w - 1, Math.max(0, i))];
+  const height = (x, y) => {
+    const u = x * res - 0.5, v = y * res - 0.5, i = Math.floor(u), j = Math.floor(v), fx = u - i, fy = v - j;
+    return top * ((sample2(i, j) * (1 - fx) + sample2(i + 1, j) * fx) * (1 - fy) + (sample2(i, j + 1) * (1 - fx) + sample2(i + 1, j + 1) * fx) * fy);
+  };
+  const terrainAt = (x, y) => TERRAINS[f.terrain[Math.min(h - 1, Math.floor(y * res)) * w + Math.min(w - 1, Math.floor(x * res))]];
+  const centre = (n) => {
+    const i = n % w;
+    return [(i + 0.5) / res, ((n - i) / w + 0.5) / res];
+  };
+  const slope = (x, y) => {
+    const d = RULES.slopeWindow / 2, x0 = Math.max(0, x - d), x1 = Math.min(spec.cols, x + d), y0 = Math.max(0, y - d), y1 = Math.min(spec.rows, y + d);
+    const gx = (height(x1, y) - height(x0, y)) / (x1 - x0), gy = (height(x, y1) - height(x, y0)) / (y1 - y0);
+    const perUnit = Math.hypot(gx, gy), gradient = roundTo(perUnit / per, 1e-3);
+    const rise = feetIn(spec.topo.unit), run = feetIn(spec.scale.unit);
+    if (rise === null || run === null) return { gradient, band: null };
+    const ratio = perUnit * rise / (per * run), b = RULES.slopeBands;
+    return { gradient, band: ratio < b.flat ? "flat" : ratio < b.gentle ? "gentle" : ratio < b.steep ? "steep" : "cliff" };
+  };
+  const lines = [
+    ...f.rivers.map((r, i) => ({ kind: "river", name: `river-${i + 1}`, pts: r.pts, widths: r.widths, source: r.source, mouth: r.mouth })),
+    ...f.roads.map((r, i) => ({ kind: "road", name: `road-${i + 1}`, pts: r.pts, widths: void 0, source: void 0, mouth: void 0 }))
+  ];
+  const nearest = (kind, x, y) => {
+    let best = null;
+    for (const line of lines) {
+      if (line.kind !== kind) continue;
+      const p = line.pts;
+      for (let i = 2; i < p.length; i += 2) {
+        const ax = p[i - 2], ay = p[i - 1], dx = p[i] - ax, dy = p[i + 1] - ay, l2 = dx * dx + dy * dy, t = l2 ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2)) : 0;
+        const px = ax + t * dx, py = ay + t * dy, d = Math.hypot(x - px, y - py);
+        if (!best || d < best.d) best = { line, d, at: [px, py], width: line.widths ? line.widths[i / 2 - 1] * (1 - t) + line.widths[i / 2] * t : 0 };
+      }
+    }
+    return best;
+  };
+  const near = (kind, x, y) => {
+    const n = nearest(kind, x, y);
+    if (!n) return null;
+    return { name: n.line.name, ...n.line.source && { source: n.line.source }, distance: length(n.d), at: pt(...n.at), ...kind === "river" && { within: n.d <= n.width / 2 }, rawAt: n.at };
+  };
+  return { res, w, h, rnd, length, pt, shown: shown3, height, terrainAt, centre, slope, lines, near };
+}
+function shares(f, ids2) {
+  const count = new Array(TERRAINS.length).fill(0);
+  if (ids2) for (const n of ids2) count[f.terrain[n]]++;
+  else for (const t of f.terrain) count[t]++;
+  const out = percentShares(TERRAINS.map((t, i) => [t, count[i]]).filter(([, c]) => c > 0));
+  return out.map(([terrain, share]) => ({ terrain, share })).sort((a, b) => b.share - a.share || TERRAINS.indexOf(a.terrain) - TERRAINS.indexOf(b.terrain));
+}
+function samplesIn(f, poly) {
+  const out = [];
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (let i = 0; i < poly.length; i += 2) {
+    x0 = Math.min(x0, poly[i]);
+    x1 = Math.max(x1, poly[i]);
+    y0 = Math.min(y0, poly[i + 1]);
+    y1 = Math.max(y1, poly[i + 1]);
+  }
+  for (let j = Math.max(0, Math.floor(y0 * f.res)); j <= Math.min(f.h - 1, Math.ceil(y1 * f.res)); j++)
+    for (let i = Math.max(0, Math.floor(x0 * f.res)); i <= Math.min(f.w - 1, Math.ceil(x1 * f.res)); i++)
+      if (coverage({ poly }, (i + 0.5) / f.res, (j + 0.5) / f.res)) out.push(j * f.w + i);
+  return out;
+}
+function extremes(g, f, spec, ids2) {
+  let lo = -1, hi = -1;
+  const n = ids2 ? ids2.length : f.elevation.length;
+  for (let k = 0; k < n; k++) {
+    const s2 = ids2 ? ids2[k] : k;
+    if (lo < 0 || f.elevation[s2] < f.elevation[lo]) lo = s2;
+    if (hi < 0 || f.elevation[s2] > f.elevation[hi]) hi = s2;
+  }
+  const at = (s2) => ({ height: g.shown(f.elevation[s2] * spec.topo.maxElevation), at: g.pt(...g.centre(s2)) });
+  return { lowest: at(lo), highest: at(hi) };
+}
+function crossings(pts, poly) {
+  const inside = (x, y) => coverage({ poly }, x, y) > 0;
+  const runs = [];
+  let cur = null;
+  for (let i = 2; i < pts.length; i += 2) {
+    const ax = pts[i - 2], ay = pts[i - 1], dx = pts[i] - ax, dy = pts[i + 1] - ay, len = Math.hypot(dx, dy);
+    if (!len) continue;
+    const ts = [0, 1];
+    for (let a = poly.length - 2, b = 0; b < poly.length; a = b, b += 2) {
+      const ex = poly[b] - poly[a], ey = poly[b + 1] - poly[a + 1], den = dx * ey - dy * ex;
+      if (!den) continue;
+      const t = ((poly[a] - ax) * ey - (poly[a + 1] - ay) * ex) / den, u = ((poly[a] - ax) * dy - (poly[a + 1] - ay) * dx) / den;
+      if (t > 0 && t < 1 && u >= 0 && u <= 1) ts.push(t);
+    }
+    ts.sort((p, q) => p - q);
+    for (let k = 1; k < ts.length; k++) {
+      const t0 = ts[k - 1], t1 = ts[k];
+      if (t1 - t0 < 1e-9) continue;
+      const mid = (t0 + t1) / 2, here = inside(ax + dx * mid, ay + dy * mid);
+      if (here && !cur) {
+        cur = { enters: i === 2 && t0 === 0 ? null : [ax + dx * t0, ay + dy * t0], leaves: null, length: 0 };
+        runs.push(cur);
+      }
+      if (here && cur) cur.length += len * (t1 - t0);
+      if (!here && cur) {
+        cur.leaves = [ax + dx * t0, ay + dy * t0];
+        cur = null;
+      }
+    }
+  }
+  return runs;
+}
+function prominences(v, cols) {
+  const N3 = v.length, order = Array.from({ length: N3 }, (_, i) => i).sort((a, b) => v[b] - v[a] || a - b);
+  const parent = new Int32Array(N3).fill(-1), peak = new Int32Array(N3), out = [];
+  const find = (n) => {
+    while (parent[n] !== n) {
+      parent[n] = parent[parent[n]];
+      n = parent[n];
+    }
+    return n;
+  };
+  for (const n of order) {
+    parent[n] = n;
+    peak[n] = n;
+    const i = n % cols, j = (n - i) / cols;
+    for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+      const x = i + di, y = j + dj, m = y * cols + x;
+      if (!di && !dj || x < 0 || x >= cols || y < 0 || m < 0 || m >= N3 || parent[m] < 0) continue;
+      const a = find(n), b = find(m);
+      if (a === b) continue;
+      const keep = v[peak[a]] > v[peak[b]] || v[peak[a]] === v[peak[b]] && peak[a] < peak[b] ? a : b, lose = keep === a ? b : a;
+      out.push({ n: peak[lose], prominence: v[peak[lose]] - v[n] });
+      parent[lose] = keep;
+    }
+  }
+  let lowest = 0;
+  for (let n = 1; n < N3; n++) if (v[n] < v[lowest]) lowest = n;
+  out.push({ n: peak[find(order[0])], prominence: v[order[0]] - v[lowest] });
+  return out;
+}
+function summits(g, f, spec) {
+  const { cols, rows } = spec, N3 = cols * rows, r = g.res, step = spec.topo.interval, need2 = RULES.prominence * step;
+  const cell = new Float64Array(N3), flip = new Float64Array(N3);
+  for (let cj = 0; cj < rows; cj++) for (let ci = 0; ci < cols; ci++) {
+    let s2 = 0;
+    for (let j = cj * r; j < (cj + 1) * r; j++) for (let i = ci * r; i < (ci + 1) * r; i++) s2 += f.elevation[j * f.w + i];
+    cell[cj * cols + ci] = s2 / (r * r) * spec.topo.maxElevation;
+    flip[cj * cols + ci] = -cell[cj * cols + ci];
+  }
+  const out = (list2, dry, order) => list2.filter((c) => c.prominence >= need2 - 1e-9 && (!dry || g.shown(cell[c.n]) > 0)).sort((a, b) => order(cell[a.n], cell[b.n]) || b.prominence - a.prominence || a.n - b.n).map((c) => ({ height: g.shown(cell[c.n]), at: g.pt(c.n % cols + 0.5, Math.floor(c.n / cols) + 0.5), prominence: roundTo(c.prominence, step) }));
+  return { hilltops: out(prominences(cell, cols), false, (a, b) => b - a), hollows: out(prominences(flip, cols), true, (a, b) => a - b) };
+}
+function areaOutline(v) {
+  if (v.length === 4) return [v[0], v[1], v[2], v[1], v[2], v[3], v[0], v[3]];
+  if (v.length >= 6 && v.length % 2 === 0) return v;
+  throw new Error("--area: x0,y0,x1,y1 (a rectangle) or three or more x,y pairs");
+}
+function mapFacts(spec, q = {}, field = generateMap(spec)) {
+  const g = ground(spec, field), out = {
+    version: spec.version,
+    id: spec.id,
+    size: { cols: spec.cols, rows: spec.rows },
+    unit: { map: "cell", scale: spec.scale.unit, height: spec.topo.unit },
+    rules: RULES
+  };
+  if (q.above && q.above !== "river" && q.above !== "lowest") throw new Error("--above: river or lowest");
+  const radius = q.radius ?? RULES.radius;
+  if (!(radius > 0)) throw new Error("--radius: a number above 0 (map units)");
+  if (q.at?.length) {
+    out.points = q.at.map(([x, y]) => {
+      if (!(x >= 0 && x <= spec.cols && y >= 0 && y <= spec.rows)) throw new Error(`at ${x},${y}: outside the map (0..${spec.cols} by 0..${spec.rows})`);
+      const height = g.shown(g.height(x, y)), river = g.near("river", x, y), road = g.near("road", x, y);
+      const strip2 = (n) => {
+        if (!n) return null;
+        const { rawAt: _, ...rest } = n;
+        return rest;
+      };
+      const p = { at: g.pt(x, y), terrain: g.terrainAt(x, y), height, slope: g.slope(x, y), river: strip2(river), road: strip2(road) };
+      if (q.above === "river") {
+        const ref = river && g.shown(g.height(...river.rawAt));
+        p.above = { of: "river", value: ref === null ? null : roundTo(height - ref, spec.topo.interval), reference: river && ref !== null ? { height: ref, at: river.at } : null };
+      } else if (q.above === "lowest") {
+        let low = null, lowAt = [x, y];
+        for (let j = Math.max(0, Math.floor((y - radius) * field.res)); j <= Math.min(field.h - 1, Math.ceil((y + radius) * field.res)); j++)
+          for (let i = Math.max(0, Math.floor((x - radius) * field.res)); i <= Math.min(field.w - 1, Math.ceil((x + radius) * field.res)); i++) {
+            const [cx, cy] = [(i + 0.5) / field.res, (j + 0.5) / field.res];
+            if (Math.hypot(cx - x, cy - y) <= radius && (low === null || field.elevation[j * field.w + i] < low)) {
+              low = field.elevation[j * field.w + i];
+              lowAt = [cx, cy];
+            }
+          }
+        const ref = g.shown((low ?? 0) * spec.topo.maxElevation);
+        p.above = { of: "lowest", value: roundTo(height - ref, spec.topo.interval), reference: { height: ref, at: g.pt(...lowAt) } };
+      }
+      return p;
+    });
+  }
+  if (q.areas?.length) {
+    out.areas = q.areas.map((poly) => {
+      const ids2 = samplesIn(field, poly);
+      if (!ids2.length) throw new Error(`area ${poly.join(",")}: holds no ground (inside the map and larger than a sample, ${(1 / field.res).toFixed(2)} cells)`);
+      const cross = (kind) => g.lines.filter((l) => l.kind === kind).flatMap((l) => crossings(l.pts, poly).map((c) => ({
+        name: l.name,
+        ...l.source && { source: l.source },
+        enters: c.enters && g.pt(...c.enters),
+        leaves: c.leaves && g.pt(...c.leaves),
+        length: g.length(c.length)
+      })));
+      const pairs = [];
+      for (let i = 0; i < poly.length; i += 2) pairs.push(g.pt(poly[i], poly[i + 1]));
+      return { area: pairs, terrain: shares(field, ids2), ...extremes(g, field, spec, ids2), rivers: cross("river"), roads: cross("road") };
+    });
+  }
+  if (!out.points && !out.areas) {
+    const line = (l) => ({ name: l.name, ...l.source && { source: l.source }, points: listed(g, l.pts), length: g.length(pathLength(l.pts)), ...l.mouth !== void 0 && { mouth: l.mouth } });
+    out.features = {
+      rivers: g.lines.filter((l) => l.kind === "river" && l.source === "edit").map(line),
+      generatedRivers: g.lines.filter((l) => l.kind === "river" && l.source === "generated").map(line),
+      roads: g.lines.filter((l) => l.kind === "road").map(line),
+      ...summits(g, field, spec),
+      terrain: shares(field),
+      ...extremes(g, field, spec)
+    };
+  }
+  return out;
+}
+var RULES, LENGTH_IN_FEET, listed, pathLength;
+var init_facts = __esm({
+  "../artgen-core/src/map/facts.ts"() {
+    "use strict";
+    init_round();
+    init_trace();
+    init_generate();
+    init_spec();
+    RULES = {
+      /** Heights (and heights above a reference) are whole multiples of `topo.interval`. */
+      height: "topo.interval",
+      /** Positions, lengths and distances in map units; a scale-unit value is the rounded map value times `scale.perCell`, to this step. */
+      position: 0.1,
+      /** Terrain shares are whole percent, summing to 100 (largest remainder). */
+      share: 1,
+      /** Slope is the height change across a window this wide (map units), centred on the point. */
+      slopeWindow: 1,
+      /** A slope is `flat` below the first threshold, `gentle` below the second, `steep` below the third and `cliff` from there (rise over run, both in one unit). */
+      slopeBands: { flat: 0.05, gentle: 0.2, steep: 0.6 },
+      /** A polyline is thinned to within this distance (map units) of the line it came from before it is listed. */
+      lineTolerance: 0.25,
+      /** A hilltop or hollow must stand this many `topo.interval`s clear of the saddle that joins it to higher (or lower) ground. */
+      prominence: 2,
+      /** `--above lowest` looks this far (map units) when `--radius` is not given. */
+      radius: 5
+    };
+    LENGTH_IN_FEET = {
+      in: 1 / 12,
+      inch: 1 / 12,
+      ft: 1,
+      foot: 1,
+      feet: 1,
+      yd: 3,
+      yard: 3,
+      mi: 5280,
+      mile: 5280,
+      m: 3.280839895,
+      metre: 3.280839895,
+      meter: 3.280839895,
+      km: 3280.839895,
+      kilometre: 3280.839895,
+      kilometer: 3280.839895
+    };
+    listed = (g, pts) => {
+      const t = simplifyLine({ pts, closed: false }, RULES.lineTolerance).pts, out = [];
+      for (let i = 0; i < t.length; i += 2) out.push(g.pt(t[i], t[i + 1]));
+      return out;
+    };
+    pathLength = (p) => {
+      let s2 = 0;
+      for (let i = 2; i < p.length; i += 2) s2 += Math.hypot(p[i] - p[i - 2], p[i + 1] - p[i - 1]);
+      return s2;
+    };
+  }
+});
+
 // ../artgen-core/src/map/index.ts
 var map_exports = {};
 __export(map_exports, {
+  FACTS_RULES: () => RULES,
   FONT_FAMILY: () => FONT_FAMILY,
   GRID_TYPES: () => GRID_TYPES,
   LABEL_KINDS: () => LABEL_KINDS,
@@ -17018,15 +17334,18 @@ __export(map_exports, {
   TERRAIN_NAMES: () => TERRAIN_NAMES,
   THEME: () => THEME,
   THEMES: () => THEMES,
+  areaOutline: () => areaOutline,
   cellCenter: () => cellCenter,
   chaikin: () => chaikin,
   contourLines: () => contourLines,
   coverage: () => coverage,
+  feetIn: () => feetIn,
   fieldKey: () => fieldKey,
   generateMap: () => generateMap,
   gridGeometry: () => gridGeometry,
   isolines: () => isolines,
   layersFor: () => layersFor,
+  mapFacts: () => mapFacts,
   newMap: () => newMap,
   parseMap: () => parseMap,
   parsePoint: () => parsePoint,
@@ -17048,6 +17367,7 @@ var init_map = __esm({
     init_theme();
     init_render2();
     init_trace();
+    init_facts();
   }
 });
 
@@ -17309,9 +17629,13 @@ function route(a, b, width, how, rooms) {
   return blocked(bx, ay) && !blocked(ax, by) ? vh : hv;
 }
 function exitPoint(outline2, pts) {
+  let along = 0;
   for (let i = 0; i + 3 < pts.length; i += 2) {
     const x0 = pts[i], y0 = pts[i + 1], x1 = pts[i + 2], y1 = pts[i + 3];
-    if (inPolygon(outline2, x1, y1)) continue;
+    if (inPolygon(outline2, x1, y1)) {
+      along += Math.hypot(x1 - x0, y1 - y0);
+      continue;
+    }
     let lo = 0, hi = 1;
     if (!inPolygon(outline2, x0, y0)) return null;
     for (let k = 0; k < 30; k++) {
@@ -17319,7 +17643,7 @@ function exitPoint(outline2, pts) {
       if (inPolygon(outline2, x0 + (x1 - x0) * t, y0 + (y1 - y0) * t)) lo = t;
       else hi = t;
     }
-    return { x: x0 + (x1 - x0) * lo, y: y0 + (y1 - y0) * lo, angle: Math.atan2(y1 - y0, x1 - x0) * 180 / Math.PI };
+    return { x: x0 + (x1 - x0) * lo, y: y0 + (y1 - y0) * lo, angle: Math.atan2(y1 - y0, x1 - x0) * 180 / Math.PI, along: along + Math.hypot(x1 - x0, y1 - y0) * lo };
   }
   return null;
 }
@@ -17337,11 +17661,11 @@ function layoutDungeon(spec) {
   spec.corridors.forEach((c, index) => {
     const width = c.width ?? 1, a = end(c.from), b = end(c.to);
     const pts = c.via?.length ? [...Array.isArray(a) ? a : [a.cx, a.cy], ...c.via, ...Array.isArray(b) ? b : [b.cx, b.cy]] : route(a, b, width, c.route ?? "auto", rooms);
-    const ends = [[a, pts], [b, reversed(pts)]].map(([e, path]) => Array.isArray(e) ? { x: e[0], y: e[1], angle: Math.atan2(path[1] - path[3], path[0] - path[2]) * 180 / Math.PI } : exitPoint(e.outline, path));
+    const ends = [[a, pts], [b, reversed(pts)]].map(([e, path]) => Array.isArray(e) ? { x: e[0], y: e[1], angle: Math.atan2(path[1] - path[3], path[0] - path[2]) * 180 / Math.PI, along: 0 } : exitPoint(e.outline, path));
     corridors.push({ index, pts, width, ends });
     ends.forEach((p, i) => {
       const kind = c.doors?.[i];
-      if (p && kind) doors.push({ kind, ...p, width, corridor: index });
+      if (p && kind) doors.push({ kind, x: p.x, y: p.y, angle: p.angle, width, corridor: index });
     });
   });
   return { rooms, corridors, doors };
@@ -17671,6 +17995,84 @@ var init_render3 = __esm({
   }
 });
 
+// ../artgen-core/src/dungeon/facts.ts
+function dungeonFacts(spec, layout2 = layoutDungeon(spec)) {
+  const per = spec.scale.perCell, rnd = (v) => roundTo(v, RULES2.position);
+  const length = (cells) => {
+    const m = rnd(cells);
+    return { map: m, scale: rnd(m * per) };
+  };
+  const pt = (x, y) => [rnd(x), rnd(y)];
+  const box = (b) => {
+    const c = { x: rnd(b.x), y: rnd(b.y), w: rnd(b.w), h: rnd(b.h) };
+    return { cells: c, scale: { x: rnd(c.x * per), y: rnd(c.y * per), w: rnd(c.w * per), h: rnd(c.h * per) } };
+  };
+  const roomOf = (e) => "room" in e ? e.room : null;
+  const ends = ["from", "to"];
+  const rooms = layout2.rooms.map((g) => ({
+    id: g.room.id,
+    number: g.number ?? null,
+    label: g.room.label ?? null,
+    shape: g.room.shape,
+    box: box(g.room),
+    doors: []
+  }));
+  const byId = new Map(rooms.map((r) => [r.id, r]));
+  const corridors = [], exits = [], reached = /* @__PURE__ */ new Set();
+  spec.corridors.forEach((c, index) => {
+    const geom = layout2.corridors[index], doors = [c.doors?.[0] ?? null, c.doors?.[1] ?? null];
+    let run = 0;
+    for (let i = 2; i < geom.pts.length; i += 2) run += Math.hypot(geom.pts[i] - geom.pts[i - 2], geom.pts[i + 1] - geom.pts[i - 1]);
+    run = Math.max(0, run - (geom.ends[0]?.along ?? 0) - (geom.ends[1]?.along ?? 0));
+    corridors.push({ index, from: c.from, to: c.to, width: geom.width, doors, length: length(run) });
+    ends.forEach((side, k) => {
+      const e = c[side], p = geom.ends[k], other = roomOf(c[ends[1 - k]]);
+      if ("room" in e) {
+        reached.add(e.room);
+        if (doors[k]) byId.get(e.room)?.doors.push({ kind: doors[k], at: p ? pt(p.x, p.y) : null, corridor: index, to: other });
+      } else {
+        const [x, y] = e.at, dist = [["n", y], ["e", spec.cols - x], ["s", spec.rows - y], ["w", x]];
+        const [edge, d] = dist.reduce((a, b) => b[1] < a[1] ? b : a);
+        exits.push({ corridor: index, end: side, at: pt(x, y), room: other, door: doors[k], edge, distance: length(d) });
+      }
+    });
+  });
+  const overlaps = [];
+  for (let a = 0; a < layout2.rooms.length; a++) for (let b = a + 1; b < layout2.rooms.length; b++) {
+    const A = layout2.rooms[a], B = layout2.rooms[b], cells = [];
+    const x0 = Math.floor(Math.max(A.room.x, B.room.x)), x1 = Math.ceil(Math.min(A.room.x + A.room.w, B.room.x + B.room.w));
+    const y0 = Math.floor(Math.max(A.room.y, B.room.y)), y1 = Math.ceil(Math.min(A.room.y + A.room.h, B.room.y + B.room.h));
+    for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) if (inPolygon(A.outline, x + 0.5, y + 0.5) && inPolygon(B.outline, x + 0.5, y + 0.5)) cells.push([x, y]);
+    if (!cells.length) continue;
+    const xs = cells.map((c) => c[0]), ys = cells.map((c) => c[1]), bx = Math.min(...xs), by = Math.min(...ys);
+    overlaps.push({ rooms: [A.room.id, B.room.id], cells, count: cells.length, box: box({ x: bx, y: by, w: Math.max(...xs) + 1 - bx, h: Math.max(...ys) + 1 - by }) });
+  }
+  return {
+    version: spec.version,
+    id: spec.id,
+    size: { cols: spec.cols, rows: spec.rows },
+    unit: { map: "cell", scale: spec.scale.unit },
+    rules: RULES2,
+    rooms,
+    corridors,
+    exits,
+    overlaps,
+    unreached: rooms.filter((r) => !reached.has(r.id)).map((r) => r.id)
+  };
+}
+var RULES2;
+var init_facts2 = __esm({
+  "../artgen-core/src/dungeon/facts.ts"() {
+    "use strict";
+    init_round();
+    init_layout();
+    RULES2 = {
+      /** Positions, lengths and distances in cells. */
+      position: 0.1
+    };
+  }
+});
+
 // ../artgen-core/src/dungeon/index.ts
 var dungeon_exports = {};
 __export(dungeon_exports, {
@@ -17679,6 +18081,7 @@ __export(dungeon_exports, {
   DOOR_NAMES: () => DOOR_NAMES,
   DUNGEON_FORMAT: () => DUNGEON_FORMAT,
   DUNGEON_LAYERS: () => DUNGEON_LAYERS,
+  FACTS_RULES: () => RULES2,
   HATCH_STYLES: () => HATCH_STYLES,
   LABEL_KINDS: () => LABEL_KINDS2,
   MAX_SIDE: () => MAX_SIDE2,
@@ -17688,6 +18091,7 @@ __export(dungeon_exports, {
   SYMBOL_KINDS: () => SYMBOL_KINDS2,
   checkDungeon: () => checkDungeon,
   contentBox: () => contentBox,
+  dungeonFacts: () => dungeonFacts,
   dungeonLayersFor: () => dungeonLayersFor,
   fitDungeon: () => fitDungeon,
   generateDungeon: () => generateDungeon,
@@ -17712,6 +18116,7 @@ var init_dungeon = __esm({
     init_generate2();
     init_symbols2();
     init_render3();
+    init_facts2();
   }
 });
 
@@ -18821,6 +19226,10 @@ var init_maps_cli = __esm({
        artgen map set <id> [--title "..."] [--legend on|off] [--scale-bar on|off] [--compass on|off] [--per-cell n] [--unit mi]
        artgen map render <id> [--theme color|bw|both] [--format svg|png|both] [--ppu 40] [--layers grid=off,labels=off] [--out dir]
        artgen map show <id> | list
+       artgen map facts <id> [--at x,y \u2026 | C4 | 0304] [--area x,y,x,y,\u2026] [--above river|lowest] [--radius n] [--json]
+                  the ground as numbers: --at gives each point's terrain, height, slope and nearest river and road; --area the terrain shares, lowest and highest
+                  ground and the rivers and roads that cross it; neither gives the whole map's rivers, roads, hilltops, hollows and terrain shares.
+                  Positions in map units, lengths also in the scale unit, heights in topo.unit and whole multiples of topo.interval
        artgen dungeon new <id> [--size 40x30] [--seed n] [--title "..."] [--empty] | new <id> --room rect|circle|octagon|cave --room-size 8x6 [--exits n,e:secret,s:none,w] [--label "..."] [--number n|off]
        artgen dungeon gen <id> [--seed n] [--rooms n] [--min-size n] [--max-size n] [--caves f] [--round f] [--loops f] [--doors f] [--corridor-width n] [--spacing n] [--entrance on|off] [--size 40x30]
        artgen dungeon room <id> add <shape> --at x,y|C4 --size WxH [--points x,y,\u2026] [--label "..."] [--number n|off] [--room-id r9] | move <rid> --at x,y | set <rid> [--shape s] [--size WxH] [--label "..."] [--number n|off] | rm <rid>
@@ -18830,6 +19239,7 @@ var init_maps_cli = __esm({
        artgen dungeon label <id> "Text" --at x,y|C4 [--kind name|note|area] [--size f] [--angle deg] | symbol <id> <kind> --at x,y|C4 [--scale f] [--angle deg] | symbols
        artgen dungeon overlay <id> rm label|symbol <i> | clear [labels|symbols] | fit <id> [--margin 2]
        artgen dungeon check <id> [--json]   every error in the file with its JSON path; exits 1 when there are any
+       artgen dungeon facts <id> [--json]   each room's box and doors, each corridor's ends and length, the exits, the overlapping rooms and the rooms no corridor reaches
        artgen dungeon render <id> [--format svg|png|both] [--ppu 40] [--layers grid=off,labels=off] [--out dir] | show <id> | list
        artgen formats   (the map and dungeon file format versions this artgen reads; a newer file is refused)
        (map and dungeon commands take --file <path> in place of <id>: no project needed; renders go beside the file or to --out)`;
