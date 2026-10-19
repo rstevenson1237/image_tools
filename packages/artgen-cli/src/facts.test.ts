@@ -103,8 +103,8 @@ describe('map facts: setting-builder/ravine', () => {
 });
 
 describe('dungeon facts: setting-builder', () => {
-  test('keep: thirteen rooms at their sizes; the overlaps A.12/A.4 and A.13/A.10 are reported (and A.13/A.9, which the same tunnel also crosses)', async () => {
-    const r = await json('dungeon', 'facts', '--file', FIXTURE('keep', 'dungeon.json'));
+  test('keep-flat: thirteen rooms at their sizes; the overlaps A.12/A.4 and A.13/A.10 are reported (and A.13/A.9, which the same tunnel also crosses)', async () => {
+    const r = await json('dungeon', 'facts', '--file', FIXTURE('keep-flat', 'dungeon.json'));
     const sizes: Record<number, [number, number]> = { 1: [8, 2], 2: [2, 1], 3: [8, 4], 4: [6, 4], 5: [6, 2], 6: [5, 4], 7: [3, 2], 8: [16, 16], 9: [8, 4], 10: [10, 5], 11: [12, 5], 12: [6, 3], 13: [30, 1] };
     expect(r.rooms).toHaveLength(13);
     for (const [n, [w, h]] of Object.entries(sizes)) {
@@ -167,13 +167,13 @@ describe('dungeon facts: setting-builder', () => {
   });
 
   test('the same file gives byte-identical --json twice, by --file and from the maps-only entry', async () => {
-    const f = FIXTURE('keep', 'dungeon.json'), a = (await run('dungeon', 'facts', '--file', f, '--json')).out, b = (await run('dungeon', 'facts', '--file', f, '--json')).out;
+    const f = FIXTURE('keep-flat', 'dungeon.json'), a = (await run('dungeon', 'facts', '--file', f, '--json')).out, b = (await run('dungeon', 'facts', '--file', f, '--json')).out;
     expect(a).toBe(b);
     expect((await capture(() => mapsMain(['dungeon', 'facts', '--file', f, '--json']))).out).toBe(a);
   });
 
   test('human text names the rooms, the exits and the overlaps', async () => {
-    const t = (await run('dungeon', 'facts', '--file', FIXTURE('keep', 'dungeon.json'))).out;
+    const t = (await run('dungeon', 'facts', '--file', FIXTURE('keep-flat', 'dungeon.json'))).out;
     expect(t).toContain('rooms (13):');
     expect(t).toContain('r4 #4: rect 6×4 cells (30×20 ft) at 3,68 "A.4 The Broken Wheel"');
     expect(t).toContain('r4 / r12: 18 cells');

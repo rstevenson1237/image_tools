@@ -177,6 +177,19 @@
         "kind": "note"
       }
     ],
-    "symbols": []
+    "symbols": [
+      {
+        "kind": "stairs-up",
+        "x": 20,
+        "y": 30.5,
+        "angle": 180
+      },
+      {
+        "kind": "stairs-down",
+        "x": -2,
+        "y": 31,
+        "angle": 90
+      }
+    ]
   }
 }

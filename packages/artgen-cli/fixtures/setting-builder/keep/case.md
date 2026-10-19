@@ -1,31 +1,37 @@
-# keep — dungeon.json of A, hatching off
+# keep — the Keep drawn as a fort plan (artgen A5)
 
 format: dungeon 1
-consumer: setting_builder at a34e7f5c90986c052e960ddf716c214aed658ff1 (main), `plans/sheet-maps/prototype/to_dungeon.py`
-artgen: 0.10.0 plus the format-version change, installed from this checkout's own build into a scratch game directory
+consumer: setting_builder at a34e7f5c90986c052e960ddf716c214aed658ff1 (main), `plans/sheet-maps/prototype/to_dungeon.py`; this case is built in artgen from `brief-underlay.md` (artgen A5, with A6's `dais` and `gate`)
+artgen: `underlay`, `walls` and room `fill` (optional fields: the format version is unchanged), see the CHANGELOG
 
-Built from the setting_builder root, with `<game>` the scratch game directory:
+The upper level of A: A.1 to A.11 (A.12 and A.13 are in `keep-cellars`; the first, flat drawing of all thirteen is `keep-flat`). Built from `keep-flat`
+with the command below, then edited by hand in artgen as the brief says:
 
 ```sh
-python3 plans/sheet-maps/prototype/to_dungeon.py A <game> A.1=8x2 A.2=2x1 A.3=8x4 A.4=6x4 \
-  A.5=6x2 A.6=5x4 A.7=3x2 A.8=16x16 A.9=8x4 A.10=10x5 A.11=12x5 A.12=6x3 A.13=30x1
-node tools/artgen/artgen.js dungeon style a --hatch none     # in <game>
+node tools/artgen/artgen-maps.js dungeon render --file dungeon.json --format both
 ```
 
-Room sizes are in 5 ft cells, from each region's `Brief.md`; no table states them yet (setting_builder T3.2 adds them).
+- Rooms: A.8 is a `yard`, the rest `building`. Every entry carries `origin: tables`.
+- `underlay`: `map.json`, a 66 x 54 square map at 10 ft a square (the Keep sheet's extent, 220 by 180 yards), at origin (4, 8) and 0.5 map
+  units a cell (a 5 ft cell on a 10 ft sheet). The map has a rise (an `elevate` disc) under the keep, a wood (a `forest` paint) north of
+  the postern, and a road from the west edge to A.1's centre (7, 28), which is the gate's cell (1, 40) at the sheet.
+- `walls`: one wall round A.1 to A.11, `inset` 1 cell, 1 cell thick; round towers 3 cells across at every corner of the hull; a `gate` at A.1 (with a
+  tower each side) and a `postern` at A.2 (none).
+- A.10 has a `dais` (the symbol, 4 cells across), and `legend` is on so the key lists it.
+- Hatching is off (`hatch: none`), so the underlay shows between the buildings.
 
-## Must go on drawing
+Nudged by hand until setting_builder T4.6 sets each building's place with its footprint (`findings.md`): A.4 moved from x = 3 to x = 2, so the hull's
+west side runs straight from A.3 to A.4 and the gate stands on a straight wall, not at a corner. A.12 (in `keep-cellars`) moved with it.
 
-- 13 rooms at the sizes above, laid out at their places.
-- `hatch: none`.
+## Must hold (the tests, `src/underlay.test.ts` and `src/fixtures.test.ts`)
 
-## Facts read back (`dungeon facts`, tested in `src/facts.test.ts`)
-
-- Thirteen rooms at the sizes above, in cells and in feet (5 ft a cell).
-- The overlaps A.12 under A.4 (18 cells) and A.13 under A.10 (10 cells) are reported, and A.13 under A.9 (7 cells), which the
-  same tunnel also crosses. Rooms no corridor reaches: A.3, A.5, A.6, A.7, A.8, A.9, A.11.
+- The wall encloses every upper room, and the towers stand at every corner of the hull.
+- Two gates, the main one (A.1) with two towers and the postern (A.2) with none.
+- The road reaches the main gate, and ends at A.1.
+- A.8 is `yard`: no wall and no fill of its own, so the underlay shows through it.
+- Rendered twice it is the same, in SVG and in PNG.
 
 ## Does not yet draw well
 
-A.12 and A.13 lie under A.4 and A.10 and overlap them until Blocks split them by level (setting_builder T3.2). The test
-asserts nothing about that overlap.
+- Two corner towers stand 2.4 cells apart at the north, where the hull is a short edge round the postern; they touch.
+- Building tone and the ridge line are plain; no yards, lanes or lots are drawn (`spec.md` 8.2).

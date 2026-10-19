@@ -47,6 +47,8 @@ install (steps in the CHANGELOG). Every command takes `--file <path>` in place o
 corridors, exits, overlaps and unreached rooms) for a writer that never sees a render. A map may also state what its ground
 must be (`require` in `map.json`: terrain, height bands, streams, roads, areas kept clear of rivers); the generator shapes the ground
 to it and `map check --file … --json` names each requirement it did not meet (exit 1), so the remedy goes to the brief, not to a reseed.
+Entries carry an optional `origin`, and `map sync` and `dungeon sync --file target.json --from new.json --origin tables` replace one origin's entries and keep the hand ones, reporting every conflict.
+A dungeon may state an `underlay` (a map under the rooms), `walls` (with towers and gates) and a room `fill` (`building`, `yard`, `cellar`); `--fit` and `--page-scale` set labels, symbols and strokes in points and millimetres on the page and keep labels off one another.
 
 ## Plugin layout (local sessions only)
 

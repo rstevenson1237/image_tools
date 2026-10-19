@@ -6,6 +6,11 @@ import { SYMBOLS as MAP_SYMBOLS } from '../map/symbols.ts';
 
 export const SYMBOLS: Record<string, { name: string; svg: string }> = {
   stairs: { name: 'Stairs (rise to the right)', svg: '<rect x="-9" y="-9" width="18" height="18" fill="{fill}" stroke="{ink}" stroke-width="1.4"/><path d="M-5.5 -9V9M-2 -9V9M1.5 -9V9M5 -9V9" stroke="{ink}" stroke-width="1.2"/>' },
+  'stairs-up': { name: 'Stairs up (climb toward its angle)', svg: '<path d="M-9 -4L9 -9V9L-9 4Z" fill="{fill}" stroke="{ink}" stroke-width="1.4" stroke-linejoin="round"/><path d="M-5.5 -4.6V4.6M-2 -5.8V5.8M1.5 -7V7M5 -8.2V8.2" stroke="{ink}" stroke-width="1.2"/><path d="M-7.5 0H5.5M2.2 -3.2L5.8 0L2.2 3.2Z" fill="{ink}" stroke="{ink}" stroke-width="1.2" stroke-linejoin="round"/>' },
+  'stairs-down': { name: 'Stairs down (fall toward its angle)', svg: '<path d="M-9 -9L9 -4V4L-9 9Z" fill="{fill}" stroke="{ink}" stroke-width="1.4" stroke-linejoin="round"/><path d="M-5.5 -8.2V8.2M-2 -7V7M1.5 -5.8V5.8M5 -4.6V4.6" stroke="{ink}" stroke-width="1.2" stroke-dasharray="2.2 1.4"/><path d="M-7.5 0H4M2.2 -3.2L5.8 0L2.2 3.2" fill="none" stroke="{ink}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>' },
+  curtain: { name: 'Curtain (along an edge or across a passage)', svg: '<path d="M-9.5 0q1.6 -3.6 3.2 0t3.2 0t3.2 0t3.2 0t3.2 0t3.2 0" fill="none" stroke="{ink}" stroke-width="1.5" stroke-linecap="round"/><path d="M-9.5 -3V3M9.5 -3V3" stroke="{ink}" stroke-width="1.6" stroke-linecap="round"/>' },
+  dais: { name: 'Dais (a raised floor, by its outline)', svg: '<rect x="-9" y="-9" width="18" height="18" fill="{fill}" stroke="{ink}" stroke-width="1.6"/><rect x="-6" y="-6" width="12" height="12" fill="none" stroke="{ink}" stroke-width="0.9"/><path d="M-9 -9L-6 -6M9 -9L6 -6M-9 9L-6 6M9 9L6 6" stroke="{ink}" stroke-width="0.9"/>' },
+  gate: { name: 'Gate (a break in a wall line)', svg: MAP_SYMBOLS.gate.svg },
   ladder: { name: 'Ladder / shaft', svg: '<circle r="8" fill="{fill}" stroke="{ink}" stroke-width="1.4"/><path d="M-3 -7V7M3 -7V7M-3 -3.5H3M-3 0H3M-3 3.5H3" stroke="{ink}" stroke-width="1.2"/>' },
   pillar: { name: 'Pillar', svg: '<circle r="5.5" fill="{ink}"/>' },
   statue: { name: 'Statue', svg: '<circle r="7" fill="{fill}" stroke="{ink}" stroke-width="1.4"/><path d="M0 -4.5L1.3 -1.3L4.5 -1L2 1.2L2.8 4.5L0 2.8L-2.8 4.5L-2 1.2L-4.5 -1L-1.3 -1.3Z" fill="{ink}"/>' },

@@ -225,7 +225,9 @@ describe('setting-builder/ravine', () => {
   });
 
   test('is built with require, not with paint or elevate edits (A2)', () => {
-    expect(spec.edits.map(e => e.op)).toEqual(['road']);
+    // the generated edits are the road; the two after them are the hand edits (A8)
+    expect(spec.edits.filter(e => e.origin === 'tables').map(e => e.op)).toEqual(['road']);
+    expect(spec.edits.filter(e => e.origin === undefined).map(e => e.op)).toEqual(['elevate', 'elevate']);
     expect(spec.require!.map(r => [r.id, r.kind])).toEqual([['E-stream', 'path'], ['E-wall-west', 'terrain'], ['E-wall-west-height', 'height'], ['E-wall-east', 'terrain'], ['E-wall-east-height', 'height']]);
     expect(spec.gen.rivers).toBe(0);
   });
@@ -260,8 +262,8 @@ describe('setting-builder/ravine', () => {
   }, 120_000);
 });
 
-describe('setting-builder/keep', () => {
-  const { p, id, caseMd } = place('setting-builder', 'keep', 'dungeon');
+describe('setting-builder/keep-flat', () => {
+  const { p, id, caseMd } = place('setting-builder', 'keep-flat', 'dungeon');
   let spec: dungeon.DungeonSpec;
   beforeAll(() => { spec = readDungeon(p, id); });
 

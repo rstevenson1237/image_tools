@@ -5,8 +5,9 @@
  */
 import { generateMap, terrainsUsed, type MapField } from './generate.ts';
 import { gridGeometry } from './gridlines.ts';
-import { TERRAIN_NAMES, TERRAINS, type MapSpec, type Terrain } from './spec.ts';
+import { TERRAIN_NAMES, TERRAINS, type MapLabel, type MapSpec, type MapSymbol, type Terrain } from './spec.ts';
 import { SYMBOLS } from './symbols.ts';
+import { PAGE_PT, PAGE_SYMBOL_MM, pageUnit, placeLabels, pointsToPx, textBox, type Box, type PlaceLabel } from '../lib/page.ts';
 import { PATTERNS, THEME, type MapTheme, type ThemeName } from './theme.ts';
 import { compassSvg, esc, FONT, FONT_FAMILY, haloText, n1 } from '../lib/svgdraw.ts';
 import { frameOf, sizeAttrs, type Crop, type SizeUnit } from '../lib/view.ts';
@@ -30,6 +31,37 @@ export interface RenderMapOptions {
   crop?: Crop;
   /** The unit of the SVG's width and height (default px). */
   unit?: SizeUnit;
+  /**
+   * Output pixels per millimetre on the page (`--fit` sets it, `--page-scale` gives it). Label sizes, symbol sizes and
+   * stroke widths are then set in points and millimetres on the page, and labels are kept off one another. Unset: sizes
+   * follow `ppu`.
+   */
+  pageScale?: number;
+}
+
+/** Symbols the legend lists when the map uses them (the stock ones have always been read from the map's own labels). */
+export const LEGEND_SYMBOLS = ['cave-mouth', 'gate'];
+
+/** A label that found no free spot on the page, with its index in `overlay.labels`. */
+export interface UnplacedLabel { index: number; text: string }
+
+/** Where each overlay label is drawn, and the labels that could not be kept clear of the others (only with a page scale). */
+export function mapLabelLayout(spec: MapSpec, k: number, pageScale?: number): { at: { x: number; y: number }[]; unplaced: UnplacedLabel[] } {
+  const raw = spec.overlay.labels.map(l => ({ x: l.x * k, y: l.y * k }));
+  if (!pageScale) return { at: raw, unplaced: [] };
+  const symBox = (s: MapSymbol): Box => { const z = PAGE_SYMBOL_MM * pageScale * (s.scale ?? 1); return { x: s.x * k - z / 2, y: s.y * k - z / 2, w: z, h: z }; };
+  const items: PlaceLabel[] = spec.overlay.labels.map(l => {
+    const size = labelSize(l, 1, pageScale), base = size * 1;
+    const box = textBox(l.kind === 'region' ? l.text.toUpperCase() : l.text, l.x * k, l.y * k + base * 0.35, size, { bold: l.kind === 'region' || l.kind === 'place', spacing: l.kind === 'region' ? size * 0.18 : 0 });
+    return { x: l.x * k, y: l.y * k, box, clear: 0 };
+  });
+  const placed = placeLabels(items, spec.overlay.symbols.map(symBox), { x: 0, y: 0, w: spec.cols * k, h: spec.rows * k }, pageScale * 0.3);
+  return { at: placed.map(p => ({ x: p.x, y: p.y })), unplaced: placed.flatMap((p, index) => (p.placed ? [] : [{ index, text: spec.overlay.labels[index].text }])) };
+}
+
+/** A label's font size in pixels: its kind's default (points on the page with a page scale, else relative to the unit `u`) times `size`. */
+function labelSize(l: MapLabel, u: number, pageScale?: number): number {
+  return (pageScale ? pointsToPx(PAGE_PT.map[l.kind], pageScale) : { region: 30, place: 16, water: 20, note: 13 }[l.kind] * u) * (l.size ?? 1);
 }
 
 /** The part of a map that decides its terrain: when this key is unchanged, the generated field can be reused. */
@@ -96,9 +128,9 @@ function patternDefs(th: MapTheme, tile: number): string {
   }).join('');
 }
 
-function symbolSvg(kind: string, x: number, y: number, size: number, th: MapTheme): string {
+function symbolSvg(kind: string, x: number, y: number, size: number, th: MapTheme, angle = 0): string {
   const s = SYMBOLS[kind] ?? SYMBOLS.poi;
-  return `<g transform="translate(${n1(x)} ${n1(y)}) scale(${(size / 20).toFixed(3)})">${s.svg.replaceAll('{ink}', th.ink).replaceAll('{fill}', th.symbolFill)}</g>`;
+  return `<g transform="translate(${n1(x)} ${n1(y)})${angle ? ` rotate(${n1(angle)})` : ''} scale(${(size / 20).toFixed(3)})">${s.svg.replaceAll('{ink}', th.ink).replaceAll('{fill}', th.symbolFill)}</g>`;
 }
 
 /** A round number of cells for the scale bar, about a fifth of the map wide. */
@@ -109,7 +141,7 @@ function scaleCells(width: number): number {
 }
 
 export function renderMapSvg(spec: MapSpec, o: RenderMapOptions = {}): string {
-  const th = THEME[o.theme ?? 'color'], k = o.ppu ?? 40, W = spec.cols * k, H = spec.rows * k, u = k / 40, fr = frameOf(o.crop, spec.cols, spec.rows, k);
+  const th = THEME[o.theme ?? 'color'], k = o.ppu ?? 40, W = spec.cols * k, H = spec.rows * k, u = o.pageScale ? pageUnit(o.pageScale) : k / 40, fr = frameOf(o.crop, spec.cols, spec.rows, k);
   const f = o.field ?? generateMap(spec), on = layersFor(spec, o.layers), tile = Math.max(9, Math.min(24, k * 0.4)) * (th.name === 'bw' ? 1.4 : 1);
   const parts: string[] = [];
   const used = terrainsUsed(f);
@@ -172,15 +204,16 @@ export function renderMapSvg(spec: MapSpec, o: RenderMapOptions = {}): string {
   }
 
   if (on.symbols && spec.overlay.symbols.length)
-    parts.push(`<g id="symbols">${spec.overlay.symbols.map(s => symbolSvg(s.kind, s.x * k, s.y * k, 22 * u * (s.scale ?? 1), th)).join('')}</g>`);
+    parts.push(`<g id="symbols">${spec.overlay.symbols.map(s => symbolSvg(s.kind, s.x * k, s.y * k, (o.pageScale ? PAGE_SYMBOL_MM * o.pageScale : 22 * u) * (s.scale ?? 1), th, s.angle)).join('')}</g>`);
 
   if (on.labels && spec.overlay.labels.length) {
-    const g = spec.overlay.labels.map(l => {
-      const base = { region: 30, place: 16, water: 20, note: 13 }[l.kind] * u * (l.size ?? 1);
+    const at = mapLabelLayout(spec, k, o.pageScale).at;
+    const g = spec.overlay.labels.map((l, i) => {
+      const base = labelSize(l, u, o.pageScale), lx = at[i].x / k, ly = at[i].y / k;
       const attrs = l.kind === 'region' ? `font-weight="700" letter-spacing="${n1(base * 0.18)}"` : l.kind === 'water' ? 'font-style="italic"' : l.kind === 'place' ? 'font-weight="700"' : '';
       const text = l.kind === 'region' ? l.text.toUpperCase() : l.text;
-      const t = haloText(text, l.x * k, l.y * k + base * 0.35, base, th.label[l.kind], th, attrs);
-      return l.angle ? `<g transform="rotate(${n1(l.angle)} ${n1(l.x * k)} ${n1(l.y * k)})">${t}</g>` : t;
+      const t = haloText(text, lx * k, ly * k + base * 0.35, base, th.label[l.kind], th, attrs);
+      return l.angle ? `<g transform="rotate(${n1(l.angle)} ${n1(lx * k)} ${n1(ly * k)})">${t}</g>` : t;
     }).join('');
     parts.push(`<g id="labels">${g}</g>`);
   }
@@ -192,11 +225,13 @@ export function renderMapSvg(spec: MapSpec, o: RenderMapOptions = {}): string {
     const rows: [string, string][] = used.map(t => [t, TERRAIN_NAMES[t]]);
     if (f.rivers.length) rows.push(['river', 'River']);
     if (f.roads.length) rows.push(['road', 'Road']);
+    for (const kind of LEGEND_SYMBOLS) if (on.symbols && spec.overlay.symbols.some(s => s.kind === kind)) rows.push([`symbol:${kind}`, SYMBOLS[kind].name.split(' (')[0]]);
     const rh = 18 * u, fs = 12 * u, bw = 150 * u, bh = rows.length * rh + 12 * u, x = fr.r - bw - pad, y = fr.b - bh - pad;
     let g = box(x, y, bw, bh);
     rows.forEach(([t, name], i) => {
       const sx = x + 8 * u, sy = y + 6 * u + i * rh + 2 * u, sw = 24 * u, sh = rh - 5 * u;
       if (t === 'river') g += `<path d="M${n1(sx)} ${n1(sy + sh / 2)}h${n1(sw)}" stroke="${th.riverBank}" stroke-width="${n1(5 * u)}"/><path d="M${n1(sx + th.riverBankWidth * u)} ${n1(sy + sh / 2)}h${n1(sw - 2 * th.riverBankWidth * u)}" stroke="${th.terrain.water.fill}" stroke-width="${n1(5 * u - 2 * th.riverBankWidth * u)}"/>`;
+      else if (t.startsWith('symbol:')) g += symbolSvg(t.slice(7), sx + sw / 2, sy + sh / 2, 15 * u, th);
       else if (t === 'road') g += `<path d="M${n1(sx)} ${n1(sy + sh / 2)}h${n1(sw)}" stroke="${th.road}" stroke-width="${n1(2 * u)}" stroke-dasharray="${n1(5 * u)} ${n1(3 * u)}"/>`;
       else {
         const st = th.terrain[t as Terrain];

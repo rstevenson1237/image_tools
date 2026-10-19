@@ -23,7 +23,7 @@
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
-import { clampCrop, dungeon, encodePNG, fitPpu, rasterizeSvg, type Crop, type Fit, type SizeUnit } from 'artgen-core/maps';
+import { clampCrop, dungeon, encodePNG, fitPpu, map, PX_PER_MM, rasterizeSvg, type Crop, type Fit, type SizeUnit } from 'artgen-core/maps';
 import { svgSize } from './map.ts';
 import { initNodeMapSvg } from './node-svg.ts';
 import { fileStem, readJson, writeJson, type FileRef, type Project } from './projectfs.ts';
@@ -89,8 +89,11 @@ export function checkDungeonFile(p: Project | null, ref: DungeonRef): DungeonChe
     const missing = (e as NodeJS.ErrnoException).code === 'ENOENT';
     return { file: shown(p, f), ok: false, errors: [{ path: '', message: missing ? `no such file: ${shown(p, f)}` : `not JSON: ${(e as Error).message}` }] };
   }
-  const r = dungeon.checkDungeon(raw);
-  return { file: shown(p, f), ok: !r.errors.length, errors: r.errors };
+  const r = dungeon.checkDungeon(raw), errors = [...r.errors];
+  const u = (raw as { underlay?: { map?: unknown } } | null)?.underlay;
+  if (!errors.some(e => e.path.startsWith('underlay')) && u && typeof u.map === 'string' && !existsSync(resolve(dirname(f), u.map)))
+    errors.push({ path: 'underlay.map', message: `no such map file ${u.map}` });
+  return { file: shown(p, f), ok: !errors.length, errors };
 }
 
 export interface DungeonRender {
@@ -101,10 +104,23 @@ export interface DungeonRender {
   crop: Crop; ppu: number;
   /** The SVG's own width and height, in its unit (`--fit` in mm gives millimetres). */
   svg: { width: number; height: number; unit: SizeUnit };
+  /** Output pixels per millimetre when sizes were set against the page (`--fit` or `--page-scale`), else null. */
+  pageScale: number | null;
+  /** Labels that found no free spot on the page (only with a page scale). */
+  unplaced: dungeon.UnplacedLabel[];
+}
+
+/** The map an `underlay` names: its path is from the dungeon file's folder. Null when the file has no underlay. */
+export function readUnderlay(p: Project | null, ref: DungeonRef, m: DungeonSpec): { map: map.MapSpec; field: map.MapField } | null {
+  if (!m.underlay) return null;
+  const f = resolve(dirname(dungeonFile(p, ref)), m.underlay.map);
+  if (!existsSync(f)) throw new Error(`underlay.map: no such map file ${m.underlay.map} (looked for ${shown(p, f)})`);
+  const spec = map.parseMap(readJson(f));
+  return { map: spec, field: map.generateMap(spec) };
 }
 
 /** Render a dungeon to SVG and/or PNG (black and white). */
-export async function renderDungeonFiles(p: Project | null, ref: DungeonRef, o: { formats?: ('svg' | 'png')[]; ppu?: number; crop?: Crop; fit?: Fit; rooms?: string[]; margin?: number; layers?: Partial<Record<dungeon.DungeonLayer, boolean>>; out?: string } = {}): Promise<DungeonRender> {
+export async function renderDungeonFiles(p: Project | null, ref: DungeonRef, o: { formats?: ('svg' | 'png')[]; ppu?: number; crop?: Crop; fit?: Fit; pageScale?: number; rooms?: string[]; margin?: number; layers?: Partial<Record<dungeon.DungeonLayer, boolean>>; out?: string } = {}): Promise<DungeonRender> {
   // a project dungeon renders to its out/ folder as <id>.…; a file renders beside itself as <file name>.…
   const m = readDungeon(p, ref), layout = dungeon.layoutDungeon(m), id = typeof ref === 'string' ? ref : fileStem(ref.file);
   const out = o.out ?? (typeof ref === 'string' ? join(dungeonsDir(p!), id, 'out') : dirname(dungeonFile(p, ref)));
@@ -115,12 +131,13 @@ export async function renderDungeonFiles(p: Project | null, ref: DungeonRef, o: 
   const window = o.rooms?.length ? dungeon.roomCrop(m, o.rooms, o.margin, layout) : o.crop;
   const crop = clampCrop(window ?? [0, 0, m.cols, m.rows], m.cols, m.rows), ppu = o.fit ? fitPpu(crop[2], crop[3], o.fit) : o.ppu ?? 40;
   const size: [number, number] = [Math.round(crop[2] * ppu), Math.round(crop[3] * ppu)], unit = o.fit?.unit ?? 'px';
+  const pageScale = o.pageScale ?? (o.fit ? PX_PER_MM : undefined), underlay = readUnderlay(p, ref, m);
   if (formats.includes('png')) await initNodeMapSvg();
   mkdirSync(out, { recursive: true });
-  const svg = dungeon.renderDungeonSvg(m, { ppu, layers: o.layers, layout, ...(window && { crop }), unit }), base = join(out, id);
+  const svg = dungeon.renderDungeonSvg(m, { ppu, layers: o.layers, layout, ...(window && { crop }), unit, pageScale, ...(underlay && { underlay }) }), base = join(out, id);
   if (formats.includes('svg')) { writeFileSync(`${base}.svg`, svg); files.push(`${base}.svg`); }
   if (formats.includes('png')) { writeFileSync(`${base}.png`, encodePNG(rasterizeSvg(svg, size[0], size[1]))); files.push(`${base}.png`); }
-  return { files: files.map(f => relative(process.cwd(), f)), rooms: m.rooms.length, corridors: m.corridors.length, doors: layout.doors.length, size, crop, ppu, svg: svgSize(crop, ppu, unit) };
+  return { files: files.map(f => relative(process.cwd(), f)), rooms: m.rooms.length, corridors: m.corridors.length, doors: layout.doors.length, size, crop, ppu, svg: svgSize(crop, ppu, unit), pageScale: pageScale ?? null, unplaced: dungeon.dungeonLabelLayout(m, ppu, pageScale, layout).unplaced };
 }
 
 /** A room's top-left corner: `x,y` as given, or a cell name (`C4`) meaning that cell's corner. */
@@ -162,7 +179,7 @@ export function describeDungeon(m: DungeonSpec): string {
     `${m.id}${m.title ? ` "${m.title}"` : ''}: ${m.cols}×${m.rows} cells of ${m.scale.perCell} ${m.scale.unit}, seed ${m.seed}`,
     `  gen: rooms ${g.rooms}, size ${g.minSize}..${g.maxSize}, caves ${g.caves}, round ${g.round}, loops ${g.loops}, doors ${g.doors}, corridor width ${g.corridorWidth}, spacing ${g.spacing}, entrance ${g.entrance ? 'on' : 'off'}`,
     `  grid: ${m.grid.show ? `${gridFt(m.grid.size)}${m.grid.sub && m.grid.size > 1 ? ` + ${gridFt(1)}` : ''}, ${m.grid.clip === 'floor' ? 'on the floor' : 'everywhere'}` : 'off'}; hatch ${m.style.hatch}${m.style.hatch === 'band' ? ` (${m.style.band} cells)` : ''}; numbers ${m.numbers ? 'on' : 'off'}, scale bar ${m.scaleBar ? 'on' : 'off'}, compass ${m.compass ? 'on' : 'off'}`,
-    `  rooms (${m.rooms.length}):${m.rooms.map(r => `\n    ${r.id}: ${r.shape} ${r.w}×${r.h} at ${r.x},${r.y}${r.number === false ? ', no number' : r.number !== undefined ? `, #${r.number}` : ''}${r.label ? ` "${r.label}"` : ''}`).join('')}`,
+    `  rooms (${m.rooms.length}):${m.rooms.map(r => `\n    ${r.id}: ${r.shape} ${r.w}×${r.h} at ${r.x},${r.y}${r.fill && r.fill !== 'floor' ? `, ${r.fill}` : ''}${r.number === false ? ', no number' : r.number !== undefined ? `, #${r.number}` : ''}${r.label ? ` "${r.label}"` : ''}`).join('')}`,
     `  corridors (${m.corridors.length}):${m.corridors.map((c, i) => `\n    ${i}. ${end(c.from)} → ${end(c.to)}${c.width && c.width !== 1 ? `, width ${c.width}` : ''}${c.via ? `, via ${c.via.join(',')}` : c.route && c.route !== 'auto' ? `, ${c.route}` : ''}${c.doors?.some(Boolean) ? `, doors ${c.doors.map(d => d ?? 'none').join('/')}` : ''}`).join('')}`,
     `  labels (${m.overlay.labels.length}):${m.overlay.labels.map((l, i) => `\n    ${i}. ${l.kind} "${l.text}" at ${l.x},${l.y}`).join('')}`,
     `  symbols (${m.overlay.symbols.length}):${m.overlay.symbols.map((s, i) => `\n    ${i}. ${s.kind} at ${s.x},${s.y}${s.angle ? ` turned ${s.angle}°` : ''}`).join('')}`,
@@ -180,5 +197,6 @@ export function describeDungeonFacts(r: dungeon.DungeonFacts): string {
     `exits (${r.exits.length}):${r.exits.map(x => `\n  corridor ${x.corridor} ${x.end} at ${x.at.join(',')}${x.room ? ` from ${x.room}` : ''}: nearest edge ${x.edge}, ${x.distance.map} cells (${x.distance.scale} ${unit})`).join('')}`,
     `overlaps (${r.overlaps.length}):${r.overlaps.map(o => `\n  ${o.rooms.join(' / ')}: ${o.count} cells, ${box(o.box)}`).join('')}`,
     `unreached rooms: ${r.unreached.join(', ') || 'none'}`,
+    ...(r.walls ?? []).map(w => `wall ${w.id ?? w.index}: ${w.corners.length} corners, ${w.towers.length} towers (${w.towers.filter(t => t.source === 'corner').length} at corners), thickness ${w.thickness}; ${w.enclosed.every(e => e.inside) ? 'encloses every room' : `does not enclose ${w.enclosed.filter(e => !e.inside).map(e => e.room).join(', ')}`}${w.gates.map(g => `\n  ${g.kind} at ${g.at.join(',')} (wall at ${g.angle}°, ${g.width} wide, ${g.towers} towers${g.room ? `, opens into ${g.room}` : ''})`).join('')}`),
   ].join('\n');
 }

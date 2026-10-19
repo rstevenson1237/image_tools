@@ -176,10 +176,10 @@ describe('warren: --room F.3 --margin 2', () => {
   });
 });
 
-describe('keep: --room A.9 --room A.13', () => {
+describe('keep-flat: --room A.9 --room A.13', () => {
   test('one crop round both rooms', async () => {
-    const spec = readDungeon(null, { file: join(FIXTURES, 'keep', 'dungeon.json') }), layout = dungeon.layoutDungeon(spec);
-    const { dir, file } = bare('keep', 'dungeon');
+    const spec = readDungeon(null, { file: join(FIXTURES, 'keep-flat', 'dungeon.json') }), layout = dungeon.layoutDungeon(spec);
+    const { dir, file } = bare('keep-flat', 'dungeon');
     const r = JSON.parse((await cli('dungeon', 'render', '--file', file, '--format', 'svg', '--room', 'A.9', '--room', 'A.13', '--ppu', '10', '--json')).out);
     const [x, y, w, h] = r.crop as number[];
     for (const code of ['A.9', 'A.13']) {
@@ -197,7 +197,7 @@ describe('keep: --room A.9 --room A.13', () => {
   });
 
   test('--room names a room that is not there', () => {
-    const spec = readDungeon(null, { file: join(FIXTURES, 'keep', 'dungeon.json') });
+    const spec = readDungeon(null, { file: join(FIXTURES, 'keep-flat', 'dungeon.json') });
     expect(() => dungeon.roomCrop(spec, ['A.99'])).toThrow(/no room A\.99/);
     expect(() => dungeon.roomCrop(spec, [])).toThrow(/at least one room/);
   });

@@ -43,3 +43,7 @@ node tools/artgen/artgen-maps.js map render --file map.json --format svg
 - Rock is a broad plateau with a ragged edge: the hills have no ridges or passes, only the noise the generator already has.
 - The road avoids water and takes gentle ground between its points, but never crosses a river by a ford or bridge; where it meets one it runs through.
 - The labels A to E are small against 200-yard squares.
+
+## A6, A7
+
+A is also a `castle` symbol, at its label. Rendered `--fit 260x180mm` its mark is 5 mm across and every region label is 9 pt (a `place`'s default) or more.

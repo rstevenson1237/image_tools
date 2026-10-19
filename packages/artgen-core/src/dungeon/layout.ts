@@ -5,6 +5,7 @@
 import { rng } from '../lib/rng.ts';
 import { chaikin } from '../lib/trace.ts';
 import type { CorridorEnd, DoorKind, DungeonSpec, Room } from './spec.ts';
+import { layoutWalls } from './walls.ts';
 
 export interface RoomGeom { room: Room; index: number; outline: number[]; cx: number; cy: number; number?: number }
 /** Where a corridor leaves a room (on its outline), or its point end; the angle is the direction away from the room. `along` is how far the corridor runs inside the room to get there (cells; 0 at a point end). */
@@ -153,6 +154,7 @@ export function contentBox(spec: DungeonSpec, l = layoutDungeon(spec)): [number,
   for (const g of l.rooms) add(g.outline);
   for (const c of l.corridors) add(c.pts, c.width / 2);
   for (const o of [...spec.overlay.labels, ...spec.overlay.symbols]) add([o.x, o.y], 0.5);
+  for (const w of layoutWalls(spec, l)) { add(w.ring, w.thickness / 2); for (const t of w.towers) add([t.x, t.y], t.size / 2); }
   if (!xs.length) return null;
   return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
 }
@@ -170,6 +172,9 @@ export function fitDungeon(spec: DungeonSpec, margin = 2): DungeonSpec {
     if (c.via) c.via = mv(c.via);
   }
   for (const o of [...out.overlay.labels, ...out.overlay.symbols]) { o.x += dx; o.y += dy; }
+  // the walls and the underlay move with the rooms: a wall's own line and its gates, and the map unit at the corner
+  for (const w of out.walls ?? []) { if (w.poly) w.poly = mv(w.poly); for (const g of w.gates ?? []) g.at = [g.at[0] + dx, g.at[1] + dy]; }
+  if (out.underlay) out.underlay.origin = [out.underlay.origin[0] - dx * out.underlay.scale, out.underlay.origin[1] - dy * out.underlay.scale];
   out.cols = Math.max(4, Math.ceil(box[2] + dx + margin));
   out.rows = Math.max(4, Math.ceil(box[3] + dy + margin));
   return out;

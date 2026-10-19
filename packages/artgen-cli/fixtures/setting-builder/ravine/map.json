@@ -51,7 +51,37 @@
         4,
         10,
         4
-      ]
+      ],
+      "origin": "tables"
+    },
+    {
+      "op": "elevate",
+      "amount": -0.05,
+      "shape": {
+        "stroke": [
+          8,
+          40,
+          8,
+          150
+        ],
+        "width": 1
+      }
+    },
+    {
+      "op": "elevate",
+      "amount": 0.1,
+      "shape": {
+        "poly": [
+          0,
+          0,
+          4,
+          0,
+          4,
+          184,
+          0,
+          184
+        ]
+      }
     }
   ],
   "require": [
@@ -67,7 +97,8 @@
       ],
       "tolerance": 1,
       "width": 2,
-      "delta": false
+      "delta": false,
+      "origin": "tables"
     },
     {
       "id": "E-wall-west",
@@ -86,7 +117,8 @@
       },
       "terrain": "rock",
       "share": 0.9,
-      "blend": 3
+      "blend": 3,
+      "origin": "tables"
     },
     {
       "id": "E-wall-west-height",
@@ -105,7 +137,8 @@
       },
       "low": 30,
       "high": 40,
-      "blend": 3
+      "blend": 3,
+      "origin": "tables"
     },
     {
       "id": "E-wall-east",
@@ -124,7 +157,8 @@
       },
       "terrain": "rock",
       "share": 0.9,
-      "blend": 3
+      "blend": 3,
+      "origin": "tables"
     },
     {
       "id": "E-wall-east-height",
@@ -143,7 +177,8 @@
       },
       "low": 30,
       "high": 40,
-      "blend": 3
+      "blend": 3,
+      "origin": "tables"
     }
   ],
   "overlay": {
@@ -153,145 +188,152 @@
         "x": 13.2,
         "y": 120,
         "kind": "place",
-        "size": 0.5
+        "origin": "tables"
       },
       {
         "text": "E.9 The Shrine Stair",
         "x": 11.2,
         "y": 4,
         "kind": "place",
-        "size": 0.5
+        "origin": "tables"
       },
       {
         "text": "E.6 The Gnoll Ledge",
         "x": 13.2,
         "y": 80,
         "kind": "place",
-        "size": 0.5
+        "origin": "tables"
       },
       {
         "text": "E.2 The Kobold Ledge",
         "x": 2.8,
         "y": 150,
         "kind": "place",
-        "size": 0.5
+        "origin": "tables"
       },
       {
         "text": "E.8 The Maze Door",
         "x": 4.8,
         "y": 4,
         "kind": "place",
-        "size": 0.5
+        "origin": "tables"
       },
       {
         "text": "E.4 The Orc Ledge",
         "x": 2.8,
         "y": 60,
         "kind": "place",
-        "size": 0.5
+        "origin": "tables"
       },
       {
         "text": "E.7 The Dry Fork",
         "x": 13.2,
         "y": 40,
         "kind": "place",
-        "size": 0.5
+        "origin": "tables"
       },
       {
         "text": "E.10 The Owlbear's Rim",
         "x": 13.399999999999999,
         "y": 20,
         "kind": "place",
-        "size": 0.5
+        "origin": "tables"
       },
       {
         "text": "E.3 The Goblin Ledge",
         "x": 2.8,
         "y": 110,
         "kind": "place",
-        "size": 0.5
+        "origin": "tables"
       },
       {
         "text": "E.12 The Tithe Niche",
         "x": 11,
         "y": 4,
         "kind": "place",
-        "size": 0.5
+        "origin": "tables"
       },
       {
         "text": "E.11 The Rim Track",
         "x": 13.399999999999999,
         "y": 80,
         "kind": "place",
-        "size": 0.5
+        "origin": "tables"
       }
     ],
     "symbols": [
       {
-        "kind": "cave",
+        "kind": "cave-mouth",
         "x": 12,
         "y": 120,
-        "scale": 0.6
+        "angle": 180,
+        "origin": "tables"
       },
       {
         "kind": "ruin",
         "x": 10,
         "y": 4,
-        "scale": 0.6
+        "origin": "tables"
       },
       {
-        "kind": "cave",
+        "kind": "cave-mouth",
         "x": 12,
         "y": 80,
-        "scale": 0.6
+        "angle": 180,
+        "origin": "tables"
       },
       {
-        "kind": "cave",
+        "kind": "cave-mouth",
         "x": 4,
         "y": 150,
-        "scale": 0.6
+        "angle": 0,
+        "origin": "tables"
       },
       {
-        "kind": "cave",
+        "kind": "cave-mouth",
         "x": 6,
         "y": 4,
-        "scale": 0.6
+        "angle": 90,
+        "origin": "tables"
       },
       {
-        "kind": "cave",
+        "kind": "cave-mouth",
         "x": 4,
         "y": 60,
-        "scale": 0.6
+        "angle": 0,
+        "origin": "tables"
       },
       {
-        "kind": "cave",
+        "kind": "cave-mouth",
         "x": 12,
         "y": 40,
-        "scale": 0.6
+        "angle": 180,
+        "origin": "tables"
       },
       {
         "kind": "skull",
         "x": 12.2,
         "y": 20,
-        "scale": 0.6
+        "origin": "tables"
       },
       {
-        "kind": "cave",
+        "kind": "cave-mouth",
         "x": 4,
         "y": 110,
-        "scale": 0.6
+        "angle": 0,
+        "origin": "tables"
       },
       {
         "kind": "treasure",
         "x": 9.8,
         "y": 4,
-        "scale": 0.6
+        "origin": "tables"
       },
       {
         "kind": "poi",
         "x": 12.2,
         "y": 80,
-        "scale": 0.6
+        "origin": "tables"
       }
     ]
   }

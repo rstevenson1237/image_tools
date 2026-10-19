@@ -1,0 +1,77 @@
+{
+  "cols": 113,
+  "rows": 77,
+  "gen": {
+    "rooms": 8,
+    "minSize": 3,
+    "maxSize": 8,
+    "caves": 0.15,
+    "round": 0.1,
+    "loops": 0.25,
+    "doors": 0.6,
+    "corridorWidth": 1,
+    "spacing": 2,
+    "entrance": true
+  },
+  "grid": {
+    "show": true,
+    "size": 2,
+    "sub": true,
+    "clip": "floor"
+  },
+  "style": {
+    "hatch": "none",
+    "band": 0.9,
+    "wall": 1
+  },
+  "scale": {
+    "perCell": 5,
+    "unit": "ft"
+  },
+  "numbers": true,
+  "scaleBar": true,
+  "compass": false,
+  "seed": 678132,
+  "title": "A Roadsend Keep: cellars",
+  "id": "a-cellars",
+  "version": 1,
+  "rooms": [
+    {
+      "id": "r12",
+      "shape": "rect",
+      "x": 2,
+      "y": 69,
+      "w": 6,
+      "h": 3,
+      "label": "A.12 The Cellar Under the Wheel",
+      "number": 12,
+      "fill": "cellar",
+      "origin": "tables"
+    },
+    {
+      "id": "r13",
+      "shape": "rect",
+      "x": 81,
+      "y": 40,
+      "w": 30,
+      "h": 1,
+      "label": "A.13 The Sally Tunnel",
+      "number": 13,
+      "fill": "cellar",
+      "origin": "tables"
+    }
+  ],
+  "corridors": [],
+  "overlay": {
+    "labels": [],
+    "symbols": []
+  },
+  "underlay": {
+    "map": "../keep/map.json",
+    "origin": [
+      4,
+      8
+    ],
+    "scale": 0.5
+  }
+}

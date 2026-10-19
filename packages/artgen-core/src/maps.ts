@@ -5,3 +5,5 @@ export { readFormat, type Migration } from './format.ts';
 export { encodePNG } from './lib/png.ts';
 export { initSvg, rasterizeSvg, setSvgFonts } from './lib/svg.ts';
 export { parseCrop, parseFit, fitPpu, clampCrop, type Crop, type Fit, type SizeUnit } from './lib/view.ts';
+export { type SyncReport, type SyncConflict } from './lib/sync.ts';
+export { PX_PER_MM } from './lib/view.ts';

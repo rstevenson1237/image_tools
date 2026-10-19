@@ -21,7 +21,7 @@
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
-import { clampCrop, encodePNG, fitPpu, map, rasterizeSvg, type Crop, type Fit, type SizeUnit } from 'artgen-core/maps';
+import { clampCrop, encodePNG, fitPpu, map, PX_PER_MM, rasterizeSvg, type Crop, type Fit, type SizeUnit } from 'artgen-core/maps';
 import { initNodeMapSvg } from './node-svg.ts';
 import { fileStem, readJson, writeJson, type FileRef, type Project } from './projectfs.ts';
 
@@ -111,10 +111,14 @@ export interface MapRender {
   crop: Crop; ppu: number;
   /** The SVG's own width and height, in its unit (`--fit` in mm gives millimetres). */
   svg: { width: number; height: number; unit: SizeUnit };
+  /** Output pixels per millimetre when sizes were set against the page (`--fit` or `--page-scale`), else null. */
+  pageScale: number | null;
+  /** Labels that found no free spot on the page (only with a page scale). */
+  unplaced: map.UnplacedLabel[];
 }
 
 /** Render a map to SVG and/or PNG in one or both themes. */
-export async function renderMapFiles(p: Project | null, ref: MapRef, o: { themes?: map.ThemeName[]; formats?: ('svg' | 'png')[]; ppu?: number; crop?: Crop; fit?: Fit; layers?: Partial<Record<map.MapLayer, boolean>>; out?: string } = {}): Promise<MapRender> {
+export async function renderMapFiles(p: Project | null, ref: MapRef, o: { themes?: map.ThemeName[]; formats?: ('svg' | 'png')[]; ppu?: number; crop?: Crop; fit?: Fit; pageScale?: number; layers?: Partial<Record<map.MapLayer, boolean>>; out?: string } = {}): Promise<MapRender> {
   // a project map renders to its out/ folder as <id>.…; a file renders beside itself as <file name>.…
   const m = readMap(p, ref), field = map.generateMap(m), id = typeof ref === 'string' ? ref : fileStem(ref.file);
   const out = o.out ?? (typeof ref === 'string' ? join(mapsDir(p!), id, 'out') : dirname(mapFile(p, ref)));
@@ -122,14 +126,15 @@ export async function renderMapFiles(p: Project | null, ref: MapRef, o: { themes
   if (o.fit && o.ppu !== undefined) throw new Error('--fit and --ppu both set the scale: use one');
   const crop = clampCrop(o.crop ?? [0, 0, m.cols, m.rows], m.cols, m.rows), ppu = o.fit ? fitPpu(crop[2], crop[3], o.fit) : o.ppu ?? 40;
   const size: [number, number] = [Math.round(crop[2] * ppu), Math.round(crop[3] * ppu)], unit = o.fit?.unit ?? 'px';
+  const pageScale = o.pageScale ?? (o.fit ? PX_PER_MM : undefined);
   if (formats.includes('png')) await initNodeMapSvg();
   mkdirSync(out, { recursive: true });
   for (const theme of o.themes ?? ['color']) {
-    const svg = map.renderMapSvg(m, { theme, ppu, layers: o.layers, field, ...(o.crop && { crop }), unit }), base = join(out, `${id}.${theme}`);
+    const svg = map.renderMapSvg(m, { theme, ppu, layers: o.layers, field, ...(o.crop && { crop }), unit, pageScale }), base = join(out, `${id}.${theme}`);
     if (formats.includes('svg')) { writeFileSync(`${base}.svg`, svg); files.push(`${base}.svg`); }
     if (formats.includes('png')) { writeFileSync(`${base}.png`, encodePNG(rasterizeSvg(svg, size[0], size[1]))); files.push(`${base}.png`); }
   }
-  return { files: files.map(f => relative(process.cwd(), f)), terrains: map.terrainsUsed(field), rivers: field.rivers.length, size, crop, ppu, svg: svgSize(crop, ppu, unit) };
+  return { files: files.map(f => relative(process.cwd(), f)), terrains: map.terrainsUsed(field), rivers: field.rivers.length, size, crop, ppu, svg: svgSize(crop, ppu, unit), pageScale: pageScale ?? null, unplaced: map.mapLabelLayout(m, ppu, pageScale).unplaced };
 }
 
 /** The SVG's width and height in its unit, as the renderer writes them. */

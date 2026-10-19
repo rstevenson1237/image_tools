@@ -80,7 +80,7 @@ Reads: **map format 1**, **dungeon format 1**. `artgen formats --json` prints `{
   `viewBox` is the window in sheet pixels, so a crop and the full render share coordinates. A render with none of the new
   flags is unchanged, byte for byte.
 - Tests: `src/crop.test.ts` on the `ravine` (16 x 46 crop round E.2, `--fit 180x260mm` whole), `warren` (`--room F.3
-  --margin 2`) and `keep` (`--room A.9 --room A.13`) fixtures; a crop's sheet layers are compared with the full
+  --margin 2`) and `keep-flat` (`--room A.9 --room A.13`) fixtures; a crop's sheet layers are compared with the full
   render's as SVG text.
 
 **Facts read back from a map** (`artgen map facts`, `artgen dungeon facts`; both take `--file` or an id, and `--json`)
@@ -152,6 +152,67 @@ Reads: **map format 1**, **dungeon format 1**. `artgen formats --json` prints `{
   needs rock at 0.9: `check` exits 1 naming `C-ground` alone) and `ravine` rebuilt with `require` in place of the hand
   `paint`, `elevate` and `river` edits (rock walls of 30 to 40 ft, a stream up the path, `gen.rivers` 0; the walls'
   contours run along the gorge). The Frontier's areas were placed in artgen from the brief's outline: see its `case.md`.
+
+**Symbols, and sizes against the page** (artgen A6, A7; every addition is optional, so map format 1 and dungeon format 1 and their versions are unchanged)
+- New symbols, each in `map symbols` or `dungeon symbols`, drawn, and in the legend when used:
+  - Map `cave-mouth`: an opening in a cliff line, facing its `angle`; and map `gate`: a break in a wall line. A map symbol gains
+    `angle` (degrees clockwise from east, as a dungeon symbol's), and `map symbol --angle`.
+  - Dungeon `stairs-up` and `stairs-down` (a wedge that widens the way it climbs, a solid arrow; a wedge that narrows the way it
+    falls, dashed treads and an open arrow), each pointing its `angle`; `curtain`, along a room edge or across a passage; `dais`, a
+    raised floor drawn by its outline; and `gate` (the map's), which a wall's gate uses. Plain `stairs` stays.
+  - Legends: a map's legend lists `cave-mouth` and `gate` when used. A dungeon has a `legend` layer, off unless the file says
+    `"legend": true` (`dungeon style --legend on`), listing every symbol the overlay uses; so a file that does not ask for it renders as before.
+- **Page scale.** `map render` and `dungeon render` take `--page-scale <px per mm>`, and `--fit` sets it (the SVG is 96 px to the inch).
+  Label sizes, symbol sizes and stroke widths are then set on the page, not by the square: place labels 9 pt, notes 7 pt, regions
+  12 pt, water 8 pt; dungeon names 9 pt, notes 7 pt, areas 12 pt, room numbers 8 pt, room names 8 pt; symbols 5 mm. A label's `size` is a
+  multiple of its kind's default, and a symbol's `scale` of 5 mm. Furniture (the legend, scale bar, compass, title) and the terrain's
+  stroke widths follow the page too. Without a page scale sizes follow `ppu` as before and every existing file renders byte for byte as it did.
+- **Labels kept off one another.** With a page scale, a label that would overlap another label, a symbol (or a room's badge and name, on a
+  dungeon) moves to the nearest free side of its anchor (right, left, above, below, the diagonals, then further out), staying on the sheet.
+  `--json` of a render adds `pageScale` and `unplaced` (`[{index, text}]`: the labels that found no free spot; they stay where they were).
+- Cases: `ravine` (the cave mouths are `cave-mouth`, angled across the gorge; labels lost their half `size`), `frontier` (A is a `castle`),
+  `shrine-crypts` (M.6 `stairs-up` toward M.2, M.13 `stairs-down` toward L.5), `keep` (A.10 has a `dais`).
+
+**Underlay, walls, towers, gates and room fills** (artgen A5; `underlay`, `walls`, room `fill` and `legend` are optional fields in `dungeon.json`)
+- `underlay`: `{ "map": "map.json", "origin": [x, y], "scale": 0.5 }` (+ optional `theme`: `color` default, or `bw`). `map` is a map file, its path
+  from the dungeon file's folder; `origin` is the map unit at the dungeon's top-left corner and `scale` the map units in one cell (a 5 ft
+  cell on a 10 ft sheet: 0.5). The render draws the map's terrain, rivers, contours and roads under the rooms, cropped to the dungeon's
+  extent (and so cut by `--crop` like everything else); the map's own legend, title, compass, scale bar, grid, labels and symbols are off and the
+  dungeon's are kept. The engine reads no files: `renderDungeonSvg` takes the parsed map as `underlay: { map }`, and the CLI reads it.
+  `dungeon check` reports a map file that is not there. With `hatch: none` the underlay shows between the rooms, not white.
+- `walls`: a list of `{ id?, rooms | poly, thickness?, inset?, towers?, gates? }`. A wall follows the convex hull of the footprints of
+  `rooms` (ids) moved out by `inset` cells (default 1), or `poly` (x,y pairs) as given; `thickness` is in cells (default 1). `towers`:
+  `{ shape: round|square, size?: 3, at?: "corners" | [vertex indices] }`. `gates`: `{ at: [x, y], kind: gate|postern, room?, width? }`: the
+  point is snapped onto the wall; a `gate` (2 cells wide) has a tower each side, a `postern` (1 cell) none; the wall is cut at each and the
+  `gate` symbol set into the cut, turned along the wall. New layer `enclosure`.
+- Room `fill`: `floor` (as now, the default), `building` (roofed: a plain tone, a ridge, thin walls; layer `buildings`), `yard` (open ground:
+  no walls, no fill, the underlay showing through) or `cellar` (a dashed outline drawn above everything else; layer `cellars`). Only `floor`
+  rooms take the hatching and the grid. New layers: `underlay`, `buildings`, `enclosure`, `cellars`, `legend`.
+- `dungeon facts` gains `walls` when the file has them: each wall's corners, towers (with where each stands and why), gates (point, wall angle,
+  width, the room it opens into, its towers) and whether each room's footprint is inside it. Files without walls give the facts they gave.
+- Cases: `keep` is now the upper level (A.1 to A.11: A.8 a yard, the rest buildings, an underlay of a 66 x 54 square map at 10 ft with a rise, a
+  wood and a road to A.1, one wall with round towers at the corners, a gate at A.1 and a postern at A.2, and a dais); `keep-cellars` (A.12 and A.13 as
+  cellars over the same underlay); and `keep-flat`, the first drawing of all thirteen rooms, kept as it was for its overlap and crop facts.
+  The upper rooms were nudged by hand (A.4 one cell west) until setting_builder T4.6 sets each building's place with its footprint.
+
+**Hand edits kept across regeneration** (artgen A8; `origin` is an optional string, so the format versions are unchanged)
+- `origin` on every entry: a map's `edits`, `require`, labels and symbols; a dungeon's rooms, corridors, walls, labels and symbols. An entry
+  with none is a hand entry. `--origin` on the per-change commands (`map edit`, `map label`, `map symbol`, `dungeon room add`, `link`, `label`,
+  `symbol`).
+- `artgen map sync <id>|--file target.json --from new.json --origin tables` and `artgen dungeon sync …`: every entry of that origin in the
+  target is replaced by the entries of `new.json` (each of which must carry that origin, or the sync is refused); every other entry is kept,
+  in order, after the generated ones, so a hand `elevate` still shapes ground made from requirements and a hand `x` is applied last.
+  A room keeps its id across a sync when `new.json` gives the same id. A file with no `origin` anywhere is all hand entries, and a sync
+  of an origin that is on neither side leaves it unchanged. `--json` is `{version, origin, lists: {name: {removed, added, kept}}, conflicts}`.
+- **Conflicts are reported, never resolved silently** (exit 0; the report is the finding):
+  - `dropped`: a kept entry (a corridor, a wall) that refers to a room the sync removed is dropped.
+  - `overridden`: a hand edit to a field of a generated room. `room move` and `room set` on a room that has an origin record the fields in
+    `hand` (`["x"]`); the sync keeps the table's value and reports the hand one (`entry`, `field`, `hand`, `table`). A hand value equal to
+    the table's is not a conflict.
+  - `inside-room`, `over-mark`: a hand label or symbol that now lies inside a room, or within 0.75 cell of another mark, where it did not
+    before the sync.
+- Cases: `ravine` (marks, road and requirements `origin: tables`, two hand `elevate`s that a sync keeps after them), `warren` (every entry
+  `tables`, a hand `web` in F.3, F.4's `x` moved by hand) and `shrine-crypts` (a hand label that a resized M.8 covers).
 
 **Limits**
 - A map may be up to 200 squares a side (was 120), so a 1-mile gorge fits at 10 yards a square. Raising a limit

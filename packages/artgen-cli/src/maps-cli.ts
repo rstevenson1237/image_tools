@@ -5,10 +5,10 @@
  * Each command names its map by id (in a project: `art/maps/<id>/map.json`) or by `--file <path>`, which needs no
  * project and renders beside the file unless `--out` says otherwise.
  */
-import { dungeon, map, parseCrop, parseFit, type Crop, type Fit } from 'artgen-core/maps';
+import { dungeon, map, parseCrop, parseFit, type Crop, type Fit, type SyncReport } from 'artgen-core/maps';
 import { checkDungeonFile, cornerPoint, describeDungeonFacts, corridorEnd, createDungeon, describeDungeon, doorPair, dungeonSummary, gridMode, listDungeons, readDungeon, renderDungeonFiles, updateDungeon } from './dungeon.ts';
 import { checkMapFile, createMap, describeMap, describeMapFacts, factsQuery, listMaps, mapSummary, numbers, onOff, parseLayers, readMap, renderMapFiles, shapeFrom, updateMap } from './map.ts';
-import { fileId, requireProject } from './projectfs.ts';
+import { fileId, readJson, requireProject } from './projectfs.ts';
 
 declare const __ARTGEN_VERSION__: string | undefined;
 declare const __ARTGEN_SHA__: string | undefined;
@@ -30,6 +30,18 @@ export function viewFlags(args: string[], cell: number): { crop?: Crop; fit?: Fi
   return { ...(crop !== undefined && { crop: parseCrop(crop, cell) }), ...(fit !== undefined && { fit: parseFit(fit) }) };
 }
 
+/** `--origin tables`: who wrote an entry (none: a hand entry). */
+export const originFlag = (args: string[]): { origin: string } | undefined => { const v = flag(args, '--origin'); if (v === undefined) return undefined; if (!v) throw new Error('--origin: a non-empty name'); return { origin: v }; };
+
+/** `--page-scale n`: output pixels per millimetre on the page (`--fit` sets it from the box). */
+export const pageScaleFlag = (args: string[]): number | undefined => { const v = flag(args, '--page-scale'); if (v === undefined) return undefined; if (!(+v > 0)) throw new Error('--page-scale: output pixels per millimetre, above 0'); return +v; };
+
+/** Print a sync's result: what was replaced and every conflict. */
+function syncText(file: string, r: SyncReport): string {
+  const lists = Object.entries(r.lists).filter(([, c]) => c.removed || c.added).map(([n, c]) => `${n}: ${c.removed} of ${r.origin} replaced by ${c.added}`);
+  return [`${file}: synced origin ${r.origin}${lists.length ? ` (${lists.join('; ')})` : ' (nothing of that origin on either side)'}`, `${r.conflicts.length} conflict${r.conflicts.length === 1 ? '' : 's'}${r.conflicts.length ? ':' : ''}`, ...r.conflicts.map(c => `  ${c.kind}: ${c.message}`)].join('\n');
+}
+
 export const num = (args: string[], name: string): number | undefined => { const v = flag(args, name); if (v === undefined) return undefined; if (!Number.isFinite(+v)) throw new Error(`${name}: a number`); return +v; };
 
 export const MAP_USAGE = `       artgen map new <id> [--preset regional|local] [--size 30x22] [--grid hex|square|none] [--seed n] [--title "..."]
@@ -38,10 +50,11 @@ export const MAP_USAGE = `       artgen map new <id> [--preset regional|local] [
                   <shape>: --circle x,y,r | --poly x,y,x,y,… | --stroke x,y,… --width w   (terrains: ${map.TERRAINS.join(', ')})
        artgen map grid <id> hex|square|none [--size n] [--coords on|off]
        artgen map label <id> "Text" --at x,y|0304|C4 [--kind region|place|water|note] [--size f] [--angle deg]
-       artgen map symbol <id> <kind> --at x,y|0304|C4 [--scale f] | map symbols | map overlay <id> rm label|symbol <i> | clear [labels|symbols]
+       artgen map symbol <id> <kind> --at x,y|0304|C4 [--scale f] [--angle deg] [--origin name] | map symbols | map overlay <id> rm label|symbol <i> | clear [labels|symbols]
        artgen map set <id> [--title "..."] [--legend on|off] [--scale-bar on|off] [--compass on|off] [--per-cell n] [--unit mi]
-       artgen map render <id> [--theme color|bw|both] [--format svg|png|both] [--ppu 40 | --fit 180x260mm|px] [--crop x,y,w,h[cells]] [--layers grid=off,labels=off] [--out dir]
-         (--crop is a window on the full render, in map units or, with "cells" after it, grid cells; --fit picks the ppu that fits the crop or the whole map in the box)
+       artgen map render <id> [--theme color|bw|both] [--format svg|png|both] [--ppu 40 | --fit 180x260mm|px] [--page-scale px/mm] [--crop x,y,w,h[cells]] [--layers grid=off,labels=off] [--out dir]
+         (--fit and --page-scale set label, symbol and stroke sizes in points and millimetres on the page, 9 pt place labels, 7 pt notes, 5 mm symbols, and keep labels off one another; --json lists any that found no room.
+          --crop is a window on the full render, in map units or, with "cells" after it, grid cells; --fit picks the ppu that fits the crop or the whole map in the box)
        artgen map show <id> | list
        artgen map facts <id> [--at x,y … | C4 | 0304] [--area x,y,x,y,…] [--above river|lowest] [--radius n] [--json]
                   the ground as numbers: --at gives each point's terrain, height, slope and nearest river and road; --area the terrain shares, lowest and highest
@@ -50,15 +63,17 @@ export const MAP_USAGE = `       artgen map new <id> [--preset regional|local] [
        artgen map check <id> [--json]   the file's format errors with their JSON paths, then each \`require\` entry measured: \`C-forest terrain forest 0.71 < 0.80 unmet\`; exits 1 on any error or unmet requirement
        artgen dungeon new <id> [--size 40x30] [--seed n] [--title "..."] [--empty] | new <id> --room rect|circle|octagon|cave --room-size 8x6 [--exits n,e:secret,s:none,w] [--label "..."] [--number n|off]
        artgen dungeon gen <id> [--seed n] [--rooms n] [--min-size n] [--max-size n] [--caves f] [--round f] [--loops f] [--doors f] [--corridor-width n] [--spacing n] [--entrance on|off] [--size 40x30]
-       artgen dungeon room <id> add <shape> --at x,y|C4 --size WxH [--points x,y,…] [--label "..."] [--number n|off] [--room-id r9] | move <rid> --at x,y | set <rid> [--shape s] [--size WxH] [--label "..."] [--number n|off] | rm <rid>
-       artgen dungeon link <id> <room> <room|x,y|C4> [--width 1] [--route auto|hv|vh|straight] [--via x,y,…] [--doors door,none] | unlink <id> <i> | door <id> <i> from|to <kind|none>
+       artgen dungeon room <id> add <shape> --at x,y|C4 --size WxH [--points x,y,…] [--label "..."] [--number n|off] [--room-id r9] [--fill floor|building|yard|cellar] [--origin name] | move <rid> --at x,y | set <rid> [--shape s] [--size WxH] [--label "..."] [--number n|off] [--fill f] | rm <rid>
+       artgen dungeon link <id> <room> <room|x,y|C4> [--width 1] [--route auto|hv|vh|straight] [--via x,y,…] [--doors door,none] [--origin name] | unlink <id> <i> | door <id> <i> from|to <kind|none>
                   (shapes: ${dungeon.ROOM_SHAPES.join(', ')}; doors: ${dungeon.DOOR_KINDS.join(', ')})
-       artgen dungeon grid <id> 10|5|10+5|none [--clip floor|all] | style <id> [--hatch band|full|none] [--band n] [--wall f] [--numbers on|off] [--scale-bar on|off] [--compass on|off] [--title "..."] [--per-cell n] [--unit ft]
-       artgen dungeon label <id> "Text" --at x,y|C4 [--kind name|note|area] [--size f] [--angle deg] | symbol <id> <kind> --at x,y|C4 [--scale f] [--angle deg] | symbols
+       artgen dungeon grid <id> 10|5|10+5|none [--clip floor|all] | style <id> [--hatch band|full|none] [--band n] [--wall f] [--numbers on|off] [--scale-bar on|off] [--compass on|off] [--legend on|off] [--title "..."] [--per-cell n] [--unit ft]
+       artgen dungeon label <id> "Text" --at x,y|C4 [--kind name|note|area] [--size f] [--angle deg] [--origin name] | symbol <id> <kind> --at x,y|C4 [--scale f] [--angle deg] [--origin name] | symbols
        artgen dungeon overlay <id> rm label|symbol <i> | clear [labels|symbols] | fit <id> [--margin 2]
        artgen dungeon check <id> [--json]   every error in the file with its JSON path; exits 1 when there are any
+       artgen map sync <id>|--file target.json --from new.json --origin tables [--json]   replace the entries of one origin, keep every other (hand entries last); lists what that disturbs
+       artgen dungeon sync <id>|--file target.json --from new.json --origin tables [--json]   the same for rooms, corridors, walls, labels and symbols; a hand-edited field of a generated room is reported and the table's value kept
        artgen dungeon facts <id> [--json]   each room's box and doors, each corridor's ends and length, the exits, the overlapping rooms and the rooms no corridor reaches
-       artgen dungeon render <id> [--format svg|png|both] [--ppu 40 | --fit 180x260mm|px] [--crop x,y,w,h] [--room id|F.3 … [--margin 2]] [--layers grid=off,labels=off] [--out dir] | show <id> | list
+       artgen dungeon render <id> [--format svg|png|both] [--ppu 40 | --fit 180x260mm|px] [--page-scale px/mm] [--crop x,y,w,h] [--room id|F.3 … [--margin 2]] [--layers grid=off,labels=off] [--out dir] | show <id> | list
          (--room, repeated, crops round those rooms, their doors and the first --margin cells of each corridor)
        artgen formats   (the map and dungeon file format versions this artgen reads; a newer file is refused)
        (map and dungeon commands take --file <path> in place of <id>: no project needed; renders go beside the file or to --out)`;
@@ -119,6 +134,7 @@ export async function mapCommand(sub: string | undefined, args: string[], emit: 
       else if (op === 'river') m.edits.push({ op, points: numbers(flag(args, '--points'), '--points'), ...(num(args, '--width') !== undefined && { width: num(args, '--width') }), ...(onOff(flag(args, '--delta')) === false && { delta: false }) });
       else if (op === 'road') m.edits.push({ op, points: numbers(flag(args, '--points'), '--points') });
       else throw new Error('map edit <id> paint|elevate|river|road|undo');
+      if (originFlag(args)) m.edits[m.edits.length - 1].origin = originFlag(args)!.origin;
       summary = `edit ${m.edits.length - 1}: ${op}`;
     });
     print(`${m.id}: ${summary} (${m.edits.length} edits)\n${next(m.id)}`, m);
@@ -139,10 +155,10 @@ export async function mapCommand(sub: string | undefined, args: string[], emit: 
       if (sub === 'label') {
         const kind = (flag(args, '--kind') ?? 'place') as map.LabelKind;
         if (!map.LABEL_KINDS.includes(kind)) throw new Error(`--kind: ${map.LABEL_KINDS.join(', ')}`);
-        m.overlay.labels.push({ text: what, x, y, kind, ...(num(args, '--size') !== undefined && { size: num(args, '--size') }), ...(num(args, '--angle') !== undefined && { angle: num(args, '--angle') }) });
+        m.overlay.labels.push({ text: what, x, y, kind, ...(num(args, '--size') !== undefined && { size: num(args, '--size') }), ...(num(args, '--angle') !== undefined && { angle: num(args, '--angle') }), ...originFlag(args) });
       } else {
         if (!map.SYMBOLS[what]) throw new Error(`unknown symbol ${what} (have: ${map.SYMBOL_KINDS.join(', ')})`);
-        m.overlay.symbols.push({ kind: what, x, y, ...(num(args, '--scale') !== undefined && { scale: num(args, '--scale') }) });
+        m.overlay.symbols.push({ kind: what, x, y, ...(num(args, '--scale') !== undefined && { scale: num(args, '--scale') }), ...(num(args, '--angle') !== undefined && { angle: num(args, '--angle') }), ...originFlag(args) });
       }
     });
     const n = sub === 'label' ? m.overlay.labels.length : m.overlay.symbols.length;
@@ -193,12 +209,20 @@ export async function mapCommand(sub: string | undefined, args: string[], emit: 
     if (!['svg', 'png', 'both'].includes(format)) throw new Error('--format: svg, png or both');
     const r = await renderMapFiles(p, need('<id>'), {
       themes: theme === 'both' ? ['color', 'bw'] : [theme as map.ThemeName], formats: format === 'both' ? ['svg', 'png'] : [format as 'svg' | 'png'],
-      ppu: num(args, '--ppu'), ...viewFlags(args, readMap(p, need('<id>')).grid.size), layers: parseLayers(flag(args, '--layers')), out: flag(args, '--out'),
+      ppu: num(args, '--ppu'), pageScale: pageScaleFlag(args), ...viewFlags(args, readMap(p, need('<id>')).grid.size), layers: parseLayers(flag(args, '--layers')), out: flag(args, '--out'),
     });
-    print([`${file ?? id} ${r.size.join('×')} px, ${r.ppu} px a unit, window ${r.crop.join(',')}: ${r.terrains.join(', ')}${r.rivers ? `, ${r.rivers} rivers` : ''}`, ...r.files.map(f => `  ${f}`)].join('\n'), r);
+    print([`${file ?? id} ${r.size.join('×')} px, ${r.ppu} px a unit, window ${r.crop.join(',')}: ${r.terrains.join(', ')}${r.rivers ? `, ${r.rivers} rivers` : ''}`, ...r.unplaced.map(u => `  no free spot for label ${u.index} "${u.text}"`), ...r.files.map(f => `  ${f}`)].join('\n'), r);
     return 0;
   }
-  throw new Error('map: new | gen | edit | grid | label | symbol | symbols | overlay | set | render | show | facts | check | list (artgen --help)');
+  if (sub === 'sync') {
+    const origin = flag(args, '--origin'), from = flag(args, '--from');
+    if (!origin || !from) throw new Error('map sync <id>|--file target.json --from new.json --origin tables');
+    let report!: SyncReport;
+    updateMap(p, need('<id>'), (m) => { const r = map.syncMap(m, map.parseMap(readJson(from)), origin); report = r.report; Object.assign(m, r.spec); if (!r.spec.require) delete m.require; });
+    print(syncText(String(file ?? id), report), report);
+    return 0;
+  }
+  throw new Error('map: new | gen | edit | grid | label | symbol | symbols | overlay | set | render | show | facts | check | sync | list (artgen --help)');
 }
 
 /** `WxH` → [w, h] (cells). */
@@ -217,6 +241,19 @@ function roomNumber(args: string[]): number | false | undefined {
   if (onOff(v) === false && !/^\d/.test(v)) return false;
   if (!Number.isFinite(+v)) throw new Error('--number: a number or off');
   return +v;
+}
+
+/** `--fill floor|building|yard|cellar`. */
+function fillFlag(args: string[]): dungeon.RoomFill | undefined {
+  const v = flag(args, '--fill');
+  if (v === undefined) return undefined;
+  if (!dungeon.ROOM_FILLS.includes(v as dungeon.RoomFill)) throw new Error(`--fill: ${dungeon.ROOM_FILLS.join(', ')}`);
+  return v as dungeon.RoomFill;
+}
+
+/** A hand change to an entry of some origin is recorded, so a sync can report the hand value it replaces. */
+function handEdit(r: dungeon.Room, fields: string[]): void {
+  if (r.origin) r.hand = [...new Set([...(r.hand ?? []), ...fields])];
 }
 
 /** `artgen dungeon …` (dungeon maps, dungeon.ts). */
@@ -285,6 +322,9 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
         }
         if (label) room.label = label;
         if (n !== undefined) room.number = n;
+        const fill = fillFlag(args);
+        if (fill) room.fill = fill;
+        Object.assign(room, originFlag(args));
         m.rooms.push(room);
         summary = `added ${shape} room ${roomId}`;
       } else if (op === 'move') {
@@ -292,14 +332,18 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
         if (!at) throw new Error('dungeon room <id> move <rid> --at x,y|C4');
         const [x, y] = cornerPoint(at), dx = x - r.x, dy = y - r.y;
         r.x = x; r.y = y;
+        handEdit(r, ['x', 'y']);
         if (r.points) r.points = r.points.map((v, i) => v + (i % 2 ? dy : dx));
         summary = `moved ${r.id} to ${x},${y}`;
       } else if (op === 'set') {
         const r = find(), shape = flag(args, '--shape') as dungeon.RoomShape | undefined, sz = sizeFlag(args, '--size'), label = flag(args, '--label'), n = roomNumber(args);
         if (shape) { if (!dungeon.ROOM_SHAPES.includes(shape) || shape === 'poly') throw new Error('--shape: rect, circle, octagon or cave'); r.shape = shape; delete r.points; }
-        if (sz) [r.w, r.h] = sz;
-        if (label !== undefined) { if (label) r.label = label; else delete r.label; }
+        if (sz) { [r.w, r.h] = sz; handEdit(r, ['w', 'h']); }
+        if (shape) handEdit(r, ['shape']);
+        if (label !== undefined) { if (label) r.label = label; else delete r.label; handEdit(r, ['label']); }
         if (n !== undefined) r.number = n;
+        const fill = fillFlag(args);
+        if (fill) { if (fill === 'floor') delete r.fill; else r.fill = fill; handEdit(r, ['fill']); }
         summary = `changed ${r.id}`;
       } else if (op === 'rm') {
         const r = find(), before = m.corridors.length;
@@ -319,7 +363,7 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
       if (route && !dungeon.ROUTES.includes(route)) throw new Error(`--route: ${dungeon.ROUTES.join(', ')}`);
       m.corridors.push({
         from: corridorEnd(m, a), to: corridorEnd(m, b), ...(num(args, '--width') !== undefined && { width: num(args, '--width') }),
-        ...(route && { route }), ...(flag(args, '--via') && { via: numbers(flag(args, '--via'), '--via') }), ...(doors && { doors }),
+        ...(route && { route }), ...(flag(args, '--via') && { via: numbers(flag(args, '--via'), '--via') }), ...(doors && { doors }), ...originFlag(args),
       });
     });
     print(`${m.id}: corridor ${m.corridors.length - 1}: ${a} → ${b}\n${next(m.id)}`, m.corridors);
@@ -357,7 +401,7 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
       if (num(args, '--wall') !== undefined) m.style.wall = num(args, '--wall')!;
       const t = flag(args, '--title');
       if (t !== undefined) { if (t) m.title = t; else delete m.title; }
-      for (const [f, k] of [['--numbers', 'numbers'], ['--scale-bar', 'scaleBar'], ['--compass', 'compass']] as const) { const v = onOff(flag(args, f)); if (v !== undefined) m[k] = v; }
+      for (const [f, k] of [['--numbers', 'numbers'], ['--scale-bar', 'scaleBar'], ['--compass', 'compass'], ['--legend', 'legend']] as const) { const v = onOff(flag(args, f)); if (v !== undefined) m[k] = v; }
       if (num(args, '--per-cell') !== undefined) m.scale.perCell = num(args, '--per-cell')!;
       if (flag(args, '--unit')) m.scale.unit = flag(args, '--unit')!;
     });
@@ -372,10 +416,10 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
       if (sub === 'label') {
         const kind = (flag(args, '--kind') ?? 'name') as dungeon.LabelKind;
         if (!dungeon.LABEL_KINDS.includes(kind)) throw new Error(`--kind: ${dungeon.LABEL_KINDS.join(', ')}`);
-        m.overlay.labels.push({ text: what, x, y, kind, ...(num(args, '--size') !== undefined && { size: num(args, '--size') }), ...(angle !== undefined && { angle }) });
+        m.overlay.labels.push({ text: what, x, y, kind, ...(num(args, '--size') !== undefined && { size: num(args, '--size') }), ...(angle !== undefined && { angle }), ...originFlag(args) });
       } else {
         if (!dungeon.SYMBOLS[what]) throw new Error(`unknown symbol ${what} (have: ${dungeon.SYMBOL_KINDS.join(', ')})`);
-        m.overlay.symbols.push({ kind: what, x, y, ...(num(args, '--scale') !== undefined && { scale: num(args, '--scale') }), ...(angle !== undefined && { angle }) });
+        m.overlay.symbols.push({ kind: what, x, y, ...(num(args, '--scale') !== undefined && { scale: num(args, '--scale') }), ...(angle !== undefined && { angle }), ...originFlag(args) });
       }
     });
     const n = sub === 'label' ? m.overlay.labels.length : m.overlay.symbols.length;
@@ -416,14 +460,22 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
     const format = flag(args, '--format') ?? 'both';
     if (!['svg', 'png', 'both'].includes(format)) throw new Error('--format: svg, png or both');
     const r = await renderDungeonFiles(p, need('<id>'), {
-      formats: format === 'both' ? ['svg', 'png'] : [format as 'svg' | 'png'], ppu: num(args, '--ppu'), ...viewFlags(args, 1),
+      formats: format === 'both' ? ['svg', 'png'] : [format as 'svg' | 'png'], ppu: num(args, '--ppu'), pageScale: pageScaleFlag(args), ...viewFlags(args, 1),
       rooms: args.flatMap((a, i) => (a === '--room' ? [args[i + 1] ?? (() => { throw new Error('--room: a room id'); })()] : [])), margin: num(args, '--margin'),
       layers: parseLayers(flag(args, '--layers'), dungeon.DUNGEON_LAYERS), out: flag(args, '--out'),
     });
-    print([`${file ?? id} ${r.size.join('×')} px, ${r.ppu} px a cell, window ${r.crop.join(',')}: ${r.rooms} rooms, ${r.corridors} corridors, ${r.doors} doors`, ...r.files.map(f => `  ${f}`)].join('\n'), r);
+    print([`${file ?? id} ${r.size.join('×')} px, ${r.ppu} px a cell, window ${r.crop.join(',')}: ${r.rooms} rooms, ${r.corridors} corridors, ${r.doors} doors`, ...r.unplaced.map(u => `  no free spot for label ${u.index} "${u.text}"`), ...r.files.map(f => `  ${f}`)].join('\n'), r);
     return 0;
   }
-  throw new Error('dungeon: new | gen | room | link | unlink | door | grid | style | label | symbol | symbols | overlay | check | fit | render | show | facts | list (artgen --help)');
+  if (sub === 'sync') {
+    const origin = flag(args, '--origin'), from = flag(args, '--from');
+    if (!origin || !from) throw new Error('dungeon sync <id>|--file target.json --from new.json --origin tables');
+    let report!: SyncReport;
+    updateDungeon(p, need('<id>'), m => { const r = dungeon.syncDungeon(m, dungeon.parseDungeon(readJson(from)), origin); report = r.report; return r.spec; });
+    print(syncText(String(file ?? id), report), report);
+    return 0;
+  }
+  throw new Error('dungeon: new | gen | room | link | unlink | door | grid | style | label | symbol | symbols | overlay | check | fit | render | show | facts | sync | list (artgen --help)');
 }
 
 /** `artgen formats [--json]`: the map and dungeon file format versions this artgen reads and writes. */

@@ -178,6 +178,7 @@ describe('maps/ (the maps-only bundle)', () => {
     rmSync(join(tools, 'resvg.wasm'));   // SVG needs no rasteriser
     rmSync(join(tools, 'fonts'), { recursive: true });
     for (const c of ['warren', 'keep', 'shrine-crypts', 'bad-file']) cpSync(join(FIX, c, 'dungeon.json'), join(consumer, `${c}.json`));
+    cpSync(join(FIX, 'keep', 'map.json'), join(consumer, 'map.json'));   // keep's underlay
     cpSync(join(FIX, 'ravine', 'map.json'), join(consumer, 'ravine.json'));
     for (const c of ['frontier', 'frontier-unmet']) cpSync(join(FIX, c, 'map.json'), join(consumer, `${c}.json`));
   });
@@ -202,6 +203,10 @@ describe('maps/ (the maps-only bundle)', () => {
       ok('dungeon', 'render', '--file', `${c}.json`, '--format', 'svg');
       expect(readFileSync(join(consumer, `${c}.svg`), 'utf8')).toContain('<svg');
     }
+    // keep stands on its underlay and inside its wall, from the maps-only bundle too, and `fit` keeps them registered
+    const keep = readFileSync(join(consumer, 'keep.svg'), 'utf8');
+    expect(keep).toContain('<g id="underlay"');
+    expect(keep).toContain('<g id="enclosure"');
     ok('map', 'render', '--file', 'ravine.json', '--format', 'svg', '--theme', 'color');
     expect(readFileSync(join(consumer, 'ravine.color.svg'), 'utf8')).toContain('<svg');
     expect(existsSync(join(consumer, 'art'))).toBe(false);

@@ -27,4 +27,14 @@ Connections (north is up); the distances in the text are between rooms, and the 
 ## Does not yet draw well
 
 - The 2 by 2 passage landing (M.13) is small beside the 14 by 4 niches gallery.
-- Stairs are not drawn as stairs: the exits are plain corridor stubs with a note.
+- The exits are still plain corridor stubs with a note; the stairs themselves are the two symbols below (A6).
+
+## Stairs (artgen A6)
+
+M.6's end of the way up is `stairs-up` at the end of its stub (20, 30.5), angle 180 (it climbs west, toward M.2), and M.13's is `stairs-down` at (-2, 31),
+angle 90 (it falls south, toward L.5). The two symbols differ in the SVG, and each points its `angle`.
+
+## Hand entries and origins (artgen A8)
+
+For `sync`, every room and corridor is `origin: tables`; the case adds nothing to the file. A sync test makes M.8 cover a hand label and holds that the
+label is reported as inside the room.

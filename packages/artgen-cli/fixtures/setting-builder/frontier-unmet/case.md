@@ -22,3 +22,5 @@ node tools/artgen/artgen-maps.js map check --file map.json --json
 ## Does not yet draw well
 
 Nothing to draw well: it is a file to be refused. It renders as `frontier` does, with a rock plateau where C's wood was.
+
+It carries the same `castle` symbol as `frontier` (A6), so the two differ only in the added requirement.
