@@ -2372,10 +2372,10 @@ var init_resvg_wasm = __esm({
           const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
           wasm.renderedimage_asPng(retptr, this.__wbg_ptr);
           var r0 = getInt32Memory0()[retptr / 4 + 0];
-          var r1 = getInt32Memory0()[retptr / 4 + 1];
+          var r12 = getInt32Memory0()[retptr / 4 + 1];
           var r2 = getInt32Memory0()[retptr / 4 + 2];
           if (r2) {
-            throw takeObject(r1);
+            throw takeObject(r12);
           }
           return takeObject(r0);
         } finally {
@@ -2417,10 +2417,10 @@ var init_resvg_wasm = __esm({
           var len0 = WASM_VECTOR_LEN;
           wasm.resvg_new(retptr, addHeapObject(svg4), ptr0, len0, isLikeNone(custom_font_buffers) ? 0 : addHeapObject(custom_font_buffers));
           var r0 = getInt32Memory0()[retptr / 4 + 0];
-          var r1 = getInt32Memory0()[retptr / 4 + 1];
+          var r12 = getInt32Memory0()[retptr / 4 + 1];
           var r2 = getInt32Memory0()[retptr / 4 + 2];
           if (r2) {
-            throw takeObject(r1);
+            throw takeObject(r12);
           }
           this.__wbg_ptr = r0 >>> 0;
           return this;
@@ -2453,10 +2453,10 @@ var init_resvg_wasm = __esm({
           const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
           wasm.resvg_render(retptr, this.__wbg_ptr);
           var r0 = getInt32Memory0()[retptr / 4 + 0];
-          var r1 = getInt32Memory0()[retptr / 4 + 1];
+          var r12 = getInt32Memory0()[retptr / 4 + 1];
           var r2 = getInt32Memory0()[retptr / 4 + 2];
           if (r2) {
-            throw takeObject(r1);
+            throw takeObject(r12);
           }
           return RenderedImage.__wrap(r0);
         } finally {
@@ -2474,10 +2474,10 @@ var init_resvg_wasm = __esm({
           const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
           wasm.resvg_toString(retptr, this.__wbg_ptr);
           var r0 = getInt32Memory0()[retptr / 4 + 0];
-          var r1 = getInt32Memory0()[retptr / 4 + 1];
+          var r12 = getInt32Memory0()[retptr / 4 + 1];
           deferred1_0 = r0;
-          deferred1_1 = r1;
-          return getStringFromWasm0(r0, r1);
+          deferred1_1 = r12;
+          return getStringFromWasm0(r0, r12);
         } finally {
           wasm.__wbindgen_add_to_stack_pointer(16);
           wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
@@ -2520,10 +2520,10 @@ var init_resvg_wasm = __esm({
           const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
           wasm.resvg_imagesToResolve(retptr, this.__wbg_ptr);
           var r0 = getInt32Memory0()[retptr / 4 + 0];
-          var r1 = getInt32Memory0()[retptr / 4 + 1];
+          var r12 = getInt32Memory0()[retptr / 4 + 1];
           var r2 = getInt32Memory0()[retptr / 4 + 2];
           if (r2) {
-            throw takeObject(r1);
+            throw takeObject(r12);
           }
           return takeObject(r0);
         } finally {
@@ -2541,8 +2541,8 @@ var init_resvg_wasm = __esm({
           const len0 = WASM_VECTOR_LEN;
           wasm.resvg_resolveImage(retptr, this.__wbg_ptr, ptr0, len0, addHeapObject(buffer));
           var r0 = getInt32Memory0()[retptr / 4 + 0];
-          var r1 = getInt32Memory0()[retptr / 4 + 1];
-          if (r1) {
+          var r12 = getInt32Memory0()[retptr / 4 + 1];
+          if (r12) {
             throw takeObject(r0);
           }
         } finally {
@@ -3432,8 +3432,8 @@ function material(name, dir, o) {
     const gx = (hb[y * w + mod3(x + 1, w)] - hb[y * w + mod3(x - 1, w)]) / 2, gy = (hb[mod3(y + 1, h) * w + x] - hb[mod3(y - 1, h) * w + x]) / 2;
     const lit = -(gx * lx + gy * ly) / ll;
     const tone = clamp01(s2.tone - lit * 1.6 * relief);
-    const L0 = bandIndices(ramp.length, dir.shading.bands), [r0, r1] = o.range ?? [0, ramp.length - 1];
-    const Lr = L0.filter((i2) => i2 >= r0 && i2 <= r1), L = Lr.length ? Lr : L0, f = tone * L.length;
+    const L0 = bandIndices(ramp.length, dir.shading.bands), [r0, r12] = o.range ?? [0, ramp.length - 1];
+    const Lr = L0.filter((i2) => i2 >= r0 && i2 <= r12), L = Lr.length ? Lr : L0, f = tone * L.length;
     let k = Math.min(L.length - 1, Math.floor(f));
     if (dither && k < L.length - 1 && f - k > BAYER4[y % 4][x % 4]) k++;
     grid.set(x, y, ramp[L[k]]);
@@ -4752,12 +4752,12 @@ function rectPts(x, y, w, h, r = 0, tol = 0.25) {
     ...ellipsePts(x + r, y + r, r, r, tol, 180, 270)
   ];
 }
-function capsulePts(a, b, r0, r1 = r0, tol = 0.25) {
+function capsulePts(a, b, r0, r12 = r0, tol = 0.25) {
   const dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy);
-  if (len < 1e-6) return ellipsePts(a[0], a[1], Math.max(r0, r1), Math.max(r0, r1), tol);
+  if (len < 1e-6) return ellipsePts(a[0], a[1], Math.max(r0, r12), Math.max(r0, r12), tol);
   const ang = Math.atan2(dy, dx) * 180 / Math.PI;
-  const off = Math.asin(Math.max(-1, Math.min(1, (r0 - r1) / len))) * 180 / Math.PI;
-  return [...ellipsePts(b[0], b[1], r1, r1, tol, ang - 90 + off, ang + 90 - off), ...ellipsePts(a[0], a[1], r0, r0, tol, ang + 90 - off, ang + 270 + off)];
+  const off = Math.asin(Math.max(-1, Math.min(1, (r0 - r12) / len))) * 180 / Math.PI;
+  return [...ellipsePts(b[0], b[1], r12, r12, tol, ang - 90 + off, ang + 90 - off), ...ellipsePts(a[0], a[1], r0, r0, tol, ang + 90 - off, ang + 270 + off)];
 }
 function starPts(cx, cy, r, r2, n, rotDeg = -90) {
   const out = [];
@@ -5434,8 +5434,8 @@ var init_camera = __esm({
 function inv3(m) {
   const [a, b, c] = m, det = dot3(a, cross3(b, c));
   if (Math.abs(det) < 1e-12) throw new Error("voxel raster: degenerate camera");
-  const r0 = cross3(b, c), r1 = cross3(c, a), r2 = cross3(a, b);
-  return [[r0[0] / det, r1[0] / det, r2[0] / det], [r0[1] / det, r1[1] / det, r2[1] / det], [r0[2] / det, r1[2] / det, r2[2] / det]];
+  const r0 = cross3(b, c), r12 = cross3(c, a), r2 = cross3(a, b);
+  return [[r0[0] / det, r12[0] / det, r2[0] / det], [r0[1] / det, r12[1] / det, r2[1] / det], [r0[2] / det, r12[2] / det, r2[2] / det]];
 }
 function smoothNormal(g, v, r) {
   let x = 0, y = 0, z = 0;
@@ -16244,16 +16244,16 @@ function analytics(ledger, metas) {
   });
   const perAsset = ids.map((id) => {
     const rs = recs.filter((r) => r.asset === id), bases = rs.filter((r) => r.version.startsWith("base")), fins = rs.filter((r) => r.stage === "finish");
-    const r1 = rs.find((r) => r.pass === "r1")?.score, best = bases.length ? Math.max(...bases.filter((b) => b.stage !== "user").map((b) => b.score)) : void 0;
+    const r12 = rs.find((r) => r.pass === "r1")?.score, best = bases.length ? Math.max(...bases.filter((b) => b.stage !== "user").map((b) => b.score)) : void 0;
     const fin = fins[fins.length - 1], finBase = fin && rs.find((r) => r.version === ledger.find((e) => e.type === "score" && e.asset === id && e.version === fin.version)?.base);
     const out = sum(rs.map((r) => r.outTokens + r.inTokens)), img = sum(rs.map((r) => r.imageTokens)), agent = sum(rs.map((r) => r.agentIn));
     return {
       id,
       kind: meta7.get(id)?.kind ?? "?",
-      r1,
+      r1: r12,
       best: Number.isFinite(best) ? best : void 0,
       final: fin?.score ?? best,
-      fromRevisions: r1 !== void 0 && best !== void 0 && Number.isFinite(best) ? round(best - r1) : void 0,
+      fromRevisions: r12 !== void 0 && best !== void 0 && Number.isFinite(best) ? round(best - r12) : void 0,
       fromFinish: fin && finBase ? round(fin.score - finBase.score) : void 0,
       passes: rs.length,
       outTokens: out,
@@ -16813,6 +16813,10 @@ function newMap(id, preset2 = "regional", over = {}) {
   const d = structuredClone(PRESET_DEFAULTS[preset2]);
   return parseMap({ ...d, ...over, id, version: MAP_FORMAT, preset: preset2, seed: over.seed ?? 1, gen: { ...d.gen, ...over.gen }, topo: { ...d.topo, ...over.topo }, grid: { ...d.grid, ...over.grid }, scale: { ...d.scale, ...over.scale }, edits: over.edits ?? [], overlay: over.overlay ?? { labels: [], symbols: [] } });
 }
+function originError(entry, at2, e) {
+  const v = entry?.origin;
+  if (v !== void 0 && (typeof v !== "string" || !v)) e.push(`${at2}.origin: a non-empty string`);
+}
 function shapeErrors(s2, at2) {
   if (!s2 || typeof s2 !== "object") return [`${at2}: shape required ({circle:[x,y,r]}, {poly:[x,y,\u2026]} or {stroke:[x,y,\u2026], width})`];
   const o = s2;
@@ -16836,6 +16840,7 @@ function requirementErrors(m) {
     else if (seen.has(r.id)) e.push(`${at2}.id: ${r.id} is used twice`);
     else seen.add(r.id);
     if (r.blend !== void 0 && !(isNum(r.blend) && r.blend >= 0)) e.push(`${at2}.blend: map units, 0 or more`);
+    originError(r, at2, e);
     if (r.kind === "terrain") {
       e.push(...shapeErrors(r.area, `${at2}.area`));
       if (!TERRAINS.includes(r.terrain)) e.push(`${at2}.terrain: one of ${TERRAINS.join(", ")}`);
@@ -16891,6 +16896,7 @@ function validateMap(raw) {
       if (ed.op === "river" && ed.width !== void 0 && !(isNum(ed.width) && ed.width > 0)) e.push(`${at2}.width: > 0`);
       if (ed.op === "river" && ed.delta !== void 0 && typeof ed.delta !== "boolean") e.push(`${at2}.delta: true or false`);
     } else e.push(`${at2}.op: paint, elevate, river or road`);
+    originError(ed, at2, e);
   });
   e.push(...requirementErrors(m));
   const o = m.overlay;
@@ -16898,9 +16904,14 @@ function validateMap(raw) {
   else {
     o.labels.forEach((l, i) => {
       if (typeof l?.text !== "string" || !isNum(l.x) || !isNum(l.y) || !LABEL_KINDS.includes(l.kind)) e.push(`overlay.labels[${i}]: text, x, y, kind (${LABEL_KINDS.join("|")})`);
+      else originError(l, `overlay.labels[${i}]`, e);
     });
     o.symbols.forEach((s2, i) => {
       if (typeof s2?.kind !== "string" || !isNum(s2.x) || !isNum(s2.y)) e.push(`overlay.symbols[${i}]: kind, x, y`);
+      else {
+        if (s2.angle !== void 0 && !isNum(s2.angle)) e.push(`overlay.symbols[${i}].angle: degrees`);
+        originError(s2, `overlay.symbols[${i}]`, e);
+      }
     });
   }
   return e;
@@ -17810,9 +17821,9 @@ function generateMap(spec) {
   }
   for (const r of spec.require ?? []) if (r.kind === "path" && r.path === "road") roads.push({ pts: smoothLine(routeRoad(r.points, field, elev, open), res), width: spec.preset === "local" ? 0.5 : 0.08, for: r.id });
   for (const rv of mains) markLine(rv.pts, rv.width, w, h, res, wet);
-  const near = new Float32Array(N3);
-  for (let n = 0; n < N3; n++) near[n] = water[n] || wet[n] ? 1 : 0;
-  const nearB = blur(near, w, h, Math.max(1, Math.round(res * 1.5)), 2);
+  const near2 = new Float32Array(N3);
+  for (let n = 0; n < N3; n++) near2[n] = water[n] || wet[n] ? 1 : 0;
+  const nearB = blur(near2, w, h, Math.max(1, Math.round(res * 1.5)), 2);
   const mopts = { w: w * 4, h: h * 4, cells: Math.max(2, Math.round(4 * Math.max(spec.cols, spec.rows) / (g.feature * 1.4))), octaves: 3, seed: spec.seed + 101 };
   for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
     const n = j * w + i;
@@ -17912,7 +17923,7 @@ var init_gridlines = __esm({
 });
 
 // ../artgen-core/src/map/symbols.ts
-var SYMBOLS, SYMBOL_KINDS;
+var SYMBOLS, DIRECTED, SYMBOL_KINDS;
 var init_symbols = __esm({
   "../artgen-core/src/map/symbols.ts"() {
     "use strict";
@@ -17936,8 +17947,11 @@ var init_symbols = __esm({
       tree: { name: "Tree", svg: '<path d="M0 8V2" stroke="{ink}" stroke-width="1.6"/><circle cy="-2" r="5.5" fill="{fill}" stroke="{ink}" stroke-width="1.4"/>' },
       skull: { name: "Danger", svg: '<path d="M-6 -1A6 6 0 1 1 6 -1V3H3V6H-3V3H-6Z" fill="{fill}" stroke="{ink}" stroke-width="1.4" stroke-linejoin="round"/><circle cx="-2.4" cy="-1" r="1.6" fill="{ink}"/><circle cx="2.4" cy="-1" r="1.6" fill="{ink}"/>' },
       door: { name: "Door / entrance", svg: '<rect x="-4.5" y="-7" width="9" height="14" fill="{fill}" stroke="{ink}" stroke-width="1.5"/><circle cx="2" cy="0.5" r="1" fill="{ink}"/>' },
+      "cave-mouth": { name: "Cave mouth (in a cliff, facing its angle)", svg: '<path d="M-3 -9.5V9.5" fill="none" stroke="{ink}" stroke-width="1.8" stroke-linecap="round"/><path d="M-3 -6A6 6 0 0 1 -3 6Z" fill="{ink}" stroke="{ink}" stroke-width="1" stroke-linejoin="round"/><path d="M-3 -3.4A3.4 3.4 0 0 1 -3 3.4Z" fill="{fill}"/>' },
+      gate: { name: "Gate (a break in a wall line)", svg: '<path d="M-9.5 0H-5M5 0H9.5" fill="none" stroke="{ink}" stroke-width="3" stroke-linecap="butt"/><rect x="-6" y="-3.2" width="3" height="6.4" fill="{fill}" stroke="{ink}" stroke-width="1.2"/><rect x="3" y="-3.2" width="3" height="6.4" fill="{fill}" stroke="{ink}" stroke-width="1.2"/><path d="M-3 0H3" stroke="{ink}" stroke-width="1" stroke-dasharray="1.4 1.2"/>' },
       treasure: { name: "Treasure", svg: '<rect x="-7" y="-2" width="14" height="8" fill="{fill}" stroke="{ink}" stroke-width="1.4"/><path d="M-7 -2Q-7 -7 0 -7Q7 -7 7 -2M-1.5 -2V2H1.5V-2" fill="none" stroke="{ink}" stroke-width="1.4"/>' }
     };
+    DIRECTED = ["cave-mouth", "gate"];
     SYMBOL_KINDS = Object.keys(SYMBOLS);
   }
 });
@@ -18026,25 +18040,6 @@ var init_theme = __esm({
   }
 });
 
-// ../artgen-core/src/lib/svgdraw.ts
-function haloText(text, x, y, size, color, th, attrs = "") {
-  const a = `x="${n1(x)}" y="${n1(y)}" font-size="${n1(size)}" text-anchor="middle" ${attrs}`;
-  return `<text ${a} fill="none" stroke="${th.halo}" stroke-width="${n1(size * 0.22)}" stroke-linejoin="round" stroke-opacity="0.9">${esc(text)}</text><text ${a} fill="${color}">${esc(text)}</text>`;
-}
-function compassSvg(cx, cy, r, u, th) {
-  return `<g id="compass" stroke="${th.ink}" stroke-width="${n1(u)}" stroke-linejoin="round"><circle cx="${n1(cx)}" cy="${n1(cy)}" r="${n1(r)}" fill="${th.paper}" fill-opacity="0.85"/><path d="M${n1(cx)} ${n1(cy - r * 0.9)}L${n1(cx + r * 0.3)} ${n1(cy)}L${n1(cx)} ${n1(cy + r * 0.9)}L${n1(cx - r * 0.3)} ${n1(cy)}Z" fill="${th.paper}"/><path d="M${n1(cx)} ${n1(cy - r * 0.9)}L${n1(cx + r * 0.3)} ${n1(cy)}L${n1(cx - r * 0.3)} ${n1(cy)}Z" fill="${th.ink}"/><text x="${n1(cx)}" y="${n1(cy - r - 4 * u)}" font-size="${n1(13 * u)}" font-weight="700" text-anchor="middle" fill="${th.ink}" stroke="none">N</text></g>`;
-}
-var esc, n1, FONT_FAMILY, FONT;
-var init_svgdraw = __esm({
-  "../artgen-core/src/lib/svgdraw.ts"() {
-    "use strict";
-    esc = (t) => t.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-    n1 = (v) => (Math.round(v * 10) / 10).toString();
-    FONT_FAMILY = "Alegreya Sans";
-    FONT = `'${FONT_FAMILY}', 'Segoe UI', Helvetica, Arial, sans-serif`;
-  }
-});
-
 // ../artgen-core/src/lib/view.ts
 function clampCrop(c, cols, rows) {
   const x0 = Math.max(0, c[0]), y0 = Math.max(0, c[1]), x1 = Math.min(cols, c[0] + c[2]), y1 = Math.min(rows, c[1] + c[3]);
@@ -18085,7 +18080,93 @@ var init_view = __esm({
   }
 });
 
+// ../artgen-core/src/lib/page.ts
+function textBox(text, cx, baseline, size, o = {}) {
+  const w = text.length * (size * (o.bold ? 0.62 : 0.56) + (o.spacing ?? 0)), h = size * 1.15;
+  return { x: cx - w / 2, y: baseline - size * 0.82, w, h };
+}
+function placeLabels(labels, obstacles, bounds, gap = 0) {
+  const taken = obstacles.slice(), out = [];
+  const inside = (b) => !bounds || b.x >= bounds.x - 1e-6 && b.y >= bounds.y - 1e-6 && b.x + b.w <= bounds.x + bounds.w + 1e-6 && b.y + b.h <= bounds.y + bounds.h + 1e-6;
+  const free = (b) => inside(b) && !taken.some((t) => overlaps(b, t, gap));
+  for (const l of labels) {
+    const at2 = (dx, dy) => ({ ...l.box, x: l.box.x + dx, y: l.box.y + dy });
+    if (free(l.box)) {
+      taken.push(l.box);
+      out.push({ x: l.x, y: l.y, moved: false, placed: true });
+      continue;
+    }
+    const rx = l.clear + l.box.w / 2 + gap, ry = l.clear + l.box.h / 2 + gap;
+    let found = null;
+    for (const f of [1, 1.6, 2.4]) {
+      const sides = [[rx * f, 0], [-rx * f, 0], [0, -ry * f], [0, ry * f], [rx * f, -ry * f], [rx * f, ry * f], [-rx * f, -ry * f], [-rx * f, ry * f]];
+      found = sides.find(([dx, dy]) => free(at2(dx, dy))) ?? null;
+      if (found) break;
+    }
+    if (found) {
+      taken.push(at2(found[0], found[1]));
+      out.push({ x: l.x + found[0], y: l.y + found[1], moved: true, placed: true });
+    } else {
+      taken.push(l.box);
+      out.push({ x: l.x, y: l.y, moved: false, placed: false });
+    }
+  }
+  return out;
+}
+var PAGE_PT, PAGE_SYMBOL_MM, pageUnit, pointsToPx, overlaps;
+var init_page = __esm({
+  "../artgen-core/src/lib/page.ts"() {
+    "use strict";
+    init_view();
+    PAGE_PT = {
+      map: { region: 12, place: 9, water: 8, note: 7 },
+      dungeon: { name: 9, note: 7, area: 12, room: 8, number: 8 }
+    };
+    PAGE_SYMBOL_MM = 5;
+    pageUnit = (pageScale) => pageScale / PX_PER_MM;
+    pointsToPx = (pt, pageScale) => pt * 4 / 3 * pageUnit(pageScale);
+    overlaps = (a, b, gap = 0) => a.x < b.x + b.w + gap && b.x < a.x + a.w + gap && a.y < b.y + b.h + gap && b.y < a.y + a.h + gap;
+  }
+});
+
+// ../artgen-core/src/lib/svgdraw.ts
+function haloText(text, x, y, size, color, th, attrs = "") {
+  const a = `x="${n1(x)}" y="${n1(y)}" font-size="${n1(size)}" text-anchor="middle" ${attrs}`;
+  return `<text ${a} fill="none" stroke="${th.halo}" stroke-width="${n1(size * 0.22)}" stroke-linejoin="round" stroke-opacity="0.9">${esc(text)}</text><text ${a} fill="${color}">${esc(text)}</text>`;
+}
+function compassSvg(cx, cy, r, u, th) {
+  return `<g id="compass" stroke="${th.ink}" stroke-width="${n1(u)}" stroke-linejoin="round"><circle cx="${n1(cx)}" cy="${n1(cy)}" r="${n1(r)}" fill="${th.paper}" fill-opacity="0.85"/><path d="M${n1(cx)} ${n1(cy - r * 0.9)}L${n1(cx + r * 0.3)} ${n1(cy)}L${n1(cx)} ${n1(cy + r * 0.9)}L${n1(cx - r * 0.3)} ${n1(cy)}Z" fill="${th.paper}"/><path d="M${n1(cx)} ${n1(cy - r * 0.9)}L${n1(cx + r * 0.3)} ${n1(cy)}L${n1(cx - r * 0.3)} ${n1(cy)}Z" fill="${th.ink}"/><text x="${n1(cx)}" y="${n1(cy - r - 4 * u)}" font-size="${n1(13 * u)}" font-weight="700" text-anchor="middle" fill="${th.ink}" stroke="none">N</text></g>`;
+}
+var esc, n1, FONT_FAMILY, FONT;
+var init_svgdraw = __esm({
+  "../artgen-core/src/lib/svgdraw.ts"() {
+    "use strict";
+    esc = (t) => t.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+    n1 = (v) => (Math.round(v * 10) / 10).toString();
+    FONT_FAMILY = "Alegreya Sans";
+    FONT = `'${FONT_FAMILY}', 'Segoe UI', Helvetica, Arial, sans-serif`;
+  }
+});
+
 // ../artgen-core/src/map/render.ts
+function mapLabelLayout(spec, k, pageScale) {
+  const raw = spec.overlay.labels.map((l) => ({ x: l.x * k, y: l.y * k }));
+  if (!pageScale) return { at: raw, unplaced: [] };
+  const symBox = (s2) => {
+    const z = PAGE_SYMBOL_MM * pageScale * (s2.scale ?? 1);
+    return { x: s2.x * k - z / 2, y: s2.y * k - z / 2, w: z, h: z };
+  };
+  const items = spec.overlay.labels.map((l) => {
+    const size = labelSize(l, 1, pageScale), base = size * 1;
+    const box = textBox(l.kind === "region" ? l.text.toUpperCase() : l.text, l.x * k, l.y * k + base * 0.35, size, { bold: l.kind === "region" || l.kind === "place", spacing: l.kind === "region" ? size * 0.18 : 0 });
+    return { x: l.x * k, y: l.y * k, box, clear: 0 };
+  });
+  const placed = placeLabels(items, spec.overlay.symbols.map(symBox), { x: 0, y: 0, w: spec.cols * k, h: spec.rows * k }, pageScale * 0.3);
+  return { at: placed.map((p) => ({ x: p.x, y: p.y })), unplaced: placed.flatMap((p, index) => p.placed ? [] : [{ index, text: spec.overlay.labels[index].text }]) };
+}
+function labelSize(l, u, pageScale) {
+  return (pageScale ? pointsToPx(PAGE_PT.map[l.kind], pageScale) : { region: 30, place: 16, water: 20, note: 13 }[l.kind] * u) * (l.size ?? 1);
+}
 function layersFor(spec, over = {}) {
   const on = Object.fromEntries(MAP_LAYERS.map((l) => [l, true]));
   on.grid = spec.grid.type !== "none";
@@ -18147,9 +18228,9 @@ function patternDefs(th, tile) {
     return `<pattern id="pat-${t}" patternUnits="userSpaceOnUse" width="${n1(tile)}" height="${n1(tile)}"><g transform="scale(${n1(tile / 10)})">${PATTERNS[st.pattern].replaceAll("{ink}", st.ink ?? th.ink)}</g></pattern>`;
   }).join("");
 }
-function symbolSvg(kind, x, y, size, th) {
+function symbolSvg(kind, x, y, size, th, angle = 0) {
   const s2 = SYMBOLS[kind] ?? SYMBOLS.poi;
-  return `<g transform="translate(${n1(x)} ${n1(y)}) scale(${(size / 20).toFixed(3)})">${s2.svg.replaceAll("{ink}", th.ink).replaceAll("{fill}", th.symbolFill)}</g>`;
+  return `<g transform="translate(${n1(x)} ${n1(y)})${angle ? ` rotate(${n1(angle)})` : ""} scale(${(size / 20).toFixed(3)})">${s2.svg.replaceAll("{ink}", th.ink).replaceAll("{fill}", th.symbolFill)}</g>`;
 }
 function scaleCells(width) {
   const target = width / 5;
@@ -18157,7 +18238,7 @@ function scaleCells(width) {
   return Math.max(1, Math.round(target));
 }
 function renderMapSvg(spec, o = {}) {
-  const th = THEME[o.theme ?? "color"], k = o.ppu ?? 40, W3 = spec.cols * k, H = spec.rows * k, u = k / 40, fr = frameOf(o.crop, spec.cols, spec.rows, k);
+  const th = THEME[o.theme ?? "color"], k = o.ppu ?? 40, W3 = spec.cols * k, H = spec.rows * k, u = o.pageScale ? pageUnit(o.pageScale) : k / 40, fr = frameOf(o.crop, spec.cols, spec.rows, k);
   const f = o.field ?? generateMap(spec), on = layersFor(spec, o.layers), tile = Math.max(9, Math.min(24, k * 0.4)) * (th.name === "bw" ? 1.4 : 1);
   const parts = [];
   const used = terrainsUsed(f);
@@ -18209,14 +18290,15 @@ function renderMapSvg(spec, o = {}) {
     parts.push(`<g id="grid">${g}</g>`);
   }
   if (on.symbols && spec.overlay.symbols.length)
-    parts.push(`<g id="symbols">${spec.overlay.symbols.map((s2) => symbolSvg(s2.kind, s2.x * k, s2.y * k, 22 * u * (s2.scale ?? 1), th)).join("")}</g>`);
+    parts.push(`<g id="symbols">${spec.overlay.symbols.map((s2) => symbolSvg(s2.kind, s2.x * k, s2.y * k, (o.pageScale ? PAGE_SYMBOL_MM * o.pageScale : 22 * u) * (s2.scale ?? 1), th, s2.angle)).join("")}</g>`);
   if (on.labels && spec.overlay.labels.length) {
-    const g = spec.overlay.labels.map((l) => {
-      const base = { region: 30, place: 16, water: 20, note: 13 }[l.kind] * u * (l.size ?? 1);
+    const at2 = mapLabelLayout(spec, k, o.pageScale).at;
+    const g = spec.overlay.labels.map((l, i) => {
+      const base = labelSize(l, u, o.pageScale), lx = at2[i].x / k, ly = at2[i].y / k;
       const attrs = l.kind === "region" ? `font-weight="700" letter-spacing="${n1(base * 0.18)}"` : l.kind === "water" ? 'font-style="italic"' : l.kind === "place" ? 'font-weight="700"' : "";
       const text = l.kind === "region" ? l.text.toUpperCase() : l.text;
-      const t = haloText(text, l.x * k, l.y * k + base * 0.35, base, th.label[l.kind], th, attrs);
-      return l.angle ? `<g transform="rotate(${n1(l.angle)} ${n1(l.x * k)} ${n1(l.y * k)})">${t}</g>` : t;
+      const t = haloText(text, lx * k, ly * k + base * 0.35, base, th.label[l.kind], th, attrs);
+      return l.angle ? `<g transform="rotate(${n1(l.angle)} ${n1(lx * k)} ${n1(ly * k)})">${t}</g>` : t;
     }).join("");
     parts.push(`<g id="labels">${g}</g>`);
   }
@@ -18226,11 +18308,13 @@ function renderMapSvg(spec, o = {}) {
     const rows = used.map((t) => [t, TERRAIN_NAMES[t]]);
     if (f.rivers.length) rows.push(["river", "River"]);
     if (f.roads.length) rows.push(["road", "Road"]);
+    for (const kind of LEGEND_SYMBOLS) if (on.symbols && spec.overlay.symbols.some((s2) => s2.kind === kind)) rows.push([`symbol:${kind}`, SYMBOLS[kind].name.split(" (")[0]]);
     const rh = 18 * u, fs = 12 * u, bw = 150 * u, bh = rows.length * rh + 12 * u, x = fr.r - bw - pad, y = fr.b - bh - pad;
     let g = box(x, y, bw, bh);
     rows.forEach(([t, name], i) => {
       const sx = x + 8 * u, sy = y + 6 * u + i * rh + 2 * u, sw = 24 * u, sh = rh - 5 * u;
       if (t === "river") g += `<path d="M${n1(sx)} ${n1(sy + sh / 2)}h${n1(sw)}" stroke="${th.riverBank}" stroke-width="${n1(5 * u)}"/><path d="M${n1(sx + th.riverBankWidth * u)} ${n1(sy + sh / 2)}h${n1(sw - 2 * th.riverBankWidth * u)}" stroke="${th.terrain.water.fill}" stroke-width="${n1(5 * u - 2 * th.riverBankWidth * u)}"/>`;
+      else if (t.startsWith("symbol:")) g += symbolSvg(t.slice(7), sx + sw / 2, sy + sh / 2, 15 * u, th);
       else if (t === "road") g += `<path d="M${n1(sx)} ${n1(sy + sh / 2)}h${n1(sw)}" stroke="${th.road}" stroke-width="${n1(2 * u)}" stroke-dasharray="${n1(5 * u)} ${n1(3 * u)}"/>`;
       else {
         const st = th.terrain[t];
@@ -18257,7 +18341,7 @@ function renderMapSvg(spec, o = {}) {
   }
   return `<svg xmlns="http://www.w3.org/2000/svg" ${sizeAttrs(fr, o.unit)} font-family="${FONT}"><defs>${patternDefs(th, tile)}${defs.join("")}<clipPath id="map-clip"><rect x="${fr.x}" y="${fr.y}" width="${fr.w}" height="${fr.h}"/></clipPath></defs><g clip-path="url(#map-clip)">${parts.join("")}</g></svg>`;
 }
-var MAP_LAYERS, fieldKey;
+var MAP_LAYERS, LEGEND_SYMBOLS, fieldKey;
 var init_render2 = __esm({
   "../artgen-core/src/map/render.ts"() {
     "use strict";
@@ -18265,11 +18349,13 @@ var init_render2 = __esm({
     init_gridlines();
     init_spec();
     init_symbols();
+    init_page();
     init_theme();
     init_svgdraw();
     init_view();
     init_trace();
     MAP_LAYERS = ["terrain", "rivers", "roads", "contours", "grid", "symbols", "labels", "legend", "scale", "compass", "title"];
+    LEGEND_SYMBOLS = ["cave-mouth", "gate"];
     fieldKey = (s2) => JSON.stringify([s2.preset, s2.cols, s2.rows, s2.seed, s2.gen, s2.edits]);
   }
 });
@@ -18347,12 +18433,12 @@ function ground(spec, f) {
     }
     return best;
   };
-  const near = (kind, x, y) => {
+  const near2 = (kind, x, y) => {
     const n = nearest(kind, x, y);
     if (!n) return null;
     return { name: n.line.name, ...n.line.source && { source: n.line.source }, distance: length(n.d), at: pt(...n.at), ...kind === "river" && { within: n.d <= n.width / 2 }, rawAt: n.at };
   };
-  return { res, w, h, rnd, length, pt, shown: shown3, height, terrainAt, centre, slope, lines, near };
+  return { res, w, h, rnd, length, pt, shown: shown3, height, terrainAt, centre, slope, lines, near: near2 };
 }
 function shares(f, ids) {
   const count = new Array(TERRAINS.length).fill(0);
@@ -18648,16 +18734,82 @@ var init_require = __esm({
   }
 });
 
+// ../artgen-core/src/lib/sync.ts
+function checkIncoming(name, incoming, origin) {
+  incoming.forEach((e, i) => {
+    if (e.origin !== origin) throw new Error(`--from: ${name}[${i}] has ${e.origin === void 0 ? "no origin" : `origin ${JSON.stringify(e.origin)}`}, not ${JSON.stringify(origin)}: every entry in the file synced from carries the origin`);
+  });
+}
+function mergeList(name, target, incoming, origin) {
+  checkIncoming(name, incoming, origin);
+  const generated = [], hand = [], removed = [];
+  let placed = false;
+  for (const e of target) {
+    if (e.origin === origin) {
+      removed.push(e);
+      if (!placed) {
+        generated.push(...incoming);
+        placed = true;
+      }
+    } else if (e.origin !== void 0) generated.push(e);
+    else hand.push(e);
+  }
+  if (!placed) generated.push(...incoming);
+  return { list: [...generated, ...hand], removed, kept: target.length - removed.length };
+}
+var near;
+var init_sync = __esm({
+  "../artgen-core/src/lib/sync.ts"() {
+    "use strict";
+    near = (a, b, d) => Math.hypot(a.x - b.x, a.y - b.y) < d;
+  }
+});
+
+// ../artgen-core/src/map/sync.ts
+function syncMap(target, from, origin) {
+  const conflicts = [], lists = {};
+  const take = (name, a, b) => {
+    const r = mergeList(name, a, b, origin);
+    lists[name] = { removed: r.removed.length, added: b.length, kept: r.kept };
+    return r.list;
+  };
+  const edits = take("edits", target.edits, from.edits), require4 = take("require", target.require ?? [], from.require ?? []);
+  const labels = take("labels", target.overlay.labels, from.overlay.labels), symbols = take("symbols", target.overlay.symbols, from.overlay.symbols);
+  const spec = parseMap({ ...target, edits, ...(target.require?.length || from.require?.length) && { require: require4 }, overlay: { labels, symbols } });
+  const oldMarks = [...target.overlay.labels, ...target.overlay.symbols], newMarks = [...spec.overlay.labels, ...spec.overlay.symbols], pre = [...labels, ...symbols];
+  const over = (marks, m) => marks.find((o) => o !== m && near(o, m, MARK_DISTANCE));
+  newMarks.forEach((m, i) => {
+    if (m.origin !== void 0) return;
+    const was = oldMarks.includes(pre[i]) ? pre[i] : void 0, hit = over(newMarks, m);
+    if (hit && !(was && over(oldMarks, was)))
+      conflicts.push({ kind: "over-mark", list: m.text !== void 0 ? "labels" : "symbols", index: oldMarks.indexOf(pre[i]), message: `hand ${markName(m)} at ${m.x},${m.y} is now over ${markName(hit)}` });
+  });
+  return { spec, report: { version: MAP_FORMAT, origin, lists, conflicts } };
+}
+var MARK_DISTANCE, markName;
+var init_sync2 = __esm({
+  "../artgen-core/src/map/sync.ts"() {
+    "use strict";
+    init_sync();
+    init_spec();
+    MARK_DISTANCE = 0.75;
+    markName = (m) => m.text !== void 0 ? `label "${m.text}"` : `symbol ${m.kind}`;
+  }
+});
+
 // ../artgen-core/src/map/index.ts
 var map_exports = {};
 __export(map_exports, {
+  DIRECTED: () => DIRECTED,
   FACTS_RULES: () => RULES,
   FONT_FAMILY: () => FONT_FAMILY,
   GRID_TYPES: () => GRID_TYPES,
   LABEL_KINDS: () => LABEL_KINDS,
   LAND_MODES: () => LAND_MODES,
+  LEGEND_SYMBOLS: () => LEGEND_SYMBOLS,
   MAP_FORMAT: () => MAP_FORMAT,
   MAP_LAYERS: () => MAP_LAYERS,
+  MARK_DISTANCE: () => MARK_DISTANCE,
   MAX_SIDE: () => MAX_SIDE,
   PATTERNS: () => PATTERNS,
   PRESETS: () => PRESETS2,
@@ -18684,6 +18836,7 @@ __export(map_exports, {
   isolines: () => isolines,
   layersFor: () => layersFor,
   mapFacts: () => mapFacts,
+  mapLabelLayout: () => mapLabelLayout,
   newMap: () => newMap,
   parseMap: () => parseMap,
   parsePoint: () => parsePoint,
@@ -18691,6 +18844,7 @@ __export(map_exports, {
   renderMapSvg: () => renderMapSvg,
   riverWidth: () => riverWidth,
   simplifyLine: () => simplifyLine,
+  syncMap: () => syncMap,
   terrainRegions: () => terrainRegions,
   terrainsUsed: () => terrainsUsed,
   validateMap: () => validateMap
@@ -18707,6 +18861,7 @@ var init_map = __esm({
     init_trace();
     init_facts();
     init_require();
+    init_sync2();
   }
 });
 
@@ -18734,6 +18889,56 @@ function endErrors(e, at2, ids) {
   if ("room" in o) return ids.has(o.room) ? [] : [`${at2}.room: no room ${JSON.stringify(o.room)}`];
   if ("at" in o) return isPoint(o.at) ? [] : [`${at2}.at: [x, y]`];
   return [`${at2}: {room: id} or {at: [x, y]}`];
+}
+function originError2(entry, at2, e) {
+  const v = entry?.origin;
+  if (v !== void 0 && (typeof v !== "string" || !v)) e.push(`${at2}.origin: a non-empty string`);
+}
+function enclosureErrors(m, ids) {
+  const e = [];
+  if (m.legend !== void 0 && typeof m.legend !== "boolean") e.push("legend: true or false");
+  const u = m.underlay;
+  if (u !== void 0) {
+    if (!u || typeof u !== "object" || typeof u.map !== "string" || !u.map) e.push("underlay.map: the map file's path");
+    else {
+      if (!isPoint(u.origin)) e.push("underlay.origin: [x, y] in map units");
+      if (!isNum2(u.scale) || u.scale <= 0) e.push("underlay.scale: map units in one cell, above 0");
+      if (u.theme !== void 0 && u.theme !== "color" && u.theme !== "bw") e.push("underlay.theme: color or bw");
+    }
+  }
+  const walls = m.walls;
+  if (walls === void 0) return e;
+  if (!Array.isArray(walls)) return [...e, "walls: an array"];
+  walls.forEach((w, i) => {
+    const at2 = `walls[${i}]`;
+    if (!w || typeof w !== "object") {
+      e.push(`${at2}: an object`);
+      return;
+    }
+    if (w.rooms !== void 0) {
+      if (!Array.isArray(w.rooms) || !w.rooms.length) e.push(`${at2}.rooms: room ids`);
+      else for (const r of w.rooms) if (!ids.has(r)) e.push(`${at2}.rooms: no room ${JSON.stringify(r)}`);
+    }
+    if (w.poly !== void 0 && !(nums2(w.poly) && w.poly.length >= 6 && w.poly.length % 2 === 0)) e.push(`${at2}.poly: at least 3 x,y pairs`);
+    if (w.rooms === void 0 && w.poly === void 0) e.push(`${at2}: rooms (ids) or poly`);
+    if (w.thickness !== void 0 && !(isNum2(w.thickness) && w.thickness > 0 && w.thickness <= 4)) e.push(`${at2}.thickness: cells, above 0 and at most 4`);
+    if (w.inset !== void 0 && !(isNum2(w.inset) && w.inset >= 0)) e.push(`${at2}.inset: cells, 0 or more`);
+    const t = w.towers;
+    if (t !== void 0) {
+      if (!t || !WALL_TOWER_SHAPES.includes(t.shape)) e.push(`${at2}.towers.shape: ${WALL_TOWER_SHAPES.join(" or ")}`);
+      if (t?.size !== void 0 && !(isNum2(t.size) && t.size > 0)) e.push(`${at2}.towers.size: cells, above 0`);
+      if (t?.at !== void 0 && t.at !== "corners" && !(nums2(t.at) && t.at.every(Number.isInteger))) e.push(`${at2}.towers.at: "corners" or vertex indices`);
+    }
+    (w.gates === void 0 ? [] : Array.isArray(w.gates) ? w.gates : (e.push(`${at2}.gates: an array`), [])).forEach((g, j) => {
+      const ga = `${at2}.gates[${j}]`;
+      if (!isPoint(g?.at)) e.push(`${ga}.at: [x, y] in cells`);
+      if (!GATE_KINDS.includes(g?.kind)) e.push(`${ga}.kind: ${GATE_KINDS.join(" or ")}`);
+      if (g?.room !== void 0 && !ids.has(g.room)) e.push(`${ga}.room: no room ${JSON.stringify(g.room)}`);
+      if (g?.width !== void 0 && !(isNum2(g.width) && g.width > 0)) e.push(`${ga}.width: cells, above 0`);
+    });
+    originError2(w, at2, e);
+  });
+  return e;
 }
 function validateDungeon(raw) {
   const e = [];
@@ -18767,6 +18972,9 @@ function validateDungeon(raw) {
     if (r?.shape === "poly" && !(nums2(r.points) && r.points.length >= 6 && r.points.length % 2 === 0)) e.push(`${at2}.points: at least 3 x,y pairs`);
     if (r?.label !== void 0 && typeof r.label !== "string") e.push(`${at2}.label: text`);
     if (r?.number !== void 0 && r.number !== false && !isNum2(r.number)) e.push(`${at2}.number: a number or false`);
+    if (r?.fill !== void 0 && !ROOM_FILLS.includes(r.fill)) e.push(`${at2}.fill: one of ${ROOM_FILLS.join(", ")}`);
+    if (r?.hand !== void 0 && !(Array.isArray(r.hand) && r.hand.every((f) => typeof f === "string"))) e.push(`${at2}.hand: field names`);
+    originError2(r, at2, e);
   });
   (Array.isArray(m.corridors) ? m.corridors : (e.push("corridors: an array"), [])).forEach((c, i) => {
     const at2 = `corridors[${i}]`;
@@ -18776,15 +18984,19 @@ function validateDungeon(raw) {
     if (c?.via !== void 0 && !(nums2(c.via) && c.via.length % 2 === 0)) e.push(`${at2}.via: x,y pairs`);
     if (c?.doors !== void 0 && !(Array.isArray(c.doors) && c.doors.length === 2 && c.doors.every((d) => d === null || DOOR_KINDS.includes(d))))
       e.push(`${at2}.doors: [from, to], each null or one of ${DOOR_KINDS.join(", ")}`);
+    originError2(c, at2, e);
   });
+  e.push(...enclosureErrors(m, ids));
   const o = m.overlay;
   if (!o || !Array.isArray(o.labels) || !Array.isArray(o.symbols)) e.push("overlay: { labels: [], symbols: [] }");
   else {
     o.labels.forEach((l, i) => {
       if (typeof l?.text !== "string" || !isNum2(l.x) || !isNum2(l.y) || !LABEL_KINDS2.includes(l.kind)) e.push(`overlay.labels[${i}]: text, x, y, kind (${LABEL_KINDS2.join("|")})`);
+      else originError2(l, `overlay.labels[${i}]`, e);
     });
     o.symbols.forEach((s2, i) => {
       if (typeof s2?.kind !== "string" || !isNum2(s2.x) || !isNum2(s2.y)) e.push(`overlay.symbols[${i}]: kind, x, y`);
+      else originError2(s2, `overlay.symbols[${i}]`, e);
     });
   }
   return e;
@@ -18842,7 +19054,7 @@ function nextRoomId(spec) {
   const used = new Set(spec.rooms.map((r) => r.id));
   for (let n = spec.rooms.length + 1; ; n++) if (!used.has(`r${n}`)) return `r${n}`;
 }
-var ROOM_SHAPES, DOOR_KINDS, DOOR_NAMES, ROUTES, HATCH_STYLES, LABEL_KINDS2, DEFAULTS2, DUNGEON_FORMAT, MIGRATIONS2, MAX_SIDE2, isNum2, nums2, isPoint, toIssue;
+var ROOM_SHAPES, DOOR_KINDS, DOOR_NAMES, ROUTES, HATCH_STYLES, LABEL_KINDS2, ROOM_FILLS, WALL_TOWER_SHAPES, GATE_KINDS, DEFAULTS2, DUNGEON_FORMAT, MIGRATIONS2, MAX_SIDE2, isNum2, nums2, isPoint, toIssue;
 var init_spec2 = __esm({
   "../artgen-core/src/dungeon/spec.ts"() {
     "use strict";
@@ -18859,6 +19071,9 @@ var init_spec2 = __esm({
     ROUTES = ["auto", "hv", "vh", "straight"];
     HATCH_STYLES = ["band", "full", "none"];
     LABEL_KINDS2 = ["name", "note", "area"];
+    ROOM_FILLS = ["floor", "building", "yard", "cellar"];
+    WALL_TOWER_SHAPES = ["round", "square"];
+    GATE_KINDS = ["gate", "postern"];
     DEFAULTS2 = {
       cols: 40,
       rows: 30,
@@ -18880,6 +19095,104 @@ var init_spec2 = __esm({
       const i = s2.indexOf(": ");
       return i < 0 ? { path: "", message: s2 } : { path: s2.slice(0, i), message: s2.slice(i + 2) };
     };
+  }
+});
+
+// ../artgen-core/src/dungeon/walls.ts
+function convexHull(pts) {
+  const ps = [];
+  for (let i = 0; i < pts.length; i += 2) ps.push([pts[i], pts[i + 1]]);
+  ps.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const uniq = ps.filter((p, i) => !i || p[0] !== ps[i - 1][0] || p[1] !== ps[i - 1][1]);
+  if (uniq.length < 3) return uniq;
+  const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const half = (list2) => {
+    const h = [];
+    for (const p of list2) {
+      while (h.length >= 2 && cross(h[h.length - 2], h[h.length - 1], p) <= 0) h.pop();
+      h.push(p);
+    }
+    h.pop();
+    return h;
+  };
+  return [...half(uniq), ...half([...uniq].reverse())];
+}
+function offsetRing(ring, d) {
+  if (!d || ring.length < 3) return ring;
+  const sign = area2(ring) > 0 ? 1 : -1, n = ring.length;
+  const normal = (a, b) => {
+    const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1;
+    return [sign * dy / l, -sign * dx / l];
+  };
+  return ring.map((p, i) => {
+    const a = normal(ring[(i + n - 1) % n], p), b = normal(p, ring[(i + 1) % n]), k = d / (1 + a[0] * b[0] + a[1] * b[1]);
+    return [p[0] + (a[0] + b[0]) * k, p[1] + (a[1] + b[1]) * k];
+  });
+}
+function snapToRing(ring, at2) {
+  let best = { x: ring[0][0], y: ring[0][1], angle: 0 }, bd = Infinity;
+  ring.forEach((a, i) => {
+    const b = ring[(i + 1) % ring.length], dx = b[0] - a[0], dy = b[1] - a[1], L = dx * dx + dy * dy;
+    const t = L ? Math.max(0, Math.min(1, ((at2[0] - a[0]) * dx + (at2[1] - a[1]) * dy) / L)) : 0, x = a[0] + t * dx, y = a[1] + t * dy, d = Math.hypot(at2[0] - x, at2[1] - y);
+    if (d < bd) {
+      bd = d;
+      best = { x, y, angle: Math.atan2(dy, dx) * 180 / Math.PI };
+    }
+  });
+  return best;
+}
+function wallGeom(w, index, l) {
+  const byId = new Map(l.rooms.map((g) => [g.room.id, g]));
+  let ring;
+  if (w.poly) ring = Array.from({ length: w.poly.length / 2 }, (_, i) => [w.poly[2 * i], w.poly[2 * i + 1]]);
+  else ring = offsetRing(convexHull((w.rooms ?? []).flatMap((id) => byId.get(id)?.outline ?? [])), w.inset ?? WALL_DEFAULTS.inset);
+  const thickness = w.thickness ?? WALL_DEFAULTS.thickness, tw = w.towers, size = tw?.size ?? WALL_DEFAULTS.towerSize, shape = tw?.shape ?? "round";
+  const towers = [];
+  if (tw) {
+    const at2 = tw.at ?? "corners", verts = at2 === "corners" ? ring.map((_, i) => i) : at2.filter((i) => i >= 0 && i < ring.length);
+    for (const i of verts) towers.push({ x: ring[i][0], y: ring[i][1], shape, size, source: "corner", vertex: i });
+  }
+  const gates = (w.gates ?? []).map((g) => {
+    const s2 = snapToRing(ring, g.at), width = g.width ?? (g.kind === "postern" ? WALL_DEFAULTS.posternWidth : WALL_DEFAULTS.gateWidth);
+    const dx = Math.cos(s2.angle * Math.PI / 180), dy = Math.sin(s2.angle * Math.PI / 180), off = width / 2 + size / 2;
+    const side = g.kind === "gate" ? [-1, 1].map((sg2) => ({ x: s2.x + sg2 * off * dx, y: s2.y + sg2 * off * dy, shape, size, source: "gate" })) : [];
+    towers.push(...side);
+    return { kind: g.kind, x: s2.x, y: s2.y, angle: s2.angle, width, ...g.room !== void 0 && { room: g.room }, towers: side };
+  });
+  const ids = w.rooms ?? l.rooms.map((g) => g.room.id);
+  const enclosed = ids.map((room) => {
+    const g = byId.get(room), flat = ring.flat();
+    return { room, inside: !!g && g.outline.every((_, i) => i % 2 || inPolygon(flat, g.outline[i], g.outline[i + 1]) || onRing(ring, g.outline[i], g.outline[i + 1])) };
+  });
+  return { index, ...w.id !== void 0 && { id: w.id }, thickness, ring: ring.flat(), towers, gates, enclosed };
+}
+function layoutWalls(spec, l) {
+  return (spec.walls ?? []).map((w, i) => wallGeom(w, i, l));
+}
+function wallFacts(spec, l) {
+  return layoutWalls(spec, l).map((w) => ({
+    index: w.index,
+    id: w.id ?? null,
+    thickness: w.thickness,
+    corners: Array.from({ length: w.ring.length / 2 }, (_, i) => [r1(w.ring[2 * i]), r1(w.ring[2 * i + 1])]),
+    towers: w.towers.map((t) => ({ at: [r1(t.x), r1(t.y)], shape: t.shape, size: t.size, source: t.source, vertex: t.vertex ?? null })),
+    gates: w.gates.map((g) => ({ kind: g.kind, at: [r1(g.x), r1(g.y)], angle: Math.round(g.angle), width: g.width, room: g.room ?? null, towers: g.towers.length })),
+    enclosed: w.enclosed
+  }));
+}
+var WALL_DEFAULTS, area2, onRing, r1;
+var init_walls = __esm({
+  "../artgen-core/src/dungeon/walls.ts"() {
+    "use strict";
+    init_round();
+    init_layout();
+    WALL_DEFAULTS = { thickness: 1, inset: 1, towerSize: 3, gateWidth: 2, posternWidth: 1 };
+    area2 = (r) => r.reduce((s2, p, i) => s2 + p[0] * r[(i + 1) % r.length][1] - r[(i + 1) % r.length][0] * p[1], 0);
+    onRing = (ring, x, y) => {
+      const s2 = snapToRing(ring, [x, y]);
+      return Math.hypot(s2.x - x, s2.y - y) < 1e-6;
+    };
+    r1 = (v) => roundTo(v, 0.1);
   }
 });
 
@@ -19020,6 +19333,10 @@ function contentBox(spec, l = layoutDungeon(spec)) {
   for (const g of l.rooms) add2(g.outline);
   for (const c of l.corridors) add2(c.pts, c.width / 2);
   for (const o of [...spec.overlay.labels, ...spec.overlay.symbols]) add2([o.x, o.y], 0.5);
+  for (const w of layoutWalls(spec, l)) {
+    add2(w.ring, w.thickness / 2);
+    for (const t of w.towers) add2([t.x, t.y], t.size / 2);
+  }
   if (!xs.length) return null;
   return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
 }
@@ -19042,6 +19359,11 @@ function fitDungeon(spec, margin = 2) {
     o.x += dx;
     o.y += dy;
   }
+  for (const w of out.walls ?? []) {
+    if (w.poly) w.poly = mv(w.poly);
+    for (const g of w.gates ?? []) g.at = [g.at[0] + dx, g.at[1] + dy];
+  }
+  if (out.underlay) out.underlay.origin = [out.underlay.origin[0] - dx * out.underlay.scale, out.underlay.origin[1] - dy * out.underlay.scale];
   out.cols = Math.max(4, Math.ceil(box[2] + dx + margin));
   out.rows = Math.max(4, Math.ceil(box[3] + dy + margin));
   return out;
@@ -19095,6 +19417,7 @@ var init_layout = __esm({
     "use strict";
     init_rng();
     init_trace();
+    init_walls();
     idSeed = (id) => [...id].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0, 2166136261);
     snap = (v, w) => Math.round(w) % 2 ? Math.floor(v) + 0.5 : Math.round(v);
     reversed = (p) => {
@@ -19211,6 +19534,11 @@ var init_symbols2 = __esm({
     init_symbols();
     SYMBOLS2 = {
       stairs: { name: "Stairs (rise to the right)", svg: '<rect x="-9" y="-9" width="18" height="18" fill="{fill}" stroke="{ink}" stroke-width="1.4"/><path d="M-5.5 -9V9M-2 -9V9M1.5 -9V9M5 -9V9" stroke="{ink}" stroke-width="1.2"/>' },
+      "stairs-up": { name: "Stairs up (climb toward its angle)", svg: '<path d="M-9 -4L9 -9V9L-9 4Z" fill="{fill}" stroke="{ink}" stroke-width="1.4" stroke-linejoin="round"/><path d="M-5.5 -4.6V4.6M-2 -5.8V5.8M1.5 -7V7M5 -8.2V8.2" stroke="{ink}" stroke-width="1.2"/><path d="M-7.5 0H5.5M2.2 -3.2L5.8 0L2.2 3.2Z" fill="{ink}" stroke="{ink}" stroke-width="1.2" stroke-linejoin="round"/>' },
+      "stairs-down": { name: "Stairs down (fall toward its angle)", svg: '<path d="M-9 -9L9 -4V4L-9 9Z" fill="{fill}" stroke="{ink}" stroke-width="1.4" stroke-linejoin="round"/><path d="M-5.5 -8.2V8.2M-2 -7V7M1.5 -5.8V5.8M5 -4.6V4.6" stroke="{ink}" stroke-width="1.2" stroke-dasharray="2.2 1.4"/><path d="M-7.5 0H4M2.2 -3.2L5.8 0L2.2 3.2" fill="none" stroke="{ink}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>' },
+      curtain: { name: "Curtain (along an edge or across a passage)", svg: '<path d="M-9.5 0q1.6 -3.6 3.2 0t3.2 0t3.2 0t3.2 0t3.2 0t3.2 0" fill="none" stroke="{ink}" stroke-width="1.5" stroke-linecap="round"/><path d="M-9.5 -3V3M9.5 -3V3" stroke="{ink}" stroke-width="1.6" stroke-linecap="round"/>' },
+      dais: { name: "Dais (a raised floor, by its outline)", svg: '<rect x="-9" y="-9" width="18" height="18" fill="{fill}" stroke="{ink}" stroke-width="1.6"/><rect x="-6" y="-6" width="12" height="12" fill="none" stroke="{ink}" stroke-width="0.9"/><path d="M-9 -9L-6 -6M9 -9L6 -6M-9 9L-6 6M9 9L6 6" stroke="{ink}" stroke-width="0.9"/>' },
+      gate: { name: "Gate (a break in a wall line)", svg: SYMBOLS.gate.svg },
       ladder: { name: "Ladder / shaft", svg: '<circle r="8" fill="{fill}" stroke="{ink}" stroke-width="1.4"/><path d="M-3 -7V7M3 -7V7M-3 -3.5H3M-3 0H3M-3 3.5H3" stroke="{ink}" stroke-width="1.2"/>' },
       pillar: { name: "Pillar", svg: '<circle r="5.5" fill="{ink}"/>' },
       statue: { name: "Statue", svg: '<circle r="7" fill="{fill}" stroke="{ink}" stroke-width="1.4"/><path d="M0 -4.5L1.3 -1.3L4.5 -1L2 1.2L2.8 4.5L0 2.8L-2.8 4.5L-2 1.2L-4.5 -1L-1.3 -1.3Z" fill="{ink}"/>' },
@@ -19238,10 +19566,70 @@ var init_symbols2 = __esm({
   }
 });
 
+// ../artgen-core/src/dungeon/underlay.ts
+function underlayWindow(spec, map) {
+  const u = spec.underlay;
+  if (!u) return null;
+  const x0 = Math.max(0, u.origin[0]), y0 = Math.max(0, u.origin[1]);
+  const x1 = Math.min(map.cols, u.origin[0] + spec.cols * u.scale), y1 = Math.min(map.rows, u.origin[1] + spec.rows * u.scale);
+  return x1 > x0 && y1 > y0 ? [x0, y0, x1 - x0, y1 - y0] : null;
+}
+function underlaySvg(spec, map, k, field) {
+  const u = spec.underlay, win = underlayWindow(spec, map);
+  if (!u || !win) return "";
+  const ppu = k / u.scale;
+  const svg4 = renderMapSvg(map, {
+    theme: u.theme ?? "color",
+    ppu,
+    crop: win,
+    field: field ?? generateMap(map),
+    layers: { legend: false, scale: false, compass: false, title: false, grid: false, labels: false, symbols: false }
+  });
+  const x = (win[0] - u.origin[0]) / u.scale * k, y = (win[1] - u.origin[1]) / u.scale * k;
+  const placed = svg4.replace(/^<svg ([^>]*?)width="[^"]*" height="[^"]*"/, (_m, pre) => `<svg ${pre}x="${n1(x)}" y="${n1(y)}" width="${n1(win[2] * ppu)}" height="${n1(win[3] * ppu)}"`).replace(/ id="([^"]+)"/g, ' id="u-$1"').replace(/url\(#([^)]+)\)/g, "url(#u-$1)");
+  return `<g id="underlay">${placed}</g>`;
+}
+var init_underlay = __esm({
+  "../artgen-core/src/dungeon/underlay.ts"() {
+    "use strict";
+    init_generate();
+    init_render2();
+    init_svgdraw();
+  }
+});
+
 // ../artgen-core/src/dungeon/render.ts
+function labelSize2(l, u, pageScale) {
+  return (pageScale ? pointsToPx(PAGE_PT.dungeon[l.kind], pageScale) : BASE_PX[l.kind] * u) * (l.size ?? 1);
+}
+function dungeonLabelLayout(spec, k, pageScale, l = layoutDungeon(spec), numbers2 = spec.numbers) {
+  const raw = spec.overlay.labels.map((lb) => ({ x: lb.x * k, y: lb.y * k }));
+  if (!pageScale) return { at: raw, unplaced: [] };
+  const u = pageUnit(pageScale), obstacles = spec.overlay.symbols.map((s2) => {
+    const z = PAGE_SYMBOL_MM * pageScale * (s2.scale ?? 1);
+    return { x: s2.x * k - z / 2, y: s2.y * k - z / 2, w: z, h: z };
+  });
+  for (const g of l.rooms) {
+    const x = g.cx * k, y = g.cy * k, fs = numberSize(u, pageScale), badge = numbers2 && g.number !== void 0;
+    if (badge) {
+      const txt = String(g.number), bh = fs * 1.45, bw = Math.max(bh, txt.length * fs * 0.62 + fs * 0.7);
+      obstacles.push({ x: x - bw / 2, y: y - bh / 2, w: bw, h: bh });
+    }
+    if (g.room.label) obstacles.push(textBox(g.room.label, x, y + (badge ? fs * 1.6 : fs * 0.3), nameSize(u, pageScale), { bold: true }));
+  }
+  const items = spec.overlay.labels.map((lb) => {
+    const size = labelSize2(lb, u, pageScale), text = lb.kind === "area" ? lb.text.toUpperCase() : lb.text;
+    return { x: lb.x * k, y: lb.y * k, box: textBox(text, lb.x * k, lb.y * k + size * 0.35, size, { bold: lb.kind !== "note", spacing: lb.kind === "area" ? size * 0.16 : 0 }), clear: 0 };
+  });
+  const placed = placeLabels(items, obstacles, { x: 0, y: 0, w: spec.cols * k, h: spec.rows * k }, pageScale * 0.3);
+  return { at: placed.map((p) => ({ x: p.x, y: p.y })), unplaced: placed.flatMap((p, index) => p.placed ? [] : [{ index, text: spec.overlay.labels[index].text }]) };
+}
 function dungeonLayersFor(spec, over = {}) {
   const on = Object.fromEntries(DUNGEON_LAYERS.map((l) => [l, true]));
   on.rock = spec.style.hatch !== "none";
+  on.underlay = !!spec.underlay;
+  on.enclosure = !!spec.walls?.length;
+  on.legend = !!spec.legend;
   on.grid = spec.grid.show;
   on.numbers = spec.numbers;
   on.scale = spec.scaleBar;
@@ -19288,11 +19676,12 @@ function scaleCells2(width) {
   return Math.max(1, Math.round(target));
 }
 function renderDungeonSvg(spec, o = {}) {
-  const k = o.ppu ?? 40, W3 = spec.cols * k, H = spec.rows * k, u = k / 40, t = 0.14 * k * spec.style.wall, fr = frameOf(o.crop, spec.cols, spec.rows, k);
+  const k = o.ppu ?? 40, W3 = spec.cols * k, H = spec.rows * k, u = o.pageScale ? pageUnit(o.pageScale) : k / 40, t = 0.14 * k * spec.style.wall, fr = frameOf(o.crop, spec.cols, spec.rows, k);
   const l = o.layout ?? layoutDungeon(spec), on = dungeonLayersFor(spec, o.layers);
   const parts = [`<rect width="${W3}" height="${H}" fill="${PAPER}"/>`], defs = [];
-  const roomD = pathData(l.rooms.map((g) => ({ pts: g.outline, closed: true })), k);
+  const roomD = pathData(l.rooms.filter((g) => fillOf(g.room) === "floor").map((g) => ({ pts: g.outline, closed: true })), k);
   const corr = l.corridors.map((c) => ({ d: pathData([{ pts: c.pts, closed: false }], k), w: c.width * k }));
+  if (on.underlay && spec.underlay && o.underlay) parts.push(underlaySvg(spec, o.underlay.map, k, o.underlay.field));
   if (on.rock && spec.style.hatch !== "none") {
     defs.push(hatchPattern(k));
     const band = spec.style.band * k;
@@ -19301,6 +19690,34 @@ function renderDungeonSvg(spec, o = {}) {
   }
   const floor = (fill2, extra) => (roomD ? `<path d="${roomD}" fill="${fill2}"${extra ? ` stroke="${fill2}" stroke-width="${n1(extra * 2)}" stroke-linejoin="miter"` : ""}/>` : "") + corr.map((c) => `<path d="${c.d}" fill="none" stroke="${fill2}" stroke-width="${n1(c.w + extra * 2)}" stroke-linecap="square" stroke-linejoin="miter"/>`).join("");
   if (on.floors) parts.push(`<g id="floors"><g id="walls">${floor(INK2, t)}</g><g id="floor">${floor(PAPER, 0)}</g></g>`);
+  const ofFill = (f) => l.rooms.filter((g) => fillOf(g.room) === f);
+  if (on.buildings && ofFill("building").length) {
+    const sw = n1(Math.max(1, t * 0.55));
+    parts.push(`<g id="buildings">${ofFill("building").map((g) => {
+      const d = pathData([{ pts: g.outline, closed: true }], k), r = g.room;
+      const long = r.w >= r.h, inset = Math.min(0.5, (long ? r.h : r.w) / 2), ridge = r.shape === "rect" || r.shape === "octagon" ? long ? `M${n1((r.x + inset) * k)} ${n1((r.y + r.h / 2) * k)}H${n1((r.x + r.w - inset) * k)}` : `M${n1((r.x + r.w / 2) * k)} ${n1((r.y + inset) * k)}V${n1((r.y + r.h - inset) * k)}` : "";
+      return `<path d="${d}" fill="${ROOF}" stroke="${INK2}" stroke-width="${sw}" stroke-linejoin="miter"/>${ridge ? `<path d="${ridge}" stroke="${RIDGE}" stroke-width="${n1(Math.max(1, t * 0.5))}" stroke-linecap="round"/>` : ""}`;
+    }).join("")}</g>`);
+  }
+  if (on.enclosure && spec.walls?.length) {
+    const defs2 = [];
+    let g = "";
+    for (const w of layoutWalls(spec, l)) {
+      const ring = pathData([{ pts: w.ring, closed: true }], k), th = w.thickness * k, cut = w.gates.map((gt) => `<rect x="${n1(-gt.width * k / 2)}" y="${n1(-th)}" width="${n1(gt.width * k)}" height="${n1(2 * th)}" transform="translate(${n1(gt.x * k)} ${n1(gt.y * k)}) rotate(${n1(gt.angle)})" fill="#000"/>`).join("");
+      const mid = `gates-${w.index}`;
+      if (cut) defs2.push(`<mask id="${mid}" maskUnits="userSpaceOnUse" x="0" y="0" width="${W3}" height="${H}"><rect width="${W3}" height="${H}" fill="#fff"/>${cut}</mask>`);
+      g += `<g id="wall-${w.index}"><g${cut ? ` mask="url(#${mid})"` : ""}><path d="${ring}" fill="none" stroke="${INK2}" stroke-width="${n1(th)}" stroke-linejoin="miter"/></g>`;
+      const tower = (tw) => {
+        const r = tw.size * k / 2, ring2 = Math.max(1, th * 0.4);
+        return tw.shape === "square" ? `<rect x="${n1(tw.x * k - r)}" y="${n1(tw.y * k - r)}" width="${n1(2 * r)}" height="${n1(2 * r)}" fill="${PAPER}" stroke="${INK2}" stroke-width="${n1(ring2)}"/>` : `<circle cx="${n1(tw.x * k)}" cy="${n1(tw.y * k)}" r="${n1(r)}" fill="${PAPER}" stroke="${INK2}" stroke-width="${n1(ring2)}"/>`;
+      };
+      g += w.towers.map(tower).join("");
+      g += w.gates.map((gt) => `<g transform="translate(${n1(gt.x * k)} ${n1(gt.y * k)}) rotate(${n1(gt.angle)}) scale(${(gt.width * k / 10).toFixed(3)})">${SYMBOLS2.gate.svg.replaceAll("{ink}", INK2).replaceAll("{fill}", PAPER)}</g>`).join("");
+      g += "</g>";
+    }
+    defs.push(...defs2);
+    parts.push(`<g id="enclosure">${g}</g>`);
+  }
   if (on.grid && spec.grid.show) {
     const s2 = spec.grid.size, line = (step) => {
       let d = "";
@@ -19319,32 +19736,48 @@ function renderDungeonSvg(spec, o = {}) {
   if (on.symbols && spec.overlay.symbols.length)
     parts.push(`<g id="symbols">${spec.overlay.symbols.map((s2) => {
       const sym = SYMBOLS2[s2.kind] ?? SYMBOLS2.trap;
-      return `<g transform="translate(${n1(s2.x * k)} ${n1(s2.y * k)})${s2.angle ? ` rotate(${n1(s2.angle)})` : ""} scale(${(k / 20 * (s2.scale ?? 1)).toFixed(3)})">${sym.svg.replaceAll("{ink}", INK2).replaceAll("{fill}", PAPER)}</g>`;
+      return `<g transform="translate(${n1(s2.x * k)} ${n1(s2.y * k)})${s2.angle ? ` rotate(${n1(s2.angle)})` : ""} scale(${((o.pageScale ? PAGE_SYMBOL_MM * o.pageScale : k) / 20 * (s2.scale ?? 1)).toFixed(3)})">${sym.svg.replaceAll("{ink}", INK2).replaceAll("{fill}", PAPER)}</g>`;
     }).join("")}</g>`);
+  if (on.cellars && ofFill("cellar").length)
+    parts.push(`<g id="cellars" fill="none" stroke="${INK2}" stroke-width="${n1(Math.max(1.4 * u, t * 0.7))}" stroke-dasharray="${n1(6 * u)} ${n1(4 * u)}" stroke-linejoin="round">${ofFill("cellar").map((g) => `<path d="${pathData([{ pts: g.outline, closed: true }], k)}"/>`).join("")}</g>`);
   if (on.numbers || on.labels) {
     let nums3 = "", names = "";
     for (const g of l.rooms) {
       const x = g.cx * k, y = g.cy * k, badge = on.numbers && g.number !== void 0;
       if (badge) {
-        const txt = String(g.number), fs = 19 * u, bh = fs * 1.45, bw = Math.max(bh, txt.length * fs * 0.62 + fs * 0.7);
+        const txt = String(g.number), fs = numberSize(u, o.pageScale), bh = fs * 1.45, bw = Math.max(bh, txt.length * fs * 0.62 + fs * 0.7);
         nums3 += `<rect x="${n1(x - bw / 2)}" y="${n1(y - bh / 2)}" width="${n1(bw)}" height="${n1(bh)}" rx="${n1(bh * 0.32)}" fill="${INK2}"/><text x="${n1(x)}" y="${n1(y + fs * 0.36)}" font-size="${n1(fs)}" font-weight="700" text-anchor="middle" fill="${PAPER}">${esc(txt)}</text>`;
       }
-      if (on.labels && g.room.label) names += haloText(g.room.label, x, y + (badge ? 31 * u : 5 * u), 15 * u, INK2, TH, 'font-weight="700"');
+      if (on.labels && g.room.label) names += haloText(g.room.label, x, y + (badge ? numberSize(u, o.pageScale) * (31 / 19) : 5 * u), nameSize(u, o.pageScale), INK2, TH, 'font-weight="700"');
     }
     if (nums3) parts.push(`<g id="numbers">${nums3}</g>`);
     if (names) parts.push(`<g id="room-labels">${names}</g>`);
   }
   if (on.labels && spec.overlay.labels.length) {
-    const g = spec.overlay.labels.map((lb) => {
-      const base = { area: 24, name: 15, note: 12 }[lb.kind] * u * (lb.size ?? 1);
+    const at2 = dungeonLabelLayout(spec, k, o.pageScale, l, on.numbers).at;
+    const g = spec.overlay.labels.map((lb, i) => {
+      const base = labelSize2(lb, u, o.pageScale), lx = at2[i].x / k, ly = at2[i].y / k;
       const attrs = lb.kind === "area" ? `font-weight="700" letter-spacing="${n1(base * 0.16)}"` : lb.kind === "name" ? 'font-weight="700"' : 'font-style="italic"';
-      const tx = haloText(lb.kind === "area" ? lb.text.toUpperCase() : lb.text, lb.x * k, lb.y * k + base * 0.35, base, INK2, TH, attrs);
-      return lb.angle ? `<g transform="rotate(${n1(lb.angle)} ${n1(lb.x * k)} ${n1(lb.y * k)})">${tx}</g>` : tx;
+      const tx = haloText(lb.kind === "area" ? lb.text.toUpperCase() : lb.text, lx * k, ly * k + base * 0.35, base, INK2, TH, attrs);
+      return lb.angle ? `<g transform="rotate(${n1(lb.angle)} ${n1(lx * k)} ${n1(ly * k)})">${tx}</g>` : tx;
     }).join("");
     parts.push(`<g id="labels">${g}</g>`);
   }
   const box = (x, y, w, h) => `<rect x="${n1(x)}" y="${n1(y)}" width="${n1(w)}" height="${n1(h)}" rx="${n1(4 * u)}" fill="${PAPER}" stroke="${INK2}" stroke-width="${n1(u)}"/>`;
   const pad = 12 * u;
+  if (on.legend) {
+    const kinds = [...new Set(spec.overlay.symbols.map((s2) => s2.kind))];
+    if (kinds.length) {
+      const rh = 22 * u, fs = 12 * u, bw = 190 * u, bh = kinds.length * rh + 12 * u, x = fr.r - bw - pad, y = fr.b - bh - pad;
+      let g = box(x, y, bw, bh);
+      kinds.forEach((kind, i) => {
+        const sy = y + 6 * u + i * rh + rh / 2, sym = SYMBOLS2[kind] ?? SYMBOLS2.trap;
+        g += `<g transform="translate(${n1(x + 18 * u)} ${n1(sy)}) scale(${(18 * u / 20).toFixed(3)})">${sym.svg.replaceAll("{ink}", INK2).replaceAll("{fill}", PAPER)}</g>`;
+        g += `<text x="${n1(x + 36 * u)}" y="${n1(sy + fs * 0.35)}" font-size="${n1(fs)}" fill="${INK2}">${esc(LEGEND_NAMES(kind))}</text>`;
+      });
+      parts.push(`<g id="legend">${g}</g>`);
+    }
+  }
   if (on.scale) {
     const n = scaleCells2(fr.w / k), len = n * k, fs = 11 * u, x = fr.x + pad + 8 * u, y = fr.b - pad - 20 * u, seg = Math.min(4, n);
     let g = box(fr.x + pad, y - 18 * u, len + 34 * u, 40 * u);
@@ -19361,7 +19794,7 @@ function renderDungeonSvg(spec, o = {}) {
   }
   return `<svg xmlns="http://www.w3.org/2000/svg" ${sizeAttrs(fr, o.unit)} font-family="${FONT}"><defs>${defs.join("")}<clipPath id="map-clip"><rect x="${fr.x}" y="${fr.y}" width="${fr.w}" height="${fr.h}"/></clipPath></defs><g clip-path="url(#map-clip)">${parts.join("")}</g></svg>`;
 }
-var DUNGEON_LAYERS, INK2, PAPER, TH;
+var DUNGEON_LAYERS, INK2, PAPER, TH, ROOF, RIDGE, fillOf, BASE_PX, numberSize, nameSize, LEGEND_NAMES;
 var init_render3 = __esm({
   "../artgen-core/src/dungeon/render.ts"() {
     "use strict";
@@ -19369,12 +19802,22 @@ var init_render3 = __esm({
     init_svgdraw();
     init_trace();
     init_view();
+    init_page();
     init_layout();
     init_symbols2();
-    DUNGEON_LAYERS = ["rock", "floors", "grid", "doors", "symbols", "numbers", "labels", "title", "scale", "compass"];
+    init_underlay();
+    init_walls();
+    DUNGEON_LAYERS = ["underlay", "rock", "floors", "buildings", "enclosure", "grid", "doors", "symbols", "cellars", "numbers", "labels", "legend", "title", "scale", "compass"];
     INK2 = "#000000";
     PAPER = "#ffffff";
     TH = { ink: INK2, paper: PAPER, halo: PAPER };
+    ROOF = "#dcdcdc";
+    RIDGE = "#8c8c8c";
+    fillOf = (r) => r.fill ?? "floor";
+    BASE_PX = { area: 24, name: 15, note: 12 };
+    numberSize = (u, pageScale) => pageScale ? pointsToPx(PAGE_PT.dungeon.number, pageScale) : 19 * u;
+    nameSize = (u, pageScale) => pageScale ? pointsToPx(PAGE_PT.dungeon.room, pageScale) : 15 * u;
+    LEGEND_NAMES = (kind) => (SYMBOLS2[kind] ?? SYMBOLS2.trap).name.split(" (")[0];
   }
 });
 
@@ -19420,7 +19863,7 @@ function dungeonFacts(spec, layout2 = layoutDungeon(spec)) {
       }
     });
   });
-  const overlaps = [];
+  const overlaps2 = [];
   for (let a = 0; a < layout2.rooms.length; a++) for (let b = a + 1; b < layout2.rooms.length; b++) {
     const A = layout2.rooms[a], B = layout2.rooms[b], cells = [];
     const x0 = Math.floor(Math.max(A.room.x, B.room.x)), x1 = Math.ceil(Math.min(A.room.x + A.room.w, B.room.x + B.room.w));
@@ -19428,7 +19871,7 @@ function dungeonFacts(spec, layout2 = layoutDungeon(spec)) {
     for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) if (inPolygon(A.outline, x + 0.5, y + 0.5) && inPolygon(B.outline, x + 0.5, y + 0.5)) cells.push([x, y]);
     if (!cells.length) continue;
     const xs = cells.map((c) => c[0]), ys = cells.map((c) => c[1]), bx = Math.min(...xs), by = Math.min(...ys);
-    overlaps.push({ rooms: [A.room.id, B.room.id], cells, count: cells.length, box: box({ x: bx, y: by, w: Math.max(...xs) + 1 - bx, h: Math.max(...ys) + 1 - by }) });
+    overlaps2.push({ rooms: [A.room.id, B.room.id], cells, count: cells.length, box: box({ x: bx, y: by, w: Math.max(...xs) + 1 - bx, h: Math.max(...ys) + 1 - by }) });
   }
   return {
     version: spec.version,
@@ -19439,8 +19882,9 @@ function dungeonFacts(spec, layout2 = layoutDungeon(spec)) {
     rooms,
     corridors,
     exits,
-    overlaps,
-    unreached: rooms.filter((r) => !reached.has(r.id)).map((r) => r.id)
+    overlaps: overlaps2,
+    unreached: rooms.filter((r) => !reached.has(r.id)).map((r) => r.id),
+    ...spec.walls?.length && { walls: wallFacts(spec, layout2) }
   };
 }
 var RULES2;
@@ -19449,10 +19893,75 @@ var init_facts2 = __esm({
     "use strict";
     init_round();
     init_layout();
+    init_walls();
     RULES2 = {
       /** Positions, lengths and distances in cells. */
       position: 0.1
     };
+  }
+});
+
+// ../artgen-core/src/dungeon/sync.ts
+function syncDungeon(target, from, origin) {
+  const conflicts = [], lists = {};
+  const take = (name, a, b) => {
+    const r = mergeList(name, a, b, origin);
+    lists[name] = { removed: r.removed.length, added: b.length, kept: r.kept };
+    return r;
+  };
+  const rooms = take("rooms", target.rooms, from.rooms);
+  for (const old of rooms.removed) {
+    const now = from.rooms.find((r) => r.id === old.id);
+    if (!now || !old.hand?.length) continue;
+    old.hand.forEach((field) => {
+      const hand = old[field], table = now[field];
+      if (JSON.stringify(hand) !== JSON.stringify(table))
+        conflicts.push({ kind: "overridden", list: "rooms", index: target.rooms.indexOf(old), entry: old.id, field, hand, table, message: `${old.id}.${field}: the hand value ${JSON.stringify(hand)} is replaced by the table's ${JSON.stringify(table)}` });
+    });
+  }
+  const corridors = take("corridors", target.corridors, from.corridors), walls = take("walls", target.walls ?? [], from.walls ?? []);
+  const labels = take("labels", target.overlay.labels, from.overlay.labels), symbols = take("symbols", target.overlay.symbols, from.overlay.symbols);
+  const ids = new Set(rooms.list.map((r) => r.id));
+  const dropped = (name, list2, source, refs) => list2.filter((e) => {
+    const missing = refs(e).find((id) => !ids.has(id));
+    if (missing === void 0 || e.origin === origin) return true;
+    conflicts.push({ kind: "dropped", list: name, index: source.indexOf(e), message: `${name}[${source.indexOf(e)}] is dropped: it refers to ${missing}, which the sync removed` });
+    return false;
+  });
+  const end = (e) => "room" in e ? [e.room] : [];
+  const keptCorridors = dropped("corridors", corridors.list, target.corridors, (c) => [...end(c.from), ...end(c.to)]);
+  const keptWalls = dropped("walls", walls.list, target.walls ?? [], (w) => [...w.rooms ?? [], ...(w.gates ?? []).flatMap((g) => g.room ? [g.room] : [])]);
+  const spec = parseDungeon({
+    ...target,
+    rooms: rooms.list,
+    corridors: keptCorridors,
+    ...(target.walls?.length || from.walls?.length) && { walls: keptWalls },
+    overlay: { labels: labels.list, symbols: symbols.list }
+  });
+  const before = layoutDungeon(target).rooms, after = layoutDungeon(spec).rooms;
+  const oldMarks = [...target.overlay.labels, ...target.overlay.symbols], newMarks = [...spec.overlay.labels, ...spec.overlay.symbols], pre = [...labels.list, ...symbols.list];
+  newMarks.forEach((m, i) => {
+    if (m.origin !== void 0) return;
+    const was = oldMarks.includes(pre[i]) ? pre[i] : void 0, room = insideRoom(after, m);
+    if (room !== void 0 && !(was && insideRoom(before, was) !== void 0))
+      conflicts.push({ kind: "inside-room", list: m.text !== void 0 ? "labels" : "symbols", index: oldMarks.indexOf(pre[i]), message: `hand ${markName2(m)} at ${m.x},${m.y} is now inside room ${room}` });
+    const over = overMark(newMarks, m);
+    if (over && !(was && overMark(oldMarks, was)))
+      conflicts.push({ kind: "over-mark", list: m.text !== void 0 ? "labels" : "symbols", index: oldMarks.indexOf(pre[i]), message: `hand ${markName2(m)} at ${m.x},${m.y} is now over ${markName2(over)}` });
+  });
+  return { spec, report: { version: DUNGEON_FORMAT, origin, lists, conflicts } };
+}
+var MARK_DISTANCE2, markName2, insideRoom, overMark;
+var init_sync3 = __esm({
+  "../artgen-core/src/dungeon/sync.ts"() {
+    "use strict";
+    init_sync();
+    init_layout();
+    init_spec2();
+    MARK_DISTANCE2 = 0.75;
+    markName2 = (m) => m.text !== void 0 ? `label "${m.text}"` : `symbol ${m.kind}`;
+    insideRoom = (rooms, m) => rooms.find((g) => inPolygon(g.outline, m.x, m.y))?.room.id;
+    overMark = (marks, m) => marks.find((o) => o !== m && near(o, m, MARK_DISTANCE2));
   }
 });
 
@@ -19465,23 +19974,34 @@ __export(dungeon_exports, {
   DUNGEON_FORMAT: () => DUNGEON_FORMAT,
   DUNGEON_LAYERS: () => DUNGEON_LAYERS,
   FACTS_RULES: () => RULES2,
+  GATE_KINDS: () => GATE_KINDS,
   HATCH_STYLES: () => HATCH_STYLES,
   LABEL_KINDS: () => LABEL_KINDS2,
+  LEGEND_NAMES: () => LEGEND_NAMES,
+  MARK_DISTANCE: () => MARK_DISTANCE2,
   MAX_SIDE: () => MAX_SIDE2,
+  ROOM_FILLS: () => ROOM_FILLS,
   ROOM_SHAPES: () => ROOM_SHAPES,
   ROUTES: () => ROUTES,
   SYMBOLS: () => SYMBOLS2,
   SYMBOL_KINDS: () => SYMBOL_KINDS2,
+  WALL_DEFAULTS: () => WALL_DEFAULTS,
+  WALL_TOWER_SHAPES: () => WALL_TOWER_SHAPES,
   checkDungeon: () => checkDungeon,
   contentBox: () => contentBox,
+  convexHull: () => convexHull,
   dungeonFacts: () => dungeonFacts,
+  dungeonLabelLayout: () => dungeonLabelLayout,
   dungeonLayersFor: () => dungeonLayersFor,
   fitDungeon: () => fitDungeon,
   generateDungeon: () => generateDungeon,
   inPolygon: () => inPolygon,
   layoutDungeon: () => layoutDungeon,
+  layoutWalls: () => layoutWalls,
   newDungeon: () => newDungeon,
   nextRoomId: () => nextRoomId,
+  offsetRing: () => offsetRing,
+  originError: () => originError2,
   parseDungeon: () => parseDungeon,
   parsePoint: () => parsePoint2,
   polyBox: () => polyBox,
@@ -19489,8 +20009,12 @@ __export(dungeon_exports, {
   roomCrop: () => roomCrop,
   roomOutline: () => roomOutline,
   singleRoom: () => singleRoom,
+  syncDungeon: () => syncDungeon,
   toIssue: () => toIssue,
-  validateDungeon: () => validateDungeon
+  underlaySvg: () => underlaySvg,
+  underlayWindow: () => underlayWindow,
+  validateDungeon: () => validateDungeon,
+  wallFacts: () => wallFacts
 });
 var init_dungeon = __esm({
   "../artgen-core/src/dungeon/index.ts"() {
@@ -19501,6 +20025,9 @@ var init_dungeon = __esm({
     init_symbols2();
     init_render3();
     init_facts2();
+    init_walls();
+    init_underlay();
+    init_sync3();
   }
 });
 
@@ -20200,6 +20727,7 @@ var init_maps = __esm({
     init_format();
     init_png();
     init_svg();
+    init_view();
     init_view();
   }
 });
@@ -20951,16 +21479,16 @@ Price basis (same as artlab): $${PRICE2.inPerM}/M input (review images), $${PRIC
 `;
       if (!row.version.startsWith("finish") && row.score !== void 0) prev = row.score;
     }
-    const r1 = scores.get("base.v1")?.score, fin = st.rows.filter((r) => r.version.startsWith("finish")).pop();
+    const r12 = scores.get("base.v1")?.score, fin = st.rows.filter((r) => r.version.startsWith("finish")).pop();
     const finalScore = fin?.score ?? st.best?.score;
     summaries.push({
       id: a.brief.id,
       target: a.brief.target,
-      r1,
+      r1: r12,
       bestRevision: st.best,
       finish: fin?.score,
       final: fin?.version ?? st.best?.version,
-      revisionGain: r1 !== void 0 && st.best ? st.best.score - r1 : void 0,
+      revisionGain: r12 !== void 0 && st.best ? st.best.score - r12 : void 0,
       finishGain: fin?.score !== void 0 && st.best ? fin.score - st.best.score : void 0,
       outTokens: out,
       reviewTokens: inp,
@@ -21068,10 +21596,11 @@ async function renderMapFiles(p, ref, o = {}) {
   if (o.fit && o.ppu !== void 0) throw new Error("--fit and --ppu both set the scale: use one");
   const crop2 = clampCrop(o.crop ?? [0, 0, m.cols, m.rows], m.cols, m.rows), ppu = o.fit ? fitPpu(crop2[2], crop2[3], o.fit) : o.ppu ?? 40;
   const size = [Math.round(crop2[2] * ppu), Math.round(crop2[3] * ppu)], unit = o.fit?.unit ?? "px";
+  const pageScale = o.pageScale ?? (o.fit ? PX_PER_MM : void 0);
   if (formats.includes("png")) await initNodeMapSvg();
   mkdirSync5(out, { recursive: true });
   for (const theme of o.themes ?? ["color"]) {
-    const svg4 = map_exports.renderMapSvg(m, { theme, ppu, layers: o.layers, field, ...o.crop && { crop: crop2 }, unit }), base = join8(out, `${id}.${theme}`);
+    const svg4 = map_exports.renderMapSvg(m, { theme, ppu, layers: o.layers, field, ...o.crop && { crop: crop2 }, unit, pageScale }), base = join8(out, `${id}.${theme}`);
     if (formats.includes("svg")) {
       writeFileSync8(`${base}.svg`, svg4);
       files.push(`${base}.svg`);
@@ -21081,7 +21610,7 @@ async function renderMapFiles(p, ref, o = {}) {
       files.push(`${base}.png`);
     }
   }
-  return { files: files.map((f) => relative3(process.cwd(), f)), terrains: map_exports.terrainsUsed(field), rivers: field.rivers.length, size, crop: crop2, ppu, svg: svgSize(crop2, ppu, unit) };
+  return { files: files.map((f) => relative3(process.cwd(), f)), terrains: map_exports.terrainsUsed(field), rivers: field.rivers.length, size, crop: crop2, ppu, svg: svgSize(crop2, ppu, unit), pageScale: pageScale ?? null, unplaced: map_exports.mapLabelLayout(m, ppu, pageScale).unplaced };
 }
 function svgSize(crop2, ppu, unit) {
   const f = unit === "mm" ? 96 / 25.4 : 1, r = (v) => Math.round(v * ppu / f * 100) / 100;
@@ -21224,8 +21753,18 @@ function checkDungeonFile(p, ref) {
     const missing = e.code === "ENOENT";
     return { file: shown2(p, f), ok: false, errors: [{ path: "", message: missing ? `no such file: ${shown2(p, f)}` : `not JSON: ${e.message}` }] };
   }
-  const r = dungeon_exports.checkDungeon(raw);
-  return { file: shown2(p, f), ok: !r.errors.length, errors: r.errors };
+  const r = dungeon_exports.checkDungeon(raw), errors = [...r.errors];
+  const u = raw?.underlay;
+  if (!errors.some((e) => e.path.startsWith("underlay")) && u && typeof u.map === "string" && !existsSync8(resolve5(dirname6(f), u.map)))
+    errors.push({ path: "underlay.map", message: `no such map file ${u.map}` });
+  return { file: shown2(p, f), ok: !errors.length, errors };
+}
+function readUnderlay(p, ref, m) {
+  if (!m.underlay) return null;
+  const f = resolve5(dirname6(dungeonFile(p, ref)), m.underlay.map);
+  if (!existsSync8(f)) throw new Error(`underlay.map: no such map file ${m.underlay.map} (looked for ${shown2(p, f)})`);
+  const spec = map_exports.parseMap(readJson(f));
+  return { map: spec, field: map_exports.generateMap(spec) };
 }
 async function renderDungeonFiles(p, ref, o = {}) {
   const m = readDungeon(p, ref), layout2 = dungeon_exports.layoutDungeon(m), id = typeof ref === "string" ? ref : fileStem(ref.file);
@@ -21237,9 +21776,10 @@ async function renderDungeonFiles(p, ref, o = {}) {
   const window = o.rooms?.length ? dungeon_exports.roomCrop(m, o.rooms, o.margin, layout2) : o.crop;
   const crop2 = clampCrop(window ?? [0, 0, m.cols, m.rows], m.cols, m.rows), ppu = o.fit ? fitPpu(crop2[2], crop2[3], o.fit) : o.ppu ?? 40;
   const size = [Math.round(crop2[2] * ppu), Math.round(crop2[3] * ppu)], unit = o.fit?.unit ?? "px";
+  const pageScale = o.pageScale ?? (o.fit ? PX_PER_MM : void 0), underlay = readUnderlay(p, ref, m);
   if (formats.includes("png")) await initNodeMapSvg();
   mkdirSync6(out, { recursive: true });
-  const svg4 = dungeon_exports.renderDungeonSvg(m, { ppu, layers: o.layers, layout: layout2, ...window && { crop: crop2 }, unit }), base = join9(out, id);
+  const svg4 = dungeon_exports.renderDungeonSvg(m, { ppu, layers: o.layers, layout: layout2, ...window && { crop: crop2 }, unit, pageScale, ...underlay && { underlay } }), base = join9(out, id);
   if (formats.includes("svg")) {
     writeFileSync9(`${base}.svg`, svg4);
     files.push(`${base}.svg`);
@@ -21248,7 +21788,7 @@ async function renderDungeonFiles(p, ref, o = {}) {
     writeFileSync9(`${base}.png`, encodePNG(rasterizeSvg(svg4, size[0], size[1])));
     files.push(`${base}.png`);
   }
-  return { files: files.map((f) => relative4(process.cwd(), f)), rooms: m.rooms.length, corridors: m.corridors.length, doors: layout2.doors.length, size, crop: crop2, ppu, svg: svgSize(crop2, ppu, unit) };
+  return { files: files.map((f) => relative4(process.cwd(), f)), rooms: m.rooms.length, corridors: m.corridors.length, doors: layout2.doors.length, size, crop: crop2, ppu, svg: svgSize(crop2, ppu, unit), pageScale: pageScale ?? null, unplaced: dungeon_exports.dungeonLabelLayout(m, ppu, pageScale, layout2).unplaced };
 }
 function cornerPoint(at2) {
   const [x, y] = dungeon_exports.parsePoint(at2);
@@ -21281,7 +21821,7 @@ function describeDungeon(m) {
     `  gen: rooms ${g.rooms}, size ${g.minSize}..${g.maxSize}, caves ${g.caves}, round ${g.round}, loops ${g.loops}, doors ${g.doors}, corridor width ${g.corridorWidth}, spacing ${g.spacing}, entrance ${g.entrance ? "on" : "off"}`,
     `  grid: ${m.grid.show ? `${gridFt(m.grid.size)}${m.grid.sub && m.grid.size > 1 ? ` + ${gridFt(1)}` : ""}, ${m.grid.clip === "floor" ? "on the floor" : "everywhere"}` : "off"}; hatch ${m.style.hatch}${m.style.hatch === "band" ? ` (${m.style.band} cells)` : ""}; numbers ${m.numbers ? "on" : "off"}, scale bar ${m.scaleBar ? "on" : "off"}, compass ${m.compass ? "on" : "off"}`,
     `  rooms (${m.rooms.length}):${m.rooms.map((r) => `
-    ${r.id}: ${r.shape} ${r.w}\xD7${r.h} at ${r.x},${r.y}${r.number === false ? ", no number" : r.number !== void 0 ? `, #${r.number}` : ""}${r.label ? ` "${r.label}"` : ""}`).join("")}`,
+    ${r.id}: ${r.shape} ${r.w}\xD7${r.h} at ${r.x},${r.y}${r.fill && r.fill !== "floor" ? `, ${r.fill}` : ""}${r.number === false ? ", no number" : r.number !== void 0 ? `, #${r.number}` : ""}${r.label ? ` "${r.label}"` : ""}`).join("")}`,
     `  corridors (${m.corridors.length}):${m.corridors.map((c, i) => `
     ${i}. ${end(c.from)} \u2192 ${end(c.to)}${c.width && c.width !== 1 ? `, width ${c.width}` : ""}${c.via ? `, via ${c.via.join(",")}` : c.route && c.route !== "auto" ? `, ${c.route}` : ""}${c.doors?.some(Boolean) ? `, doors ${c.doors.map((d) => d ?? "none").join("/")}` : ""}`).join("")}`,
     `  labels (${m.overlay.labels.length}):${m.overlay.labels.map((l, i) => `
@@ -21303,7 +21843,9 @@ function describeDungeonFacts(r) {
   corridor ${x.corridor} ${x.end} at ${x.at.join(",")}${x.room ? ` from ${x.room}` : ""}: nearest edge ${x.edge}, ${x.distance.map} cells (${x.distance.scale} ${unit})`).join("")}`,
     `overlaps (${r.overlaps.length}):${r.overlaps.map((o) => `
   ${o.rooms.join(" / ")}: ${o.count} cells, ${box(o.box)}`).join("")}`,
-    `unreached rooms: ${r.unreached.join(", ") || "none"}`
+    `unreached rooms: ${r.unreached.join(", ") || "none"}`,
+    ...(r.walls ?? []).map((w) => `wall ${w.id ?? w.index}: ${w.corners.length} corners, ${w.towers.length} towers (${w.towers.filter((t) => t.source === "corner").length} at corners), thickness ${w.thickness}; ${w.enclosed.every((e) => e.inside) ? "encloses every room" : `does not enclose ${w.enclosed.filter((e) => !e.inside).map((e) => e.room).join(", ")}`}${w.gates.map((g) => `
+  ${g.kind} at ${g.at.join(",")} (wall at ${g.angle}\xB0, ${g.width} wide, ${g.towers} towers${g.room ? `, opens into ${g.room}` : ""})`).join("")}`)
   ].join("\n");
 }
 var dungeonsDir, shown2, dungeonSummary;
@@ -21332,6 +21874,10 @@ function list(args, name) {
 function viewFlags(args, cell) {
   const crop2 = flag(args, "--crop"), fit = flag(args, "--fit");
   return { ...crop2 !== void 0 && { crop: parseCrop(crop2, cell) }, ...fit !== void 0 && { fit: parseFit(fit) } };
+}
+function syncText(file, r) {
+  const lists = Object.entries(r.lists).filter(([, c]) => c.removed || c.added).map(([n, c]) => `${n}: ${c.removed} of ${r.origin} replaced by ${c.added}`);
+  return [`${file}: synced origin ${r.origin}${lists.length ? ` (${lists.join("; ")})` : " (nothing of that origin on either side)"}`, `${r.conflicts.length} conflict${r.conflicts.length === 1 ? "" : "s"}${r.conflicts.length ? ":" : ""}`, ...r.conflicts.map((c) => `  ${c.kind}: ${c.message}`)].join("\n");
 }
 async function mapCommand(sub2, args, emit) {
   const print = (human, data) => emit(human, withVersion(data, map_exports.MAP_FORMAT));
@@ -21412,6 +21958,7 @@ ${next(id)}`, m);
       else if (op === "river") m2.edits.push({ op, points: numbers(flag(args, "--points"), "--points"), ...num(args, "--width") !== void 0 && { width: num(args, "--width") }, ...onOff(flag(args, "--delta")) === false && { delta: false } });
       else if (op === "road") m2.edits.push({ op, points: numbers(flag(args, "--points"), "--points") });
       else throw new Error("map edit <id> paint|elevate|river|road|undo");
+      if (originFlag(args)) m2.edits[m2.edits.length - 1].origin = originFlag(args).origin;
       summary = `edit ${m2.edits.length - 1}: ${op}`;
     });
     print(`${m.id}: ${summary} (${m.edits.length} edits)
@@ -21438,10 +21985,10 @@ ${next(m.id)}`, m.grid);
       if (sub2 === "label") {
         const kind = flag(args, "--kind") ?? "place";
         if (!map_exports.LABEL_KINDS.includes(kind)) throw new Error(`--kind: ${map_exports.LABEL_KINDS.join(", ")}`);
-        m2.overlay.labels.push({ text: what, x, y, kind, ...num(args, "--size") !== void 0 && { size: num(args, "--size") }, ...num(args, "--angle") !== void 0 && { angle: num(args, "--angle") } });
+        m2.overlay.labels.push({ text: what, x, y, kind, ...num(args, "--size") !== void 0 && { size: num(args, "--size") }, ...num(args, "--angle") !== void 0 && { angle: num(args, "--angle") }, ...originFlag(args) });
       } else {
         if (!map_exports.SYMBOLS[what]) throw new Error(`unknown symbol ${what} (have: ${map_exports.SYMBOL_KINDS.join(", ")})`);
-        m2.overlay.symbols.push({ kind: what, x, y, ...num(args, "--scale") !== void 0 && { scale: num(args, "--scale") } });
+        m2.overlay.symbols.push({ kind: what, x, y, ...num(args, "--scale") !== void 0 && { scale: num(args, "--scale") }, ...num(args, "--angle") !== void 0 && { angle: num(args, "--angle") }, ...originFlag(args) });
       }
     });
     const n = sub2 === "label" ? m.overlay.labels.length : m.overlay.symbols.length;
@@ -21500,14 +22047,28 @@ ${next(m.id)}`, m);
       themes: theme === "both" ? ["color", "bw"] : [theme],
       formats: format === "both" ? ["svg", "png"] : [format],
       ppu: num(args, "--ppu"),
+      pageScale: pageScaleFlag(args),
       ...viewFlags(args, readMap(p, need2("<id>")).grid.size),
       layers: parseLayers(flag(args, "--layers")),
       out: flag(args, "--out")
     });
-    print([`${file ?? id} ${r.size.join("\xD7")} px, ${r.ppu} px a unit, window ${r.crop.join(",")}: ${r.terrains.join(", ")}${r.rivers ? `, ${r.rivers} rivers` : ""}`, ...r.files.map((f) => `  ${f}`)].join("\n"), r);
+    print([`${file ?? id} ${r.size.join("\xD7")} px, ${r.ppu} px a unit, window ${r.crop.join(",")}: ${r.terrains.join(", ")}${r.rivers ? `, ${r.rivers} rivers` : ""}`, ...r.unplaced.map((u) => `  no free spot for label ${u.index} "${u.text}"`), ...r.files.map((f) => `  ${f}`)].join("\n"), r);
     return 0;
   }
-  throw new Error("map: new | gen | edit | grid | label | symbol | symbols | overlay | set | render | show | facts | check | list (artgen --help)");
+  if (sub2 === "sync") {
+    const origin = flag(args, "--origin"), from = flag(args, "--from");
+    if (!origin || !from) throw new Error("map sync <id>|--file target.json --from new.json --origin tables");
+    let report2;
+    updateMap(p, need2("<id>"), (m) => {
+      const r = map_exports.syncMap(m, map_exports.parseMap(readJson(from)), origin);
+      report2 = r.report;
+      Object.assign(m, r.spec);
+      if (!r.spec.require) delete m.require;
+    });
+    print(syncText(String(file ?? id), report2), report2);
+    return 0;
+  }
+  throw new Error("map: new | gen | edit | grid | label | symbol | symbols | overlay | set | render | show | facts | check | sync | list (artgen --help)");
 }
 function sizeFlag(args, name) {
   const v = flag(args, name);
@@ -21522,6 +22083,15 @@ function roomNumber(args) {
   if (onOff(v) === false && !/^\d/.test(v)) return false;
   if (!Number.isFinite(+v)) throw new Error("--number: a number or off");
   return +v;
+}
+function fillFlag(args) {
+  const v = flag(args, "--fill");
+  if (v === void 0) return void 0;
+  if (!dungeon_exports.ROOM_FILLS.includes(v)) throw new Error(`--fill: ${dungeon_exports.ROOM_FILLS.join(", ")}`);
+  return v;
+}
+function handEdit(r, fields) {
+  if (r.origin) r.hand = [.../* @__PURE__ */ new Set([...r.hand ?? [], ...fields])];
 }
 async function dungeonCommand(sub2, args, emit) {
   const print = (human, data) => emit(human, withVersion(data, dungeon_exports.DUNGEON_FORMAT));
@@ -21614,6 +22184,9 @@ ${next(m.id)}`, m);
         }
         if (label) room.label = label;
         if (n !== void 0) room.number = n;
+        const fill2 = fillFlag(args);
+        if (fill2) room.fill = fill2;
+        Object.assign(room, originFlag(args));
         m2.rooms.push(room);
         summary = `added ${shape} room ${roomId}`;
       } else if (op === "move") {
@@ -21622,6 +22195,7 @@ ${next(m.id)}`, m);
         const [x, y] = cornerPoint(at2), dx = x - r.x, dy = y - r.y;
         r.x = x;
         r.y = y;
+        handEdit(r, ["x", "y"]);
         if (r.points) r.points = r.points.map((v, i) => v + (i % 2 ? dy : dx));
         summary = `moved ${r.id} to ${x},${y}`;
       } else if (op === "set") {
@@ -21631,12 +22205,23 @@ ${next(m.id)}`, m);
           r.shape = shape;
           delete r.points;
         }
-        if (sz) [r.w, r.h] = sz;
+        if (sz) {
+          [r.w, r.h] = sz;
+          handEdit(r, ["w", "h"]);
+        }
+        if (shape) handEdit(r, ["shape"]);
         if (label !== void 0) {
           if (label) r.label = label;
           else delete r.label;
+          handEdit(r, ["label"]);
         }
         if (n !== void 0) r.number = n;
+        const fill2 = fillFlag(args);
+        if (fill2) {
+          if (fill2 === "floor") delete r.fill;
+          else r.fill = fill2;
+          handEdit(r, ["fill"]);
+        }
         summary = `changed ${r.id}`;
       } else if (op === "rm") {
         const r = find(), before = m2.corridors.length;
@@ -21661,7 +22246,8 @@ ${next(m.id)}`, m.rooms);
         ...num(args, "--width") !== void 0 && { width: num(args, "--width") },
         ...route2 && { route: route2 },
         ...flag(args, "--via") && { via: numbers(flag(args, "--via"), "--via") },
-        ...doors && { doors }
+        ...doors && { doors },
+        ...originFlag(args)
       });
     });
     print(`${m.id}: corridor ${m.corridors.length - 1}: ${a} \u2192 ${b}
@@ -21714,7 +22300,7 @@ ${next(m.id)}`, m.grid);
         if (t) m2.title = t;
         else delete m2.title;
       }
-      for (const [f, k] of [["--numbers", "numbers"], ["--scale-bar", "scaleBar"], ["--compass", "compass"]]) {
+      for (const [f, k] of [["--numbers", "numbers"], ["--scale-bar", "scaleBar"], ["--compass", "compass"], ["--legend", "legend"]]) {
         const v = onOff(flag(args, f));
         if (v !== void 0) m2[k] = v;
       }
@@ -21733,10 +22319,10 @@ ${next(m.id)}`, m);
       if (sub2 === "label") {
         const kind = flag(args, "--kind") ?? "name";
         if (!dungeon_exports.LABEL_KINDS.includes(kind)) throw new Error(`--kind: ${dungeon_exports.LABEL_KINDS.join(", ")}`);
-        m2.overlay.labels.push({ text: what, x, y, kind, ...num(args, "--size") !== void 0 && { size: num(args, "--size") }, ...angle !== void 0 && { angle } });
+        m2.overlay.labels.push({ text: what, x, y, kind, ...num(args, "--size") !== void 0 && { size: num(args, "--size") }, ...angle !== void 0 && { angle }, ...originFlag(args) });
       } else {
         if (!dungeon_exports.SYMBOLS[what]) throw new Error(`unknown symbol ${what} (have: ${dungeon_exports.SYMBOL_KINDS.join(", ")})`);
-        m2.overlay.symbols.push({ kind: what, x, y, ...num(args, "--scale") !== void 0 && { scale: num(args, "--scale") }, ...angle !== void 0 && { angle } });
+        m2.overlay.symbols.push({ kind: what, x, y, ...num(args, "--scale") !== void 0 && { scale: num(args, "--scale") }, ...angle !== void 0 && { angle }, ...originFlag(args) });
       }
     });
     const n = sub2 === "label" ? m.overlay.labels.length : m.overlay.symbols.length;
@@ -21781,6 +22367,7 @@ ${next(m.id)}`, { cols: m.cols, rows: m.rows });
     const r = await renderDungeonFiles(p, need2("<id>"), {
       formats: format === "both" ? ["svg", "png"] : [format],
       ppu: num(args, "--ppu"),
+      pageScale: pageScaleFlag(args),
       ...viewFlags(args, 1),
       rooms: args.flatMap((a, i) => a === "--room" ? [args[i + 1] ?? (() => {
         throw new Error("--room: a room id");
@@ -21789,17 +22376,29 @@ ${next(m.id)}`, { cols: m.cols, rows: m.rows });
       layers: parseLayers(flag(args, "--layers"), dungeon_exports.DUNGEON_LAYERS),
       out: flag(args, "--out")
     });
-    print([`${file ?? id} ${r.size.join("\xD7")} px, ${r.ppu} px a cell, window ${r.crop.join(",")}: ${r.rooms} rooms, ${r.corridors} corridors, ${r.doors} doors`, ...r.files.map((f) => `  ${f}`)].join("\n"), r);
+    print([`${file ?? id} ${r.size.join("\xD7")} px, ${r.ppu} px a cell, window ${r.crop.join(",")}: ${r.rooms} rooms, ${r.corridors} corridors, ${r.doors} doors`, ...r.unplaced.map((u) => `  no free spot for label ${u.index} "${u.text}"`), ...r.files.map((f) => `  ${f}`)].join("\n"), r);
     return 0;
   }
-  throw new Error("dungeon: new | gen | room | link | unlink | door | grid | style | label | symbol | symbols | overlay | check | fit | render | show | facts | list (artgen --help)");
+  if (sub2 === "sync") {
+    const origin = flag(args, "--origin"), from = flag(args, "--from");
+    if (!origin || !from) throw new Error("dungeon sync <id>|--file target.json --from new.json --origin tables");
+    let report2;
+    updateDungeon(p, need2("<id>"), (m) => {
+      const r = dungeon_exports.syncDungeon(m, dungeon_exports.parseDungeon(readJson(from)), origin);
+      report2 = r.report;
+      return r.spec;
+    });
+    print(syncText(String(file ?? id), report2), report2);
+    return 0;
+  }
+  throw new Error("dungeon: new | gen | room | link | unlink | door | grid | style | label | symbol | symbols | overlay | check | fit | render | show | facts | sync | list (artgen --help)");
 }
 function formatsCommand(emit) {
   const formats = { map: map_exports.MAP_FORMAT, dungeon: dungeon_exports.DUNGEON_FORMAT };
   emit(Object.entries(formats).map(([k, v]) => `${k} ${v}`).join("\n"), formats);
   return 0;
 }
-var num, MAP_USAGE, withVersion;
+var originFlag, pageScaleFlag, num, MAP_USAGE, withVersion;
 var init_maps_cli = __esm({
   "../artgen-cli/src/maps-cli.ts"() {
     "use strict";
@@ -21807,6 +22406,18 @@ var init_maps_cli = __esm({
     init_dungeon2();
     init_map2();
     init_projectfs();
+    originFlag = (args) => {
+      const v = flag(args, "--origin");
+      if (v === void 0) return void 0;
+      if (!v) throw new Error("--origin: a non-empty name");
+      return { origin: v };
+    };
+    pageScaleFlag = (args) => {
+      const v = flag(args, "--page-scale");
+      if (v === void 0) return void 0;
+      if (!(+v > 0)) throw new Error("--page-scale: output pixels per millimetre, above 0");
+      return +v;
+    };
     num = (args, name) => {
       const v = flag(args, name);
       if (v === void 0) return void 0;
@@ -21819,10 +22430,11 @@ var init_maps_cli = __esm({
                   <shape>: --circle x,y,r | --poly x,y,x,y,\u2026 | --stroke x,y,\u2026 --width w   (terrains: ${map_exports.TERRAINS.join(", ")})
        artgen map grid <id> hex|square|none [--size n] [--coords on|off]
        artgen map label <id> "Text" --at x,y|0304|C4 [--kind region|place|water|note] [--size f] [--angle deg]
-       artgen map symbol <id> <kind> --at x,y|0304|C4 [--scale f] | map symbols | map overlay <id> rm label|symbol <i> | clear [labels|symbols]
+       artgen map symbol <id> <kind> --at x,y|0304|C4 [--scale f] [--angle deg] [--origin name] | map symbols | map overlay <id> rm label|symbol <i> | clear [labels|symbols]
        artgen map set <id> [--title "..."] [--legend on|off] [--scale-bar on|off] [--compass on|off] [--per-cell n] [--unit mi]
-       artgen map render <id> [--theme color|bw|both] [--format svg|png|both] [--ppu 40 | --fit 180x260mm|px] [--crop x,y,w,h[cells]] [--layers grid=off,labels=off] [--out dir]
-         (--crop is a window on the full render, in map units or, with "cells" after it, grid cells; --fit picks the ppu that fits the crop or the whole map in the box)
+       artgen map render <id> [--theme color|bw|both] [--format svg|png|both] [--ppu 40 | --fit 180x260mm|px] [--page-scale px/mm] [--crop x,y,w,h[cells]] [--layers grid=off,labels=off] [--out dir]
+         (--fit and --page-scale set label, symbol and stroke sizes in points and millimetres on the page, 9 pt place labels, 7 pt notes, 5 mm symbols, and keep labels off one another; --json lists any that found no room.
+          --crop is a window on the full render, in map units or, with "cells" after it, grid cells; --fit picks the ppu that fits the crop or the whole map in the box)
        artgen map show <id> | list
        artgen map facts <id> [--at x,y \u2026 | C4 | 0304] [--area x,y,x,y,\u2026] [--above river|lowest] [--radius n] [--json]
                   the ground as numbers: --at gives each point's terrain, height, slope and nearest river and road; --area the terrain shares, lowest and highest
@@ -21831,15 +22443,17 @@ var init_maps_cli = __esm({
        artgen map check <id> [--json]   the file's format errors with their JSON paths, then each \`require\` entry measured: \`C-forest terrain forest 0.71 < 0.80 unmet\`; exits 1 on any error or unmet requirement
        artgen dungeon new <id> [--size 40x30] [--seed n] [--title "..."] [--empty] | new <id> --room rect|circle|octagon|cave --room-size 8x6 [--exits n,e:secret,s:none,w] [--label "..."] [--number n|off]
        artgen dungeon gen <id> [--seed n] [--rooms n] [--min-size n] [--max-size n] [--caves f] [--round f] [--loops f] [--doors f] [--corridor-width n] [--spacing n] [--entrance on|off] [--size 40x30]
-       artgen dungeon room <id> add <shape> --at x,y|C4 --size WxH [--points x,y,\u2026] [--label "..."] [--number n|off] [--room-id r9] | move <rid> --at x,y | set <rid> [--shape s] [--size WxH] [--label "..."] [--number n|off] | rm <rid>
-       artgen dungeon link <id> <room> <room|x,y|C4> [--width 1] [--route auto|hv|vh|straight] [--via x,y,\u2026] [--doors door,none] | unlink <id> <i> | door <id> <i> from|to <kind|none>
+       artgen dungeon room <id> add <shape> --at x,y|C4 --size WxH [--points x,y,\u2026] [--label "..."] [--number n|off] [--room-id r9] [--fill floor|building|yard|cellar] [--origin name] | move <rid> --at x,y | set <rid> [--shape s] [--size WxH] [--label "..."] [--number n|off] [--fill f] | rm <rid>
+       artgen dungeon link <id> <room> <room|x,y|C4> [--width 1] [--route auto|hv|vh|straight] [--via x,y,\u2026] [--doors door,none] [--origin name] | unlink <id> <i> | door <id> <i> from|to <kind|none>
                   (shapes: ${dungeon_exports.ROOM_SHAPES.join(", ")}; doors: ${dungeon_exports.DOOR_KINDS.join(", ")})
-       artgen dungeon grid <id> 10|5|10+5|none [--clip floor|all] | style <id> [--hatch band|full|none] [--band n] [--wall f] [--numbers on|off] [--scale-bar on|off] [--compass on|off] [--title "..."] [--per-cell n] [--unit ft]
-       artgen dungeon label <id> "Text" --at x,y|C4 [--kind name|note|area] [--size f] [--angle deg] | symbol <id> <kind> --at x,y|C4 [--scale f] [--angle deg] | symbols
+       artgen dungeon grid <id> 10|5|10+5|none [--clip floor|all] | style <id> [--hatch band|full|none] [--band n] [--wall f] [--numbers on|off] [--scale-bar on|off] [--compass on|off] [--legend on|off] [--title "..."] [--per-cell n] [--unit ft]
+       artgen dungeon label <id> "Text" --at x,y|C4 [--kind name|note|area] [--size f] [--angle deg] [--origin name] | symbol <id> <kind> --at x,y|C4 [--scale f] [--angle deg] [--origin name] | symbols
        artgen dungeon overlay <id> rm label|symbol <i> | clear [labels|symbols] | fit <id> [--margin 2]
        artgen dungeon check <id> [--json]   every error in the file with its JSON path; exits 1 when there are any
+       artgen map sync <id>|--file target.json --from new.json --origin tables [--json]   replace the entries of one origin, keep every other (hand entries last); lists what that disturbs
+       artgen dungeon sync <id>|--file target.json --from new.json --origin tables [--json]   the same for rooms, corridors, walls, labels and symbols; a hand-edited field of a generated room is reported and the table's value kept
        artgen dungeon facts <id> [--json]   each room's box and doors, each corridor's ends and length, the exits, the overlapping rooms and the rooms no corridor reaches
-       artgen dungeon render <id> [--format svg|png|both] [--ppu 40 | --fit 180x260mm|px] [--crop x,y,w,h] [--room id|F.3 \u2026 [--margin 2]] [--layers grid=off,labels=off] [--out dir] | show <id> | list
+       artgen dungeon render <id> [--format svg|png|both] [--ppu 40 | --fit 180x260mm|px] [--page-scale px/mm] [--crop x,y,w,h] [--room id|F.3 \u2026 [--margin 2]] [--layers grid=off,labels=off] [--out dir] | show <id> | list
          (--room, repeated, crops round those rooms, their doors and the first --margin cells of each corridor)
        artgen formats   (the map and dungeon file format versions this artgen reads; a newer file is refused)
        (map and dungeon commands take --file <path> in place of <id>: no project needed; renders go beside the file or to --out)`;
