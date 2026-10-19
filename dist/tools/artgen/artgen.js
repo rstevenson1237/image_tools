@@ -16788,10 +16788,30 @@ var init_config = __esm({
   }
 });
 
+// ../artgen-core/src/format.ts
+function readFormat(raw, kind, current, migrations = {}) {
+  const r = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+  const v = r.version === void 0 ? 1 : r.version;
+  if (typeof v !== "number" || !Number.isInteger(v) || v < 1) throw new Error(`${kind}: version must be a whole number from 1 (got ${JSON.stringify(v)})`);
+  if (v > current) throw new Error(`${kind} is format version ${v}; this artgen reads ${kind} format ${current} and older (update artgen)`);
+  let out = r;
+  for (let n = v; n < current; n++) {
+    const step = migrations[n];
+    if (!step) throw new Error(`${kind} format ${n} -> ${n + 1}: no migration`);
+    out = { ...step(out), version: n + 1 };
+  }
+  return out;
+}
+var init_format = __esm({
+  "../artgen-core/src/format.ts"() {
+    "use strict";
+  }
+});
+
 // ../artgen-core/src/map/spec.ts
 function newMap(id, preset2 = "regional", over = {}) {
   const d = structuredClone(PRESET_DEFAULTS[preset2]);
-  return parseMap({ ...d, ...over, id, version: 1, preset: preset2, seed: over.seed ?? 1, gen: { ...d.gen, ...over.gen }, topo: { ...d.topo, ...over.topo }, grid: { ...d.grid, ...over.grid }, scale: { ...d.scale, ...over.scale }, edits: over.edits ?? [], overlay: over.overlay ?? { labels: [], symbols: [] } });
+  return parseMap({ ...d, ...over, id, version: MAP_FORMAT, preset: preset2, seed: over.seed ?? 1, gen: { ...d.gen, ...over.gen }, topo: { ...d.topo, ...over.topo }, grid: { ...d.grid, ...over.grid }, scale: { ...d.scale, ...over.scale }, edits: over.edits ?? [], overlay: over.overlay ?? { labels: [], symbols: [] } });
 }
 function shapeErrors(s2, at) {
   if (!s2 || typeof s2 !== "object") return [`${at}: shape required ({circle:[x,y,r]}, {poly:[x,y,\u2026]} or {stroke:[x,y,\u2026], width})`];
@@ -16849,11 +16869,11 @@ function validateMap(raw) {
   return e;
 }
 function parseMap(raw) {
-  const r = raw ?? {}, d = PRESET_DEFAULTS[PRESETS2.includes(r.preset) ? r.preset : "regional"];
+  const r = readFormat(raw, "map", MAP_FORMAT, MIGRATIONS), d = PRESET_DEFAULTS[PRESETS2.includes(r.preset) ? r.preset : "regional"];
   const m = {
     ...structuredClone(d),
     ...r,
-    version: 1,
+    version: MAP_FORMAT,
     gen: { ...d.gen, ...r.gen },
     topo: { ...d.topo, ...r.topo },
     grid: { ...d.grid, ...r.grid },
@@ -16885,10 +16905,11 @@ function parsePoint(spec, at) {
   if (xy) return [+xy[1], +xy[2]];
   return cellCenter(spec, at.replace(/^(hex|cell):/i, ""));
 }
-var TERRAINS, TERRAIN_NAMES, PRESETS2, LAND_MODES, GRID_TYPES, LABEL_KINDS, RESOLUTION, PRESET_DEFAULTS, MAX_SIDE, isNum, nums;
+var TERRAINS, TERRAIN_NAMES, PRESETS2, LAND_MODES, GRID_TYPES, LABEL_KINDS, RESOLUTION, PRESET_DEFAULTS, MAP_FORMAT, MIGRATIONS, MAX_SIDE, isNum, nums;
 var init_spec = __esm({
   "../artgen-core/src/map/spec.ts"() {
     "use strict";
+    init_format();
     TERRAINS = ["deep", "water", "marsh", "sand", "desert", "grass", "scrub", "forest", "rock", "snow"];
     TERRAIN_NAMES = {
       deep: "Deep water",
@@ -16931,7 +16952,9 @@ var init_spec = __esm({
         compass: false
       }
     };
-    MAX_SIDE = 120;
+    MAP_FORMAT = 1;
+    MIGRATIONS = {};
+    MAX_SIDE = 200;
     isNum = (v) => typeof v === "number" && Number.isFinite(v);
     nums = (v) => Array.isArray(v) && v.every(isNum);
   }
@@ -17850,6 +17873,7 @@ __export(map_exports, {
   GRID_TYPES: () => GRID_TYPES,
   LABEL_KINDS: () => LABEL_KINDS,
   LAND_MODES: () => LAND_MODES,
+  MAP_FORMAT: () => MAP_FORMAT,
   MAP_LAYERS: () => MAP_LAYERS,
   MAX_SIDE: () => MAX_SIDE,
   PATTERNS: () => PATTERNS,
@@ -17902,7 +17926,7 @@ function newDungeon(id, over = {}) {
     ...d,
     ...over,
     id,
-    version: 1,
+    version: DUNGEON_FORMAT,
     seed: over.seed ?? 1,
     gen: { ...d.gen, ...over.gen },
     grid: { ...d.grid, ...over.grid },
@@ -17979,12 +18003,12 @@ function polyBox(points) {
   return { x, y, w: Math.max(1, Math.max(...xs) - x), h: Math.max(1, Math.max(...ys) - y) };
 }
 function parseDungeon(raw) {
-  const r = raw ?? {}, d = DEFAULTS2;
+  const r = readFormat(raw, "dungeon", DUNGEON_FORMAT, MIGRATIONS2), d = DEFAULTS2;
   const rooms = (Array.isArray(r.rooms) ? r.rooms : []).map((room) => room?.shape === "poly" && Array.isArray(room.points) && room.points.length >= 6 && room.x === void 0 ? { ...room, ...polyBox(room.points) } : room);
   const m = {
     ...structuredClone(d),
     ...r,
-    version: 1,
+    version: DUNGEON_FORMAT,
     gen: { ...d.gen, ...r.gen },
     grid: { ...d.grid, ...r.grid },
     style: { ...d.style, ...r.style },
@@ -18012,10 +18036,11 @@ function nextRoomId(spec) {
   const used = new Set(spec.rooms.map((r) => r.id));
   for (let n = spec.rooms.length + 1; ; n++) if (!used.has(`r${n}`)) return `r${n}`;
 }
-var ROOM_SHAPES, DOOR_KINDS, DOOR_NAMES, ROUTES, HATCH_STYLES, LABEL_KINDS2, DEFAULTS2, MAX_SIDE2, isNum2, nums2, isPoint;
+var ROOM_SHAPES, DOOR_KINDS, DOOR_NAMES, ROUTES, HATCH_STYLES, LABEL_KINDS2, DEFAULTS2, DUNGEON_FORMAT, MIGRATIONS2, MAX_SIDE2, isNum2, nums2, isPoint;
 var init_spec2 = __esm({
   "../artgen-core/src/dungeon/spec.ts"() {
     "use strict";
+    init_format();
     ROOM_SHAPES = ["rect", "circle", "octagon", "cave", "poly"];
     DOOR_KINDS = ["door", "secret", "locked", "portcullis", "arch"];
     DOOR_NAMES = {
@@ -18039,6 +18064,8 @@ var init_spec2 = __esm({
       scaleBar: true,
       compass: false
     };
+    DUNGEON_FORMAT = 1;
+    MIGRATIONS2 = {};
     MAX_SIDE2 = 160;
     isNum2 = (v) => typeof v === "number" && Number.isFinite(v);
     nums2 = (v) => Array.isArray(v) && v.every(isNum2);
@@ -18500,6 +18527,7 @@ __export(dungeon_exports, {
   DEFAULTS: () => DEFAULTS2,
   DOOR_KINDS: () => DOOR_KINDS,
   DOOR_NAMES: () => DOOR_NAMES,
+  DUNGEON_FORMAT: () => DUNGEON_FORMAT,
   DUNGEON_LAYERS: () => DUNGEON_LAYERS,
   HATCH_STYLES: () => HATCH_STYLES,
   LABEL_KINDS: () => LABEL_KINDS2,
@@ -18594,6 +18622,7 @@ var init_src = __esm({
     init_recommend();
     init_edit();
     init_config();
+    init_format();
     init_map();
     init_dungeon();
   }
@@ -21148,7 +21177,8 @@ function toolDirection(cmd, root, override) {
   ${v.errors.join("\n  ")}`);
   return { p, dir: parseDirection(raw) };
 }
-async function mapCommand(sub2, args, print) {
+async function mapCommand(sub2, args, emit) {
+  const print = (human, data) => emit(human, withVersion(data, map_exports.MAP_FORMAT));
   const p = requireProject(flag(args, "--root"));
   const pos = args.filter((a, i) => !a.startsWith("--") && !(i > 0 && args[i - 1].startsWith("--") && args[i - 1] !== "--json")).slice(1), id = pos[0];
   const need2 = (what) => {
@@ -21323,7 +21353,8 @@ function roomNumber(args) {
   if (!Number.isFinite(+v)) throw new Error("--number: a number or off");
   return +v;
 }
-async function dungeonCommand(sub2, args, print) {
+async function dungeonCommand(sub2, args, emit) {
+  const print = (human, data) => emit(human, withVersion(data, dungeon_exports.DUNGEON_FORMAT));
   const p = requireProject(flag(args, "--root"));
   const pos = args.filter((a, i) => !a.startsWith("--") && !(i > 0 && args[i - 1].startsWith("--") && args[i - 1] !== "--json")).slice(1), id = pos[0];
   const need2 = (what) => {
@@ -21790,6 +21821,11 @@ next: edit base.v1.js for the brief, then artgen review ${path}`, { files: r.fil
   ${r.glb}`, r);
     return 0;
   }
+  if (cmd === "formats") {
+    const formats = { map: map_exports.MAP_FORMAT, dungeon: dungeon_exports.DUNGEON_FORMAT };
+    print(Object.entries(formats).map(([k, v]) => `${k} ${v}`).join("\n"), formats);
+    return 0;
+  }
   if (cmd === "map") return mapCommand(sub2, args, print);
   if (cmd === "dungeon") return dungeonCommand(sub2, args, print);
   if (cmd === "texture") {
@@ -22024,7 +22060,7 @@ applied to ${r2.applied}` : ""), { ...r2.report, ...r2.applied && { applied: r2.
   console.error(`artgen: unknown command '${[cmd, sub2].filter(Boolean).join(" ")}' \u2014 run artgen --help for the list`);
   return 1;
 }
-var VERSION, parseSize, USAGE, num;
+var VERSION, parseSize, USAGE, num, withVersion;
 var init_cli = __esm({
   "../artgen-cli/src/cli.ts"() {
     "use strict";
@@ -22092,6 +22128,7 @@ usage: artgen init
        artgen dungeon label <id> "Text" --at x,y|C4 [--kind name|note|area] [--size f] [--angle deg] | symbol <id> <kind> --at x,y|C4 [--scale f] [--angle deg] | symbols
        artgen dungeon overlay <id> rm label|symbol <i> | clear [labels|symbols] | fit <id> [--margin 2]
        artgen dungeon render <id> [--format svg|png|both] [--ppu 40] [--layers grid=off,labels=off] [--out dir] | show <id> | list
+       artgen formats   (the map and dungeon file format versions this artgen reads; a newer file is refused)
        artgen bench [--direction benchmark|alt|<file>] [--out <dir>] [--stages] [--ledger <file>] [--update-golden]
        artgen --version | --help
 
@@ -22103,6 +22140,7 @@ Commands take --json (machine-readable output) and --root <game repo>; asset com
       if (!Number.isFinite(+v)) throw new Error(`${name}: a number`);
       return +v;
     };
+    withVersion = (data, version) => data && typeof data === "object" && !Array.isArray(data) ? { version, ...data } : { version, items: data };
   }
 });
 
