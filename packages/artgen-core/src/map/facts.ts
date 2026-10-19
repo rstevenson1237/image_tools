@@ -9,8 +9,9 @@
  */
 import { percentShares, roundTo } from '../lib/round.ts';
 import { simplifyLine } from '../lib/trace.ts';
+import { eachCovered } from './geometry.ts';
 import { coverage, generateMap, type MapField, type River } from './generate.ts';
-import { TERRAINS, type MapSpec, type Terrain } from './spec.ts';
+import { TERRAINS, type MapSpec, type Shape, type Terrain } from './spec.ts';
 
 /** The rounding and the thresholds the facts are stated with. They are part of the format. */
 export const RULES = {
@@ -86,7 +87,7 @@ export interface AreaFacts {
 export interface Line { name: string; source?: River['source']; points: Point[]; length: Length; mouth?: boolean }
 
 export interface Features {
-  /** Rivers drawn by `river` edits. */
+  /** Rivers drawn by `river` edits, and streams a `require` entry asked for. */
   rivers: Line[];
   /** Rivers the generator traced (`gen.rivers`). */
   generatedRivers: Line[];
@@ -184,7 +185,7 @@ function ground(spec: MapSpec, f: MapField) {
 type Ground = ReturnType<typeof ground>;
 
 /** Terrain shares of the samples at `ids` (all of them when omitted), largest first. */
-function shares(f: MapField, ids?: number[]): Share[] {
+export function shares(f: MapField, ids?: number[]): Share[] {
   const count = new Array<number>(TERRAINS.length).fill(0);
   if (ids) for (const n of ids) count[f.terrain[n]]++; else for (const t of f.terrain) count[t]++;
   const out = percentShares(TERRAINS.map((t, i) => [t, count[i]] as [Terrain, number]).filter(([, c]) => c > 0));
@@ -200,6 +201,13 @@ function samplesIn(f: MapField, poly: number[]): number[] {
     for (let i = Math.max(0, Math.floor(x0 * f.res)); i <= Math.min(f.w - 1, Math.ceil(x1 * f.res)); i++)
       if (coverage({ poly }, (i + 0.5) / f.res, (j + 0.5) / f.res)) out.push(j * f.w + i);
   return out;
+}
+
+/** The samples of `f` a shape covers (a disc, an outline or a brush stroke), in reading order. */
+export function samplesOf(f: MapField, s: Shape): number[] {
+  const out: number[] = [];
+  eachCovered(f, s, false, i => out.push(i));
+  return out.sort((a, b) => a - b);
 }
 
 /** The lowest and highest ground among samples `ids` (water counts as 0); the first such sample in reading order wins a tie. */
@@ -356,7 +364,7 @@ export function mapFacts(spec: MapSpec, q: MapFactsQuery = {}, field: MapField =
   if (!out.points && !out.areas) {
     const line = (l: (typeof g.lines)[number]): Line => ({ name: l.name, ...(l.source && { source: l.source }), points: listed(g, l.pts), length: g.length(pathLength(l.pts)), ...(l.mouth !== undefined && { mouth: l.mouth }) });
     out.features = {
-      rivers: g.lines.filter(l => l.kind === 'river' && l.source === 'edit').map(line), generatedRivers: g.lines.filter(l => l.kind === 'river' && l.source === 'generated').map(line),
+      rivers: g.lines.filter(l => l.kind === 'river' && l.source !== 'generated').map(line), generatedRivers: g.lines.filter(l => l.kind === 'river' && l.source === 'generated').map(line),
       roads: g.lines.filter(l => l.kind === 'road').map(line), ...summits(g, field, spec), terrain: shares(field), ...extremes(g, field, spec),
     };
   }

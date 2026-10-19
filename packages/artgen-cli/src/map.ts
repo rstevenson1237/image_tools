@@ -17,8 +17,9 @@
  *   artgen map render <id> [--theme color|bw|both] [--format svg|png|both] [--ppu 40 | --fit 180x260mm] [--crop x,y,w,h[cells]] [--layers grid=off,labels=off] [--out dir]
  *   artgen map show <id> | list
  *   artgen map facts <id> [--at x,y …] [--area x,y,x,y,…] [--above river|lowest] [--radius n]   the ground, as numbers (--json)
+ *   artgen map check <id>   the file's format errors, then each `require` entry measured and met or unmet (--json); exits 1 on any error or unmet
  */
-import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { clampCrop, encodePNG, fitPpu, map, rasterizeSvg, type Crop, type Fit, type SizeUnit } from 'artgen-core/maps';
 import { initNodeMapSvg } from './node-svg.ts';
@@ -75,6 +76,31 @@ export function updateMap(p: Project | null, ref: MapRef, change: (m: MapSpec) =
   change(m);
   writeMap(p, m, ref);
   return m;
+}
+
+export interface MapCheck {
+  file: string;
+  /** No format errors and every requirement met. */
+  ok: boolean;
+  errors: map.MapIssue[];
+  /** Each `require` entry, measured, in the file's order (empty when the file has errors: nothing is generated from a file that does not parse). */
+  requirements: map.RequirementResult[];
+  /** The ids of the unmet requirements. */
+  unmet: string[];
+}
+
+/** Every format error in a map file, then (when it parses) each requirement measured against the ground generated from it. */
+export function checkMapFile(p: Project | null, ref: MapRef): MapCheck {
+  const f = mapFile(p, ref);
+  let raw: unknown;
+  try { raw = JSON.parse(readFileSync(f, 'utf8')); } catch (e) {
+    const missing = (e as NodeJS.ErrnoException).code === 'ENOENT';
+    return { file: shown(p, f), ok: false, errors: [{ path: '', message: missing ? `no such file: ${shown(p, f)}` : `not JSON: ${(e as Error).message}` }], requirements: [], unmet: [] };
+  }
+  const { errors } = map.checkMap(raw);
+  if (errors.length) return { file: shown(p, f), ok: false, errors, requirements: [], unmet: [] };
+  const requirements = map.checkRequirements(map.parseMap(raw)), unmet = requirements.filter(r => !r.met).map(r => r.id);
+  return { file: shown(p, f), ok: !unmet.length, errors, requirements, unmet };
 }
 
 export interface MapRender {
@@ -151,6 +177,7 @@ export function describeMap(m: MapSpec): string {
     `  gen: land ${g.land}, sea ${g.sea}, moisture ${g.moisture}, roughness ${g.roughness}, relief ${g.relief}, rivers ${g.rivers}, simplify ${g.simplify}, feature ${g.feature}`,
     `  topo: every ${m.topo.interval} ${m.topo.unit} up to ${m.topo.maxElevation}, major every ${m.topo.majorEvery}${m.topo.labels ? ', labelled' : ''}`,
     `  grid: ${m.grid.type}${m.grid.type !== 'none' ? ` size ${m.grid.size}${m.grid.coords ? ', coordinates' : ''}` : ''}; legend ${m.legend ? 'on' : 'off'}, scale bar ${m.scaleBar ? 'on' : 'off'}, compass ${m.compass ? 'on' : 'off'}`,
+    ...(m.require?.length ? [`  require (${m.require.length}):${m.require.map(r => `\n    ${r.id} ${r.kind}${r.kind === 'terrain' ? ` ${r.terrain} ${r.share}` : r.kind === 'height' ? ` ${r.low}-${r.high} ${m.topo.unit}` : r.kind === 'path' ? ` ${r.path}` : ''}`).join('')}`] : []),
     `  edits (${m.edits.length}):${m.edits.map((e, i) => `\n    ${i}. ${e.op}${e.op === 'paint' ? ` ${e.terrain}` : e.op === 'elevate' ? ` ${e.amount}` : ''} ${'shape' in e ? JSON.stringify(e.shape) : JSON.stringify(e.points)}`).join('')}`,
     `  labels (${m.overlay.labels.length}):${m.overlay.labels.map((l, i) => `\n    ${i}. ${l.kind} "${l.text}" at ${l.x},${l.y}`).join('')}`,
     `  symbols (${m.overlay.symbols.length}):${m.overlay.symbols.map((s, i) => `\n    ${i}. ${s.kind} at ${s.x},${s.y}`).join('')}`,

@@ -32,6 +32,44 @@ function bareCopy(consumer: string, name: string): { dir: string; file: string }
   return { dir, file };
 }
 
+/** The case's map file copied into a bare folder (no project), to run `--file` commands on. */
+function bareMap(consumer: string, name: string): { dir: string; file: string } {
+  const dir = mkdtempSync(join(tmpdir(), `artgen-path-${name}-`)), file = join(dir, 'map.json');
+  cpSync(join(FIXTURES, consumer, name, 'map.json'), file);
+  return { dir, file };
+}
+
+/**
+ * The longest straight run of the edge of `terrain` within `band` squares of `outline`: the squares (a square is of the
+ * terrain when more than half its samples are) whose neighbour along a row, or a column, is not, counted along one row or column.
+ */
+function longestEdge(f: map.MapField, spec: map.MapSpec, terrain: map.Terrain, outline: number[], band: number): number {
+  const t = map.TERRAINS.indexOf(terrain), r = f.res, grid: boolean[][] = [];
+  for (let row = 0; row < spec.rows; row++) {
+    grid.push([]);
+    for (let col = 0; col < spec.cols; col++) {
+      let n = 0;
+      for (let j = row * r; j < (row + 1) * r; j++) for (let i = col * r; i < (col + 1) * r; i++) if (f.terrain[j * f.w + i] === t) n++;
+      grid[row].push(n * 2 > r * r);
+    }
+  }
+  const near = (x: number, y: number) => {
+    let best = Infinity;
+    for (let i = 0; i < outline.length; i += 2) {
+      const ax = outline[i], ay = outline[i + 1], bx = outline[(i + 2) % outline.length], by = outline[(i + 3) % outline.length], dx = bx - ax, dy = by - ay;
+      const u = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy)));
+      best = Math.min(best, Math.hypot(x - ax - u * dx, y - ay - u * dy));
+    }
+    return best;
+  };
+  let worst = 0;
+  for (const d of [-1, 1]) {
+    for (let row = 1; row < spec.rows - 1; row++) { let run = 0; for (let col = 0; col < spec.cols; col++) { run = grid[row][col] && !grid[row + d][col] && near(col + 0.5, row + 0.5 + d / 2) <= band ? run + 1 : 0; worst = Math.max(worst, run); } }
+    for (let col = 1; col < spec.cols - 1; col++) { let run = 0; for (let row = 0; row < spec.rows; row++) { run = grid[row][col] && !grid[row][col + d] && near(col + 0.5 + d / 2, row + 0.5) <= band ? run + 1 : 0; worst = Math.max(worst, run); } }
+  }
+  return worst;
+}
+
 /** The case in a fresh project: its input file where the CLI reads it. */
 function place(consumer: string, name: string, kind: 'map' | 'dungeon'): { p: Project; id: string; caseMd: string } {
   const dir = join(FIXTURES, consumer, name), root = mkdtempSync(join(tmpdir(), `artgen-fixture-${name}-`));
@@ -185,6 +223,41 @@ describe('setting-builder/ravine', () => {
     }
     expect(spec.edits.filter(e => e.op === 'road')).toHaveLength(1);
   });
+
+  test('is built with require, not with paint or elevate edits (A2)', () => {
+    expect(spec.edits.map(e => e.op)).toEqual(['road']);
+    expect(spec.require!.map(r => [r.id, r.kind])).toEqual([['E-stream', 'path'], ['E-wall-west', 'terrain'], ['E-wall-west-height', 'height'], ['E-wall-east', 'terrain'], ['E-wall-east-height', 'height']]);
+    expect(spec.gen.rivers).toBe(0);
+  });
+
+  test('check reports every requirement met and exits 0', async () => {
+    const { file } = bareMap('setting-builder', 'ravine'), r = await cli('map', 'check', '--file', file, '--json'), j = JSON.parse(r.out);
+    expect(r.code).toBe(0);
+    expect(j).toMatchObject({ ok: true, errors: [], unmet: [] });
+    expect(j.requirements).toHaveLength(5);
+    expect(j.requirements.find((q: map.RequirementResult) => q.id === 'E-wall-east-height')).toMatchObject({ what: '30-40 ft', met: true });
+  });
+
+  /** Along the walls' slopes (x 3 to 7 and 9 to 13): the length of contour that runs along the gorge (y) over the length that runs across it (x). */
+  const along = (s: map.MapSpec) => {
+    let dx = 0, dy = 0;
+    for (const { lines } of map.contourLines(s, map.generateMap(s))) for (const l of lines) for (let i = 2; i < l.pts.length; i += 2) {
+      const x = (l.pts[i] + l.pts[i - 2]) / 2, y = (l.pts[i + 1] + l.pts[i - 1]) / 2;
+      if (!((x >= 3 && x <= 7) || (x >= 9 && x <= 13)) || y < 10 || y > 170) continue;
+      dx += Math.abs(l.pts[i] - l.pts[i - 2]); dy += Math.abs(l.pts[i + 1] - l.pts[i - 1]);
+    }
+    return dy / dx;
+  };
+
+  test('the walls\' contours run along the gorge, not across it; the hand-painted build\'s did not', () => {
+    expect(along(spec)).toBeGreaterThan(2);
+    const wall = (x0: number, x1: number) => ({ poly: [x0, 0, x1, 0, x1, 184, x0, 184] }), painted: map.MapSpec = {
+      ...spec, require: undefined, gen: { ...spec.gen, rivers: 1 },
+      edits: [{ op: 'river', points: [8, 4, 8, 180], width: 2, delta: false }, { op: 'paint', terrain: 'rock', shape: wall(0, 4) }, { op: 'paint', terrain: 'rock', shape: wall(12, 16) },
+        { op: 'elevate', amount: 0.6, shape: wall(0, 4) }, { op: 'elevate', amount: 0.6, shape: wall(12, 16) }, ...spec.edits],
+    };
+    expect(along(painted)).toBeLessThan(2);
+  }, 120_000);
 });
 
 describe('setting-builder/keep', () => {
@@ -211,5 +284,107 @@ describe('setting-builder/keep', () => {
       expect([r?.w, r?.h], `A.${n}`).toEqual([w, h]);
     }
     expect(spec.style.hatch).toBe('none');
+  });
+});
+
+const FRONTIER_IDS = ['A-ground', 'B-road', 'B-road-clear', 'C-ground', 'D-ground', 'D-low', 'E-ground', 'E-hills', 'E-stream'];
+
+describe('setting-builder/frontier', () => {
+  const { dir, file } = bareMap('setting-builder', 'frontier'), caseMd = readFileSync(join(FIXTURES, 'setting-builder', 'frontier', 'case.md'), 'utf8');
+  const raw = JSON.parse(readFileSync(file, 'utf8')), spec = map.parseMap(raw), field = map.generateMap(spec);
+  const area = (id: string) => (spec.require!.find(r => r.id === id) as Extract<map.Requirement, { area: map.Shape }>).area;
+
+  test('is at the format version case.md states, with a require list and no paint or elevate edit', () => {
+    expect(formatOf(caseMd, 'map')).toBe(map.MAP_FORMAT);
+    expect(spec.version).toBe(1);
+    expect(spec).toMatchObject({ cols: 106, rows: 141, scale: { perCell: 200, unit: 'yd' }, preset: 'local' });
+    expect(spec.require!.map(r => r.id)).toEqual(FRONTIER_IDS);
+    expect(new Set(spec.require!.map(r => r.kind))).toEqual(new Set(['terrain', 'height', 'path', 'clear']));
+    expect(spec.edits).toEqual([]);
+  });
+
+  test('check reports every requirement met at the committed seed and exits 0', async () => {
+    const r = await cli('map', 'check', '--file', file, '--json'), j = JSON.parse(r.out);
+    expect(r.code).toBe(0);
+    expect(j).toMatchObject({ version: 1, ok: true, errors: [], unmet: [] });
+    expect(j.requirements.map((q: map.RequirementResult) => q.id)).toEqual(FRONTIER_IDS);
+    expect(j.requirements.every((q: map.RequirementResult) => q.met)).toBe(true);
+    expect(j.requirements.find((q: map.RequirementResult) => q.id === 'C-ground').text).toMatch(/^C-ground terrain forest 0\.\d\d >= 0\.80 met$/);
+    expect(JSON.parse((await cli('map', 'check', '--file', file, '--json')).out)).toEqual(j);   // the same file, the same answer
+    const text = (await cli('map', 'check', '--file', file)).out;
+    expect(text).toContain('all 9 requirements met');
+    expect(text).toContain('  B-road-clear clear rivers 0.00 <= 0.00 met');
+  }, 120_000);
+
+  test('no generated river crosses B-road-clear; without it, one comes into the strip', () => {
+    const road = (spec.require!.find(r => r.id === 'B-road') as { points: number[] }).points, half = 5;
+    const reach = (f: map.MapField) => Math.min(...f.rivers.filter(r => r.source === 'generated').flatMap(r => Array.from({ length: r.outline.length / 2 }, (_, i) => {
+      let best = Infinity;
+      for (let k = 2; k < road.length; k += 2) {
+        const ax = road[k - 2], ay = road[k - 1], dx = road[k] - ax, dy = road[k + 1] - ay, u = Math.max(0, Math.min(1, ((r.outline[i * 2] - ax) * dx + (r.outline[i * 2 + 1] - ay) * dy) / (dx * dx + dy * dy)));
+        best = Math.min(best, Math.hypot(r.outline[i * 2] - ax - u * dx, r.outline[i * 2 + 1] - ay - u * dy));
+      }
+      return best;
+    })));
+    expect(field.rivers.filter(r => r.source === 'generated').length).toBeGreaterThan(0);
+    expect(reach(field)).toBeGreaterThan(half);
+    const open = map.generateMap({ ...spec, require: spec.require!.filter(r => r.id !== 'B-road-clear') });
+    expect(reach(open)).toBeLessThan(half);
+  });
+
+  test('C\'s forest edge is not a straight line: no run of more than 4 squares along one row or column; a painted forest has one', () => {
+    const c = (area('C-ground') as { poly: number[] }).poly;
+    expect(longestEdge(field, spec, 'forest', c, 3)).toBeLessThanOrEqual(4);
+    const painted = { ...spec, require: undefined, edits: [{ op: 'paint' as const, terrain: 'forest' as const, shape: { poly: c } }] };
+    expect(longestEdge(map.generateMap(painted), spec, 'forest', c, 3)).toBeGreaterThan(4);
+  }, 60_000);
+
+  test('with gen.rivers at 0 the only river is E-stream', () => {
+    const f = map.generateMap({ ...spec, gen: { ...spec.gen, rivers: 0 } });
+    expect(f.rivers.map(r => [r.source, r.for])).toEqual([['required', 'E-stream']]);
+  }, 60_000);
+
+  test('the ground shows what was asked: rock hills in the north, marsh low by the road, a rise at its end', async () => {
+    const q = async (...a: string[]) => JSON.parse((await cli('map', 'facts', '--file', file, ...a, '--json')).out);
+    const e = (await q('--area', (area('E-ground') as { poly: number[] }).poly.join(','))).areas[0], d = (await q('--area', (area('D-ground') as { poly: number[] }).poly.join(','))).areas[0];
+    expect(e.terrain[0]).toMatchObject({ terrain: 'rock' });
+    expect(e.lowest.height).toBeGreaterThanOrEqual(150);
+    expect(e.highest.height).toBeLessThanOrEqual(400);
+    expect(d.terrain[0]).toMatchObject({ terrain: 'marsh' });
+    expect(d.highest.height).toBeLessThanOrEqual(10);
+    const { features } = await q();
+    expect(features.rivers.map((r: { source: string }) => r.source)).toEqual(['required']);
+    expect(features.roads).toHaveLength(1);
+  }, 120_000);
+
+  test('renders to SVG, the same twice', async () => {
+    await cli('map', 'render', '--file', file, '--format', 'svg', '--theme', 'color', '--out', join(dir, 'a'));
+    await cli('map', 'render', '--file', file, '--format', 'svg', '--theme', 'color', '--out', join(dir, 'b'));
+    expect(bytes(join(dir, 'a', 'map.color.svg')).equals(bytes(join(dir, 'b', 'map.color.svg')))).toBe(true);
+  }, 120_000);
+});
+
+describe('setting-builder/frontier-unmet', () => {
+  const { file } = bareMap('setting-builder', 'frontier-unmet'), before = readFileSync(file);
+
+  test('check exits non-zero and names C-ground alone', async () => {
+    const r = await cli('map', 'check', '--file', file, '--json'), j = JSON.parse(r.out);
+    expect(r.code).not.toBe(0);
+    expect(j).toMatchObject({ ok: false, errors: [], unmet: ['C-ground'] });
+    expect(j.requirements).toHaveLength(10);
+    expect(j.requirements.filter((q: map.RequirementResult) => !q.met).map((q: map.RequirementResult) => q.id)).toEqual(['C-ground']);
+    expect(j.requirements.find((q: map.RequirementResult) => q.id === 'C-ground')).toMatchObject({ kind: 'terrain', what: 'forest', op: '>=', needed: 0.8, met: false });
+    expect(j.requirements.find((q: map.RequirementResult) => q.id === 'C-ground').text).toMatch(/^C-ground terrain forest 0\.\d\d < 0\.80 unmet$/);
+    const text = (await cli('map', 'check', '--file', file)).out;
+    expect(text).toContain('1 of 10 requirements unmet');
+    expect(text.split('\n').filter(l => l.startsWith('  ') && l.endsWith(' unmet'))).toHaveLength(1);
+    expect(readFileSync(file).equals(before)).toBe(true);
+  }, 120_000);
+
+  test('is frontier with C-rock added over C-ground\'s area; nothing else differs', () => {
+    const a = JSON.parse(readFileSync(join(FIXTURES, 'setting-builder', 'frontier', 'map.json'), 'utf8')), b = JSON.parse(before.toString());
+    const c = a.require.find((q: { id: string }) => q.id === 'C-ground');
+    expect(b.require.at(-1)).toEqual({ id: 'C-rock', kind: 'terrain', area: c.area, terrain: 'rock', share: 0.9 });
+    expect({ ...b, id: a.id, require: b.require.slice(0, -1) }).toEqual(a);
   });
 });

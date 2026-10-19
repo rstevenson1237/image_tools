@@ -1,0 +1,259 @@
+{
+  "cols": 106,
+  "rows": 141,
+  "gen": {
+    "land": "inland",
+    "sea": 0.04,
+    "moisture": 0.5,
+    "roughness": 0.4,
+    "relief": 0.2,
+    "rivers": 6,
+    "simplify": 2,
+    "feature": 16
+  },
+  "topo": {
+    "maxElevation": 450,
+    "interval": 25,
+    "majorEvery": 4,
+    "unit": "ft",
+    "labels": false
+  },
+  "grid": {
+    "type": "none",
+    "size": 1,
+    "coords": false
+  },
+  "scale": {
+    "perCell": 200,
+    "unit": "yd"
+  },
+  "legend": true,
+  "scaleBar": true,
+  "compass": true,
+  "seed": 82,
+  "title": "The Frontier",
+  "id": "frontier",
+  "version": 1,
+  "preset": "local",
+  "edits": [],
+  "require": [
+    {
+      "id": "A-ground",
+      "kind": "height",
+      "area": {
+        "circle": [
+          54,
+          94,
+          7
+        ]
+      },
+      "low": 20,
+      "high": 60
+    },
+    {
+      "id": "B-road",
+      "kind": "path",
+      "path": "road",
+      "points": [
+        52,
+        140.5,
+        51,
+        126,
+        55,
+        111,
+        54,
+        98
+      ],
+      "tolerance": 1
+    },
+    {
+      "id": "B-road-clear",
+      "kind": "clear",
+      "area": {
+        "stroke": [
+          52,
+          140.5,
+          51,
+          126,
+          55,
+          111,
+          54,
+          98
+        ],
+        "width": 10
+      }
+    },
+    {
+      "id": "C-ground",
+      "kind": "terrain",
+      "area": {
+        "poly": [
+          48,
+          55,
+          58,
+          51,
+          70,
+          56,
+          74,
+          64,
+          72,
+          75,
+          66,
+          83,
+          54,
+          81,
+          46,
+          72,
+          44,
+          62
+        ]
+      },
+      "terrain": "forest",
+      "share": 0.8
+    },
+    {
+      "id": "D-ground",
+      "kind": "terrain",
+      "area": {
+        "poly": [
+          60,
+          106,
+          74,
+          108,
+          76,
+          118,
+          70,
+          124,
+          60,
+          121
+        ]
+      },
+      "terrain": "marsh",
+      "share": 0.7
+    },
+    {
+      "id": "D-low",
+      "kind": "height",
+      "area": {
+        "poly": [
+          60,
+          106,
+          74,
+          108,
+          76,
+          118,
+          70,
+          124,
+          60,
+          121
+        ]
+      },
+      "low": 0,
+      "high": 10
+    },
+    {
+      "id": "E-ground",
+      "kind": "terrain",
+      "area": {
+        "poly": [
+          28,
+          4,
+          80,
+          3,
+          90,
+          14,
+          84,
+          32,
+          62,
+          36,
+          36,
+          32,
+          26,
+          18
+        ]
+      },
+      "terrain": "rock",
+      "share": 0.6
+    },
+    {
+      "id": "E-hills",
+      "kind": "height",
+      "area": {
+        "poly": [
+          28,
+          4,
+          80,
+          3,
+          90,
+          14,
+          84,
+          32,
+          62,
+          36,
+          36,
+          32,
+          26,
+          18
+        ]
+      },
+      "low": 150,
+      "high": 400
+    },
+    {
+      "id": "E-stream",
+      "kind": "path",
+      "path": "stream",
+      "points": [
+        62,
+        14,
+        66,
+        24,
+        61,
+        38,
+        60,
+        53
+      ],
+      "tolerance": 1
+    }
+  ],
+  "overlay": {
+    "labels": [
+      {
+        "text": "A",
+        "x": 54,
+        "y": 90,
+        "kind": "place",
+        "size": 1
+      },
+      {
+        "text": "B",
+        "x": 47,
+        "y": 128,
+        "kind": "place",
+        "size": 1
+      },
+      {
+        "text": "C",
+        "x": 60,
+        "y": 67,
+        "kind": "place",
+        "size": 1
+      },
+      {
+        "text": "D",
+        "x": 68,
+        "y": 115,
+        "kind": "place",
+        "size": 1
+      },
+      {
+        "text": "E",
+        "x": 56,
+        "y": 18,
+        "kind": "place",
+        "size": 1
+      }
+    ],
+    "symbols": []
+  }
+}
