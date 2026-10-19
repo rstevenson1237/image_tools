@@ -5,8 +5,9 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync }
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { beforeAll, describe, expect, test } from 'vitest';
+import { beforeAll, describe, expect, test, vi } from 'vitest';
 import { dungeon, map } from 'artgen-core';
+import { main } from './cli.ts';
 import { initProject, type Project } from './project.ts';
 import { dungeonFile, readDungeon, renderDungeonFiles } from './dungeon.ts';
 import { mapFile, readMap, renderMapFiles } from './map.ts';
@@ -18,6 +19,18 @@ const formatOf = (caseMd: string, kind: string): number => {
   return +m[1];
 };
 const bytes = (f: string) => readFileSync(f);
+
+/** Run a CLI command and return its exit code and printed output. */
+async function cli(...args: string[]): Promise<{ code: number; out: string }> {
+  const out: string[] = [], log = vi.spyOn(console, 'log').mockImplementation((...a) => { out.push(a.join(' ')); });
+  try { return { code: await main(args), out: out.join('\n') }; } finally { log.mockRestore(); }
+}
+/** The case's input file copied into a bare folder (no project), to run `--file` commands on. */
+function bareCopy(consumer: string, name: string): { dir: string; file: string } {
+  const dir = mkdtempSync(join(tmpdir(), `artgen-path-${name}-`)), file = join(dir, 'dungeon.json');
+  cpSync(join(FIXTURES, consumer, name, 'dungeon.json'), file);
+  return { dir, file };
+}
 
 /** The case in a fresh project: its input file where the CLI reads it. */
 function place(consumer: string, name: string, kind: 'map' | 'dungeon'): { p: Project; id: string; caseMd: string } {
@@ -76,6 +89,68 @@ describe('setting-builder/warren', () => {
     const label = spec.overlay.labels.find(l => l.text === 'to E.2')!;
     expect(Math.hypot(label.x - end[0], label.y - end[1])).toBeLessThanOrEqual(2);
     expect(spec.overlay.symbols.filter(s => s.kind === 'trap')).toHaveLength(2);
+  });
+});
+
+describe('setting-builder/warren in path mode', () => {
+  test('check --file reports no errors; render by --file matches render by id', async () => {
+    const { dir, file } = bareCopy('setting-builder', 'warren');
+    expect(JSON.parse((await cli('dungeon', 'check', '--file', file, '--json')).out)).toMatchObject({ ok: true, errors: [] });
+    await cli('dungeon', 'render', '--file', file, '--format', 'svg');
+    const { p, id } = place('setting-builder', 'warren', 'dungeon');
+    await renderDungeonFiles(p, id, { formats: ['svg'], out: join(p.root, 'by-id') });
+    expect(bytes(join(dir, 'dungeon.svg')).equals(bytes(join(p.root, 'by-id', `${id}.svg`)))).toBe(true);
+  });
+});
+
+describe('setting-builder/shrine-crypts', () => {
+  const { dir, file } = bareCopy('setting-builder', 'shrine-crypts');
+  const check = async () => JSON.parse((await cli('dungeon', 'check', '--file', file, '--json')).out);
+  let spec: dungeon.DungeonSpec;
+  beforeAll(async () => {
+    expect(await check()).toMatchObject({ ok: true, errors: [] });
+    expect((await cli('dungeon', 'fit', '--file', file)).code).toBe(0);
+    spec = dungeon.parseDungeon(JSON.parse(readFileSync(file, 'utf8')));
+  });
+
+  test('is at the format version case.md states, and check still reports no errors after fit', async () => {
+    expect(formatOf(readFileSync(join(FIXTURES, 'setting-builder', 'shrine-crypts', 'case.md'), 'utf8'), 'dungeon')).toBe(dungeon.DUNGEON_FORMAT);
+    expect(spec.version).toBe(dungeon.DUNGEON_FORMAT);
+    expect(await check()).toMatchObject({ ok: true, errors: [] });
+  });
+
+  test('renders to SVG, the same twice', async () => {
+    await cli('dungeon', 'render', '--file', file, '--format', 'svg', '--out', join(dir, 'a'));
+    await cli('dungeon', 'render', '--file', file, '--format', 'svg', '--out', join(dir, 'b'));
+    expect(bytes(join(dir, 'a', 'dungeon.svg')).equals(bytes(join(dir, 'b', 'dungeon.svg')))).toBe(true);
+  });
+
+  test('facts', () => {
+    expect(spec.rooms.map(r => r.number)).toEqual([6, 7, 8, 9, 13]);
+    const room = (code: string) => spec.rooms.find(r => r.label?.startsWith(`${code} `))!.id;
+    const between = (a: string, b: string) => spec.corridors.filter(c => 'room' in c.from && 'room' in c.to && c.from.room === room(a) && c.to.room === room(b));
+    for (const [a, b] of [['M.6', 'M.7'], ['M.7', 'M.8'], ['M.7', 'M.9'], ['M.13', 'M.8']]) expect(between(a, b), `${a}-${b}`).toHaveLength(1);
+    expect(between('M.13', 'M.8')[0].doors).toEqual([null, 'secret']);
+    expect(spec.corridors.filter(c => c.doors?.includes('secret'))).toHaveLength(1);
+    const exits = [['M.6', 'up to M.2'], ['M.9', 'up to M.10'], ['M.13', 'down to L.5']];
+    expect(spec.overlay.labels.map(l => l.text).sort()).toEqual(exits.map(e => e[1]).sort());
+    for (const [code, text] of exits) {
+      const out = spec.corridors.filter(c => 'room' in c.from && c.from.room === room(code) && 'at' in c.to);
+      expect(out, code).toHaveLength(1);
+      const end = (out[0].to as { at: [number, number] }).at, l = spec.overlay.labels.find(x => x.text === text)!;
+      expect(Math.hypot(l.x - end[0], l.y - end[1]), text).toBeLessThanOrEqual(2);
+    }
+  });
+});
+
+describe('setting-builder/bad-file', () => {
+  test('check exits non-zero and names both errors by JSON path; the file is left alone', async () => {
+    const { file } = bareCopy('setting-builder', 'bad-file'), before = readFileSync(file);
+    const r = await cli('dungeon', 'check', '--file', file, '--json');
+    expect(r.code).not.toBe(0);
+    expect(JSON.parse(r.out)).toMatchObject({ ok: false, errors: [{ path: 'rooms[4].w' }, { path: 'corridors[5].to.room' }] });
+    expect(JSON.parse(r.out).errors).toHaveLength(2);
+    expect(readFileSync(file).equals(before)).toBe(true);
   });
 });
 

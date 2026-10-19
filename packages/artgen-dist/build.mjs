@@ -11,11 +11,15 @@
  *                                               vendors into the game), VERSION
  *   dist/claude-md.md                         the managed CLAUDE.md section
  *   plugin/ + .claude-plugin/marketplace.json the same content in plugin layout (/artgen:init, /artgen:direction)
+ *   maps/                                     the map and dungeon engines alone: artgen-maps.js (no pixel-art pipeline),
+ *                                             resvg.wasm (PNG only), fonts/ (optional), VERSION. A consumer copies the
+ *                                             folder at a sha into its own repo (tools/artgen/); nothing runs at install.
  *
  * Usage: node build.mjs [--out <dir>]
  */
 import { build } from 'esbuild';
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -52,10 +56,16 @@ function copyContent(src, dest, vars, rename = n => n) {
   }
 }
 
+/** The commit the build is from: ARTGEN_SHA, else the checkout's HEAD (7 characters), else `unknown`. */
+export function sourceSha() {
+  if (process.env.ARTGEN_SHA) return process.env.ARTGEN_SHA.slice(0, 7);
+  try { return execFileSync('git', ['rev-parse', '--short=7', 'HEAD'], { cwd: HERE, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim() || 'unknown'; } catch { return 'unknown'; }
+}
+
 async function bundle(entry, outfile) {
   await build({
     entryPoints: [entry], outfile, bundle: true, platform: 'node', format: 'esm', target: 'node20',
-    define: { __ARTGEN_VERSION__: JSON.stringify(VERSION) },
+    define: { __ARTGEN_VERSION__: JSON.stringify(VERSION), __ARTGEN_SHA__: JSON.stringify(sourceSha()) },
     // CommonJS dependencies (yaml) call require() for Node built-ins; give the ESM bundle a real one
     banner: { js: "import { createRequire as __artgenRequire } from 'node:module'; const require = __artgenRequire(import.meta.url);" },
     legalComments: 'none', logLevel: 'warning',
@@ -77,6 +87,16 @@ async function tools(dest) {
   writeFileSync(join(dest, 'VERSION'), VERSION + '\n');
   // the bundles are ESM; this keeps them ESM even in a game repo whose package.json says "type": "commonjs"
   writeFileSync(join(dest, 'package.json'), JSON.stringify({ name: 'artgen-tools', private: true, version: VERSION, type: 'module' }, null, 2) + '\n');
+}
+
+/** maps/: the map and dungeon engines as one bundle, with the wasm and fonts as separate files and a VERSION. */
+async function maps(dest) {
+  mkdirSync(dest, { recursive: true });
+  await bundle(join(PKGS, 'artgen-cli', 'src', 'maps-bin.ts'), join(dest, 'artgen-maps.js'));
+  cpSync(require.resolve('@resvg/resvg-wasm/index_bg.wasm'), join(dest, 'resvg.wasm'));
+  cpSync(join(PKGS, 'artgen-core', 'assets', 'fonts'), join(dest, 'fonts'), { recursive: true });
+  writeFileSync(join(dest, 'VERSION'), VERSION + '\n');
+  writeFileSync(join(dest, 'package.json'), JSON.stringify({ name: 'artgen-maps', private: true, version: VERSION, type: 'module' }, null, 2) + '\n');
 }
 
 export async function buildDist(out = join(HERE, 'out')) {
@@ -105,6 +125,9 @@ export async function buildDist(out = join(HERE, 'out')) {
   writeFileSync(join(out, '.claude-plugin', 'marketplace.json'), JSON.stringify({
     name: 'artgen', owner: { name: 'rstevenson1237' }, plugins: [{ name: 'artgen', source: './plugin', description: desc, version: VERSION }],
   }, null, 2) + '\n');
+
+  // the maps-only bundle, copied by consumers that need nothing else
+  await maps(join(out, 'maps'));
 
   // installer package (what `npx github:…#artgen-dist` runs)
   cpSync(join(HERE, 'src', 'install.mjs'), join(out, 'install.mjs'));

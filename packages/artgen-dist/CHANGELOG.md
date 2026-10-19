@@ -26,6 +26,40 @@ Reads: **map format 1**, **dungeon format 1**. `artgen formats --json` prints `{
   not yet draw well. The tests parse each at the format version its `case.md` states, render it to SVG and PNG in each
   theme, check the render is the same twice, and check its facts. They check structure, never pixels.
 
+**Map and dungeon engines usable alone** (for consumers that build maps and nothing else)
+- **Path mode.** Every `map` and `dungeon` command takes `--file <path>` in place of an id and then needs no project.
+  `new --file` creates the file (its id is the file name, `F.a.json` → `F-a`, unless one is given); renders go to
+  `--out`, which defaults to the file's folder, named after the file (`F.a.json` → `F.a.svg`, or `F.a.color.svg` for a
+  map). Ids keep working inside a project.
+- **A whole file in one call.** A consumer writes the JSON itself at a format version `formats --json` reports, then
+  calls `artgen dungeon check --file F.a.json --json`, `dungeon fit --file …` and `map render --file … --format svg`.
+  `dungeon check` lists every error with its JSON path (`{"version", "file", "ok", "errors": [{"path", "message"}]}`)
+  and exits 1 when there are any; a file that is not JSON, or at a newer version, is reported the same way. A room that
+  is too small or off-grid is now reported per field (`rooms[4].w: at least 1 cell`, was `rooms[4]: x, y and w, h ≥ 1`).
+  `map check` comes with the map requirements (A2).
+- **A maps-only bundle.** `maps/artgen-maps.js` holds `map`, `dungeon` and `formats` and nothing that loads the
+  pixel-art pipeline: 169 KB (172,981 bytes), against 947 KB (969,759 bytes) for `tools/artgen/artgen.js`. It is built
+  beside the full bundle and published on `artgen-dist` under `maps/`, with `VERSION`, `package.json` (keeps it ESM),
+  `fonts/` and `resvg.wasm` as separate files. SVG renders without `resvg.wasm`; a PNG render without it fails, naming
+  the missing file. Fonts are optional: without them SVG labels use the renderer's CSS font list and a PNG leaves the
+  text out (with a note). `artgen-maps.js --version` prints the release and the commit it was built from
+  (`0.10.0 (64198fc)`).
+- **Installing it at a commit.** A consumer copies `maps/` from `artgen-dist` at a sha into its own `tools/artgen/` and
+  commits it; nothing runs at install (`<sha>` is a commit of the `artgen-dist` branch; record it where artgen is pinned):
+
+  ```sh
+  git clone -q --filter=blob:none --no-checkout https://github.com/rstevenson1237/image_tools.git /tmp/artgen-dist-src
+  git -C /tmp/artgen-dist-src checkout -q <sha> -- maps
+  mkdir -p tools/artgen && cp -r /tmp/artgen-dist-src/maps/. tools/artgen/
+  node tools/artgen/artgen-maps.js --version && node tools/artgen/artgen-maps.js formats --json
+  ```
+
+**Consumer fixtures** (add)
+- `setting-builder/shrine-crypts` (M's crypt block written whole as `dungeon.json`, run through `fit`: five rooms, four
+  joining corridors with a secret door at M.8, three labelled exits) and `bad-file` (`warren` with a corridor to a room
+  that does not exist and a room 0 cells wide: `check` exits 1 naming `rooms[4].w` and `corridors[5].to.room`).
+  `warren` also runs in path mode with no project.
+
 **Limits**
 - A map may be up to 200 squares a side (was 120), so a 1-mile gorge fits at 10 yards a square. Raising a limit
   extends map format 1: files that were valid stay valid.

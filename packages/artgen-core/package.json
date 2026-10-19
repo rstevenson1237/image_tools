@@ -6,6 +6,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./maps": "./src/maps.ts",
     "./bench": "./bench/index.ts"
   },
   "scripts": {

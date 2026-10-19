@@ -5,9 +5,10 @@ import { spawnSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, test } from 'vitest';
 import { RUNTIME_VERSION } from 'artgen-runtime';
-import { buildDist } from '../build.mjs';
+import { buildDist, sourceSha } from '../build.mjs';
 import { install, status } from '../src/install.mjs';
 
 const tmp = mkdtempSync(join(tmpdir(), 'artgen-dist-')), OUT = join(tmp, 'out'), GAME = join(tmp, 'game');
@@ -161,5 +162,68 @@ describe('artgen-dist', () => {
     expect(r.stdout).toMatch(/installed: 9\.9\.9/);
     const d = node([join(OUT, 'install.mjs'), 'update', '--dry-run']);
     expect(d.stdout).toMatch(/dry run/);
+  });
+});
+
+// maps/: the map and dungeon engines alone, copied as a folder into a consumer repo with no project and no install step
+describe('maps/ (the maps-only bundle)', () => {
+  const FIX = fileURLToPath(new URL('../../artgen-cli/fixtures/setting-builder/', import.meta.url));
+  const consumer = join(tmp, 'consumer'), tools = join(consumer, 'tools', 'artgen'), bundle = join(tools, 'artgen-maps.js');
+  const maps = (...args: string[]) => spawnSync(process.execPath, [bundle, ...args], { cwd: consumer, encoding: 'utf8', env: { ...process.env, NODE_PATH: '' } });
+  const ok = (...args: string[]) => { const r = maps(...args); expect(r.status, args.join(' ') + '\n' + r.stderr + r.stdout).toBe(0); return r.stdout; };
+
+  beforeAll(() => {
+    mkdirSync(consumer, { recursive: true });
+    cpSync(join(OUT, 'maps'), tools, { recursive: true });
+    rmSync(join(tools, 'resvg.wasm'));   // SVG needs no rasteriser
+    rmSync(join(tools, 'fonts'), { recursive: true });
+    for (const c of ['warren', 'keep', 'shrine-crypts', 'bad-file']) cpSync(join(FIX, c, 'dungeon.json'), join(consumer, `${c}.json`));
+    cpSync(join(FIX, 'ravine', 'map.json'), join(consumer, 'ravine.json'));
+  });
+
+  test('build: the folder holds the bundle, resvg.wasm, fonts and VERSION, and none of the pixel-art pipeline', () => {
+    for (const f of ['artgen-maps.js', 'resvg.wasm', 'VERSION', 'package.json', 'fonts/AlegreyaSans-Regular.ttf']) expect(existsSync(join(OUT, 'maps', f)), f).toBe(true);
+    const size = (f: string) => readFileSync(f).length, js = readFileSync(join(OUT, 'maps', 'artgen-maps.js'), 'utf8');
+    expect(size(join(OUT, 'maps', 'artgen-maps.js'))).toBeLessThan(size(join(OUT, 'dist/tools/artgen/artgen.js')) / 2);
+    for (const marker of ['applyFinish', 'Scene3D', 'greedyMesh', 'validateDirection', 'encodeGIF']) expect(js, marker).not.toContain(marker);
+    expect(readFileSync(join(OUT, 'maps', 'VERSION'), 'utf8')).toBe(readFileSync(join(OUT, 'dist/tools/artgen/VERSION'), 'utf8'));
+  });
+
+  test('--version prints the release and the commit it was built from; formats --json', () => {
+    expect(ok('--version').trim()).toBe(`${readFileSync(join(OUT, 'maps', 'VERSION'), 'utf8').trim()} (${sourceSha()})`);
+    expect(JSON.parse(ok('formats', '--json'))).toEqual({ map: 1, dungeon: 1 });
+  });
+
+  test('check, fit and an SVG render of the fixtures from an empty folder, with no resvg.wasm and no fonts', () => {
+    for (const c of ['warren', 'keep', 'shrine-crypts']) {
+      expect(JSON.parse(ok('dungeon', 'check', '--file', `${c}.json`, '--json'))).toMatchObject({ ok: true, errors: [] });
+      ok('dungeon', 'fit', '--file', `${c}.json`);
+      ok('dungeon', 'render', '--file', `${c}.json`, '--format', 'svg');
+      expect(readFileSync(join(consumer, `${c}.svg`), 'utf8')).toContain('<svg');
+    }
+    ok('map', 'render', '--file', 'ravine.json', '--format', 'svg', '--theme', 'color');
+    expect(readFileSync(join(consumer, 'ravine.color.svg'), 'utf8')).toContain('<svg');
+    expect(existsSync(join(consumer, 'art'))).toBe(false);
+  }, 120_000);
+
+  test('a bad file exits non-zero and names its errors by JSON path', () => {
+    const r = maps('dungeon', 'check', '--file', 'bad-file.json', '--json');
+    expect(r.status).toBe(1);
+    expect(JSON.parse(r.stdout).errors.map((e: { path: string }) => e.path)).toEqual(['rooms[4].w', 'corridors[5].to.room']);
+  });
+
+  test('PNG without resvg.wasm fails naming the file; with it beside the bundle PNG renders, without fonts', () => {
+    const r = maps('dungeon', 'render', '--file', 'warren.json', '--format', 'png');
+    expect(r.status).toBe(1);
+    expect(r.stderr).toMatch(/resvg\.wasm/);
+    cpSync(join(OUT, 'maps', 'resvg.wasm'), join(tools, 'resvg.wasm'));
+    expect(maps('dungeon', 'render', '--file', 'warren.json', '--format', 'png', '--ppu', '8').status).toBe(0);
+    expect(existsSync(join(consumer, 'warren.png'))).toBe(true);
+  });
+
+  test('other commands are not in the bundle', () => {
+    const r = maps('render', 'art/assets/character/x');
+    expect(r.status).toBe(1);
+    expect(r.stderr).toMatch(/map, dungeon and formats/);
   });
 });

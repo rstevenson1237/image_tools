@@ -13,4 +13,4 @@ change (see `src/format.ts` in artgen-core). A failing fixture is never edited j
 
 | Consumer | Cases |
 |---|---|
-| `setting-builder/` | `warren`, `ravine`, `keep` |
+| `setting-builder/` | `warren`, `ravine`, `keep`, `shrine-crypts`, `bad-file` |
