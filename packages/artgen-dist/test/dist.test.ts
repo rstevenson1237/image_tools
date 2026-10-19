@@ -179,6 +179,7 @@ describe('maps/ (the maps-only bundle)', () => {
     rmSync(join(tools, 'fonts'), { recursive: true });
     for (const c of ['warren', 'keep', 'shrine-crypts', 'bad-file']) cpSync(join(FIX, c, 'dungeon.json'), join(consumer, `${c}.json`));
     cpSync(join(FIX, 'ravine', 'map.json'), join(consumer, 'ravine.json'));
+    for (const c of ['frontier', 'frontier-unmet']) cpSync(join(FIX, c, 'map.json'), join(consumer, `${c}.json`));
   });
 
   test('build: the folder holds the bundle, resvg.wasm, fonts and VERSION, and none of the pixel-art pipeline', () => {
@@ -204,6 +205,14 @@ describe('maps/ (the maps-only bundle)', () => {
     ok('map', 'render', '--file', 'ravine.json', '--format', 'svg', '--theme', 'color');
     expect(readFileSync(join(consumer, 'ravine.color.svg'), 'utf8')).toContain('<svg');
     expect(existsSync(join(consumer, 'art'))).toBe(false);
+  }, 120_000);
+
+  test('map check from the bundle: the ravine and the frontier are met; frontier-unmet exits 1 and names C-ground alone', () => {
+    expect(JSON.parse(ok('map', 'check', '--file', 'ravine.json', '--json'))).toMatchObject({ ok: true, unmet: [] });
+    expect(JSON.parse(ok('map', 'check', '--file', 'frontier.json', '--json'))).toMatchObject({ ok: true, unmet: [] });
+    const r = maps('map', 'check', '--file', 'frontier-unmet.json', '--json');
+    expect(r.status).toBe(1);
+    expect(JSON.parse(r.stdout)).toMatchObject({ ok: false, errors: [], unmet: ['C-ground'] });
   }, 120_000);
 
   test('a bad file exits non-zero and names its errors by JSON path', () => {

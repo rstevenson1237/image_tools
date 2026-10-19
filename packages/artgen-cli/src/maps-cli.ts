@@ -7,7 +7,7 @@
  */
 import { dungeon, map, parseCrop, parseFit, type Crop, type Fit } from 'artgen-core/maps';
 import { checkDungeonFile, cornerPoint, describeDungeonFacts, corridorEnd, createDungeon, describeDungeon, doorPair, dungeonSummary, gridMode, listDungeons, readDungeon, renderDungeonFiles, updateDungeon } from './dungeon.ts';
-import { createMap, describeMap, describeMapFacts, factsQuery, listMaps, mapSummary, numbers, onOff, parseLayers, readMap, renderMapFiles, shapeFrom, updateMap } from './map.ts';
+import { checkMapFile, createMap, describeMap, describeMapFacts, factsQuery, listMaps, mapSummary, numbers, onOff, parseLayers, readMap, renderMapFiles, shapeFrom, updateMap } from './map.ts';
 import { fileId, requireProject } from './projectfs.ts';
 
 declare const __ARTGEN_VERSION__: string | undefined;
@@ -47,6 +47,7 @@ export const MAP_USAGE = `       artgen map new <id> [--preset regional|local] [
                   the ground as numbers: --at gives each point's terrain, height, slope and nearest river and road; --area the terrain shares, lowest and highest
                   ground and the rivers and roads that cross it; neither gives the whole map's rivers, roads, hilltops, hollows and terrain shares.
                   Positions in map units, lengths also in the scale unit, heights in topo.unit and whole multiples of topo.interval
+       artgen map check <id> [--json]   the file's format errors with their JSON paths, then each \`require\` entry measured: \`C-forest terrain forest 0.71 < 0.80 unmet\`; exits 1 on any error or unmet requirement
        artgen dungeon new <id> [--size 40x30] [--seed n] [--title "..."] [--empty] | new <id> --room rect|circle|octagon|cave --room-size 8x6 [--exits n,e:secret,s:none,w] [--label "..."] [--number n|off]
        artgen dungeon gen <id> [--seed n] [--rooms n] [--min-size n] [--max-size n] [--caves f] [--round f] [--loops f] [--doors f] [--corridor-width n] [--spacing n] [--entrance on|off] [--size 40x30]
        artgen dungeon room <id> add <shape> --at x,y|C4 --size WxH [--points x,y,…] [--label "..."] [--number n|off] [--room-id r9] | move <rid> --at x,y | set <rid> [--shape s] [--size WxH] [--label "..."] [--number n|off] | rm <rid>
@@ -179,6 +180,13 @@ export async function mapCommand(sub: string | undefined, args: string[], emit: 
     print(describeMapFacts(r), r);
     return 0;
   }
+  if (sub === 'check') {
+    const r = checkMapFile(p, need('<id>'));
+    print(r.errors.length
+      ? [`${r.file}: ${r.errors.length} error${r.errors.length === 1 ? '' : 's'}`, ...r.errors.map(e => `  ${e.path || '(file)'}: ${e.message}`)].join('\n')
+      : [`${r.file}: ${r.requirements.length ? (r.ok ? `all ${r.requirements.length} requirements met` : `${r.unmet.length} of ${r.requirements.length} requirements unmet`) : 'ok, no requirements'}`, ...r.requirements.map(q => `  ${q.text}`)].join('\n'), r);
+    return r.ok ? 0 : 1;
+  }
   if (sub === 'render') {
     const theme = flag(args, '--theme') ?? 'both', format = flag(args, '--format') ?? 'both';
     if (!['color', 'bw', 'both'].includes(theme)) throw new Error('--theme: color, bw or both');
@@ -190,7 +198,7 @@ export async function mapCommand(sub: string | undefined, args: string[], emit: 
     print([`${file ?? id} ${r.size.join('×')} px, ${r.ppu} px a unit, window ${r.crop.join(',')}: ${r.terrains.join(', ')}${r.rivers ? `, ${r.rivers} rivers` : ''}`, ...r.files.map(f => `  ${f}`)].join('\n'), r);
     return 0;
   }
-  throw new Error('map: new | gen | edit | grid | label | symbol | symbols | overlay | set | render | show | facts | list (artgen --help)');
+  throw new Error('map: new | gen | edit | grid | label | symbol | symbols | overlay | set | render | show | facts | check | list (artgen --help)');
 }
 
 /** `WxH` → [w, h] (cells). */

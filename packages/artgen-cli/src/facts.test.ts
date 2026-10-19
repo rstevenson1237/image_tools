@@ -45,13 +45,13 @@ describe('map facts: setting-builder/ravine', () => {
       expect(map.TERRAINS).toContain(p.terrain);
       expect(p.height % spec.topo.interval, `${marks[i]} height`).toBe(0);
       expect(p.slope.band).toMatch(/^(flat|gentle|steep|cliff)$/);
-      expect(p.river).toMatchObject({ name: 'river-1', source: 'edit' });
+      expect(p.river).toMatchObject({ name: 'river-1', source: 'required' });
       expect(p.above).toMatchObject({ of: 'river', value: p.height - p.above!.reference!.height });
       expect(Math.abs(p.above!.value!) % spec.topo.interval).toBe(0);
     });
   });
 
-  test('the marks on the east wall, which the file paints rock, report rock; so does ground inside the west wall', async () => {
+  test('the marks on the east wall, which the file requires to be rock, report rock; so does ground inside the west wall', async () => {
     const east = spec.overlay.symbols.filter(s => s.x >= 12), r = await json('map', 'facts', '--file', file, ...east.flatMap(s => ['--at', `${s.x},${s.y}`]), '--at', '2,60', '--at', '14,100');
     expect(east).toHaveLength(5);
     expect(r.points.map((p: map.PointFacts) => p.terrain)).toEqual(Array(7).fill('rock'));
@@ -66,18 +66,18 @@ describe('map facts: setting-builder/ravine', () => {
     for (const p of walls) expect(p.above!.value, `${p.at}`).toBeGreaterThan(Math.max(...own.map(o => o.above!.value!)));
   });
 
-  test('with no query: the road and the drawn river are each a point list that runs the length of the map; no generated river is reported here', async () => {
+  test('with no query: the road and the required stream are each a point list that runs the length of the map; no generated river is reported here', async () => {
     const { features: f } = await json('map', 'facts', '--file', file);
     expect(f.rivers).toHaveLength(1);
     expect(f.roads).toHaveLength(1);
-    expect(f.generatedRivers).toEqual([]);   // gen.rivers is 1, but the generator traces none at this size and seed
+    expect(f.generatedRivers).toEqual([]);   // gen.rivers is 0: only the stream the file requires exists
     for (const line of [f.rivers[0], f.roads[0]]) {
       const ys = line.points.map((p: number[]) => p[1]);
       expect((Math.max(...ys) - Math.min(...ys)) / spec.rows, line.name).toBeGreaterThan(0.9);
       expect(line.length.map).toBeGreaterThan(0.9 * spec.rows);
       expect(line.length.scale).toBe(Math.round(line.length.map * 10 * 10) / 10);
     }
-    expect(f.rivers[0]).toMatchObject({ source: 'edit', points: [[8, 4], [8, 180]], mouth: false });
+    expect(f.rivers[0]).toMatchObject({ source: 'required', points: [[8, 4], [8, 180]], mouth: false });
     expect(f.roads[0].points[0]).toEqual([8, 180]);
     expect(f.roads[0].points.at(-1)).toEqual([10, 4]);
     expect(f.terrain.reduce((n: number, s: { share: number }) => n + s.share, 0)).toBe(100);
@@ -88,7 +88,7 @@ describe('map facts: setting-builder/ravine', () => {
     const { areas: [a] } = await json('map', 'facts', '--file', file, '--area', '0,50,16,100');
     expect(a.terrain.reduce((n: number, s: { share: number }) => n + s.share, 0)).toBe(100);
     expect(a.terrain[0].terrain).toBe('rock');
-    expect(a.rivers).toEqual([{ name: 'river-1', source: 'edit', enters: [8, 50], leaves: [8, 100], length: { map: 50, scale: 500 } }]);
+    expect(a.rivers).toEqual([{ name: 'river-1', source: 'required', enters: [8, 50], leaves: [8, 100], length: { map: 50, scale: 500 } }]);
     expect(a.roads).toHaveLength(1);
     expect(a.lowest.height).toBeLessThan(a.highest.height);
     expect(a.highest.height).toBe(40);

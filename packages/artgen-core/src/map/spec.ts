@@ -38,6 +38,24 @@ export type MapEdit =
   | { op: 'river'; points: number[]; width?: number; delta?: boolean }
   | { op: 'road'; points: number[] };
 
+/**
+ * What the ground must be, stated by the consumer (`require` in `map.json`). Generation shapes the ground to meet each
+ * one, with the edge blended over `gen.feature` (or `blend`, in map units) outside the area; `artgen map check` measures
+ * each and says which are met. The `id` is the consumer's own, and unique in the file.
+ */
+export type Requirement = { id: string; blend?: number } & (
+  /** `share` (0..1) of the area is `terrain`. */
+  | { kind: 'terrain'; area: Shape; terrain: Terrain; share: number }
+  /** `share` (0..1, default 0.9) of the area stands between `low` and `high`, in `topo.unit` above the waterline. */
+  | { kind: 'height'; area: Shape; low: number; high: number; share?: number }
+  /** A stream or a road through `points` (x,y pairs), each within `tolerance` map units (default 1) of it. A stream is a river and carves its valley; a road keeps to its points and prefers gentle slope between them. */
+  | { kind: 'path'; path: 'stream' | 'road'; points: number[]; tolerance?: number; width?: number; delta?: boolean }
+  /** No generated river crosses the area (streams and roads the file asks for, and its edits, are the consumer's own). */
+  | { kind: 'clear'; area: Shape }
+);
+export type RequirementKind = Requirement['kind'];
+export const REQUIREMENT_KINDS = ['terrain', 'height', 'path', 'clear'] as const;
+
 export interface MapLabel { text: string; x: number; y: number; kind: LabelKind; size?: number; angle?: number }
 export interface MapSymbol { kind: string; x: number; y: number; scale?: number }
 
@@ -73,6 +91,8 @@ export interface MapSpec {
   scaleBar: boolean;
   compass: boolean;
   edits: MapEdit[];
+  /** Optional: what the ground must be (see {@link Requirement}). A file without it generates as it always did. */
+  require?: Requirement[];
   overlay: { labels: MapLabel[]; symbols: MapSymbol[] };
 }
 
@@ -125,6 +145,40 @@ function shapeErrors(s: unknown, at: string): string[] {
   return [`${at}: unknown shape (circle, poly or stroke)`];
 }
 
+function requirementErrors(m: Partial<MapSpec>): string[] {
+  const e: string[] = [], list = m.require;
+  if (list === undefined) return e;
+  if (!Array.isArray(list)) return ['require: an array'];
+  const seen = new Set<string>(), top = isNum(m.topo?.maxElevation) ? m.topo!.maxElevation : Infinity;
+  list.forEach((r, i) => {
+    const at = `require[${i}]`;
+    if (!r || typeof r !== 'object') { e.push(`${at}: an object`); return; }
+    if (typeof r.id !== 'string' || !/^[\w.-]+$/.test(r.id)) e.push(`${at}.id: letters, digits, - . and _ only`);
+    else if (seen.has(r.id)) e.push(`${at}.id: ${r.id} is used twice`);
+    else seen.add(r.id);
+    if (r.blend !== undefined && !(isNum(r.blend) && r.blend >= 0)) e.push(`${at}.blend: map units, 0 or more`);
+    if (r.kind === 'terrain') {
+      e.push(...shapeErrors(r.area, `${at}.area`));
+      if (!TERRAINS.includes(r.terrain)) e.push(`${at}.terrain: one of ${TERRAINS.join(', ')}`);
+      else if (r.terrain === 'snow' && m.preset === 'local') e.push(`${at}.terrain: snow does not appear on a local map`);
+      if (!isNum(r.share) || r.share <= 0 || r.share > 1) e.push(`${at}.share: above 0 and at most 1`);
+    } else if (r.kind === 'height') {
+      e.push(...shapeErrors(r.area, `${at}.area`));
+      if (!isNum(r.low) || !isNum(r.high) || r.low < 0 || r.high <= r.low) e.push(`${at}: low and high, 0 ≤ low < high`);
+      else if (r.high > top) e.push(`${at}.high: at most topo.maxElevation (${top})`);
+      if (r.share !== undefined && !(isNum(r.share) && r.share > 0 && r.share <= 1)) e.push(`${at}.share: above 0 and at most 1`);
+    } else if (r.kind === 'path') {
+      if (r.path !== 'stream' && r.path !== 'road') e.push(`${at}.path: stream or road`);
+      if (!nums(r.points) || r.points.length < 4 || r.points.length % 2) e.push(`${at}.points: at least 2 x,y pairs`);
+      if (r.tolerance !== undefined && !(isNum(r.tolerance) && r.tolerance > 0)) e.push(`${at}.tolerance: map units, above 0`);
+      if (r.width !== undefined && !(isNum(r.width) && r.width > 0)) e.push(`${at}.width: > 0`);
+      if (r.delta !== undefined && typeof r.delta !== 'boolean') e.push(`${at}.delta: true or false`);
+    } else if (r.kind === 'clear') e.push(...shapeErrors(r.area, `${at}.area`));
+    else e.push(`${at}.kind: ${REQUIREMENT_KINDS.join(', ')}`);
+  });
+  return e;
+}
+
 /** Every problem with a map file, as readable messages (empty when it is valid). */
 export function validateMap(raw: unknown): string[] {
   const e: string[] = [];
@@ -158,6 +212,7 @@ export function validateMap(raw: unknown): string[] {
     }
     else e.push(`${at}.op: paint, elevate, river or road`);
   });
+  e.push(...requirementErrors(m));
   const o = m.overlay;
   if (!o || !Array.isArray(o.labels) || !Array.isArray(o.symbols)) e.push('overlay: { labels: [], symbols: [] }');
   else {
@@ -175,9 +230,24 @@ export function parseMap(raw: unknown): MapSpec {
     gen: { ...d.gen, ...r.gen }, topo: { ...d.topo, ...r.topo }, grid: { ...d.grid, ...r.grid }, scale: { ...d.scale, ...r.scale },
     edits: r.edits ?? [], overlay: { labels: r.overlay?.labels ?? [], symbols: r.overlay?.symbols ?? [] },
   } as MapSpec;
+  if (r.require === undefined) delete m.require;
   const errors = validateMap(m);
   if (errors.length) throw new Error(`invalid map${typeof r.id === 'string' ? ` ${r.id}` : ''}:\n  ${errors.join('\n  ')}`);
   return m;
+}
+
+export interface MapIssue { path: string; message: string }
+
+/** Every problem with a map file as written by a consumer (not yet filled with defaults), each with its JSON path. */
+export function checkMap(raw: unknown): { version: number | null; errors: MapIssue[] } {
+  let r: Partial<MapSpec>;
+  try { r = readFormat(raw, 'map', MAP_FORMAT, MIGRATIONS) as Partial<MapSpec>; } catch (err) {
+    const v = (raw as { version?: unknown } | null)?.version;
+    return { version: typeof v === 'number' ? v : null, errors: [{ path: 'version', message: (err as Error).message }] };
+  }
+  const d = PRESET_DEFAULTS[PRESETS.includes(r.preset as Preset) ? r.preset! : 'regional'];
+  const m = { ...structuredClone(d), ...r, gen: { ...d.gen, ...r.gen }, topo: { ...d.topo, ...r.topo }, grid: { ...d.grid, ...r.grid }, scale: { ...d.scale, ...r.scale }, edits: r.edits ?? [], overlay: { labels: r.overlay?.labels ?? [], symbols: r.overlay?.symbols ?? [] } };
+  return { version: MAP_FORMAT, errors: validateMap(m).map(s => { const i = s.indexOf(': '); return i < 0 ? { path: '', message: s } : { path: s.slice(0, i), message: s.slice(i + 2) }; }) };
 }
 
 /** Hex coordinates (`0304`: column 3, row 4, both from 1) or a cell name (`C4`) to the centre of that cell. */

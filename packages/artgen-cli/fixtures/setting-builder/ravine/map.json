@@ -7,7 +7,7 @@
     "moisture": 0.55,
     "roughness": 0.4,
     "relief": 0.3,
-    "rivers": 1,
+    "rivers": 0,
     "simplify": 2,
     "feature": 14
   },
@@ -37,81 +37,6 @@
   "preset": "local",
   "edits": [
     {
-      "op": "river",
-      "points": [
-        8,
-        4,
-        8,
-        180
-      ],
-      "width": 2,
-      "delta": false
-    },
-    {
-      "op": "paint",
-      "terrain": "rock",
-      "shape": {
-        "poly": [
-          0,
-          0,
-          4,
-          0,
-          4,
-          184,
-          0,
-          184
-        ]
-      }
-    },
-    {
-      "op": "paint",
-      "terrain": "rock",
-      "shape": {
-        "poly": [
-          12,
-          0,
-          16,
-          0,
-          16,
-          184,
-          12,
-          184
-        ]
-      }
-    },
-    {
-      "op": "elevate",
-      "amount": 0.6,
-      "shape": {
-        "poly": [
-          0,
-          0,
-          4,
-          0,
-          4,
-          184,
-          0,
-          184
-        ]
-      }
-    },
-    {
-      "op": "elevate",
-      "amount": 0.6,
-      "shape": {
-        "poly": [
-          12,
-          0,
-          16,
-          0,
-          16,
-          184,
-          12,
-          184
-        ]
-      }
-    },
-    {
       "op": "road",
       "points": [
         8,
@@ -127,6 +52,98 @@
         10,
         4
       ]
+    }
+  ],
+  "require": [
+    {
+      "id": "E-stream",
+      "kind": "path",
+      "path": "stream",
+      "points": [
+        8,
+        4,
+        8,
+        180
+      ],
+      "tolerance": 1,
+      "width": 2,
+      "delta": false
+    },
+    {
+      "id": "E-wall-west",
+      "kind": "terrain",
+      "area": {
+        "poly": [
+          0,
+          0,
+          4,
+          0,
+          4,
+          184,
+          0,
+          184
+        ]
+      },
+      "terrain": "rock",
+      "share": 0.9,
+      "blend": 3
+    },
+    {
+      "id": "E-wall-west-height",
+      "kind": "height",
+      "area": {
+        "poly": [
+          0,
+          0,
+          4,
+          0,
+          4,
+          184,
+          0,
+          184
+        ]
+      },
+      "low": 30,
+      "high": 40,
+      "blend": 3
+    },
+    {
+      "id": "E-wall-east",
+      "kind": "terrain",
+      "area": {
+        "poly": [
+          12,
+          0,
+          16,
+          0,
+          16,
+          184,
+          12,
+          184
+        ]
+      },
+      "terrain": "rock",
+      "share": 0.9,
+      "blend": 3
+    },
+    {
+      "id": "E-wall-east-height",
+      "kind": "height",
+      "area": {
+        "poly": [
+          12,
+          0,
+          16,
+          0,
+          16,
+          184,
+          12,
+          184
+        ]
+      },
+      "low": 30,
+      "high": 40,
+      "blend": 3
     }
   ],
   "overlay": {

@@ -57,7 +57,7 @@
  *   artgen fx <preset> [--size 32] [--frames 8] [--seed n] | --list                particle preset quick look (P6c)
  *
  * Terrain maps (TTRPG; art/maps/<id>/map.json, see map.ts):
- *   artgen map new|gen|edit|grid|label|symbol|overlay|set|render|show|facts|list|symbols
+ *   artgen map new|gen|edit|grid|label|symbol|overlay|set|render|show|facts|check|list|symbols
  *
  * Dungeon maps (TTRPG; art/dungeons/<id>/dungeon.json, see dungeon.ts):
  *   artgen dungeon new|gen|room|link|unlink|door|grid|style|label|symbol|overlay|fit|check|render|show|facts|list|symbols

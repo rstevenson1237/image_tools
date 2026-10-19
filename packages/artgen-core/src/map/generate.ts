@@ -5,12 +5,16 @@
 import { rng } from '../lib/rng.ts';
 import { pGradient } from '../lib/noise.ts';
 import { RESOLUTION, TERRAINS, type MapSpec, type Shape, type Terrain } from './spec.ts';
+import { coverage, eachCovered } from './geometry.ts';
+import { routeRoad, shapeGround, streamCurve, streamsOf } from './shape.ts';
 import { chaikin, simplifyLine, type Line } from '../lib/trace.ts';
 
 export interface MapLine {
   pts: number[];
   /** Width in map units. */
   width: number;
+  /** The id of the `require` entry this road was routed for. */
+  for?: string;
 }
 
 /**
@@ -24,8 +28,10 @@ export interface River {
   outline: number[];
   /** True when it runs into the sea or a lake (the end of the ribbon lies in the water). */
   mouth: boolean;
-  /** Traced by the generator (`gen.rivers`), or drawn by a `river` edit. */
-  source: 'generated' | 'edit';
+  /** Traced by the generator (`gen.rivers`), drawn by a `river` edit, or asked for by a `stream` requirement. */
+  source: 'generated' | 'edit' | 'required';
+  /** The id of the `require` entry this stream was carved for. */
+  for?: string;
 }
 
 export interface MapField {
@@ -41,54 +47,10 @@ export interface MapField {
   roads: MapLine[];
 }
 
+export { coverage };
 export const terrainIndex = (t: Terrain): number => TERRAINS.indexOf(t);
 const T = Object.fromEntries(TERRAINS.map((t, i) => [t, i])) as Record<Terrain, number>;
 const isWater = (t: number) => t === T.deep || t === T.water;
-
-/** Coverage of a shape at (x, y), 0..1; `soft` fades the outer half of discs and strokes (for elevate). */
-export function coverage(s: Shape, x: number, y: number, soft = false): number {
-  const fall = (d: number, r: number) => (d >= r ? 0 : !soft || d <= r * 0.4 ? 1 : 0.5 + 0.5 * Math.cos(((d - r * 0.4) / (r * 0.6)) * Math.PI));
-  if ('circle' in s) return fall(Math.hypot(x - s.circle[0], y - s.circle[1]), s.circle[2]);
-  if ('poly' in s) {
-    const p = s.poly;
-    let inside = false;
-    for (let i = 0, j = p.length - 2; i < p.length; j = i, i += 2) {
-      if ((p[i + 1] > y) !== (p[j + 1] > y) && x < ((p[j] - p[i]) * (y - p[i + 1])) / (p[j + 1] - p[i + 1]) + p[i]) inside = !inside;
-    }
-    return inside ? 1 : 0;
-  }
-  return fall(distToPolyline(s.stroke, x, y), s.width / 2);
-}
-
-function distToPolyline(p: number[], x: number, y: number): number {
-  if (p.length === 2) return Math.hypot(x - p[0], y - p[1]);
-  let best = Infinity;
-  for (let i = 2; i < p.length; i += 2) {
-    const ax = p[i - 2], ay = p[i - 1], dx = p[i] - ax, dy = p[i + 1] - ay, l2 = dx * dx + dy * dy;
-    const t = l2 ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2)) : 0;
-    best = Math.min(best, Math.hypot(x - ax - t * dx, y - ay - t * dy));
-  }
-  return best;
-}
-
-/** Bounding box of a shape in map units [x0, y0, x1, y1]. */
-function bbox(s: Shape): [number, number, number, number] {
-  if ('circle' in s) { const [x, y, r] = s.circle; return [x - r, y - r, x + r, y + r]; }
-  const p = 'poly' in s ? s.poly : s.stroke, pad = 'stroke' in s ? s.width / 2 : 0;
-  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-  for (let i = 0; i < p.length; i += 2) { x0 = Math.min(x0, p[i]); x1 = Math.max(x1, p[i]); y0 = Math.min(y0, p[i + 1]); y1 = Math.max(y1, p[i + 1]); }
-  return [x0 - pad, y0 - pad, x1 + pad, y1 + pad];
-}
-
-/** Call `fn(index, coverage)` for each sample a shape touches. */
-function eachCovered(f: { res: number; w: number; h: number }, s: Shape, soft: boolean, fn: (i: number, c: number) => void): void {
-  const [x0, y0, x1, y1] = bbox(s), r = f.res;
-  for (let j = Math.max(0, Math.floor(y0 * r)); j < Math.min(f.h, Math.ceil(y1 * r) + 1); j++)
-    for (let i = Math.max(0, Math.floor(x0 * r)); i < Math.min(f.w, Math.ceil(x1 * r) + 1); i++) {
-      const c = coverage(s, (i + 0.5) / r, (j + 0.5) / r, soft);
-      if (c > 0) fn(j * f.w + i, c);
-    }
-}
 
 /** Value at quantile q of a field. */
 function quantile(f: Float32Array, q: number): number {
@@ -161,11 +123,11 @@ function fillDepressions(h: Float32Array, w: number, hh: number, water: Uint8Arr
 }
 
 /** Trace generated rivers downhill from high ground; marks river samples in `wet`. */
-function traceRivers(spec: MapSpec, filled: Float32Array, elev: Float32Array, water: Uint8Array, w: number, h: number, res: number, wet: Uint8Array): { pts: number[]; mouth: boolean }[] {
+function traceRivers(spec: MapSpec, filled: Float32Array, elev: Float32Array, water: Uint8Array, w: number, h: number, res: number, wet: Uint8Array, blocked: Uint8Array | null): { pts: number[]; mouth: boolean }[] {
   const n = spec.gen.rivers;
   if (!n) return [];
   const r = rng(spec.seed * 31 + 7), cands: number[] = [];
-  for (let k = 0; k < elev.length; k++) if (!water[k] && elev[k] > 0.4 && elev[k] < 0.85) cands.push(k);
+  for (let k = 0; k < elev.length; k++) if (!water[k] && !blocked?.[k] && elev[k] > 0.4 && elev[k] < 0.85) cands.push(k);
   cands.sort((a, b) => elev[b] - elev[a]);
   const spacing = (Math.max(spec.cols, spec.rows) / (n + 1)) * res, sources: number[] = [];
   for (let tries = 0; tries < 400 && sources.length < n && cands.length; tries++) {
@@ -185,7 +147,7 @@ function traceRivers(spec: MapSpec, filled: Float32Array, elev: Float32Array, wa
       let best = -1, low = filled[k];
       for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
         const xx = x + di, yy = y + dj, m = yy * w + xx;
-        if ((!di && !dj) || xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
+        if ((!di && !dj) || xx < 0 || yy < 0 || xx >= w || yy >= h || blocked?.[m]) continue;
         if (filled[m] < low) { low = filled[m]; best = m; }
       }
       if (best < 0) break;
@@ -355,10 +317,12 @@ function classify(e: number, m: number, local: boolean): number {
 export function generateMap(spec: MapSpec): MapField {
   const res = RESOLUTION[spec.preset], w = spec.cols * res, h = spec.rows * res, N = w * h, g = spec.gen;
   const field = { res, w, h };
-  const raw = heightField(spec, w, h), sea = quantile(raw, g.sea);
+  const raw = heightField(spec, w, h), sea = quantile(raw, g.sea), seaLevel = Number.isFinite(sea) ? sea : -0.01;
   for (const ed of spec.edits) if (ed.op === 'elevate') eachCovered(field, ed.shape, true, (i, c) => { raw[i] = Math.max(0, Math.min(1.2, raw[i] + ed.amount * c)); });
+  // the requirements pull the ground towards what they ask for before it is classified; a file without any is untouched
+  const shaped = spec.require?.length ? shapeGround(spec, field, raw, seaLevel, riverWidth(spec) / 2 + 0.6) : null;
 
-  const water = new Uint8Array(N), elev = new Float32Array(N), seaLevel = Number.isFinite(sea) ? sea : -0.01;
+  const water = new Uint8Array(N), elev = new Float32Array(N);
   for (let n = 0; n < N; n++) {
     if (raw[n] < seaLevel) water[n] = 1;
     else elev[n] = Math.min(1, (raw[n] - seaLevel) / (1 - seaLevel || 1));
@@ -368,12 +332,14 @@ export function generateMap(spec: MapSpec): MapField {
   const open = Uint8Array.from(water);
   for (const ed of spec.edits) if (ed.op === 'paint') { const v = ed.terrain === 'water' || ed.terrain === 'deep' ? 1 : 0; eachCovered(field, ed.shape, false, i => { open[i] = v; }); }
   // rivers are traced now (they wet the land around them); their mouths are fitted to the drawn shore at the end
-  const mains: { pts: number[]; width: number; mouth: boolean; source: River['source'] }[] = traceRivers(spec, fillDepressions(raw, w, h, water), elev, open, w, h, res, wet).map(r => ({ ...r, width: riverWidth(spec), source: 'generated' as const }));
+  const mains: { pts: number[]; width: number; mouth: boolean; source: River['source']; for?: string }[] = traceRivers(spec, fillDepressions(raw, w, h, water), elev, open, w, h, res, wet, shaped?.blocked ?? null).map(r => ({ ...r, width: riverWidth(spec), source: 'generated' as const }));
   for (const ed of spec.edits) if (ed.op === 'river') mains.push({ pts: smoothLine(ed.points, res), width: ed.width ?? riverWidth(spec), mouth: ed.delta !== false, source: 'edit' });
+  for (const s of streamsOf(spec)) mains.push({ pts: smoothLine(streamCurve(s.points), res), width: s.width ?? riverWidth(spec), mouth: s.delta !== false, source: 'required', for: s.id });
   const roads: MapLine[] = [];
   for (const ed of spec.edits) {
     if (ed.op === 'road') roads.push({ pts: smoothLine(ed.points, res), width: spec.preset === 'local' ? 0.5 : 0.08 });
   }
+  for (const r of spec.require ?? []) if (r.kind === 'path' && r.path === 'road') roads.push({ pts: smoothLine(routeRoad(r.points, field, elev, open), res), width: spec.preset === 'local' ? 0.5 : 0.08, for: r.id });
   for (const rv of mains) markLine(rv.pts, rv.width, w, h, res, wet);
 
   // moisture: noise, plus nearness to water and rivers, biased by the moisture setting
@@ -385,7 +351,8 @@ export function generateMap(spec: MapSpec): MapField {
     const n = j * w + i;
     if (water[n]) { terrain[n] = raw[n] < seaLevel - Math.max(0.08, seaLevel * 0.35) ? T.deep : T.water; continue; }
     const m = 0.5 + (pGradient(i + w, j + h, mopts) - 0.5) * 1.8 + nearB[n] * 0.25 + (g.moisture - 0.5) * 0.9 - elev[n] * 0.12;
-    terrain[n] = classify(elev[n], Math.max(0, Math.min(1, m)), spec.preset === 'local');
+    const wet01 = Math.max(0, Math.min(1, m));
+    terrain[n] = classify(elev[n], shaped ? shaped.moisture(n, wet01) : wet01, spec.preset === 'local');
   }
 
   const minArea = Math.round(Math.pow(g.simplify * res * 0.55, 2));
@@ -396,10 +363,20 @@ export function generateMap(spec: MapSpec): MapField {
   // each river widens smoothly downstream; one that ends in water as drawn is fitted to the shore and flares into it
   const shown = (x: number, y: number) => { const i = Math.floor(x * res), j = Math.floor(y * res); return i >= 0 && j >= 0 && i < w && j < h && isWater(simple[j * w + i]); };
   const rivers = mains.map(m => {
-    const fit = m.mouth ? toShore(m.pts, shown) : null;
-    return { ...riverRibbon(fit ?? m.pts, m.width, !!fit), source: m.source };
+    let fit = m.mouth ? toShore(m.pts, shown) : null;
+    // a stream the file asks for keeps all its course: it is carried on to the shore, never cut short at a lake on the way
+    if (fit && m.source === 'required' && fit.length < m.pts.length) fit = null;
+    // a generated river's mouth is carried on to the shore only where that stays out of the areas kept clear
+    if (fit && m.source === 'generated' && shaped?.clear.length && touches(fit, shaped.clear.map(c => c.area))) fit = null;
+    return { ...riverRibbon(fit ?? m.pts, m.width, !!fit), source: m.source, ...(m.for !== undefined && { for: m.for }) };
   });
   return { res, w, h, elevation: elev, terrain: simple, rivers, roads };
+}
+
+/** Whether any point of a polyline is inside any of the shapes. */
+function touches(pts: number[], shapes: Shape[]): boolean {
+  for (let i = 0; i < pts.length; i += 2) for (const s of shapes) if (coverage(s, pts[i], pts[i + 1]) > 0) return true;
+  return false;
 }
 
 /** Terrains present, most common first. */

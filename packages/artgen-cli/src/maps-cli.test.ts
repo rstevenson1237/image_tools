@@ -130,14 +130,73 @@ describe('dungeon --file', () => {
   });
 });
 
+describe('map check', () => {
+  const dir = bare('map-check'), file = join(dir, 'G.json'), F = ['--file', file];
+  const write = (over: Record<string, unknown>) => writeFileSync(file, JSON.stringify({ id: 'g', preset: 'local', cols: 24, rows: 16, seed: 3, ...over }));
+  const wood = { id: 'wood', kind: 'terrain', area: { poly: [4, 3, 14, 3, 14, 11, 4, 11] }, terrain: 'forest', share: 0.7 };
+
+  test('a map with no requirements is ok and exits 0', async () => {
+    write({});
+    const r = await run('map', 'check', '--json', ...F);
+    expect(r.code).toBe(0);
+    expect(JSON.parse(r.out)).toMatchObject({ version: 1, ok: true, errors: [], requirements: [], unmet: [] });
+    expect((await run('map', 'check', ...F)).out).toContain('ok, no requirements');
+  });
+
+  test('each requirement is listed as `id kind what measured op needed met|unmet`; exit 1 when any is unmet, 0 when none is; the file is untouched', async () => {
+    const crags = { id: 'crags', kind: 'terrain', area: wood.area, terrain: 'rock', share: 0.9 };
+    write({ require: [wood, { id: 'rise', kind: 'height', area: { circle: [18, 8, 3] }, low: 10, high: 30 }] });
+    const ok = await run('map', 'check', ...F);
+    expect(ok.code).toBe(0);
+    expect(ok.out).toContain('all 2 requirements met');
+    expect(ok.out).toMatch(/^ {2}wood terrain forest \d\.\d\d >= 0\.70 met$/m);
+    expect(ok.out).toMatch(/^ {2}rise height 10-30 ft \d\.\d\d >= 0\.90 met$/m);
+    write({ require: [wood, crags] });
+    const text = readFileSync(file, 'utf8'), bad = await run('map', 'check', ...F);
+    expect(bad.code).toBe(1);
+    expect(bad.out).toContain('1 of 2 requirements unmet');
+    expect(bad.out).toMatch(/^ {2}wood terrain forest \d\.\d\d < 0\.70 unmet$/m);
+    expect(JSON.parse((await run('map', 'check', '--json', ...F)).out)).toMatchObject({ ok: false, unmet: ['wood'], requirements: [{ id: 'wood', met: false }, { id: 'crags', met: true }] });
+    expect(readFileSync(file, 'utf8')).toBe(text);
+  }, 60_000);
+
+  test('every format error comes with its JSON path, exit 1, and nothing is measured', async () => {
+    write({ require: [{ ...wood, share: 4 }, { id: 'way', kind: 'path', path: 'road', points: [1, 1] }, { ...wood, kind: 'clear' }] });
+    const text = readFileSync(file, 'utf8'), r = await run('map', 'check', '--json', ...F);
+    expect(r.code).toBe(1);
+    expect(JSON.parse(r.out)).toMatchObject({ ok: false, requirements: [], unmet: [], errors: [{ path: 'require[0].share' }, { path: 'require[1].points' }, { path: 'require[2].id', message: expect.stringContaining('used twice') }] });
+    expect((await run('map', 'check', ...F)).out).toMatch(/3 errors\n {2}require\[0\]\.share: .*\n {2}require\[1\]\.points: .*\n {2}require\[2\]\.id: /);
+    expect(readFileSync(file, 'utf8')).toBe(text);
+    writeFileSync(file, '{ not json');
+    expect(JSON.parse((await run('map', 'check', '--json', ...F)).out).errors[0].message).toMatch(/not JSON/);
+    write({ version: 9 });
+    expect(JSON.parse((await run('map', 'check', '--json', ...F)).out).errors[0]).toMatchObject({ path: 'version', message: expect.stringContaining('format version 9') });
+    expect((await run('map', 'check', '--json', '--file', join(dir, 'nope.json'))).code).toBe(1);
+  });
+
+  test('the same file gives the same answer, and a map in a project is named by id', async () => {
+    write({ require: [wood] });
+    const a = (await run('map', 'check', '--json', ...F)).out;
+    expect((await run('map', 'check', '--json', ...F)).out).toBe(a);
+    const root = bare('map-check-project');
+    await run('init', '--root', root);
+    await run('map', 'new', 'g', '--preset', 'local', '--size', '24x16', '--seed', '3', '--root', root);
+    expect(JSON.parse((await run('map', 'check', 'g', '--json', '--root', root)).out)).toMatchObject({ ok: true, requirements: [] });
+  }, 60_000);
+});
+
 describe('the maps-only entry', () => {
   test('formats, version, help and the same commands; other commands are refused', async () => {
     expect(JSON.parse((await runMaps('formats', '--json')).out)).toEqual({ map: 1, dungeon: 1 });
     expect((await runMaps('--version')).out).toMatch(/^\S+ \(\S+\)$/);
     expect((await runMaps('--help')).out).toContain('artgen dungeon check');
+    expect((await runMaps('--help')).out).toContain('artgen map check');
     const f = join(bare('maps-entry'), 'd.json');
     await runMaps('dungeon', 'new', '--empty', '--file', f);
     expect((await runMaps('dungeon', 'check', '--file', f)).code).toBe(0);
+    const m = join(bare('maps-entry-map'), 'm.json');
+    await runMaps('map', 'new', '--preset', 'local', '--size', '12x8', '--file', m);
+    expect((await runMaps('map', 'check', '--file', m)).code).toBe(0);
     await expect(runMaps('render', 'x')).rejects.toThrow(/not a command here/);
   });
 });

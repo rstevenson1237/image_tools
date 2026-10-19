@@ -36,7 +36,7 @@ Reads: **map format 1**, **dungeon format 1**. `artgen formats --json` prints `{
   `dungeon check` lists every error with its JSON path (`{"version", "file", "ok", "errors": [{"path", "message"}]}`)
   and exits 1 when there are any; a file that is not JSON, or at a newer version, is reported the same way. A room that
   is too small or off-grid is now reported per field (`rooms[4].w: at least 1 cell`, was `rooms[4]: x, y and w, h ≥ 1`).
-  `map check` comes with the map requirements (A2).
+  `map check` is below, with the map requirements (A2).
 - **A maps-only bundle.** `maps/artgen-maps.js` holds `map`, `dungeon` and `formats` and nothing that loads the
   pixel-art pipeline: 169 KB (172,981 bytes), against 947 KB (969,759 bytes) for `tools/artgen/artgen.js`. It is built
   beside the full bundle and published on `artgen-dist` under `maps/`, with `VERSION`, `package.json` (keeps it ESM),
@@ -112,6 +112,46 @@ Reads: **map format 1**, **dungeon format 1**. `artgen formats --json` prints `{
   water as 0.
 - A map's rivers now say where they came from (`source`: `generated` or `edit`) in the engine's field; nothing in
   `map.json` changes.
+
+**Map requirements and `map check`** (artgen A2; `require` is an optional field, so map format 1 and its version are unchanged)
+- `require` in `map.json`: a list of what the ground must be, each entry an `id` the consumer chooses (letters, digits, `-`,
+  `.`, `_`; unique) and a `kind`:
+  - `terrain`: `area` (a shape, as an edit takes it: `{circle}`, `{poly}` or `{stroke, width}`), a `terrain` and the `share`
+    (0 to 1) of the area it needs: `{"id": "C-ground", "kind": "terrain", "area": {"poly": […]}, "terrain": "forest", "share": 0.8}`.
+  - `height`: `area`, `low` and `high` in `topo.unit` above the waterline (`high` at most `topo.maxElevation`) and an
+    optional `share` (default 0.9) of the area that must stand between them.
+  - `path`: `path` `"stream"` or `"road"`, `points` (x,y pairs) and a `tolerance` in map units (default 1): every point
+    must lie within it of the line. A stream may carry `width` and `delta`, as a `river` edit does.
+  - `clear`: `area`, which no *generated* river may enter. The streams and roads the file asks for, and its edits, are the
+    consumer's own and may cross it.
+  - Every entry may carry `blend` (map units; default `gen.feature`), the distance outside its area over which it fades.
+- **Generation shapes the ground to the requirements; it does not paint.** Nothing is overwritten after the readability pass.
+  Each requirement is felt in full inside its area and fades over its `blend` outside it, with an edge that wanders on noise,
+  so a wood has a wood's edge and not the polygon's. A `terrain` pulls moisture and height towards what the generator
+  classifies as that terrain (forest: wet, low-lying; marsh: wettest and lowest; rock: high) and the generator classifies as it
+  always did. A `height` raises or lowers the field before classification, so the contours follow: a rise has a crown, and a
+  wall rises away from the way it faces. A terrain and a height over the same ground take the part of the terrain's band
+  inside the height's; where they do not meet the stated height wins and the terrain is named unmet. A `stream` carves its
+  valley (a bed that never climbs, walls rising over a few squares) and is a river with `source` `required`; a `road` is routed
+  through its points on a least-cost path that prefers gentle slope and avoids water, and keeps to every point. Generated rivers
+  stay out of every `clear` area (a river that would enter it ends short of it). `gen.rivers` is still a count, and at 0 only
+  the streams the file requires exist.
+- `artgen map check <id>|--file … [--json]` lists every requirement with what it measured and whether it is met, and exits 1
+  when any is unmet or the file has format errors. A line is `id kind what measured op needed met|unmet`, for example
+  `C-forest terrain forest 0.71 < 0.80 unmet` or `B-road-clear clear rivers 0.00 <= 0.00 met`. `--json` gives
+  `{version, file, ok, errors: [{path, message}], requirements: [{id, kind, what, measured, needed, op, met, text}], unmet: [ids]}`;
+  `measured` is null when there is nothing to measure (a path that was not drawn). A terrain share is read as `map facts` reads
+  an area: whole percent of the samples inside it. A file with format errors, found as `dungeon check` finds them (each with its JSON path;
+  not JSON; a newer version), is not generated from. A map with no `require` is `ok`.
+- **Fixed by seed.** The same file gives the same field and the same answer; artgen never reseeds. A consumer that reseeds does so
+  knowing which requirement failed. Where two requirements cannot both be had, the later one wins the ground and the earlier is named.
+- A map with no `require` generates exactly as before (tested against the hashes of three maps from before this change).
+- `map facts` lists a required stream with the drawn rivers (`features.rivers`), with `source` `required`.
+- Cases: `frontier` (the Frontier at 200 yards a square, 106 x 141, nine requirements, all met at its seed; no generated river
+  enters `B-road-clear`; C's forest edge has no run of more than 4 squares along a row or column), `frontier-unmet` (C also
+  needs rock at 0.9: `check` exits 1 naming `C-ground` alone) and `ravine` rebuilt with `require` in place of the hand
+  `paint`, `elevate` and `river` edits (rock walls of 30 to 40 ft, a stream up the path, `gen.rivers` 0; the walls'
+  contours run along the gorge). The Frontier's areas were placed in artgen from the brief's outline: see its `case.md`.
 
 **Limits**
 - A map may be up to 200 squares a side (was 120), so a 1-mile gorge fits at 10 yards a square. Raising a limit
