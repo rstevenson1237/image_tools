@@ -19,6 +19,12 @@ Room sizes are in 5 ft cells, from each region's `Brief.md`; no table states the
 - 13 rooms at the sizes above, laid out at their places.
 - `hatch: none`.
 
+## Facts read back (`dungeon facts`, tested in `src/facts.test.ts`)
+
+- Thirteen rooms at the sizes above, in cells and in feet (5 ft a cell).
+- The overlaps A.12 under A.4 (18 cells) and A.13 under A.10 (10 cells) are reported, and A.13 under A.9 (7 cells), which the
+  same tunnel also crosses. Rooms no corridor reaches: A.3, A.5, A.6, A.7, A.8, A.9, A.11.
+
 ## Does not yet draw well
 
 A.12 and A.13 lie under A.4 and A.10 and overlap them until Blocks split them by level (setting_builder T3.2). The test

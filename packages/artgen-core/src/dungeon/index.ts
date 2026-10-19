@@ -4,3 +4,4 @@ export { layoutDungeon, roomOutline, inPolygon, contentBox, fitDungeon, type Dun
 export { generateDungeon, singleRoom } from './generate.ts';
 export { SYMBOLS, SYMBOL_KINDS } from './symbols.ts';
 export { renderDungeonSvg, dungeonLayersFor, DUNGEON_LAYERS, type DungeonLayer, type RenderDungeonOptions } from './render.ts';
+export { dungeonFacts, RULES as FACTS_RULES, type DungeonFacts, type Boxed, type RoomFacts, type CorridorFacts, type ExitFacts, type OverlapFacts } from './facts.ts';

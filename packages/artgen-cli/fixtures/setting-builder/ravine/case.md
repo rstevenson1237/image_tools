@@ -26,6 +26,17 @@ the old limit of 120 squares a side, which is why artgen raised it to 200.
 - A symbol and a label for every location but the route E.1 (E.2 to E.12), each label starting with the location code.
 - One road along the stops.
 
+## Facts read back (`map facts`, tested in `src/facts.test.ts`)
+
+- `--at` each of the eleven marks with `--above river`: every mark gives a terrain, a height that is a whole multiple of the 5 ft
+  topo interval, a slope band and its height above the river. The five marks on the east wall (x = 12) and the points inside
+  either wall report `rock`, because the file paints both walls rock. The three west-wall marks (x = 4, the wall's foot) stand
+  above the river; the river's own points are 0 above it.
+- No query: the road and the river the edits drew are each a point list from one end of the gorge to the other (y 180 to 4).
+- Not so: the marks on the gorge floor (E.4, E.8, E.9, E.3, E.12: x = 4 to 10, at the wall's foot or on the floor) report the generated
+  floor, `grass` or `forest`, not `rock` or `water`; the river is a ribbon, not terrain. And `gen.rivers` is 1, but the generator
+  traces no river on this map, so `generatedRivers` is empty here (a map that has one is tested in artgen-core).
+
 ## Does not yet draw well
 
 - The river, 2 squares wide, fills the gorge floor and leaves the ledges as the only dry ground.

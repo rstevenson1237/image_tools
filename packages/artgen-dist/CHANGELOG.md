@@ -60,6 +60,36 @@ Reads: **map format 1**, **dungeon format 1**. `artgen formats --json` prints `{
   that does not exist and a room 0 cells wide: `check` exits 1 naming `rooms[4].w` and `corridors[5].to.room`).
   `warren` also runs in path mode with no project.
 
+**Facts read back from a map** (`artgen map facts`, `artgen dungeon facts`; both take `--file` or an id, and `--json`)
+- `artgen map facts --file … [--at x,y …] [--area x,y,x,y,…] [--above river|lowest] [--radius n]`. For each `--at` point (map
+  units, or a cell name such as `C4`): the terrain, the height in `topo.unit`, the slope (the gradient in `topo.unit` per
+  `scale.unit`, and a band: flat, gentle, steep, cliff) and the nearest river and road with their distance. For each
+  `--area` (a rectangle `x0,y0,x1,y1`, or an outline of three or more x,y pairs): the share of each terrain, the lowest
+  and highest ground, and the rivers and roads that cross it with where each enters and leaves (null when it starts or
+  ends inside). With neither: the rivers drawn by edits and the roads as point lists, the rivers the generator traced
+  (`generatedRivers`) apart from them, the hilltops and hollows with their heights, and each terrain's share. `--above
+  river` adds each point's height over the nearest river; `--above lowest` its height over the lowest ground within
+  `--radius` (map units, default 5).
+- `artgen dungeon facts --file …`: each room's box in cells and in the scale unit, its shape, number and doors; each
+  corridor's ends, doors and length; each exit (a corridor end at a point) with its point and the nearest map edge; the
+  overlapping room pairs with the cells they share; the rooms no corridor reaches.
+- Positions are coordinates, never bearings; lengths and distances come in map units (`map`) and in the scale unit
+  (`scale`). Every result carries `version` and a `rules` block with the numbers below.
+- **Rounding, which is part of the format.** The same file gives byte-identical `--json`. Heights, and heights above a
+  reference, are the nearest whole multiple of `topo.interval`. Terrain shares are whole percent, adding to exactly 100
+  (largest remainder; a terrain that rounds to 0% is left out; equal shares go in the order of the terrain list).
+  Positions, lengths and distances are rounded to 0.1 map unit, and a scale-unit value is that rounded value times
+  `scale.perCell`, to 0.1. A change to any of these changes what a consumer reads, so it is a format change: it bumps
+  the map or dungeon format version, with a line here.
+- The thresholds are stated in the same way: a slope is the height change across a 1-unit window, as rise over run in one
+  unit (`topo.unit` and `scale.unit` must both be lengths artgen knows: in, ft, yd, mi, m, km; otherwise the band is
+  null), flat below 0.05, gentle below 0.2, steep below 0.6, cliff from there. A hilltop or hollow is a summit that
+  stands at least 2 `topo.interval`s clear of the saddle that joins it to higher (or lower) ground; a hollow is on dry
+  ground. A river or road is listed as a point list thinned to within 0.25 map unit of its line. `--above lowest` counts
+  water as 0.
+- A map's rivers now say where they came from (`source`: `generated` or `edit`) in the engine's field; nothing in
+  `map.json` changes.
+
 **Limits**
 - A map may be up to 200 squares a side (was 120), so a 1-mile gorge fits at 10 yards a square. Raising a limit
   extends map format 1: files that were valid stay valid.
