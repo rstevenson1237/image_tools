@@ -20,6 +20,11 @@ The generated seed (732232) is not part of what the case states.
 - One corridor from F.1 to a point, labelled `to E.2`.
 - Two trap symbols.
 
+## Facts read back (`dungeon facts`, tested in `src/facts.test.ts`)
+
+- Five rooms, four corridors between rooms (F.1-F.2 and F.2-F.3 open, F.3-F.4 and F.3-F.5 with doors), one exit (from F.1 at
+  35,5, nearest edge east), no overlaps, no unreached rooms.
+
 ## Does not yet draw well
 
 Nothing noted. Single-cell-high rooms (F.1, F.2) are legible but tight at small scale.

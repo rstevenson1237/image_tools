@@ -19,6 +19,7 @@
  *   artgen dungeon overlay <id> rm label|symbol <index> | clear [labels|symbols]
  *   artgen dungeon fit <id> [--margin 2] | render <id> [--format svg|png|both] [--ppu 40] [--layers grid=off,labels=off] [--out dir]
  *   artgen dungeon show <id> | list
+ *   artgen dungeon facts <id>   rooms, corridors, exits, overlaps and unreached rooms, as numbers (--json)
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
@@ -150,5 +151,19 @@ export function describeDungeon(m: DungeonSpec): string {
     `  corridors (${m.corridors.length}):${m.corridors.map((c, i) => `\n    ${i}. ${end(c.from)} → ${end(c.to)}${c.width && c.width !== 1 ? `, width ${c.width}` : ''}${c.via ? `, via ${c.via.join(',')}` : c.route && c.route !== 'auto' ? `, ${c.route}` : ''}${c.doors?.some(Boolean) ? `, doors ${c.doors.map(d => d ?? 'none').join('/')}` : ''}`).join('')}`,
     `  labels (${m.overlay.labels.length}):${m.overlay.labels.map((l, i) => `\n    ${i}. ${l.kind} "${l.text}" at ${l.x},${l.y}`).join('')}`,
     `  symbols (${m.overlay.symbols.length}):${m.overlay.symbols.map((s, i) => `\n    ${i}. ${s.kind} at ${s.x},${s.y}${s.angle ? ` turned ${s.angle}°` : ''}`).join('')}`,
+  ].join('\n');
+}
+
+/** The text of `dungeon facts` (the JSON is `dungeon.dungeonFacts`' result as it is). */
+export function describeDungeonFacts(r: dungeon.DungeonFacts): string {
+  const unit = r.unit.scale, box = (b: dungeon.Boxed) => `${b.cells.w}×${b.cells.h} cells (${b.scale.w}×${b.scale.h} ${unit}) at ${b.cells.x},${b.cells.y}`;
+  const end = (e: dungeon.CorridorEnd) => ('room' in e ? e.room : `(${e.at.join(',')})`);
+  return [
+    `${r.id}: ${r.size.cols}×${r.size.rows} cells; positions in cells, lengths also in ${unit}`,
+    `rooms (${r.rooms.length}):${r.rooms.map(m => `\n  ${m.id}${m.number !== null ? ` #${m.number}` : ''}: ${m.shape} ${box(m.box)}${m.label ? ` "${m.label}"` : ''}${m.doors.length ? `; doors ${m.doors.map(d => `${d.kind}${d.at ? ` at ${d.at.join(',')}` : ''}`).join(', ')}` : ''}`).join('')}`,
+    `corridors (${r.corridors.length}):${r.corridors.map(c => `\n  ${c.index}. ${end(c.from)} → ${end(c.to)}: ${c.length.map} cells (${c.length.scale} ${unit}), width ${c.width}${c.doors.some(Boolean) ? `, doors ${c.doors.map(d => d ?? 'none').join('/')}` : ''}`).join('')}`,
+    `exits (${r.exits.length}):${r.exits.map(x => `\n  corridor ${x.corridor} ${x.end} at ${x.at.join(',')}${x.room ? ` from ${x.room}` : ''}: nearest edge ${x.edge}, ${x.distance.map} cells (${x.distance.scale} ${unit})`).join('')}`,
+    `overlaps (${r.overlaps.length}):${r.overlaps.map(o => `\n  ${o.rooms.join(' / ')}: ${o.count} cells, ${box(o.box)}`).join('')}`,
+    `unreached rooms: ${r.unreached.join(', ') || 'none'}`,
   ].join('\n');
 }

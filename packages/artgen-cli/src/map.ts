@@ -16,6 +16,7 @@
  *   artgen map set <id> [--title "…"] [--legend on|off] [--scale-bar on|off] [--compass on|off] [--per-cell n --unit mi]
  *   artgen map render <id> [--theme color|bw|both] [--format svg|png|both] [--ppu 40] [--layers grid=off,labels=off] [--out dir]
  *   artgen map show <id> | list
+ *   artgen map facts <id> [--at x,y …] [--area x,y,x,y,…] [--above river|lowest] [--radius n]   the ground, as numbers (--json)
  */
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
@@ -139,3 +140,46 @@ export function describeMap(m: MapSpec): string {
   ].join('\n');
 }
 
+
+const km = (l: { map: number; scale: number }, unit: string) => `${l.map} (${l.scale} ${unit})`;
+const at = (p: [number, number]) => `${p[0]},${p[1]}`;
+
+/** The text of `map facts` (the JSON is `map.mapFacts`' result as it is). */
+export function describeMapFacts(r: map.MapFacts): string {
+  const { scale, height } = r.unit, out = [`${r.id}: ${r.size.cols}×${r.size.rows} cells; heights in ${height}, distances in cells (${scale})`];
+  const share = (s: { terrain: string; share: number }[]) => s.map(x => `${x.terrain} ${x.share}%`).join(', ');
+  const hi = (h: { height: number; at: [number, number]; prominence?: number }) => `${h.height} ${height} at ${at(h.at)}${h.prominence ? ` (stands ${h.prominence} ${height} clear)` : ''}`;
+  for (const p of r.points ?? []) {
+    out.push(`at ${at(p.at)}: ${p.terrain}, ${p.height} ${height}, slope ${p.slope.band ?? '?'} (${p.slope.gradient} ${height}/${scale})`);
+    for (const k of ['river', 'road'] as const) if (p[k]) out.push(`  ${k}: ${p[k]!.name}${p[k]!.source ? ` (${p[k]!.source})` : ''} ${km(p[k]!.distance, scale)} away at ${at(p[k]!.at)}${p[k]!.within ? ', in it' : ''}`);
+    if (p.above) out.push(`  ${p.above.value === null ? `no ${p.above.of} to measure from` : `${p.above.value} ${height} above the ${p.above.of === 'river' ? 'river' : 'lowest ground'}`}${p.above.reference ? ` (${hi(p.above.reference)})` : ''}`);
+  }
+  for (const a of r.areas ?? []) {
+    out.push(`area ${a.area.map(at).join(' ')}: ${share(a.terrain)}; lowest ${hi(a.lowest)}, highest ${hi(a.highest)}`);
+    for (const c of [...a.rivers, ...a.roads]) out.push(`  ${c.name}${c.source ? ` (${c.source})` : ''}: ${c.enters ? `in at ${at(c.enters)}` : 'starts inside'}, ${c.leaves ? `out at ${at(c.leaves)}` : 'ends inside'}, ${km(c.length, scale)}`);
+  }
+  const f = r.features;
+  if (f) {
+    out.push(`terrain: ${share(f.terrain)}; lowest ${hi(f.lowest)}, highest ${hi(f.highest)}`);
+    for (const [what, lines] of [['river', f.rivers], ['generated river', f.generatedRivers], ['road', f.roads]] as const)
+      for (const l of lines) out.push(`${what} ${l.name}: ${km(l.length, scale)}, ${l.points.length} points from ${at(l.points[0])} to ${at(l.points[l.points.length - 1])}`);
+    out.push(`hilltops: ${f.hilltops.map(hi).join('; ') || 'none'}`, `hollows: ${f.hollows.map(hi).join('; ') || 'none'}`);
+  }
+  return out.join('\n');
+}
+
+/** `--at 4,60 12,80 C4`: every value after the flag up to the next flag, and the flag again where it repeats. */
+export function flagValues(args: string[], name: string): string[] {
+  const out: string[] = [];
+  args.forEach((a, i) => { if (a !== name) return; for (let k = i + 1; k < args.length && !args[k].startsWith('--'); k++) out.push(args[k]); });
+  return out;
+}
+
+/** `map facts` from the command line's flags. */
+export function factsQuery(m: MapSpec, args: string[], flag: (a: string[], n: string) => string | undefined): map.MapFactsQuery {
+  const above = flag(args, '--above'), radius = flag(args, '--radius');
+  if (above !== undefined && above !== 'river' && above !== 'lowest') throw new Error('--above: river or lowest');
+  if (radius !== undefined && !(Number.isFinite(+radius) && +radius > 0)) throw new Error('--radius: a number above 0 (map units)');
+  const areas = args.flatMap((a, i) => (a === '--area' ? [map.areaOutline(numbers(args[i + 1], '--area', false))] : []));
+  return { at: flagValues(args, '--at').map(v => map.parsePoint(m, v)), areas, ...(above && { above }), ...(radius !== undefined && { radius: +radius }) };
+}

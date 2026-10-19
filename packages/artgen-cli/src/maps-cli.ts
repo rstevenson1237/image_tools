@@ -6,8 +6,8 @@
  * project and renders beside the file unless `--out` says otherwise.
  */
 import { dungeon, map } from 'artgen-core/maps';
-import { checkDungeonFile, cornerPoint, corridorEnd, createDungeon, describeDungeon, doorPair, dungeonSummary, gridMode, listDungeons, readDungeon, renderDungeonFiles, updateDungeon } from './dungeon.ts';
-import { createMap, describeMap, listMaps, mapSummary, numbers, onOff, parseLayers, readMap, renderMapFiles, shapeFrom, updateMap } from './map.ts';
+import { checkDungeonFile, cornerPoint, describeDungeonFacts, corridorEnd, createDungeon, describeDungeon, doorPair, dungeonSummary, gridMode, listDungeons, readDungeon, renderDungeonFiles, updateDungeon } from './dungeon.ts';
+import { createMap, describeMap, describeMapFacts, factsQuery, listMaps, mapSummary, numbers, onOff, parseLayers, readMap, renderMapFiles, shapeFrom, updateMap } from './map.ts';
 import { fileId, requireProject } from './projectfs.ts';
 
 declare const __ARTGEN_VERSION__: string | undefined;
@@ -36,6 +36,10 @@ export const MAP_USAGE = `       artgen map new <id> [--preset regional|local] [
        artgen map set <id> [--title "..."] [--legend on|off] [--scale-bar on|off] [--compass on|off] [--per-cell n] [--unit mi]
        artgen map render <id> [--theme color|bw|both] [--format svg|png|both] [--ppu 40] [--layers grid=off,labels=off] [--out dir]
        artgen map show <id> | list
+       artgen map facts <id> [--at x,y … | C4 | 0304] [--area x,y,x,y,…] [--above river|lowest] [--radius n] [--json]
+                  the ground as numbers: --at gives each point's terrain, height, slope and nearest river and road; --area the terrain shares, lowest and highest
+                  ground and the rivers and roads that cross it; neither gives the whole map's rivers, roads, hilltops, hollows and terrain shares.
+                  Positions in map units, lengths also in the scale unit, heights in topo.unit and whole multiples of topo.interval
        artgen dungeon new <id> [--size 40x30] [--seed n] [--title "..."] [--empty] | new <id> --room rect|circle|octagon|cave --room-size 8x6 [--exits n,e:secret,s:none,w] [--label "..."] [--number n|off]
        artgen dungeon gen <id> [--seed n] [--rooms n] [--min-size n] [--max-size n] [--caves f] [--round f] [--loops f] [--doors f] [--corridor-width n] [--spacing n] [--entrance on|off] [--size 40x30]
        artgen dungeon room <id> add <shape> --at x,y|C4 --size WxH [--points x,y,…] [--label "..."] [--number n|off] [--room-id r9] | move <rid> --at x,y | set <rid> [--shape s] [--size WxH] [--label "..."] [--number n|off] | rm <rid>
@@ -45,6 +49,7 @@ export const MAP_USAGE = `       artgen map new <id> [--preset regional|local] [
        artgen dungeon label <id> "Text" --at x,y|C4 [--kind name|note|area] [--size f] [--angle deg] | symbol <id> <kind> --at x,y|C4 [--scale f] [--angle deg] | symbols
        artgen dungeon overlay <id> rm label|symbol <i> | clear [labels|symbols] | fit <id> [--margin 2]
        artgen dungeon check <id> [--json]   every error in the file with its JSON path; exits 1 when there are any
+       artgen dungeon facts <id> [--json]   each room's box and doors, each corridor's ends and length, the exits, the overlapping rooms and the rooms no corridor reaches
        artgen dungeon render <id> [--format svg|png|both] [--ppu 40] [--layers grid=off,labels=off] [--out dir] | show <id> | list
        artgen formats   (the map and dungeon file format versions this artgen reads; a newer file is refused)
        (map and dungeon commands take --file <path> in place of <id>: no project needed; renders go beside the file or to --out)`;
@@ -161,6 +166,11 @@ export async function mapCommand(sub: string | undefined, args: string[], emit: 
     print(`${describeMap(m)}\n${next(m.id)}`, m);
     return 0;
   }
+  if (sub === 'facts') {
+    const m = readMap(p, need('<id>')), r = map.mapFacts(m, factsQuery(m, args, flag));
+    print(describeMapFacts(r), r);
+    return 0;
+  }
   if (sub === 'render') {
     const theme = flag(args, '--theme') ?? 'both', format = flag(args, '--format') ?? 'both';
     if (!['color', 'bw', 'both'].includes(theme)) throw new Error('--theme: color, bw or both');
@@ -172,7 +182,7 @@ export async function mapCommand(sub: string | undefined, args: string[], emit: 
     print([`${file ?? id} ${r.size.join('×')} px: ${r.terrains.join(', ')}${r.rivers ? `, ${r.rivers} rivers` : ''}`, ...r.files.map(f => `  ${f}`)].join('\n'), r);
     return 0;
   }
-  throw new Error('map: new | gen | edit | grid | label | symbol | symbols | overlay | set | render | show | list (artgen --help)');
+  throw new Error('map: new | gen | edit | grid | label | symbol | symbols | overlay | set | render | show | facts | list (artgen --help)');
 }
 
 /** `WxH` → [w, h] (cells). */
@@ -381,6 +391,11 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
     print(`${m.id}: ${m.cols}×${m.rows} cells\n${next(m.id)}`, { cols: m.cols, rows: m.rows });
     return 0;
   }
+  if (sub === 'facts') {
+    const r = dungeon.dungeonFacts(readDungeon(p, need('<id>')));
+    print(describeDungeonFacts(r), r);
+    return 0;
+  }
   if (sub === 'render') {
     const format = flag(args, '--format') ?? 'both';
     if (!['svg', 'png', 'both'].includes(format)) throw new Error('--format: svg, png or both');
@@ -391,7 +406,7 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
     print([`${file ?? id} ${r.size.join('×')} px: ${r.rooms} rooms, ${r.corridors} corridors, ${r.doors} doors`, ...r.files.map(f => `  ${f}`)].join('\n'), r);
     return 0;
   }
-  throw new Error('dungeon: new | gen | room | link | unlink | door | grid | style | label | symbol | symbols | overlay | check | fit | render | show | list (artgen --help)');
+  throw new Error('dungeon: new | gen | room | link | unlink | door | grid | style | label | symbol | symbols | overlay | check | fit | render | show | facts | list (artgen --help)');
 }
 
 /** `artgen formats [--json]`: the map and dungeon file format versions this artgen reads and writes. */

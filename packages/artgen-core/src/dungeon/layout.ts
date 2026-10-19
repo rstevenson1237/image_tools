@@ -7,8 +7,8 @@ import { chaikin } from '../lib/trace.ts';
 import type { CorridorEnd, DoorKind, DungeonSpec, Room } from './spec.ts';
 
 export interface RoomGeom { room: Room; index: number; outline: number[]; cx: number; cy: number; number?: number }
-/** Where a corridor leaves a room (on its outline), or its point end; the angle is the direction away from the room. */
-export interface EndGeom { x: number; y: number; angle: number }
+/** Where a corridor leaves a room (on its outline), or its point end; the angle is the direction away from the room. `along` is how far the corridor runs inside the room to get there (cells; 0 at a point end). */
+export interface EndGeom { x: number; y: number; angle: number; along: number }
 export interface CorridorGeom { index: number; pts: number[]; width: number; ends: [EndGeom | null, EndGeom | null] }
 export interface DoorGeom { kind: DoorKind; x: number; y: number; angle: number; width: number; corridor: number }
 export interface DungeonLayout { rooms: RoomGeom[]; corridors: CorridorGeom[]; doors: DoorGeom[] }
@@ -107,14 +107,15 @@ function route(a: RoomGeom | [number, number], b: RoomGeom | [number, number], w
 }
 
 /** Where a path leaves a polygon it starts in: the point and the direction of travel there. */
-function exitPoint(outline: number[], pts: number[]): { x: number; y: number; angle: number } | null {
+function exitPoint(outline: number[], pts: number[]): EndGeom | null {
+  let along = 0;
   for (let i = 0; i + 3 < pts.length; i += 2) {
     const x0 = pts[i], y0 = pts[i + 1], x1 = pts[i + 2], y1 = pts[i + 3];
-    if (inPolygon(outline, x1, y1)) continue;
+    if (inPolygon(outline, x1, y1)) { along += Math.hypot(x1 - x0, y1 - y0); continue; }
     let lo = 0, hi = 1;
     if (!inPolygon(outline, x0, y0)) return null;
     for (let k = 0; k < 30; k++) { const t = (lo + hi) / 2; if (inPolygon(outline, x0 + (x1 - x0) * t, y0 + (y1 - y0) * t)) lo = t; else hi = t; }
-    return { x: x0 + (x1 - x0) * lo, y: y0 + (y1 - y0) * lo, angle: (Math.atan2(y1 - y0, x1 - x0) * 180) / Math.PI };
+    return { x: x0 + (x1 - x0) * lo, y: y0 + (y1 - y0) * lo, angle: (Math.atan2(y1 - y0, x1 - x0) * 180) / Math.PI, along: along + Math.hypot(x1 - x0, y1 - y0) * lo };
   }
   return null;
 }
@@ -138,9 +139,9 @@ export function layoutDungeon(spec: DungeonSpec): DungeonLayout {
       ? [...(Array.isArray(a) ? a : [a.cx, a.cy]), ...c.via, ...(Array.isArray(b) ? b : [b.cx, b.cy])]
       : route(a, b, width, c.route ?? 'auto', rooms);
     const ends = ([[a, pts], [b, reversed(pts)]] as const).map(([e, path]) =>
-      Array.isArray(e) ? { x: e[0], y: e[1], angle: (Math.atan2(path[1] - path[3], path[0] - path[2]) * 180) / Math.PI } : exitPoint(e.outline, path)) as [EndGeom | null, EndGeom | null];
+      Array.isArray(e) ? { x: e[0], y: e[1], angle: (Math.atan2(path[1] - path[3], path[0] - path[2]) * 180) / Math.PI, along: 0 } : exitPoint(e.outline, path)) as [EndGeom | null, EndGeom | null];
     corridors.push({ index, pts, width, ends });
-    ends.forEach((p, i) => { const kind = c.doors?.[i]; if (p && kind) doors.push({ kind, ...p, width, corridor: index }); });
+    ends.forEach((p, i) => { const kind = c.doors?.[i]; if (p && kind) doors.push({ kind, x: p.x, y: p.y, angle: p.angle, width, corridor: index }); });
   });
   return { rooms, corridors, doors };
 }

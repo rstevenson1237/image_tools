@@ -4,6 +4,10 @@
  * meaning, unit or default, or making a field required is a break: bump the version in the same change, add a
  * migration from the previous version here, migrate the consumer fixtures (`packages/artgen-cli/fixtures/`) with it
  * and add a CHANGELOG line (`map format 1 -> 2: …`).
+ *
+ * The facts `map facts` and `dungeon facts` read back (`map/facts.ts`, `dungeon/facts.ts`) are part of the format too: the
+ * rounding they state (heights to `topo.interval`, shares to whole percent, positions to 0.1) and their slope and summit
+ * thresholds are what a consumer reads, so changing one is a break and follows the steps above.
  */
 
 /** Rewrites a file of version N into version N + 1 (the `version` field is set by the reader). */

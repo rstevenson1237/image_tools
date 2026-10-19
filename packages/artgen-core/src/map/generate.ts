@@ -24,6 +24,8 @@ export interface River {
   outline: number[];
   /** True when it runs into the sea or a lake (the end of the ribbon lies in the water). */
   mouth: boolean;
+  /** Traced by the generator (`gen.rivers`), or drawn by a `river` edit. */
+  source: 'generated' | 'edit';
 }
 
 export interface MapField {
@@ -246,7 +248,7 @@ function resample(p: number[], step: number): number[] {
  * and flares over its last stretch with a smoothstep, so it widens without a kink, follows its own curve and opens into
  * the lake or sea.
  */
-function riverRibbon(line: number[], W: number, mouth: boolean): River {
+function riverRibbon(line: number[], W: number, mouth: boolean): Omit<River, 'source'> {
   let p = line;
   if (mouth) {
     const n = p.length / 2, ex = p[n * 2 - 2], ey = p[n * 2 - 1];
@@ -366,8 +368,8 @@ export function generateMap(spec: MapSpec): MapField {
   const open = Uint8Array.from(water);
   for (const ed of spec.edits) if (ed.op === 'paint') { const v = ed.terrain === 'water' || ed.terrain === 'deep' ? 1 : 0; eachCovered(field, ed.shape, false, i => { open[i] = v; }); }
   // rivers are traced now (they wet the land around them); their mouths are fitted to the drawn shore at the end
-  const mains: { pts: number[]; width: number; mouth: boolean }[] = traceRivers(spec, fillDepressions(raw, w, h, water), elev, open, w, h, res, wet).map(r => ({ ...r, width: riverWidth(spec) }));
-  for (const ed of spec.edits) if (ed.op === 'river') mains.push({ pts: smoothLine(ed.points, res), width: ed.width ?? riverWidth(spec), mouth: ed.delta !== false });
+  const mains: { pts: number[]; width: number; mouth: boolean; source: River['source'] }[] = traceRivers(spec, fillDepressions(raw, w, h, water), elev, open, w, h, res, wet).map(r => ({ ...r, width: riverWidth(spec), source: 'generated' as const }));
+  for (const ed of spec.edits) if (ed.op === 'river') mains.push({ pts: smoothLine(ed.points, res), width: ed.width ?? riverWidth(spec), mouth: ed.delta !== false, source: 'edit' });
   const roads: MapLine[] = [];
   for (const ed of spec.edits) {
     if (ed.op === 'road') roads.push({ pts: smoothLine(ed.points, res), width: spec.preset === 'local' ? 0.5 : 0.08 });
@@ -395,7 +397,7 @@ export function generateMap(spec: MapSpec): MapField {
   const shown = (x: number, y: number) => { const i = Math.floor(x * res), j = Math.floor(y * res); return i >= 0 && j >= 0 && i < w && j < h && isWater(simple[j * w + i]); };
   const rivers = mains.map(m => {
     const fit = m.mouth ? toShore(m.pts, shown) : null;
-    return riverRibbon(fit ?? m.pts, m.width, !!fit);
+    return { ...riverRibbon(fit ?? m.pts, m.width, !!fit), source: m.source };
   });
   return { res, w, h, elevation: elev, terrain: simple, rivers, roads };
 }

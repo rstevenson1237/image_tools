@@ -6,3 +6,4 @@ export { SYMBOLS, SYMBOL_KINDS } from './symbols.ts';
 export { THEME, THEMES, PATTERNS, type MapTheme, type ThemeName, type TerrainStyle } from './theme.ts';
 export { renderMapSvg, layersFor, fieldKey, terrainRegions, contourLines, MAP_LAYERS, FONT_FAMILY, type MapLayer, type RenderMapOptions } from './render.ts';
 export { isolines, chaikin, simplifyLine, pathData, type Line } from '../lib/trace.ts';
+export { mapFacts, areaOutline, feetIn, RULES as FACTS_RULES, type MapFacts, type MapFactsQuery, type PointFacts, type AreaFacts, type Features, type Summit, type SlopeBand } from './facts.ts';

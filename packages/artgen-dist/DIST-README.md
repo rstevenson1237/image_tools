@@ -43,6 +43,8 @@ A repo that builds tabletop maps and nothing else needs none of the above. `maps
 `VERSION`. Copy the folder at a commit of this branch into the repo's own `tools/artgen/` and commit it; nothing runs at
 install (steps in the CHANGELOG). Every command takes `--file <path>` in place of an id and needs no project:
 `node tools/artgen/artgen-maps.js dungeon check --file F.a.json --json`, then `dungeon fit` and `dungeon render --format svg`.
+`map facts` and `dungeon facts` read the ground and the layout back as numbers (terrain, height, slope, rivers and roads; rooms,
+corridors, exits, overlaps and unreached rooms) for a writer that never sees a render.
 
 ## Plugin layout (local sessions only)
 
