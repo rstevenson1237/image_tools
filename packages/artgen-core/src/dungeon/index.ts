@@ -8,3 +8,5 @@ export { dungeonFacts, RULES as FACTS_RULES, type DungeonFacts, type Boxed, type
 export { layoutWalls, wallFacts, convexHull, offsetRing, WALL_DEFAULTS, type WallGeom, type WallFacts, type TowerGeom, type GateGeom } from './walls.ts';
 export { underlaySvg, underlayWindow } from './underlay.ts';
 export { syncDungeon, MARK_DISTANCE } from './sync.ts';
+export { lintDungeon, badgeBox, type Finding, type Severity } from './lint.ts';
+export * as geom from './geom.ts';

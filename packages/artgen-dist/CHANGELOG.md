@@ -219,6 +219,13 @@ Reads: **map format 1**, **dungeon format 1**. `artgen formats --json` prints `{
   (the shorthands `10`, `5`, `10+5` and `none` still work); MCP `dungeon_update` takes `grid_size`, `grid_unit`, `sub_grid`
   and `show_grid`; the Dungeon Map tool has three controls in place of the grid menu. The file still keeps `grid.size` in
   squares: a size must be a whole number of squares, and the sub-grid (a line at every square) needs a grid of two or more.
+- **Drawing checks.** `artgen dungeon check` goes on past the file's own errors to what draws wrongly: a room outline that
+  crosses itself or has no floor (errors), and rooms laid over each other, a room off the sheet, a corridor that runs
+  through a room it does not join or across another corridor with no junction, a corridor that never leaves its room (so
+  its door is not drawn), an exit that ends inside a room, a repeated bend or corner, a label or symbol off the sheet, a
+  symbol under a room number and labels on labels (warnings). `--json` adds `warnings: [{path, message}]`; only errors
+  make it exit 1. The commands that change rooms, corridors and marks print the first five warnings. MCP `dungeon_check`;
+  the Dungeon Map tool lists them under **Problems**, and a click shows the room or place.
 
 **Limits**
 - A map may be up to 200 squares a side (was 120), so a 1-mile gorge fits at 10 yards a square. Raising a limit

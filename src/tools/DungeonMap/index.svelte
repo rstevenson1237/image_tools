@@ -41,6 +41,8 @@
   const layout = $derived(dungeon.layoutDungeon(spec));
   const shown = $derived(dungeon.dungeonLayersFor(spec, store.layers));
   const selectedRoom = $derived(spec.rooms.find(r => r.id === store.selected) ?? null);
+  /** Drawing problems (the same checks as `artgen dungeon check`). */
+  const problems = $derived(dungeon.lintDungeon(spec, layout));
 
   const TOOLS: { id: DungeonTool; label: string; hint: string }[] = [
     { id: 'pan', label: 'Pan', hint: 'drag to pan, wheel to zoom' },
@@ -259,6 +261,16 @@
     attempt(() => store.change('grid', m => { m.grid = dungeon.gridFromUnits(m, o); }));
   }
 
+  /** Show what a problem is about: select its room, or bring a corridor's start or a mark to the middle of the view. */
+  function showProblem(path: string) {
+    const m = path.match(/^(rooms|corridors|overlay\.labels|overlay\.symbols)\[(\d+)\]/);
+    if (!m) return;
+    const i = Number(m[2]);
+    if (m[1] === 'rooms') { const g = layout.rooms[i]; if (g) { store.selected = g.room.id; view?.centre(g.cx, g.cy); } }
+    else if (m[1] === 'corridors') { const g = layout.corridors[i]; if (g) view?.centre(g.pts[0], g.pts[1]); }
+    else { const o = m[1] === 'overlay.labels' ? spec.overlay.labels[i] : spec.overlay.symbols[i]; if (o) view?.centre(o.x, o.y); }
+  }
+
   const endName = (e: dungeon.CorridorEnd) => ('room' in e ? e.room : 'exit');
 
   function fresh(kind: 'generated' | 'empty' | 'room') {
@@ -453,6 +465,13 @@
             <button type="button" class="x" onclick={() => removeCorridor(i)} title="remove">×</button>
           </li>
         {:else}<li class="dim small">none yet — use the Corridor tool</li>{/each}
+      </ul>
+
+      <h3>Problems ({problems.length})</h3>
+      <ul class="items problems">
+        {#each problems as f, i (i)}
+          <li class={f.severity}><button type="button" class="link" onclick={() => showProblem(f.path)} title={f.path}><b>{f.severity}</b> {f.message}</button></li>
+        {:else}<li class="dim small">none found</li>{/each}
       </ul>
 
       <h3>Labels and symbols</h3>
@@ -709,6 +728,9 @@
     outline: 1px solid var(--accent, #6aa0ff);
     border-radius: 4px;
   }
+  .problems li { font-size: 0.8rem; }
+  .problems li.error b { color: var(--danger, #c0392b); }
+  .problems li.warning b { color: var(--warn, #b7791f); }
   button.link {
     flex: 1;
     min-width: 0;

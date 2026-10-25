@@ -79,21 +79,27 @@ export function updateDungeon(p: Project | null, ref: DungeonRef, change: (m: Du
   return next;
 }
 
-/** What `dungeon check` finds in a file as a consumer wrote it: the format version and every problem with its JSON path. */
-export interface DungeonCheck { file: string; ok: boolean; errors: dungeon.Issue[] }
+/**
+ * What `dungeon check` finds in a file as a consumer wrote it: every problem with its JSON path. `errors` are the file's
+ * own (a field out of range, a room id that is not there) and drawing errors (a room whose outline crosses itself);
+ * `warnings` are what most likely draws other than meant (a corridor through a room it does not join, rooms laid over
+ * each other). Only errors make it not `ok`.
+ */
+export interface DungeonCheck { file: string; ok: boolean; errors: dungeon.Issue[]; warnings: dungeon.Issue[] }
 
 export function checkDungeonFile(p: Project | null, ref: DungeonRef): DungeonCheck {
   const f = dungeonFile(p, ref);
   let raw: unknown;
   try { raw = JSON.parse(readFileSync(f, 'utf8')); } catch (e) {
     const missing = (e as NodeJS.ErrnoException).code === 'ENOENT';
-    return { file: shown(p, f), ok: false, errors: [{ path: '', message: missing ? `no such file: ${shown(p, f)}` : `not JSON: ${(e as Error).message}` }] };
+    return { file: shown(p, f), ok: false, errors: [{ path: '', message: missing ? `no such file: ${shown(p, f)}` : `not JSON: ${(e as Error).message}` }], warnings: [] };
   }
-  const r = dungeon.checkDungeon(raw), errors = [...r.errors];
+  const r = dungeon.checkDungeon(raw), errors = [...r.errors], warnings: dungeon.Issue[] = [];
+  if (!errors.length) for (const x of dungeon.lintDungeon(dungeon.parseDungeon(raw))) (x.severity === 'error' ? errors : warnings).push({ path: x.path, message: x.message });
   const u = (raw as { underlay?: { map?: unknown } } | null)?.underlay;
   if (!errors.some(e => e.path.startsWith('underlay')) && u && typeof u.map === 'string' && !existsSync(resolve(dirname(f), u.map)))
     errors.push({ path: 'underlay.map', message: `no such map file ${u.map}` });
-  return { file: shown(p, f), ok: !errors.length, errors };
+  return { file: shown(p, f), ok: !errors.length, errors, warnings };
 }
 
 export interface DungeonRender {
@@ -169,6 +175,15 @@ export function gridMode(m: DungeonSpec, mode: string): DungeonSpec['grid'] {
   const parts = mode.split('+').map(Number);
   if (!parts.length || parts.some(n => !Number.isFinite(n) || n <= 0)) throw new Error('grid: 10, 5, 10+5 or none (feet; or the map\'s unit)');
   return { ...g, show: true, size: parts[0] / per, sub: parts.length > 1 };
+}
+
+/** The drawing warnings for a dungeon after a change, as lines for a command's output (at most `max`, then a count). */
+export function warningLines(m: DungeonSpec, max = 5): string[] {
+  const found = dungeon.lintDungeon(m);
+  if (!found.length) return [];
+  const lines = found.slice(0, max).map(x => `  ${x.severity}: ${x.path}: ${x.message}`);
+  if (found.length > max) lines.push(`  … ${found.length - max} more (artgen dungeon check ${m.id})`);
+  return lines;
 }
 
 /** One-paragraph description of a dungeon for `dungeon show` and the MCP `dungeon_get`. */

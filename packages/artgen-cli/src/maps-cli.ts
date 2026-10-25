@@ -6,7 +6,7 @@
  * project and renders beside the file unless `--out` says otherwise.
  */
 import { dungeon, map, parseCrop, parseFit, type Crop, type Fit, type SyncReport } from 'artgen-core/maps';
-import { checkDungeonFile, cornerPoint, describeDungeonFacts, corridorEnd, createDungeon, describeDungeon, doorPair, dungeonSummary, gridMode, listDungeons, readDungeon, renderDungeonFiles, updateDungeon } from './dungeon.ts';
+import { checkDungeonFile, warningLines, cornerPoint, describeDungeonFacts, corridorEnd, createDungeon, describeDungeon, doorPair, dungeonSummary, gridMode, listDungeons, readDungeon, renderDungeonFiles, updateDungeon } from './dungeon.ts';
 import { checkMapFile, createMap, describeMap, describeMapFacts, factsQuery, listMaps, mapSummary, numbers, onOff, parseLayers, readMap, renderMapFiles, shapeFrom, updateMap } from './map.ts';
 import { fileId, readJson, requireProject } from './projectfs.ts';
 
@@ -69,7 +69,7 @@ export const MAP_USAGE = `       artgen map new <id> [--preset regional|local] [
        artgen dungeon grid <id> [10|5|10+5|none] [--size 10] [--unit ft] [--sub on|off] [--show on|off] [--clip floor|all] | style <id> [--hatch band|full|none] [--band n] [--wall f] [--numbers on|off] [--scale-bar on|off] [--compass on|off] [--legend on|off] [--title "..."] [--per-cell n] [--unit ft]
        artgen dungeon label <id> "Text" --at x,y|C4 [--kind name|note|area] [--size f] [--angle deg] [--origin name] | symbol <id> <kind> --at x,y|C4 [--scale f] [--angle deg] [--origin name] | symbols
        artgen dungeon overlay <id> rm label|symbol <i> | clear [labels|symbols] | fit <id> [--margin 2]
-       artgen dungeon check <id> [--json]   every error in the file with its JSON path; exits 1 when there are any
+       artgen dungeon check <id> [--json]   every error in the file with its JSON path, then drawing errors and warnings (a room outline that crosses itself, rooms laid over each other, a corridor through a room it does not join or across another, a door never drawn, a mark off the sheet or on a badge); exits 1 when there are errors
        artgen map sync <id>|--file target.json --from new.json --origin tables [--json]   replace the entries of one origin, keep every other (hand entries last); lists what that disturbs
        artgen dungeon sync <id>|--file target.json --from new.json --origin tables [--json]   the same for rooms, corridors, walls, labels and symbols; a hand-edited field of a generated room is reported and the table's value kept
        artgen dungeon facts <id> [--json]   each room's box and doors, each corridor's ends and length, the exits, the overlapping rooms and the rooms no corridor reaches
@@ -352,7 +352,7 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
         summary = `removed ${r.id} and ${before - m.corridors.length} corridors`;
       } else throw new Error('dungeon room <id> add|move|set|rm');
     });
-    print(`${m.id}: ${summary} (${m.rooms.length} rooms)\n${next(m.id)}`, m.rooms);
+    print([`${m.id}: ${summary} (${m.rooms.length} rooms)`, ...warningLines(m), next(m.id)].join('\n'), m.rooms);
     return 0;
   }
   if (sub === 'link') {
@@ -366,7 +366,7 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
         ...(route && { route }), ...(flag(args, '--via') && { via: numbers(flag(args, '--via'), '--via') }), ...(doors && { doors }), ...originFlag(args),
       });
     });
-    print(`${m.id}: corridor ${m.corridors.length - 1}: ${a} → ${b}\n${next(m.id)}`, m.corridors);
+    print([`${m.id}: corridor ${m.corridors.length - 1}: ${a} → ${b}`, ...warningLines(m), next(m.id)].join('\n'), m.corridors);
     return 0;
   }
   if (sub === 'unlink' || sub === 'door') {
@@ -379,7 +379,7 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
       const c = m.corridors[i], d = c.doors ?? [null, null];
       c.doors = end === 'from' ? [kind, d[1]] : [d[0], kind];
     });
-    print(`${m.id}: ${m.corridors.length} corridors\n${next(m.id)}`, m.corridors);
+    print([`${m.id}: ${m.corridors.length} corridors`, ...warningLines(m), next(m.id)].join('\n'), m.corridors);
     return 0;
   }
   if (sub === 'grid') {
@@ -426,7 +426,7 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
       }
     });
     const n = sub === 'label' ? m.overlay.labels.length : m.overlay.symbols.length;
-    print(`${m.id}: ${sub} ${n - 1} "${what}"\n${next(m.id)}`, sub === 'label' ? m.overlay.labels : m.overlay.symbols);
+    print([`${m.id}: ${sub} ${n - 1} "${what}"`, ...warningLines(m), next(m.id)].join('\n'), sub === 'label' ? m.overlay.labels : m.overlay.symbols);
     return 0;
   }
   if (sub === 'overlay') {
@@ -446,7 +446,9 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
   }
   if (sub === 'check') {
     const r = checkDungeonFile(p, need('<id>'));
-    print(r.ok ? `${r.file}: ok` : [`${r.file}: ${r.errors.length} error${r.errors.length === 1 ? '' : 's'}`, ...r.errors.map(e => `  ${e.path || '(file)'}: ${e.message}`)].join('\n'), r);
+    const n = (k: number, w: string) => `${k} ${w}${k === 1 ? '' : 's'}`;
+    print([r.ok ? `${r.file}: ok${r.warnings.length ? `, ${n(r.warnings.length, 'warning')}` : ''}` : `${r.file}: ${n(r.errors.length, 'error')}${r.warnings.length ? `, ${n(r.warnings.length, 'warning')}` : ''}`,
+      ...r.errors.map(e => `  error: ${e.path || '(file)'}: ${e.message}`), ...r.warnings.map(e => `  warning: ${e.path || '(file)'}: ${e.message}`)].join('\n'), r);
     return r.ok ? 0 : 1;
   }
   if (sub === 'fit') {

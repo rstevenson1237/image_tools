@@ -127,6 +127,16 @@ describe('dungeon --file', () => {
     writeFileSync(bad, JSON.stringify({ id: 'n', seed: 1, version: 9 }));
     expect(JSON.parse((await run('dungeon', 'check', '--json', '--file', bad)).out).errors[0]).toMatchObject({ path: 'version', message: expect.stringContaining('format version 9') });
     expect((await run('dungeon', 'check', '--json', '--file', join(dir, 'nope.json'))).code).toBe(1);
+    // drawing checks: a self-crossing room is an error, rooms laid over each other a warning
+    writeFileSync(bad, JSON.stringify({ id: 'w', seed: 1, rooms: [
+      { id: 'a', shape: 'rect', x: 2, y: 2, w: 6, h: 4 }, { id: 'b', shape: 'rect', x: 5, y: 3, w: 6, h: 4 },
+      { id: 'c', shape: 'poly', points: [20, 2, 26, 8, 26, 2, 20, 8] },
+    ] }));
+    const w = await run('dungeon', 'check', '--json', '--file', bad);
+    expect(w.code).toBe(1);
+    expect(JSON.parse(w.out)).toMatchObject({ ok: false, errors: [{ path: 'rooms[2].points' }], warnings: [{ path: 'rooms[1]', message: expect.stringContaining('lies over a') }] });
+    expect((await run('dungeon', 'check', '--file', bad)).out).toMatch(/1 error, 1 warning\n  error: rooms\[2\]\.points: .*\n  warning: rooms\[1\]/);
+    expect((await run('dungeon', 'room', 'add', 'rect', '--at', '6,4', '--size', '2x2', '--file', bad)).out).toMatch(/warning: rooms\[3\]: r4 lies over/);
   });
 });
 

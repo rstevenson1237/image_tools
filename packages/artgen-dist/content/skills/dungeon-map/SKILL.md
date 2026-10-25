@@ -67,6 +67,11 @@ Rooms are numbered in file order on a black badge; set a room's own number or na
 doors are drawn in every copy; for a player handout, make a copy of the dungeon and set them to `none` there. Give the
 user the file paths and show the PNG.
 
+## Check, then look
+`{{ARTGEN}} dungeon check <id>` after every round of changes: errors (a room outline that crosses itself) must be fixed;
+each warning (rooms laid over each other, a corridor through a room it does not join or across another, a door that is
+never drawn, a symbol under a room number) is most likely a mistake: fix it or know why it stays.
+
 ## Readability rules (check every render)
 - **Read at a glance.** Clear room shapes, straight corridors, few bends. If it looks busy, use fewer rooms, larger
   spacing, or fewer loops.

@@ -17,7 +17,7 @@ import { dungeon, encodePNG, map, MATERIALS, parseDirection, PRESET_NAMES, type 
 import { BENCH_DIRECTIONS } from 'artgen-core/bench';
 import {
   approve, briefWarnings, candidateNames, cornerPoint, createDungeon, describeDungeon, gridMode, listDungeons, readDungeon, renderDungeonFiles, updateDungeon, createMap, describeMap, exportPacks, listMaps, readMap, renderMapFiles, updateMap, feedback, findProject, fxRun, gallery, loadCandidate, lockedDirection, make, openAsset, passState, projectAnalytics,
-  readBriefs, renderVersion, requireLocked, restyle, reviewVersion, projectStatus, scoreVersion, textureRun, VERSION, versionsIn, writeNextFinish, writeTile, type Project,
+  readBriefs, renderVersion, requireLocked, restyle, reviewVersion, projectStatus, scoreVersion, textureRun, VERSION, versionsIn, writeNextFinish, writeTile, type Project, checkDungeonFile, warningLines,
 } from 'artgen-cli';
 
 export const SERVER = { name: 'artgen', version: VERSION === 'dev' ? '0.0.0-dev' : VERSION };
@@ -395,8 +395,13 @@ export const TOOLS: ToolDef[] = [
           if (out !== m) Object.assign(m, out);
         }
       });
-      return [text(describeDungeon(m))];
+      return [text([describeDungeon(m), ...warningLines(m)].join('\n'))];
     },
+  },
+  {
+    name: 'dungeon_check', description: 'Check a dungeon: every error in its file with the JSON path (a field out of range, a room id that is not there), then drawing errors and warnings (a room outline that crosses itself, rooms laid over each other, a corridor through a room it does not join or across another, a door never drawn, a mark off the sheet or on a room number). Fix errors before rendering; look at each warning.',
+    inputSchema: obj({ id: str }, ['id']),
+    async run(a, p) { return [text(checkDungeonFile(p, a.id as string))]; },
   },
   {
     name: 'dungeon_overlay', description: 'Labels and symbols over a dungeon (the follow-up layer). add_labels: [{text, at:"x,y"|"C4" or x,y, kind: name|note|area, size?, angle?}]; add_symbols: [{kind, at or x,y, scale?, angle?}] (kinds from dungeon_list: stairs, pillar, statue, altar, chest, trap, pit, pool, …); remove_labels / remove_symbols: indices (from dungeon_get); clear: "labels"|"symbols"|"all". Room names and numbers are room settings (dungeon_edit set_room).',
