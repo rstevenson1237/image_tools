@@ -328,6 +328,34 @@ export function checkDungeon(raw: unknown): { version: number | null; errors: Is
   return { version: DUNGEON_FORMAT, errors: validateDungeon(withDefaults(r)).map(toIssue) };
 }
 
+/** Common scale units for the grid's dimension (any text is allowed; these are offered first). */
+export const SCALE_UNITS = ['ft', 'm', 'yd', 'mi', 'km'] as const;
+
+/**
+ * Grid settings from a grid size in the map's own unit (`10` ft), whether to show the sub-grid (a line at every cell)
+ * and whether to show the grid at all. The size must be a whole number of cells (`scale.perCell` units each); the
+ * sub-grid only shows when the grid is more than one cell.
+ */
+export function gridFromUnits(spec: Pick<DungeonSpec, 'grid' | 'scale'>, o: { size?: number; sub?: boolean; show?: boolean }): DungeonSpec['grid'] {
+  const per = spec.scale.perCell, g = { ...spec.grid };
+  if (o.show !== undefined) g.show = o.show;
+  if (o.size !== undefined) {
+    const cells = o.size / per;
+    if (!(Number.isFinite(cells) && cells >= 1 && Math.abs(cells - Math.round(cells)) < 1e-9))
+      throw new Error(`grid size: a whole number of squares (1 square = ${per} ${spec.scale.unit}), so ${per}, ${2 * per}, ${3 * per} …`);
+    g.size = Math.round(cells);
+    g.show = o.show ?? true;
+  }
+  if (o.sub !== undefined) g.sub = o.sub;
+  return g;
+}
+
+/** The grid as size in the map's unit, the unit, and whether the sub-grid shows (false when the grid is one cell). */
+export function gridInUnits(spec: Pick<DungeonSpec, 'grid' | 'scale'>): { show: boolean; size: number; unit: string; sub: boolean; subSize: number } {
+  const per = spec.scale.perCell;
+  return { show: spec.grid.show, size: spec.grid.size * per, unit: spec.scale.unit, sub: spec.grid.sub && spec.grid.size > 1, subSize: per };
+}
+
 /** `x,y` in cells, or a cell name (`C4`, also `cell:C4`) to that cell's centre. */
 export function parsePoint(at: string): [number, number] {
   const xy = at.match(/^\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*$/);

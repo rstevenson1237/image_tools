@@ -314,12 +314,14 @@ export const TOOLS: ToolDef[] = [
     },
   },
   {
-    name: 'dungeon_update', description: 'Change a dungeon\'s settings (not its rooms). grid_mode: "10" | "5" | "10+5" (10 ft lines with a fainter 5 ft sub-grid) | "none"; grid: {show, size (cells), sub, clip: floor|all}; style: {hatch: band|full|none, band (cells of hatching along the walls), wall (weight)}; scale: {perCell, unit}; gen: generator settings (used by dungeon_generate); title, numbers, scale_bar, compass, cols, rows.',
-    inputSchema: obj({ id: str, grid_mode: str, grid: { type: 'object' }, style: { type: 'object' }, scale: { type: 'object' }, gen: { type: 'object' }, title: str, numbers: bool, scale_bar: bool, compass: bool, cols: num, rows: num }, ['id']),
+    name: 'dungeon_update', description: 'Change a dungeon\'s settings (not its rooms). grid_size: the grid size in the map unit (10 = a line every 10 ft; a whole number of squares), grid_unit: the unit (ft, m, …; it is also the scale unit), sub_grid: true for a fainter line at every square, show_grid; grid_mode: "10" | "5" | "10+5" | "none" (a shorthand); grid: {show, size (cells), sub, clip: floor|all}; style: {hatch: band|full|none, band (cells of hatching along the walls), wall (weight)}; scale: {perCell, unit}; gen: generator settings (used by dungeon_generate); title, numbers, scale_bar, compass, cols, rows.',
+    inputSchema: obj({ id: str, grid_size: num, grid_unit: str, sub_grid: bool, show_grid: bool, grid_mode: str, grid: { type: 'object' }, style: { type: 'object' }, scale: { type: 'object' }, gen: { type: 'object' }, title: str, numbers: bool, scale_bar: bool, compass: bool, cols: num, rows: num }, ['id']),
     async run(a, p) {
       const m = updateDungeon(p, a.id as string, m => {
         for (const k of ['grid', 'style', 'scale', 'gen'] as const) if (a[k] && typeof a[k] === 'object') Object.assign(m[k], a[k]);
+        if (typeof a.grid_unit === 'string' && a.grid_unit) m.scale.unit = a.grid_unit;
         if (typeof a.grid_mode === 'string') m.grid = gridMode(m, a.grid_mode);
+        m.grid = dungeon.gridFromUnits(m, { size: typeof a.grid_size === 'number' ? a.grid_size : undefined, sub: typeof a.sub_grid === 'boolean' ? a.sub_grid : undefined, show: typeof a.show_grid === 'boolean' ? a.show_grid : undefined });
         if (typeof a.title === 'string') { if (a.title) m.title = a.title; else delete m.title; }
         if (typeof a.numbers === 'boolean') m.numbers = a.numbers;
         if (typeof a.scale_bar === 'boolean') m.scaleBar = a.scale_bar;

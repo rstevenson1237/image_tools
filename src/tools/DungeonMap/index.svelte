@@ -2,7 +2,7 @@
   /**
    * Dungeon Map: tabletop RPG dungeons and lairs in black and white. Make one room (with exits running off the map) or
    * generate a whole complex from a seed, then draw: drag out rooms, click corners for an odd-shaped room, link rooms
-   * with corridors, set doors, move rooms, add a 10 ft / 5 ft grid, numbers, labels and symbols, and export SVG or PNG.
+   * with corridors, set doors, move rooms, add a grid (any size, with a sub-grid), numbers, labels and symbols, and export SVG or PNG.
    * The dungeon is the artgen `dungeon.json` the CLI and Claude Code use: open and save it in a game repo's
    * `art/dungeons/`, or download / open the file on its own. Rendering runs in the artgen worker.
    */
@@ -65,7 +65,6 @@
     { key: 'corridorWidth', label: 'corridor width (cells)', min: 1, max: 4, step: 1 },
     { key: 'spacing', label: 'space between rooms', min: 0, max: 6, step: 1 },
   ];
-  const GRID_MODES = [['none', 'none'], ['10', '10 ft'], ['10+5', '10 ft + 5 ft'], ['5', '5 ft']] as const;
   const SIDES: [Side, string][] = [['n', 'north'], ['e', 'east'], ['s', 'south'], ['w', 'west']];
 
   onMount(() => {
@@ -255,12 +254,9 @@
   function setGen(key: keyof dungeon.DungeonSpec['gen'], v: number | boolean) { attempt(() => store.change(`gen ${key}`, m => { (m.gen as Record<string, unknown>)[key] = v; })); }
   function setDoor(i: number, end: 0 | 1, v: string) { store.change('door', m => { const c = m.corridors[i], d = c.doors ?? [null, null]; c.doors = end === 0 ? [doorOf(v), d[1]] : [d[0], doorOf(v)]; }); }
 
-  const gridMode = $derived(!spec.grid.show ? 'none' : spec.grid.size === 1 ? '5' : spec.grid.sub ? '10+5' : '10');
-  function setGrid(mode: string) {
-    attempt(() => store.change('grid', m => {
-      if (mode === 'none') m.grid.show = false;
-      else m.grid = { ...m.grid, show: true, size: mode === '5' ? 1 : 2, sub: mode === '10+5' };
-    }));
+  const grid = $derived(dungeon.gridInUnits(spec));
+  function setGrid(o: { size?: number; sub?: boolean; show?: boolean }) {
+    attempt(() => store.change('grid', m => { m.grid = dungeon.gridFromUnits(m, o); }));
   }
 
   const endName = (e: dungeon.CorridorEnd) => ('room' in e ? e.room : 'exit');
@@ -383,9 +379,17 @@
 
       <h3>Look</h3>
       <div class="pair">
-        <label>grid
-          <select value={gridMode} onchange={e => setGrid(val(e))}>{#each GRID_MODES as [v, name] (v)}<option value={v}>{name}</option>{/each}</select>
+        <label>grid size <input type="number" min={spec.scale.perCell} step={spec.scale.perCell} value={grid.size} disabled={!grid.show} onchange={e => setGrid({ size: num(e) })} title="a whole number of squares" /></label>
+        <label>dimension
+          <input type="text" class="unit" list="dungeon-units" value={spec.scale.unit} onchange={e => attempt(() => store.change('unit', m => { m.scale.unit = val(e).trim() || 'ft'; }))} />
         </label>
+        <datalist id="dungeon-units">{#each dungeon.SCALE_UNITS as u (u)}<option value={u}></option>{/each}</datalist>
+      </div>
+      <div class="checks">
+        <label class="inline"><input type="checkbox" checked={grid.show} onchange={e => setGrid({ show: checked(e) })} /> show grid</label>
+        <label class="inline" title={spec.grid.size > 1 ? `a fainter line every ${grid.subSize} ${grid.unit}` : 'the grid is one square: no sub-grid'}><input type="checkbox" checked={grid.sub} disabled={!grid.show || spec.grid.size <= 1} onchange={e => setGrid({ sub: checked(e) })} /> show sub-grid</label>
+      </div>
+      <div class="pair">
         <label>grid on
           <select value={spec.grid.clip} onchange={e => store.change('grid', m => { m.grid.clip = val(e) as 'floor' | 'all'; })}><option value="floor">floors</option><option value="all">everything</option></select>
         </label>

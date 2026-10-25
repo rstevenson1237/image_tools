@@ -46,6 +46,12 @@ describe('artgen dungeon', () => {
     expect(spec('crypt').grid).toEqual({ show: true, size: 2, sub: false, clip: 'all' });
     await run('dungeon', 'grid', 'crypt', '10+5', ...R);
     expect(spec('crypt').grid).toMatchObject({ size: 2, sub: true });
+    await run('dungeon', 'grid', 'crypt', '--size', '15', '--sub', 'off', ...R);
+    expect(spec('crypt').grid).toMatchObject({ show: true, size: 3, sub: false });
+    await expect(run('dungeon', 'grid', 'crypt', '--size', '7', ...R)).rejects.toThrow(/whole number of squares/);
+    await run('dungeon', 'grid', 'crypt', '--size', '10', '--sub', 'on', ...R);
+    expect(spec('crypt').grid).toMatchObject({ show: true, size: 2, sub: true });
+    expect((await run('dungeon', 'show', 'crypt', ...R)).out).toContain('grid: size 10 ft, sub-grid 5 ft');
     await run('dungeon', 'style', 'crypt', '--hatch', 'full', '--compass', 'on', ...R);
     await run('dungeon', 'label', 'crypt', 'Bone pit', '--at', '12,12', '--kind', 'note', ...R);
     await run('dungeon', 'symbol', 'crypt', 'stairs', '--at', 'L12', '--angle', '90', ...R);

@@ -17,7 +17,7 @@ and white: white floors with a grid, thick black walls, hatched rock around them
 
 ## 1. Ask, then create
 Ask only what changes the map: one room or a complex; roughly how many rooms and how big; built (square rooms,
-corridors, doors) or natural (caves); the grid (10 ft, 10 ft with a 5 ft sub-grid, 5 ft, or none). Then one of:
+corridors, doors) or natural (caves); the grid (its size and unit, whether to show a sub-grid at every square, or none). Then one of:
 ```
 {{ARTGEN}} dungeon new <id> --room rect --room-size 8x8 --exits n,e,s:secret,w:none --number 20   # one room
 {{ARTGEN}} dungeon new <id> --rooms 10 --size 40x30 --title "Lair of the Ash Wyrm" [--seed n]       # generated
@@ -49,7 +49,8 @@ replaces every room and corridor: if the user wants "the same dungeon but …", 
 
 ## 3. Grid, numbers, labels and symbols (the follow-up layers)
 ```
-{{ARTGEN}} dungeon grid <id> 10+5 [--clip floor|all]     # 10 ft lines + fainter 5 ft; 10 | 5 | none; on the floor (default) or everywhere
+{{ARTGEN}} dungeon grid <id> --size 10 --unit ft --sub on [--clip floor|all]   # a line every 10 ft, a fainter one every square; on the floor (default) or everywhere
+{{ARTGEN}} dungeon grid <id> --show off                   # no grid (shorthands: 10 | 5 | 10+5 | none)
 {{ARTGEN}} dungeon style <id> --hatch band|full|none --band 1 --numbers on --scale-bar on --compass off --title "…"
 {{ARTGEN}} dungeon label <id> "Bone pit" --at 12,9 --kind note       # name: bold · note: italic · area: big spaced capitals
 {{ARTGEN}} dungeon symbol <id> stairs --at 11,4 --angle 90            # {{ARTGEN}} dungeon symbols lists the kinds

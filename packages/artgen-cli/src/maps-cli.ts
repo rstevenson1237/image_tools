@@ -66,7 +66,7 @@ export const MAP_USAGE = `       artgen map new <id> [--preset regional|local] [
        artgen dungeon room <id> add <shape> --at x,y|C4 --size WxH [--points x,y,…] [--label "..."] [--number n|off] [--room-id r9] [--fill floor|building|yard|cellar] [--origin name] | move <rid> --at x,y | set <rid> [--shape s] [--size WxH] [--label "..."] [--number n|off] [--fill f] | rm <rid>
        artgen dungeon link <id> <room> <room|x,y|C4> [--width 1] [--route auto|hv|vh|straight] [--via x,y,…] [--doors door,none] [--origin name] | unlink <id> <i> | door <id> <i> from|to <kind|none>
                   (shapes: ${dungeon.ROOM_SHAPES.join(', ')}; doors: ${dungeon.DOOR_KINDS.join(', ')})
-       artgen dungeon grid <id> 10|5|10+5|none [--clip floor|all] | style <id> [--hatch band|full|none] [--band n] [--wall f] [--numbers on|off] [--scale-bar on|off] [--compass on|off] [--legend on|off] [--title "..."] [--per-cell n] [--unit ft]
+       artgen dungeon grid <id> [10|5|10+5|none] [--size 10] [--unit ft] [--sub on|off] [--show on|off] [--clip floor|all] | style <id> [--hatch band|full|none] [--band n] [--wall f] [--numbers on|off] [--scale-bar on|off] [--compass on|off] [--legend on|off] [--title "..."] [--per-cell n] [--unit ft]
        artgen dungeon label <id> "Text" --at x,y|C4 [--kind name|note|area] [--size f] [--angle deg] [--origin name] | symbol <id> <kind> --at x,y|C4 [--scale f] [--angle deg] [--origin name] | symbols
        artgen dungeon overlay <id> rm label|symbol <i> | clear [labels|symbols] | fit <id> [--margin 2]
        artgen dungeon check <id> [--json]   every error in the file with its JSON path; exits 1 when there are any
@@ -383,10 +383,13 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
     return 0;
   }
   if (sub === 'grid') {
-    const mode = pos[1];
-    if (!mode) throw new Error('dungeon grid <id> 10|5|10+5|none [--clip floor|all]');
+    const mode = pos[1], size = num(args, '--size'), sub = onOff(flag(args, '--sub')), show = onOff(flag(args, '--show')), unit = flag(args, '--unit');
+    if (!mode && size === undefined && sub === undefined && show === undefined && !unit && !flag(args, '--clip'))
+      throw new Error('dungeon grid <id> [10|5|10+5|none] [--size 10] [--unit ft] [--sub on|off] [--show on|off] [--clip floor|all]');
     const m = updateDungeon(p, need('<id>'), m => {
-      m.grid = gridMode(m, mode);
+      if (unit) m.scale.unit = unit;
+      if (mode) m.grid = gridMode(m, mode);
+      m.grid = dungeon.gridFromUnits(m, { size, sub, show });
       const clip = flag(args, '--clip');
       if (clip) { if (clip !== 'floor' && clip !== 'all') throw new Error('--clip: floor or all'); m.grid.clip = clip; }
     });

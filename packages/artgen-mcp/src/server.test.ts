@@ -173,6 +173,9 @@ describe('artgen MCP server on a locked project (W2 tools)', () => {
     expect((await call('dungeon_overlay', { id: 'crypt', add_symbols: [{ kind: 'dragon', x: 1, y: 1 }] })).isError).toBe(true);
     const got = JSON.parse((await call('dungeon_get', { id: 'crypt' })).content[1].text!);
     expect(got).toMatchObject({ title: 'Crypt', grid: { show: true, size: 2, sub: true }, style: { hatch: 'full' }, rooms: [{ id: 'r1', x: 2, y: 2, label: 'Hall' }, { id: 'r2', shape: 'cave' }], corridors: [{ doors: ['door', null] }, { doors: ['portcullis', null] }], overlay: { labels: [{ text: 'Bones', x: 2.5, y: 3.5 }], symbols: [{ kind: 'stairs', angle: 90 }] } });
+    await call('dungeon_update', { id: 'crypt', grid_size: 15, sub_grid: false });
+    expect(JSON.parse((await call('dungeon_get', { id: 'crypt' })).content[1].text!).grid).toMatchObject({ show: true, size: 3, sub: false });
+    expect((await call('dungeon_update', { id: 'crypt', grid_size: 12 })).isError).toBe(true);
     await call('dungeon_generate', { id: 'crypt', seed: 3, gen: { rooms: 5 }, cols: 30, rows: 24 });
     expect(JSON.parse((await call('dungeon_get', { id: 'crypt' })).content[1].text!).overlay.labels).toHaveLength(1);
     expect(JSON.parse((await call('dungeon_list')).content[0].text!).dungeons.map((d: { id: string }) => d.id).sort()).toEqual(['cell', 'crypt']);

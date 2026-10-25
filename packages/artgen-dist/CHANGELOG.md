@@ -214,6 +214,12 @@ Reads: **map format 1**, **dungeon format 1**. `artgen formats --json` prints `{
 - Cases: `ravine` (marks, road and requirements `origin: tables`, two hand `elevate`s that a sync keeps after them), `warren` (every entry
   `tables`, a hand `web` in F.3, F.4's `x` moved by hand) and `shrine-crypts` (a hand label that a resized M.8 covers).
 
+**Dungeon maps: denser layouts, links, exits and checks** (every addition is an optional field, so dungeon format 1 and its version are unchanged)
+- **Grid as size, dimension and sub-grid.** `artgen dungeon grid <id> --size 10 [--unit ft] [--sub on|off] [--show on|off]`
+  (the shorthands `10`, `5`, `10+5` and `none` still work); MCP `dungeon_update` takes `grid_size`, `grid_unit`, `sub_grid`
+  and `show_grid`; the Dungeon Map tool has three controls in place of the grid menu. The file still keeps `grid.size` in
+  squares: a size must be a whole number of squares, and the sub-grid (a line at every square) needs a grid of two or more.
+
 **Limits**
 - A map may be up to 200 squares a side (was 120), so a 1-mile gorge fits at 10 yards a square. Raising a limit
   extends map format 1: files that were valid stay valid.
