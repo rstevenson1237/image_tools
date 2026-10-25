@@ -15,9 +15,9 @@ describe('artgen formats', () => {
   const root = mkdtempSync(join(tmpdir(), 'artgen-format-')), R = ['--root', root];
   beforeAll(async () => { await run('init', ...R); });
 
-  test('prints both versions', async () => {
-    expect(JSON.parse((await run('formats', '--json')).out)).toEqual({ map: 1, dungeon: 1 });
-    expect((await run('formats')).out).toBe('map 1\ndungeon 1');
+  test('prints every version', async () => {
+    expect(JSON.parse((await run('formats', '--json')).out)).toEqual({ map: 1, dungeon: 1, settlement: 1 });
+    expect((await run('formats')).out).toBe('map 1\ndungeon 1\nsettlement 1');
   });
 
   test('every map and dungeon --json result carries the version', async () => {

@@ -31,7 +31,8 @@ describe('artgen MCP server', () => {
     const r = (await handle({ jsonrpc: '2.0', id: 4, method: 'tools/list' }, root))!.result as { tools: { name: string; inputSchema: { type: string } }[] };
     expect(r.tools.map(t => t.name)).toEqual(['direction_get', 'direction_tile', 'pass_status', 'render', 'review', 'conformance', 'score', 'finish', 'make', 'brief_lint', 'status',
       'gallery', 'feedback', 'approve', 'texture', 'fx', 'export', 'restyle', 'analytics', 'map_list', 'map_get', 'map_new', 'map_update', 'map_edit', 'map_overlay', 'map_render',
-      'dungeon_list', 'dungeon_get', 'dungeon_new', 'dungeon_update', 'dungeon_generate', 'dungeon_edit', 'dungeon_check', 'dungeon_overlay', 'dungeon_render']);
+      'dungeon_list', 'dungeon_get', 'dungeon_new', 'dungeon_update', 'dungeon_generate', 'dungeon_edit', 'dungeon_check', 'dungeon_overlay', 'dungeon_render',
+      'settlement_list', 'settlement_get', 'settlement_new', 'settlement_update', 'settlement_generate', 'settlement_edit', 'settlement_check', 'settlement_facts', 'settlement_render']);
     expect(r.tools.every(t => t.inputSchema.type === 'object')).toBe(true);
   });
 
@@ -193,5 +194,41 @@ describe('artgen MCP server on a locked project (W2 tools)', () => {
     expect(JSON.parse(r.content[0].text!).files).toEqual(['art/dungeons/crypt/out/crypt.svg', 'art/dungeons/crypt/out/crypt.png']);
     expect((await call('dungeon_new', { id: '../../etc' })).isError).toBe(true);
     expect((await call('dungeon_get', { id: '../crypt' })).isError).toBe(true);
+  }, 60_000);
+
+  test('settlements: generate, edit by hand, a floor plan, check, facts and render (image); ids cannot leave art/settlements', async () => {
+    expect((await call('settlement_new', { id: 'mill', kind: 'hamlet', seed: 4 })).isError).toBeUndefined();
+    const hamlet = JSON.parse((await call('settlement_get', { id: 'mill' })).content[1].text!);
+    expect(hamlet).toMatchObject({ kind: 'hamlet', seed: 4 });
+    expect(hamlet.buildings.length).toBeGreaterThan(2);
+    await call('settlement_new', { id: 'ford', mode: 'empty', cols: 30, rows: 24 });
+    const edit = await call('settlement_edit', { id: 'ford', ops: [
+      { op: 'road.add', kind: 'lane', points: [0, 12, 30, 12] },
+      { op: 'building.add', kind: 'smithy', x: 4, y: 4, w: 6, h: 5, id: 'smith' },
+      { op: 'interior', id: 'smith' },
+      { op: 'wall.add', kind: 'fence', points: [2, 2, 12, 2, 12, 10] },
+      { op: 'tree.add', kind: 'tree', x: 20, y: 4 },
+      { op: 'prop.add', kind: 'well', x: 16, y: 16 },
+      { op: 'label', text: 'Ford', x: 15, y: 20, kind: 'area' },
+    ] });
+    expect(edit.isError).toBeUndefined();
+    expect(edit.content[0].text).toMatch(/laid out smith/);
+    expect((await call('settlement_edit', { id: 'ford', ops: [{ op: 'building.move', id: 'nope', x: 1, y: 1 }] })).isError).toBe(true);
+    await call('settlement_update', { id: 'ford', title: 'The Ford', legend: true });
+    const got = JSON.parse((await call('settlement_get', { id: 'ford' })).content[1].text!);
+    expect(got).toMatchObject({ title: 'The Ford', legend: true, roads: [{ kind: 'lane' }], buildings: [{ id: 'smith', kind: 'smithy' }], trees: [{ kind: 'tree' }], props: [{ kind: 'well' }] });
+    expect(got.buildings[0].floors[0].fixtures.some((f: { kind: string }) => f.kind === 'forge')).toBe(true);
+    expect(JSON.parse((await call('settlement_check', { id: 'ford' })).content[0].text!)).toMatchObject({ ok: true, errors: [] });
+    expect(JSON.parse((await call('settlement_facts', { id: 'ford' })).content[0].text!).counts.buildings).toEqual({ smithy: 1 });
+    const plan = await call('settlement_render', { id: 'ford', building: 'smith' });
+    expect(plan.content.map(c => c.type)).toEqual(['text', 'image']);
+    expect(JSON.parse(plan.content[0].text!).files).toEqual(['art/settlements/ford/out/ford.smith.f0.color.svg', 'art/settlements/ford/out/ford.smith.f0.color.png']);
+    const site = await call('settlement_render', { id: 'ford', theme: 'both' });
+    expect(site.content.map(c => c.type)).toEqual(['text', 'image', 'image']);
+    await call('settlement_generate', { id: 'mill', seed: 9, gen: { interiors: true } });
+    expect(JSON.parse((await call('settlement_get', { id: 'mill' })).content[1].text!).buildings.every((b: { floors?: unknown[] }) => b.floors?.length)).toBe(true);
+    expect(JSON.parse((await call('settlement_list')).content[0].text!).settlements.map((d: { id: string }) => d.id).sort()).toEqual(['ford', 'mill']);
+    expect((await call('settlement_new', { id: '../../etc' })).isError).toBe(true);
+    expect((await call('settlement_get', { id: '../ford' })).isError).toBe(true);
   }, 60_000);
 });

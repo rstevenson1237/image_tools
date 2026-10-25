@@ -59,3 +59,4 @@ export * from './w2/config.ts';
 export { readFormat, type Migration } from './format.ts';
 export * as map from './map/index.ts';
 export * as dungeon from './dungeon/index.ts';
+export * as settlement from './settlement/index.ts';

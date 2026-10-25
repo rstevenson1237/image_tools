@@ -4,8 +4,9 @@
  * `finish`, `make` (with the parallel round), `feedback`, `approve`, `gallery`, `texture`, `fx`, `export`, `restyle`
  * and `analytics`; 0.10.0 adds `brief_lint`. Image results are returned as MCP image content (base64 PNG).
  *
- * Terrain maps (`map_*`) work on `art/maps/<id>/map.json`, dungeon maps (`dungeon_*`) on `art/dungeons/<id>/dungeon.json`;
- * a map or dungeon id is a name, never a path.
+ * Terrain maps (`map_*`) work on `art/maps/<id>/map.json`, dungeon maps (`dungeon_*`) on `art/dungeons/<id>/dungeon.json`,
+ * settlement maps (`settlement_*`) on `art/settlements/<id>/settlement.json`; a map, dungeon or settlement id is a name,
+ * never a path.
  *
  * Paths are sandboxed: every asset argument must resolve inside the project's `art/` folder (a brief id resolves
  * through art/briefs.yaml), and the quick-look tools (`texture`, `fx`) write only under art/sheets/. `export` writes
@@ -13,11 +14,12 @@
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve } from 'node:path';
-import { dungeon, encodePNG, map, MATERIALS, parseDirection, PRESET_NAMES, type Grid, type Size } from 'artgen-core';
+import { dungeon, encodePNG, map, MATERIALS, parseDirection, PRESET_NAMES, settlement, type Grid, type Size } from 'artgen-core';
 import { BENCH_DIRECTIONS } from 'artgen-core/bench';
 import {
   approve, briefWarnings, candidateNames, cornerPoint, corridorEnd, createDungeon, describeDungeon, gridMode, listDungeons, readDungeon, renderDungeonFiles, updateDungeon, createMap, describeMap, exportPacks, listMaps, readMap, renderMapFiles, updateMap, feedback, findProject, fxRun, gallery, loadCandidate, lockedDirection, make, openAsset, passState, projectAnalytics,
   readBriefs, renderVersion, requireLocked, restyle, reviewVersion, projectStatus, scoreVersion, textureRun, VERSION, versionsIn, writeNextFinish, writeTile, type Project, checkDungeonFile, warningLines,
+  checkSettlementFile, createSettlement, describeSettlement, listSettlements, mapForSettlement, readSettlement, readSettlementUnderlay, renderSettlementFiles, settlementWarningLines, updateSettlement,
 } from 'artgen-cli';
 
 export const SERVER = { name: 'artgen', version: VERSION === 'dev' ? '0.0.0-dev' : VERSION };
@@ -463,6 +465,111 @@ export const TOOLS: ToolDef[] = [
       const files = r.files.map(f => projRel(p, f));
       const look = typeof a.ppu === 'number' ? files.filter(f => f.endsWith('.png')) : (await renderDungeonFiles(p, a.id as string, { ppu: 24, layers, formats: ['png'], out: join(p.art, 'dungeons', a.id as string, 'out', 'preview') })).files.map(f => projRel(p, f));
       return [text({ ...r, files }), ...look.map(f => pngFile(join(p.root, f)))];
+    },
+  },
+  {
+    name: 'settlement_list', description: 'Settlement maps (TTRPG villages, towns and castles, in colour or black and white) in art/settlements, plus the kinds every settlement tool accepts: settlement kinds, building kinds, shapes and roofs, road, water, wall, gate, area and tree kinds, fixture (furniture) kinds and edit ops.',
+    inputSchema: obj({}),
+    async run(_a, p) {
+      return [text({
+        settlements: listSettlements(p), kinds: settlement.SETTLEMENT_KINDS, buildings: settlement.BUILDING_KINDS, shapes: settlement.BUILDING_SHAPES, roofs: settlement.ROOFS,
+        roads: settlement.ROAD_KINDS, water: settlement.WATER_KINDS, walls: settlement.WALL_KINDS, gates: settlement.GATE_KINDS, areas: settlement.AREA_KINDS, trees: settlement.TREE_KINDS,
+        fixtures: settlement.FIXTURE_KINDS, symbols: settlement.SYMBOL_KINDS, labelKinds: settlement.LABEL_KINDS, ops: settlement.SETTLEMENT_OPS,
+      })];
+    },
+  },
+  {
+    name: 'settlement_get', description: 'A settlement\'s file (art/settlements/<id>/settlement.json) and a readable summary: buildings with ids, kinds and floors, roads, water, walls with their indices, areas, trees and props.',
+    inputSchema: obj({ id: str, file: bool }, ['id']),
+    async run(a, p) { const m = readSettlement(p, a.id as string); return [text(describeSettlement(m)), ...(a.file === false ? [] : [text(m)])]; },
+  },
+  {
+    name: 'settlement_new', description: 'Create a settlement map. kind: hamlet|village|town|city|castle (sets the sheet size, cell size and generator defaults: a town or city has 10 ft cells and a stone wall, a castle a curtain wall, keep and moat). mode "generate" (default): roads, water, walls, buildings, fields, trees and props from the seed and gen settings ({buildings, density 0..1, streets: organic|grid|radial, wall: none|palisade|stone, water: none|river|lake|coast|moat, trees 0..1, fields 0..1, market, castle, interiors (lay out every building\'s floors too)}); "empty": a blank sheet (add things with settlement_edit). map + at: a terrain map (its id in art/maps, or a path) under the sheet, its top-left at map units at=[x,y]; its rivers, lakes, sea, woods and slopes shape the layout. Render with settlement_render.',
+    inputSchema: obj({ id: str, kind: { type: 'string', enum: [...settlement.SETTLEMENT_KINDS] }, mode: { type: 'string', enum: ['generate', 'empty'] }, cols: num, rows: num, seed: num, title: str, gen: { type: 'object' }, map: str, at: { type: 'array', items: num } }, ['id']),
+    async run(a, p) {
+      const kind = (a.kind ?? 'village') as settlement.SettlementKind, id = a.id as string;
+      const base = settlement.newSettlement(id, kind, { seed: typeof a.seed === 'number' ? a.seed : Math.floor(Math.random() * 1e6), ...(typeof a.cols === 'number' && { cols: a.cols }), ...(typeof a.rows === 'number' && { rows: a.rows }), ...(typeof a.title === 'string' && { title: a.title }) });
+      if (a.gen && typeof a.gen === 'object') Object.assign(base.gen, a.gen);
+      if (typeof a.map === 'string' && a.map) {
+        const mp = mapForSettlement(p, id, a.map), mspec = map.parseMap(JSON.parse(readFileSync(mp.path, 'utf8')));
+        const scale = Math.round(((base.scale.perCell * settlement.feetIn(base.scale.unit)) / (mspec.scale.perCell * settlement.feetIn(mspec.scale.unit))) * 1e4) / 1e4;
+        base.underlay = { map: mp.rel, origin: Array.isArray(a.at) ? [Number(a.at[0]), Number(a.at[1])] : [0, 0], scale };
+      }
+      // the underlay is read from the settlement's own folder: create the file first, then lay it out
+      const empty = settlement.parseSettlement(base);
+      createSettlement(p, empty);
+      const m = a.mode === 'empty' ? empty : updateSettlement(p, id, m => settlement.generateSettlement(m, readSettlementUnderlay(p, id, m) ?? {}));
+      return [text({ file: `art/settlements/${id}/settlement.json`, summary: describeSettlement(m) })];
+    },
+  },
+  {
+    name: 'settlement_update', description: 'Change a settlement\'s settings (not its contents): title, kind, ground (grass|dirt|sand|snow|stone), cols, rows, seed, gen (generator settings, used by settlement_generate), grid: {show, size (cells), sub}, grid_size (in the sheet\'s unit, e.g. 10 ft), scale: {perCell, unit}, plan_cell (feet in a floor-plan cell, default 5), numbers, scale_bar, compass, legend, furniture: {place: over|outside|auto, side?: bottom|right}, underlay: {map, origin, scale, theme?} or null.',
+    inputSchema: obj({ id: str, title: str, kind: str, ground: str, cols: num, rows: num, seed: num, gen: { type: 'object' }, grid: { type: 'object' }, grid_size: num, scale: { type: 'object' }, plan_cell: num, numbers: bool, scale_bar: bool, compass: bool, legend: bool, furniture: { type: 'object' }, underlay: { type: ['object', 'null'] } }, ['id']),
+    async run(a, p) {
+      const m = updateSettlement(p, a.id as string, m => {
+        for (const k of ['gen', 'grid', 'scale'] as const) if (a[k] && typeof a[k] === 'object') Object.assign(m[k], a[k]);
+        if (typeof a.grid_size === 'number') m.grid = { ...m.grid, show: true, size: a.grid_size / m.scale.perCell };
+        if (typeof a.plan_cell === 'number') m.interior.perCell = a.plan_cell;
+        if (typeof a.title === 'string') { if (a.title) m.title = a.title; else delete m.title; }
+        for (const k of ['kind', 'ground'] as const) if (typeof a[k] === 'string') (m as unknown as Json)[k] = a[k];
+        for (const k of ['cols', 'rows', 'seed'] as const) if (typeof a[k] === 'number') m[k] = a[k] as number;
+        if (typeof a.numbers === 'boolean') m.numbers = a.numbers;
+        if (typeof a.scale_bar === 'boolean') m.scaleBar = a.scale_bar;
+        if (typeof a.compass === 'boolean') m.compass = a.compass;
+        if (typeof a.legend === 'boolean') m.legend = a.legend;
+        if (a.furniture && typeof a.furniture === 'object') m.furniture = a.furniture as settlement.SettlementSpec['furniture'];
+        if (a.underlay === null) delete m.underlay; else if (a.underlay && typeof a.underlay === 'object') m.underlay = a.underlay as settlement.SettlementSpec['underlay'];
+      });
+      return [text(describeSettlement(m).split('\n').slice(0, 3).join('\n'))];
+    },
+  },
+  {
+    name: 'settlement_generate', description: 'Lay the settlement out again from its seed, kind and gen settings (pass seed / kind / gen / cols / rows to change them first). Everything the generator wrote before (origin "gen") is replaced; entries made by hand are kept and kept clear of. With gen.interiors every building gets floors.',
+    inputSchema: obj({ id: str, seed: num, kind: str, gen: { type: 'object' }, cols: num, rows: num }, ['id']),
+    async run(a, p) {
+      const id = a.id as string;
+      const m = updateSettlement(p, id, m => {
+        if (typeof a.seed === 'number') m.seed = a.seed;
+        if (typeof a.kind === 'string') m.kind = a.kind as settlement.SettlementKind;
+        if (a.gen && typeof a.gen === 'object') Object.assign(m.gen, a.gen);
+        if (typeof a.cols === 'number') m.cols = a.cols;
+        if (typeof a.rows === 'number') m.rows = a.rows;
+        const s = settlement.parseSettlement(m);
+        return settlement.generateSettlement(s, readSettlementUnderlay(p, id, s) ?? {});
+      });
+      return [text(describeSettlement(m))];
+    },
+  },
+  {
+    name: 'settlement_edit', description: 'Change a settlement\'s contents, in order. Site coordinates are cells (x right, y down; settlement_get says the cell size); a building\'s floor coordinates are plan cells (5 ft) from the footprint\'s top-left corner before it is turned. ops (each {op, …fields}): building.add {kind, x, y, w, h, shape?: rect|L|T|circle|octagon|poly, points?, wing?: [w,h] (L/T), angle? (degrees), roof?: gable|hip|flat|battlement|cone|thatch|none, stories?, label?, number? (false hides it), href?, id?} | building.set {id, …the same} | building.move {id, x, y} | building.rm {id} | interior {id, seed?, stories?} (lay its floors out: rooms, doors, windows, stairs, furniture by kind) | interior.clear {id} | floor.add {building, level (0 ground, 1 up, -1 cellar), name?} | floor.rm {building, level} | room.add {building, level, shape?: rect|circle|octagon|cave|poly, x, y, w, h, points?, label?, id?} | room.set {building, level, id, …} | room.rm {building, level, id} | connect {building, level, a, b, kind?: door|secret|locked|portcullis|arch|open, at?, width?} (a door in the wall two rooms share) | disconnect {building, level, index} | door {building, level, at: [x,y], kind?, width?} (in the outer wall) | window {building, level, at, width?} | fixture.add {building, level, kind, x, y (its centre), w?, h? (default: the kind\'s true size), angle?, label?} | fixture.rm {building, level, index} | prop.add {kind, x, y, w?, h?, angle?} (a fixture on the site: well, cart, stall, …) | prop.rm {index} | road.add {kind: highway|street|lane|alley|path|track, points: [x,y,…], width?, curve?: smooth, label?} | water.add {kind: river|stream|canal|moat (lines, width?) | pond|lake|sea (areas), points} | wall.add {kind: curtain|stone|palisade|fence|hedge|drystone|ruined, points, closed?, thickness?, towers?: {shape: round|square, size?, at?: "corners"|[vertex indices], every? (cells)}} | wall.gate {index, at, kind?: gatehouse|gate|postern|opening, width?, drawbridge?} | area.add {kind: field|garden|orchard|wood|scrub|marsh|graveyard|market|square|yard|paddock|rubble, points, label?} | tree.add {kind: tree|conifer|bush|rock|boulder|stump|reeds, x, y, size?} | tree.scatter {kind, area: [x,y,…], count, seed?} | label {text, x, y, kind?: name|note|area|street, size?, angle?, href?} | symbol {kind, x, y, scale?, angle?} | road.rm, water.rm, wall.rm, area.rm, tree.rm, label.rm, symbol.rm {index}.',
+    inputSchema: obj({ id: str, ops: { type: 'array', items: { type: 'object' } } }, ['id', 'ops']),
+    async run(a, p) {
+      const done: string[] = [];
+      const m = updateSettlement(p, a.id as string, m => { for (const op of (a.ops as settlement.SettlementOp[]) ?? []) done.push(settlement.editSettlement(m, op)); });
+      return [text([...done, ...settlementWarningLines(m)].join('\n'))];
+    },
+  },
+  {
+    name: 'settlement_check', description: 'Check a settlement: every error in its file with the JSON path, then drawing warnings (buildings laid over each other, standing in water or across a road, a gate far from its wall, a room outside its footprint, furniture outside the building or on other furniture, stairs that meet nothing on the next floor, marks off the sheet).',
+    inputSchema: obj({ id: str }, ['id']),
+    async run(a, p) { return [text(checkSettlementFile(p, a.id as string))]; },
+  },
+  {
+    name: 'settlement_facts', description: 'A settlement read back as numbers: counts by kind, each building\'s box, size, storeys and floors (rooms, doors, windows, furniture by kind), each wall\'s length, towers and gates, each road\'s length, water and areas.',
+    inputSchema: obj({ id: str }, ['id']),
+    async run(a, p) { return [text(settlement.settlementFacts(readSettlement(p, a.id as string)))]; },
+  },
+  {
+    name: 'settlement_render', description: 'Render a settlement to art/settlements/<id>/out/ (SVG + PNG) and return the PNG to look at. view: site (default) or plan (one building\'s floor: building id, floor level, default the ground floor). buildings (site): roofs (blocked out, default), outline, or interior (each building cut away to its ground floor). theme: color (default), bw or both. plans: true renders the site and every floor of every building (images not returned). layers turns layers off/on (site: ground, underlay, areas, water, roads, bridges, walls, buildings, trees, props, grid, symbols, numbers, labels, legend, title, scale, compass; plan: floor, grid, walls, doors, windows, fixtures, numbers, labels, …). ppu: pixels per cell (default 24 on the site, 40 on a plan; the returned image is smaller unless set).',
+    inputSchema: obj({ id: str, view: { type: 'string', enum: ['site', 'plan'] }, building: str, floor: num, buildings: { type: 'string', enum: [...settlement.BUILDING_MODES] }, theme: { type: 'string', enum: ['color', 'bw', 'both'] }, plans: bool, ppu: num, layers: { type: 'object' } }, ['id']),
+    async run(a, p) {
+      const id = a.id as string, themes: settlement.SettlementTheme[] = a.theme === 'both' ? ['color', 'bw'] : [a.theme === 'bw' ? 'bw' : 'color'];
+      const o = { themes, ...(a.view === 'plan' || typeof a.building === 'string' ? { view: 'plan' as const } : {}), ...(typeof a.building === 'string' && { building: a.building }), ...(typeof a.floor === 'number' && { floor: a.floor }), ...(typeof a.buildings === 'string' && { buildings: a.buildings as settlement.BuildingMode }), layers: a.layers as Partial<Record<settlement.SettlementLayer, boolean>> | undefined };
+      const rs = await renderSettlementFiles(p, id, { ...o, plans: a.plans === true, ppu: typeof a.ppu === 'number' ? a.ppu : undefined });
+      const files = rs.flatMap(r => r.files.map(f => projRel(p, f)));
+      if (a.plans === true) return [text({ renders: rs.length, files })];
+      const look = typeof a.ppu === 'number' ? files.filter(f => f.endsWith('.png')) : (await renderSettlementFiles(p, id, { ...o, ppu: o.view === 'plan' ? 28 : Math.max(4, Math.min(16, Math.round(1100 / Math.max(readSettlement(p, id).cols, readSettlement(p, id).rows)))), formats: ['png'], out: join(p.art, 'settlements', id, 'out', 'preview') })).flatMap(r => r.files.map(f => projRel(p, f)));
+      return [text({ ...rs[0], files }), ...look.map(f => pngFile(join(p.root, f)))];
     },
   },
 ];

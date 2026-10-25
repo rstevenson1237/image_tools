@@ -2,4 +2,4 @@
 from .client import Artgen, ArtgenError, Effect, Render, Result, Session, Sheet, Texture, ToolResult, find_cli, find_mcp
 
 __all__ = ["Artgen", "ArtgenError", "Effect", "Render", "Result", "Session", "Sheet", "Texture", "ToolResult", "find_cli", "find_mcp"]
-__version__ = "0.10.0"
+__version__ = "0.11.0"

@@ -1,14 +1,15 @@
 /**
- * `artgen map …` and `artgen dungeon …`: the commands of the map and dungeon engines. They are a module of their own,
+ * `artgen map …`, `artgen dungeon …` and `artgen settlement …`: the commands of the map, dungeon and settlement engines. They are a module of their own,
  * with `formats`, so the maps-only bundle (`artgen-maps.js`, see `maps-bin.ts`) holds them without the pixel-art pipeline.
  *
  * Each command names its map by id (in a project: `art/maps/<id>/map.json`) or by `--file <path>`, which needs no
  * project and renders beside the file unless `--out` says otherwise.
  */
-import { dungeon, map, parseCrop, parseFit, type Crop, type Fit, type SyncReport } from 'artgen-core/maps';
+import { dungeon, map, parseCrop, parseFit, settlement, type Crop, type Fit, type SyncReport } from 'artgen-core/maps';
 import { checkDungeonFile, warningLines, cornerPoint, describeDungeonFacts, corridorEnd, createDungeon, describeDungeon, doorPair, dungeonSummary, gridMode, listDungeons, readDungeon, renderDungeonFiles, updateDungeon } from './dungeon.ts';
 import { checkMapFile, createMap, describeMap, describeMapFacts, factsQuery, listMaps, mapSummary, numbers, onOff, parseLayers, readMap, renderMapFiles, shapeFrom, updateMap } from './map.ts';
 import { fileId, readJson, requireProject } from './projectfs.ts';
+import { checkSettlementFile, createSettlement, describeSettlement, describeSettlementFacts, listSettlements, mapForSettlement, readSettlement, readSettlementUnderlay, renderSettlementFiles, settlementSummary, settlementWarningLines, updateSettlement } from './settlement.ts';
 
 declare const __ARTGEN_VERSION__: string | undefined;
 declare const __ARTGEN_SHA__: string | undefined;
@@ -79,8 +80,28 @@ export const MAP_USAGE = `       artgen map new <id> [--preset regional|local] [
        artgen dungeon facts <id> [--json]   each room's box and doors, each corridor's ends and length, the exits, the overlapping rooms and the rooms no corridor reaches
        artgen dungeon render <id> [--format svg|png|both] [--ppu 40 | --fit 180x260mm|px] [--page-scale px/mm] [--crop x,y,w,h] [--room id|F.3 … [--margin 2]] [--layers grid=off,labels=off] [--out dir] | show <id> | list
          (--room, repeated, crops round those rooms, their doors and the first --margin cells of each corridor)
-       artgen formats   (the map and dungeon file format versions this artgen reads; a newer file is refused)
-       (map and dungeon commands take --file <path> in place of <id>: no project needed; renders go beside the file or to --out)`;
+       artgen settlement new <id> [--kind hamlet|village|town|city|castle] [--size 80x60] [--seed n] [--title "..."] [--empty] [--interiors] [--map <map id|path> --at x,y]
+                  a village, town or castle laid out from a seed (--empty: a blank sheet to draw on); --map sets a terrain map under it, its water, woods and slopes shaping the layout
+       artgen settlement gen <id> [--seed n] [--kind k] [--size WxH] [--buildings n] [--density f] [--streets organic|grid|radial] [--wall none|palisade|stone] [--water none|river|lake|coast|moat]
+                  [--trees f] [--fields f] [--market on|off] [--castle on|off] [--interiors on|off]   lays it out again; entries drawn by hand (no origin) are kept
+       artgen settlement building <id> add <kind> --at x,y --size WxH [--shape rect|L|T|circle|octagon|poly] [--points x,y,…] [--wing w,h] [--angle deg] [--roof r] [--stories n] [--label "..."] [--number n|off] [--building-id b9] [--href url]
+                  | set <bid> [the same flags] | move <bid> --at x,y | rm <bid>      (kinds: ${settlement.BUILDING_KINDS.join(', ')}; roofs: ${settlement.ROOFS.join(', ')})
+       artgen settlement interior <id> <bid> [--seed n] [--stories n] | interior <id> <bid> clear     lay a building's floors out (rooms, doors, windows, stairs, furniture), or clear them
+       artgen settlement floor <id> <bid> add|rm --level n [--name "..."] | room <id> <bid> add <shape> --at x,y --size WxH [--level n] [--label "..."] [--room-id r] | room <id> <bid> set|rm <rid> [--level n] …
+       artgen settlement connect <id> <bid> <room> <room> [--level n] [--kind door|secret|locked|portcullis|arch|open] [--at x,y] [--width n] | disconnect <id> <bid> <i> [--level n]
+       artgen settlement door|window <id> <bid> --at x,y [--level n] [--kind k] [--width n]      a door or window in the outer wall (plan cells from the footprint's top-left corner)
+       artgen settlement fixture <id> <bid> add <kind> --at x,y [--level n] [--size WxH] [--angle deg] [--label "..."] | rm <i> [--level n] | prop <id> add <kind> --at x,y [--size WxH] [--angle deg] | prop <id> rm <i> | fixtures
+       artgen settlement road <id> add highway|street|lane|alley|path|track --points x,y,… [--width n] [--curve smooth] [--label "..."] | water <id> add river|stream|canal|moat|pond|lake|sea --points x,y,… [--width n]
+       artgen settlement wall <id> add curtain|stone|palisade|fence|hedge|drystone|ruined --points x,y,… [--closed] [--thickness n] [--towers round|square [--tower-size n] [--tower-every n]]
+                  | wall <id> gate <i> --at x,y [--kind gatehouse|gate|postern|opening] [--width n] [--drawbridge] | area <id> add <kind> --points x,y,… [--label "..."] | tree <id> add <kind> --at x,y [--size n] | tree <id> scatter <kind> --area x,y,… --count n
+                  | road|water|wall|area|tree <id> rm <i>      (areas: ${settlement.AREA_KINDS.join(', ')}; trees: ${settlement.TREE_KINDS.join(', ')})
+       artgen settlement grid <id> [10|5|none] [--sub on|off] | style <id> [--title "..."] [--ground grass|dirt|sand|snow|stone] [--numbers on|off] [--scale-bar on|off] [--compass on|off] [--legend on|off] [--per-cell n] [--unit ft] [--plan-cell n] [--furniture over|outside|auto]
+       artgen settlement label <id> "Text" --at x,y [--kind name|note|area|street] [--size f] [--angle deg] | symbol <id> <kind> --at x,y [--scale f] [--angle deg] | overlay <id> rm label|symbol <i> | symbols
+       artgen settlement check <id> [--json] | facts <id> [--json] | show <id> | list
+       artgen settlement render <id> [--view site|plan] [--building bid [--floor n]] [--plans] [--buildings roofs|outline|interior] [--theme color|bw|both] [--format svg|png|both] [--ppu n | --fit 180x260mm] [--crop x,y,w,h] [--layers grid=off] [--out dir]
+                  the site (roofs, outlines, or cut away to the ground floor), one building's floor plan, or with --plans the site and every floor of every building
+       artgen formats   (the map, dungeon and settlement file format versions this artgen reads; a newer file is refused)
+       (map, dungeon and settlement commands take --file <path> in place of <id>: no project needed; renders go beside the file or to --out)`;
 
 /** A `--json` result of a map or dungeon command with the `version` of the format it reports on (a list becomes `{ version, items }`). */
 const withVersion = (data: unknown, version: number): unknown =>
@@ -580,23 +601,202 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
   throw new Error('dungeon: new | gen | room | block | link | unlink | door | connect | disconnect | grid | style | label | symbol | symbols | overlay | check | fit | render | show | facts | sync | list (artgen --help)');
 }
 
-/** `artgen formats [--json]`: the map and dungeon file format versions this artgen reads and writes. */
+/** `x,y` (cells) as a point. */
+function pointFlag(args: string[], name: string, required = true): [number, number] | undefined {
+  const v = flag(args, name);
+  if (v === undefined) { if (required) throw new Error(`${name} x,y is required`); return undefined; }
+  return dungeon.parsePoint(v);
+}
+
+/** The settlement building flags (`--shape`, `--angle`, …) as edit fields. */
+function buildingFields(args: string[]): Record<string, unknown> {
+  const o: Record<string, unknown> = {};
+  for (const k of ['shape', 'roof', 'label', 'href', 'kind'] as const) { const v = flag(args, `--${k}`); if (v !== undefined) o[k] = v; }
+  for (const k of ['angle', 'stories'] as const) { const v = num(args, `--${k}`); if (v !== undefined) o[k] = v; }
+  const nb = roomNumber(args);
+  if (nb !== undefined) o.number = nb;
+  const pts = flag(args, '--points'), wing = flag(args, '--wing'), at = pointFlag(args, '--at', false), size = sizeFlag(args, '--size');
+  if (pts !== undefined) o.points = numbers(pts, '--points');
+  if (wing !== undefined) o.wing = numbers(wing, '--wing');
+  if (at) [o.x, o.y] = at;
+  if (size) [o.w, o.h] = size;
+  return o;
+}
+
+/** `artgen settlement …` (villages, towns and castles, settlement.ts). */
+export async function settlementCommand(sub: string | undefined, args: string[], emit: (human: string, data: unknown) => void): Promise<number> {
+  const print = (human: string, data: unknown) => emit(human, withVersion(data, settlement.SETTLEMENT_FORMAT));
+  const file = flag(args, '--file'), p = file || sub === 'symbols' || sub === 'fixtures' ? null : requireProject(flag(args, '--root'));
+  const pos = args.filter((a, i) => !a.startsWith('--') && !(i > 0 && args[i - 1].startsWith('--') && !['--json', '--closed', '--drawbridge', '--empty', '--interiors', '--plans', '--force'].includes(args[i - 1]))).slice(1);
+  if (file && sub !== 'new') pos.unshift('');   // path mode: the file stands where the id would be
+  const id = pos[0];
+  const ref = (what: string) => { if (file) return { file }; if (!id) throw new Error(`settlement ${sub}: ${what}`); return id; };
+  const next = (i?: string) => file ? `next: artgen settlement render --file ${file}` : `next: artgen settlement render ${i ?? id}`;
+  const level = num(args, '--level') ?? 0;
+  /** Apply edit ops to the file, print what each did and any drawing warnings. */
+  const edit = (...ops: settlement.SettlementOp[]) => {
+    const lines: string[] = [];
+    const m = updateSettlement(p, ref('<id>'), m => { for (const o of ops) lines.push(settlement.editSettlement(m, o)); });
+    print([...lines, ...settlementWarningLines(m), next(m.id)].join('\n'), { done: lines, settlement: settlementSummary(m) });
+    return 0;
+  };
+  if (sub === 'list') { const ss = file ? [settlementSummary(readSettlement(null, { file }))] : listSettlements(p!); print(ss.length ? ss.map(s => `${s.id.padEnd(16)} ${s.kind.padEnd(8)} ${s.size.padEnd(8)} ${s.buildings} buildings (${s.interiors} with floors), ${s.roads} roads, ${s.walls} walls${s.title ? `  "${s.title}"` : ''}`).join('\n') : 'no settlements yet: artgen settlement new <id>', ss); return 0; }
+  if (sub === 'symbols') { print(Object.entries(settlement.SYMBOLS).map(([k, v]) => `${k.padEnd(12)} ${v.name}`).join('\n'), settlement.SYMBOL_KINDS); return 0; }
+  if (sub === 'fixtures') { print(Object.entries(settlement.FIXTURES).map(([k, v]) => `${k.padEnd(14)} ${v.group.padEnd(10)} ${String(v.ft[0]).padStart(3)}×${String(v.ft[1]).padEnd(4)} ft  ${v.name}`).join('\n'), Object.entries(settlement.FIXTURES).map(([kind, v]) => ({ kind, name: v.name, group: v.group, ft: v.ft }))); return 0; }
+  if (sub === 'show') { const m = readSettlement(p, ref('<id>')); print(describeSettlement(m), m); return 0; }
+  const genFlags = (m: settlement.SettlementSpec) => {
+    if (num(args, '--seed') !== undefined) m.seed = num(args, '--seed')!;
+    const sz = sizeFlag(args, '--size');
+    if (sz) [m.cols, m.rows] = sz;
+    const kind = flag(args, '--kind');
+    if (kind !== undefined) { if (!settlement.SETTLEMENT_KINDS.includes(kind as settlement.SettlementKind)) throw new Error(`--kind: ${settlement.SETTLEMENT_KINDS.join(', ')}`); m.kind = kind as settlement.SettlementKind; }
+    for (const k of ['buildings', 'density', 'trees', 'fields'] as const) { const v = num(args, `--${k}`); if (v !== undefined) m.gen[k] = v; }
+    for (const k of ['streets', 'wall', 'water'] as const) { const v = flag(args, `--${k}`); if (v !== undefined) (m.gen as Record<string, unknown>)[k] = v; }
+    for (const k of ['market', 'castle', 'interiors'] as const) { const v = onOff(flag(args, `--${k}`)); if (v !== undefined) m.gen[k] = v; }
+  };
+  const generate = (m: settlement.SettlementSpec, at: string | { file: string }) => {
+    const u = readSettlementUnderlay(p, at, m);
+    return settlement.generateSettlement(m, u ?? {});
+  };
+  if (sub === 'new') {
+    const sid = file ? id ?? fileId(file) : ref('<id> is required') as string, kind = (flag(args, '--kind') ?? 'village') as settlement.SettlementKind;
+    if (!settlement.SETTLEMENT_KINDS.includes(kind)) throw new Error(`--kind: ${settlement.SETTLEMENT_KINDS.join(', ')}`);
+    const base = settlement.newSettlement(sid, kind, { seed: Math.floor(Math.random() * 1e6), ...(flag(args, '--title') && { title: flag(args, '--title') }) });
+    genFlags(base);
+    if (args.includes('--interiors')) base.gen.interiors = true;
+    const at = file ? { file } : sid, mapRef = flag(args, '--map');
+    if (mapRef) {
+      const mp = mapForSettlement(p, at, mapRef), mspec = map.parseMap(readJson(mp.path)), origin = pointFlag(args, '--at') ?? [0, 0];
+      const scale = Math.round(((base.scale.perCell * settlement.feetIn(base.scale.unit)) / (mspec.scale.perCell * settlement.feetIn(mspec.scale.unit))) * 1e4) / 1e4;
+      base.underlay = { map: mp.rel, origin, scale };
+    }
+    const m = args.includes('--empty') ? settlement.parseSettlement(base) : generate(settlement.parseSettlement(base), at);
+    const r = createSettlement(p, m, args.includes('--force'), file ? { file } : undefined);
+    print(`${r.file}\n${describeSettlement(r.settlement)}\n${next(r.settlement.id)}`, { file: r.file, settlement: r.settlement });
+    return 0;
+  }
+  if (sub === 'gen') {
+    const m = updateSettlement(p, ref('<id>'), m => { genFlags(m); return generate(settlement.parseSettlement(m), file ? { file } : id); });
+    print(`${describeSettlement(m)}\n${next(m.id)}`, m);
+    return 0;
+  }
+  if (sub === 'building') {
+    const act = pos[1], bid = pos[2];
+    if (act === 'add') { const kind = pos[2]; if (!kind) throw new Error('settlement building <id> add <kind> --at x,y --size WxH'); const o = buildingFields(args); return edit({ op: 'building.add', ...o, kind, ...(flag(args, '--building-id') && { id: flag(args, '--building-id') }) }); }
+    if (act === 'set') return edit({ op: 'building.set', id: bid, ...buildingFields(args) });
+    if (act === 'move') { const at = pointFlag(args, '--at')!; return edit({ op: 'building.move', id: bid, x: at[0], y: at[1] }); }
+    if (act === 'rm') return edit({ op: 'building.rm', id: bid });
+    throw new Error('settlement building <id> add|set|move|rm …');
+  }
+  if (sub === 'interior') return pos[2] === 'clear' ? edit({ op: 'interior.clear', id: pos[1] }) : edit({ op: 'interior', id: pos[1], ...(num(args, '--seed') !== undefined && { seed: num(args, '--seed') }), ...(num(args, '--stories') !== undefined && { stories: num(args, '--stories') }) });
+  if (sub === 'floor') {
+    const act = pos[2];
+    if (act !== 'add' && act !== 'rm') throw new Error('settlement floor <id> <bid> add|rm --level n [--name "..."]');
+    return edit({ op: `floor.${act}`, building: pos[1], level, ...(flag(args, '--name') && { name: flag(args, '--name') }) });
+  }
+  if (sub === 'room') {
+    const [, bid, act, x] = pos, size = sizeFlag(args, '--size'), at = pointFlag(args, '--at', false);
+    if (act === 'add') return edit({ op: 'room.add', building: bid, level, shape: x ?? 'rect', ...(at && { x: at[0], y: at[1] }), ...(size && { w: size[0], h: size[1] }), ...(flag(args, '--points') && { points: numbers(flag(args, '--points'), '--points') }), ...(flag(args, '--label') && { label: flag(args, '--label') }), ...(flag(args, '--room-id') && { id: flag(args, '--room-id') }) });
+    if (act === 'set') return edit({ op: 'room.set', building: bid, level, id: x, ...(at && { x: at[0], y: at[1] }), ...(size && { w: size[0], h: size[1] }), ...(flag(args, '--label') !== undefined && { label: flag(args, '--label') }) });
+    if (act === 'rm') return edit({ op: 'room.rm', building: bid, level, id: x });
+    throw new Error('settlement room <id> <bid> add|set|rm …');
+  }
+  if (sub === 'connect') return edit({ op: 'connect', building: pos[1], level, a: pos[2], b: pos[3], ...(flag(args, '--kind') && { kind: flag(args, '--kind') }), ...(pointFlag(args, '--at', false) && { at: pointFlag(args, '--at') }), ...(num(args, '--width') !== undefined && { width: num(args, '--width') }) });
+  if (sub === 'disconnect') return edit({ op: 'disconnect', building: pos[1], level, index: Number(pos[2]) });
+  if (sub === 'door' || sub === 'window') return edit({ op: sub, building: pos[1], level, at: pointFlag(args, '--at'), ...(flag(args, '--kind') && { kind: flag(args, '--kind') }), ...(num(args, '--width') !== undefined && { width: num(args, '--width') }) });
+  if (sub === 'fixture' || sub === 'prop') {
+    const prop = sub === 'prop', act = prop ? pos[1] : pos[2], what = prop ? pos[2] : pos[3], size = sizeFlag(args, '--size');
+    if (act === 'add') { const at = pointFlag(args, '--at')!; return edit({ op: prop ? 'prop.add' : 'fixture.add', ...(!prop && { building: pos[1], level }), kind: what, x: at[0], y: at[1], ...(size && { w: size[0], h: size[1] }), ...(num(args, '--angle') !== undefined && { angle: num(args, '--angle') }), ...(flag(args, '--label') && { label: flag(args, '--label') }) }); }
+    if (act === 'rm') return edit({ op: prop ? 'prop.rm' : 'fixture.rm', ...(!prop && { building: pos[1], level }), index: Number(what) });
+    throw new Error(prop ? 'settlement prop <id> add <kind> --at x,y | rm <i>' : 'settlement fixture <id> <bid> add <kind> --at x,y [--level n] | rm <i>');
+  }
+  if (sub === 'road' || sub === 'water' || sub === 'wall' || sub === 'area' || sub === 'tree') {
+    const act = pos[1], what = pos[2];
+    if (act === 'rm') return edit({ op: `${sub}.rm`, index: Number(what) });
+    if (sub === 'wall' && act === 'gate') return edit({ op: 'wall.gate', index: Number(what), at: pointFlag(args, '--at'), kind: flag(args, '--kind') ?? 'gate', ...(num(args, '--width') !== undefined && { width: num(args, '--width') }), ...(args.includes('--drawbridge') && { drawbridge: true }) });
+    if (sub === 'tree' && act === 'scatter') return edit({ op: 'tree.scatter', kind: what ?? 'tree', area: numbers(flag(args, '--area'), '--area'), count: num(args, '--count') ?? 10, ...(num(args, '--seed') !== undefined && { seed: num(args, '--seed') }) });
+    if (act !== 'add') throw new Error(`settlement ${sub} <id> add <kind> … | rm <i>`);
+    if (sub === 'tree') { const at = pointFlag(args, '--at')!; return edit({ op: 'tree.add', kind: what ?? 'tree', x: at[0], y: at[1], ...(num(args, '--size') !== undefined && { size: num(args, '--size') }) }); }
+    const o: settlement.SettlementOp = { op: `${sub}.add`, kind: what, points: numbers(flag(args, '--points'), '--points') };
+    if (num(args, '--width') !== undefined) o.width = num(args, '--width');
+    if (flag(args, '--curve')) o.curve = flag(args, '--curve');
+    if (flag(args, '--label')) o.label = flag(args, '--label');
+    if (sub === 'wall') {
+      if (args.includes('--closed')) o.closed = true;
+      if (num(args, '--thickness') !== undefined) o.thickness = num(args, '--thickness');
+      const tw = flag(args, '--towers');
+      if (tw) o.towers = { shape: tw, ...(num(args, '--tower-size') !== undefined && { size: num(args, '--tower-size') }), ...(num(args, '--tower-every') !== undefined && { every: num(args, '--tower-every') }) };
+    }
+    return edit(o);
+  }
+  if (sub === 'label') { const at = pointFlag(args, '--at')!; return edit({ op: 'label', text: pos[1], x: at[0], y: at[1], kind: flag(args, '--kind') ?? 'name', ...(num(args, '--size') !== undefined && { size: num(args, '--size') }), ...(num(args, '--angle') !== undefined && { angle: num(args, '--angle') }), ...(flag(args, '--href') && { href: flag(args, '--href') }) }); }
+  if (sub === 'symbol') { const at = pointFlag(args, '--at')!; return edit({ op: 'symbol', kind: pos[1], x: at[0], y: at[1], ...(num(args, '--scale') !== undefined && { scale: num(args, '--scale') }), ...(num(args, '--angle') !== undefined && { angle: num(args, '--angle') }) }); }
+  if (sub === 'overlay') { if (pos[1] !== 'rm' || !['label', 'symbol'].includes(pos[2])) throw new Error('settlement overlay <id> rm label|symbol <i>'); return edit({ op: `${pos[2]}.rm`, index: Number(pos[3]) }); }
+  if (sub === 'grid') {
+    const m = updateSettlement(p, ref('<id>'), m => {
+      const mode = pos[1];
+      if (mode === 'none' || mode === 'off') m.grid.show = false;
+      else if (mode !== undefined) { const v = Number(mode); if (!(v > 0)) throw new Error('grid: a size in the sheet\'s unit (10), or none'); m.grid = { ...m.grid, show: true, size: v / m.scale.perCell }; }
+      const sub2 = onOff(flag(args, '--sub')); if (sub2 !== undefined) m.grid.sub = sub2;
+    });
+    print(`grid ${m.grid.show ? `every ${m.grid.size * m.scale.perCell} ${m.scale.unit}${m.grid.sub ? ', sub-grid' : ''}` : 'off'}\n${next(m.id)}`, m.grid);
+    return 0;
+  }
+  if (sub === 'style') {
+    const m = updateSettlement(p, ref('<id>'), m => {
+      const t = flag(args, '--title'); if (t !== undefined) { if (t) m.title = t; else delete m.title; }
+      const ground = flag(args, '--ground'); if (ground !== undefined) m.ground = ground as settlement.Ground;
+      for (const [f, k] of [['--numbers', 'numbers'], ['--scale-bar', 'scaleBar'], ['--compass', 'compass'], ['--legend', 'legend']] as const) { const v = onOff(flag(args, f)); if (v !== undefined) m[k] = v; }
+      if (num(args, '--per-cell') !== undefined) m.scale.perCell = num(args, '--per-cell')!;
+      if (flag(args, '--unit')) m.scale.unit = flag(args, '--unit')!;
+      if (num(args, '--plan-cell') !== undefined) m.interior.perCell = num(args, '--plan-cell')!;
+      const place = flag(args, '--furniture'); if (place) m.furniture = { place: place as 'over', ...(flag(args, '--furniture-side') && { side: flag(args, '--furniture-side') as 'bottom' }) };
+    });
+    print(`${describeSettlement(m).split('\n').slice(0, 3).join('\n')}\n${next(m.id)}`, m);
+    return 0;
+  }
+  if (sub === 'check') {
+    const r = checkSettlementFile(p, ref('<id>'));
+    print([`${r.file}: ${r.ok ? 'ok' : `${r.errors.length} error${r.errors.length === 1 ? '' : 's'}`}${r.warnings.length ? `, ${r.warnings.length} warning${r.warnings.length === 1 ? '' : 's'}` : ''}`, ...r.errors.map(e => `  error: ${e.path || '(file)'}: ${e.message}`), ...r.warnings.map(w => `  warning: ${w.path}: ${w.message}`)].join('\n'), r);
+    return r.ok ? 0 : 1;
+  }
+  if (sub === 'facts') { const f = settlement.settlementFacts(readSettlement(p, ref('<id>'))); print(describeSettlementFacts(f), f); return 0; }
+  if (sub === 'render') {
+    const format = flag(args, '--format') ?? 'both', theme = flag(args, '--theme') ?? 'color', view = flag(args, '--view'), modeB = flag(args, '--buildings');
+    if (!['svg', 'png', 'both'].includes(format)) throw new Error('--format: svg, png or both');
+    if (!['color', 'bw', 'both'].includes(theme)) throw new Error('--theme: color, bw or both');
+    if (view !== undefined && !settlement.VIEWS.includes(view as settlement.SettlementView)) throw new Error('--view: site or plan');
+    if (modeB !== undefined && !settlement.BUILDING_MODES.includes(modeB as settlement.BuildingMode)) throw new Error(`--buildings: ${settlement.BUILDING_MODES.join(', ')}`);
+    const rs = await renderSettlementFiles(p, ref('<id>'), {
+      formats: format === 'both' ? ['svg', 'png'] : [format as 'svg' | 'png'], themes: theme === 'both' ? ['color', 'bw'] : [theme as 'color' | 'bw'],
+      ...(view && { view: view as settlement.SettlementView }), ...(flag(args, '--building') && { building: flag(args, '--building') }), ...(num(args, '--floor') !== undefined && { floor: num(args, '--floor') }),
+      ...(modeB && { buildings: modeB as settlement.BuildingMode }), plans: args.includes('--plans'),
+      ppu: num(args, '--ppu'), pageScale: pageScaleFlag(args), ...viewFlags(args, 1), layers: parseLayers(flag(args, '--layers'), [...new Set([...settlement.SITE_LAYERS, ...settlement.PLAN_LAYERS])]), out: flag(args, '--out'),
+    });
+    print(rs.map(r => [`${file ?? id} ${r.view === 'plan' ? `${r.building} level ${r.floor ?? 0}` : 'site'}: ${r.size.join('×')} px, ${Math.round(r.ppu * 100) / 100} px a cell`, ...r.files.map(f => `  ${f}`)].join('\n')).join('\n'), rs.length === 1 ? rs[0] : { renders: rs });
+    return 0;
+  }
+  throw new Error('settlement: new | gen | building | interior | floor | room | connect | disconnect | door | window | fixture | prop | road | water | wall | area | tree | grid | style | label | symbol | overlay | check | facts | render | show | list | fixtures | symbols (artgen --help)');
+}
+
+/** `artgen formats [--json]`: the map, dungeon and settlement file format versions this artgen reads and writes. */
 export function formatsCommand(emit: (human: string, data: unknown) => void): number {
-  const formats = { map: map.MAP_FORMAT, dungeon: dungeon.DUNGEON_FORMAT };
+  const formats = { map: map.MAP_FORMAT, dungeon: dungeon.DUNGEON_FORMAT, settlement: settlement.SETTLEMENT_FORMAT };
   emit(Object.entries(formats).map(([k, v]) => `${k} ${v}`).join('\n'), formats);
   return 0;
 }
 
-/** Entry point of the maps-only bundle (`artgen-maps.js`): `map`, `dungeon` and `formats`, nothing else. */
+/** Entry point of the maps-only bundle (`artgen-maps.js`): `map`, `dungeon`, `settlement` and `formats`, nothing else. */
 export async function mapsMain(argv: string[]): Promise<number> {
   const [cmd, sub, ...rest] = argv, args = [sub, ...rest].filter((a): a is string => a !== undefined);
   const json = args.includes('--json'), print = (human: string, data: unknown) => console.log(json ? JSON.stringify(data, null, 2) : human);
   if (cmd === '--version' || cmd === 'version') { console.log(MAPS_VERSION); return 0; }
-  if (!cmd || cmd === '--help' || cmd === 'help') { console.log(`artgen-maps ${MAPS_VERSION} — the artgen map and dungeon engines, usable alone.\n\nusage:\n${MAP_USAGE}\n       artgen-maps.js --version | --help`); return 0; }
+  if (!cmd || cmd === '--help' || cmd === 'help') { console.log(`artgen-maps ${MAPS_VERSION} — the artgen map, dungeon and settlement engines, usable alone.\n\nusage:\n${MAP_USAGE}\n       artgen-maps.js --version | --help`); return 0; }
   if (cmd === 'formats') return formatsCommand(print);
   if (cmd === 'map') return mapCommand(sub, args, print);
   if (cmd === 'dungeon') return dungeonCommand(sub, args, print);
-  throw new Error(`artgen-maps: ${cmd}: not a command here; this bundle has map, dungeon and formats (--help)`);
+  if (cmd === 'settlement') return settlementCommand(sub, args, print);
+  throw new Error(`artgen-maps: ${cmd}: not a command here; this bundle has map, dungeon, settlement and formats (--help)`);
 }
 
 /** `artgen-maps.js --version`: the release and the commit it was built from. */

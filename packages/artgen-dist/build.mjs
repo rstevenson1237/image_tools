@@ -117,7 +117,7 @@ export async function buildDist(out = join(HERE, 'out')) {
   copyContent(join(content, 'skills'), join(plugin, 'skills'), vp);
   copyContent(join(content, 'agents'), join(plugin, 'agents'), vp);
   copyContent(join(content, 'commands'), join(plugin, 'commands'), vp);
-  const desc = 'Pixel and voxel game art pipeline: art direction, autonomous asset production, review, approval and atlas export, plus tabletop terrain and dungeon maps (artgen).';
+  const desc = 'Pixel and voxel game art pipeline: art direction, autonomous asset production, review, approval and atlas export, plus tabletop terrain, dungeon and settlement maps (artgen).';
   mkdirSync(join(plugin, '.claude-plugin'), { recursive: true });
   writeFileSync(join(plugin, '.claude-plugin', 'plugin.json'), JSON.stringify({ name: 'artgen', version: VERSION, description: desc }, null, 2) + '\n');
   writeFileSync(join(plugin, '.mcp.json'), JSON.stringify({ mcpServers: { artgen: { command: 'node', args: ['${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen-mcp.js'] } } }, null, 2) + '\n');

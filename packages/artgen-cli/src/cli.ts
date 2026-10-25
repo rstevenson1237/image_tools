@@ -62,7 +62,10 @@
  * Dungeon maps (TTRPG; art/dungeons/<id>/dungeon.json, see dungeon.ts):
  *   artgen dungeon new|gen|room|link|unlink|door|grid|style|label|symbol|overlay|fit|check|render|show|facts|list|symbols
  *
- * File formats: artgen formats [--json]   the map and dungeon file format versions this artgen reads and writes
+ * Settlement maps (TTRPG; art/settlements/<id>/settlement.json, see settlement.ts):
+ *   artgen settlement new|gen|building|interior|floor|room|connect|door|window|fixture|prop|road|water|wall|area|tree|grid|style|label|symbol|overlay|check|facts|render|show|list|fixtures|symbols
+ *
+ * File formats: artgen formats [--json]   the map, dungeon and settlement file format versions this artgen reads and writes
  *
  * Benchmark (this repo): artgen bench [--direction benchmark|alt|<file>] [--out <dir>] [--stages] [--update-golden]
  */
@@ -75,7 +78,7 @@ import { readGrid, writeGrid } from './node.ts';
 import { findProject, initProject, readJson, requireProject, writeJson } from './project.ts';
 import { animPreview, fxRun, textureRun, voxelExport } from './p6.ts';
 import { report } from './report.ts';
-import { flag, formatsCommand, list, dungeonCommand, mapCommand, MAP_USAGE } from './maps-cli.ts';
+import { flag, formatsCommand, list, dungeonCommand, mapCommand, MAP_USAGE, settlementCommand } from './maps-cli.ts';
 import { newAsset } from './templates.ts';
 import { addBrief, approve, briefWarnings, exportPacks, feedback, gallery, importEdit, make, pooledAnalytics, projectAnalytics, projectStatus, readBriefs, removeBriefFile, resolveAssetArg, restyle, rosterRecord, rosterRun, writeNextFinish, type WorkPacket } from './w2.ts';
 import { IMPORTANCE, type BriefEntry, type Importance } from 'artgen-core';
@@ -326,6 +329,7 @@ export async function main(argv: string[]): Promise<number> {
   if (cmd === 'formats') return formatsCommand(print);
   if (cmd === 'map') return mapCommand(sub, args, print);
   if (cmd === 'dungeon') return dungeonCommand(sub, args, print);
+  if (cmd === 'settlement') return settlementCommand(sub, args, print);
   if (cmd === 'texture') {
     if (sub === '--list' || args.includes('--list')) { print(MATERIALS.join('\n'), MATERIALS); return 0; }
     if (!sub) throw new Error('texture: name a material (artgen texture --list)');
