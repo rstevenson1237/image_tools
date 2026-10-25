@@ -9,7 +9,7 @@ Two things for game developers live in this repo:
   revise loop, and waits for your approval. Approved art exports as atlas packs plus a tiny typed runtime for Pixi.js,
   three.js or Canvas 2D. Change the direction later and one command re-renders the whole set.
 - **The image tools** — a browser app (everything stays on your machine): a VTT token cutter, an SVG tracer, a terrain
-  map maker and a dungeon map maker for tabletop RPGs, and three tools that open an artgen game's `art/` folder to edit the direction, review
+  map maker, a dungeon map maker and a settlement map maker for tabletop RPGs, and three tools that open an artgen game's `art/` folder to edit the direction, review
   and approve assets, and play them.
 
 ## artgen quickstart
@@ -47,6 +47,15 @@ joined by corridors and doors, generated from a seed or laid out by hand. White 
 with an optional 10 ft grid and 5 ft sub-grid, room numbers, labels and symbols. A dungeon is
 `art/dungeons/<id>/dungeon.json`; the **Dungeon Map** tool in the image tools opens, edits and saves the same file.
 
+**Settlement maps.** `/artgen-settlement a walled river town with a castle and a market` (or `artgen settlement
+new|gen|building|interior|room|fixture|road|water|wall|area|tree|render|…`, or the `settlement_*` MCP tools) lays out
+hamlets, villages, towns, cities and castles from plain shapes as a referee's reference: roads of six kinds, rivers,
+ponds and moats with bridges, curtain, stone, palisade, fence, hedge and drystone walls with towers, gatehouses and
+drawbridges, buildings with roofs, fields, gardens, woods and squares, trees and props, generated from a seed (on a
+terrain map if you have one) or drawn by hand. Each building can hold its floor plans (rooms, doors, windows, stairs and
+furniture at true size), shown close up or cut away on the site; colour or black and white, with a grid. A settlement
+is `art/settlements/<id>/settlement.json`; the **Settlement Map** tool in the image tools opens, edits and saves it.
+
 Later: `npx -y github:rstevenson1237/image_tools#artgen-dist update` (keeps your local edits), or pin a release with
 `#artgen-dist-v0.10.0` ([changelog](packages/artgen-dist/CHANGELOG.md)). `node tools/artgen/artgen.js --help` lists
 the CLI; the same tools are an MCP server (`artgen`) in every install, and `python/artgen` is a Python client.
@@ -79,6 +88,11 @@ experiments) is archived in [`docs/archive/artgen`](docs/archive/artgen/README.m
   set doors (plain, secret, locked, portcullis, arch), move rooms; add a 10 ft / 5 ft grid, room numbers, labels and
   symbols; export SVG or PNG. Works on its own or on a game repo's `art/dungeons/`, which Claude Code edits with
   `/artgen-dungeon`.
+- **Settlement Map** — tabletop RPG villages, towns, cities and castles: generate one from a seed (roads, walls and
+  gates, water and bridges, buildings, fields, woods, trees and props), then drag out buildings and click out roads,
+  rivers, walls and fields; double-click a building for its floor plan (lay its floors out, drag out rooms, add doors,
+  windows and furniture); colour or black and white, roofs or cut-away buildings; export SVG or PNG of either view.
+  Works on its own or on a game repo's `art/settlements/`, which Claude Code edits with `/artgen-settlement`.
 - **Art Direction** — open a game's `art/` folder (File System Access in Chromium; a zip round trip elsewhere), edit
   palette ramps and style settings with a live style tile, compare candidates, save a draft or lock a new version.
 - **Asset Review** — finished assets by status, the pass timeline with scores, version compare, conformance; approve,
@@ -123,6 +137,8 @@ src/
 │   ├── TokenCutter/        UI, selection capture, store, export
 │   ├── SvgTracer/          UI, node editor, vector model, SVG serializer, store
 │   ├── TerrainMap/         map editor over artgen-core's `map` engine (generator, contours, themes, SVG renderer)
+│   ├── DungeonMap/         dungeon editor over artgen-core's `dungeon` engine
+│   ├── SettlementMap/      settlement editor (site and floor plans) over artgen-core's `settlement` engine
 │   ├── ArtDirection/       direction editor + live style tile
 │   ├── AssetReview/        gallery, timeline, compare, approve / feedback, analytics
 │   └── AssetLab/           params + runtime playback

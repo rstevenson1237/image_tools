@@ -180,7 +180,7 @@ class ProjectStore {
     }, d => `locked ${name} as ${d.id} v${d.version} — approved assets now need a restyle (ask Claude Code: /artgen-restyle)`);
   }
 
-  /** Ids of the folders under `art/<dir>/` that hold a `<file>` (maps, dungeons). */
+  /** Ids of the folders under `art/<dir>/` that hold a `<file>` (maps, dungeons, settlements). */
   private async folderIds(dir: string, file: string): Promise<string[]> {
     const files = this.files;
     if (!files) return [];
@@ -229,6 +229,17 @@ class ProjectStore {
   saveDungeon(id: string, text: string, base: FileStat | undefined, force = false): Promise<FileStat | undefined> {
     return this.saveInFolder('dungeons', 'dungeon.json', 'dungeon', 'artgen dungeon render', id, text, base, force);
   }
+
+  /** Settlement maps in the project (`art/settlements/<id>/settlement.json`). */
+  settlementIds(): Promise<string[]> { return this.folderIds('settlements', 'settlement.json'); }
+  /** A settlement's file and its disk state (pass the state back to `saveSettlement`). */
+  readSettlement(id: string): Promise<{ text: string; stat?: FileStat } | undefined> { return this.readWithStat(`settlements/${id}/settlement.json`); }
+  /** Write `art/settlements/<id>/settlement.json`, refusing to overwrite a change made since `base` unless `force`. */
+  saveSettlement(id: string, text: string, base: FileStat | undefined, force = false): Promise<FileStat | undefined> {
+    return this.saveInFolder('settlements', 'settlement.json', 'settlement', 'artgen settlement render', id, text, base, force);
+  }
+  /** Any text file under `art/` (a settlement's underlay map, by its path from `art/`). */
+  readArtText(path: string): Promise<string | undefined> { return this.files ? this.files.readText(path) : Promise.resolve(undefined); }
 
   /** Read a file of the project (sheets, reference images) for display. */
   async bytes(path: string): Promise<Uint8Array | undefined> { return this.files?.readBytes(path); }

@@ -70,6 +70,15 @@ export const tools: ToolDefinition[] = [
     requiredWorkers: ['artgen'],
   },
   {
+    id: 'settlement-map',
+    name: 'Settlement Map',
+    blurb: 'TTRPG villages, towns and castles: roads, walls, water, buildings and their floor plans.',
+    icon: '⌂',
+    group: 'image',
+    load: () => import('../../tools/SettlementMap/index.svelte') as Loaded,
+    requiredWorkers: ['artgen'],
+  },
+  {
     id: 'art-direction',
     name: 'Art Direction',
     blurb: "Edit a game's palette and style settings, compare candidates, lock.",

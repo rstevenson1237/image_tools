@@ -10,7 +10,7 @@ import fontRegular from '../../packages/artgen-core/assets/fonts/AlegreyaSans-Re
 import fontBold from '../../packages/artgen-core/assets/fonts/AlegreyaSans-Bold.ttf?url';
 import fontItalic from '../../packages/artgen-core/assets/fonts/AlegreyaSans-Italic.ttf?url';
 import {
-  buildPack, dungeon, encodePNG, extractPalette, decodePNG, Grid, initSvg, map, parseDirection, rasterizeSvg, setSvgFonts, sourceHash, validateDirection,
+  buildPack, dungeon, encodePNG, extractPalette, decodePNG, Grid, initSvg, map, parseDirection, rasterizeSvg, setSvgFonts, settlement, sourceHash, validateDirection,
   type Direction, type LedgerEntry, type PackManifest,
 } from 'artgen-core';
 import { RUNTIME_VERSION } from 'artgen-runtime';
@@ -36,6 +36,20 @@ function mapFieldFor(spec: map.MapSpec): map.MapField {
 
 export interface MapRenderOptions { theme: map.ThemeName; ppu?: number; layers?: Partial<Record<map.MapLayer, boolean>> }
 export interface DungeonRenderOptions { ppu?: number; layers?: Partial<Record<dungeon.DungeonLayer, boolean>> }
+export interface SettlementRenderOptions {
+  view?: settlement.SettlementView; building?: string; floor?: number; theme?: settlement.SettlementTheme; buildings?: settlement.BuildingMode; ppu?: number;
+  layers?: Partial<Record<settlement.SettlementLayer, boolean>>;
+  /** The terrain map the file's `underlay` names (read by the page from the project), as its JSON. */
+  underlayMap?: unknown;
+}
+
+/** The render options with the underlay map parsed and generated (cached like the Terrain Map's field). */
+function settlementView(o: SettlementRenderOptions): settlement.RenderSettlementOptions {
+  const { underlayMap, ...rest } = o;
+  if (!underlayMap) return rest;
+  const m = map.parseMap(underlayMap);
+  return { ...rest, underlay: { map: m, field: mapFieldFor(m) } };
+}
 
 function current(): ArtProject {
   if (!project) throw new Error('no project loaded');
@@ -152,6 +166,26 @@ const api = {
     const spec = dungeon.parseDungeon(raw), ppu = o.ppu ?? 40, svg = dungeon.renderDungeonSvg(spec, { ...o, ppu });
     const size = dungeon.dungeonRenderSize(spec, { ...o, ppu }), png = encodePNG(rasterizeSvg(svg, Math.round(size.width), Math.round(size.height)));
     return Comlink.transfer(png, [png.buffer as ArrayBuffer]);
+  },
+
+  /** Settlement Map: validate and render the site or a floor plan to SVG (no project needed). */
+  settlementSvg(raw: unknown, o: SettlementRenderOptions): { svg: string; width: number; height: number; buildings: number; bridges: number } {
+    const spec = settlement.parseSettlement(raw), view = settlementView(o), svg = settlement.renderSettlementSvg(spec, view), m = svg.match(/width="([\d.]+)" height="([\d.]+)"/);
+    return { svg, width: m ? +m[1] : 0, height: m ? +m[2] : 0, buildings: spec.buildings.length, bridges: settlement.layoutSettlement(spec).bridges.length };
+  },
+
+  /** Settlement Map: PNG bytes, rasterised by the same resvg build and fonts as the CLI. */
+  async settlementPng(raw: unknown, o: SettlementRenderOptions): Promise<Uint8Array> {
+    await svgReady; await loadMapFonts();
+    const spec = settlement.parseSettlement(raw), view = settlementView(o), svg = settlement.renderSettlementSvg(spec, view), size = settlement.settlementRenderSize(spec, view);
+    const png = encodePNG(rasterizeSvg(svg, Math.round(size.width), Math.round(size.height)));
+    return Comlink.transfer(png, [png.buffer as ArrayBuffer]);
+  },
+
+  /** Settlement Map: lay the settlement out again (in the worker: a city or a terrain map under it takes a moment). */
+  settlementGenerate(raw: unknown, underlayMap?: unknown): settlement.SettlementSpec {
+    const spec = settlement.parseSettlement(raw), m = underlayMap ? map.parseMap(underlayMap) : null;
+    return settlement.generateSettlement(spec, m ? { map: m, field: mapFieldFor(m) } : {});
   },
 
   /** A one-asset pack for the Asset Lab: plays through the runtime's canvas2d adapter, downloads as a pack. */
