@@ -20,7 +20,7 @@ npx -y github:rstevenson1237/image_tools#artgen-dist status
 
 **Releases.** `#artgen-dist` follows `main`. To pin a release, use its tag instead (see the
 [changelog](https://github.com/rstevenson1237/image_tools/blob/main/packages/artgen-dist/CHANGELOG.md)):
-`npx -y github:rstevenson1237/image_tools#artgen-dist-v0.10.0 update`. Release tags never move.
+`npx -y github:rstevenson1237/image_tools#artgen-dist-v0.11.0 update`. Release tags never move.
 
 Then commit `.claude/`, `tools/artgen/`, `.mcp.json`, `CLAUDE.md` and `art/`. Sessions need no network or npm after
 that. Start with `/artgen-direction` (or ask Claude to set the art direction).
