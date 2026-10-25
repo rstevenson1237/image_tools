@@ -6,7 +6,7 @@
  *   artgen dungeon new <id> [--size 40x30] [--seed n] [--title "…"] [--empty]          a generated dungeon (or none)
  *   artgen dungeon new <id> --room rect|circle|octagon|cave --room-size 8x6 [--exits n,e:secret,s:none,w] [--label "…"] [--number n|off]
  *   artgen dungeon gen <id> [--seed n] [--rooms n] [--min-size n] [--max-size n] [--caves f] [--round f] [--loops f]
- *                           [--doors f] [--corridor-width n] [--spacing n] [--entrance on|off] [--size 40x30]
+ *                           [--doors f] [--corridor-width n] [--spacing n] [--entrance on|off] [--size 40x30] [--layout scatter|dense|blocks] [--density f]
  *   artgen dungeon room <id> add <shape> --at x,y|C4 --size WxH [--points x,y,…] [--label "…"] [--number n|off] [--room-id r9]
  *                     | move <rid> --at x,y|C4 | set <rid> [--shape s] [--size WxH] [--label "…"] [--number n|off] | rm <rid>
  *   artgen dungeon link <id> <room|corridor:id> <room|x,y|C4|corridor:id> [--width 1] [--route auto|hv|vh|straight|around] [--via x,y,…] [--doors door,none]
@@ -221,7 +221,7 @@ export function describeDungeon(m: DungeonSpec): string {
   const gridFt = (n: number) => `${n * m.scale.perCell} ${m.scale.unit}`;
   return [
     `${m.id}${m.title ? ` "${m.title}"` : ''}: ${m.cols}×${m.rows} cells of ${m.scale.perCell} ${m.scale.unit}, seed ${m.seed}`,
-    `  gen: rooms ${g.rooms}, size ${g.minSize}..${g.maxSize}, caves ${g.caves}, round ${g.round}, loops ${g.loops}, doors ${g.doors}, corridor width ${g.corridorWidth}, spacing ${g.spacing}, entrance ${g.entrance ? 'on' : 'off'}`,
+    `  gen: rooms ${g.rooms}, size ${g.minSize}..${g.maxSize}, caves ${g.caves}, round ${g.round}, loops ${g.loops}, doors ${g.doors}, corridor width ${g.corridorWidth}, spacing ${g.spacing}, entrance ${g.entrance ? 'on' : 'off'}${g.layout && g.layout !== 'scatter' ? `, layout ${g.layout}${g.layout === 'dense' ? ` (density ${g.density ?? 0.5})` : ''}` : ''}`,
     ...(m.furniture && m.furniture.place !== 'over' ? [`  furniture: ${m.furniture.place}, band ${m.furniture.side ?? 'bottom'}`] : []),
     `  grid: ${m.grid.show ? `size ${gridFt(m.grid.size)}, sub-grid ${m.grid.sub && m.grid.size > 1 ? `${gridFt(1)}` : 'off'}, ${m.grid.clip === 'floor' ? 'on the floor' : 'everywhere'}` : 'off'}; hatch ${m.style.hatch}${m.style.hatch === 'band' ? ` (${m.style.band} cells)` : ''}; numbers ${m.numbers ? 'on' : 'off'}, scale bar ${m.scaleBar ? 'on' : 'off'}, compass ${m.compass ? 'on' : 'off'}`,
     `  rooms (${m.rooms.length}):${m.rooms.map(r => `\n    ${r.id}: ${r.shape} ${r.w}×${r.h} at ${r.x},${r.y}${r.fill && r.fill !== 'floor' ? `, ${r.fill}` : ''}${r.number === false ? ', no number' : r.number !== undefined ? `, #${r.number}` : ''}${r.label ? ` "${r.label}"` : ''}${r.href ? ` → ${r.href}` : ''}`).join('')}`,

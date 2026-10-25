@@ -17,7 +17,7 @@ and white: white floors with a grid, thick black walls, hatched rock around them
 
 ## 1. Ask, then create
 Ask only what changes the map: one room or a complex; roughly how many rooms and how big; built (square rooms,
-corridors, doors) or natural (caves); the grid (its size and unit, whether to show a sub-grid at every square, or none). Then one of:
+corridors, doors) or natural (caves); spread out with corridors, or dense (rooms side by side, like a keep's floor); the grid (its size and unit, whether to show a sub-grid at every square, or none). Then one of:
 ```
 {{ARTGEN}} dungeon new <id> --room rect --room-size 8x8 --exits n,e,s:secret,w:none --number 20   # one room
 {{ARTGEN}} dungeon new <id> --rooms 10 --size 40x30 --title "Lair of the Ash Wyrm" [--seed n]       # generated
@@ -33,6 +33,8 @@ Big changes with the generator; then fix rooms one by one. Render and look after
 ```
 {{ARTGEN}} dungeon gen <id> --seed 7                         # a different layout, same settings (replaces rooms and corridors)
 {{ARTGEN}} dungeon gen <id> --rooms 12 --min-size 4 --max-size 9 --caves 0.3 --round 0.1 --loops 0.4 --doors 0.7
+{{ARTGEN}} dungeon gen <id> --layout dense --density 0.6          # rooms side by side, doors in their shared walls (a warren, a keep floor)
+{{ARTGEN}} dungeon gen <id> --layout blocks --rooms 20            # a few blocks split into rooms, joined by corridors
 {{ARTGEN}} dungeon room <id> add rect --at 10,4 --size 6x4 --label "Guard room"
 {{ARTGEN}} dungeon room <id> add cave --at 20,12 --size 10x7
 {{ARTGEN}} dungeon room <id> add poly --points 2,2,8,2,8,8,5,8,5,5,2,5      # an L-shaped room

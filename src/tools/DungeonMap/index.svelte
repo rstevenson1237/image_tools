@@ -442,6 +442,18 @@
         <label>seed <input type="number" value={spec.seed} onchange={e => attempt(() => store.change('seed', m => { m.seed = num(e); return dungeon.generateDungeon(m); }))} /></label>
         <label>&nbsp;<button type="button" onclick={regenerate} title="a new layout with these settings (replaces rooms and corridors)">Generate</button></label>
       </div>
+      <div class="pair">
+        <label title="scatter: rooms apart, joined by corridors; dense: rooms side by side, joined through shared walls; blocks: blocks split into rooms, joined by corridors">layout
+          <select value={spec.gen.layout ?? 'scatter'} onchange={e => attempt(() => store.change('gen layout', m => { const v = val(e) as dungeon.GenLayout; if (v === 'scatter') delete m.gen.layout; else m.gen.layout = v; }))}>
+            {#each dungeon.GEN_LAYOUTS as l (l)}<option value={l}>{l}</option>{/each}
+          </select>
+        </label>
+        {#if spec.gen.layout === 'dense'}
+          <label>fill <span class="v">{spec.gen.density ?? 0.5}</span>
+            <input type="range" min="0.1" max="0.9" step="0.05" value={spec.gen.density ?? 0.5} onchange={e => setGen('density', num(e))} />
+          </label>
+        {/if}
+      </div>
       {#each GEN as g (g.key)}
         <label>{g.label} <span class="v">{spec.gen[g.key]}</span>
           <input type="range" min={g.min} max={g.max} step={g.step} value={spec.gen[g.key]} onchange={e => setGen(g.key, num(e))} />

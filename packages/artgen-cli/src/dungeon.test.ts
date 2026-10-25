@@ -193,6 +193,20 @@ describe('artgen dungeon', () => {
     await expect(run('dungeon', 'block', 'keep', 'add', 'cave', '--at', '1,1', '--size', '4x4', ...R)).rejects.toThrow(/add rect\|octagon/);
   }, 60_000);
 
+  test('gen --layout dense|blocks; back to scatter', async () => {
+    await run('dungeon', 'new', 'warren', '--seed', '4', '--rooms', '14', '--size', '40x30', ...R);
+    await run('dungeon', 'gen', 'warren', '--layout', 'dense', '--density', '0.4', ...R);
+    expect(spec('warren')).toMatchObject({ gen: { layout: 'dense', density: 0.4 }, connections: expect.any(Array) });
+    expect((await run('dungeon', 'show', 'warren', ...R)).out).toContain('layout dense (density 0.4)');
+    await run('dungeon', 'gen', 'warren', '--layout', 'blocks', ...R);
+    expect(spec('warren').blocks.length).toBeGreaterThan(1);
+    expect((await run('dungeon', 'check', 'warren', ...R)).code).toBe(0);
+    await run('dungeon', 'gen', 'warren', '--layout', 'scatter', ...R);
+    expect(spec('warren').gen.layout).toBeUndefined();
+    expect(spec('warren').blocks).toBeUndefined();
+    await expect(run('dungeon', 'gen', 'warren', '--layout', 'maze', ...R)).rejects.toThrow(/--layout: scatter, dense, blocks/);
+  });
+
   test('dungeon ids are names, never paths', async () => {
     await expect(run('dungeon', 'new', '../escape', ...R)).rejects.toThrow(/letters, digits/);
   });

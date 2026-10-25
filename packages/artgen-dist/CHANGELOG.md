@@ -271,6 +271,13 @@ Reads: **map format 1**, **dungeon format 1**. `artgen formats --json` prints `{
   --min 4`, `block <id> split <bid> [--seed n]`, `block <id> rm <bid>`; a block id in `link` stands for its room nearest
   the other end. MCP `add_block`, `split_block`, `remove_block`; the Room tool's **split into rooms** option and a
   Blocks list (split again, remove) in the Dungeon Map tool.
+- **Dense and block layouts from the generator.** `gen.layout`: `scatter` (the default, as before), `dense` (rooms
+  packed side by side, each set against one already placed where it shares the most wall, joined through their shared
+  walls by doors and openings; `gen.density` is the share of the sheet to fill, default 0.5) or `blocks` (a few blocks,
+  rectangles or with `gen.round` an octagon or hexagon, each split into rooms, joined wall to wall by corridors that go
+  round the rest). `gen.loops` sets the extra connections, `gen.doors` the share that are doors rather than openings.
+  A scatter generation clears connections and blocks. `dungeon gen <id> --layout dense --density 0.6`; MCP `gen.layout`
+  and `gen.density`; a layout menu in the Dungeon Map tool's generator.
 
 **Limits**
 - A map may be up to 200 squares a side (was 120), so a 1-mile gorge fits at 10 yards a square. Raising a limit

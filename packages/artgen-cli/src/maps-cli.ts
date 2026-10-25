@@ -63,6 +63,7 @@ export const MAP_USAGE = `       artgen map new <id> [--preset regional|local] [
        artgen map check <id> [--json]   the file's format errors with their JSON paths, then each \`require\` entry measured: \`C-forest terrain forest 0.71 < 0.80 unmet\`; exits 1 on any error or unmet requirement
        artgen dungeon new <id> [--size 40x30] [--seed n] [--title "..."] [--empty] | new <id> --room rect|circle|octagon|cave --room-size 8x6 [--exits n,e:secret,s:none:To the caves,w] [--label "..."] [--number n|off]
        artgen dungeon gen <id> [--seed n] [--rooms n] [--min-size n] [--max-size n] [--caves f] [--round f] [--loops f] [--doors f] [--corridor-width n] [--spacing n] [--entrance on|off] [--size 40x30]
+                  [--layout scatter|dense|blocks] [--density f]   dense: rooms side by side, joined through shared walls; blocks: blocks split into rooms, joined by corridors
        artgen dungeon room <id> add <shape> --at x,y|C4 --size WxH [--points x,y,…] [--label "..."] [--number n|off] [--room-id r9] [--fill floor|building|yard|cellar] [--href url] [--origin name] | move <rid> --at x,y | set <rid> [--shape s] [--size WxH] [--label "..."] [--number n|off] [--fill f] [--href url|none] | rm <rid>
        artgen dungeon link <id> <room|corridor:id> <room|x,y|C4|corridor:id> [--width 1] [--route auto|hv|vh|straight|around] [--via x,y,…] [--doors door,none] [--from-side n|e|s|w] [--from-offset n] [--to-side …] [--to-offset n] [--curve smooth] [--style natural] [--seed n] [--id name] [--exit "To the caves" [--exit-href url] [--fade 3]] [--origin name] | unlink <id> <i> | door <id> <i> from|to <kind|none>
        artgen dungeon block <id> add rect|octagon|circle|hex|poly --at x,y --size WxH [--points x,y,…] [--split bsp|rows|cols|grid|cuts] [--min 3] [--cuts-x 4,8] [--cuts-y 6] [--seed n] [--doors 0.25] [--block-id b1]
@@ -279,6 +280,9 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
       const v = num(args, f); if (v !== undefined) m.gen[k] = v;
     }
     if (onOff(flag(args, '--entrance')) !== undefined) m.gen.entrance = onOff(flag(args, '--entrance'))!;
+    const layout = flag(args, '--layout');
+    if (layout !== undefined) { if (!dungeon.GEN_LAYOUTS.includes(layout as dungeon.GenLayout)) throw new Error(`--layout: ${dungeon.GEN_LAYOUTS.join(', ')}`); if (layout === 'scatter') delete m.gen.layout; else m.gen.layout = layout as dungeon.GenLayout; }
+    if (num(args, '--density') !== undefined) m.gen.density = num(args, '--density');
   };
   if (sub === 'new') {
     const base = dungeon.newDungeon(file ? id ?? fileId(file) : need('<id> is required') as string, { seed: Math.floor(Math.random() * 1e6), ...(flag(args, '--title') && { title: flag(args, '--title') }) });

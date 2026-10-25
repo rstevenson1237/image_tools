@@ -236,3 +236,39 @@ describe('blocks split into rooms', () => {
     expect(D.validateDungeon({ ...s, blocks: [{ id: 'x', shape: 'cave' as 'rect', x: 0, y: 0, w: 4, h: 4, split: { mode: 'cuts' } }] })).toEqual(['blocks[0].shape: one of rect, octagon, circle, poly', 'blocks[0].split.cuts: the x and/or y lines to cut at']);
   });
 });
+
+describe('dense and blocks generators', () => {
+  const gen = (layout: D.GenLayout, seed: number, over: Partial<D.DungeonSpec['gen']> = {}) => D.generateDungeon(D.newDungeon('g', { cols: 44, rows: 30, seed, gen: { ...D.DEFAULTS.gen, rooms: 16, minSize: 3, maxSize: 7, layout, ...over } }));
+
+  test('dense: rooms side by side, never over each other, every room reached through shared walls; the same seed, the same map', () => {
+    for (const seed of [1, 2, 3, 4, 5]) {
+      const s = gen('dense', seed), f = D.dungeonFacts(s);
+      expect(s.rooms.length, `seed ${seed}`).toBeGreaterThan(6);
+      expect(f.overlaps).toEqual([]);
+      expect(f.unreached).toEqual([]);
+      expect(s.connections!.length).toBeGreaterThanOrEqual(s.rooms.length - 1);
+      expect(D.lintDungeon(s).filter(x => x.severity === 'error')).toEqual([]);
+      expect(D.layoutDungeon(s).partitions.length).toBeGreaterThan(0);
+    }
+    expect(gen('dense', 3)).toEqual(gen('dense', 3));
+    const sparse = gen('dense', 3, { density: 0.15, rooms: 40 }), full = gen('dense', 3, { density: 0.6, rooms: 40 });
+    expect(sparse.rooms.length).toBeLessThan(full.rooms.length);
+  });
+
+  test('blocks: a few blocks split into rooms, linked wall to wall; nothing runs through a room', () => {
+    for (const seed of [1, 2, 3, 4, 5, 11]) {
+      const s = gen('blocks', seed, { round: 0.4 }), f = D.dungeonFacts(s);
+      expect(s.blocks!.length, `seed ${seed}`).toBeGreaterThan(1);
+      expect(s.rooms.every(r => s.blocks!.some(b => r.origin === `block:${b.id}`))).toBe(true);
+      expect(f.unreached).toEqual([]);
+      expect(D.lintDungeon(s).filter(x => /runs through|crosses itself/.test(x.message))).toEqual([]);
+    }
+  });
+
+  test('scatter clears connections and blocks; the layout and density are checked', () => {
+    const s = D.generateDungeon({ ...gen('blocks', 2), gen: { ...D.DEFAULTS.gen } });
+    expect(s.blocks).toBeUndefined();
+    expect(s.connections).toBeUndefined();
+    expect(D.validateDungeon({ ...s, gen: { ...s.gen, layout: 'maze' as D.GenLayout, density: 2 } })).toEqual(['gen.layout: scatter, dense, blocks', 'gen.density: above 0, at most 1']);
+  });
+});

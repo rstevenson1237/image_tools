@@ -66,7 +66,7 @@ export class DungeonMapStore {
 
   /** A fresh dungeon keeping the current id, size and settings: generated, empty, or the single room. */
   fresh(kind: 'generated' | 'empty' | 'room'): void {
-    const cur = $state.snapshot(this.spec) as dungeon.DungeonSpec;
+    const { connections: _c, blocks: _b, ...cur } = $state.snapshot(this.spec) as dungeon.DungeonSpec;
     let next = dungeon.newDungeon(cur.id, { ...cur, seed: randomSeed(), rooms: [], corridors: [], overlay: { labels: [], symbols: [] } });
     if (kind === 'generated') next = dungeon.generateDungeon(next);
     if (kind === 'room') {

@@ -175,6 +175,10 @@ export interface DungeonSpec {
     spacing: number;
     /** A corridor from the first room off the nearest edge of the map. */
     entrance: boolean;
+    /** `scatter` (default): rooms apart, joined by corridors; `dense`: rooms side by side, joined through their shared walls; `blocks`: a few blocks split into rooms, joined by corridors. */
+    layout?: GenLayout;
+    /** For `dense`: the share of the sheet to fill with rooms (0..1, default 0.5). */
+    density?: number;
   };
   /** Grid lines every `size` cells (2 = 10 ft), with fainter lines at every cell when `sub`; on the floor or everywhere. */
   grid: { show: boolean; size: number; sub: boolean; clip: 'floor' | 'all' };
@@ -203,6 +207,9 @@ export interface DungeonSpec {
    */
   furniture?: { place: 'over' | 'outside' | 'auto'; side?: 'bottom' | 'right' };
 }
+
+export const GEN_LAYOUTS = ['scatter', 'dense', 'blocks'] as const;
+export type GenLayout = (typeof GEN_LAYOUTS)[number];
 
 export const DEFAULTS: Omit<DungeonSpec, 'id' | 'seed' | 'version' | 'rooms' | 'corridors' | 'overlay'> = {
   cols: 40, rows: 30,
@@ -368,6 +375,8 @@ export function validateDungeon(raw: unknown): string[] {
       if (!isNum(g[k]) || g[k] < lo || g[k] > hi) e.push(`gen.${k}: ${lo}..${hi}`);
     if (isNum(g.minSize) && isNum(g.maxSize) && g.minSize > g.maxSize) e.push('gen.minSize: at most maxSize');
     if (typeof g.entrance !== 'boolean') e.push('gen.entrance: true or false');
+    if (g.layout !== undefined && !GEN_LAYOUTS.includes(g.layout)) e.push(`gen.layout: ${GEN_LAYOUTS.join(', ')}`);
+    if (g.density !== undefined && !(isNum(g.density) && g.density > 0 && g.density <= 1)) e.push('gen.density: above 0, at most 1');
   }
   if (!m.grid || typeof m.grid.show !== 'boolean' || !isNum(m.grid.size) || m.grid.size < 0.5 || typeof m.grid.sub !== 'boolean' || !['floor', 'all'].includes(m.grid.clip))
     e.push('grid: show, size ≥ 0.5 (cells), sub (true|false), clip floor|all');
