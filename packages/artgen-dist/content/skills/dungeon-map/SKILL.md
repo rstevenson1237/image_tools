@@ -25,7 +25,8 @@ corridors, doors) or natural (caves); the grid (its size and unit, whether to sh
 {{ARTGEN}} dungeon render <id>         # SVG + PNG; open the PNG and look at it
 ```
 Room shapes: `rect circle octagon cave poly`. Exits on a single room run off the map edge; give each side a door kind
-after a colon (`n:locked`), `:none` for an open passage (default: a plain door).
+after a colon (`n:locked`), `:none` for an open passage (default: a plain door), and a note after another colon
+(`n:door:Up to the keep`) to fade the exit out under a boxed note saying where it leads.
 
 ## 2. Shape the layout
 Big changes with the generator; then fix rooms one by one. Render and look after each round.
@@ -39,6 +40,7 @@ Big changes with the generator; then fix rooms one by one. Render and look after
 {{ARTGEN}} dungeon link <id> r1 r2 --doors door,secret                        # door at r1's end, secret door at r2's
 {{ARTGEN}} dungeon link <id> r2 r5 --width 2 --route vh                       # 10 ft passage, down then across
 {{ARTGEN}} dungeon link <id> r4 41,12                                         # an exit running off the east edge
+{{ARTGEN}} dungeon link <id> r4 41,12 --exit "To the river caves (L2, 14)"    # …that fades out, with a boxed note saying where it leads
 {{ARTGEN}} dungeon link <id> r1 r4 --from-side s --to-side n --id main      # leave r1 by its south wall, enter r4 by its north
 {{ARTGEN}} dungeon link <id> corridor:main r3 --to-side s                    # a T: a corridor off the main one into r3's south wall
 {{ARTGEN}} dungeon link <id> r1 r2 --route around                            # along the grid, round the rooms in the way

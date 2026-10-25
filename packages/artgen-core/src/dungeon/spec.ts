@@ -74,11 +74,16 @@ export interface Room {
  * A corridor end: a room, a point, or another corridor.
  * - `{room}`: from the room's centre; with `side` it leaves through that wall instead, `offset` cells along it from the
  *   room's top or left edge (default: the middle), so several corridors can leave one room by different walls.
- * - `{at: [x, y]}`: a point (an exit stub, a dead end, or off the map).
+ * - `{at: [x, y]}`: a point (an exit stub, a dead end, or off the map). With `exit`, the corridor fades to white over
+ *   its last `fade` cells before the point (or the sheet's edge, if the point is past it) and a boxed note there says
+ *   where it leads (`text`, a link with `href`).
  * - `{corridor: id}`: a junction on that corridor's centre line, the point nearest the other end (or `near`), so
  *   corridors meet in a T or a cross.
  */
-export type CorridorEnd = { room: string; side?: Side; offset?: number } | { at: [number, number] } | { corridor: string; near?: [number, number] };
+export type CorridorEnd = { room: string; side?: Side; offset?: number } | { at: [number, number]; exit?: Exit } | { corridor: string; near?: [number, number] };
+
+/** Where an exit leads: the note at the map's edge, an optional link, and the cells the corridor fades over (default 3). */
+export interface Exit { text: string; href?: string; fade?: number }
 
 export interface Corridor {
   /** A name other corridors can join (`{corridor: id}`); indexes move when corridors are removed, ids do not. */
@@ -212,7 +217,18 @@ function endErrors(e: unknown, at: string, ids: Set<string>, corridorIds: Set<st
     if (o.offset !== undefined && o.side === undefined) out.push(`${at}.offset: goes with side`);
     return out;
   }
-  if ('at' in o) return isPoint(o.at) ? [] : [`${at}.at: [x, y]`];
+  if ('at' in o) {
+    if (!isPoint(o.at)) out.push(`${at}.at: [x, y]`);
+    const x = o.exit as Partial<Exit> | undefined;
+    if (x !== undefined) {
+      if (!x || typeof x !== 'object' || typeof x.text !== 'string') out.push(`${at}.exit: {text, href?, fade?}`);
+      else {
+        if (x.href !== undefined && hrefError(x.href)) out.push(`${at}.exit.href: ${hrefError(x.href)}`);
+        if (x.fade !== undefined && !(isNum(x.fade) && x.fade >= 0 && x.fade <= 20)) out.push(`${at}.exit.fade: cells, 0..20`);
+      }
+    }
+    return out;
+  }
   if ('corridor' in o) {
     if (typeof o.corridor !== 'string' || !corridorIds.has(o.corridor)) out.push(`${at}.corridor: no corridor with id ${JSON.stringify(o.corridor)}`);
     if (o.near !== undefined && !isPoint(o.near)) out.push(`${at}.near: [x, y]`);

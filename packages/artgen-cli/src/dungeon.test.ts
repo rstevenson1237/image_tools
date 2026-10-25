@@ -139,6 +139,19 @@ describe('artgen dungeon', () => {
     await run('dungeon', 'render', 'ways', '--ppu', '10', '--format', 'svg', ...R);
   }, 60_000);
 
+  test('exits: a note where a corridor leaves the map; one-room exits take a note too', async () => {
+    await run('dungeon', 'new', 'gate', '--room', 'rect', '--room-size', '6x4', '--exits', 'n:door:Up to the keep,e', ...R);
+    expect(spec('gate').corridors[0].to).toMatchObject({ exit: { text: 'Up to the keep' } });
+    expect(spec('gate').corridors[1].to.exit).toBeUndefined();
+    await run('dungeon', 'link', 'gate', 'r1', '20,5', '--exit', 'To the river caves', '--exit-href', 'caves.svg', '--fade', '2', ...R);
+    expect(spec('gate').corridors[2].to).toEqual({ at: [20, 5], exit: { text: 'To the river caves', href: 'caves.svg', fade: 2 } });
+    await expect(run('dungeon', 'link', 'gate', 'r1', 'r1', '--exit', 'x', ...R)).rejects.toThrow(/--exit: the second end must be a point/);
+    const facts = JSON.parse((await run('dungeon', 'facts', 'gate', '--json', ...R)).out);
+    expect(facts.exits.map((x: { text?: string }) => x.text ?? null)).toEqual(['Up to the keep', null, 'To the river caves']);
+    await run('dungeon', 'render', 'gate', '--ppu', '20', '--format', 'svg', ...R);
+    expect(readFileSync(join(root, 'art', 'dungeons', 'gate', 'out', 'gate.svg'), 'utf8')).toContain('<g id="exits">');
+  }, 60_000);
+
   test('dungeon ids are names, never paths', async () => {
     await expect(run('dungeon', 'new', '../escape', ...R)).rejects.toThrow(/letters, digits/);
   });

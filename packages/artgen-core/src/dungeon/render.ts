@@ -16,12 +16,13 @@ import { PAGE_PT, PAGE_SYMBOL_MM, pageUnit, placeLabels, pointsToPx, textBox, ty
 import { layoutDungeon, type DoorGeom, type DungeonLayout } from './layout.ts';
 import type { DungeonLabel, DungeonSpec, Room } from './spec.ts';
 import { SYMBOLS } from './symbols.ts';
+import { layoutExits } from './exits.ts';
 import { area2 } from './geom.ts';
 import { coversContent, placeFurniture, type FurnitureItem, type FurnitureLayout } from './furniture.ts';
 import { underlaySvg } from './underlay.ts';
 import { layoutWalls } from './walls.ts';
 
-export const DUNGEON_LAYERS = ['underlay', 'rock', 'floors', 'buildings', 'enclosure', 'grid', 'doors', 'symbols', 'cellars', 'numbers', 'labels', 'legend', 'title', 'scale', 'compass'] as const;
+export const DUNGEON_LAYERS = ['underlay', 'rock', 'floors', 'buildings', 'enclosure', 'grid', 'exits', 'doors', 'symbols', 'cellars', 'numbers', 'labels', 'legend', 'title', 'scale', 'compass'] as const;
 export type DungeonLayer = (typeof DUNGEON_LAYERS)[number];
 
 const INK = '#000000', PAPER = '#ffffff', TH = { ink: INK, paper: PAPER, halo: PAPER };
@@ -137,6 +138,17 @@ function doorSvg(dr: DoorGeom, k: number, t: number, u: number): string {
     out += haloText('S', ox, oy + fs * 0.35, fs, INK, TH, 'font-weight="700"');
   }
   return out;
+}
+
+/** Text broken into lines of at most `max` characters, at spaces (a longer word keeps a line of its own). */
+export function wrapText(text: string, max: number): string[] {
+  const lines: string[] = [];
+  for (const word of text.split(/\s+/).filter(Boolean)) {
+    const last = lines[lines.length - 1];
+    if (last !== undefined && last.length + 1 + word.length <= max) lines[lines.length - 1] = `${last} ${word}`;
+    else lines.push(word);
+  }
+  return lines.length ? lines : [''];
 }
 
 /** A ring turned clockwise on screen (the way `roomOutline` draws a rectangle). */
@@ -289,6 +301,30 @@ export function renderDungeonSvg(spec: DungeonSpec, o: RenderDungeonOptions = {}
     const clip = spec.grid.clip === 'floor';
     if (clip) defs.push(`<mask id="floor-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}">${floor('#ffffff', 0)}</mask>`);
     parts.push(`<g id="grid" fill="none"${clip ? ' mask="url(#floor-mask)"' : ''}>${g}</g>`);
+  }
+
+  // exits off the map: the corridor fades to white toward the edge, and a boxed note says where it leads
+  const exits = on.exits ? layoutExits(spec, l) : [];
+  if (exits.length) {
+    let g = '';
+    exits.forEach((x, i) => {
+      const len = Math.hypot(x.edge[0] - x.from[0], x.edge[1] - x.from[1]) * k, ext = 2 * k, wide = (x.width + 1) * k + 2 * (t + (spec.style.hatch === 'band' ? spec.style.band * k : 0));
+      if (len > 0.5) {
+        const angle = (Math.atan2(x.dir[1], x.dir[0]) * 180) / Math.PI, stop = (len / (len + ext)).toFixed(3);
+        defs.push(`<linearGradient id="exit-fade-${i}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${PAPER}" stop-opacity="0"/><stop offset="${stop}" stop-color="${PAPER}" stop-opacity="1"/></linearGradient>`);
+        g += `<g transform="translate(${n1(x.from[0] * k)} ${n1(x.from[1] * k)}) rotate(${n1(angle)})"><rect x="0" y="${n1(-wide / 2)}" width="${n1(len + ext)}" height="${n1(wide)}" fill="url(#exit-fade-${i})"/></g>`;
+      }
+      // a note across an east or west edge is kept narrow (it lies along the corridor), wrapped to more lines
+      const fs = o.pageScale ? pointsToPx(PAGE_PT.dungeon.note, o.pageScale) : 12 * u, lines = wrapText(x.exit.text, Math.abs(x.dir[0]) > Math.abs(x.dir[1]) ? 16 : 28);
+      const w = Math.max(...lines.map(t => t.length)) * fs * 0.56 + 14 * u, h = fs * (0.7 + 1.2 * lines.length);
+      // the note sits on the faded end, just inside the map, and never past the sheet's edge
+      const reach = Math.abs(x.dir[0]) * w / 2 + Math.abs(x.dir[1]) * h / 2 + 4 * u;
+      const cx = Math.min(fr.r - w / 2 - 2 * u, Math.max(fr.x + w / 2 + 2 * u, x.edge[0] * k - x.dir[0] * reach));
+      const cy = Math.min(fr.b - h / 2 - 2 * u, Math.max(fr.y + h / 2 + 2 * u, x.edge[1] * k - x.dir[1] * reach));
+      const text = lines.map((t, j) => `<text x="${n1(cx)}" y="${n1(cy + fs * (0.35 + 1.2 * (j - (lines.length - 1) / 2)))}" font-size="${n1(fs)}" text-anchor="middle" fill="${INK}">${esc(t)}</text>`).join('');
+      g += linked(x.exit.href, `<rect x="${n1(cx - w / 2)}" y="${n1(cy - h / 2)}" width="${n1(w)}" height="${n1(h)}" fill="${PAPER}" stroke="${INK}" stroke-width="${n1(1.2 * u)}"/>${text}`);
+    });
+    parts.push(`<g id="exits">${g}</g>`);
   }
 
   if (on.doors && l.doors.length) parts.push(`<g id="doors">${l.doors.map(d => doorSvg(d, k, t, u)).join('')}</g>`);

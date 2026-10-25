@@ -61,10 +61,10 @@ export const MAP_USAGE = `       artgen map new <id> [--preset regional|local] [
                   ground and the rivers and roads that cross it; neither gives the whole map's rivers, roads, hilltops, hollows and terrain shares.
                   Positions in map units, lengths also in the scale unit, heights in topo.unit and whole multiples of topo.interval
        artgen map check <id> [--json]   the file's format errors with their JSON paths, then each \`require\` entry measured: \`C-forest terrain forest 0.71 < 0.80 unmet\`; exits 1 on any error or unmet requirement
-       artgen dungeon new <id> [--size 40x30] [--seed n] [--title "..."] [--empty] | new <id> --room rect|circle|octagon|cave --room-size 8x6 [--exits n,e:secret,s:none,w] [--label "..."] [--number n|off]
+       artgen dungeon new <id> [--size 40x30] [--seed n] [--title "..."] [--empty] | new <id> --room rect|circle|octagon|cave --room-size 8x6 [--exits n,e:secret,s:none:To the caves,w] [--label "..."] [--number n|off]
        artgen dungeon gen <id> [--seed n] [--rooms n] [--min-size n] [--max-size n] [--caves f] [--round f] [--loops f] [--doors f] [--corridor-width n] [--spacing n] [--entrance on|off] [--size 40x30]
        artgen dungeon room <id> add <shape> --at x,y|C4 --size WxH [--points x,y,…] [--label "..."] [--number n|off] [--room-id r9] [--fill floor|building|yard|cellar] [--href url] [--origin name] | move <rid> --at x,y | set <rid> [--shape s] [--size WxH] [--label "..."] [--number n|off] [--fill f] [--href url|none] | rm <rid>
-       artgen dungeon link <id> <room|corridor:id> <room|x,y|C4|corridor:id> [--width 1] [--route auto|hv|vh|straight|around] [--via x,y,…] [--doors door,none] [--from-side n|e|s|w] [--from-offset n] [--to-side …] [--to-offset n] [--curve smooth] [--style natural] [--seed n] [--id name] [--origin name] | unlink <id> <i> | door <id> <i> from|to <kind|none>
+       artgen dungeon link <id> <room|corridor:id> <room|x,y|C4|corridor:id> [--width 1] [--route auto|hv|vh|straight|around] [--via x,y,…] [--doors door,none] [--from-side n|e|s|w] [--from-offset n] [--to-side …] [--to-offset n] [--curve smooth] [--style natural] [--seed n] [--id name] [--exit "To the caves" [--exit-href url] [--fade 3]] [--origin name] | unlink <id> <i> | door <id> <i> from|to <kind|none>
                   (shapes: ${dungeon.ROOM_SHAPES.join(', ')}; doors: ${dungeon.DOOR_KINDS.join(', ')})
        artgen dungeon grid <id> [10|5|10+5|none] [--size 10] [--unit ft] [--sub on|off] [--show on|off] [--clip floor|all] | style <id> [--hatch band|full|none] [--band n] [--wall f] [--numbers on|off] [--scale-bar on|off] [--compass on|off] [--legend on|off] [--title "..."] [--per-cell n] [--unit ft] [--furniture over|outside|auto] [--furniture-side bottom|right]
        artgen dungeon label <id> "Text" --at x,y|C4 [--kind name|note|area] [--size f] [--angle deg] [--href url] [--origin name] | symbol <id> <kind> --at x,y|C4 [--scale f] [--angle deg] [--origin name] | symbols
@@ -286,9 +286,9 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
       if (!dungeon.ROOM_SHAPES.includes(shape) || shape === 'poly') throw new Error('--room: rect, circle, octagon or cave');
       const [w, h] = sizeFlag(args, '--room-size') ?? [8, 8];
       const exits = (list(args, '--exits') ?? []).map(e => {
-        const [side, kind] = e.split(':');
-        if (!['n', 'e', 's', 'w'].includes(side)) throw new Error('--exits: sides n, e, s, w, each optionally :door kind (n,e:secret,s:none)');
-        return { side: side as 'n' | 'e' | 's' | 'w', door: kind === undefined ? undefined : doorPair(kind)![0] };
+        const [side, kind, ...note] = e.split(':');
+        if (!['n', 'e', 's', 'w'].includes(side)) throw new Error('--exits: sides n, e, s, w, each optionally :door kind and :a note (n,e:secret,s:none:To the caves)');
+        return { side: side as 'n' | 'e' | 's' | 'w', door: kind === undefined || kind === '' ? undefined : doorPair(kind)![0], ...(note.length && { text: note.join(':') }) };
       });
       m = dungeon.singleRoom(m, { shape, w, h, exits, label: flag(args, '--label'), number: roomNumber(args) });
     } else if (!args.includes('--empty')) m = dungeon.generateDungeon(m);
@@ -363,11 +363,14 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
       const route = flag(args, '--route') as dungeon.Route | undefined, doors = doorPair(flag(args, '--doors'));
       if (route && !dungeon.ROUTES.includes(route)) throw new Error(`--route: ${dungeon.ROUTES.join(', ')}`);
       const curve = flag(args, '--curve') as dungeon.Curve | undefined, style = flag(args, '--style') as dungeon.CorridorStyle | undefined, cid = flag(args, '--id');
+      const note = flag(args, '--exit'), exit = note !== undefined ? { text: note, ...(flag(args, '--exit-href') && { href: flag(args, '--exit-href') }), ...(num(args, '--fade') !== undefined && { fade: num(args, '--fade') }) } : undefined;
+      const withExit = (e: dungeon.CorridorEnd): dungeon.CorridorEnd => (exit && 'at' in e ? { ...e, exit } : e);
       if (curve && !dungeon.CURVES.includes(curve)) throw new Error(`--curve: ${dungeon.CURVES.join(', ')}`);
       if (style && !dungeon.CORRIDOR_STYLES.includes(style)) throw new Error(`--style: ${dungeon.CORRIDOR_STYLES.join(', ')}`);
+      if (exit && !('at' in corridorEnd(m, b))) throw new Error('--exit: the second end must be a point (x,y or a cell name), where the corridor leaves the map');
       m.corridors.push({
         ...(cid && { id: cid }),
-        from: corridorEnd(m, a, flag(args, '--from-side'), num(args, '--from-offset')), to: corridorEnd(m, b, flag(args, '--to-side'), num(args, '--to-offset')),
+        from: corridorEnd(m, a, flag(args, '--from-side'), num(args, '--from-offset')), to: withExit(corridorEnd(m, b, flag(args, '--to-side'), num(args, '--to-offset'))),
         ...(num(args, '--width') !== undefined && { width: num(args, '--width') }),
         ...(route && { route }), ...(flag(args, '--via') && { via: numbers(flag(args, '--via'), '--via') }), ...(doors && { doors }),
         ...(curve && curve !== 'none' && { curve }), ...(style && style !== 'built' && { style }), ...(num(args, '--seed') !== undefined && { seed: num(args, '--seed') }), ...originFlag(args),

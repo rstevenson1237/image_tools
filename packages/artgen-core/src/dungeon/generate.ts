@@ -9,7 +9,7 @@ import { DOOR_KINDS, type Corridor, type DoorKind, type DungeonSpec, type Room, 
 const DOOR_WEIGHTS: Record<DoorKind, number> = { door: 70, secret: 8, locked: 10, portcullis: 6, arch: 6 };
 
 /** A single room centred on a map just big enough for it and its exits, which run off the map's edges. */
-export function singleRoom(spec: DungeonSpec, o: { shape: RoomShape; w: number; h: number; exits?: { side: 'n' | 'e' | 's' | 'w'; door?: DoorKind | null; at?: number }[]; label?: string; number?: number | false; margin?: number }): DungeonSpec {
+export function singleRoom(spec: DungeonSpec, o: { shape: RoomShape; w: number; h: number; exits?: { side: 'n' | 'e' | 's' | 'w'; door?: DoorKind | null; at?: number; text?: string }[]; label?: string; number?: number | false; margin?: number }): DungeonSpec {
   const m = o.margin ?? 3, out = structuredClone(spec);
   const room: Room = { id: 'r1', shape: o.shape, x: m, y: m, w: o.w, h: o.h, ...(o.label && { label: o.label }), ...(o.number !== undefined && { number: o.number }) };
   out.cols = o.w + 2 * m; out.rows = o.h + 2 * m;
@@ -20,7 +20,7 @@ export function singleRoom(spec: DungeonSpec, o: { shape: RoomShape; w: number; 
     const mid = (len: number) => (e.at !== undefined ? e.at : odd ? Math.floor(len / 2) + 0.5 : Math.round(len / 2));
     const at: [number, number] = e.side === 'n' ? [m + mid(o.w), -1] : e.side === 's' ? [m + mid(o.w), out.rows + 1] : e.side === 'w' ? [-1, m + mid(o.h)] : [out.cols + 1, m + mid(o.h)];
     const via = e.side === 'n' || e.side === 's' ? [at[0], m + o.h / 2] : [m + o.w / 2, at[1]];
-    return { from: { room: 'r1' }, to: { at }, via, width: w, doors: [e.door === undefined ? 'door' : e.door, null] } as Corridor;
+    return { from: { room: 'r1' }, to: { at, ...(e.text && { exit: { text: e.text } }) }, via, width: w, doors: [e.door === undefined ? 'door' : e.door, null] } as Corridor;
   });
   return out;
 }

@@ -69,6 +69,9 @@ export interface ExitFacts {
   edge: Edge;
   /** How far the point is from that edge; negative when it lies beyond it. */
   distance: Length;
+  /** The note at the map's edge and its link, when the end has an `exit`. */
+  text?: string;
+  href?: string;
 }
 
 export interface OverlapFacts {
@@ -127,7 +130,7 @@ export function dungeonFacts(spec: DungeonSpec, layout: DungeonLayout = layoutDu
       } else if ('at' in e) {
         const [x, y] = e.at, dist: [Edge, number][] = [['n', y], ['e', spec.cols - x], ['s', spec.rows - y], ['w', x]];
         const [edge, d] = dist.reduce((a, b) => (b[1] < a[1] ? b : a));
-        exits.push({ corridor: index, end: side, at: pt(x, y), room: other, door: doors[k], edge, distance: length(d) });
+        exits.push({ corridor: index, end: side, at: pt(x, y), room: other, door: doors[k], edge, distance: length(d), ...(e.exit && { text: e.exit.text }), ...(e.exit?.href && { href: e.exit.href }) });
       }
     });
   });

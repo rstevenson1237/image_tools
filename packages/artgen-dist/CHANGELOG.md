@@ -246,6 +246,12 @@ Reads: **map format 1**, **dungeon format 1**. `artgen formats --json` prints `{
   centre or the wall clicked, joins a corridor when one is clicked, and sets route, curve and walls. Removing a room or
   corridor removes the corridors that join it. Rooms and passages that overlap now always fill as one floor, whichever
   way their outlines run (an odd-shaped room drawn anticlockwise over another used to leave a hole).
+- **Exits off the map.** A point end may carry `exit: {text, href?, fade?}`: the corridor fades to white over its last
+  `fade` cells (default 3) before the sheet's edge (or before the point, when it lies on the sheet), and a white box with
+  a black border at the edge holds the note, wrapped to stay narrow, linked when `href` is set. A new `exits` layer
+  (`--layers exits=off`). `dungeon link <id> r4 41,12 --exit "To the river caves" [--exit-href …] [--fade 2]`; one-room
+  exits take a note after the door (`--exits n:door:Up to the keep`); MCP `link` `exit`, `dungeon_new` exits `text`;
+  `facts` reports each exit's `text` and `href`; an exit-note field per corridor in the Dungeon Map tool.
 
 **Limits**
 - A map may be up to 200 squares a side (was 120), so a 1-mile gorge fits at 10 yards a square. Raising a limit

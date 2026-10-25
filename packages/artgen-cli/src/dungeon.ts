@@ -11,6 +11,7 @@
  *                     | move <rid> --at x,y|C4 | set <rid> [--shape s] [--size WxH] [--label "…"] [--number n|off] | rm <rid>
  *   artgen dungeon link <id> <room|corridor:id> <room|x,y|C4|corridor:id> [--width 1] [--route auto|hv|vh|straight|around] [--via x,y,…] [--doors door,none]
  *                      [--from-side n|e|s|w [--from-offset n]] [--to-side …] [--curve smooth] [--style natural [--seed n]] [--id name]
+ *                      [--exit "To the caves" [--exit-href url] [--fade 3]]   (a point end past the edge: fades out, with a note)
  *   artgen dungeon unlink <id> <index> | door <id> <index> from|to <kind|none>
  *   artgen dungeon grid <id> [10|5|10+5|none] [--size 10] [--unit ft] [--sub on|off] [--show on|off] [--clip floor|all]
  *   artgen dungeon style <id> [--hatch band|full|none] [--band n] [--wall f] [--numbers on|off] [--scale-bar on|off]
@@ -181,7 +182,7 @@ export function corridorEnd(m: DungeonSpec, ref: string, side?: string, offset?:
 
 /** A corridor end as text: a room (and the wall it leaves by), a point, or the corridor it joins. */
 export const endText = (e: dungeon.CorridorEnd): string =>
-  'room' in e ? `${e.room}${e.side ? `.${e.side}${e.offset !== undefined ? `+${e.offset}` : ''}` : ''}` : 'at' in e ? `(${e.at.join(',')})` : `corridor ${e.corridor}`;
+  'room' in e ? `${e.room}${e.side ? `.${e.side}${e.offset !== undefined ? `+${e.offset}` : ''}` : ''}` : 'at' in e ? `(${e.at.join(',')})${e.exit ? ` "${e.exit.text}"` : ''}` : `corridor ${e.corridor}`;
 
 /** `door,none` / `secret` → the door pair (a single kind is used at both ends). */
 export function doorPair(v: string | undefined): [dungeon.DoorKind | null, dungeon.DoorKind | null] | undefined {

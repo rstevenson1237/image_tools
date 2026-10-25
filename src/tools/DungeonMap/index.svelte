@@ -492,6 +492,10 @@
         {#each spec.corridors as c, i (i)}
           <li>
             <span>{endName(c.from)} → {endName(c.to)}</span>
+            {#if 'at' in c.to}
+              {@const at = c.to.at}
+              <input type="text" class="href" value={c.to.exit?.text ?? ''} placeholder="exit note" title="a note at the map's edge saying where this exit leads; the corridor fades out there" onchange={e => attempt(() => store.change('exit note', m => { const t = val(e).trim(); m.corridors[i].to = t ? { at, exit: { ...('at' in m.corridors[i].to ? (m.corridors[i].to as { exit?: dungeon.Exit }).exit : {}), text: t } } : { at }; }))} />
+            {/if}
             {#each [0, 1] as const as end (end)}
               <select class="door" value={c.doors?.[end] ?? 'none'} onchange={e => setDoor(i, end, val(e))} title="door at the {end ? 'second' : 'first'} end">
                 <option value="none">open</option>{#each dungeon.DOOR_KINDS as k (k)}<option value={k}>{k}</option>{/each}

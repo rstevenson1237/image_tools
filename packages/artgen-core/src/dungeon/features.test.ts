@@ -130,3 +130,27 @@ describe('corridors: walls, junctions, routes, curves and natural passages', () 
     expect(D.fitDungeon(sp, 2).corridors[1].from).toEqual({ corridor: 'x', near: [9, 4] });
   });
 });
+
+describe('exits off the map', () => {
+  const sp = (exit: D.Exit, at: [number, number] = [34, 5.5]) => D.newDungeon('x', { cols: 30, rows: 12, rooms: [{ id: 'a', shape: 'rect', x: 3, y: 3, w: 6, h: 5 }], corridors: [{ from: { room: 'a', side: 'e' }, to: { at, exit } }] });
+
+  test('the corridor fades over its last cells before the edge, and a boxed note (a link when set) says where it leads', () => {
+    const s = sp({ text: 'To the river caves', href: 'caves.svg#1' }), x = D.layoutExits(s, D.layoutDungeon(s));
+    expect(x).toEqual([expect.objectContaining({ corridor: 0, end: 1, edge: [30, 5.5], from: [27, 5.5], dir: [1, 0], off: true })]);
+    const svg = D.renderDungeonSvg(s);
+    expect(svg).toContain('<g id="exits">');
+    expect(svg).toMatch(/<linearGradient id="exit-fade-0"[^]*stop-opacity="0"[^]*stop-opacity="1"/);
+    expect(svg).toMatch(/<a href="caves\.svg#1"><rect [^>]*fill="#ffffff" stroke="#000000"[^>]*\/><text [^>]*>To the river<\/text><text [^>]*>caves<\/text><\/a>/);
+    expect(D.renderDungeonSvg(s, { layers: { exits: false } })).not.toContain('<g id="exits">');
+    expect(D.dungeonFacts(s).exits[0]).toMatchObject({ text: 'To the river caves', href: 'caves.svg#1', edge: 'e' });
+  });
+
+  test('a point on the sheet fades toward the point itself; the note stays inside the map; fade 0 draws only the note', () => {
+    const s = sp({ text: 'Sealed', fade: 2 }, [20, 5.5]), [x] = D.layoutExits(s, D.layoutDungeon(s));
+    expect(x).toMatchObject({ edge: [20, 5.5], from: [18, 5.5], off: false });
+    expect(D.renderDungeonSvg(sp({ text: 'Up', fade: 0 }))).not.toContain('exit-fade');
+    expect(D.wrapText('To the river caves (L2, area 14)', 16)).toEqual(['To the river', 'caves (L2, area', '14)']);
+    expect(D.validateDungeon({ ...s, corridors: [{ from: { room: 'a' }, to: { at: [40, 5], exit: { text: 'x', href: 'javascript:1', fade: 50 } } }] }))
+      .toEqual(['corridors[0].to.exit.href: http(s) links only, not javascript:', 'corridors[0].to.exit.fade: cells, 0..20']);
+  });
+});
