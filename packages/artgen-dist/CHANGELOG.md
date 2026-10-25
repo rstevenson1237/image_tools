@@ -236,6 +236,16 @@ Reads: **map format 1**, **dungeon format 1**. `artgen formats --json` prints `{
   wraps at the map's edge, the map gets a thin frame, and the render grows by the band (`render --json` reports the
   whole size; `--fit` fits map and band on the page). `dungeon style … --furniture outside [--furniture-side right]`;
   MCP `dungeon_update` `furniture`; a menu in the Dungeon Map tool.
+- **Corridors.** A room end may name the wall it leaves by (`{room, side: n|e|s|w, offset?}`), so several corridors leave
+  one room by different walls, each square to its wall (a Z or an L between two walls). An end may join another
+  corridor (`{corridor: id, near?}`): a T or a cross on its centre line; corridors take an optional `id` for this, a
+  ring of joins is refused, and `facts` reports `joins`. `route: around` runs along the grid round the rooms in the way.
+  `curve: smooth` draws a curve through the ends and bends. `style: natural` draws a passage with rough, uneven walls
+  (seeded by `seed`, else its id). `dungeon link … --from-side e --to-side n --route around --curve smooth --style
+  natural --id main`, `link <id> corridor:main r3`; the same fields on MCP `link`; the Corridor tool meets rooms at the
+  centre or the wall clicked, joins a corridor when one is clicked, and sets route, curve and walls. Removing a room or
+  corridor removes the corridors that join it. Rooms and passages that overlap now always fill as one floor, whichever
+  way their outlines run (an odd-shaped room drawn anticlockwise over another used to leave a hole).
 
 **Limits**
 - A map may be up to 200 squares a side (was 120), so a 1-mile gorge fits at 10 yards a square. Raising a limit

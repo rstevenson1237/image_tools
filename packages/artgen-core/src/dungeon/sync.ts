@@ -1,7 +1,7 @@
 /** `artgen dungeon sync`: replace one origin's entries in a dungeon file and keep the hand entries, reporting what that disturbs. */
 import { mergeList, near, type SyncConflict, type SyncReport } from '../lib/sync.ts';
 import { inPolygon, layoutDungeon } from './layout.ts';
-import { DUNGEON_FORMAT, parseDungeon, type DungeonSpec, type Room } from './spec.ts';
+import { DUNGEON_FORMAT, parseDungeon, type CorridorEnd, type DungeonSpec, type Room } from './spec.ts';
 
 /** Marks closer than this (cells) read as one over the other. */
 export const MARK_DISTANCE = 0.75;
@@ -42,8 +42,21 @@ export function syncDungeon(target: DungeonSpec, from: DungeonSpec, origin: stri
       conflicts.push({ kind: 'dropped', list: name, index: source.indexOf(e), message: `${name}[${source.indexOf(e)}] is dropped: it refers to ${missing}, which the sync removed` });
       return false;
     });
-  const end = (e: { room: string } | { at: [number, number] }) => ('room' in e ? [e.room] : []);
-  const keptCorridors = dropped('corridors', corridors.list, target.corridors, c => [...end(c.from), ...end(c.to)]);
+  const end = (e: CorridorEnd) => ('room' in e ? [e.room] : []);
+  const keptRooms = dropped('corridors', corridors.list, target.corridors, c => [...end(c.from), ...end(c.to)]);
+  // a kept corridor that joins a corridor the sync removed (or dropped) is dropped too, until none is left dangling
+  let keptCorridors = keptRooms;
+  for (let changed = true; changed;) {
+    const corridorIds = new Set(keptCorridors.flatMap(c => (c.id ? [c.id] : [])));
+    const next = keptCorridors.filter(c => {
+      const missing = [c.from, c.to].find(e => 'corridor' in e && !corridorIds.has(e.corridor)) as { corridor: string } | undefined;
+      if (!missing) return true;
+      conflicts.push({ kind: 'dropped', list: 'corridors', index: target.corridors.indexOf(c), message: `corridors[${target.corridors.indexOf(c)}] is dropped: it joins corridor ${missing.corridor}, which the sync removed` });
+      return false;
+    });
+    changed = next.length !== keptCorridors.length;
+    keptCorridors = next;
+  }
   const keptWalls = dropped('walls', walls.list, target.walls ?? [], w => [...(w.rooms ?? []), ...(w.gates ?? []).flatMap(g => (g.room ? [g.room] : []))]);
   const spec = parseDungeon({
     ...target, rooms: rooms.list, corridors: keptCorridors, ...((target.walls?.length || from.walls?.length) && { walls: keptWalls }),

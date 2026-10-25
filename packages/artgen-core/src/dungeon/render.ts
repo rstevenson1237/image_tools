@@ -16,6 +16,7 @@ import { PAGE_PT, PAGE_SYMBOL_MM, pageUnit, placeLabels, pointsToPx, textBox, ty
 import { layoutDungeon, type DoorGeom, type DungeonLayout } from './layout.ts';
 import type { DungeonLabel, DungeonSpec, Room } from './spec.ts';
 import { SYMBOLS } from './symbols.ts';
+import { area2 } from './geom.ts';
 import { coversContent, placeFurniture, type FurnitureItem, type FurnitureLayout } from './furniture.ts';
 import { underlaySvg } from './underlay.ts';
 import { layoutWalls } from './walls.ts';
@@ -138,6 +139,14 @@ function doorSvg(dr: DoorGeom, k: number, t: number, u: number): string {
   return out;
 }
 
+/** A ring turned clockwise on screen (the way `roomOutline` draws a rectangle). */
+function clockwise(p: number[]): number[] {
+  if (area2(p) >= 0) return p;
+  const out: number[] = [];
+  for (let i = p.length - 2; i >= 0; i -= 2) out.push(p[i], p[i + 1]);
+  return out;
+}
+
 /** Drawing wrapped in a link when there is one (the PNG ignores it; an SVG viewer follows it). */
 export const linked = (href: string | undefined, svg: string): string => (href ? `<a href="${esc(href)}">${svg}</a>` : svg);
 
@@ -211,8 +220,10 @@ export function renderDungeonSvg(spec: DungeonSpec, o: RenderDungeonOptions = {}
   const k = o.ppu ?? 40, W = spec.cols * k, H = spec.rows * k, u = o.pageScale ? pageUnit(o.pageScale) : k / 40, t = 0.14 * k * spec.style.wall, fr = frameOf(o.crop, spec.cols, spec.rows, k);
   const l = o.layout ?? layoutDungeon(spec), on = dungeonLayersFor(spec, o.layers);
   const parts: string[] = [`<rect width="${W}" height="${H}" fill="${PAPER}"/>`], defs: string[] = [];
-  const roomD = pathData(l.rooms.filter(g => fillOf(g.room) === 'floor').map(g => ({ pts: g.outline, closed: true })), k);
-  const corr = l.corridors.map(c => ({ d: pathData([{ pts: c.pts, closed: false }], k), w: c.width * k }));
+  // floor shapes: the floor rooms and natural passages (filled), and built corridors (stroked to their width)
+  // every ring turns the same way, so where floors overlap the non-zero fill adds them up instead of cutting a hole
+  const roomD = pathData([...l.rooms.filter(g => fillOf(g.room) === 'floor').map(g => ({ pts: clockwise(g.outline), closed: true })), ...l.corridors.flatMap(c => (c.outline ? [{ pts: clockwise(c.outline), closed: true }] : []))], k);
+  const corr = l.corridors.filter(c => !c.outline).map(c => ({ d: pathData([{ pts: c.pts, closed: false }], k), w: c.width * k }));
 
   if (on.underlay && spec.underlay && o.underlay) parts.push(underlaySvg(spec, o.underlay.map, k, o.underlay.field));
 

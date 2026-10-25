@@ -9,7 +9,8 @@
  *                           [--doors f] [--corridor-width n] [--spacing n] [--entrance on|off] [--size 40x30]
  *   artgen dungeon room <id> add <shape> --at x,y|C4 --size WxH [--points x,y,…] [--label "…"] [--number n|off] [--room-id r9]
  *                     | move <rid> --at x,y|C4 | set <rid> [--shape s] [--size WxH] [--label "…"] [--number n|off] | rm <rid>
- *   artgen dungeon link <id> <room> <room|x,y|C4> [--width 1] [--route auto|hv|vh|straight] [--via x,y,…] [--doors door,none]
+ *   artgen dungeon link <id> <room|corridor:id> <room|x,y|C4|corridor:id> [--width 1] [--route auto|hv|vh|straight|around] [--via x,y,…] [--doors door,none]
+ *                      [--from-side n|e|s|w [--from-offset n]] [--to-side …] [--curve smooth] [--style natural [--seed n]] [--id name]
  *   artgen dungeon unlink <id> <index> | door <id> <index> from|to <kind|none>
  *   artgen dungeon grid <id> [10|5|10+5|none] [--size 10] [--unit ft] [--sub on|off] [--show on|off] [--clip floor|all]
  *   artgen dungeon style <id> [--hatch band|full|none] [--band n] [--wall f] [--numbers on|off] [--scale-bar on|off]
@@ -162,10 +163,25 @@ export function cornerPoint(at: string): [number, number] {
   return /^\s*-?[\d.]+\s*,/.test(at) ? [x, y] : [Math.floor(x), Math.floor(y)];
 }
 
-/** A corridor end: a room id in the dungeon, else a point. */
-export function corridorEnd(m: DungeonSpec, ref: string): dungeon.CorridorEnd {
-  return m.rooms.some(r => r.id === ref) ? { room: ref } : { at: dungeon.parsePoint(ref) };
+/**
+ * A corridor end: a room id in the dungeon (leaving by its `side` wall, `offset` cells along, when given), a corridor
+ * (`corridor:<id>`, or an id no room has) for a junction, else a point.
+ */
+export function corridorEnd(m: DungeonSpec, ref: string, side?: string, offset?: number): dungeon.CorridorEnd {
+  if (side !== undefined && !dungeon.SIDES.includes(side as dungeon.Side)) throw new Error(`--from-side / --to-side: ${dungeon.SIDES.join(', ')}`);
+  if (m.rooms.some(r => r.id === ref)) return { room: ref, ...(side && { side: side as dungeon.Side }), ...(side && offset !== undefined && { offset }) };
+  if (side) throw new Error(`a side goes with a room end, and ${ref} is not a room`);
+  const c = ref.replace(/^corridor:/, '');
+  if (ref.startsWith('corridor:') || m.corridors.some(x => x.id === c)) {
+    if (!m.corridors.some(x => x.id === c)) throw new Error(`no corridor with id ${c} (give one an id: link … --id ${c})`);
+    return { corridor: c };
+  }
+  return { at: dungeon.parsePoint(ref) };
 }
+
+/** A corridor end as text: a room (and the wall it leaves by), a point, or the corridor it joins. */
+export const endText = (e: dungeon.CorridorEnd): string =>
+  'room' in e ? `${e.room}${e.side ? `.${e.side}${e.offset !== undefined ? `+${e.offset}` : ''}` : ''}` : 'at' in e ? `(${e.at.join(',')})` : `corridor ${e.corridor}`;
 
 /** `door,none` / `secret` → the door pair (a single kind is used at both ends). */
 export function doorPair(v: string | undefined): [dungeon.DoorKind | null, dungeon.DoorKind | null] | undefined {
@@ -198,7 +214,7 @@ export function warningLines(m: DungeonSpec, max = 5): string[] {
 
 /** One-paragraph description of a dungeon for `dungeon show` and the MCP `dungeon_get`. */
 export function describeDungeon(m: DungeonSpec): string {
-  const g = m.gen, end = (e: dungeon.CorridorEnd) => ('room' in e ? e.room : `(${e.at.join(',')})`);
+  const g = m.gen, end = endText;
   const gridFt = (n: number) => `${n * m.scale.perCell} ${m.scale.unit}`;
   return [
     `${m.id}${m.title ? ` "${m.title}"` : ''}: ${m.cols}×${m.rows} cells of ${m.scale.perCell} ${m.scale.unit}, seed ${m.seed}`,
@@ -206,7 +222,7 @@ export function describeDungeon(m: DungeonSpec): string {
     ...(m.furniture && m.furniture.place !== 'over' ? [`  furniture: ${m.furniture.place}, band ${m.furniture.side ?? 'bottom'}`] : []),
     `  grid: ${m.grid.show ? `size ${gridFt(m.grid.size)}, sub-grid ${m.grid.sub && m.grid.size > 1 ? `${gridFt(1)}` : 'off'}, ${m.grid.clip === 'floor' ? 'on the floor' : 'everywhere'}` : 'off'}; hatch ${m.style.hatch}${m.style.hatch === 'band' ? ` (${m.style.band} cells)` : ''}; numbers ${m.numbers ? 'on' : 'off'}, scale bar ${m.scaleBar ? 'on' : 'off'}, compass ${m.compass ? 'on' : 'off'}`,
     `  rooms (${m.rooms.length}):${m.rooms.map(r => `\n    ${r.id}: ${r.shape} ${r.w}×${r.h} at ${r.x},${r.y}${r.fill && r.fill !== 'floor' ? `, ${r.fill}` : ''}${r.number === false ? ', no number' : r.number !== undefined ? `, #${r.number}` : ''}${r.label ? ` "${r.label}"` : ''}${r.href ? ` → ${r.href}` : ''}`).join('')}`,
-    `  corridors (${m.corridors.length}):${m.corridors.map((c, i) => `\n    ${i}. ${end(c.from)} → ${end(c.to)}${c.width && c.width !== 1 ? `, width ${c.width}` : ''}${c.via ? `, via ${c.via.join(',')}` : c.route && c.route !== 'auto' ? `, ${c.route}` : ''}${c.doors?.some(Boolean) ? `, doors ${c.doors.map(d => d ?? 'none').join('/')}` : ''}`).join('')}`,
+    `  corridors (${m.corridors.length}):${m.corridors.map((c, i) => `\n    ${i}.${c.id ? ` [${c.id}]` : ''} ${end(c.from)} → ${end(c.to)}${c.width && c.width !== 1 ? `, width ${c.width}` : ''}${c.via ? `, via ${c.via.join(',')}` : c.route && c.route !== 'auto' ? `, ${c.route}` : ''}${c.curve === 'smooth' ? ', curved' : ''}${c.style === 'natural' ? ', natural' : ''}${c.doors?.some(Boolean) ? `, doors ${c.doors.map(d => d ?? 'none').join('/')}` : ''}`).join('')}`,
     `  labels (${m.overlay.labels.length}):${m.overlay.labels.map((l, i) => `\n    ${i}. ${l.kind} "${l.text}" at ${l.x},${l.y}${l.href ? ` → ${l.href}` : ''}`).join('')}`,
     `  symbols (${m.overlay.symbols.length}):${m.overlay.symbols.map((s, i) => `\n    ${i}. ${s.kind} at ${s.x},${s.y}${s.angle ? ` turned ${s.angle}°` : ''}`).join('')}`,
   ].join('\n');
@@ -215,7 +231,7 @@ export function describeDungeon(m: DungeonSpec): string {
 /** The text of `dungeon facts` (the JSON is `dungeon.dungeonFacts`' result as it is). */
 export function describeDungeonFacts(r: dungeon.DungeonFacts): string {
   const unit = r.unit.scale, box = (b: dungeon.Boxed) => `${b.cells.w}×${b.cells.h} cells (${b.scale.w}×${b.scale.h} ${unit}) at ${b.cells.x},${b.cells.y}`;
-  const end = (e: dungeon.CorridorEnd) => ('room' in e ? e.room : `(${e.at.join(',')})`);
+  const end = endText;
   return [
     `${r.id}: ${r.size.cols}×${r.size.rows} cells; positions in cells, lengths also in ${unit}`,
     `rooms (${r.rooms.length}):${r.rooms.map(m => `\n  ${m.id}${m.number !== null ? ` #${m.number}` : ''}: ${m.shape} ${box(m.box)}${m.label ? ` "${m.label}"` : ''}${m.doors.length ? `; doors ${m.doors.map(d => `${d.kind}${d.at ? ` at ${d.at.join(',')}` : ''}`).join(', ')}` : ''}`).join('')}`,

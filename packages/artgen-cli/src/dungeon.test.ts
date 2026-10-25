@@ -117,6 +117,28 @@ describe('artgen dungeon', () => {
     expect(spec('banded').furniture).toEqual({ place: 'over', side: 'right' });
   }, 60_000);
 
+  test('corridors: by a wall, joining another, around rooms, curved and natural; removing one takes its junctions', async () => {
+    await run('dungeon', 'new', 'ways', '--empty', '--size', '40x28', ...R);
+    for (const [at, size] of [['3,3', '7x5'], ['28,3', '8x6'], ['15,3', '6x6'], ['3,17', '7x6']]) await run('dungeon', 'room', 'ways', 'add', 'rect', '--at', at, '--size', size, ...R);
+    await run('dungeon', 'link', 'ways', 'r1', 'r4', '--from-side', 's', '--to-side', 'n', '--id', 'main', ...R);
+    await run('dungeon', 'link', 'ways', 'corridor:main', 'r3', '--to-side', 's', ...R);
+    const around = await run('dungeon', 'link', 'ways', 'r1', 'r2', '--route', 'around', ...R);
+    expect(around.out).not.toMatch(/warning/);
+    await run('dungeon', 'link', 'ways', 'r4', 'r2', '--from-side', 'e', '--to-side', 's', '--style', 'natural', '--curve', 'smooth', '--width', '2', ...R);
+    expect(spec('ways').corridors).toEqual([
+      { id: 'main', from: { room: 'r1', side: 's' }, to: { room: 'r4', side: 'n' } },
+      { from: { corridor: 'main' }, to: { room: 'r3', side: 's' } },
+      { from: { room: 'r1' }, to: { room: 'r2' }, route: 'around' },
+      { from: { room: 'r4', side: 'e' }, to: { room: 'r2', side: 's' }, width: 2, curve: 'smooth', style: 'natural' },
+    ]);
+    expect((await run('dungeon', 'show', 'ways', ...R)).out).toMatch(/0\. \[main\] r1\.s → r4\.n[^]*1\. corridor main → r3\.s[^]*3\. r4\.e → r2\.s, width 2, curved, natural/);
+    await expect(run('dungeon', 'link', 'ways', 'corridor:nope', 'r3', ...R)).rejects.toThrow(/no corridor with id nope/);
+    await expect(run('dungeon', 'link', 'ways', 'r1', '5,5', '--to-side', 'n', ...R)).rejects.toThrow(/not a room/);
+    await run('dungeon', 'unlink', 'ways', '0', ...R);
+    expect(spec('ways').corridors).toHaveLength(2);   // main, and the corridor that joined it
+    await run('dungeon', 'render', 'ways', '--ppu', '10', '--format', 'svg', ...R);
+  }, 60_000);
+
   test('dungeon ids are names, never paths', async () => {
     await expect(run('dungeon', 'new', '../escape', ...R)).rejects.toThrow(/letters, digits/);
   });

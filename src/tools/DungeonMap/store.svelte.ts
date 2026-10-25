@@ -24,6 +24,11 @@ export class DungeonMapStore {
   roomShape = $state<Exclude<dungeon.RoomShape, 'poly'>>('rect');
   linkDoors = $state<[dungeon.DoorKind | 'none', dungeon.DoorKind | 'none']>(['door', 'none']);
   linkWidth = $state(1);
+  /** Where a new corridor meets a room: its centre, or the wall nearest the click. */
+  linkAttach = $state<'centre' | 'wall'>('centre');
+  linkRoute = $state<dungeon.Route>('auto');
+  linkCurve = $state(false);
+  linkStyle = $state<dungeon.CorridorStyle>('built');
   symbol = $state('stairs');
   symbolAngle = $state(0);
   labelKind = $state<dungeon.LabelKind>('name');

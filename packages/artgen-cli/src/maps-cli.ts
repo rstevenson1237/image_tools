@@ -64,7 +64,7 @@ export const MAP_USAGE = `       artgen map new <id> [--preset regional|local] [
        artgen dungeon new <id> [--size 40x30] [--seed n] [--title "..."] [--empty] | new <id> --room rect|circle|octagon|cave --room-size 8x6 [--exits n,e:secret,s:none,w] [--label "..."] [--number n|off]
        artgen dungeon gen <id> [--seed n] [--rooms n] [--min-size n] [--max-size n] [--caves f] [--round f] [--loops f] [--doors f] [--corridor-width n] [--spacing n] [--entrance on|off] [--size 40x30]
        artgen dungeon room <id> add <shape> --at x,y|C4 --size WxH [--points x,y,…] [--label "..."] [--number n|off] [--room-id r9] [--fill floor|building|yard|cellar] [--href url] [--origin name] | move <rid> --at x,y | set <rid> [--shape s] [--size WxH] [--label "..."] [--number n|off] [--fill f] [--href url|none] | rm <rid>
-       artgen dungeon link <id> <room> <room|x,y|C4> [--width 1] [--route auto|hv|vh|straight] [--via x,y,…] [--doors door,none] [--origin name] | unlink <id> <i> | door <id> <i> from|to <kind|none>
+       artgen dungeon link <id> <room|corridor:id> <room|x,y|C4|corridor:id> [--width 1] [--route auto|hv|vh|straight|around] [--via x,y,…] [--doors door,none] [--from-side n|e|s|w] [--from-offset n] [--to-side …] [--to-offset n] [--curve smooth] [--style natural] [--seed n] [--id name] [--origin name] | unlink <id> <i> | door <id> <i> from|to <kind|none>
                   (shapes: ${dungeon.ROOM_SHAPES.join(', ')}; doors: ${dungeon.DOOR_KINDS.join(', ')})
        artgen dungeon grid <id> [10|5|10+5|none] [--size 10] [--unit ft] [--sub on|off] [--show on|off] [--clip floor|all] | style <id> [--hatch band|full|none] [--band n] [--wall f] [--numbers on|off] [--scale-bar on|off] [--compass on|off] [--legend on|off] [--title "..."] [--per-cell n] [--unit ft] [--furniture over|outside|auto] [--furniture-side bottom|right]
        artgen dungeon label <id> "Text" --at x,y|C4 [--kind name|note|area] [--size f] [--angle deg] [--href url] [--origin name] | symbol <id> <kind> --at x,y|C4 [--scale f] [--angle deg] [--origin name] | symbols
@@ -349,10 +349,8 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
         if (href !== undefined) { if (href && href !== 'none') r.href = href; else delete r.href; }
         summary = `changed ${r.id}`;
       } else if (op === 'rm') {
-        const r = find(), before = m.corridors.length;
-        m.rooms = m.rooms.filter(x => x !== r);
-        m.corridors = m.corridors.filter(c => !(('room' in c.from && c.from.room === r.id) || ('room' in c.to && c.to.room === r.id)));
-        summary = `removed ${r.id} and ${before - m.corridors.length} corridors`;
+        const r = find(), n = dungeon.removeRoom(m, r.id);
+        summary = `removed ${r.id} and ${n} corridors`;
       } else throw new Error('dungeon room <id> add|move|set|rm');
     });
     print([`${m.id}: ${summary} (${m.rooms.length} rooms)`, ...warningLines(m), next(m.id)].join('\n'), m.rooms);
@@ -360,13 +358,19 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
   }
   if (sub === 'link') {
     const [, a, b] = pos;
-    if (!a || !b) throw new Error('dungeon link <id> <room> <room|x,y|C4>');
+    if (!a || !b) throw new Error('dungeon link <id> <room|corridor:id> <room|x,y|C4|corridor:id>');
     const m = updateDungeon(p, need('<id>'), m => {
       const route = flag(args, '--route') as dungeon.Route | undefined, doors = doorPair(flag(args, '--doors'));
       if (route && !dungeon.ROUTES.includes(route)) throw new Error(`--route: ${dungeon.ROUTES.join(', ')}`);
+      const curve = flag(args, '--curve') as dungeon.Curve | undefined, style = flag(args, '--style') as dungeon.CorridorStyle | undefined, cid = flag(args, '--id');
+      if (curve && !dungeon.CURVES.includes(curve)) throw new Error(`--curve: ${dungeon.CURVES.join(', ')}`);
+      if (style && !dungeon.CORRIDOR_STYLES.includes(style)) throw new Error(`--style: ${dungeon.CORRIDOR_STYLES.join(', ')}`);
       m.corridors.push({
-        from: corridorEnd(m, a), to: corridorEnd(m, b), ...(num(args, '--width') !== undefined && { width: num(args, '--width') }),
-        ...(route && { route }), ...(flag(args, '--via') && { via: numbers(flag(args, '--via'), '--via') }), ...(doors && { doors }), ...originFlag(args),
+        ...(cid && { id: cid }),
+        from: corridorEnd(m, a, flag(args, '--from-side'), num(args, '--from-offset')), to: corridorEnd(m, b, flag(args, '--to-side'), num(args, '--to-offset')),
+        ...(num(args, '--width') !== undefined && { width: num(args, '--width') }),
+        ...(route && { route }), ...(flag(args, '--via') && { via: numbers(flag(args, '--via'), '--via') }), ...(doors && { doors }),
+        ...(curve && curve !== 'none' && { curve }), ...(style && style !== 'built' && { style }), ...(num(args, '--seed') !== undefined && { seed: num(args, '--seed') }), ...originFlag(args),
       });
     });
     print([`${m.id}: corridor ${m.corridors.length - 1}: ${a} → ${b}`, ...warningLines(m), next(m.id)].join('\n'), m.corridors);
@@ -376,7 +380,7 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
     const i = Number(pos[1]);
     const m = updateDungeon(p, need(`<id> <index>`), m => {
       if (!Number.isInteger(i) || i < 0 || i >= m.corridors.length) throw new Error(`dungeon ${sub} <id> <index> (corridors 0..${m.corridors.length - 1}; artgen dungeon show)`);
-      if (sub === 'unlink') { m.corridors.splice(i, 1); return; }
+      if (sub === 'unlink') { dungeon.removeCorridor(m, i); return; }
       const end = pos[2], kind = doorPair(pos[3] ?? 'none')![0];
       if (end !== 'from' && end !== 'to') throw new Error('dungeon door <id> <index> from|to <kind|none>');
       const c = m.corridors[i], d = c.doors ?? [null, null];

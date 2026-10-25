@@ -17,8 +17,19 @@ export const DOOR_NAMES: Record<DoorKind, string> = {
   door: 'Door', secret: 'Secret door', locked: 'Locked door', portcullis: 'Portcullis / bars', arch: 'Archway',
 };
 
-export const ROUTES = ['auto', 'hv', 'vh', 'straight'] as const;
+/** auto: straight when the rooms line up, else an elbow; hv / vh: across then down / down then across; straight: one line; around: along the grid, round the rooms in the way. */
+export const ROUTES = ['auto', 'hv', 'vh', 'straight', 'around'] as const;
 export type Route = (typeof ROUTES)[number];
+
+/** A room's walls: north (top), east, south, west. */
+export const SIDES = ['n', 'e', 's', 'w'] as const;
+export type Side = (typeof SIDES)[number];
+
+/** `built`: straight walls, the corridor's width all along; `natural`: a passage with rough, uneven walls (a cave tunnel). */
+export const CORRIDOR_STYLES = ['built', 'natural'] as const;
+export type CorridorStyle = (typeof CORRIDOR_STYLES)[number];
+export const CURVES = ['none', 'smooth'] as const;
+export type Curve = (typeof CURVES)[number];
 
 export const HATCH_STYLES = ['band', 'full', 'none'] as const;
 export type HatchStyle = (typeof HATCH_STYLES)[number];
@@ -59,10 +70,19 @@ export interface Room {
   hand?: string[];
 }
 
-/** A corridor end: a room (it starts at the room's centre) or a point (an exit stub, a dead end, or off the map). */
-export type CorridorEnd = { room: string } | { at: [number, number] };
+/**
+ * A corridor end: a room, a point, or another corridor.
+ * - `{room}`: from the room's centre; with `side` it leaves through that wall instead, `offset` cells along it from the
+ *   room's top or left edge (default: the middle), so several corridors can leave one room by different walls.
+ * - `{at: [x, y]}`: a point (an exit stub, a dead end, or off the map).
+ * - `{corridor: id}`: a junction on that corridor's centre line, the point nearest the other end (or `near`), so
+ *   corridors meet in a T or a cross.
+ */
+export type CorridorEnd = { room: string; side?: Side; offset?: number } | { at: [number, number] } | { corridor: string; near?: [number, number] };
 
 export interface Corridor {
+  /** A name other corridors can join (`{corridor: id}`); indexes move when corridors are removed, ids do not. */
+  id?: string;
   from: CorridorEnd;
   to: CorridorEnd;
   /** Width in cells (default 1). */
@@ -71,6 +91,12 @@ export interface Corridor {
   route?: Route;
   /** Bend points (x,y pairs) between the two ends; when set the corridor runs straight through them. */
   via?: number[];
+  /** `smooth`: a curve through the ends and bends instead of straight runs (default `none`). */
+  curve?: Curve;
+  /** `natural`: rough, uneven walls (default `built`). */
+  style?: CorridorStyle;
+  /** The seed of a natural corridor's walls (default: from its id or index). */
+  seed?: number;
   /** A door where the corridor leaves each end (null or unset: an open passage). */
   doors?: [DoorKind | null, DoorKind | null];
   origin?: string;
@@ -175,12 +201,45 @@ const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFin
 const nums = (v: unknown): v is number[] => Array.isArray(v) && v.every(isNum);
 const isPoint = (v: unknown): v is [number, number] => nums(v) && v.length === 2;
 
-function endErrors(e: unknown, at: string, ids: Set<string>): string[] {
-  if (!e || typeof e !== 'object') return [`${at}: {room: id} or {at: [x, y]}`];
-  const o = e as Record<string, unknown>;
-  if ('room' in o) return ids.has(o.room as string) ? [] : [`${at}.room: no room ${JSON.stringify(o.room)}`];
+function endErrors(e: unknown, at: string, ids: Set<string>, corridorIds: Set<string>): string[] {
+  const shape = `${at}: {room: id}, {at: [x, y]} or {corridor: id}`;
+  if (!e || typeof e !== 'object') return [shape];
+  const o = e as Record<string, unknown>, out: string[] = [];
+  if ('room' in o) {
+    if (!ids.has(o.room as string)) out.push(`${at}.room: no room ${JSON.stringify(o.room)}`);
+    if (o.side !== undefined && !SIDES.includes(o.side as Side)) out.push(`${at}.side: ${SIDES.join(', ')}`);
+    if (o.offset !== undefined && !(isNum(o.offset) && o.offset >= 0)) out.push(`${at}.offset: cells along the wall, 0 or more`);
+    if (o.offset !== undefined && o.side === undefined) out.push(`${at}.offset: goes with side`);
+    return out;
+  }
   if ('at' in o) return isPoint(o.at) ? [] : [`${at}.at: [x, y]`];
-  return [`${at}: {room: id} or {at: [x, y]}`];
+  if ('corridor' in o) {
+    if (typeof o.corridor !== 'string' || !corridorIds.has(o.corridor)) out.push(`${at}.corridor: no corridor with id ${JSON.stringify(o.corridor)}`);
+    if (o.near !== undefined && !isPoint(o.near)) out.push(`${at}.near: [x, y]`);
+    return out;
+  }
+  return [shape];
+}
+
+/** The corridors each corridor joins (`{corridor: id}` ends), by index. */
+export function corridorDeps(corridors: Corridor[]): number[][] {
+  const byId = new Map(corridors.flatMap((c, i) => (typeof c?.id === 'string' ? [[c.id, i] as const] : [])));
+  return corridors.map(c => [c?.from, c?.to].flatMap(e => (e && typeof e === 'object' && 'corridor' in e && byId.has(e.corridor) ? [byId.get(e.corridor)!] : [])));
+}
+
+/** Corridor indexes in an order where each comes after the corridors it joins; null when they join in a ring. */
+export function corridorOrder(corridors: Corridor[]): number[] | null {
+  const deps = corridorDeps(corridors), state = corridors.map(() => 0), out: number[] = [];
+  const visit = (i: number): boolean => {
+    if (state[i] === 2) return true;
+    if (state[i] === 1) return false;
+    state[i] = 1;
+    for (const d of deps[i]) if (!visit(d)) return false;
+    state[i] = 2; out.push(i);
+    return true;
+  };
+  for (let i = 0; i < corridors.length; i++) if (!visit(i)) return null;
+  return out;
 }
 
 /**
@@ -288,9 +347,20 @@ export function validateDungeon(raw: unknown): string[] {
     if (r?.hand !== undefined && !(Array.isArray(r.hand) && r.hand.every(f => typeof f === 'string'))) e.push(`${at}.hand: field names`);
     originError(r, at, e);
   });
+  const corridorIds = new Set<string>();
+  (Array.isArray(m.corridors) ? m.corridors : []).forEach((c, i) => {
+    if (c?.id === undefined) return;
+    if (typeof c.id !== 'string' || !/^[\w-]+$/.test(c.id)) e.push(`corridors[${i}].id: letters, digits, - and _ only`);
+    else if (corridorIds.has(c.id)) e.push(`corridors[${i}].id: ${c.id} is used twice`);
+    else corridorIds.add(c.id);
+  });
   (Array.isArray(m.corridors) ? m.corridors : (e.push('corridors: an array'), [])).forEach((c, i) => {
     const at = `corridors[${i}]`;
-    e.push(...endErrors(c?.from, `${at}.from`, ids), ...endErrors(c?.to, `${at}.to`, ids));
+    e.push(...endErrors(c?.from, `${at}.from`, ids, corridorIds), ...endErrors(c?.to, `${at}.to`, ids, corridorIds));
+    for (const side of ['from', 'to'] as const) { const x = c?.[side] as { corridor?: unknown } | undefined; if (x && x.corridor !== undefined && x.corridor === c?.id) e.push(`${at}.${side}.corridor: a corridor cannot join itself`); }
+    if (c?.curve !== undefined && !CURVES.includes(c.curve)) e.push(`${at}.curve: ${CURVES.join(' or ')}`);
+    if (c?.style !== undefined && !CORRIDOR_STYLES.includes(c.style)) e.push(`${at}.style: ${CORRIDOR_STYLES.join(' or ')}`);
+    if (c?.seed !== undefined && !isNum(c.seed)) e.push(`${at}.seed: a number`);
     if (c?.width !== undefined && !(isNum(c.width) && c.width >= 0.5 && c.width <= 6)) e.push(`${at}.width: 0.5..6`);
     if (c?.route !== undefined && !ROUTES.includes(c.route)) e.push(`${at}.route: one of ${ROUTES.join(', ')}`);
     if (c?.via !== undefined && !(nums(c.via) && c.via.length % 2 === 0)) e.push(`${at}.via: x,y pairs`);
@@ -298,6 +368,7 @@ export function validateDungeon(raw: unknown): string[] {
       e.push(`${at}.doors: [from, to], each null or one of ${DOOR_KINDS.join(', ')}`);
     originError(c, at, e);
   });
+  if (Array.isArray(m.corridors) && !e.some(x => x.startsWith('corridors')) && !corridorOrder(m.corridors)) e.push('corridors: corridors join each other in a ring ({corridor: id} ends); one must end at a room or a point');
   e.push(...enclosureErrors(m, ids));
   const o = m.overlay;
   if (!o || !Array.isArray(o.labels) || !Array.isArray(o.symbols)) e.push('overlay: { labels: [], symbols: [] }');
@@ -396,6 +467,37 @@ export function parsePoint(at: string): [number, number] {
     return [c + 0.5, r + 0.5];
   }
   throw new Error(`${at}: expected x,y (cells) or a cell name (C4)`);
+}
+
+/** Corridors left once every corridor that joins a missing one is gone (in place of `list`, whose dropped entries are counted). */
+function withoutDangling(list: Corridor[]): Corridor[] {
+  for (;;) {
+    const ids = new Set(list.flatMap(c => (c.id ? [c.id] : [])));
+    const next = list.filter(c => ![c.from, c.to].some(e => 'corridor' in e && !ids.has(e.corridor)));
+    if (next.length === list.length) return next;
+    list = next;
+  }
+}
+
+/** Remove a room, the corridors that start or end at it and the corridors that join those (in place); the count of corridors removed. */
+export function removeRoom(m: DungeonSpec, id: string): number {
+  const before = m.corridors.length;
+  m.rooms = m.rooms.filter(r => r.id !== id);
+  m.corridors = withoutDangling(m.corridors.filter(c => ![c.from, c.to].some(e => 'room' in e && e.room === id)));
+  return before - m.corridors.length;
+}
+
+/** Remove corridor `index` and the corridors that join it (in place); the count removed. */
+export function removeCorridor(m: DungeonSpec, index: number): number {
+  const before = m.corridors.length;
+  m.corridors = withoutDangling(m.corridors.filter((_, i) => i !== index));
+  return before - m.corridors.length;
+}
+
+/** The next free corridor id (`c1`, `c2`, …). */
+export function nextCorridorId(spec: Pick<DungeonSpec, 'corridors'>): string {
+  const used = new Set(spec.corridors.flatMap(c => (c.id ? [c.id] : [])));
+  for (let n = 1; ; n++) if (!used.has(`c${n}`)) return `c${n}`;
 }
 
 /** The next free room id (`r1`, `r2`, …). */

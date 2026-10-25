@@ -61,3 +61,72 @@ describe('furniture beside the map', () => {
     expect(D.validateDungeon({ ...s, furniture: { place: 'beside' } })).toEqual([expect.stringContaining('furniture:')]);
   });
 });
+
+describe('corridors: walls, junctions, routes, curves and natural passages', () => {
+  const rooms: D.Room[] = [
+    { id: 'a', shape: 'rect', x: 3, y: 3, w: 7, h: 5 }, { id: 'b', shape: 'rect', x: 28, y: 3, w: 8, h: 6 },
+    { id: 'm', shape: 'rect', x: 15, y: 3, w: 6, h: 6 }, { id: 'd', shape: 'rect', x: 3, y: 17, w: 7, h: 6 },
+  ];
+  const s = (corridors: D.Corridor[]) => D.newDungeon('c', { cols: 40, rows: 28, rooms, corridors });
+
+  test('a side end leaves through that wall, square to it; several corridors leave one room by different walls', () => {
+    const l = D.layoutDungeon(s([
+      { from: { room: 'a', side: 'e' }, to: { room: 'm', side: 'w' } },
+      { from: { room: 'a', side: 's', offset: 2.5 }, to: { room: 'd', side: 'n' } },
+      { from: { room: 'a', side: 'n' }, to: { at: [6.5, -1] } },
+    ]));
+    const at = (e: D.EndGeom | null) => [e!.x, e!.y, e!.angle].map(v => Math.round(v * 1000) / 1000);
+    expect(at(l.corridors[0].ends[0])).toEqual([10, 5.5, 0]);
+    expect(at(l.corridors[0].ends[1])).toEqual([15, 6.5, 180]);   // m's middle row: a Z between the two walls
+    expect(at(l.corridors[1].ends[0])).toEqual([5.5, 8, 90]);
+    expect(at(l.corridors[1].ends[1])[1]).toBe(17);
+    expect(at(l.corridors[2].ends[0])).toEqual([6.5, 3, -90]);
+    expect(D.validateDungeon({ ...s([]), corridors: [{ from: { room: 'a', side: 'x' as D.Side }, to: { room: 'b', offset: 2 } }] })).toEqual(['corridors[0].from.side: n, e, s, w', 'corridors[0].to.offset: goes with side']);
+  });
+
+  test('a corridor end joins another corridor on its centre line; facts say where; no crossing is reported', () => {
+    const sp = s([
+      { id: 'main', from: { room: 'a', side: 's' }, to: { room: 'd', side: 'n' } },
+      { from: { corridor: 'main' }, to: { room: 'm', side: 's' } },
+    ]);
+    const l = D.layoutDungeon(sp), j = l.corridors[1].pts;
+    expect([j[0], j[1]]).toEqual([6.5, 10]);   // on main (x 6.5), level with m's south door stub
+    expect(D.dungeonFacts(sp).corridors[1].joins).toEqual([{ corridor: 0, at: [6.5, 10] }]);
+    expect(D.lintDungeon(sp)).toEqual([]);
+    expect(D.validateDungeon({ ...sp, corridors: [{ from: { corridor: 'nope' }, to: { room: 'a' } }] })).toEqual(['corridors[0].from.corridor: no corridor with id "nope"']);
+    expect(D.validateDungeon({ ...sp, corridors: [{ id: 'x', from: { corridor: 'y' }, to: { room: 'a' } }, { id: 'y', from: { corridor: 'x' }, to: { room: 'b' } }] })).toEqual([expect.stringContaining('in a ring')]);
+    expect(D.validateDungeon({ ...sp, corridors: [{ id: 'x', from: { corridor: 'x' }, to: { room: 'a' } }] })).toEqual(expect.arrayContaining([expect.stringContaining('cannot join itself')]));
+    expect(D.validateDungeon({ ...sp, corridors: [{ id: 'x', from: { room: 'a' }, to: { room: 'b' } }, { id: 'x', from: { room: 'a' }, to: { room: 'b' } }] })).toEqual(['corridors[1].id: x is used twice']);
+  });
+
+  test('around goes round the rooms in the way, on the grid; the straight elbow would not', () => {
+    const plain = s([{ from: { room: 'a' }, to: { room: 'b' } }]), round = s([{ from: { room: 'a' }, to: { room: 'b' }, route: 'around' }]);
+    expect(D.lintDungeon(plain).map(f => f.message)).toEqual([expect.stringContaining('runs through m')]);
+    expect(D.lintDungeon(round)).toEqual([]);
+    const pts = D.layoutDungeon(round).corridors[0].pts;
+    for (let i = 2; i < pts.length; i += 2) expect(pts[i] === pts[i - 2] || pts[i + 1] === pts[i - 1]).toBe(true);   // along the grid
+  });
+
+  test('smooth curves pass through the ends and bends; natural passages are a seeded outline drawn as floor', () => {
+    const via = [20, 14, 26, 20];
+    const sp = s([{ from: { room: 'd' }, to: { room: 'b' }, via, curve: 'smooth' }, { id: 'cave', from: { room: 'd', side: 'e' }, to: { room: 'b', side: 's' }, style: 'natural', width: 2 }]);
+    const l = D.layoutDungeon(sp), c = l.corridors[0].pts;
+    expect(c.length).toBeGreaterThan(20);
+    expect([c[0], c[1], c[c.length - 2], c[c.length - 1]]).toEqual([6.5, 20, 32, 6]);
+    for (let i = 0; i < via.length; i += 2) expect(D.geom.nearestOnLine(c, via[i], via[i + 1]).d).toBeLessThan(1e-6);
+    const n = l.corridors[1];
+    expect(n.outline!.length).toBeGreaterThan(40);
+    expect(D.layoutDungeon(sp).corridors[1].outline).toEqual(n.outline);
+    expect(D.layoutDungeon({ ...sp, corridors: [sp.corridors[0], { ...sp.corridors[1], seed: 9 }] }).corridors[1].outline).not.toEqual(n.outline);
+    // only built corridors are stroked (walls, floor and the grid's mask): the natural one adds no stroke
+    const strokes = (x: D.DungeonSpec) => D.renderDungeonSvg(x).match(/stroke-linecap="square"/g)?.length;
+    expect(strokes(sp)).toBe(strokes({ ...sp, corridors: [sp.corridors[0]] }));
+  });
+
+  test('fit moves a junction hint with everything else', () => {
+    const sp = D.newDungeon('f', { cols: 60, rows: 50, rooms: [{ id: 'a', shape: 'rect', x: 20, y: 20, w: 4, h: 4 }], corridors: [
+      { id: 'x', from: { room: 'a' }, to: { at: [30, 22] } }, { from: { corridor: 'x', near: [27, 22] }, to: { at: [27, 28] } },
+    ] });
+    expect(D.fitDungeon(sp, 2).corridors[1].from).toEqual({ corridor: 'x', near: [9, 4] });
+  });
+});

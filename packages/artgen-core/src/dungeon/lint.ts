@@ -85,7 +85,10 @@ export function lintDungeon(spec: DungeonSpec, l: DungeonLayout = layoutDungeon(
     for (const id of hit) add('warning', at, `runs through ${id}, which it does not join (set via or route, or link through ${id})`);
   });
   // corridors that cross with no junction (outside every room)
+  const joined = (a: number, b: number) => [spec.corridors[a].from, spec.corridors[a].to].some(e => 'corridor' in e && e.corridor === spec.corridors[b].id)
+    || [spec.corridors[b].from, spec.corridors[b].to].some(e => 'corridor' in e && e.corridor === spec.corridors[a].id);
   for (let a = 0; a < l.corridors.length; a++) for (let b = a + 1; b < l.corridors.length; b++) {
+    if (joined(a, b)) continue;
     const A = l.corridors[a].pts, B = l.corridors[b].pts;
     let found: P | null = null;
     for (let i = 0; i + 3 < A.length && !found; i += 2) for (let j = 0; j + 3 < B.length && !found; j += 2) {

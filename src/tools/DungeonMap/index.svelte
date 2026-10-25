@@ -32,6 +32,8 @@
   /** Poly corners placed so far, or a link's first end. */
   let pending = $state<number[]>([]);
   let linkFrom = $state<dungeon.CorridorEnd | null>(null);
+  /** The corridor a new corridor starts from (a junction), by index. */
+  let linkFromCorridor = $state<number | null>(null);
   let projectDungeons = $state<string[]>([]);
   let pick = $state('');
   let fileInput = $state<HTMLInputElement>();
@@ -49,7 +51,7 @@
     { id: 'select', label: 'Select', hint: 'click a room to select it; drag a room to move it' },
     { id: 'room', label: 'Room', hint: 'drag out a room of the chosen shape' },
     { id: 'poly', label: 'Odd room', hint: 'click the corners of a room; double-click or Enter to finish' },
-    { id: 'link', label: 'Corridor', hint: 'click a room, then another room (or empty floor for an exit or dead end)' },
+    { id: 'link', label: 'Corridor', hint: 'click a room or a corridor, then another room, a corridor (a junction) or empty floor (an exit or dead end)' },
     { id: 'door', label: 'Door', hint: 'click where a corridor meets a room to change its door' },
     { id: 'label', label: 'Label', hint: 'click to place the text below' },
     { id: 'symbol', label: 'Symbol', hint: 'click to place the symbol below' },
@@ -127,7 +129,7 @@
     cancelLine();
   }
 
-  function cancelLine() { pending = []; linkFrom = null; }
+  function cancelLine() { pending = []; linkFrom = null; linkFromCorridor = null; }
 
   const round = (v: number) => Math.round(v * 100) / 100;
   /** The middle of the cell a point falls in (where a 1-wide corridor or a symbol sits tidily). */
@@ -150,6 +152,21 @@
       d = Math.min(d, Math.hypot(x - ax - t * (bx - ax), y - ay - t * (by - ay)));
     }
     return d;
+  }
+
+  /** The corridor under a point outside the rooms (within its width), if any. */
+  function corridorAt(x: number, y: number): number | undefined {
+    const hit = layout.corridors.map(c => [segDistance(c.pts, x, y) - c.width / 2, c.index] as const).sort((a, b) => a[0] - b[0])[0];
+    return hit && hit[0] < 0.3 ? hit[1] : undefined;
+  }
+
+  /** A corridor end at a room: its centre, or with "wall" attachment the wall nearest the click, at the click along it. */
+  function roomEnd(g: dungeon.RoomGeom, x: number, y: number): dungeon.CorridorEnd {
+    if (store.linkAttach !== 'wall') return { room: g.room.id };
+    const r = g.room, d: [dungeon.Side, number][] = [['n', y - r.y], ['s', r.y + r.h - y], ['w', x - r.x], ['e', r.x + r.w - x]];
+    const side = d.reduce((a, b) => (b[1] < a[1] ? b : a))[0], across = side === 'n' || side === 's';
+    const offset = Math.max(0.5, Math.min((across ? r.w : r.h) - 0.5, (store.linkWidth % 2 ? cellMid : Math.round)(across ? x : y) - (across ? r.x : r.y)));
+    return { room: r.id, side, offset };
   }
 
   function ondrag(x0: number, y0: number, x1: number, y1: number) {
@@ -183,17 +200,25 @@
       return;
     }
     if (t === 'link') {
-      const g = roomAt(x, y), end: dungeon.CorridorEnd = g ? { room: g.room.id } : { at: [cellMid(x), cellMid(y)] };
+      const g = roomAt(x, y), along = !g ? corridorAt(x, y) : undefined;
+      // a room (by its centre, or the wall nearest the click), a corridor (a junction), or a point
+      const end: dungeon.CorridorEnd = g ? roomEnd(g, x, y) : along !== undefined ? { corridor: spec.corridors[along].id ?? '' } : { at: [cellMid(x), cellMid(y)] };
       if (!linkFrom) {
-        if (!g) { error = 'start a corridor in a room'; return; }
-        linkFrom = end; pending = [g.cx, g.cy]; error = null;
+        if (!g && along === undefined) { error = 'start a corridor in a room or on a corridor'; return; }
+        linkFrom = end; linkFromCorridor = along ?? null; pending = g ? [g.cx, g.cy] : [x, y]; error = null;
         return;
       }
-      const from = $state.snapshot(linkFrom);
+      const from = $state.snapshot(linkFrom), fromCorridor = linkFromCorridor;
       cancelLine();
       if ('room' in end && 'room' in from && end.room === from.room) return;
       attempt(() => store.change('add corridor', m => {
-        m.corridors.push({ from, to: end, ...(store.linkWidth !== 1 && { width: store.linkWidth }), doors: [doorOf(store.linkDoors[0]), doorOf(store.linkDoors[1])] });
+        // a corridor joined at either end needs an id to be joined by
+        const name = (i: number | null | undefined) => { if (i === null || i === undefined) return; const c = m.corridors[i]; c.id ??= dungeon.nextCorridorId(m); return c.id; };
+        const a = fromCorridor !== null ? { corridor: name(fromCorridor)! } : from, b = along !== undefined ? { corridor: name(along)! } : end;
+        m.corridors.push({
+          from: a, to: b, ...(store.linkWidth !== 1 && { width: store.linkWidth }), doors: [doorOf(store.linkDoors[0]), doorOf(store.linkDoors[1])],
+          ...(store.linkRoute !== 'auto' && { route: store.linkRoute }), ...(store.linkCurve && { curve: 'smooth' as const }), ...(store.linkStyle === 'natural' && { style: 'natural' as const }),
+        });
       }));
       return;
     }
@@ -243,13 +268,10 @@
   }
 
   function removeRoom(id: string) {
-    store.change(`remove ${id}`, m => {
-      m.rooms = m.rooms.filter(r => r.id !== id);
-      m.corridors = m.corridors.filter(c => !(('room' in c.from && c.from.room === id) || ('room' in c.to && c.to.room === id)));
-    });
+    store.change(`remove ${id}`, m => { dungeon.removeRoom(m, id); });
     if (store.selected === id) store.selected = null;
   }
-  function removeCorridor(i: number) { store.change('remove corridor', m => { m.corridors.splice(i, 1); }); }
+  function removeCorridor(i: number) { store.change('remove corridor', m => { dungeon.removeCorridor(m, i); }); }
   function removeLabel(i: number) { store.change('remove label', m => { m.overlay.labels.splice(i, 1); }); }
   function removeSymbol(i: number) { store.change('remove symbol', m => { m.overlay.symbols.splice(i, 1); }); }
   function setRoom(id: string, label: string, edit: (r: dungeon.Room) => void) { attempt(() => store.change(label, m => { edit(m.rooms.find(r => r.id === id)!); })); }
@@ -271,7 +293,7 @@
     else { const o = m[1] === 'overlay.labels' ? spec.overlay.labels[i] : spec.overlay.symbols[i]; if (o) view?.centre(o.x, o.y); }
   }
 
-  const endName = (e: dungeon.CorridorEnd) => ('room' in e ? e.room : 'exit');
+  const endName = (e: dungeon.CorridorEnd) => ('room' in e ? `${e.room}${e.side ? `.${e.side}` : ''}` : 'corridor' in e ? `⊢${e.corridor}` : 'exit');
 
   function fresh(kind: 'generated' | 'empty' | 'room') {
     if (store.dirty && !confirm('Start a new dungeon? Unsaved changes to this one are lost.')) return;
@@ -522,6 +544,16 @@
             {/each}
           </label>
           <label class="inline">width <input type="number" min="1" max="6" bind:value={store.linkWidth} /></label>
+          <label class="inline" title="where the corridor meets a room">meets rooms at
+            <select bind:value={store.linkAttach}><option value="centre">the centre</option><option value="wall">the wall clicked</option></select>
+          </label>
+          <label class="inline">route
+            <select bind:value={store.linkRoute}>{#each dungeon.ROUTES as r (r)}<option value={r}>{r}</option>{/each}</select>
+          </label>
+          <label class="inline"><input type="checkbox" bind:checked={store.linkCurve} /> curved</label>
+          <label class="inline">walls
+            <select bind:value={store.linkStyle}><option value="built">built</option><option value="natural">natural</option></select>
+          </label>
           {#if linkFrom}<button type="button" onclick={cancelLine}>Cancel</button>{/if}
         {/if}
         {#if store.tool === 'poly' && pending.length}
