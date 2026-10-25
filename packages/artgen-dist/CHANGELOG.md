@@ -226,6 +226,10 @@ Reads: **map format 1**, **dungeon format 1**. `artgen formats --json` prints `{
   symbol under a room number and labels on labels (warnings). `--json` adds `warnings: [{path, message}]`; only errors
   make it exit 1. The commands that change rooms, corridors and marks print the first five warnings. MCP `dungeon_check`;
   the Dungeon Map tool lists them under **Problems**, and a click shows the room or place.
+- **Links.** A label and a room may carry `href`: an `http(s)` address, a path relative to the map (`level-2.svg#M.14`)
+  or an `#anchor`; any other scheme (`javascript:`, `data:`, `file:`) is refused. The SVG wraps the label, or the room's
+  number and name, in a link; the PNG draws them as before. `dungeon label … --href URL`, `room add|set … --href URL`
+  (`--href none` removes it); MCP `add_labels[].href`, `add_room`/`set_room` `href`; link fields in the Dungeon Map tool.
 
 **Limits**
 - A map may be up to 200 squares a side (was 120), so a 1-mile gorge fits at 10 yards a square. Raising a limit

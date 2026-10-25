@@ -51,6 +51,8 @@ export interface Room {
   number?: number | false;
   /** What the room is (default `floor`). */
   fill?: RoomFill;
+  /** A link from the room's number and name (see {@link hrefError} for what is allowed). */
+  href?: string;
   /** Who wrote the entry; none means a hand entry (see `sync`). Optional, so the format version is unchanged. */
   origin?: string;
   /** The fields a hand edit changed on an entry of some origin (`["x"]`); a sync reports them when it takes the origin's value back. */
@@ -74,7 +76,8 @@ export interface Corridor {
   origin?: string;
 }
 
-export interface DungeonLabel { text: string; x: number; y: number; kind: LabelKind; size?: number; angle?: number; origin?: string }
+/** A label; `href` makes it a link (see {@link hrefError}). */
+export interface DungeonLabel { text: string; x: number; y: number; kind: LabelKind; size?: number; angle?: number; href?: string; origin?: string }
 export interface DungeonSymbol { kind: string; x: number; y: number; scale?: number; angle?: number; origin?: string }
 
 /**
@@ -175,6 +178,20 @@ function endErrors(e: unknown, at: string, ids: Set<string>): string[] {
   return [`${at}: {room: id} or {at: [x, y]}`];
 }
 
+/**
+ * What is wrong with a link, or null when it is fine: an `http:` or `https:` address, a path relative to the map (another
+ * page or map: `level-2.svg#M.14`) or an `#anchor`. Other schemes (`javascript:`, `data:`, `file:`) are refused, so a
+ * map can be opened without running anything.
+ */
+export function hrefError(v: unknown): string | null {
+  if (typeof v !== 'string' || !v.trim()) return 'a link: http(s)://…, a relative path or #anchor';
+  if (/[\s<>"'`]|[\u0000-\u001f]/.test(v)) return 'a link with no spaces, quotes or angle brackets';
+  const scheme = v.match(/^([a-z][a-z0-9+.-]*):/i)?.[1]?.toLowerCase();
+  if (scheme && scheme !== 'http' && scheme !== 'https') return `http(s) links only, not ${scheme}:`;
+  if (v.startsWith('//')) return 'a full http(s):// address, not one starting //';
+  return null;
+}
+
 /** `origin`, when an entry has one, is a non-empty string. */
 export function originError(entry: unknown, at: string, e: string[]): void {
   const v = (entry as { origin?: unknown } | null)?.origin;
@@ -259,6 +276,7 @@ export function validateDungeon(raw: unknown): string[] {
     if (r?.label !== undefined && typeof r.label !== 'string') e.push(`${at}.label: text`);
     if (r?.number !== undefined && r.number !== false && !isNum(r.number)) e.push(`${at}.number: a number or false`);
     if (r?.fill !== undefined && !ROOM_FILLS.includes(r.fill)) e.push(`${at}.fill: one of ${ROOM_FILLS.join(', ')}`);
+    if (r?.href !== undefined && hrefError(r.href)) e.push(`${at}.href: ${hrefError(r.href)}`);
     if (r?.hand !== undefined && !(Array.isArray(r.hand) && r.hand.every(f => typeof f === 'string'))) e.push(`${at}.hand: field names`);
     originError(r, at, e);
   });
@@ -276,7 +294,11 @@ export function validateDungeon(raw: unknown): string[] {
   const o = m.overlay;
   if (!o || !Array.isArray(o.labels) || !Array.isArray(o.symbols)) e.push('overlay: { labels: [], symbols: [] }');
   else {
-    o.labels.forEach((l, i) => { if (typeof l?.text !== 'string' || !isNum(l.x) || !isNum(l.y) || !LABEL_KINDS.includes(l.kind)) e.push(`overlay.labels[${i}]: text, x, y, kind (${LABEL_KINDS.join('|')})`); else originError(l, `overlay.labels[${i}]`, e); });
+    o.labels.forEach((l, i) => {
+      if (typeof l?.text !== 'string' || !isNum(l.x) || !isNum(l.y) || !LABEL_KINDS.includes(l.kind)) { e.push(`overlay.labels[${i}]: text, x, y, kind (${LABEL_KINDS.join('|')})`); return; }
+      if (l.href !== undefined && hrefError(l.href)) e.push(`overlay.labels[${i}].href: ${hrefError(l.href)}`);
+      originError(l, `overlay.labels[${i}]`, e);
+    });
     o.symbols.forEach((s, i) => { if (typeof s?.kind !== 'string' || !isNum(s.x) || !isNum(s.y)) e.push(`overlay.symbols[${i}]: kind, x, y`); else originError(s, `overlay.symbols[${i}]`, e); });
   }
   return e;

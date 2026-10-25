@@ -2,7 +2,7 @@
   /**
    * Dungeon Map: tabletop RPG dungeons and lairs in black and white. Make one room (with exits running off the map) or
    * generate a whole complex from a seed, then draw: drag out rooms, click corners for an odd-shaped room, link rooms
-   * with corridors, set doors, move rooms, add a grid (any size, with a sub-grid), numbers, labels and symbols, and export SVG or PNG.
+   * with corridors, set doors, move rooms, add a grid (any size, with a sub-grid), numbers, labels (which may be links) and symbols, and export SVG or PNG.
    * The dungeon is the artgen `dungeon.json` the CLI and Claude Code use: open and save it in a game repo's
    * `art/dungeons/`, or download / open the file on its own. Rendering runs in the artgen worker.
    */
@@ -441,6 +441,7 @@
             <label>name <input type="text" value={r.label ?? ''} placeholder="(none)" onchange={e => setRoom(r.id, 'name', x => { const t = val(e).trim(); if (t) x.label = t; else delete x.label; })} /></label>
             <label>number <input type="text" value={r.number === false ? 'off' : r.number ?? ''} placeholder="auto" onchange={e => setRoom(r.id, 'number', x => { const t = val(e).trim(); if (t === 'off') x.number = false; else if (t) x.number = Number(t); else delete x.number; })} /></label>
           </div>
+          <label>link <span class="row"><input type="text" value={r.href ?? ''} placeholder="https://… or level-2.svg#M.4" onchange={e => setRoom(r.id, 'link', x => { const t = val(e).trim(); if (t) x.href = t; else delete x.href; })} />{#if r.href && !dungeon.hrefError(r.href)}<a href={r.href} target="_blank" rel="noopener noreferrer" title="open the link">↗</a>{/if}</span></label>
         </div>
       {/if}
       <ul class="items">
@@ -477,7 +478,7 @@
       <h3>Labels and symbols</h3>
       <ul class="items">
         {#each spec.overlay.labels as l, i (i)}
-          <li><input type="text" value={l.text} onchange={e => attempt(() => store.change('label text', m => { m.overlay.labels[i].text = val(e); }))} /><span class="dim small">{l.kind}</span><button type="button" class="x" onclick={() => removeLabel(i)} title="remove">×</button></li>
+          <li><input type="text" value={l.text} onchange={e => attempt(() => store.change('label text', m => { m.overlay.labels[i].text = val(e); }))} /><input type="text" class="href" value={l.href ?? ''} placeholder="link" title="a link: https://…, a relative path or #anchor" onchange={e => attempt(() => store.change('label link', m => { const t = val(e).trim(); if (t) m.overlay.labels[i].href = t; else delete m.overlay.labels[i].href; }))} /><span class="dim small">{l.kind}</span><button type="button" class="x" onclick={() => removeLabel(i)} title="remove">×</button></li>
         {/each}
         {#each spec.overlay.symbols as s, i (i)}
           <li><span>{dungeon.SYMBOLS[s.kind]?.name ?? s.kind}</span><span class="dim small">{s.x}, {s.y}</span><button type="button" class="x" onclick={() => removeSymbol(i)} title="remove">×</button></li>
@@ -728,6 +729,7 @@
     outline: 1px solid var(--accent, #6aa0ff);
     border-radius: 4px;
   }
+  .items li > input.href { flex: 0 1 6rem; min-width: 3rem; }
   .problems li { font-size: 0.8rem; }
   .problems li.error b { color: var(--danger, #c0392b); }
   .problems li.warning b { color: var(--warn, #b7791f); }

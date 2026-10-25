@@ -84,6 +84,21 @@ describe('artgen dungeon', () => {
     await expect(run('dungeon', 'render', 'lair', '--layers', 'contours=off', ...R)).rejects.toThrow(/unknown layer/);
   }, 60_000);
 
+  test('links: --href on labels and rooms; the SVG links them and the PNG still renders', async () => {
+    await run('dungeon', 'new', 'linked', '--empty', '--size', '20x12', ...R);
+    await run('dungeon', 'room', 'linked', 'add', 'rect', '--at', '2,2', '--size', '6x4', '--label', 'Hall', '--href', 'level-2.svg#M.1', ...R);
+    await run('dungeon', 'label', 'linked', 'To the caves', '--at', '14,8', '--kind', 'note', '--href', 'https://example.com/caves', ...R);
+    await expect(run('dungeon', 'label', 'linked', 'Bad', '--at', '1,1', '--href', 'javascript:alert(1)', ...R)).rejects.toThrow(/http\(s\) links only/);
+    expect(spec('linked')).toMatchObject({ rooms: [{ href: 'level-2.svg#M.1' }], overlay: { labels: [{ href: 'https://example.com/caves' }] } });
+    expect((await run('dungeon', 'show', 'linked', ...R)).out).toContain('"Hall" → level-2.svg#M.1');
+    await run('dungeon', 'render', 'linked', '--ppu', '20', ...R);
+    const dir = join(root, 'art', 'dungeons', 'linked', 'out');
+    expect(readFileSync(join(dir, 'linked.svg'), 'utf8')).toContain('<a href="https://example.com/caves">');
+    expect(readFileSync(join(dir, 'linked.png')).subarray(1, 4).toString()).toBe('PNG');
+    await run('dungeon', 'room', 'linked', 'set', 'r1', '--href', 'none', ...R);
+    expect(spec('linked').rooms[0].href).toBeUndefined();
+  }, 60_000);
+
   test('dungeon ids are names, never paths', async () => {
     await expect(run('dungeon', 'new', '../escape', ...R)).rejects.toThrow(/letters, digits/);
   });

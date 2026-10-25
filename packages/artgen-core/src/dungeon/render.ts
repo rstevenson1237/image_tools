@@ -137,6 +137,9 @@ function doorSvg(dr: DoorGeom, k: number, t: number, u: number): string {
   return out;
 }
 
+/** Drawing wrapped in a link when there is one (the PNG ignores it; an SVG viewer follows it). */
+export const linked = (href: string | undefined, svg: string): string => (href ? `<a href="${esc(href)}">${svg}</a>` : svg);
+
 /** A round number of cells for the scale bar, about a fifth of the map wide. */
 function scaleCells(width: number): number {
   const target = width / 5;
@@ -234,9 +237,9 @@ export function renderDungeonSvg(spec: DungeonSpec, o: RenderDungeonOptions = {}
       const x = g.cx * k, y = g.cy * k, badge = on.numbers && g.number !== undefined;
       if (badge) {
         const txt = String(g.number), fs = numberSize(u, o.pageScale), bh = fs * 1.45, bw = Math.max(bh, txt.length * fs * 0.62 + fs * 0.7);
-        nums += `<rect x="${n1(x - bw / 2)}" y="${n1(y - bh / 2)}" width="${n1(bw)}" height="${n1(bh)}" rx="${n1(bh * 0.32)}" fill="${INK}"/><text x="${n1(x)}" y="${n1(y + fs * 0.36)}" font-size="${n1(fs)}" font-weight="700" text-anchor="middle" fill="${PAPER}">${esc(txt)}</text>`;
+        nums += linked(g.room.href, `<rect x="${n1(x - bw / 2)}" y="${n1(y - bh / 2)}" width="${n1(bw)}" height="${n1(bh)}" rx="${n1(bh * 0.32)}" fill="${INK}"/><text x="${n1(x)}" y="${n1(y + fs * 0.36)}" font-size="${n1(fs)}" font-weight="700" text-anchor="middle" fill="${PAPER}">${esc(txt)}</text>`);
       }
-      if (on.labels && g.room.label) names += haloText(g.room.label, x, y + (badge ? numberSize(u, o.pageScale) * (31 / 19) : 5 * u), nameSize(u, o.pageScale), INK, TH, 'font-weight="700"');
+      if (on.labels && g.room.label) names += linked(g.room.href, haloText(g.room.label, x, y + (badge ? numberSize(u, o.pageScale) * (31 / 19) : 5 * u), nameSize(u, o.pageScale), INK, TH, 'font-weight="700"'));
     }
     if (nums) parts.push(`<g id="numbers">${nums}</g>`);
     if (names) parts.push(`<g id="room-labels">${names}</g>`);
@@ -248,7 +251,7 @@ export function renderDungeonSvg(spec: DungeonSpec, o: RenderDungeonOptions = {}
       const base = labelSize(lb, u, o.pageScale), lx = at[i].x / k, ly = at[i].y / k;
       const attrs = lb.kind === 'area' ? `font-weight="700" letter-spacing="${n1(base * 0.16)}"` : lb.kind === 'name' ? 'font-weight="700"' : 'font-style="italic"';
       const tx = haloText(lb.kind === 'area' ? lb.text.toUpperCase() : lb.text, lx * k, ly * k + base * 0.35, base, INK, TH, attrs);
-      return lb.angle ? `<g transform="rotate(${n1(lb.angle)} ${n1(lx * k)} ${n1(ly * k)})">${tx}</g>` : tx;
+      return linked(lb.href, lb.angle ? `<g transform="rotate(${n1(lb.angle)} ${n1(lx * k)} ${n1(ly * k)})">${tx}</g>` : tx);
     }).join('');
     parts.push(`<g id="labels">${g}</g>`);
   }
