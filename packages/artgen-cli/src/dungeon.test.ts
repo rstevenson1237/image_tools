@@ -152,6 +152,23 @@ describe('artgen dungeon', () => {
     expect(readFileSync(join(root, 'art', 'dungeons', 'gate', 'out', 'gate.svg'), 'utf8')).toContain('<g id="exits">');
   }, 60_000);
 
+  test('connect: a door or opening in the wall touching rooms share; disconnect closes it', async () => {
+    await run('dungeon', 'new', 'block', '--empty', '--size', '20x12', ...R);
+    await run('dungeon', 'room', 'block', 'add', 'rect', '--at', '2,2', '--size', '6x4', ...R);
+    await run('dungeon', 'room', 'block', 'add', 'rect', '--at', '8,2', '--size', '5x4', ...R);
+    await run('dungeon', 'room', 'block', 'add', 'rect', '--at', '2,8', '--size', '3x3', ...R);
+    await run('dungeon', 'connect', 'block', 'r1', 'r2', ...R);
+    const far = await run('dungeon', 'connect', 'block', 'r2', 'r3', '--kind', 'open', ...R);
+    expect(far.out).toMatch(/warning: connections\[1\]: r2 and r3 share no wall/);
+    await expect(run('dungeon', 'connect', 'block', 'r1', 'r2', '--kind', 'gate', ...R)).rejects.toThrow(/--kind: open or one of/);
+    expect(spec('block').connections).toEqual([{ a: 'r1', b: 'r2' }, { a: 'r2', b: 'r3', kind: 'open' }]);
+    expect((await run('dungeon', 'show', 'block', ...R)).out).toContain('0. r1 ↔ r2: door');
+    expect(JSON.parse((await run('dungeon', 'facts', 'block', '--json', ...R)).out).rooms[0].connections).toEqual([{ to: 'r2', kind: 'door', at: [8, 4.5], connection: 0 }]);
+    await run('dungeon', 'disconnect', 'block', '1', ...R);
+    await run('dungeon', 'room', 'block', 'rm', 'r2', ...R);
+    expect(spec('block').connections).toEqual([]);
+  });
+
   test('dungeon ids are names, never paths', async () => {
     await expect(run('dungeon', 'new', '../escape', ...R)).rejects.toThrow(/letters, digits/);
   });

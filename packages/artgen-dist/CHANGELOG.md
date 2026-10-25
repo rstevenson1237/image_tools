@@ -252,6 +252,14 @@ Reads: **map format 1**, **dungeon format 1**. `artgen formats --json` prints `{
   (`--layers exits=off`). `dungeon link <id> r4 41,12 --exit "To the river caves" [--exit-href …] [--fade 2]`; one-room
   exits take a note after the door (`--exits n:door:Up to the keep`); MCP `link` `exit`, `dungeon_new` exits `text`;
   `facts` reports each exit's `text` and `href`; an exit-note field per corridor in the Dungeon Map tool.
+- **Rooms that share a wall.** Floor rooms that touch now keep the wall between them (before, it vanished: walls were
+  drawn by stroking every floor and filling every floor over it). New optional `connections: [{a, b, at?, kind?,
+  width?}]`: a door (any door kind) or an `open` gap in the wall two rooms share, no corridor needed; `at` picks the
+  place on the wall (default: the middle of its longest stretch, on the grid). `facts` lists each room's `connections`
+  and counts them as reaching it; `check` warns about a connection between rooms that share no wall, or one wider than
+  the wall. `dungeon connect <id> r3 r4 [--kind secret|open] [--at x,y] [--width 2]`, `disconnect <id> <i>`; MCP `connect`
+  and `disconnect` ops; a **Connect** tool (click the shared wall; click again for the next kind) and a connections list
+  in the Dungeon Map tool. Removing a room removes its connections.
 
 **Limits**
 - A map may be up to 200 squares a side (was 120), so a 1-mile gorge fits at 10 yards a square. Raising a limit

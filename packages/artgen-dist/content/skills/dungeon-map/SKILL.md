@@ -46,13 +46,14 @@ Big changes with the generator; then fix rooms one by one. Render and look after
 {{ARTGEN}} dungeon link <id> r1 r2 --route around                            # along the grid, round the rooms in the way
 {{ARTGEN}} dungeon link <id> r4 r7 --style natural --curve smooth --width 2  # a winding cave passage with rough walls
 {{ARTGEN}} dungeon door <id> 3 to portcullis | unlink <id> 3
+{{ARTGEN}} dungeon connect <id> r3 r4 [--kind secret|open] [--at x,y]          # rooms that touch: a door (or an opening) in their shared wall
 {{ARTGEN}} dungeon fit <id> --margin 2                                        # crop the map to the rooms
 ```
 Corridors start at room centres: rooms that line up get one straight corridor, others an L-shaped elbow (`--route
 hv|vh`, or `--via x,y,…` for your own bends). `--from-side`/`--to-side` (and `--from-offset`, cells along the wall) make a
 corridor leave by a given wall; `dungeon check` warns when a corridor runs through a room it does not join: reroute it
-with `--route around`. Walls between overlapping floor vanish, so a corridor opens into a room
-wherever it meets it. Door kinds: `door secret locked portcullis arch` (or `none`). Gen keeps labels and symbols but
+with `--route around`. A corridor opens into a room wherever it meets it. Rooms that touch keep the
+wall between them; `connect` puts a door or an opening in it (dense layouts: rooms side by side, no corridors). Door kinds: `door secret locked portcullis arch` (or `none`). Gen keeps labels and symbols but
 replaces every room and corridor: if the user wants "the same dungeon but …", edit — don't regenerate.
 
 ## 3. Grid, numbers, labels and symbols (the follow-up layers)

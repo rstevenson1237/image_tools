@@ -65,6 +65,7 @@ export const MAP_USAGE = `       artgen map new <id> [--preset regional|local] [
        artgen dungeon gen <id> [--seed n] [--rooms n] [--min-size n] [--max-size n] [--caves f] [--round f] [--loops f] [--doors f] [--corridor-width n] [--spacing n] [--entrance on|off] [--size 40x30]
        artgen dungeon room <id> add <shape> --at x,y|C4 --size WxH [--points x,y,…] [--label "..."] [--number n|off] [--room-id r9] [--fill floor|building|yard|cellar] [--href url] [--origin name] | move <rid> --at x,y | set <rid> [--shape s] [--size WxH] [--label "..."] [--number n|off] [--fill f] [--href url|none] | rm <rid>
        artgen dungeon link <id> <room|corridor:id> <room|x,y|C4|corridor:id> [--width 1] [--route auto|hv|vh|straight|around] [--via x,y,…] [--doors door,none] [--from-side n|e|s|w] [--from-offset n] [--to-side …] [--to-offset n] [--curve smooth] [--style natural] [--seed n] [--id name] [--exit "To the caves" [--exit-href url] [--fade 3]] [--origin name] | unlink <id> <i> | door <id> <i> from|to <kind|none>
+       artgen dungeon connect <id> <room> <room> [--kind door|secret|locked|portcullis|arch|open] [--at x,y] [--width 1] | disconnect <id> <i>   a door or opening in the wall two touching rooms share
                   (shapes: ${dungeon.ROOM_SHAPES.join(', ')}; doors: ${dungeon.DOOR_KINDS.join(', ')})
        artgen dungeon grid <id> [10|5|10+5|none] [--size 10] [--unit ft] [--sub on|off] [--show on|off] [--clip floor|all] | style <id> [--hatch band|full|none] [--band n] [--wall f] [--numbers on|off] [--scale-bar on|off] [--compass on|off] [--legend on|off] [--title "..."] [--per-cell n] [--unit ft] [--furniture over|outside|auto] [--furniture-side bottom|right]
        artgen dungeon label <id> "Text" --at x,y|C4 [--kind name|note|area] [--size f] [--angle deg] [--href url] [--origin name] | symbol <id> <kind> --at x,y|C4 [--scale f] [--angle deg] [--origin name] | symbols
@@ -379,6 +380,27 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
     print([`${m.id}: corridor ${m.corridors.length - 1}: ${a} → ${b}`, ...warningLines(m), next(m.id)].join('\n'), m.corridors);
     return 0;
   }
+  if (sub === 'connect') {
+    const [, a, b] = pos;
+    if (!a || !b) throw new Error('dungeon connect <id> <room> <room> [--kind door|secret|locked|portcullis|arch|open] [--at x,y] [--width 1]');
+    const m = updateDungeon(p, need('<id>'), m => {
+      const kind = flag(args, '--kind') ?? 'door', at = flag(args, '--at'), width = num(args, '--width');
+      if (kind !== 'open' && !dungeon.DOOR_KINDS.includes(kind as dungeon.DoorKind)) throw new Error(`--kind: open or one of ${dungeon.DOOR_KINDS.join(', ')}`);
+      (m.connections ??= []).push({ a, b, ...(at && { at: dungeon.parsePoint(at) }), ...(kind !== 'door' && { kind: kind as dungeon.DoorKind | 'open' }), ...(width !== undefined && { width }), ...originFlag(args) });
+    });
+    print([`${m.id}: connection ${m.connections!.length - 1}: ${a} ↔ ${b}`, ...warningLines(m), next(m.id)].join('\n'), m.connections);
+    return 0;
+  }
+  if (sub === 'disconnect') {
+    const i = Number(pos[1]);
+    const m = updateDungeon(p, need('<id> <index>'), m => {
+      if (!Number.isInteger(i) || i < 0 || i >= (m.connections?.length ?? 0)) throw new Error(`dungeon disconnect <id> <index> (connections 0..${(m.connections?.length ?? 0) - 1}; artgen dungeon show)`);
+      m.connections!.splice(i, 1);
+      if (!m.connections!.length) delete m.connections;
+    });
+    print(`${m.id}: ${m.connections?.length ?? 0} connections\n${next(m.id)}`, m.connections ?? []);
+    return 0;
+  }
   if (sub === 'unlink' || sub === 'door') {
     const i = Number(pos[1]);
     const m = updateDungeon(p, need(`<id> <index>`), m => {
@@ -497,7 +519,7 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
     print(syncText(String(file ?? id), report), report);
     return 0;
   }
-  throw new Error('dungeon: new | gen | room | link | unlink | door | grid | style | label | symbol | symbols | overlay | check | fit | render | show | facts | sync | list (artgen --help)');
+  throw new Error('dungeon: new | gen | room | link | unlink | door | connect | disconnect | grid | style | label | symbol | symbols | overlay | check | fit | render | show | facts | sync | list (artgen --help)');
 }
 
 /** `artgen formats [--json]`: the map and dungeon file format versions this artgen reads and writes. */

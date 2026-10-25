@@ -154,3 +154,40 @@ describe('exits off the map', () => {
       .toEqual(['corridors[0].to.exit.href: http(s) links only, not javascript:', 'corridors[0].to.exit.fade: cells, 0..20']);
   });
 });
+
+describe('rooms joined directly', () => {
+  const rooms: D.Room[] = [
+    { id: 'hall', shape: 'rect', x: 2, y: 2, w: 10, h: 6 }, { id: 'a', shape: 'rect', x: 12, y: 2, w: 5, h: 6 },
+    { id: 'b', shape: 'rect', x: 17, y: 2, w: 6, h: 3 }, { id: 'c', shape: 'rect', x: 17, y: 5, w: 6, h: 3 }, { id: 'far', shape: 'rect', x: 2, y: 12, w: 4, h: 4 },
+  ];
+  const sp = (connections: D.Connection[]) => D.newDungeon('k', { cols: 26, rows: 18, rooms, connections });
+
+  test('touching rooms keep the wall between them; a connection puts a door or an opening in it, on the grid', () => {
+    const l = D.layoutDungeon(sp([]));
+    // hall|a at x 12, a|b and a|c at x 17, b|c at y 5
+    expect(l.partitions.map(p => p.map(v => Math.round(v * 100) / 100))).toEqual([[12, 2, 12, 8], [17, 2, 17, 5], [17, 5, 17, 8], [23, 5, 17, 5]].map(p => expect.arrayContaining(p)));
+    const c = D.layoutDungeon(sp([{ a: 'hall', b: 'a' }, { a: 'b', b: 'c', kind: 'open', width: 2 }, { a: 'a', b: 'b', kind: 'secret', at: [17, 3] }]));
+    expect(c.connections.map(x => [x.kind, x.x, x.y, Math.round(x.angle) + 0])).toEqual([['door', 12, 5.5, 0], ['open', 20, 5, 90], ['secret', 17, 3, 0]]);
+    expect(c.doors.filter(d => d.inner).map(d => d.kind)).toEqual(['door', 'secret']);
+    // the openings are cut out of the shared walls: hall|a now runs 2..5 and 6..8
+    expect(c.partitions.filter(p => p[0] === 12 && p[2] === 12).map(p => [Math.min(p[1], p[3]), Math.max(p[1], p[3])]).sort()).toEqual([[2, 5], [6, 8]]);
+    expect(D.renderDungeonSvg(sp([]))).toContain('<path id="partitions"');
+  });
+
+  test('facts list the connections and count them as reaching a room; a connection without a shared wall is a warning', () => {
+    const s = sp([{ a: 'hall', b: 'a' }, { a: 'a', b: 'far' }]), f = D.dungeonFacts(s);
+    expect(f.rooms.find(r => r.id === 'hall')!.connections).toEqual([{ to: 'a', kind: 'door', at: [12, 5.5], connection: 0 }]);
+    expect(f.unreached).toEqual(['b', 'c']);
+    expect(D.lintDungeon(s).map(x => `${x.path} ${x.message}`)).toEqual([expect.stringMatching(/^connections\[1\] a and far share no wall/)]);
+    expect(D.validateDungeon({ ...s, connections: [{ a: 'hall', b: 'hall' }, { a: 'x', b: 'a', kind: 'gate' as D.DoorKind }] })).toEqual([
+      'connections[0]: a room cannot connect to itself', 'connections[1].a: no room "x"', 'connections[1].kind: open or one of door, secret, locked, portcullis, arch',
+    ]);
+  });
+
+  test('removing a room removes its connections; fit moves a connection point', () => {
+    const s = sp([{ a: 'hall', b: 'a', at: [12, 4] }, { a: 'b', b: 'c' }]);
+    D.removeRoom(s, 'b');
+    expect(s.connections).toEqual([{ a: 'hall', b: 'a', at: [12, 4] }]);
+    expect(D.fitDungeon(s, 1).connections![0].at).toEqual([11, 3]);
+  });
+});

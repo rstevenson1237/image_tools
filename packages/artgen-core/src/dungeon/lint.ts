@@ -98,6 +98,16 @@ export function lintDungeon(spec: DungeonSpec, l: DungeonLayout = layoutDungeon(
     if (found) add('warning', `corridors[${b}]`, `crosses corridor ${a} at ${found.map(v => v.toFixed(1)).join(',')} with no junction (the floors join there)`);
   }
 
+  // connections: the two rooms must share a wall long enough for the opening
+  l.connections.forEach((c, i) => {
+    const at = `connections[${i}]`;
+    if (!c.wall) { add('warning', at, `${c.a} and ${c.b} share no wall, so the ${c.kind === 'open' ? 'opening' : c.kind} is not drawn; move one room against the other, or link them with a corridor`); return; }
+    const len = Math.hypot(c.wall[1][0] - c.wall[0][0], c.wall[1][1] - c.wall[0][1]);
+    if (len < c.width - 1e-6) add('warning', at, `the wall ${c.a} and ${c.b} share is ${len.toFixed(1)} cells, narrower than the ${c.width}-cell ${c.kind === 'open' ? 'opening' : c.kind}`);
+    const sc = spec.connections![i];
+    if (sc.at && Math.hypot(sc.at[0] - c.x, sc.at[1] - c.y) > 0.75) add('warning', `${at}.at`, `${sc.at.join(',')} is not on the wall ${c.a} and ${c.b} share; the ${c.kind === 'open' ? 'opening' : c.kind} is at ${c.x.toFixed(1)},${c.y.toFixed(1)}`);
+  });
+
   // marks: off the sheet, symbols on a badge, labels on labels
   const badges = spec.numbers ? l.rooms.flatMap(g => { const b = badgeBox(g); return b ? [{ g, b }] : []; }) : [];
   spec.overlay.symbols.forEach((s, i) => {

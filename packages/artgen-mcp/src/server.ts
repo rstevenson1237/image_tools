@@ -348,7 +348,7 @@ export const TOOLS: ToolDef[] = [
     },
   },
   {
-    name: 'dungeon_edit', description: 'Change a dungeon\'s rooms and corridors, in order. Coordinates are cells (x right, y down; 1 cell = 5 ft); a point is [x,y], "x,y" or a cell name "C4". ops: {op:"add_room", shape: rect|circle|octagon|cave|poly, at: top-left, w, h, points? (poly: [x,y,…]), label?, number? (false hides it), href? (a link from its number and name: http(s), a relative path or #anchor), id?} | {op:"move_room", room, at} | {op:"set_room", room, shape?, w?, h?, label?, number?, href? ("" removes it)} | {op:"remove_room", room} (and its corridors) | {op:"link", from: room id, point or "corridor:<id>", to: the same (a point is an exit or dead end; past the map edge it runs off the map; a corridor is a junction on its centre line), from_side?/to_side?: n|e|s|w (leave the room by that wall), from_offset?/to_offset? (cells along that wall), width?, route?: auto|hv|vh|straight|around (around: along the grid, round the rooms in the way), via?: [x,y,…], curve?: "smooth", style?: "natural" (rough cave-like walls), seed?, id? (a name other corridors can join), exit?: {text, href?, fade?} (to a point past the edge: the corridor fades out and a boxed note says where it leads), doors?: [kind|null, kind|null]} | {op:"unlink", index} | {op:"door", index, end: from|to, kind: door|secret|locked|portcullis|arch|null} | {op:"fit", margin?}.',
+    name: 'dungeon_edit', description: 'Change a dungeon\'s rooms and corridors, in order. Coordinates are cells (x right, y down; 1 cell = 5 ft); a point is [x,y], "x,y" or a cell name "C4". ops: {op:"add_room", shape: rect|circle|octagon|cave|poly, at: top-left, w, h, points? (poly: [x,y,…]), label?, number? (false hides it), href? (a link from its number and name: http(s), a relative path or #anchor), id?} | {op:"move_room", room, at} | {op:"set_room", room, shape?, w?, h?, label?, number?, href? ("" removes it)} | {op:"remove_room", room} (and its corridors) | {op:"link", from: room id, point or "corridor:<id>", to: the same (a point is an exit or dead end; past the map edge it runs off the map; a corridor is a junction on its centre line), from_side?/to_side?: n|e|s|w (leave the room by that wall), from_offset?/to_offset? (cells along that wall), width?, route?: auto|hv|vh|straight|around (around: along the grid, round the rooms in the way), via?: [x,y,…], curve?: "smooth", style?: "natural" (rough cave-like walls), seed?, id? (a name other corridors can join), exit?: {text, href?, fade?} (to a point past the edge: the corridor fades out and a boxed note says where it leads), doors?: [kind|null, kind|null]} | {op:"unlink", index} | {op:"connect", a: room, b: room, kind?: door|secret|locked|portcullis|arch|open, at?: a point on their shared wall, width?} (a door or opening in the wall two touching rooms share; touching rooms without one keep the wall) | {op:"disconnect", index} | {op:"door", index, end: from|to, kind: door|secret|locked|portcullis|arch|null} | {op:"fit", margin?}.',
     inputSchema: obj({ id: str, ops: { type: 'array', items: { type: 'object' } } }, ['id', 'ops']),
     async run(a, p) {
       const m = updateDungeon(p, a.id as string, m => {
@@ -394,11 +394,17 @@ export const TOOLS: ToolDef[] = [
               ...(Array.isArray(op.via) && { via: (op.via as number[]).map(Number) }), ...(Array.isArray(op.doors) && { doors: op.doors as [dungeon.DoorKind | null, dungeon.DoorKind | null] }),
             });
           } else if (op.op === 'unlink') { corridor(op.index); dungeon.removeCorridor(m, Number(op.index)); }
+          else if (op.op === 'connect') {
+            (m.connections ??= []).push({ a: String(op.a), b: String(op.b), ...(op.at !== undefined && { at: pt(op.at) }), ...(typeof op.kind === 'string' && op.kind !== 'door' && { kind: op.kind as dungeon.DoorKind | 'open' }), ...(typeof op.width === 'number' && { width: op.width }) });
+          } else if (op.op === 'disconnect') {
+            if (!m.connections?.[Number(op.index)]) throw new Error(`no connection ${String(op.index)} (0..${(m.connections?.length ?? 0) - 1})`);
+            m.connections.splice(Number(op.index), 1);
+          }
           else if (op.op === 'door') {
             const c = corridor(op.index), d = c.doors ?? [null, null], kind = (op.kind ?? null) as dungeon.DoorKind | null;
             c.doors = op.end === 'to' ? [d[0], kind] : [kind, d[1]];
           } else if (op.op === 'fit') out = dungeon.fitDungeon(dungeon.parseDungeon(m), typeof op.margin === 'number' ? op.margin : 2);
-          else throw new Error(`unknown op ${String(op.op)} (add_room, move_room, set_room, remove_room, link, unlink, door, fit)`);
+          else throw new Error(`unknown op ${String(op.op)} (add_room, move_room, set_room, remove_room, link, unlink, connect, disconnect, door, fit)`);
           if (out !== m) Object.assign(m, out);
         }
       });

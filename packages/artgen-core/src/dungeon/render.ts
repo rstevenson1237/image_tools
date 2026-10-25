@@ -130,8 +130,8 @@ function doorSvg(dr: DoorGeom, k: number, t: number, u: number): string {
     const n = Math.max(3, Math.round(dr.width * 4));
     for (let i = 0; i < n; i++) g += `<circle cy="${n1(-hw + (W * (i + 0.5)) / n)}" r="${n1(Math.max(1.2, 0.06 * k))}" fill="${INK}"/>`;
   } else if (dr.kind === 'arch') g = rect(-d / 2, -hw - d * 0.25, d, d * 0.6, INK) + rect(-d / 2, hw - d * 0.35, d, d * 0.6, INK);
-  // stand on the wall: the outline is the floor's edge and the wall is t thick outside it
-  const ox = dr.x * k + Math.cos((dr.angle * Math.PI) / 180) * t / 2, oy = dr.y * k + Math.sin((dr.angle * Math.PI) / 180) * t / 2;
+  // stand on the wall: the outline is the floor's edge and the wall is t thick outside it (a shared wall is centred on the line)
+  const off = dr.inner ? 0 : t / 2, ox = dr.x * k + Math.cos((dr.angle * Math.PI) / 180) * off, oy = dr.y * k + Math.sin((dr.angle * Math.PI) / 180) * off;
   let out = `<g transform="translate(${n1(ox)} ${n1(oy)}) rotate(${n1(dr.angle)})">${g}</g>`;
   if (dr.kind === 'secret') {
     const fs = Math.max(10, 0.5 * k);
@@ -252,7 +252,9 @@ export function renderDungeonSvg(spec: DungeonSpec, o: RenderDungeonOptions = {}
   const floor = (fill: string, extra: number) =>
     (roomD ? `<path d="${roomD}" fill="${fill}"${extra ? ` stroke="${fill}" stroke-width="${n1(extra * 2)}" stroke-linejoin="miter"` : ''}/>` : '') +
     corr.map(c => `<path d="${c.d}" fill="none" stroke="${fill}" stroke-width="${n1(c.w + extra * 2)}" stroke-linecap="square" stroke-linejoin="miter"/>`).join('');
-  if (on.floors) parts.push(`<g id="floors"><g id="walls">${floor(INK, t)}</g><g id="floor">${floor(PAPER, 0)}</g></g>`);
+  // the walls rooms share: drawn over the floor, as thick as an outer wall shows, with the openings left out
+  const inner = l.partitions.length ? `<path id="partitions" d="${l.partitions.map(p => `M${n1(p[0] * k)} ${n1(p[1] * k)}L${n1(p[2] * k)} ${n1(p[3] * k)}`).join('')}" stroke="${INK}" stroke-width="${n1(t * 1.1)}" stroke-linecap="square" fill="none"/>` : '';
+  if (on.floors) parts.push(`<g id="floors"><g id="walls">${floor(INK, t)}</g><g id="floor">${floor(PAPER, 0)}</g>${inner}</g>`);
 
   const ofFill = (f: string) => l.rooms.filter(g => fillOf(g.room) === f);
   if (on.buildings && ofFill('building').length) {

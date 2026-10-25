@@ -7,7 +7,7 @@ import { dungeon } from 'artgen-core';
 import type { FileStat } from '../../core/project/files';
 import { commandId, createHistory } from '../../core/stores/history.svelte';
 
-export type DungeonTool = 'pan' | 'select' | 'room' | 'poly' | 'link' | 'door' | 'label' | 'symbol' | 'erase';
+export type DungeonTool = 'pan' | 'select' | 'room' | 'poly' | 'link' | 'connect' | 'door' | 'label' | 'symbol' | 'erase';
 export type Side = 'n' | 'e' | 's' | 'w';
 
 const randomSeed = () => Math.floor(Math.random() * 1_000_000);

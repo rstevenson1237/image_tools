@@ -13,6 +13,7 @@
  *                      [--from-side n|e|s|w [--from-offset n]] [--to-side …] [--curve smooth] [--style natural [--seed n]] [--id name]
  *                      [--exit "To the caves" [--exit-href url] [--fade 3]]   (a point end past the edge: fades out, with a note)
  *   artgen dungeon unlink <id> <index> | door <id> <index> from|to <kind|none>
+ *   artgen dungeon connect <id> <room> <room> [--kind door|…|open] [--at x,y] [--width 1] | disconnect <id> <index>
  *   artgen dungeon grid <id> [10|5|10+5|none] [--size 10] [--unit ft] [--sub on|off] [--show on|off] [--clip floor|all]
  *   artgen dungeon style <id> [--hatch band|full|none] [--band n] [--wall f] [--numbers on|off] [--scale-bar on|off]
  *                            [--compass on|off] [--title "…"] [--per-cell n --unit ft] [--furniture over|outside|auto [--furniture-side bottom|right]]
@@ -224,6 +225,7 @@ export function describeDungeon(m: DungeonSpec): string {
     `  grid: ${m.grid.show ? `size ${gridFt(m.grid.size)}, sub-grid ${m.grid.sub && m.grid.size > 1 ? `${gridFt(1)}` : 'off'}, ${m.grid.clip === 'floor' ? 'on the floor' : 'everywhere'}` : 'off'}; hatch ${m.style.hatch}${m.style.hatch === 'band' ? ` (${m.style.band} cells)` : ''}; numbers ${m.numbers ? 'on' : 'off'}, scale bar ${m.scaleBar ? 'on' : 'off'}, compass ${m.compass ? 'on' : 'off'}`,
     `  rooms (${m.rooms.length}):${m.rooms.map(r => `\n    ${r.id}: ${r.shape} ${r.w}×${r.h} at ${r.x},${r.y}${r.fill && r.fill !== 'floor' ? `, ${r.fill}` : ''}${r.number === false ? ', no number' : r.number !== undefined ? `, #${r.number}` : ''}${r.label ? ` "${r.label}"` : ''}${r.href ? ` → ${r.href}` : ''}`).join('')}`,
     `  corridors (${m.corridors.length}):${m.corridors.map((c, i) => `\n    ${i}.${c.id ? ` [${c.id}]` : ''} ${end(c.from)} → ${end(c.to)}${c.width && c.width !== 1 ? `, width ${c.width}` : ''}${c.via ? `, via ${c.via.join(',')}` : c.route && c.route !== 'auto' ? `, ${c.route}` : ''}${c.curve === 'smooth' ? ', curved' : ''}${c.style === 'natural' ? ', natural' : ''}${c.doors?.some(Boolean) ? `, doors ${c.doors.map(d => d ?? 'none').join('/')}` : ''}`).join('')}`,
+    ...(m.connections?.length ? [`  connections (${m.connections.length}):${m.connections.map((c, i) => `\n    ${i}. ${c.a} ↔ ${c.b}: ${c.kind ?? 'door'}${c.width && c.width !== 1 ? `, width ${c.width}` : ''}${c.at ? ` at ${c.at.join(',')}` : ''}`).join('')}`] : []),
     `  labels (${m.overlay.labels.length}):${m.overlay.labels.map((l, i) => `\n    ${i}. ${l.kind} "${l.text}" at ${l.x},${l.y}${l.href ? ` → ${l.href}` : ''}`).join('')}`,
     `  symbols (${m.overlay.symbols.length}):${m.overlay.symbols.map((s, i) => `\n    ${i}. ${s.kind} at ${s.x},${s.y}${s.angle ? ` turned ${s.angle}°` : ''}`).join('')}`,
   ].join('\n');
@@ -235,7 +237,7 @@ export function describeDungeonFacts(r: dungeon.DungeonFacts): string {
   const end = endText;
   return [
     `${r.id}: ${r.size.cols}×${r.size.rows} cells; positions in cells, lengths also in ${unit}`,
-    `rooms (${r.rooms.length}):${r.rooms.map(m => `\n  ${m.id}${m.number !== null ? ` #${m.number}` : ''}: ${m.shape} ${box(m.box)}${m.label ? ` "${m.label}"` : ''}${m.doors.length ? `; doors ${m.doors.map(d => `${d.kind}${d.at ? ` at ${d.at.join(',')}` : ''}`).join(', ')}` : ''}`).join('')}`,
+    `rooms (${r.rooms.length}):${r.rooms.map(m => `\n  ${m.id}${m.number !== null ? ` #${m.number}` : ''}: ${m.shape} ${box(m.box)}${m.label ? ` "${m.label}"` : ''}${m.doors.length ? `; doors ${m.doors.map(d => `${d.kind}${d.at ? ` at ${d.at.join(',')}` : ''}`).join(', ')}` : ''}${m.connections?.length ? `; joins ${m.connections.map(c => `${c.to} (${c.kind})`).join(', ')}` : ''}`).join('')}`,
     `corridors (${r.corridors.length}):${r.corridors.map(c => `\n  ${c.index}. ${end(c.from)} → ${end(c.to)}: ${c.length.map} cells (${c.length.scale} ${unit}), width ${c.width}${c.doors.some(Boolean) ? `, doors ${c.doors.map(d => d ?? 'none').join('/')}` : ''}`).join('')}`,
     `exits (${r.exits.length}):${r.exits.map(x => `\n  corridor ${x.corridor} ${x.end} at ${x.at.join(',')}${x.room ? ` from ${x.room}` : ''}: nearest edge ${x.edge}, ${x.distance.map} cells (${x.distance.scale} ${unit})`).join('')}`,
     `overlaps (${r.overlaps.length}):${r.overlaps.map(o => `\n  ${o.rooms.join(' / ')}: ${o.count} cells, ${box(o.box)}`).join('')}`,

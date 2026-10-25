@@ -52,6 +52,7 @@
     { id: 'room', label: 'Room', hint: 'drag out a room of the chosen shape' },
     { id: 'poly', label: 'Odd room', hint: 'click the corners of a room; double-click or Enter to finish' },
     { id: 'link', label: 'Corridor', hint: 'click a room or a corridor, then another room, a corridor (a junction) or empty floor (an exit or dead end)' },
+    { id: 'connect', label: 'Connect', hint: 'click the wall two touching rooms share: a door there; click it again for the next kind (… open, then none)' },
     { id: 'door', label: 'Door', hint: 'click where a corridor meets a room to change its door' },
     { id: 'label', label: 'Label', hint: 'click to place the text below' },
     { id: 'symbol', label: 'Symbol', hint: 'click to place the symbol below' },
@@ -219,6 +220,31 @@
           from: a, to: b, ...(store.linkWidth !== 1 && { width: store.linkWidth }), doors: [doorOf(store.linkDoors[0]), doorOf(store.linkDoors[1])],
           ...(store.linkRoute !== 'auto' && { route: store.linkRoute }), ...(store.linkCurve && { curve: 'smooth' as const }), ...(store.linkStyle === 'natural' && { style: 'natural' as const }),
         });
+      }));
+      return;
+    }
+    if (t === 'connect') {
+      // the shared wall nearest the click, between two touching rooms
+      let best: { a: string; b: string; x: number; y: number; d: number; upright: boolean } | null = null;
+      for (let i = 0; i < layout.rooms.length; i++) for (let j = i + 1; j < layout.rooms.length; j++) {
+        const A = layout.rooms[i], B = layout.rooms[j];
+        for (const [p, q] of dungeon.geom.sharedEdges(A.outline, B.outline)) {
+          const n = dungeon.geom.nearestOnLine([...p, ...q], x, y);
+          if (!best || n.d < best.d) best = { a: A.room.id, b: B.room.id, x: n.x, y: n.y, d: n.d, upright: Math.abs(q[0] - p[0]) < Math.abs(q[1] - p[1]) };
+        }
+      }
+      if (!best || best.d > 0.6) { error = 'click on the wall two touching rooms share'; return; }
+      const hit = best, existing = layout.connections.find(c => ((c.a === hit.a && c.b === hit.b) || (c.a === hit.b && c.b === hit.a)) && Math.hypot(c.x - hit.x, c.y - hit.y) < c.width / 2 + 0.5);
+      attempt(() => store.change('connection', m => {
+        const list = (m.connections ??= []);
+        if (existing) {
+          const order: (dungeon.DoorKind | 'open')[] = [...dungeon.DOOR_KINDS, 'open'], c = list[existing.index], next = order.indexOf(c.kind ?? 'door') + 1;
+          if (next >= order.length) list.splice(existing.index, 1); else c.kind = order[next];
+        } else {
+          // on the grid: the middle of the cell clicked along the wall
+          list.push({ a: hit.a, b: hit.b, at: hit.upright ? [hit.x, cellMid(hit.y)] : [cellMid(hit.x), hit.y] });
+        }
+        if (!list.length) delete m.connections;
       }));
       return;
     }
@@ -512,6 +538,21 @@
           <li class={f.severity}><button type="button" class="link" onclick={() => showProblem(f.path)} title={f.path}><b>{f.severity}</b> {f.message}</button></li>
         {:else}<li class="dim small">none found</li>{/each}
       </ul>
+
+      {#if spec.connections?.length}
+        <h3>Connections ({spec.connections.length})</h3>
+        <ul class="items">
+          {#each spec.connections as c, i (i)}
+            <li>
+              <span>{c.a} ↔ {c.b}</span>
+              <select class="door" value={c.kind ?? 'door'} onchange={e => attempt(() => store.change('connection', m => { const k = val(e) as dungeon.DoorKind | 'open'; if (k === 'door') delete m.connections![i].kind; else m.connections![i].kind = k; }))}>
+                {#each dungeon.DOOR_KINDS as k (k)}<option value={k}>{k}</option>{/each}<option value="open">open</option>
+              </select>
+              <button type="button" class="x" onclick={() => store.change('remove connection', m => { m.connections!.splice(i, 1); if (!m.connections!.length) delete m.connections; })} title="remove (the wall closes)">×</button>
+            </li>
+          {/each}
+        </ul>
+      {/if}
 
       <h3>Labels and symbols</h3>
       <ul class="items">

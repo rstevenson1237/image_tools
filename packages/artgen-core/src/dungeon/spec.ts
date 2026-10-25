@@ -108,6 +108,13 @@ export interface Corridor {
 }
 
 /** A label; `href` makes it a link (see {@link hrefError}). */
+/**
+ * A door, or an opening, in the wall two rooms share: rooms that touch are joined directly, with no corridor. `at` is a
+ * point on the shared wall (default: the middle of its longest stretch), `width` the opening in cells (default 1) and
+ * `kind` a door kind or `open` (a gap in the wall). Rooms that touch and have no connection keep the wall between them.
+ */
+export interface Connection { a: string; b: string; at?: [number, number]; kind?: DoorKind | 'open'; width?: number; origin?: string }
+
 export interface DungeonLabel { text: string; x: number; y: number; kind: LabelKind; size?: number; angle?: number; href?: string; origin?: string }
 export interface DungeonSymbol { kind: string; x: number; y: number; scale?: number; angle?: number; origin?: string }
 
@@ -162,6 +169,8 @@ export interface DungeonSpec {
   compass: boolean;
   rooms: Room[];
   corridors: Corridor[];
+  /** Optional: doors and openings in the walls rooms share (see {@link Connection}). */
+  connections?: Connection[];
   overlay: { labels: DungeonLabel[]; symbols: DungeonSymbol[] };
   /** Optional: the ground under the rooms (see {@link Underlay}). */
   underlay?: Underlay;
@@ -384,6 +393,19 @@ export function validateDungeon(raw: unknown): string[] {
       e.push(`${at}.doors: [from, to], each null or one of ${DOOR_KINDS.join(', ')}`);
     originError(c, at, e);
   });
+  if (m.connections !== undefined) {
+    if (!Array.isArray(m.connections)) e.push('connections: an array');
+    else m.connections.forEach((c, i) => {
+      const at = `connections[${i}]`;
+      if (!c || typeof c !== 'object') { e.push(`${at}: {a, b, at?, kind?, width?}`); return; }
+      for (const k of ['a', 'b'] as const) if (!ids.has(c[k])) e.push(`${at}.${k}: no room ${JSON.stringify(c[k])}`);
+      if (c.a === c.b) e.push(`${at}: a room cannot connect to itself`);
+      if (c.at !== undefined && !isPoint(c.at)) e.push(`${at}.at: [x, y]`);
+      if (c.kind !== undefined && c.kind !== 'open' && !DOOR_KINDS.includes(c.kind)) e.push(`${at}.kind: open or one of ${DOOR_KINDS.join(', ')}`);
+      if (c.width !== undefined && !(isNum(c.width) && c.width >= 0.5 && c.width <= 20)) e.push(`${at}.width: 0.5..20`);
+      originError(c, at, e);
+    });
+  }
   if (Array.isArray(m.corridors) && !e.some(x => x.startsWith('corridors')) && !corridorOrder(m.corridors)) e.push('corridors: corridors join each other in a ring ({corridor: id} ends); one must end at a room or a point');
   e.push(...enclosureErrors(m, ids));
   const o = m.overlay;
@@ -495,10 +517,11 @@ function withoutDangling(list: Corridor[]): Corridor[] {
   }
 }
 
-/** Remove a room, the corridors that start or end at it and the corridors that join those (in place); the count of corridors removed. */
+/** Remove a room, its connections, the corridors that start or end at it and the corridors that join those (in place); the count of corridors removed. */
 export function removeRoom(m: DungeonSpec, id: string): number {
   const before = m.corridors.length;
   m.rooms = m.rooms.filter(r => r.id !== id);
+  if (m.connections) m.connections = m.connections.filter(c => c.a !== id && c.b !== id);
   m.corridors = withoutDangling(m.corridors.filter(c => ![c.from, c.to].some(e => 'room' in e && e.room === id)));
   return before - m.corridors.length;
 }

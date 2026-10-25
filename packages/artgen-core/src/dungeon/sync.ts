@@ -32,6 +32,7 @@ export function syncDungeon(target: DungeonSpec, from: DungeonSpec, origin: stri
     });
   }
   const corridors = take('corridors', target.corridors, from.corridors), walls = take('walls', target.walls ?? [], from.walls ?? []);
+  const connections = take('connections', target.connections ?? [], from.connections ?? []);
   const labels = take('labels', target.overlay.labels, from.overlay.labels), symbols = take('symbols', target.overlay.symbols, from.overlay.symbols);
   const ids = new Set(rooms.list.map((r: Room) => r.id));
   // a kept entry that refers to a room the sync removed is dropped
@@ -57,9 +58,11 @@ export function syncDungeon(target: DungeonSpec, from: DungeonSpec, origin: stri
     changed = next.length !== keptCorridors.length;
     keptCorridors = next;
   }
+  const keptConnections = dropped('connections', connections.list, target.connections ?? [], c => [c.a, c.b]);
   const keptWalls = dropped('walls', walls.list, target.walls ?? [], w => [...(w.rooms ?? []), ...(w.gates ?? []).flatMap(g => (g.room ? [g.room] : []))]);
   const spec = parseDungeon({
     ...target, rooms: rooms.list, corridors: keptCorridors, ...((target.walls?.length || from.walls?.length) && { walls: keptWalls }),
+    ...((target.connections?.length || from.connections?.length) && { connections: keptConnections }),
     overlay: { labels: labels.list, symbols: symbols.list },
   });
   // hand marks that now sit inside a room, or over another mark, where they did not before

@@ -42,6 +42,8 @@ export interface RoomFacts {
   shape: string;
   box: Boxed;
   doors: RoomDoor[];
+  /** The rooms it is joined to through a shared wall (`connections`): the other room, the door kind or `open`, and where; absent when there are none. */
+  connections?: { to: string; kind: DoorKind | 'open'; at: Point | null; connection: number }[];
 }
 
 export interface CorridorFacts {
@@ -92,7 +94,7 @@ export interface DungeonFacts {
   corridors: CorridorFacts[];
   exits: ExitFacts[];
   overlaps: OverlapFacts[];
-  /** Rooms no corridor starts or ends at. */
+  /** Rooms no corridor starts or ends at and no connection joins. */
   unreached: string[];
   /** Each wall's corners, towers and gates and the rooms it encloses (only when the file has `walls`). */
   walls?: WallFacts[];
@@ -134,6 +136,13 @@ export function dungeonFacts(spec: DungeonSpec, layout: DungeonLayout = layoutDu
       }
     });
   });
+
+  for (const c of layout.connections) for (const [id, other] of [[c.a, c.b], [c.b, c.a]] as const) {
+    const r = byId.get(id);
+    if (!r) continue;
+    reached.add(id);
+    (r.connections ??= []).push({ to: other, kind: c.kind, at: c.wall ? pt(c.x, c.y) : null, connection: c.index });
+  }
 
   const overlaps: OverlapFacts[] = [];
   for (let a = 0; a < layout.rooms.length; a++) for (let b = a + 1; b < layout.rooms.length; b++) {
