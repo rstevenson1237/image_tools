@@ -7,11 +7,20 @@ name: artgen-release
 # `artgen-dist` branch, tags that commit `artgen-dist-v<version>` (what game repos pin:
 # `npx -y github:rstevenson1237/image_tools#artgen-dist-v0.9.0 update`) and creates the GitHub release with the
 # changelog section and the Python client's sdist/wheel attached. PyPI is not published (on the owner's go-ahead only).
+# Safe to run again for the same tag: a dist tag already published from the same commit is left as it is, and a
+# release that already exists (one made by hand in the GitHub UI, which also pushes the tag) gets the changelog notes
+# and the Python files instead of failing. To finish a release whose run failed, run this workflow by hand
+# (Actions → artgen-release → Run workflow) with the tag: it runs the current workflow on that tag's commit.
 # Optional (D4): set the repository variable ARTGEN_PUBLISH_RUNTIME=true and the NPM_TOKEN secret to also publish
 # artgen-runtime to npm when its version is not there yet.
 on:
   push:
     tags: ['artgen-v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'The release tag to (re)run, e.g. artgen-v0.11.0'
+        required: true
 
 permissions:
   contents: write
@@ -24,8 +33,13 @@ concurrency:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      # the release tag: the pushed one, or the one given to a manual run
+      TAG: ${{ inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -42,8 +56,8 @@ jobs:
           set -euo pipefail
           version=$(node -p "require('./packages/artgen-dist/package.json').version")
           py=$(sed -n 's/^version = "\(.*\)"/\1/p' python/artgen/pyproject.toml)
-          if [ "${GITHUB_REF_NAME}" != "artgen-v${version}" ] || [ "$py" != "$version" ]; then
-            echo "tag ${GITHUB_REF_NAME} vs artgen-dist ${version} / python ${py}: run scripts/artgen-release.mjs first" >&2
+          if [ "${TAG}" != "artgen-v${version}" ] || [ "$py" != "$version" ]; then
+            echo "tag ${TAG} vs artgen-dist ${version} / python ${py}: run scripts/artgen-release.mjs first" >&2
             exit 1
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
@@ -74,7 +88,13 @@ jobs:
           awk -v v="## ${version} " 'index($0, v) == 1 { on = 1; print; next } /^## / { on = 0 } on' packages/artgen-dist/CHANGELOG.md > notes.md
           printf '\nInstall or update in a game repo:\n\n    npx -y github:%s#artgen-dist-v%s update\n' "$GITHUB_REPOSITORY" "$version" >> notes.md
           python -m build python/artgen --outdir python-dist
-          gh release create "$GITHUB_REF_NAME" --title "artgen $version" --notes-file notes.md python-dist/*
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            # made by hand (or by an earlier run): give it the changelog notes and the Python files
+            gh release edit "$TAG" --title "artgen $version" --notes-file notes.md
+            gh release upload "$TAG" python-dist/* --clobber
+          else
+            gh release create "$TAG" --title "artgen $version" --notes-file notes.md python-dist/*
+          fi
 
   runtime-npm:
     needs: release
@@ -85,6 +105,8 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - uses: actions/setup-node@v4
         with:

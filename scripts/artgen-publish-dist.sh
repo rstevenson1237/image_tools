@@ -8,7 +8,8 @@
 # Env:   REMOTE (default origin), BRANCH (default artgen-dist), GIT_AUTHOR (default github-actions[bot])
 # The branch holds exactly the build: each publish clears it and copies the new build in, as one commit on top of
 # the previous head (no history rewrite). When the build equals the branch head, nothing is committed and the tag
-# goes on the existing head. An existing tag is never moved.
+# goes on the existing head. An existing tag is never moved; publishing again from the commit it was made from does
+# nothing (a release run run again).
 set -euo pipefail
 out=${1:?usage: artgen-publish-dist.sh <out dir> [<tag>]}
 tag=${2:-}
@@ -19,6 +20,12 @@ version=$(cat "$out/dist/tools/artgen/VERSION")
 sha=$(git rev-parse --short=7 HEAD)
 
 if [ -n "$tag" ] && git ls-remote --exit-code --tags "$remote" "refs/tags/$tag" >/dev/null; then
+  # a release run run again (its first run failed later on): fine when the tag was made from this very commit
+  git fetch -q --depth=1 "$remote" "refs/tags/$tag:refs/tags/$tag"
+  if git for-each-ref --format='%(contents)' "refs/tags/$tag" | grep -qF "(from $sha)"; then
+    echo "tag $tag is already published from $sha: nothing to do"
+    exit 0
+  fi
   echo "tag $tag already exists on $remote — releases are immutable; bump the version" >&2
   exit 1
 fi
