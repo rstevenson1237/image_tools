@@ -66,7 +66,7 @@ export const MAP_USAGE = `       artgen map new <id> [--preset regional|local] [
        artgen dungeon room <id> add <shape> --at x,y|C4 --size WxH [--points x,y,…] [--label "..."] [--number n|off] [--room-id r9] [--fill floor|building|yard|cellar] [--href url] [--origin name] | move <rid> --at x,y | set <rid> [--shape s] [--size WxH] [--label "..."] [--number n|off] [--fill f] [--href url|none] | rm <rid>
        artgen dungeon link <id> <room> <room|x,y|C4> [--width 1] [--route auto|hv|vh|straight] [--via x,y,…] [--doors door,none] [--origin name] | unlink <id> <i> | door <id> <i> from|to <kind|none>
                   (shapes: ${dungeon.ROOM_SHAPES.join(', ')}; doors: ${dungeon.DOOR_KINDS.join(', ')})
-       artgen dungeon grid <id> [10|5|10+5|none] [--size 10] [--unit ft] [--sub on|off] [--show on|off] [--clip floor|all] | style <id> [--hatch band|full|none] [--band n] [--wall f] [--numbers on|off] [--scale-bar on|off] [--compass on|off] [--legend on|off] [--title "..."] [--per-cell n] [--unit ft]
+       artgen dungeon grid <id> [10|5|10+5|none] [--size 10] [--unit ft] [--sub on|off] [--show on|off] [--clip floor|all] | style <id> [--hatch band|full|none] [--band n] [--wall f] [--numbers on|off] [--scale-bar on|off] [--compass on|off] [--legend on|off] [--title "..."] [--per-cell n] [--unit ft] [--furniture over|outside|auto] [--furniture-side bottom|right]
        artgen dungeon label <id> "Text" --at x,y|C4 [--kind name|note|area] [--size f] [--angle deg] [--href url] [--origin name] | symbol <id> <kind> --at x,y|C4 [--scale f] [--angle deg] [--origin name] | symbols
        artgen dungeon overlay <id> rm label|symbol <i> | clear [labels|symbols] | fit <id> [--margin 2]
        artgen dungeon check <id> [--json]   every error in the file with its JSON path, then drawing errors and warnings (a room outline that crosses itself, rooms laid over each other, a corridor through a room it does not join or across another, a door never drawn, a mark off the sheet or on a badge); exits 1 when there are errors
@@ -410,6 +410,13 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
       for (const [f, k] of [['--numbers', 'numbers'], ['--scale-bar', 'scaleBar'], ['--compass', 'compass'], ['--legend', 'legend']] as const) { const v = onOff(flag(args, f)); if (v !== undefined) m[k] = v; }
       if (num(args, '--per-cell') !== undefined) m.scale.perCell = num(args, '--per-cell')!;
       if (flag(args, '--unit')) m.scale.unit = flag(args, '--unit')!;
+      const place = flag(args, '--furniture'), side = flag(args, '--furniture-side');
+      if (place !== undefined || side !== undefined) {
+        if (place !== undefined && !dungeon.FURNITURE_PLACES.includes(place as dungeon.FurniturePlace)) throw new Error(`--furniture: ${dungeon.FURNITURE_PLACES.join(', ')}`);
+        if (side !== undefined && !dungeon.FURNITURE_SIDES.includes(side as dungeon.FurnitureSide)) throw new Error(`--furniture-side: ${dungeon.FURNITURE_SIDES.join(', ')}`);
+        const f = { place: (place ?? m.furniture?.place ?? 'outside') as dungeon.FurniturePlace, ...((side ?? m.furniture?.side) && { side: (side ?? m.furniture?.side) as dungeon.FurnitureSide }) };
+        if (f.place === 'over' && !f.side) delete m.furniture; else m.furniture = f;
+      }
     });
     print(`${describeDungeon(m)}\n${next(m.id)}`, m);
     return 0;

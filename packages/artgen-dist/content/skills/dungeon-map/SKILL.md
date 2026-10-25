@@ -52,6 +52,7 @@ replaces every room and corridor: if the user wants "the same dungeon but …", 
 {{ARTGEN}} dungeon grid <id> --size 10 --unit ft --sub on [--clip floor|all]   # a line every 10 ft, a fainter one every square; on the floor (default) or everywhere
 {{ARTGEN}} dungeon grid <id> --show off                   # no grid (shorthands: 10 | 5 | 10+5 | none)
 {{ARTGEN}} dungeon style <id> --hatch band|full|none --band 1 --numbers on --scale-bar on --compass off --title "…"
+{{ARTGEN}} dungeon style <id> --furniture auto            # title, scale bar, compass and legend in a band below the map when they would hide something (outside: always; --furniture-side right)
 {{ARTGEN}} dungeon label <id> "Bone pit" --at 12,9 --kind note       # name: bold · note: italic · area: big spaced capitals
 {{ARTGEN}} dungeon symbol <id> stairs --at 11,4 --angle 90            # {{ARTGEN}} dungeon symbols lists the kinds
 {{ARTGEN}} dungeon label <id> "To the river caves" --at 30,9 --kind note --href caves.svg   # a link (http(s), a relative path or #anchor) in the SVG

@@ -99,6 +99,24 @@ describe('artgen dungeon', () => {
     expect(spec('linked').rooms[0].href).toBeUndefined();
   }, 60_000);
 
+  test('furniture beside the map: the render grows by the band; --fit keeps map and band on the page', async () => {
+    await run('dungeon', 'new', 'banded', '--seed', '5', '--rooms', '6', '--title', 'Banded', ...R);
+    await run('dungeon', 'style', 'banded', '--furniture', 'outside', '--compass', 'on', ...R);
+    expect(spec('banded').furniture).toEqual({ place: 'outside' });
+    const r = JSON.parse((await run('dungeon', 'render', 'banded', '--ppu', '10', '--format', 'svg', '--json', ...R)).out);
+    expect(r.size[0]).toBe(400);
+    expect(r.size[1]).toBeGreaterThan(300);
+    const fit = JSON.parse((await run('dungeon', 'render', 'banded', '--fit', '120x100mm', '--format', 'svg', '--json', ...R)).out);
+    expect(fit.svg.width).toBeLessThanOrEqual(120);
+    expect(fit.svg.height).toBeLessThanOrEqual(100);
+    expect(Math.max(fit.svg.width / 120, fit.svg.height / 100)).toBeGreaterThan(0.99);
+    await run('dungeon', 'style', 'banded', '--furniture-side', 'right', ...R);
+    expect(spec('banded').furniture).toEqual({ place: 'outside', side: 'right' });
+    await expect(run('dungeon', 'style', 'banded', '--furniture', 'beside', ...R)).rejects.toThrow(/--furniture: over, outside, auto/);
+    await run('dungeon', 'style', 'banded', '--furniture', 'over', ...R);
+    expect(spec('banded').furniture).toEqual({ place: 'over', side: 'right' });
+  }, 60_000);
+
   test('dungeon ids are names, never paths', async () => {
     await expect(run('dungeon', 'new', '../escape', ...R)).rejects.toThrow(/letters, digits/);
   });

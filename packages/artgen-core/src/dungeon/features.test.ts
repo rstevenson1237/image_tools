@@ -24,3 +24,40 @@ describe('links', () => {
     expect(svg.match(/<a /g)).toHaveLength(3);
   });
 });
+
+describe('furniture beside the map', () => {
+  const room = (over: Partial<D.DungeonSpec> = {}) => base({ title: 'Crypt', compass: true, rooms: [{ id: 'a', shape: 'rect', x: 0, y: 0, w: 10, h: 6 }], ...over });
+  const viewBox = (svg: string) => svg.match(/viewBox="([^"]+)"/)![1].split(' ').map(Number);
+
+  test('over (the default) keeps the sheet size; outside adds a band below or right and frames the map', () => {
+    const over = D.renderDungeonSvg(room());
+    expect(viewBox(over)).toEqual([0, 0, 1200, 800]);
+    const below = D.renderDungeonSvg(room({ furniture: { place: 'outside' } })), [, , w, h] = viewBox(below);
+    expect(w).toBe(1200);
+    expect(h).toBeGreaterThan(800);
+    expect(D.dungeonRenderSize(room({ furniture: { place: 'outside' } }))).toMatchObject({ width: 1200, height: h, band: { right: 0 } });
+    // every item is in the band: below the sheet's bottom edge
+    for (const id of ['title', 'scale']) expect(Number(below.match(new RegExp(`<g id="${id}"><rect x="[^"]+" y="([^"]+)"`))![1]), id).toBeGreaterThan(800);
+    const right = D.renderDungeonSvg(room({ furniture: { place: 'outside', side: 'right' } }));
+    expect(viewBox(right)[2]).toBeGreaterThan(1200);
+    expect(viewBox(right)[3]).toBe(800);
+    expect(below).toContain('fill="none" stroke="#000000" stroke-width="1.5"/>');   // the map's frame
+  });
+
+  test('auto moves only what would cover a room: the title over the room goes, the scale bar in empty rock stays', () => {
+    const f = D.dungeonFurniture(room({ furniture: { place: 'auto' } }));
+    const where = Object.fromEntries(f.placed.map(p => [p.item.id, p.outside]));
+    expect(where).toEqual({ title: true, scale: false, compass: false });
+    expect(f.band.bottom).toBeGreaterThan(0);
+    const clear = D.dungeonFurniture(room({ furniture: { place: 'auto' }, rooms: [{ id: 'a', shape: 'rect', x: 10, y: 6, w: 8, h: 6 }] }));
+    expect(clear.placed.every(p => !p.outside)).toBe(true);
+    expect(clear.band).toEqual({ right: 0, bottom: 0 });
+  });
+
+  test('a cropped render puts the band beside the window', () => {
+    const s = room({ furniture: { place: 'outside' } }), size = D.dungeonRenderSize(s, { crop: [0, 0, 12, 8] });
+    expect(size.width).toBe(480);
+    expect(size.height).toBeGreaterThan(320);
+    expect(D.validateDungeon({ ...s, furniture: { place: 'beside' } })).toEqual([expect.stringContaining('furniture:')]);
+  });
+});

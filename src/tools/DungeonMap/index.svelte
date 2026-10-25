@@ -24,7 +24,7 @@
   const PREVIEW_PPU = 40;
 
   let svg = $state('');
-  let info = $state<{ rooms: number; corridors: number; doors: number } | null>(null);
+  let info = $state<{ rooms: number; corridors: number; doors: number; band: { right: number; bottom: number } } | null>(null);
   let error = $state<string | null>(null);
   /** Why the last render failed (kept apart from action errors, which a later render must not hide). */
   let renderError = $state<string | null>(null);
@@ -93,7 +93,7 @@
       try {
         const r = await lease.api.dungeonSvg(s, { layers, ppu: PREVIEW_PPU });
         if (mine !== ticket) return;
-        svg = r.svg; info = { rooms: r.rooms, corridors: r.corridors, doors: r.doors }; renderError = null;
+        svg = r.svg; info = { rooms: r.rooms, corridors: r.corridors, doors: r.doors, band: r.band }; renderError = null;
       } catch (e) {
         if (mine === ticket) renderError = e instanceof Error ? e.message : String(e);
       } finally {
@@ -422,6 +422,18 @@
         <label class="inline"><input type="checkbox" checked={spec.scaleBar} onchange={e => store.change('scale bar', m => { m.scaleBar = checked(e); })} /> scale bar</label>
         <label class="inline"><input type="checkbox" checked={spec.compass} onchange={e => store.change('compass', m => { m.compass = checked(e); })} /> compass</label>
       </div>
+      <div class="pair">
+        <label title="where the title, scale bar, compass and legend go">title, scale and compass
+          <select value={spec.furniture?.place ?? 'over'} onchange={e => store.change('furniture', m => { const place = val(e) as dungeon.FurniturePlace; if (place === 'over') delete m.furniture; else m.furniture = { place, ...(m.furniture?.side && { side: m.furniture.side }) }; })}>
+            <option value="over">over the map</option><option value="outside">beside the map</option><option value="auto">beside, if they would hide something</option>
+          </select>
+        </label>
+        <label>beside
+          <select value={spec.furniture?.side ?? 'bottom'} disabled={!spec.furniture || spec.furniture.place === 'over'} onchange={e => store.change('furniture side', m => { if (m.furniture) m.furniture.side = val(e) as dungeon.FurnitureSide; })}>
+            <option value="bottom">below</option><option value="right">to the right</option>
+          </select>
+        </label>
+      </div>
       <label>1 square = <span class="row"><input type="number" min="0" value={spec.scale.perCell} onchange={e => attempt(() => store.change('scale', m => { m.scale.perCell = num(e); }))} /><input type="text" class="unit" value={spec.scale.unit} onchange={e => attempt(() => store.change('scale', m => { m.scale.unit = val(e); }))} /></span></label>
 
       <h3>Rooms ({spec.rooms.length})</h3>
@@ -546,7 +558,7 @@
           <button type="button" onclick={() => exportImage('png')}>PNG</button>
           <button type="button" onclick={() => exportImage('svg')}>SVG</button>
         </span>
-        <span class="dim small status">{rendering ? 'rendering…' : info ? `${spec.cols * store.exportPpu}×${spec.rows * store.exportPpu} px · ${info.rooms} rooms · ${info.corridors} corridors · ${info.doors} doors` : ''}</span>
+        <span class="dim small status">{rendering ? 'rendering…' : info ? `${Math.round(spec.cols * store.exportPpu + (info.band.right * store.exportPpu) / PREVIEW_PPU)}×${Math.round(spec.rows * store.exportPpu + (info.band.bottom * store.exportPpu) / PREVIEW_PPU)} px · ${info.rooms} rooms · ${info.corridors} corridors · ${info.doors} doors` : ''}</span>
       </div>
     </section>
   </div>

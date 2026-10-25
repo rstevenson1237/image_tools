@@ -141,16 +141,16 @@ const api = {
   },
 
   /** Dungeon Map: validate and render a dungeon to SVG (no project needed). */
-  dungeonSvg(raw: unknown, o: DungeonRenderOptions): { svg: string; rooms: number; corridors: number; doors: number } {
+  dungeonSvg(raw: unknown, o: DungeonRenderOptions): { svg: string; rooms: number; corridors: number; doors: number; band: { right: number; bottom: number } } {
     const spec = dungeon.parseDungeon(raw), layout = dungeon.layoutDungeon(spec);
-    return { svg: dungeon.renderDungeonSvg(spec, { ...o, layout }), rooms: spec.rooms.length, corridors: spec.corridors.length, doors: layout.doors.length };
+    return { svg: dungeon.renderDungeonSvg(spec, { ...o, layout }), rooms: spec.rooms.length, corridors: spec.corridors.length, doors: layout.doors.length, band: dungeon.dungeonRenderSize(spec, { ...o, layout }).band };
   },
 
   /** Dungeon Map: PNG bytes, rasterised by the same resvg build and fonts as the CLI. */
   async dungeonPng(raw: unknown, o: DungeonRenderOptions): Promise<Uint8Array> {
     await svgReady; await loadMapFonts();
     const spec = dungeon.parseDungeon(raw), ppu = o.ppu ?? 40, svg = dungeon.renderDungeonSvg(spec, { ...o, ppu });
-    const png = encodePNG(rasterizeSvg(svg, spec.cols * ppu, spec.rows * ppu));
+    const size = dungeon.dungeonRenderSize(spec, { ...o, ppu }), png = encodePNG(rasterizeSvg(svg, Math.round(size.width), Math.round(size.height)));
     return Comlink.transfer(png, [png.buffer as ArrayBuffer]);
   },
 

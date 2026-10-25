@@ -16,6 +16,7 @@ import { PAGE_PT, PAGE_SYMBOL_MM, pageUnit, placeLabels, pointsToPx, textBox, ty
 import { layoutDungeon, type DoorGeom, type DungeonLayout } from './layout.ts';
 import type { DungeonLabel, DungeonSpec, Room } from './spec.ts';
 import { SYMBOLS } from './symbols.ts';
+import { coversContent, placeFurniture, type FurnitureItem, type FurnitureLayout } from './furniture.ts';
 import { underlaySvg } from './underlay.ts';
 import { layoutWalls } from './walls.ts';
 
@@ -147,6 +148,65 @@ function scaleCells(width: number): number {
   return Math.max(1, Math.round(target));
 }
 
+/** The title, scale bar, compass and legend as furniture items, and where each goes (see `furniture.ts`). */
+export function dungeonFurniture(spec: DungeonSpec, o: RenderDungeonOptions = {}, l: DungeonLayout = o.layout ?? layoutDungeon(spec), on = dungeonLayersFor(spec, o.layers)): FurnitureLayout {
+  const k = o.ppu ?? 40, u = o.pageScale ? pageUnit(o.pageScale) : k / 40, fr = frameOf(o.crop, spec.cols, spec.rows, k), pad = 12 * u;
+  const box = (x: number, y: number, w: number, h: number) => `<rect x="${n1(x)}" y="${n1(y)}" width="${n1(w)}" height="${n1(h)}" rx="${n1(4 * u)}" fill="${PAPER}" stroke="${INK}" stroke-width="${n1(u)}"/>`;
+  const items: FurnitureItem[] = [];
+
+  if (on.title && spec.title) {
+    const fs = 24 * u, w = Math.max(120 * u, spec.title.length * fs * 0.62 + 30 * u), h = fs * 1.7, title = spec.title;
+    items.push({ id: 'title', w, h, over: { x: fr.x + pad, y: fr.y + pad }, draw: (x, y) => `<g id="title">${box(x, y, w, h)}<text x="${n1(x + w / 2)}" y="${n1(y + fs * 1.18)}" font-size="${n1(fs)}" font-weight="700" letter-spacing="${n1(fs * 0.06)}" text-anchor="middle" fill="${INK}">${esc(title)}</text></g>` });
+  }
+
+  if (on.scale) {
+    const n = scaleCells(fr.w / k), len = n * k, fs = 11 * u, seg = Math.min(4, n), w = len + 34 * u, h = 40 * u;
+    items.push({
+      id: 'scale', w, h, over: { x: fr.x + pad, y: fr.b - pad - 38 * u },
+      draw: (bx, by) => {
+        const x = bx + 8 * u, y = by + 18 * u;
+        let g = box(bx, by, w, h);
+        for (let i = 0; i < seg; i++) g += `<rect x="${n1(x + (len / seg) * i)}" y="${n1(y)}" width="${n1(len / seg)}" height="${n1(5 * u)}" fill="${i % 2 ? PAPER : INK}" stroke="${INK}" stroke-width="${n1(0.8 * u)}"/>`;
+        g += `<text x="${n1(x)}" y="${n1(y - 5 * u)}" font-size="${n1(fs)}" fill="${INK}" text-anchor="middle">0</text>`;
+        g += `<text x="${n1(x + len)}" y="${n1(y - 5 * u)}" font-size="${n1(fs)}" fill="${INK}" text-anchor="middle">${n * spec.scale.perCell} ${esc(spec.scale.unit)}</text>`;
+        g += `<text x="${n1(x + len / 2)}" y="${n1(y + 16 * u)}" font-size="${n1(fs * 0.85)}" fill="${INK}" text-anchor="middle">1 square = ${spec.scale.perCell} ${esc(spec.scale.unit)}</text>`;
+        return `<g id="scale">${g}</g>`;
+      },
+    });
+  }
+
+  if (on.legend) {
+    const kinds = [...new Set(spec.overlay.symbols.map(s => s.kind))];
+    if (kinds.length) {
+      const rh = 22 * u, fs = 12 * u, w = 190 * u, h = kinds.length * rh + 12 * u;
+      items.push({
+        id: 'legend', w, h, over: { x: fr.r - w - pad, y: fr.b - h - pad },
+        draw: (x, y) => {
+          let g = box(x, y, w, h);
+          kinds.forEach((kind, i) => {
+            const sy = y + 6 * u + i * rh + rh / 2, sym = SYMBOLS[kind] ?? SYMBOLS.trap;
+            g += `<g transform="translate(${n1(x + 18 * u)} ${n1(sy)}) scale(${((18 * u) / 20).toFixed(3)})">${sym.svg.replaceAll('{ink}', INK).replaceAll('{fill}', PAPER)}</g>`;
+            g += `<text x="${n1(x + 36 * u)}" y="${n1(sy + fs * 0.35)}" font-size="${n1(fs)}" fill="${INK}">${esc(LEGEND_NAMES(kind))}</text>`;
+          });
+          return `<g id="legend">${g}</g>`;
+        },
+      });
+    }
+  }
+
+  // the compass: a disc 18u across with N above it, in a 40u × 52u box
+  if (on.compass) items.push({ id: 'compass', w: 40 * u, h: 52 * u, over: { x: fr.r - pad - 42 * u, y: fr.y + pad }, draw: (x, y) => compassSvg(x + 20 * u, y + 32 * u, 18 * u, u, TH) });
+
+  const f = spec.furniture ?? { place: 'over' as const };
+  return placeFurniture(items, fr, f.place, f.side ?? 'bottom', pad, b => coversContent(spec, l, k, b));
+}
+
+/** The render's size in pixels: the window (the whole sheet, or the crop) and the furniture band beside it. */
+export function dungeonRenderSize(spec: DungeonSpec, o: RenderDungeonOptions = {}): { width: number; height: number; band: { right: number; bottom: number } } {
+  const k = o.ppu ?? 40, fr = frameOf(o.crop, spec.cols, spec.rows, k), band = dungeonFurniture(spec, o).band;
+  return { width: fr.w + band.right, height: fr.h + band.bottom, band };
+}
+
 export function renderDungeonSvg(spec: DungeonSpec, o: RenderDungeonOptions = {}): string {
   const k = o.ppu ?? 40, W = spec.cols * k, H = spec.rows * k, u = o.pageScale ? pageUnit(o.pageScale) : k / 40, t = 0.14 * k * spec.style.wall, fr = frameOf(o.crop, spec.cols, spec.rows, k);
   const l = o.layout ?? layoutDungeon(spec), on = dungeonLayersFor(spec, o.layers);
@@ -256,39 +316,11 @@ export function renderDungeonSvg(spec: DungeonSpec, o: RenderDungeonOptions = {}
     parts.push(`<g id="labels">${g}</g>`);
   }
 
-  const box = (x: number, y: number, w: number, h: number) => `<rect x="${n1(x)}" y="${n1(y)}" width="${n1(w)}" height="${n1(h)}" rx="${n1(4 * u)}" fill="${PAPER}" stroke="${INK}" stroke-width="${n1(u)}"/>`;
-  const pad = 12 * u;
-
-  if (on.legend) {
-    const kinds = [...new Set(spec.overlay.symbols.map(s => s.kind))];
-    if (kinds.length) {
-      const rh = 22 * u, fs = 12 * u, bw = 190 * u, bh = kinds.length * rh + 12 * u, x = fr.r - bw - pad, y = fr.b - bh - pad;
-      let g = box(x, y, bw, bh);
-      kinds.forEach((kind, i) => {
-        const sy = y + 6 * u + i * rh + rh / 2, sym = SYMBOLS[kind] ?? SYMBOLS.trap;
-        g += `<g transform="translate(${n1(x + 18 * u)} ${n1(sy)}) scale(${((18 * u) / 20).toFixed(3)})">${sym.svg.replaceAll('{ink}', INK).replaceAll('{fill}', PAPER)}</g>`;
-        g += `<text x="${n1(x + 36 * u)}" y="${n1(sy + fs * 0.35)}" font-size="${n1(fs)}" fill="${INK}">${esc(LEGEND_NAMES(kind))}</text>`;
-      });
-      parts.push(`<g id="legend">${g}</g>`);
-    }
-  }
-
-  if (on.scale) {
-    const n = scaleCells(fr.w / k), len = n * k, fs = 11 * u, x = fr.x + pad + 8 * u, y = fr.b - pad - 20 * u, seg = Math.min(4, n);
-    let g = box(fr.x + pad, y - 18 * u, len + 34 * u, 40 * u);
-    for (let i = 0; i < seg; i++) g += `<rect x="${n1(x + (len / seg) * i)}" y="${n1(y)}" width="${n1(len / seg)}" height="${n1(5 * u)}" fill="${i % 2 ? PAPER : INK}" stroke="${INK}" stroke-width="${n1(0.8 * u)}"/>`;
-    g += `<text x="${n1(x)}" y="${n1(y - 5 * u)}" font-size="${n1(fs)}" fill="${INK}" text-anchor="middle">0</text>`;
-    g += `<text x="${n1(x + len)}" y="${n1(y - 5 * u)}" font-size="${n1(fs)}" fill="${INK}" text-anchor="middle">${n * spec.scale.perCell} ${esc(spec.scale.unit)}</text>`;
-    g += `<text x="${n1(x + len / 2)}" y="${n1(y + 16 * u)}" font-size="${n1(fs * 0.85)}" fill="${INK}" text-anchor="middle">1 square = ${spec.scale.perCell} ${esc(spec.scale.unit)}</text>`;
-    parts.push(`<g id="scale">${g}</g>`);
-  }
-
-  if (on.compass) parts.push(compassSvg(fr.r - pad - 22 * u, fr.y + pad + 32 * u, 18 * u, u, TH));
-
-  if (on.title && spec.title) {
-    const fs = 24 * u, w = Math.max(120 * u, spec.title.length * fs * 0.62 + 30 * u);
-    parts.push(`<g id="title">${box(fr.x + pad, fr.y + pad, w, fs * 1.7)}<text x="${n1(fr.x + pad + w / 2)}" y="${n1(fr.y + pad + fs * 1.18)}" font-size="${n1(fs)}" font-weight="700" letter-spacing="${n1(fs * 0.06)}" text-anchor="middle" fill="${INK}">${esc(spec.title)}</text></g>`);
-  }
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" ${sizeAttrs(fr, o.unit)} font-family="${FONT}"><defs>${defs.join('')}<clipPath id="map-clip"><rect x="${fr.x}" y="${fr.y}" width="${fr.w}" height="${fr.h}"/></clipPath></defs><g clip-path="url(#map-clip)">${parts.join('')}</g></svg>`;
+  const furn = dungeonFurniture(spec, o, l, on);
+  const drawn = furn.placed.map(p => p.item.draw(p.x, p.y)).join('');
+  const out = { ...fr, w: fr.w + furn.band.right, h: fr.h + furn.band.bottom, r: fr.r + furn.band.right, b: fr.b + furn.band.bottom };
+  // with a band, the map gets a frame and the band plain paper (no grid or hatching runs into it)
+  const band = furn.band.right || furn.band.bottom ? `<rect x="${n1(out.x)}" y="${n1(out.y)}" width="${n1(out.w)}" height="${n1(out.h)}" fill="${PAPER}"/>` : '';
+  const frame = band ? `<rect x="${n1(fr.x)}" y="${n1(fr.y)}" width="${n1(fr.w)}" height="${n1(fr.h)}" fill="none" stroke="${INK}" stroke-width="${n1(1.5 * u)}"/>` : '';
+  return `<svg xmlns="http://www.w3.org/2000/svg" ${sizeAttrs(out, o.unit)} font-family="${FONT}"><defs>${defs.join('')}<clipPath id="map-clip"><rect x="${fr.x}" y="${fr.y}" width="${fr.w}" height="${fr.h}"/></clipPath></defs>${band}<g clip-path="url(#map-clip)">${parts.join('')}</g>${frame}${drawn}</svg>`;
 }

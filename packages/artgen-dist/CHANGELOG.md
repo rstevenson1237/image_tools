@@ -230,6 +230,12 @@ Reads: **map format 1**, **dungeon format 1**. `artgen formats --json` prints `{
   or an `#anchor`; any other scheme (`javascript:`, `data:`, `file:`) is refused. The SVG wraps the label, or the room's
   number and name, in a link; the PNG draws them as before. `dungeon label … --href URL`, `room add|set … --href URL`
   (`--href none` removes it); MCP `add_labels[].href`, `add_room`/`set_room` `href`; link fields in the Dungeon Map tool.
+- **Furniture beside the map.** `furniture: {place: over|outside|auto, side?: bottom|right}` sets where the title, scale
+  bar, compass and legend go: `over` the map in its corners (the default, as before), `outside` in a band below or right
+  of the map, or `auto`: in the band only when its corner would cover a room, corridor, wall, badge or mark. The band
+  wraps at the map's edge, the map gets a thin frame, and the render grows by the band (`render --json` reports the
+  whole size; `--fit` fits map and band on the page). `dungeon style … --furniture outside [--furniture-side right]`;
+  MCP `dungeon_update` `furniture`; a menu in the Dungeon Map tool.
 
 **Limits**
 - A map may be up to 200 squares a side (was 120), so a 1-mile gorge fits at 10 yards a square. Raising a limit

@@ -138,6 +138,11 @@ export interface DungeonSpec {
   walls?: Wall[];
   /** A key of the symbols used, in the corner (default off). */
   legend?: boolean;
+  /**
+   * Where the title, scale bar, compass and legend go: `over` the map in its corners (the default), `outside` in a band
+   * below or right of the map, or `auto`: in the band only when the corner would cover a room, corridor or mark.
+   */
+  furniture?: { place: 'over' | 'outside' | 'auto'; side?: 'bottom' | 'right' };
 }
 
 export const DEFAULTS: Omit<DungeonSpec, 'id' | 'seed' | 'version' | 'rooms' | 'corridors' | 'overlay'> = {
@@ -201,6 +206,9 @@ export function originError(entry: unknown, at: string, e: string[]): void {
 function enclosureErrors(m: Partial<DungeonSpec>, ids: Set<string>): string[] {
   const e: string[] = [];
   if (m.legend !== undefined && typeof m.legend !== 'boolean') e.push('legend: true or false');
+  const f = m.furniture;
+  if (f !== undefined && (!f || typeof f !== 'object' || !['over', 'outside', 'auto'].includes(f.place) || (f.side !== undefined && !['bottom', 'right'].includes(f.side))))
+    e.push('furniture: {place: over|outside|auto, side?: bottom|right}');
   const u = m.underlay;
   if (u !== undefined) {
     if (!u || typeof u !== 'object' || typeof u.map !== 'string' || !u.map) e.push('underlay.map: the map file\'s path');

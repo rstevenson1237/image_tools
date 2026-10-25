@@ -13,7 +13,7 @@
  *   artgen dungeon unlink <id> <index> | door <id> <index> from|to <kind|none>
  *   artgen dungeon grid <id> [10|5|10+5|none] [--size 10] [--unit ft] [--sub on|off] [--show on|off] [--clip floor|all]
  *   artgen dungeon style <id> [--hatch band|full|none] [--band n] [--wall f] [--numbers on|off] [--scale-bar on|off]
- *                            [--compass on|off] [--title "…"] [--per-cell n --unit ft]
+ *                            [--compass on|off] [--title "…"] [--per-cell n --unit ft] [--furniture over|outside|auto [--furniture-side bottom|right]]
  *   artgen dungeon label <id> "Text" --at x,y|C4 [--kind name|note|area] [--size f] [--angle deg] [--href url]
  *   artgen dungeon symbol <id> <kind> --at x,y|C4 [--scale f] [--angle deg] | artgen dungeon symbols
  *   artgen dungeon overlay <id> rm label|symbol <index> | clear [labels|symbols]
@@ -104,7 +104,7 @@ export function checkDungeonFile(p: Project | null, ref: DungeonRef): DungeonChe
 
 export interface DungeonRender {
   files: string[]; rooms: number; corridors: number; doors: number;
-  /** The render in pixels. */
+  /** The render in pixels (the window and any furniture band beside it). */
   size: [number, number];
   /** The window drawn, in cells (the whole sheet when there is no crop), and the pixels per cell it was drawn at. */
   crop: Crop; ppu: number;
@@ -135,15 +135,25 @@ export async function renderDungeonFiles(p: Project | null, ref: DungeonRef, o: 
   if (o.crop && o.rooms?.length) throw new Error('--crop and --room both set the window: use one');
   if (o.margin !== undefined && !o.rooms?.length) throw new Error('--margin goes with --room');
   const window = o.rooms?.length ? dungeon.roomCrop(m, o.rooms, o.margin, layout) : o.crop;
-  const crop = clampCrop(window ?? [0, 0, m.cols, m.rows], m.cols, m.rows), ppu = o.fit ? fitPpu(crop[2], crop[3], o.fit) : o.ppu ?? 40;
-  const size: [number, number] = [Math.round(crop[2] * ppu), Math.round(crop[3] * ppu)], unit = o.fit?.unit ?? 'px';
+  const crop = clampCrop(window ?? [0, 0, m.cols, m.rows], m.cols, m.rows), unit = o.fit?.unit ?? 'px';
   const pageScale = o.pageScale ?? (o.fit ? PX_PER_MM : undefined), underlay = readUnderlay(p, ref, m);
+  const view = { layers: o.layers, layout, ...(window && { crop }), pageScale };
+  // a furniture band takes room from the page a render is fitted to: the largest scale whose render (map and band)
+  // still fits, found by halving (the render grows with the scale)
+  let ppu = o.fit ? fitPpu(crop[2], crop[3], o.fit) : o.ppu ?? 40;
+  const fits = (k: number) => { const r = dungeon.dungeonRenderSize(m, { ...view, ppu: k }), f = o.fit!.unit === 'mm' ? PX_PER_MM : 1; return r.width <= o.fit!.w * f + 1e-6 && r.height <= o.fit!.h * f + 1e-6; };
+  if (o.fit && !fits(ppu)) {
+    let lo = 0, hi = ppu;
+    for (let i = 0; i < 40; i++) { const mid = (lo + hi) / 2; if (fits(mid)) lo = mid; else hi = mid; }
+    ppu = lo;
+  }
+  const px = dungeon.dungeonRenderSize(m, { ...view, ppu }), size: [number, number] = [Math.round(px.width), Math.round(px.height)];
   if (formats.includes('png')) await initNodeMapSvg();
   mkdirSync(out, { recursive: true });
-  const svg = dungeon.renderDungeonSvg(m, { ppu, layers: o.layers, layout, ...(window && { crop }), unit, pageScale, ...(underlay && { underlay }) }), base = join(out, id);
+  const svg = dungeon.renderDungeonSvg(m, { ...view, ppu, unit, ...(underlay && { underlay }) }), base = join(out, id);
   if (formats.includes('svg')) { writeFileSync(`${base}.svg`, svg); files.push(`${base}.svg`); }
   if (formats.includes('png')) { writeFileSync(`${base}.png`, encodePNG(rasterizeSvg(svg, size[0], size[1]))); files.push(`${base}.png`); }
-  return { files: files.map(f => relative(process.cwd(), f)), rooms: m.rooms.length, corridors: m.corridors.length, doors: layout.doors.length, size, crop, ppu, svg: svgSize(crop, ppu, unit), pageScale: pageScale ?? null, unplaced: dungeon.dungeonLabelLayout(m, ppu, pageScale, layout).unplaced };
+  return { files: files.map(f => relative(process.cwd(), f)), rooms: m.rooms.length, corridors: m.corridors.length, doors: layout.doors.length, size, crop, ppu, svg: svgSize([0, 0, px.width, px.height], 1, unit), pageScale: pageScale ?? null, unplaced: dungeon.dungeonLabelLayout(m, ppu, pageScale, layout).unplaced };
 }
 
 /** A room's top-left corner: `x,y` as given, or a cell name (`C4`) meaning that cell's corner. */
@@ -193,6 +203,7 @@ export function describeDungeon(m: DungeonSpec): string {
   return [
     `${m.id}${m.title ? ` "${m.title}"` : ''}: ${m.cols}×${m.rows} cells of ${m.scale.perCell} ${m.scale.unit}, seed ${m.seed}`,
     `  gen: rooms ${g.rooms}, size ${g.minSize}..${g.maxSize}, caves ${g.caves}, round ${g.round}, loops ${g.loops}, doors ${g.doors}, corridor width ${g.corridorWidth}, spacing ${g.spacing}, entrance ${g.entrance ? 'on' : 'off'}`,
+    ...(m.furniture && m.furniture.place !== 'over' ? [`  furniture: ${m.furniture.place}, band ${m.furniture.side ?? 'bottom'}`] : []),
     `  grid: ${m.grid.show ? `size ${gridFt(m.grid.size)}, sub-grid ${m.grid.sub && m.grid.size > 1 ? `${gridFt(1)}` : 'off'}, ${m.grid.clip === 'floor' ? 'on the floor' : 'everywhere'}` : 'off'}; hatch ${m.style.hatch}${m.style.hatch === 'band' ? ` (${m.style.band} cells)` : ''}; numbers ${m.numbers ? 'on' : 'off'}, scale bar ${m.scaleBar ? 'on' : 'off'}, compass ${m.compass ? 'on' : 'off'}`,
     `  rooms (${m.rooms.length}):${m.rooms.map(r => `\n    ${r.id}: ${r.shape} ${r.w}×${r.h} at ${r.x},${r.y}${r.fill && r.fill !== 'floor' ? `, ${r.fill}` : ''}${r.number === false ? ', no number' : r.number !== undefined ? `, #${r.number}` : ''}${r.label ? ` "${r.label}"` : ''}${r.href ? ` → ${r.href}` : ''}`).join('')}`,
     `  corridors (${m.corridors.length}):${m.corridors.map((c, i) => `\n    ${i}. ${end(c.from)} → ${end(c.to)}${c.width && c.width !== 1 ? `, width ${c.width}` : ''}${c.via ? `, via ${c.via.join(',')}` : c.route && c.route !== 'auto' ? `, ${c.route}` : ''}${c.doors?.some(Boolean) ? `, doors ${c.doors.map(d => d ?? 'none').join('/')}` : ''}`).join('')}`,
