@@ -6,7 +6,7 @@ import { rng } from '../lib/rng.ts';
 import { chaikin } from '../lib/trace.ts';
 import { junctionPort, naturalOutline, portRoute, routeAround, sidePort, smoothLine, snap, tidy, type Port } from './corridors.ts';
 import { sharedEdges, type P } from './geom.ts';
-import { corridorOrder, type Corridor, type DoorKind, type DungeonSpec, type Room } from './spec.ts';
+import { corridorOrder, sharedWallsOn, type Corridor, type DoorKind, type DungeonSpec, type Room } from './spec.ts';
 import { layoutWalls } from './walls.ts';
 
 export interface RoomGeom { room: Room; index: number; outline: number[]; cx: number; cy: number; number?: number }
@@ -21,7 +21,7 @@ export interface ConnectionGeom { index: number; a: string; b: string; kind: Doo
 export interface DungeonLayout {
   rooms: RoomGeom[]; corridors: CorridorGeom[]; doors: DoorGeom[];
   connections: ConnectionGeom[];
-  /** The walls touching floor rooms share, with the openings of their connections cut out, as x0,y0,x1,y1 segments. */
+  /** The walls touching floor rooms share, with the openings of their connections cut out, as x0,y0,x1,y1 segments (none when `style.sharedWalls` is off). */
   partitions: number[][];
 }
 
@@ -230,7 +230,7 @@ function layoutConnections(spec: DungeonSpec, rooms: RoomGeom[], byId: Map<strin
     return { index, a: c.a, b: c.b, kind, x, y, angle: (Math.atan2(ny, nx) * 180) / Math.PI, width, wall: seg };
   });
   // shared walls between floor rooms, less the openings in them
-  const partitions: number[][] = [], floors = rooms.filter(g => (g.room.fill ?? 'floor') === 'floor');
+  const partitions: number[][] = [], floors = sharedWallsOn(spec) ? rooms.filter(g => (g.room.fill ?? 'floor') === 'floor') : [];
   for (let i = 0; i < floors.length; i++) for (let j = i + 1; j < floors.length; j++) {
     const A = floors[i], B = floors[j];
     if (!near(A.room, B.room)) continue;

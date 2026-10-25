@@ -22,8 +22,10 @@ export interface FurnitureItem {
   w: number; h: number;
   /** Where it sits over the map (top-left corner, pixels). */
   over: { x: number; y: number };
-  /** Always in the band, whatever `place` says (an exit note when the band is there). */
+  /** Always in the band, whatever `place` says. */
   band?: boolean;
+  /** Its place in the band (lowest first; items are drawn in the order given, which can differ). */
+  rank?: number;
   draw: (x: number, y: number) => string;
 }
 
@@ -59,7 +61,7 @@ export function coversContent(spec: DungeonSpec, l: DungeonLayout, k: number, bo
  */
 export function placeFurniture(items: FurnitureItem[], fr: Frame, place: FurniturePlace, side: FurnitureSide, pad: number, covers: (b: Box) => boolean): FurnitureLayout {
   const out = items.map(item => ({ item, outside: item.band || place === 'outside' || (place === 'auto' && covers({ x: item.over.x, y: item.over.y, w: item.w, h: item.h })) }));
-  const moved = out.filter(p => p.outside);
+  const moved = out.filter(p => p.outside).sort((a, b) => (a.item.rank ?? 0) - (b.item.rank ?? 0));
   const placed: PlacedFurniture[] = [];
   let right = 0, bottom = 0;
   // rows (or columns) wrap at the map's width (height), so the band stays beside the map rather than past its end

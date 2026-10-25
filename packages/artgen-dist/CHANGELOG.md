@@ -252,8 +252,10 @@ Reads: **map format 1**, **dungeon format 1**. `artgen formats --json` prints `{
   (`--layers exits=off`). `dungeon link <id> r4 41,12 --exit "To the river caves" [--exit-href …] [--fade 2]`; one-room
   exits take a note after the door (`--exits n:door:Up to the keep`); MCP `link` `exit`, `dungeon_new` exits `text`;
   `facts` reports each exit's `text` and `href`; an exit-note field per corridor in the Dungeon Map tool.
-- **Rooms that share a wall.** Floor rooms that touch now keep the wall between them (before, it vanished: walls were
-  drawn by stroking every floor and filling every floor over it). New optional `connections: [{a, b, at?, kind?,
+- **Rooms that share a wall.** With `style.sharedWalls`, floor rooms that touch keep the wall between them (walls are
+  drawn by stroking every floor and filling every floor over it, so it vanished). It is on by default only in a file with
+  `connections` or `blocks`, so a file without them renders byte for byte as before, its touching rooms one floor;
+  `dungeon style --shared-walls on|off|auto`. New optional `connections: [{a, b, at?, kind?,
   width?}]`: a door (any door kind) or an `open` gap in the wall two rooms share, no corridor needed; `at` picks the
   place on the wall (default: the middle of its longest stretch, on the grid). `facts` lists each room's `connections`
   and counts them as reaching it; `check` warns about a connection between rooms that share no wall, or one wider than

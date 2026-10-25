@@ -182,8 +182,12 @@ export interface DungeonSpec {
   };
   /** Grid lines every `size` cells (2 = 10 ft), with fainter lines at every cell when `sub`; on the floor or everywhere. */
   grid: { show: boolean; size: number; sub: boolean; clip: 'floor' | 'all' };
-  /** Rock around the rooms: a band of hatching along the walls, hatching everywhere, or plain paper. */
-  style: { hatch: HatchStyle; band: number; wall: number };
+  /**
+   * Rock around the rooms: a band of hatching along the walls, hatching everywhere, or plain paper. `sharedWalls`: draw
+   * the wall between floor rooms that touch (default: on when the file has `connections` or `blocks`, else off, where
+   * rooms that touch run together as one floor, as they always did).
+   */
+  style: { hatch: HatchStyle; band: number; wall: number; sharedWalls?: boolean };
   scale: { perCell: number; unit: string };
   numbers: boolean;
   scaleBar: boolean;
@@ -382,6 +386,7 @@ export function validateDungeon(raw: unknown): string[] {
     e.push('grid: show, size ≥ 0.5 (cells), sub (true|false), clip floor|all');
   if (!m.style || !HATCH_STYLES.includes(m.style.hatch) || !isNum(m.style.band) || m.style.band < 0 || m.style.band > 6 || !isNum(m.style.wall) || m.style.wall < 0.2 || m.style.wall > 4)
     e.push(`style: hatch ${HATCH_STYLES.join('|')}, band 0..6, wall 0.2..4`);
+  if (m.style?.sharedWalls !== undefined && typeof m.style.sharedWalls !== 'boolean') e.push('style.sharedWalls: true or false');
   if (!m.scale || !isNum(m.scale.perCell) || typeof m.scale.unit !== 'string') e.push('scale: perCell (number) and unit');
   const ids = new Set<string>();
   (Array.isArray(m.rooms) ? m.rooms : (e.push('rooms: an array'), [])).forEach((r, i) => {
@@ -593,6 +598,9 @@ export function nextCorridorId(spec: Pick<DungeonSpec, 'corridors'>): string {
   const used = new Set(spec.corridors.flatMap(c => (c.id ? [c.id] : [])));
   for (let n = 1; ; n++) if (!used.has(`c${n}`)) return `c${n}`;
 }
+
+/** Whether the wall between touching floor rooms is drawn (see `style.sharedWalls`). */
+export const sharedWallsOn = (m: Pick<DungeonSpec, 'style' | 'connections' | 'blocks'>): boolean => m.style.sharedWalls ?? !!(m.connections?.length || m.blocks?.length);
 
 /** The next free room id (`r1`, `r2`, …). */
 export function nextRoomId(spec: Pick<DungeonSpec, 'rooms'>): string {

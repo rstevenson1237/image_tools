@@ -113,6 +113,12 @@ describe('artgen dungeon', () => {
     await run('dungeon', 'style', 'banded', '--furniture-side', 'right', ...R);
     expect(spec('banded').furniture).toEqual({ place: 'outside', side: 'right' });
     await expect(run('dungeon', 'style', 'banded', '--furniture', 'beside', ...R)).rejects.toThrow(/--furniture: over, outside, auto/);
+    expect((await run('dungeon', 'grid', 'banded', '--sub', 'off', ...R)).out).toMatch(/^grid: size 10 ft, sub-grid off/);
+    await run('dungeon', 'style', 'banded', '--shared-walls', 'on', ...R);
+    expect(spec('banded').style.sharedWalls).toBe(true);
+    expect((await run('dungeon', 'show', 'banded', ...R)).out).toMatch(/shared walls on;[^]*furniture: outside, band right/);
+    await run('dungeon', 'style', 'banded', '--shared-walls', 'auto', ...R);
+    expect(spec('banded').style.sharedWalls).toBeUndefined();
     await run('dungeon', 'style', 'banded', '--furniture', 'over', ...R);
     expect(spec('banded').furniture).toEqual({ place: 'over', side: 'right' });
   }, 60_000);

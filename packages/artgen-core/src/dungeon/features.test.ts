@@ -162,8 +162,11 @@ describe('rooms joined directly', () => {
   ];
   const sp = (connections: D.Connection[]) => D.newDungeon('k', { cols: 26, rows: 18, rooms, connections });
 
-  test('touching rooms keep the wall between them; a connection puts a door or an opening in it, on the grid', () => {
-    const l = D.layoutDungeon(sp([]));
+  test('touching rooms keep the wall between them (with sharedWalls, or once there are connections); a connection puts a door or an opening in it, on the grid', () => {
+    // an older file (no connections, no blocks): rooms that touch run together, as they always did
+    expect(D.layoutDungeon(sp([])).partitions).toEqual([]);
+    expect(D.renderDungeonSvg(sp([]))).not.toContain('id="partitions"');
+    const walled = { ...sp([]), style: { ...sp([]).style, sharedWalls: true } }, l = D.layoutDungeon(walled);
     // hall|a at x 12, a|b and a|c at x 17, b|c at y 5
     expect(l.partitions.map(p => p.map(v => Math.round(v * 100) / 100))).toEqual([[12, 2, 12, 8], [17, 2, 17, 5], [17, 5, 17, 8], [23, 5, 17, 5]].map(p => expect.arrayContaining(p)));
     const c = D.layoutDungeon(sp([{ a: 'hall', b: 'a' }, { a: 'b', b: 'c', kind: 'open', width: 2 }, { a: 'a', b: 'b', kind: 'secret', at: [17, 3] }]));
@@ -171,7 +174,9 @@ describe('rooms joined directly', () => {
     expect(c.doors.filter(d => d.inner).map(d => d.kind)).toEqual(['door', 'secret']);
     // the openings are cut out of the shared walls: hall|a now runs 2..5 and 6..8
     expect(c.partitions.filter(p => p[0] === 12 && p[2] === 12).map(p => [Math.min(p[1], p[3]), Math.max(p[1], p[3])]).sort()).toEqual([[2, 5], [6, 8]]);
-    expect(D.renderDungeonSvg(sp([]))).toContain('<path id="partitions"');
+    expect(D.renderDungeonSvg(walled)).toContain('<path id="partitions"');
+    const off = sp([{ a: 'hall', b: 'a' }]);
+    expect(D.layoutDungeon({ ...off, style: { ...off.style, sharedWalls: false } }).partitions).toEqual([]);   // turned off by hand
   });
 
   test('facts list the connections and count them as reaching a room; a connection without a shared wall is a warning', () => {

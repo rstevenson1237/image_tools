@@ -494,6 +494,7 @@
         <label class="inline"><input type="checkbox" checked={spec.numbers} onchange={e => store.change('numbers', m => { m.numbers = checked(e); })} /> room numbers</label>
         <label class="inline"><input type="checkbox" checked={spec.scaleBar} onchange={e => store.change('scale bar', m => { m.scaleBar = checked(e); })} /> scale bar</label>
         <label class="inline"><input type="checkbox" checked={spec.compass} onchange={e => store.change('compass', m => { m.compass = checked(e); })} /> compass</label>
+        <label class="inline" title="draw the wall between rooms that touch (off: they run together as one floor)"><input type="checkbox" checked={dungeon.sharedWallsOn(spec)} onchange={e => store.change('shared walls', m => { m.style.sharedWalls = checked(e); })} /> walls between touching rooms</label>
       </div>
       <div class="pair">
         <label title="where the title, scale bar, compass and legend go">title, scale and compass
