@@ -169,6 +169,30 @@ describe('artgen dungeon', () => {
     expect(spec('block').connections).toEqual([]);
   });
 
+  test('blocks: a hexagon and a wing split into rooms; split again; link to a block; remove it', async () => {
+    await run('dungeon', 'new', 'keep', '--empty', '--size', '44x22', ...R);
+    const hex = await run('dungeon', 'block', 'keep', 'add', 'hex', '--at', '2,2', '--size', '18x16', '--split', 'grid', '--min', '4', ...R);
+    expect(hex.out).toMatch(/block b1: \d+ rooms, \d+ connections/);
+    await run('dungeon', 'block', 'keep', 'add', 'rect', '--at', '24,2', '--size', '18x12', '--min', '3', '--seed', '7', '--block-id', 'wing', ...R);
+    const rooms = () => spec('keep').rooms as { id: string; origin?: string }[];
+    expect(rooms().filter(r => r.origin === 'block:wing').length).toBeGreaterThan(3);
+    expect(spec('keep').blocks.map((b: { id: string; shape: string }) => [b.id, b.shape])).toEqual([['b1', 'poly'], ['wing', 'rect']]);
+    const link = await run('dungeon', 'link', 'keep', 'b1', 'wing', '--route', 'around', ...R);
+    expect(link.out).toMatch(/corridor 0: b1-\d+ → wing-\d+/);
+    expect((await run('dungeon', 'check', 'keep', '--json', ...R)).code).toBe(0);
+    const layoutOf = () => JSON.stringify(spec('keep').rooms.filter((r: { origin?: string }) => r.origin === 'block:wing'));
+    const before = layoutOf();
+    await run('dungeon', 'block', 'keep', 'split', 'wing', '--seed', '8', ...R);
+    expect(layoutOf()).not.toBe(before);
+    expect(spec('keep').blocks[1].split).toEqual({ mode: 'bsp', min: 3, seed: 8 });
+    expect((await run('dungeon', 'show', 'keep', ...R)).out).toMatch(/wing: rect 18×12 at 24,2, split bsp \(min 3\), seed 8: \d+ rooms/);
+    await run('dungeon', 'render', 'keep', '--ppu', '10', '--format', 'svg', ...R);
+    await run('dungeon', 'block', 'keep', 'rm', 'wing', ...R);
+    expect(rooms().every(r => r.origin === 'block:b1')).toBe(true);
+    expect(spec('keep').corridors).toEqual([]);
+    await expect(run('dungeon', 'block', 'keep', 'add', 'cave', '--at', '1,1', '--size', '4x4', ...R)).rejects.toThrow(/add rect\|octagon/);
+  }, 60_000);
+
   test('dungeon ids are names, never paths', async () => {
     await expect(run('dungeon', 'new', '../escape', ...R)).rejects.toThrow(/letters, digits/);
   });

@@ -47,6 +47,9 @@ Big changes with the generator; then fix rooms one by one. Render and look after
 {{ARTGEN}} dungeon link <id> r4 r7 --style natural --curve smooth --width 2  # a winding cave passage with rough walls
 {{ARTGEN}} dungeon door <id> 3 to portcullis | unlink <id> 3
 {{ARTGEN}} dungeon connect <id> r3 r4 [--kind secret|open] [--at x,y]          # rooms that touch: a door (or an opening) in their shared wall
+{{ARTGEN}} dungeon block <id> add hex --at 2,2 --size 18x16 --split grid --min 4   # one shape split into rooms with doors between (rect|octagon|circle|hex|poly; bsp|rows|cols|grid)
+{{ARTGEN}} dungeon block <id> split b1 --seed 9 | block <id> rm b1               # another layout of the same block (other rooms keep their numbers) | remove it
+{{ARTGEN}} dungeon link <id> b1 r7 --route around                              # a block id: its room nearest the other end
 {{ARTGEN}} dungeon fit <id> --margin 2                                        # crop the map to the rooms
 ```
 Corridors start at room centres: rooms that line up get one straight corridor, others an L-shaped elbow (`--route

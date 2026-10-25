@@ -49,7 +49,7 @@
   const TOOLS: { id: DungeonTool; label: string; hint: string }[] = [
     { id: 'pan', label: 'Pan', hint: 'drag to pan, wheel to zoom' },
     { id: 'select', label: 'Select', hint: 'click a room to select it; drag a room to move it' },
-    { id: 'room', label: 'Room', hint: 'drag out a room of the chosen shape' },
+    { id: 'room', label: 'Room', hint: 'drag out a room of the chosen shape, or a block split into rooms' },
     { id: 'poly', label: 'Odd room', hint: 'click the corners of a room; double-click or Enter to finish' },
     { id: 'link', label: 'Corridor', hint: 'click a room or a corridor, then another room, a corridor (a junction) or empty floor (an exit or dead end)' },
     { id: 'connect', label: 'Connect', hint: 'click the wall two touching rooms share: a door there; click it again for the next kind (… open, then none)' },
@@ -174,6 +174,19 @@
     if (store.tool === 'room') {
       const x = Math.floor(Math.min(x0, x1)), y = Math.floor(Math.min(y0, y1)), w = Math.ceil(Math.max(x0, x1)) - x, h = Math.ceil(Math.max(y0, y1)) - y;
       if (w < 1 || h < 1) return;
+      if (store.blockSplit !== 'none') {
+        const mode = store.blockSplit, hex = store.blockHex;
+        attempt(() => store.change('add block', m => {
+          const used = new Set((m.blocks ?? []).map(b => b.id));
+          let id = 'b1';
+          for (let n = 1; used.has(id); n++) id = `b${n + 1}`;
+          const split = { mode, min: store.blockMin, seed: Math.floor(Math.random() * 1e6) };
+          const shape = store.roomShape === 'cave' ? 'rect' : store.roomShape;
+          (m.blocks ??= []).push(hex ? { id, shape: 'poly', points: dungeon.hexPoints(x, y, w, h), x, y, w, h, split } : { id, shape, x, y, w, h, split });
+          return dungeon.applyBlock(dungeon.parseDungeon(m), id).spec;
+        }));
+        return;
+      }
       attempt(() => store.change(`add ${store.roomShape} room`, m => {
         const id = dungeon.nextRoomId(m);
         m.rooms.push({ id, shape: store.roomShape, x, y, w, h });
@@ -539,6 +552,19 @@
         {:else}<li class="dim small">none found</li>{/each}
       </ul>
 
+      {#if spec.blocks?.length}
+        <h3>Blocks ({spec.blocks.length})</h3>
+        <ul class="items">
+          {#each spec.blocks as b (b.id)}
+            <li>
+              <span>{b.id} · {b.shape} {b.w}×{b.h} · {b.split.mode} · {spec.rooms.filter(r => r.origin === `block:${b.id}`).length} rooms</span>
+              <button type="button" onclick={() => attempt(() => store.change(`split ${b.id}`, m => { const x = m.blocks!.find(v => v.id === b.id)!; x.split = { ...x.split, seed: Math.floor(Math.random() * 1e6) }; return dungeon.applyBlock(dungeon.parseDungeon(m), b.id).spec; }))} title="split it into rooms again (a new layout)">Split again</button>
+              <button type="button" class="x" onclick={() => store.change(`remove ${b.id}`, m => { dungeon.removeBlock(m, b.id); })} title="remove the block and its rooms">×</button>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+
       {#if spec.connections?.length}
         <h3>Connections ({spec.connections.length})</h3>
         <ul class="items">
@@ -581,6 +607,13 @@
           <label class="inline">shape
             <select bind:value={store.roomShape}>{#each ['rect', 'circle', 'octagon', 'cave'] as s (s)}<option value={s}>{s}</option>{/each}</select>
           </label>
+          <label class="inline" title="split the shape into rooms that share walls, with doors between them">split into rooms
+            <select bind:value={store.blockSplit}><option value="none">no (one room)</option>{#each dungeon.SPLIT_MODES.filter(m => m !== 'cuts') as m (m)}<option value={m}>{m}</option>{/each}</select>
+          </label>
+          {#if store.blockSplit !== 'none'}
+            <label class="inline">room size <input type="number" min="1" max="20" bind:value={store.blockMin} /></label>
+            <label class="inline"><input type="checkbox" bind:checked={store.blockHex} /> hexagon</label>
+          {/if}
         {/if}
         {#if store.tool === 'link'}
           <label class="inline">doors

@@ -22,6 +22,10 @@ export class DungeonMapStore {
   /** The selected room's id. */
   selected = $state<string | null>(null);
   roomShape = $state<Exclude<dungeon.RoomShape, 'poly'>>('rect');
+  /** The Room tool makes a block (split into rooms) instead of one room: its split mode and room size. */
+  blockSplit = $state<dungeon.SplitMode | 'none'>('none');
+  blockMin = $state(3);
+  blockHex = $state(false);
   linkDoors = $state<[dungeon.DoorKind | 'none', dungeon.DoorKind | 'none']>(['door', 'none']);
   linkWidth = $state(1);
   /** Where a new corridor meets a room: its centre, or the wall nearest the click. */

@@ -260,6 +260,17 @@ Reads: **map format 1**, **dungeon format 1**. `artgen formats --json` prints `{
   the wall. `dungeon connect <id> r3 r4 [--kind secret|open] [--at x,y] [--width 2]`, `disconnect <id> <i>`; MCP `connect`
   and `disconnect` ops; a **Connect** tool (click the shared wall; click again for the next kind) and a connections list
   in the Dungeon Map tool. Removing a room removes its connections.
+- **Blocks.** New optional `blocks: [{id, shape: rect|octagon|circle|poly, x, y, w, h, points?, split: {mode:
+  bsp|rows|cols|grid|cuts, min?, cuts?, seed?}, doors?}]`: one shape split into rooms that share walls, joined by
+  connections (a tree so every room is reached, plus a share `doors` of the rest; some secret, some open). `bsp` cuts
+  at random whole cells down to rooms about `min` across; `rows`, `cols` and `grid` cut evenly; `cuts` at the lines
+  given. A non-rectangular block (a hexagon, a circle) is cut to its outline, its small corners joined to a neighbour.
+  The rooms (`<block>-1`, `<block>-2`, …) and connections are written with `origin: "block:<id>"`: ordinary rooms to
+  move, rename or key; splitting again replaces them where they stood, keeps every other room in its place (so room
+  numbers hold), and reports the corridors it drops. `dungeon block <id> add hex --at 2,2 --size 18x16 --split grid
+  --min 4`, `block <id> split <bid> [--seed n]`, `block <id> rm <bid>`; a block id in `link` stands for its room nearest
+  the other end. MCP `add_block`, `split_block`, `remove_block`; the Room tool's **split into rooms** option and a
+  Blocks list (split again, remove) in the Dungeon Map tool.
 
 **Limits**
 - A map may be up to 200 squares a side (was 120), so a 1-mile gorge fits at 10 yards a square. Raising a limit

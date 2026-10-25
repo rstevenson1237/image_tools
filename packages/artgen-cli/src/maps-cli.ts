@@ -65,6 +65,8 @@ export const MAP_USAGE = `       artgen map new <id> [--preset regional|local] [
        artgen dungeon gen <id> [--seed n] [--rooms n] [--min-size n] [--max-size n] [--caves f] [--round f] [--loops f] [--doors f] [--corridor-width n] [--spacing n] [--entrance on|off] [--size 40x30]
        artgen dungeon room <id> add <shape> --at x,y|C4 --size WxH [--points x,y,…] [--label "..."] [--number n|off] [--room-id r9] [--fill floor|building|yard|cellar] [--href url] [--origin name] | move <rid> --at x,y | set <rid> [--shape s] [--size WxH] [--label "..."] [--number n|off] [--fill f] [--href url|none] | rm <rid>
        artgen dungeon link <id> <room|corridor:id> <room|x,y|C4|corridor:id> [--width 1] [--route auto|hv|vh|straight|around] [--via x,y,…] [--doors door,none] [--from-side n|e|s|w] [--from-offset n] [--to-side …] [--to-offset n] [--curve smooth] [--style natural] [--seed n] [--id name] [--exit "To the caves" [--exit-href url] [--fade 3]] [--origin name] | unlink <id> <i> | door <id> <i> from|to <kind|none>
+       artgen dungeon block <id> add rect|octagon|circle|hex|poly --at x,y --size WxH [--points x,y,…] [--split bsp|rows|cols|grid|cuts] [--min 3] [--cuts-x 4,8] [--cuts-y 6] [--seed n] [--doors 0.25] [--block-id b1]
+                  | split <bid> [--seed n] [--split mode] [--min n] | rm <bid>   one shape split into rooms that share walls, with doors between (a block id in link means its nearest room)
        artgen dungeon connect <id> <room> <room> [--kind door|secret|locked|portcullis|arch|open] [--at x,y] [--width 1] | disconnect <id> <i>   a door or opening in the wall two touching rooms share
                   (shapes: ${dungeon.ROOM_SHAPES.join(', ')}; doors: ${dungeon.DOOR_KINDS.join(', ')})
        artgen dungeon grid <id> [10|5|10+5|none] [--size 10] [--unit ft] [--sub on|off] [--show on|off] [--clip floor|all] | style <id> [--hatch band|full|none] [--band n] [--wall f] [--numbers on|off] [--scale-bar on|off] [--compass on|off] [--legend on|off] [--title "..."] [--per-cell n] [--unit ft] [--furniture over|outside|auto] [--furniture-side bottom|right]
@@ -360,7 +362,13 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
   if (sub === 'link') {
     const [, a, b] = pos;
     if (!a || !b) throw new Error('dungeon link <id> <room|corridor:id> <room|x,y|C4|corridor:id>');
+    let [ea, eb] = [a, b];
     const m = updateDungeon(p, need('<id>'), m => {
+      // a block id stands for its room nearest the other end
+      const isBlock = (v: string) => !!m.blocks?.some(x => x.id === v) && !m.rooms.some(r => r.id === v);
+      const centre = (v: string): [number, number] => { const r = m.rooms.find(x => x.id === v); return r ? [r.x + r.w / 2, r.y + r.h / 2] : (() => { try { return dungeon.parsePoint(v); } catch { return [m.cols / 2, m.rows / 2]; } })(); };
+      if (isBlock(ea)) ea = dungeon.blockRoomNear(m, ea, ...(isBlock(eb) ? [m.cols / 2, m.rows / 2] as [number, number] : centre(eb))) ?? ea;
+      if (isBlock(eb)) eb = dungeon.blockRoomNear(m, eb, ...centre(ea)) ?? eb;
       const route = flag(args, '--route') as dungeon.Route | undefined, doors = doorPair(flag(args, '--doors'));
       if (route && !dungeon.ROUTES.includes(route)) throw new Error(`--route: ${dungeon.ROUTES.join(', ')}`);
       const curve = flag(args, '--curve') as dungeon.Curve | undefined, style = flag(args, '--style') as dungeon.CorridorStyle | undefined, cid = flag(args, '--id');
@@ -368,16 +376,60 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
       const withExit = (e: dungeon.CorridorEnd): dungeon.CorridorEnd => (exit && 'at' in e ? { ...e, exit } : e);
       if (curve && !dungeon.CURVES.includes(curve)) throw new Error(`--curve: ${dungeon.CURVES.join(', ')}`);
       if (style && !dungeon.CORRIDOR_STYLES.includes(style)) throw new Error(`--style: ${dungeon.CORRIDOR_STYLES.join(', ')}`);
-      if (exit && !('at' in corridorEnd(m, b))) throw new Error('--exit: the second end must be a point (x,y or a cell name), where the corridor leaves the map');
+      if (exit && !('at' in corridorEnd(m, eb))) throw new Error('--exit: the second end must be a point (x,y or a cell name), where the corridor leaves the map');
       m.corridors.push({
         ...(cid && { id: cid }),
-        from: corridorEnd(m, a, flag(args, '--from-side'), num(args, '--from-offset')), to: withExit(corridorEnd(m, b, flag(args, '--to-side'), num(args, '--to-offset'))),
+        from: corridorEnd(m, ea, flag(args, '--from-side'), num(args, '--from-offset')), to: withExit(corridorEnd(m, eb, flag(args, '--to-side'), num(args, '--to-offset'))),
         ...(num(args, '--width') !== undefined && { width: num(args, '--width') }),
         ...(route && { route }), ...(flag(args, '--via') && { via: numbers(flag(args, '--via'), '--via') }), ...(doors && { doors }),
         ...(curve && curve !== 'none' && { curve }), ...(style && style !== 'built' && { style }), ...(num(args, '--seed') !== undefined && { seed: num(args, '--seed') }), ...originFlag(args),
       });
     });
-    print([`${m.id}: corridor ${m.corridors.length - 1}: ${a} → ${b}`, ...warningLines(m), next(m.id)].join('\n'), m.corridors);
+    print([`${m.id}: corridor ${m.corridors.length - 1}: ${ea} → ${eb}`, ...warningLines(m), next(m.id)].join('\n'), m.corridors);
+    return 0;
+  }
+  if (sub === 'block') {
+    const op = pos[1], bid = pos[2];
+    let note = '';
+    const m = updateDungeon(p, need('<id> add|split|rm'), m => {
+      const splitFlags = (base?: dungeon.Block['split']): dungeon.Block['split'] => {
+        const mode = (flag(args, '--split') ?? base?.mode ?? 'bsp') as dungeon.SplitMode;
+        if (!dungeon.SPLIT_MODES.includes(mode)) throw new Error(`--split: ${dungeon.SPLIT_MODES.join(', ')}`);
+        const cx = flag(args, '--cuts-x'), cy = flag(args, '--cuts-y'), cuts = cx || cy ? { ...(cx && { x: numbers(cx, '--cuts-x', false) }), ...(cy && { y: numbers(cy, '--cuts-y', false) }) } : base?.cuts;
+        const min = num(args, '--min') ?? base?.min, seed = num(args, '--seed') ?? (op === 'split' && !flag(args, '--split') && num(args, '--min') === undefined ? Math.floor(Math.random() * 1e6) : base?.seed);
+        return { mode, ...(min !== undefined && { min }), ...(cuts && { cuts }), ...(seed !== undefined && { seed }) };
+      };
+      let id: string;
+      if (op === 'add') {
+        const shape = bid, at = flag(args, '--at'), sz = sizeFlag(args, '--size');
+        if (!['rect', 'octagon', 'circle', 'hex', 'poly'].includes(shape)) throw new Error('dungeon block <id> add rect|octagon|circle|hex|poly');
+        id = flag(args, '--block-id') ?? (() => { const used = new Set((m.blocks ?? []).map(b => b.id)); for (let n = 1; ; n++) if (!used.has(`b${n}`)) return `b${n}`; })();
+        let b: dungeon.Block;
+        if (shape === 'poly') { const points = numbers(flag(args, '--points'), '--points'); b = { id, shape: 'poly', points, ...dungeon.polyBox(points), split: splitFlags() }; }
+        else {
+          if (!at || !sz) throw new Error('dungeon block <id> add <shape> --at x,y|C4 --size WxH');
+          const [x, y] = cornerPoint(at);
+          b = shape === 'hex' ? { id, shape: 'poly', points: dungeon.hexPoints(x, y, sz[0], sz[1]), x, y, w: sz[0], h: sz[1], split: splitFlags() } : { id, shape: shape as dungeon.Block['shape'], x, y, w: sz[0], h: sz[1], split: splitFlags() };
+        }
+        if (num(args, '--doors') !== undefined) b.doors = num(args, '--doors');
+        (m.blocks ??= []).push(b);
+      } else if (op === 'split') {
+        const b = m.blocks?.find(x => x.id === bid);
+        if (!b) throw new Error(`no block ${bid} (have: ${(m.blocks ?? []).map(x => x.id).join(', ') || 'none'})`);
+        b.split = splitFlags(b.split);
+        if (num(args, '--doors') !== undefined) b.doors = num(args, '--doors');
+        id = b.id;
+      } else if (op === 'rm') {
+        if (!m.blocks?.some(x => x.id === bid)) throw new Error(`no block ${bid}`);
+        dungeon.removeBlock(m, bid); note = `removed block ${bid} and its rooms`;
+        return;
+      } else throw new Error('dungeon block <id> add|split|rm');
+      const r = dungeon.applyBlock(dungeon.parseDungeon(m), id);
+      const made = r.spec.rooms.filter(x => x.origin === `block:${id}`).length;
+      note = [`block ${id}: ${made} rooms, ${(r.spec.connections ?? []).filter(c => c.origin === `block:${id}`).length} connections`, ...r.dropped.map(d => `  dropped ${d}`)].join('\n');
+      return r.spec;
+    });
+    print([`${m.id}: ${note}`, ...warningLines(m), next(m.id)].join('\n'), m.blocks ?? []);
     return 0;
   }
   if (sub === 'connect') {
@@ -519,7 +571,7 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
     print(syncText(String(file ?? id), report), report);
     return 0;
   }
-  throw new Error('dungeon: new | gen | room | link | unlink | door | connect | disconnect | grid | style | label | symbol | symbols | overlay | check | fit | render | show | facts | sync | list (artgen --help)');
+  throw new Error('dungeon: new | gen | room | block | link | unlink | door | connect | disconnect | grid | style | label | symbol | symbols | overlay | check | fit | render | show | facts | sync | list (artgen --help)');
 }
 
 /** `artgen formats [--json]`: the map and dungeon file format versions this artgen reads and writes. */

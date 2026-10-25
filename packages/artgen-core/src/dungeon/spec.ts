@@ -115,6 +115,23 @@ export interface Corridor {
  */
 export interface Connection { a: string; b: string; at?: [number, number]; kind?: DoorKind | 'open'; width?: number; origin?: string }
 
+export const BLOCK_SHAPES = ['rect', 'octagon', 'circle', 'poly'] as const;
+export const SPLIT_MODES = ['bsp', 'rows', 'cols', 'grid', 'cuts'] as const;
+export type SplitMode = (typeof SPLIT_MODES)[number];
+
+/**
+ * A block: one shape split into rooms that share walls (see `blocks.ts`). `split.mode`: `bsp` (cut at random whole
+ * cells, the longer side first, down to pieces about `min` across), `rows` / `cols` (bands about `min` deep), `grid`
+ * (both), or `cuts` (at the listed x and y lines). `doors` is the share of extra connections beyond the ones that join
+ * every room (0..1, default 0.25). The rooms and connections it makes are written into the file with origin
+ * `block:<id>`; the block is kept so it can be split again.
+ */
+export interface Block {
+  id: string; shape: (typeof BLOCK_SHAPES)[number]; x: number; y: number; w: number; h: number; points?: number[];
+  split: { mode: SplitMode; min?: number; cuts?: { x?: number[]; y?: number[] }; seed?: number };
+  doors?: number; origin?: string;
+}
+
 export interface DungeonLabel { text: string; x: number; y: number; kind: LabelKind; size?: number; angle?: number; href?: string; origin?: string }
 export interface DungeonSymbol { kind: string; x: number; y: number; scale?: number; angle?: number; origin?: string }
 
@@ -171,6 +188,8 @@ export interface DungeonSpec {
   corridors: Corridor[];
   /** Optional: doors and openings in the walls rooms share (see {@link Connection}). */
   connections?: Connection[];
+  /** Optional: shapes split into rooms (see {@link Block}); their rooms are in `rooms`. */
+  blocks?: Block[];
   overlay: { labels: DungeonLabel[]; symbols: DungeonSymbol[] };
   /** Optional: the ground under the rooms (see {@link Underlay}). */
   underlay?: Underlay;
@@ -406,6 +425,33 @@ export function validateDungeon(raw: unknown): string[] {
       originError(c, at, e);
     });
   }
+  if (m.blocks !== undefined) {
+    if (!Array.isArray(m.blocks)) e.push('blocks: an array');
+    else {
+      const seen = new Set<string>();
+      m.blocks.forEach((b, i) => {
+        const at = `blocks[${i}]`;
+        if (!b || typeof b !== 'object') { e.push(`${at}: {id, shape, x, y, w, h, split}`); return; }
+        if (typeof b.id !== 'string' || !/^[\w-]+$/.test(b.id)) e.push(`${at}.id: letters, digits, - and _ only`);
+        else if (seen.has(b.id)) e.push(`${at}.id: ${b.id} is used twice`);
+        else seen.add(b.id);
+        if (!BLOCK_SHAPES.includes(b.shape)) e.push(`${at}.shape: one of ${BLOCK_SHAPES.join(', ')}`);
+        for (const k of ['x', 'y'] as const) if (!isNum(b[k])) e.push(`${at}.${k}: a number (cells)`);
+        for (const k of ['w', 'h'] as const) if (!isNum(b[k]) || b[k] < 1) e.push(`${at}.${k}: at least 1 cell`);
+        if (b.shape === 'poly' && !(nums(b.points) && b.points.length >= 6 && b.points.length % 2 === 0)) e.push(`${at}.points: at least 3 x,y pairs`);
+        const sp = b.split;
+        if (!sp || typeof sp !== 'object' || !SPLIT_MODES.includes(sp.mode)) e.push(`${at}.split.mode: one of ${SPLIT_MODES.join(', ')}`);
+        else {
+          if (sp.min !== undefined && !(isNum(sp.min) && sp.min >= 1 && sp.min <= 40)) e.push(`${at}.split.min: 1..40 cells`);
+          if (sp.seed !== undefined && !isNum(sp.seed)) e.push(`${at}.split.seed: a number`);
+          if (sp.cuts !== undefined && !(sp.cuts && typeof sp.cuts === 'object' && (sp.cuts.x === undefined || nums(sp.cuts.x)) && (sp.cuts.y === undefined || nums(sp.cuts.y)))) e.push(`${at}.split.cuts: {x?: [cells], y?: [cells]}`);
+          if (sp.mode === 'cuts' && !(sp.cuts?.x?.length || sp.cuts?.y?.length)) e.push(`${at}.split.cuts: the x and/or y lines to cut at`);
+        }
+        if (b.doors !== undefined && !(isNum(b.doors) && b.doors >= 0 && b.doors <= 1)) e.push(`${at}.doors: 0..1`);
+        originError(b, at, e);
+      });
+    }
+  }
   if (Array.isArray(m.corridors) && !e.some(x => x.startsWith('corridors')) && !corridorOrder(m.corridors)) e.push('corridors: corridors join each other in a ring ({corridor: id} ends); one must end at a room or a point');
   e.push(...enclosureErrors(m, ids));
   const o = m.overlay;
@@ -507,8 +553,8 @@ export function parsePoint(at: string): [number, number] {
   throw new Error(`${at}: expected x,y (cells) or a cell name (C4)`);
 }
 
-/** Corridors left once every corridor that joins a missing one is gone (in place of `list`, whose dropped entries are counted). */
-function withoutDangling(list: Corridor[]): Corridor[] {
+/** The corridors left once every corridor that joins a missing one (a `{corridor: id}` end) is gone, repeatedly. */
+export function withoutDangling(list: Corridor[]): Corridor[] {
   for (;;) {
     const ids = new Set(list.flatMap(c => (c.id ? [c.id] : [])));
     const next = list.filter(c => ![c.from, c.to].some(e => 'corridor' in e && !ids.has(e.corridor)));

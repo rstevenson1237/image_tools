@@ -276,6 +276,11 @@ export function fitDungeon(spec: DungeonSpec, margin = 2): DungeonSpec {
   }
   for (const o of [...out.overlay.labels, ...out.overlay.symbols]) { o.x += dx; o.y += dy; }
   for (const c of out.connections ?? []) if (c.at) c.at = [c.at[0] + dx, c.at[1] + dy];
+  for (const b of out.blocks ?? []) {
+    b.x += dx; b.y += dy;
+    if (b.points) b.points = mv(b.points);
+    if (b.split.cuts) b.split.cuts = { ...(b.split.cuts.x && { x: b.split.cuts.x.map(v => v + dx) }), ...(b.split.cuts.y && { y: b.split.cuts.y.map(v => v + dy) }) };
+  }
   // the walls and the underlay move with the rooms: a wall's own line and its gates, and the map unit at the corner
   for (const w of out.walls ?? []) { if (w.poly) w.poly = mv(w.poly); for (const g of w.gates ?? []) g.at = [g.at[0] + dx, g.at[1] + dy]; }
   if (out.underlay) out.underlay.origin = [out.underlay.origin[0] - dx * out.underlay.scale, out.underlay.origin[1] - dy * out.underlay.scale];

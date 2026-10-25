@@ -191,3 +191,48 @@ describe('rooms joined directly', () => {
     expect(D.fitDungeon(s, 1).connections![0].at).toEqual([11, 3]);
   });
 });
+
+describe('blocks split into rooms', () => {
+  const blockSpec = (b: Partial<D.Block> = {}, over: Partial<D.DungeonSpec> = {}) => D.parseDungeon({ ...D.newDungeon('b', { cols: 30, rows: 24 }), blocks: [{ id: 'w', shape: 'rect', x: 2, y: 2, w: 16, h: 12, split: { mode: 'bsp', min: 3, seed: 5 }, ...b }], ...over });
+
+  test('bsp: rooms tile the block on whole cells, every room joined; the same seed gives the same rooms', () => {
+    const s = D.applyBlock(blockSpec(), 'w').spec, rooms = s.rooms;
+    expect(rooms.length).toBeGreaterThan(4);
+    expect(rooms.every(r => r.origin === 'block:w' && r.shape === 'rect' && Number.isInteger(r.x) && Number.isInteger(r.w) && r.w >= 3 && r.h >= 3)).toBe(true);
+    expect(rooms.reduce((n, r) => n + r.w * r.h, 0)).toBe(16 * 12);
+    expect(D.dungeonFacts(s).unreached).toEqual([]);
+    expect(D.lintDungeon(s)).toEqual([]);
+    expect(D.applyBlock(blockSpec(), 'w').spec).toEqual(s);
+    expect(D.applyBlock(blockSpec({ split: { mode: 'bsp', min: 3, seed: 6 } }), 'w').spec.rooms).not.toEqual(rooms);
+  });
+
+  test('grid, rows and cuts; a hexagon is cut to its outline, its small corners joined to their neighbours', () => {
+    const grid = D.splitBlock({ id: 'g', shape: 'rect', x: 0, y: 0, w: 12, h: 8, split: { mode: 'grid', min: 4 } });
+    expect(grid.rooms.map(r => [r.x, r.y, r.w, r.h])).toEqual([[0, 0, 4, 4], [4, 0, 4, 4], [8, 0, 4, 4], [0, 4, 4, 4], [4, 4, 4, 4], [8, 4, 4, 4]]);
+    expect(D.splitBlock({ id: 'r', shape: 'rect', x: 0, y: 0, w: 12, h: 9, split: { mode: 'rows', min: 3 } }).rooms.map(r => [r.y, r.h])).toEqual([[0, 3], [3, 3], [6, 3]]);
+    expect(D.splitBlock({ id: 'c', shape: 'rect', x: 0, y: 0, w: 10, h: 6, split: { mode: 'cuts', cuts: { x: [4] } } }).rooms.map(r => r.w)).toEqual([4, 6]);
+    const hex = D.splitBlock({ id: 'h', shape: 'poly', points: D.hexPoints(0, 0, 16, 12), ...D.polyBox(D.hexPoints(0, 0, 16, 12)), split: { mode: 'grid', min: 4 } });
+    expect(hex.rooms.some(r => r.shape === 'poly')).toBe(true);
+    const area = hex.rooms.reduce((n, r) => n + D.geom.polygonArea(D.roomOutline(r)), 0);
+    expect(area).toBeCloseTo(D.geom.polygonArea(D.hexPoints(0, 0, 16, 12)), 3);   // the corners joined their neighbours: the whole hexagon is floor
+    expect(D.geom.polygonArea(D.clipToRect([0, 0, 4, 0, 4, 4, 0, 4], [2, 2, 6, 6]))).toBe(4);
+    expect(D.clipToRect([0, 0, 4, 0, 4, 4, 0, 4], [5, 5, 6, 6])).toEqual([]);
+  });
+
+  test('splitting again replaces the rooms in place; hand rooms keep their order and number; corridors to lost rooms are dropped', () => {
+    let s = blockSpec({}, { rooms: [{ id: 'hand', shape: 'rect', x: 22, y: 2, w: 4, h: 4 }] });
+    s = D.applyBlock(s, 'w').spec;
+    expect(s.rooms[0].id).toBe('hand');
+    s.corridors.push({ from: { room: 'hand' }, to: { room: s.rooms[s.rooms.length - 1].id } });
+    s.blocks![0].split = { mode: 'grid', min: 8 };
+    const r = D.applyBlock(D.parseDungeon(s), 'w');
+    expect(r.spec.rooms[0].id).toBe('hand');
+    expect(r.spec.rooms.length).toBe(1 + 2);
+    expect(r.spec.corridors).toEqual([]);
+    expect(r.dropped).toEqual([expect.stringMatching(/^corridor hand → w-\d+: w-\d+ is gone/)]);
+    D.removeBlock(r.spec, 'w');
+    expect(r.spec).toMatchObject({ rooms: [{ id: 'hand' }], corridors: [] });
+    expect(r.spec.blocks).toBeUndefined();
+    expect(D.validateDungeon({ ...s, blocks: [{ id: 'x', shape: 'cave' as 'rect', x: 0, y: 0, w: 4, h: 4, split: { mode: 'cuts' } }] })).toEqual(['blocks[0].shape: one of rect, octagon, circle, poly', 'blocks[0].split.cuts: the x and/or y lines to cut at']);
+  });
+});
