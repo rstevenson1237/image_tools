@@ -59,6 +59,14 @@
     ty = (r.height - H * scale) / 2;
   }
 
+  /** Put a point (map units) in the middle of the view, keeping the zoom. */
+  export function centre(x: number, y: number): void {
+    if (!box) return;
+    const r = box.getBoundingClientRect();
+    tx = r.width / 2 - x * ppu * scale;
+    ty = r.height / 2 - y * ppu * scale;
+  }
+
   function toMap(e: PointerEvent | MouseEvent): [number, number] {
     const r = box!.getBoundingClientRect();
     return [(e.clientX - r.left - tx) / scale / ppu, (e.clientY - r.top - ty) / scale / ppu];

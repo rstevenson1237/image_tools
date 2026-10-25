@@ -2,7 +2,7 @@
   /**
    * Dungeon Map: tabletop RPG dungeons and lairs in black and white. Make one room (with exits running off the map) or
    * generate a whole complex from a seed, then draw: drag out rooms, click corners for an odd-shaped room, link rooms
-   * with corridors, set doors, move rooms, add a 10 ft / 5 ft grid, numbers, labels and symbols, and export SVG or PNG.
+   * with corridors, set doors, move rooms, add a grid (any size, with a sub-grid), numbers, labels (which may be links) and symbols, and export SVG or PNG.
    * The dungeon is the artgen `dungeon.json` the CLI and Claude Code use: open and save it in a game repo's
    * `art/dungeons/`, or download / open the file on its own. Rendering runs in the artgen worker.
    */
@@ -24,7 +24,7 @@
   const PREVIEW_PPU = 40;
 
   let svg = $state('');
-  let info = $state<{ rooms: number; corridors: number; doors: number } | null>(null);
+  let info = $state<{ rooms: number; corridors: number; doors: number; band: { right: number; bottom: number } } | null>(null);
   let error = $state<string | null>(null);
   /** Why the last render failed (kept apart from action errors, which a later render must not hide). */
   let renderError = $state<string | null>(null);
@@ -32,6 +32,8 @@
   /** Poly corners placed so far, or a link's first end. */
   let pending = $state<number[]>([]);
   let linkFrom = $state<dungeon.CorridorEnd | null>(null);
+  /** The corridor a new corridor starts from (a junction), by index. */
+  let linkFromCorridor = $state<number | null>(null);
   let projectDungeons = $state<string[]>([]);
   let pick = $state('');
   let fileInput = $state<HTMLInputElement>();
@@ -41,13 +43,16 @@
   const layout = $derived(dungeon.layoutDungeon(spec));
   const shown = $derived(dungeon.dungeonLayersFor(spec, store.layers));
   const selectedRoom = $derived(spec.rooms.find(r => r.id === store.selected) ?? null);
+  /** Drawing problems (the same checks as `artgen dungeon check`). */
+  const problems = $derived(dungeon.lintDungeon(spec, layout));
 
   const TOOLS: { id: DungeonTool; label: string; hint: string }[] = [
     { id: 'pan', label: 'Pan', hint: 'drag to pan, wheel to zoom' },
     { id: 'select', label: 'Select', hint: 'click a room to select it; drag a room to move it' },
-    { id: 'room', label: 'Room', hint: 'drag out a room of the chosen shape' },
+    { id: 'room', label: 'Room', hint: 'drag out a room of the chosen shape, or a block split into rooms' },
     { id: 'poly', label: 'Odd room', hint: 'click the corners of a room; double-click or Enter to finish' },
-    { id: 'link', label: 'Corridor', hint: 'click a room, then another room (or empty floor for an exit or dead end)' },
+    { id: 'link', label: 'Corridor', hint: 'click a room or a corridor, then another room, a corridor (a junction) or empty floor (an exit or dead end)' },
+    { id: 'connect', label: 'Connect', hint: 'click the wall two touching rooms share: a door there; click it again for the next kind (… open, then none)' },
     { id: 'door', label: 'Door', hint: 'click where a corridor meets a room to change its door' },
     { id: 'label', label: 'Label', hint: 'click to place the text below' },
     { id: 'symbol', label: 'Symbol', hint: 'click to place the symbol below' },
@@ -65,7 +70,6 @@
     { key: 'corridorWidth', label: 'corridor width (cells)', min: 1, max: 4, step: 1 },
     { key: 'spacing', label: 'space between rooms', min: 0, max: 6, step: 1 },
   ];
-  const GRID_MODES = [['none', 'none'], ['10', '10 ft'], ['10+5', '10 ft + 5 ft'], ['5', '5 ft']] as const;
   const SIDES: [Side, string][] = [['n', 'north'], ['e', 'east'], ['s', 'south'], ['w', 'west']];
 
   onMount(() => {
@@ -92,7 +96,7 @@
       try {
         const r = await lease.api.dungeonSvg(s, { layers, ppu: PREVIEW_PPU });
         if (mine !== ticket) return;
-        svg = r.svg; info = { rooms: r.rooms, corridors: r.corridors, doors: r.doors }; renderError = null;
+        svg = r.svg; info = { rooms: r.rooms, corridors: r.corridors, doors: r.doors, band: r.band }; renderError = null;
       } catch (e) {
         if (mine === ticket) renderError = e instanceof Error ? e.message : String(e);
       } finally {
@@ -126,7 +130,7 @@
     cancelLine();
   }
 
-  function cancelLine() { pending = []; linkFrom = null; }
+  function cancelLine() { pending = []; linkFrom = null; linkFromCorridor = null; }
 
   const round = (v: number) => Math.round(v * 100) / 100;
   /** The middle of the cell a point falls in (where a 1-wide corridor or a symbol sits tidily). */
@@ -151,10 +155,38 @@
     return d;
   }
 
+  /** The corridor under a point outside the rooms (within its width), if any. */
+  function corridorAt(x: number, y: number): number | undefined {
+    const hit = layout.corridors.map(c => [segDistance(c.pts, x, y) - c.width / 2, c.index] as const).sort((a, b) => a[0] - b[0])[0];
+    return hit && hit[0] < 0.3 ? hit[1] : undefined;
+  }
+
+  /** A corridor end at a room: its centre, or with "wall" attachment the wall nearest the click, at the click along it. */
+  function roomEnd(g: dungeon.RoomGeom, x: number, y: number): dungeon.CorridorEnd {
+    if (store.linkAttach !== 'wall') return { room: g.room.id };
+    const r = g.room, d: [dungeon.Side, number][] = [['n', y - r.y], ['s', r.y + r.h - y], ['w', x - r.x], ['e', r.x + r.w - x]];
+    const side = d.reduce((a, b) => (b[1] < a[1] ? b : a))[0], across = side === 'n' || side === 's';
+    const offset = Math.max(0.5, Math.min((across ? r.w : r.h) - 0.5, (store.linkWidth % 2 ? cellMid : Math.round)(across ? x : y) - (across ? r.x : r.y)));
+    return { room: r.id, side, offset };
+  }
+
   function ondrag(x0: number, y0: number, x1: number, y1: number) {
     if (store.tool === 'room') {
       const x = Math.floor(Math.min(x0, x1)), y = Math.floor(Math.min(y0, y1)), w = Math.ceil(Math.max(x0, x1)) - x, h = Math.ceil(Math.max(y0, y1)) - y;
       if (w < 1 || h < 1) return;
+      if (store.blockSplit !== 'none') {
+        const mode = store.blockSplit, hex = store.blockHex;
+        attempt(() => store.change('add block', m => {
+          const used = new Set((m.blocks ?? []).map(b => b.id));
+          let id = 'b1';
+          for (let n = 1; used.has(id); n++) id = `b${n + 1}`;
+          const split = { mode, min: store.blockMin, seed: Math.floor(Math.random() * 1e6) };
+          const shape = store.roomShape === 'cave' ? 'rect' : store.roomShape;
+          (m.blocks ??= []).push(hex ? { id, shape: 'poly', points: dungeon.hexPoints(x, y, w, h), x, y, w, h, split } : { id, shape, x, y, w, h, split });
+          return dungeon.applyBlock(dungeon.parseDungeon(m), id).spec;
+        }));
+        return;
+      }
       attempt(() => store.change(`add ${store.roomShape} room`, m => {
         const id = dungeon.nextRoomId(m);
         m.rooms.push({ id, shape: store.roomShape, x, y, w, h });
@@ -182,17 +214,50 @@
       return;
     }
     if (t === 'link') {
-      const g = roomAt(x, y), end: dungeon.CorridorEnd = g ? { room: g.room.id } : { at: [cellMid(x), cellMid(y)] };
+      const g = roomAt(x, y), along = !g ? corridorAt(x, y) : undefined;
+      // a room (by its centre, or the wall nearest the click), a corridor (a junction), or a point
+      const end: dungeon.CorridorEnd = g ? roomEnd(g, x, y) : along !== undefined ? { corridor: spec.corridors[along].id ?? '' } : { at: [cellMid(x), cellMid(y)] };
       if (!linkFrom) {
-        if (!g) { error = 'start a corridor in a room'; return; }
-        linkFrom = end; pending = [g.cx, g.cy]; error = null;
+        if (!g && along === undefined) { error = 'start a corridor in a room or on a corridor'; return; }
+        linkFrom = end; linkFromCorridor = along ?? null; pending = g ? [g.cx, g.cy] : [x, y]; error = null;
         return;
       }
-      const from = $state.snapshot(linkFrom);
+      const from = $state.snapshot(linkFrom), fromCorridor = linkFromCorridor;
       cancelLine();
       if ('room' in end && 'room' in from && end.room === from.room) return;
       attempt(() => store.change('add corridor', m => {
-        m.corridors.push({ from, to: end, ...(store.linkWidth !== 1 && { width: store.linkWidth }), doors: [doorOf(store.linkDoors[0]), doorOf(store.linkDoors[1])] });
+        // a corridor joined at either end needs an id to be joined by
+        const name = (i: number | null | undefined) => { if (i === null || i === undefined) return; const c = m.corridors[i]; c.id ??= dungeon.nextCorridorId(m); return c.id; };
+        const a = fromCorridor !== null ? { corridor: name(fromCorridor)! } : from, b = along !== undefined ? { corridor: name(along)! } : end;
+        m.corridors.push({
+          from: a, to: b, ...(store.linkWidth !== 1 && { width: store.linkWidth }), doors: [doorOf(store.linkDoors[0]), doorOf(store.linkDoors[1])],
+          ...(store.linkRoute !== 'auto' && { route: store.linkRoute }), ...(store.linkCurve && { curve: 'smooth' as const }), ...(store.linkStyle === 'natural' && { style: 'natural' as const }),
+        });
+      }));
+      return;
+    }
+    if (t === 'connect') {
+      // the shared wall nearest the click, between two touching rooms
+      let best: { a: string; b: string; x: number; y: number; d: number; upright: boolean } | null = null;
+      for (let i = 0; i < layout.rooms.length; i++) for (let j = i + 1; j < layout.rooms.length; j++) {
+        const A = layout.rooms[i], B = layout.rooms[j];
+        for (const [p, q] of dungeon.geom.sharedEdges(A.outline, B.outline)) {
+          const n = dungeon.geom.nearestOnLine([...p, ...q], x, y);
+          if (!best || n.d < best.d) best = { a: A.room.id, b: B.room.id, x: n.x, y: n.y, d: n.d, upright: Math.abs(q[0] - p[0]) < Math.abs(q[1] - p[1]) };
+        }
+      }
+      if (!best || best.d > 0.6) { error = 'click on the wall two touching rooms share'; return; }
+      const hit = best, existing = layout.connections.find(c => ((c.a === hit.a && c.b === hit.b) || (c.a === hit.b && c.b === hit.a)) && Math.hypot(c.x - hit.x, c.y - hit.y) < c.width / 2 + 0.5);
+      attempt(() => store.change('connection', m => {
+        const list = (m.connections ??= []);
+        if (existing) {
+          const order: (dungeon.DoorKind | 'open')[] = [...dungeon.DOOR_KINDS, 'open'], c = list[existing.index], next = order.indexOf(c.kind ?? 'door') + 1;
+          if (next >= order.length) list.splice(existing.index, 1); else c.kind = order[next];
+        } else {
+          // on the grid: the middle of the cell clicked along the wall
+          list.push({ a: hit.a, b: hit.b, at: hit.upright ? [hit.x, cellMid(hit.y)] : [cellMid(hit.x), hit.y] });
+        }
+        if (!list.length) delete m.connections;
       }));
       return;
     }
@@ -242,28 +307,32 @@
   }
 
   function removeRoom(id: string) {
-    store.change(`remove ${id}`, m => {
-      m.rooms = m.rooms.filter(r => r.id !== id);
-      m.corridors = m.corridors.filter(c => !(('room' in c.from && c.from.room === id) || ('room' in c.to && c.to.room === id)));
-    });
+    store.change(`remove ${id}`, m => { dungeon.removeRoom(m, id); });
     if (store.selected === id) store.selected = null;
   }
-  function removeCorridor(i: number) { store.change('remove corridor', m => { m.corridors.splice(i, 1); }); }
+  function removeCorridor(i: number) { store.change('remove corridor', m => { dungeon.removeCorridor(m, i); }); }
   function removeLabel(i: number) { store.change('remove label', m => { m.overlay.labels.splice(i, 1); }); }
   function removeSymbol(i: number) { store.change('remove symbol', m => { m.overlay.symbols.splice(i, 1); }); }
   function setRoom(id: string, label: string, edit: (r: dungeon.Room) => void) { attempt(() => store.change(label, m => { edit(m.rooms.find(r => r.id === id)!); })); }
   function setGen(key: keyof dungeon.DungeonSpec['gen'], v: number | boolean) { attempt(() => store.change(`gen ${key}`, m => { (m.gen as Record<string, unknown>)[key] = v; })); }
   function setDoor(i: number, end: 0 | 1, v: string) { store.change('door', m => { const c = m.corridors[i], d = c.doors ?? [null, null]; c.doors = end === 0 ? [doorOf(v), d[1]] : [d[0], doorOf(v)]; }); }
 
-  const gridMode = $derived(!spec.grid.show ? 'none' : spec.grid.size === 1 ? '5' : spec.grid.sub ? '10+5' : '10');
-  function setGrid(mode: string) {
-    attempt(() => store.change('grid', m => {
-      if (mode === 'none') m.grid.show = false;
-      else m.grid = { ...m.grid, show: true, size: mode === '5' ? 1 : 2, sub: mode === '10+5' };
-    }));
+  const grid = $derived(dungeon.gridInUnits(spec));
+  function setGrid(o: { size?: number; sub?: boolean; show?: boolean }) {
+    attempt(() => store.change('grid', m => { m.grid = dungeon.gridFromUnits(m, o); }));
   }
 
-  const endName = (e: dungeon.CorridorEnd) => ('room' in e ? e.room : 'exit');
+  /** Show what a problem is about: select its room, or bring a corridor's start or a mark to the middle of the view. */
+  function showProblem(path: string) {
+    const m = path.match(/^(rooms|corridors|overlay\.labels|overlay\.symbols)\[(\d+)\]/);
+    if (!m) return;
+    const i = Number(m[2]);
+    if (m[1] === 'rooms') { const g = layout.rooms[i]; if (g) { store.selected = g.room.id; view?.centre(g.cx, g.cy); } }
+    else if (m[1] === 'corridors') { const g = layout.corridors[i]; if (g) view?.centre(g.pts[0], g.pts[1]); }
+    else { const o = m[1] === 'overlay.labels' ? spec.overlay.labels[i] : spec.overlay.symbols[i]; if (o) view?.centre(o.x, o.y); }
+  }
+
+  const endName = (e: dungeon.CorridorEnd) => ('room' in e ? `${e.room}${e.side ? `.${e.side}` : ''}` : 'corridor' in e ? `⊢${e.corridor}` : 'exit');
 
   function fresh(kind: 'generated' | 'empty' | 'room') {
     if (store.dirty && !confirm('Start a new dungeon? Unsaved changes to this one are lost.')) return;
@@ -373,6 +442,18 @@
         <label>seed <input type="number" value={spec.seed} onchange={e => attempt(() => store.change('seed', m => { m.seed = num(e); return dungeon.generateDungeon(m); }))} /></label>
         <label>&nbsp;<button type="button" onclick={regenerate} title="a new layout with these settings (replaces rooms and corridors)">Generate</button></label>
       </div>
+      <div class="pair">
+        <label title="scatter: rooms apart, joined by corridors; dense: rooms side by side, joined through shared walls; blocks: blocks split into rooms, joined by corridors">layout
+          <select value={spec.gen.layout ?? 'scatter'} onchange={e => attempt(() => store.change('gen layout', m => { const v = val(e) as dungeon.GenLayout; if (v === 'scatter') delete m.gen.layout; else m.gen.layout = v; }))}>
+            {#each dungeon.GEN_LAYOUTS as l (l)}<option value={l}>{l}</option>{/each}
+          </select>
+        </label>
+        {#if spec.gen.layout === 'dense'}
+          <label>fill <span class="v">{spec.gen.density ?? 0.5}</span>
+            <input type="range" min="0.1" max="0.9" step="0.05" value={spec.gen.density ?? 0.5} onchange={e => setGen('density', num(e))} />
+          </label>
+        {/if}
+      </div>
       {#each GEN as g (g.key)}
         <label>{g.label} <span class="v">{spec.gen[g.key]}</span>
           <input type="range" min={g.min} max={g.max} step={g.step} value={spec.gen[g.key]} onchange={e => setGen(g.key, num(e))} />
@@ -383,9 +464,17 @@
 
       <h3>Look</h3>
       <div class="pair">
-        <label>grid
-          <select value={gridMode} onchange={e => setGrid(val(e))}>{#each GRID_MODES as [v, name] (v)}<option value={v}>{name}</option>{/each}</select>
+        <label>grid size <input type="number" min={spec.scale.perCell} step={spec.scale.perCell} value={grid.size} disabled={!grid.show} onchange={e => setGrid({ size: num(e) })} title="a whole number of squares" /></label>
+        <label>dimension
+          <input type="text" class="unit" list="dungeon-units" value={spec.scale.unit} onchange={e => attempt(() => store.change('unit', m => { m.scale.unit = val(e).trim() || 'ft'; }))} />
         </label>
+        <datalist id="dungeon-units">{#each dungeon.SCALE_UNITS as u (u)}<option value={u}></option>{/each}</datalist>
+      </div>
+      <div class="checks">
+        <label class="inline"><input type="checkbox" checked={grid.show} onchange={e => setGrid({ show: checked(e) })} /> show grid</label>
+        <label class="inline" title={spec.grid.size > 1 ? `a fainter line every ${grid.subSize} ${grid.unit}` : 'the grid is one square: no sub-grid'}><input type="checkbox" checked={grid.sub} disabled={!grid.show || spec.grid.size <= 1} onchange={e => setGrid({ sub: checked(e) })} /> show sub-grid</label>
+      </div>
+      <div class="pair">
         <label>grid on
           <select value={spec.grid.clip} onchange={e => store.change('grid', m => { m.grid.clip = val(e) as 'floor' | 'all'; })}><option value="floor">floors</option><option value="all">everything</option></select>
         </label>
@@ -405,6 +494,19 @@
         <label class="inline"><input type="checkbox" checked={spec.numbers} onchange={e => store.change('numbers', m => { m.numbers = checked(e); })} /> room numbers</label>
         <label class="inline"><input type="checkbox" checked={spec.scaleBar} onchange={e => store.change('scale bar', m => { m.scaleBar = checked(e); })} /> scale bar</label>
         <label class="inline"><input type="checkbox" checked={spec.compass} onchange={e => store.change('compass', m => { m.compass = checked(e); })} /> compass</label>
+        <label class="inline" title="draw the wall between rooms that touch (off: they run together as one floor)"><input type="checkbox" checked={dungeon.sharedWallsOn(spec)} onchange={e => store.change('shared walls', m => { m.style.sharedWalls = checked(e); })} /> walls between touching rooms</label>
+      </div>
+      <div class="pair">
+        <label title="where the title, scale bar, compass and legend go">title, scale and compass
+          <select value={spec.furniture?.place ?? 'over'} onchange={e => store.change('furniture', m => { const place = val(e) as dungeon.FurniturePlace; if (place === 'over') delete m.furniture; else m.furniture = { place, ...(m.furniture?.side && { side: m.furniture.side }) }; })}>
+            <option value="over">over the map</option><option value="outside">beside the map</option><option value="auto">beside, if they would hide something</option>
+          </select>
+        </label>
+        <label>beside
+          <select value={spec.furniture?.side ?? 'bottom'} disabled={!spec.furniture || spec.furniture.place === 'over'} onchange={e => store.change('furniture side', m => { if (m.furniture) m.furniture.side = val(e) as dungeon.FurnitureSide; })}>
+            <option value="bottom">below</option><option value="right">to the right</option>
+          </select>
+        </label>
       </div>
       <label>1 square = <span class="row"><input type="number" min="0" value={spec.scale.perCell} onchange={e => attempt(() => store.change('scale', m => { m.scale.perCell = num(e); }))} /><input type="text" class="unit" value={spec.scale.unit} onchange={e => attempt(() => store.change('scale', m => { m.scale.unit = val(e); }))} /></span></label>
 
@@ -425,6 +527,7 @@
             <label>name <input type="text" value={r.label ?? ''} placeholder="(none)" onchange={e => setRoom(r.id, 'name', x => { const t = val(e).trim(); if (t) x.label = t; else delete x.label; })} /></label>
             <label>number <input type="text" value={r.number === false ? 'off' : r.number ?? ''} placeholder="auto" onchange={e => setRoom(r.id, 'number', x => { const t = val(e).trim(); if (t === 'off') x.number = false; else if (t) x.number = Number(t); else delete x.number; })} /></label>
           </div>
+          <label>link <span class="row"><input type="text" value={r.href ?? ''} placeholder="https://… or level-2.svg#M.4" onchange={e => setRoom(r.id, 'link', x => { const t = val(e).trim(); if (t) x.href = t; else delete x.href; })} />{#if r.href && !dungeon.hrefError(r.href)}<a href={r.href} target="_blank" rel="noopener noreferrer" title="open the link">↗</a>{/if}</span></label>
         </div>
       {/if}
       <ul class="items">
@@ -441,6 +544,10 @@
         {#each spec.corridors as c, i (i)}
           <li>
             <span>{endName(c.from)} → {endName(c.to)}</span>
+            {#if 'at' in c.to}
+              {@const at = c.to.at}
+              <input type="text" class="href" value={c.to.exit?.text ?? ''} placeholder="exit note" title="a note at the map's edge saying where this exit leads; the corridor fades out there" onchange={e => attempt(() => store.change('exit note', m => { const t = val(e).trim(); m.corridors[i].to = t ? { at, exit: { ...('at' in m.corridors[i].to ? (m.corridors[i].to as { exit?: dungeon.Exit }).exit : {}), text: t } } : { at }; }))} />
+            {/if}
             {#each [0, 1] as const as end (end)}
               <select class="door" value={c.doors?.[end] ?? 'none'} onchange={e => setDoor(i, end, val(e))} title="door at the {end ? 'second' : 'first'} end">
                 <option value="none">open</option>{#each dungeon.DOOR_KINDS as k (k)}<option value={k}>{k}</option>{/each}
@@ -451,10 +558,45 @@
         {:else}<li class="dim small">none yet — use the Corridor tool</li>{/each}
       </ul>
 
+      <h3>Problems ({problems.length})</h3>
+      <ul class="items problems">
+        {#each problems as f, i (i)}
+          <li class={f.severity}><button type="button" class="link" onclick={() => showProblem(f.path)} title={f.path}><b>{f.severity}</b> {f.message}</button></li>
+        {:else}<li class="dim small">none found</li>{/each}
+      </ul>
+
+      {#if spec.blocks?.length}
+        <h3>Blocks ({spec.blocks.length})</h3>
+        <ul class="items">
+          {#each spec.blocks as b (b.id)}
+            <li>
+              <span>{b.id} · {b.shape} {b.w}×{b.h} · {b.split.mode} · {spec.rooms.filter(r => r.origin === `block:${b.id}`).length} rooms</span>
+              <button type="button" onclick={() => attempt(() => store.change(`split ${b.id}`, m => { const x = m.blocks!.find(v => v.id === b.id)!; x.split = { ...x.split, seed: Math.floor(Math.random() * 1e6) }; return dungeon.applyBlock(dungeon.parseDungeon(m), b.id).spec; }))} title="split it into rooms again (a new layout)">Split again</button>
+              <button type="button" class="x" onclick={() => store.change(`remove ${b.id}`, m => { dungeon.removeBlock(m, b.id); })} title="remove the block and its rooms">×</button>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+
+      {#if spec.connections?.length}
+        <h3>Connections ({spec.connections.length})</h3>
+        <ul class="items">
+          {#each spec.connections as c, i (i)}
+            <li>
+              <span>{c.a} ↔ {c.b}</span>
+              <select class="door" value={c.kind ?? 'door'} onchange={e => attempt(() => store.change('connection', m => { const k = val(e) as dungeon.DoorKind | 'open'; if (k === 'door') delete m.connections![i].kind; else m.connections![i].kind = k; }))}>
+                {#each dungeon.DOOR_KINDS as k (k)}<option value={k}>{k}</option>{/each}<option value="open">open</option>
+              </select>
+              <button type="button" class="x" onclick={() => store.change('remove connection', m => { m.connections!.splice(i, 1); if (!m.connections!.length) delete m.connections; })} title="remove (the wall closes)">×</button>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+
       <h3>Labels and symbols</h3>
       <ul class="items">
         {#each spec.overlay.labels as l, i (i)}
-          <li><input type="text" value={l.text} onchange={e => attempt(() => store.change('label text', m => { m.overlay.labels[i].text = val(e); }))} /><span class="dim small">{l.kind}</span><button type="button" class="x" onclick={() => removeLabel(i)} title="remove">×</button></li>
+          <li><input type="text" value={l.text} onchange={e => attempt(() => store.change('label text', m => { m.overlay.labels[i].text = val(e); }))} /><input type="text" class="href" value={l.href ?? ''} placeholder="link" title="a link: https://…, a relative path or #anchor" onchange={e => attempt(() => store.change('label link', m => { const t = val(e).trim(); if (t) m.overlay.labels[i].href = t; else delete m.overlay.labels[i].href; }))} /><span class="dim small">{l.kind}</span><button type="button" class="x" onclick={() => removeLabel(i)} title="remove">×</button></li>
         {/each}
         {#each spec.overlay.symbols as s, i (i)}
           <li><span>{dungeon.SYMBOLS[s.kind]?.name ?? s.kind}</span><span class="dim small">{s.x}, {s.y}</span><button type="button" class="x" onclick={() => removeSymbol(i)} title="remove">×</button></li>
@@ -478,6 +620,13 @@
           <label class="inline">shape
             <select bind:value={store.roomShape}>{#each ['rect', 'circle', 'octagon', 'cave'] as s (s)}<option value={s}>{s}</option>{/each}</select>
           </label>
+          <label class="inline" title="split the shape into rooms that share walls, with doors between them">split into rooms
+            <select bind:value={store.blockSplit}><option value="none">no (one room)</option>{#each dungeon.SPLIT_MODES.filter(m => m !== 'cuts') as m (m)}<option value={m}>{m}</option>{/each}</select>
+          </label>
+          {#if store.blockSplit !== 'none'}
+            <label class="inline">room size <input type="number" min="1" max="20" bind:value={store.blockMin} /></label>
+            <label class="inline"><input type="checkbox" bind:checked={store.blockHex} /> hexagon</label>
+          {/if}
         {/if}
         {#if store.tool === 'link'}
           <label class="inline">doors
@@ -486,6 +635,16 @@
             {/each}
           </label>
           <label class="inline">width <input type="number" min="1" max="6" bind:value={store.linkWidth} /></label>
+          <label class="inline" title="where the corridor meets a room">meets rooms at
+            <select bind:value={store.linkAttach}><option value="centre">the centre</option><option value="wall">the wall clicked</option></select>
+          </label>
+          <label class="inline">route
+            <select bind:value={store.linkRoute}>{#each dungeon.ROUTES as r (r)}<option value={r}>{r}</option>{/each}</select>
+          </label>
+          <label class="inline"><input type="checkbox" bind:checked={store.linkCurve} /> curved</label>
+          <label class="inline">walls
+            <select bind:value={store.linkStyle}><option value="built">built</option><option value="natural">natural</option></select>
+          </label>
           {#if linkFrom}<button type="button" onclick={cancelLine}>Cancel</button>{/if}
         {/if}
         {#if store.tool === 'poly' && pending.length}
@@ -522,7 +681,7 @@
           <button type="button" onclick={() => exportImage('png')}>PNG</button>
           <button type="button" onclick={() => exportImage('svg')}>SVG</button>
         </span>
-        <span class="dim small status">{rendering ? 'rendering…' : info ? `${spec.cols * store.exportPpu}×${spec.rows * store.exportPpu} px · ${info.rooms} rooms · ${info.corridors} corridors · ${info.doors} doors` : ''}</span>
+        <span class="dim small status">{rendering ? 'rendering…' : info ? `${Math.round(spec.cols * store.exportPpu + (info.band.right * store.exportPpu) / PREVIEW_PPU)}×${Math.round(spec.rows * store.exportPpu + (info.band.bottom * store.exportPpu) / PREVIEW_PPU)} px · ${info.rooms} rooms · ${info.corridors} corridors · ${info.doors} doors` : ''}</span>
       </div>
     </section>
   </div>
@@ -705,6 +864,10 @@
     outline: 1px solid var(--accent, #6aa0ff);
     border-radius: 4px;
   }
+  .items li > input.href { flex: 0 1 6rem; min-width: 3rem; }
+  .problems li { font-size: 0.8rem; }
+  .problems li.error b { color: var(--danger, #c0392b); }
+  .problems li.warning b { color: var(--warn, #b7791f); }
   button.link {
     flex: 1;
     min-width: 0;

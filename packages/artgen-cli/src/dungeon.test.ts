@@ -46,6 +46,12 @@ describe('artgen dungeon', () => {
     expect(spec('crypt').grid).toEqual({ show: true, size: 2, sub: false, clip: 'all' });
     await run('dungeon', 'grid', 'crypt', '10+5', ...R);
     expect(spec('crypt').grid).toMatchObject({ size: 2, sub: true });
+    await run('dungeon', 'grid', 'crypt', '--size', '15', '--sub', 'off', ...R);
+    expect(spec('crypt').grid).toMatchObject({ show: true, size: 3, sub: false });
+    await expect(run('dungeon', 'grid', 'crypt', '--size', '7', ...R)).rejects.toThrow(/whole number of squares/);
+    await run('dungeon', 'grid', 'crypt', '--size', '10', '--sub', 'on', ...R);
+    expect(spec('crypt').grid).toMatchObject({ show: true, size: 2, sub: true });
+    expect((await run('dungeon', 'show', 'crypt', ...R)).out).toContain('grid: size 10 ft, sub-grid 5 ft');
     await run('dungeon', 'style', 'crypt', '--hatch', 'full', '--compass', 'on', ...R);
     await run('dungeon', 'label', 'crypt', 'Bone pit', '--at', '12,12', '--kind', 'note', ...R);
     await run('dungeon', 'symbol', 'crypt', 'stairs', '--at', 'L12', '--angle', '90', ...R);
@@ -77,6 +83,135 @@ describe('artgen dungeon', () => {
     expect(svg).not.toContain('<g id="grid"'); expect(svg).not.toContain('<g id="numbers"'); expect(svg).toContain('<g id="floors"');
     await expect(run('dungeon', 'render', 'lair', '--layers', 'contours=off', ...R)).rejects.toThrow(/unknown layer/);
   }, 60_000);
+
+  test('links: --href on labels and rooms; the SVG links them and the PNG still renders', async () => {
+    await run('dungeon', 'new', 'linked', '--empty', '--size', '20x12', ...R);
+    await run('dungeon', 'room', 'linked', 'add', 'rect', '--at', '2,2', '--size', '6x4', '--label', 'Hall', '--href', 'level-2.svg#M.1', ...R);
+    await run('dungeon', 'label', 'linked', 'To the caves', '--at', '14,8', '--kind', 'note', '--href', 'https://example.com/caves', ...R);
+    await expect(run('dungeon', 'label', 'linked', 'Bad', '--at', '1,1', '--href', 'javascript:alert(1)', ...R)).rejects.toThrow(/http\(s\) links only/);
+    expect(spec('linked')).toMatchObject({ rooms: [{ href: 'level-2.svg#M.1' }], overlay: { labels: [{ href: 'https://example.com/caves' }] } });
+    expect((await run('dungeon', 'show', 'linked', ...R)).out).toContain('"Hall" → level-2.svg#M.1');
+    await run('dungeon', 'render', 'linked', '--ppu', '20', ...R);
+    const dir = join(root, 'art', 'dungeons', 'linked', 'out');
+    expect(readFileSync(join(dir, 'linked.svg'), 'utf8')).toContain('<a href="https://example.com/caves">');
+    expect(readFileSync(join(dir, 'linked.png')).subarray(1, 4).toString()).toBe('PNG');
+    await run('dungeon', 'room', 'linked', 'set', 'r1', '--href', 'none', ...R);
+    expect(spec('linked').rooms[0].href).toBeUndefined();
+  }, 60_000);
+
+  test('furniture beside the map: the render grows by the band; --fit keeps map and band on the page', async () => {
+    await run('dungeon', 'new', 'banded', '--seed', '5', '--rooms', '6', '--title', 'Banded', ...R);
+    await run('dungeon', 'style', 'banded', '--furniture', 'outside', '--compass', 'on', ...R);
+    expect(spec('banded').furniture).toEqual({ place: 'outside' });
+    const r = JSON.parse((await run('dungeon', 'render', 'banded', '--ppu', '10', '--format', 'svg', '--json', ...R)).out);
+    expect(r.size[0]).toBe(400);
+    expect(r.size[1]).toBeGreaterThan(300);
+    const fit = JSON.parse((await run('dungeon', 'render', 'banded', '--fit', '120x100mm', '--format', 'svg', '--json', ...R)).out);
+    expect(fit.svg.width).toBeLessThanOrEqual(120);
+    expect(fit.svg.height).toBeLessThanOrEqual(100);
+    expect(Math.max(fit.svg.width / 120, fit.svg.height / 100)).toBeGreaterThan(0.99);
+    await run('dungeon', 'style', 'banded', '--furniture-side', 'right', ...R);
+    expect(spec('banded').furniture).toEqual({ place: 'outside', side: 'right' });
+    await expect(run('dungeon', 'style', 'banded', '--furniture', 'beside', ...R)).rejects.toThrow(/--furniture: over, outside, auto/);
+    expect((await run('dungeon', 'grid', 'banded', '--sub', 'off', ...R)).out).toMatch(/^grid: size 10 ft, sub-grid off/);
+    await run('dungeon', 'style', 'banded', '--shared-walls', 'on', ...R);
+    expect(spec('banded').style.sharedWalls).toBe(true);
+    expect((await run('dungeon', 'show', 'banded', ...R)).out).toMatch(/shared walls on;[^]*furniture: outside, band right/);
+    await run('dungeon', 'style', 'banded', '--shared-walls', 'auto', ...R);
+    expect(spec('banded').style.sharedWalls).toBeUndefined();
+    await run('dungeon', 'style', 'banded', '--furniture', 'over', ...R);
+    expect(spec('banded').furniture).toEqual({ place: 'over', side: 'right' });
+  }, 60_000);
+
+  test('corridors: by a wall, joining another, around rooms, curved and natural; removing one takes its junctions', async () => {
+    await run('dungeon', 'new', 'ways', '--empty', '--size', '40x28', ...R);
+    for (const [at, size] of [['3,3', '7x5'], ['28,3', '8x6'], ['15,3', '6x6'], ['3,17', '7x6']]) await run('dungeon', 'room', 'ways', 'add', 'rect', '--at', at, '--size', size, ...R);
+    await run('dungeon', 'link', 'ways', 'r1', 'r4', '--from-side', 's', '--to-side', 'n', '--id', 'main', ...R);
+    await run('dungeon', 'link', 'ways', 'corridor:main', 'r3', '--to-side', 's', ...R);
+    const around = await run('dungeon', 'link', 'ways', 'r1', 'r2', '--route', 'around', ...R);
+    expect(around.out).not.toMatch(/warning/);
+    await run('dungeon', 'link', 'ways', 'r4', 'r2', '--from-side', 'e', '--to-side', 's', '--style', 'natural', '--curve', 'smooth', '--width', '2', ...R);
+    expect(spec('ways').corridors).toEqual([
+      { id: 'main', from: { room: 'r1', side: 's' }, to: { room: 'r4', side: 'n' } },
+      { from: { corridor: 'main' }, to: { room: 'r3', side: 's' } },
+      { from: { room: 'r1' }, to: { room: 'r2' }, route: 'around' },
+      { from: { room: 'r4', side: 'e' }, to: { room: 'r2', side: 's' }, width: 2, curve: 'smooth', style: 'natural' },
+    ]);
+    expect((await run('dungeon', 'show', 'ways', ...R)).out).toMatch(/0\. \[main\] r1\.s → r4\.n[^]*1\. corridor main → r3\.s[^]*3\. r4\.e → r2\.s, width 2, curved, natural/);
+    await expect(run('dungeon', 'link', 'ways', 'corridor:nope', 'r3', ...R)).rejects.toThrow(/no corridor with id nope/);
+    await expect(run('dungeon', 'link', 'ways', 'r1', '5,5', '--to-side', 'n', ...R)).rejects.toThrow(/not a room/);
+    await run('dungeon', 'unlink', 'ways', '0', ...R);
+    expect(spec('ways').corridors).toHaveLength(2);   // main, and the corridor that joined it
+    await run('dungeon', 'render', 'ways', '--ppu', '10', '--format', 'svg', ...R);
+  }, 60_000);
+
+  test('exits: a note where a corridor leaves the map; one-room exits take a note too', async () => {
+    await run('dungeon', 'new', 'gate', '--room', 'rect', '--room-size', '6x4', '--exits', 'n:door:Up to the keep,e', ...R);
+    expect(spec('gate').corridors[0].to).toMatchObject({ exit: { text: 'Up to the keep' } });
+    expect(spec('gate').corridors[1].to.exit).toBeUndefined();
+    await run('dungeon', 'link', 'gate', 'r1', '20,5', '--exit', 'To the river caves', '--exit-href', 'caves.svg', '--fade', '2', ...R);
+    expect(spec('gate').corridors[2].to).toEqual({ at: [20, 5], exit: { text: 'To the river caves', href: 'caves.svg', fade: 2 } });
+    await expect(run('dungeon', 'link', 'gate', 'r1', 'r1', '--exit', 'x', ...R)).rejects.toThrow(/--exit: the second end must be a point/);
+    const facts = JSON.parse((await run('dungeon', 'facts', 'gate', '--json', ...R)).out);
+    expect(facts.exits.map((x: { text?: string }) => x.text ?? null)).toEqual(['Up to the keep', null, 'To the river caves']);
+    await run('dungeon', 'render', 'gate', '--ppu', '20', '--format', 'svg', ...R);
+    expect(readFileSync(join(root, 'art', 'dungeons', 'gate', 'out', 'gate.svg'), 'utf8')).toContain('<g id="exits">');
+  }, 60_000);
+
+  test('connect: a door or opening in the wall touching rooms share; disconnect closes it', async () => {
+    await run('dungeon', 'new', 'block', '--empty', '--size', '20x12', ...R);
+    await run('dungeon', 'room', 'block', 'add', 'rect', '--at', '2,2', '--size', '6x4', ...R);
+    await run('dungeon', 'room', 'block', 'add', 'rect', '--at', '8,2', '--size', '5x4', ...R);
+    await run('dungeon', 'room', 'block', 'add', 'rect', '--at', '2,8', '--size', '3x3', ...R);
+    await run('dungeon', 'connect', 'block', 'r1', 'r2', ...R);
+    const far = await run('dungeon', 'connect', 'block', 'r2', 'r3', '--kind', 'open', ...R);
+    expect(far.out).toMatch(/warning: connections\[1\]: r2 and r3 share no wall/);
+    await expect(run('dungeon', 'connect', 'block', 'r1', 'r2', '--kind', 'gate', ...R)).rejects.toThrow(/--kind: open or one of/);
+    expect(spec('block').connections).toEqual([{ a: 'r1', b: 'r2' }, { a: 'r2', b: 'r3', kind: 'open' }]);
+    expect((await run('dungeon', 'show', 'block', ...R)).out).toContain('0. r1 ↔ r2: door');
+    expect(JSON.parse((await run('dungeon', 'facts', 'block', '--json', ...R)).out).rooms[0].connections).toEqual([{ to: 'r2', kind: 'door', at: [8, 4.5], connection: 0 }]);
+    await run('dungeon', 'disconnect', 'block', '1', ...R);
+    await run('dungeon', 'room', 'block', 'rm', 'r2', ...R);
+    expect(spec('block').connections).toEqual([]);
+  });
+
+  test('blocks: a hexagon and a wing split into rooms; split again; link to a block; remove it', async () => {
+    await run('dungeon', 'new', 'keep', '--empty', '--size', '44x22', ...R);
+    const hex = await run('dungeon', 'block', 'keep', 'add', 'hex', '--at', '2,2', '--size', '18x16', '--split', 'grid', '--min', '4', ...R);
+    expect(hex.out).toMatch(/block b1: \d+ rooms, \d+ connections/);
+    await run('dungeon', 'block', 'keep', 'add', 'rect', '--at', '24,2', '--size', '18x12', '--min', '3', '--seed', '7', '--block-id', 'wing', ...R);
+    const rooms = () => spec('keep').rooms as { id: string; origin?: string }[];
+    expect(rooms().filter(r => r.origin === 'block:wing').length).toBeGreaterThan(3);
+    expect(spec('keep').blocks.map((b: { id: string; shape: string }) => [b.id, b.shape])).toEqual([['b1', 'poly'], ['wing', 'rect']]);
+    const link = await run('dungeon', 'link', 'keep', 'b1', 'wing', '--route', 'around', ...R);
+    expect(link.out).toMatch(/corridor 0: b1-\d+ → wing-\d+/);
+    expect((await run('dungeon', 'check', 'keep', '--json', ...R)).code).toBe(0);
+    const layoutOf = () => JSON.stringify(spec('keep').rooms.filter((r: { origin?: string }) => r.origin === 'block:wing'));
+    const before = layoutOf();
+    await run('dungeon', 'block', 'keep', 'split', 'wing', '--seed', '8', ...R);
+    expect(layoutOf()).not.toBe(before);
+    expect(spec('keep').blocks[1].split).toEqual({ mode: 'bsp', min: 3, seed: 8 });
+    expect((await run('dungeon', 'show', 'keep', ...R)).out).toMatch(/wing: rect 18×12 at 24,2, split bsp \(min 3\), seed 8: \d+ rooms/);
+    await run('dungeon', 'render', 'keep', '--ppu', '10', '--format', 'svg', ...R);
+    await run('dungeon', 'block', 'keep', 'rm', 'wing', ...R);
+    expect(rooms().every(r => r.origin === 'block:b1')).toBe(true);
+    expect(spec('keep').corridors).toEqual([]);
+    await expect(run('dungeon', 'block', 'keep', 'add', 'cave', '--at', '1,1', '--size', '4x4', ...R)).rejects.toThrow(/add rect\|octagon/);
+  }, 60_000);
+
+  test('gen --layout dense|blocks; back to scatter', async () => {
+    await run('dungeon', 'new', 'warren', '--seed', '4', '--rooms', '14', '--size', '40x30', ...R);
+    await run('dungeon', 'gen', 'warren', '--layout', 'dense', '--density', '0.4', ...R);
+    expect(spec('warren')).toMatchObject({ gen: { layout: 'dense', density: 0.4 }, connections: expect.any(Array) });
+    expect((await run('dungeon', 'show', 'warren', ...R)).out).toContain('layout dense (density 0.4)');
+    await run('dungeon', 'gen', 'warren', '--layout', 'blocks', ...R);
+    expect(spec('warren').blocks.length).toBeGreaterThan(1);
+    expect((await run('dungeon', 'check', 'warren', ...R)).code).toBe(0);
+    await run('dungeon', 'gen', 'warren', '--layout', 'scatter', ...R);
+    expect(spec('warren').gen.layout).toBeUndefined();
+    expect(spec('warren').blocks).toBeUndefined();
+    await expect(run('dungeon', 'gen', 'warren', '--layout', 'maze', ...R)).rejects.toThrow(/--layout: scatter, dense, blocks/);
+  });
 
   test('dungeon ids are names, never paths', async () => {
     await expect(run('dungeon', 'new', '../escape', ...R)).rejects.toThrow(/letters, digits/);

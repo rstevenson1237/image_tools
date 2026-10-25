@@ -214,6 +214,73 @@ Reads: **map format 1**, **dungeon format 1**. `artgen formats --json` prints `{
 - Cases: `ravine` (marks, road and requirements `origin: tables`, two hand `elevate`s that a sync keeps after them), `warren` (every entry
   `tables`, a hand `web` in F.3, F.4's `x` moved by hand) and `shrine-crypts` (a hand label that a resized M.8 covers).
 
+**Dungeon maps: denser layouts, links, exits and checks** (every addition is an optional field, so dungeon format 1 and its version are unchanged)
+- **Grid as size, dimension and sub-grid.** `artgen dungeon grid <id> --size 10 [--unit ft] [--sub on|off] [--show on|off]`
+  (the shorthands `10`, `5`, `10+5` and `none` still work); MCP `dungeon_update` takes `grid_size`, `grid_unit`, `sub_grid`
+  and `show_grid`; the Dungeon Map tool has three controls in place of the grid menu. The file still keeps `grid.size` in
+  squares: a size must be a whole number of squares, and the sub-grid (a line at every square) needs a grid of two or more.
+- **Drawing checks.** `artgen dungeon check` goes on past the file's own errors to what draws wrongly: a room outline that
+  crosses itself or has no floor (errors), and rooms laid over each other, a room off the sheet, a corridor that runs
+  through a room it does not join or across another corridor with no junction, a corridor that never leaves its room (so
+  its door is not drawn), an exit that ends inside a room, a repeated bend or corner, a label or symbol off the sheet, a
+  symbol under a room number and labels on labels (warnings). `--json` adds `warnings: [{path, message}]`; only errors
+  make it exit 1. The commands that change rooms, corridors and marks print the first five warnings. MCP `dungeon_check`;
+  the Dungeon Map tool lists them under **Problems**, and a click shows the room or place.
+- **Links.** A label and a room may carry `href`: an `http(s)` address, a path relative to the map (`level-2.svg#M.14`)
+  or an `#anchor`; any other scheme (`javascript:`, `data:`, `file:`) is refused. The SVG wraps the label, or the room's
+  number and name, in a link; the PNG draws them as before. `dungeon label … --href URL`, `room add|set … --href URL`
+  (`--href none` removes it); MCP `add_labels[].href`, `add_room`/`set_room` `href`; link fields in the Dungeon Map tool.
+- **Furniture beside the map.** `furniture: {place: over|outside|auto, side?: bottom|right}` sets where the title, scale
+  bar, compass and legend go: `over` the map in its corners (the default, as before), `outside` in a band below or right
+  of the map, or `auto`: in the band only when its corner would cover a room, corridor, wall, badge or mark. The band
+  wraps at the map's edge, the map gets a thin frame, and the render grows by the band (`render --json` reports the
+  whole size; `--fit` fits map and band on the page). `dungeon style … --furniture outside [--furniture-side right]`;
+  MCP `dungeon_update` `furniture`; a menu in the Dungeon Map tool.
+- **Corridors.** A room end may name the wall it leaves by (`{room, side: n|e|s|w, offset?}`), so several corridors leave
+  one room by different walls, each square to its wall (a Z or an L between two walls). An end may join another
+  corridor (`{corridor: id, near?}`): a T or a cross on its centre line; corridors take an optional `id` for this, a
+  ring of joins is refused, and `facts` reports `joins`. `route: around` runs along the grid round the rooms in the way.
+  `curve: smooth` draws a curve through the ends and bends. `style: natural` draws a passage with rough, uneven walls
+  (seeded by `seed`, else its id). `dungeon link … --from-side e --to-side n --route around --curve smooth --style
+  natural --id main`, `link <id> corridor:main r3`; the same fields on MCP `link`; the Corridor tool meets rooms at the
+  centre or the wall clicked, joins a corridor when one is clicked, and sets route, curve and walls. Removing a room or
+  corridor removes the corridors that join it. Rooms and passages that overlap now always fill as one floor, whichever
+  way their outlines run (an odd-shaped room drawn anticlockwise over another used to leave a hole).
+- **Exits off the map.** A point end may carry `exit: {text, href?, fade?}`: the corridor fades to white over its last
+  `fade` cells (default 3) before the sheet's edge (or before the point, when it lies on the sheet), and a white box with
+  a black border at the edge holds the note, wrapped to stay narrow, linked when `href` is set. A new `exits` layer
+  (`--layers exits=off`). `dungeon link <id> r4 41,12 --exit "To the river caves" [--exit-href …] [--fade 2]`; one-room
+  exits take a note after the door (`--exits n:door:Up to the keep`); MCP `link` `exit`, `dungeon_new` exits `text`;
+  `facts` reports each exit's `text` and `href`; an exit-note field per corridor in the Dungeon Map tool.
+- **Rooms that share a wall.** With `style.sharedWalls`, floor rooms that touch keep the wall between them (walls are
+  drawn by stroking every floor and filling every floor over it, so it vanished). It is on by default only in a file with
+  `connections` or `blocks`, so a file without them renders byte for byte as before, its touching rooms one floor;
+  `dungeon style --shared-walls on|off|auto`. New optional `connections: [{a, b, at?, kind?,
+  width?}]`: a door (any door kind) or an `open` gap in the wall two rooms share, no corridor needed; `at` picks the
+  place on the wall (default: the middle of its longest stretch, on the grid). `facts` lists each room's `connections`
+  and counts them as reaching it; `check` warns about a connection between rooms that share no wall, or one wider than
+  the wall. `dungeon connect <id> r3 r4 [--kind secret|open] [--at x,y] [--width 2]`, `disconnect <id> <i>`; MCP `connect`
+  and `disconnect` ops; a **Connect** tool (click the shared wall; click again for the next kind) and a connections list
+  in the Dungeon Map tool. Removing a room removes its connections.
+- **Blocks.** New optional `blocks: [{id, shape: rect|octagon|circle|poly, x, y, w, h, points?, split: {mode:
+  bsp|rows|cols|grid|cuts, min?, cuts?, seed?}, doors?}]`: one shape split into rooms that share walls, joined by
+  connections (a tree so every room is reached, plus a share `doors` of the rest; some secret, some open). `bsp` cuts
+  at random whole cells down to rooms about `min` across; `rows`, `cols` and `grid` cut evenly; `cuts` at the lines
+  given. A non-rectangular block (a hexagon, a circle) is cut to its outline, its small corners joined to a neighbour.
+  The rooms (`<block>-1`, `<block>-2`, …) and connections are written with `origin: "block:<id>"`: ordinary rooms to
+  move, rename or key; splitting again replaces them where they stood, keeps every other room in its place (so room
+  numbers hold), and reports the corridors it drops. `dungeon block <id> add hex --at 2,2 --size 18x16 --split grid
+  --min 4`, `block <id> split <bid> [--seed n]`, `block <id> rm <bid>`; a block id in `link` stands for its room nearest
+  the other end. MCP `add_block`, `split_block`, `remove_block`; the Room tool's **split into rooms** option and a
+  Blocks list (split again, remove) in the Dungeon Map tool.
+- **Dense and block layouts from the generator.** `gen.layout`: `scatter` (the default, as before), `dense` (rooms
+  packed side by side, each set against one already placed where it shares the most wall, joined through their shared
+  walls by doors and openings; `gen.density` is the share of the sheet to fill, default 0.5) or `blocks` (a few blocks,
+  rectangles or with `gen.round` an octagon or hexagon, each split into rooms, joined wall to wall by corridors that go
+  round the rest). `gen.loops` sets the extra connections, `gen.doors` the share that are doors rather than openings.
+  A scatter generation clears connections and blocks. `dungeon gen <id> --layout dense --density 0.6`; MCP `gen.layout`
+  and `gen.density`; a layout menu in the Dungeon Map tool's generator.
+
 **Limits**
 - A map may be up to 200 squares a side (was 120), so a 1-mile gorge fits at 10 yards a square. Raising a limit
   extends map format 1: files that were valid stay valid.

@@ -7,7 +7,7 @@ import { dungeon } from 'artgen-core';
 import type { FileStat } from '../../core/project/files';
 import { commandId, createHistory } from '../../core/stores/history.svelte';
 
-export type DungeonTool = 'pan' | 'select' | 'room' | 'poly' | 'link' | 'door' | 'label' | 'symbol' | 'erase';
+export type DungeonTool = 'pan' | 'select' | 'room' | 'poly' | 'link' | 'connect' | 'door' | 'label' | 'symbol' | 'erase';
 export type Side = 'n' | 'e' | 's' | 'w';
 
 const randomSeed = () => Math.floor(Math.random() * 1_000_000);
@@ -22,8 +22,17 @@ export class DungeonMapStore {
   /** The selected room's id. */
   selected = $state<string | null>(null);
   roomShape = $state<Exclude<dungeon.RoomShape, 'poly'>>('rect');
+  /** The Room tool makes a block (split into rooms) instead of one room: its split mode and room size. */
+  blockSplit = $state<dungeon.SplitMode | 'none'>('none');
+  blockMin = $state(3);
+  blockHex = $state(false);
   linkDoors = $state<[dungeon.DoorKind | 'none', dungeon.DoorKind | 'none']>(['door', 'none']);
   linkWidth = $state(1);
+  /** Where a new corridor meets a room: its centre, or the wall nearest the click. */
+  linkAttach = $state<'centre' | 'wall'>('centre');
+  linkRoute = $state<dungeon.Route>('auto');
+  linkCurve = $state(false);
+  linkStyle = $state<dungeon.CorridorStyle>('built');
   symbol = $state('stairs');
   symbolAngle = $state(0);
   labelKind = $state<dungeon.LabelKind>('name');
@@ -57,7 +66,7 @@ export class DungeonMapStore {
 
   /** A fresh dungeon keeping the current id, size and settings: generated, empty, or the single room. */
   fresh(kind: 'generated' | 'empty' | 'room'): void {
-    const cur = $state.snapshot(this.spec) as dungeon.DungeonSpec;
+    const { connections: _c, blocks: _b, ...cur } = $state.snapshot(this.spec) as dungeon.DungeonSpec;
     let next = dungeon.newDungeon(cur.id, { ...cur, seed: randomSeed(), rooms: [], corridors: [], overlay: { labels: [], symbols: [] } });
     if (kind === 'generated') next = dungeon.generateDungeon(next);
     if (kind === 'room') {

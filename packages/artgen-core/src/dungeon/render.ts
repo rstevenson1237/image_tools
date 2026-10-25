@@ -16,10 +16,13 @@ import { PAGE_PT, PAGE_SYMBOL_MM, pageUnit, placeLabels, pointsToPx, textBox, ty
 import { layoutDungeon, type DoorGeom, type DungeonLayout } from './layout.ts';
 import type { DungeonLabel, DungeonSpec, Room } from './spec.ts';
 import { SYMBOLS } from './symbols.ts';
+import { layoutExits } from './exits.ts';
+import { area2 } from './geom.ts';
+import { coversContent, placeFurniture, type FurnitureItem, type FurnitureLayout } from './furniture.ts';
 import { underlaySvg } from './underlay.ts';
 import { layoutWalls } from './walls.ts';
 
-export const DUNGEON_LAYERS = ['underlay', 'rock', 'floors', 'buildings', 'enclosure', 'grid', 'doors', 'symbols', 'cellars', 'numbers', 'labels', 'legend', 'title', 'scale', 'compass'] as const;
+export const DUNGEON_LAYERS = ['underlay', 'rock', 'floors', 'buildings', 'enclosure', 'grid', 'exits', 'doors', 'symbols', 'cellars', 'numbers', 'labels', 'legend', 'title', 'scale', 'compass'] as const;
 export type DungeonLayer = (typeof DUNGEON_LAYERS)[number];
 
 const INK = '#000000', PAPER = '#ffffff', TH = { ink: INK, paper: PAPER, halo: PAPER };
@@ -127,8 +130,8 @@ function doorSvg(dr: DoorGeom, k: number, t: number, u: number): string {
     const n = Math.max(3, Math.round(dr.width * 4));
     for (let i = 0; i < n; i++) g += `<circle cy="${n1(-hw + (W * (i + 0.5)) / n)}" r="${n1(Math.max(1.2, 0.06 * k))}" fill="${INK}"/>`;
   } else if (dr.kind === 'arch') g = rect(-d / 2, -hw - d * 0.25, d, d * 0.6, INK) + rect(-d / 2, hw - d * 0.35, d, d * 0.6, INK);
-  // stand on the wall: the outline is the floor's edge and the wall is t thick outside it
-  const ox = dr.x * k + Math.cos((dr.angle * Math.PI) / 180) * t / 2, oy = dr.y * k + Math.sin((dr.angle * Math.PI) / 180) * t / 2;
+  // stand on the wall: the outline is the floor's edge and the wall is t thick outside it (a shared wall is centred on the line)
+  const off = dr.inner ? 0 : t / 2, ox = dr.x * k + Math.cos((dr.angle * Math.PI) / 180) * off, oy = dr.y * k + Math.sin((dr.angle * Math.PI) / 180) * off;
   let out = `<g transform="translate(${n1(ox)} ${n1(oy)}) rotate(${n1(dr.angle)})">${g}</g>`;
   if (dr.kind === 'secret') {
     const fs = Math.max(10, 0.5 * k);
@@ -137,6 +140,28 @@ function doorSvg(dr: DoorGeom, k: number, t: number, u: number): string {
   return out;
 }
 
+/** Text broken into lines of at most `max` characters, at spaces (a longer word keeps a line of its own). */
+export function wrapText(text: string, max: number): string[] {
+  const lines: string[] = [];
+  for (const word of text.split(/\s+/).filter(Boolean)) {
+    const last = lines[lines.length - 1];
+    if (last !== undefined && last.length + 1 + word.length <= max) lines[lines.length - 1] = `${last} ${word}`;
+    else lines.push(word);
+  }
+  return lines.length ? lines : [''];
+}
+
+/** A ring turned clockwise on screen (the way `roomOutline` draws a rectangle). */
+function clockwise(p: number[]): number[] {
+  if (area2(p) >= 0) return p;
+  const out: number[] = [];
+  for (let i = p.length - 2; i >= 0; i -= 2) out.push(p[i], p[i + 1]);
+  return out;
+}
+
+/** Drawing wrapped in a link when there is one (the PNG ignores it; an SVG viewer follows it). */
+export const linked = (href: string | undefined, svg: string): string => (href ? `<a href="${esc(href)}">${svg}</a>` : svg);
+
 /** A round number of cells for the scale bar, about a fifth of the map wide. */
 function scaleCells(width: number): number {
   const target = width / 5;
@@ -144,12 +169,73 @@ function scaleCells(width: number): number {
   return Math.max(1, Math.round(target));
 }
 
+/** The title, scale bar, compass and legend as furniture items, and where each goes (see `furniture.ts`). */
+export function dungeonFurniture(spec: DungeonSpec, o: RenderDungeonOptions = {}, l: DungeonLayout = o.layout ?? layoutDungeon(spec), on = dungeonLayersFor(spec, o.layers)): FurnitureLayout {
+  const k = o.ppu ?? 40, u = o.pageScale ? pageUnit(o.pageScale) : k / 40, fr = frameOf(o.crop, spec.cols, spec.rows, k), pad = 12 * u;
+  const box = (x: number, y: number, w: number, h: number) => `<rect x="${n1(x)}" y="${n1(y)}" width="${n1(w)}" height="${n1(h)}" rx="${n1(4 * u)}" fill="${PAPER}" stroke="${INK}" stroke-width="${n1(u)}"/>`;
+  const items: FurnitureItem[] = [];
+
+  if (on.legend) {
+    const kinds = [...new Set(spec.overlay.symbols.map(s => s.kind))];
+    if (kinds.length) {
+      const rh = 22 * u, fs = 12 * u, w = 190 * u, h = kinds.length * rh + 12 * u;
+      items.push({
+        id: 'legend', rank: 2, w, h, over: { x: fr.r - w - pad, y: fr.b - h - pad },
+        draw: (x, y) => {
+          let g = box(x, y, w, h);
+          kinds.forEach((kind, i) => {
+            const sy = y + 6 * u + i * rh + rh / 2, sym = SYMBOLS[kind] ?? SYMBOLS.trap;
+            g += `<g transform="translate(${n1(x + 18 * u)} ${n1(sy)}) scale(${((18 * u) / 20).toFixed(3)})">${sym.svg.replaceAll('{ink}', INK).replaceAll('{fill}', PAPER)}</g>`;
+            g += `<text x="${n1(x + 36 * u)}" y="${n1(sy + fs * 0.35)}" font-size="${n1(fs)}" fill="${INK}">${esc(LEGEND_NAMES(kind))}</text>`;
+          });
+          return `<g id="legend">${g}</g>`;
+        },
+      });
+    }
+  }
+
+  if (on.scale) {
+    const n = scaleCells(fr.w / k), len = n * k, fs = 11 * u, seg = Math.min(4, n), w = len + 34 * u, h = 40 * u;
+    items.push({
+      id: 'scale', rank: 1, w, h, over: { x: fr.x + pad, y: fr.b - pad - 38 * u },
+      draw: (bx, by) => {
+        const x = bx + 8 * u, y = by + 18 * u;
+        let g = box(bx, by, w, h);
+        for (let i = 0; i < seg; i++) g += `<rect x="${n1(x + (len / seg) * i)}" y="${n1(y)}" width="${n1(len / seg)}" height="${n1(5 * u)}" fill="${i % 2 ? PAPER : INK}" stroke="${INK}" stroke-width="${n1(0.8 * u)}"/>`;
+        g += `<text x="${n1(x)}" y="${n1(y - 5 * u)}" font-size="${n1(fs)}" fill="${INK}" text-anchor="middle">0</text>`;
+        g += `<text x="${n1(x + len)}" y="${n1(y - 5 * u)}" font-size="${n1(fs)}" fill="${INK}" text-anchor="middle">${n * spec.scale.perCell} ${esc(spec.scale.unit)}</text>`;
+        g += `<text x="${n1(x + len / 2)}" y="${n1(y + 16 * u)}" font-size="${n1(fs * 0.85)}" fill="${INK}" text-anchor="middle">1 square = ${spec.scale.perCell} ${esc(spec.scale.unit)}</text>`;
+        return `<g id="scale">${g}</g>`;
+      },
+    });
+  }
+
+  // the compass: a disc 18u across with N above it, in a 40u × 52u box
+  if (on.compass) items.push({ id: 'compass', rank: 3, w: 40 * u, h: 52 * u, over: { x: fr.r - pad - 42 * u, y: fr.y + pad }, draw: (x, y) => compassSvg(x + 20 * u, y + 32 * u, 18 * u, u, TH) });
+
+  if (on.title && spec.title) {
+    const fs = 24 * u, w = Math.max(120 * u, spec.title.length * fs * 0.62 + 30 * u), h = fs * 1.7, title = spec.title;
+    items.push({ id: 'title', rank: 0, w, h, over: { x: fr.x + pad, y: fr.y + pad }, draw: (x, y) => `<g id="title">${box(x, y, w, h)}<text x="${n1(x + w / 2)}" y="${n1(y + fs * 1.18)}" font-size="${n1(fs)}" font-weight="700" letter-spacing="${n1(fs * 0.06)}" text-anchor="middle" fill="${INK}">${esc(title)}</text></g>` });
+  }
+
+  const f = spec.furniture ?? { place: 'over' as const };
+  return placeFurniture(items, fr, f.place, f.side ?? 'bottom', pad, b => coversContent(spec, l, k, b));
+}
+
+/** The render's size in pixels: the window (the whole sheet, or the crop) and the furniture band beside it. */
+export function dungeonRenderSize(spec: DungeonSpec, o: RenderDungeonOptions = {}): { width: number; height: number; band: { right: number; bottom: number } } {
+  const k = o.ppu ?? 40, fr = frameOf(o.crop, spec.cols, spec.rows, k), band = dungeonFurniture(spec, o).band;
+  return { width: fr.w + band.right, height: fr.h + band.bottom, band };
+}
+
 export function renderDungeonSvg(spec: DungeonSpec, o: RenderDungeonOptions = {}): string {
   const k = o.ppu ?? 40, W = spec.cols * k, H = spec.rows * k, u = o.pageScale ? pageUnit(o.pageScale) : k / 40, t = 0.14 * k * spec.style.wall, fr = frameOf(o.crop, spec.cols, spec.rows, k);
   const l = o.layout ?? layoutDungeon(spec), on = dungeonLayersFor(spec, o.layers);
   const parts: string[] = [`<rect width="${W}" height="${H}" fill="${PAPER}"/>`], defs: string[] = [];
-  const roomD = pathData(l.rooms.filter(g => fillOf(g.room) === 'floor').map(g => ({ pts: g.outline, closed: true })), k);
-  const corr = l.corridors.map(c => ({ d: pathData([{ pts: c.pts, closed: false }], k), w: c.width * k }));
+  // floor shapes: the floor rooms and natural passages (filled), and built corridors (stroked to their width)
+  // every ring turns the same way, so where floors overlap the non-zero fill adds them up instead of cutting a hole
+  const roomD = pathData([...l.rooms.filter(g => fillOf(g.room) === 'floor').map(g => ({ pts: clockwise(g.outline), closed: true })), ...l.corridors.flatMap(c => (c.outline ? [{ pts: clockwise(c.outline), closed: true }] : []))], k);
+  const corr = l.corridors.filter(c => !c.outline).map(c => ({ d: pathData([{ pts: c.pts, closed: false }], k), w: c.width * k }));
 
   if (on.underlay && spec.underlay && o.underlay) parts.push(underlaySvg(spec, o.underlay.map, k, o.underlay.field));
 
@@ -166,7 +252,9 @@ export function renderDungeonSvg(spec: DungeonSpec, o: RenderDungeonOptions = {}
   const floor = (fill: string, extra: number) =>
     (roomD ? `<path d="${roomD}" fill="${fill}"${extra ? ` stroke="${fill}" stroke-width="${n1(extra * 2)}" stroke-linejoin="miter"` : ''}/>` : '') +
     corr.map(c => `<path d="${c.d}" fill="none" stroke="${fill}" stroke-width="${n1(c.w + extra * 2)}" stroke-linecap="square" stroke-linejoin="miter"/>`).join('');
-  if (on.floors) parts.push(`<g id="floors"><g id="walls">${floor(INK, t)}</g><g id="floor">${floor(PAPER, 0)}</g></g>`);
+  // the walls rooms share: drawn over the floor, as thick as an outer wall shows, with the openings left out
+  const inner = l.partitions.length ? `<path id="partitions" d="${l.partitions.map(p => `M${n1(p[0] * k)} ${n1(p[1] * k)}L${n1(p[2] * k)} ${n1(p[3] * k)}`).join('')}" stroke="${INK}" stroke-width="${n1(t * 1.1)}" stroke-linecap="square" fill="none"/>` : '';
+  if (on.floors) parts.push(`<g id="floors"><g id="walls">${floor(INK, t)}</g><g id="floor">${floor(PAPER, 0)}</g>${inner}</g>`);
 
   const ofFill = (f: string) => l.rooms.filter(g => fillOf(g.room) === f);
   if (on.buildings && ofFill('building').length) {
@@ -217,6 +305,30 @@ export function renderDungeonSvg(spec: DungeonSpec, o: RenderDungeonOptions = {}
     parts.push(`<g id="grid" fill="none"${clip ? ' mask="url(#floor-mask)"' : ''}>${g}</g>`);
   }
 
+  // exits off the map: the corridor fades to white toward the edge, and a boxed note says where it leads
+  const exits = on.exits ? layoutExits(spec, l) : [];
+  if (exits.length) {
+    let g = '';
+    exits.forEach((x, i) => {
+      const len = Math.hypot(x.edge[0] - x.from[0], x.edge[1] - x.from[1]) * k, ext = 2 * k, wide = (x.width + 1) * k + 2 * (t + (spec.style.hatch === 'band' ? spec.style.band * k : 0));
+      if (len > 0.5) {
+        const angle = (Math.atan2(x.dir[1], x.dir[0]) * 180) / Math.PI, stop = (len / (len + ext)).toFixed(3);
+        defs.push(`<linearGradient id="exit-fade-${i}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${PAPER}" stop-opacity="0"/><stop offset="${stop}" stop-color="${PAPER}" stop-opacity="1"/></linearGradient>`);
+        g += `<g transform="translate(${n1(x.from[0] * k)} ${n1(x.from[1] * k)}) rotate(${n1(angle)})"><rect x="0" y="${n1(-wide / 2)}" width="${n1(len + ext)}" height="${n1(wide)}" fill="url(#exit-fade-${i})"/></g>`;
+      }
+      // a note across an east or west edge is kept narrow (it lies along the corridor), wrapped to more lines
+      const fs = o.pageScale ? pointsToPx(PAGE_PT.dungeon.note, o.pageScale) : 12 * u, lines = wrapText(x.exit.text, Math.abs(x.dir[0]) > Math.abs(x.dir[1]) ? 16 : 28);
+      const w = Math.max(...lines.map(t => t.length)) * fs * 0.56 + 14 * u, h = fs * (0.7 + 1.2 * lines.length);
+      // the note sits on the faded end, just inside the map, and never past the sheet's edge
+      const reach = Math.abs(x.dir[0]) * w / 2 + Math.abs(x.dir[1]) * h / 2 + 4 * u;
+      const cx = Math.min(fr.r - w / 2 - 2 * u, Math.max(fr.x + w / 2 + 2 * u, x.edge[0] * k - x.dir[0] * reach));
+      const cy = Math.min(fr.b - h / 2 - 2 * u, Math.max(fr.y + h / 2 + 2 * u, x.edge[1] * k - x.dir[1] * reach));
+      const text = lines.map((t, j) => `<text x="${n1(cx)}" y="${n1(cy + fs * (0.35 + 1.2 * (j - (lines.length - 1) / 2)))}" font-size="${n1(fs)}" text-anchor="middle" fill="${INK}">${esc(t)}</text>`).join('');
+      g += linked(x.exit.href, `<rect x="${n1(cx - w / 2)}" y="${n1(cy - h / 2)}" width="${n1(w)}" height="${n1(h)}" fill="${PAPER}" stroke="${INK}" stroke-width="${n1(1.2 * u)}"/>${text}`);
+    });
+    parts.push(`<g id="exits">${g}</g>`);
+  }
+
   if (on.doors && l.doors.length) parts.push(`<g id="doors">${l.doors.map(d => doorSvg(d, k, t, u)).join('')}</g>`);
 
   if (on.symbols && spec.overlay.symbols.length)
@@ -234,9 +346,9 @@ export function renderDungeonSvg(spec: DungeonSpec, o: RenderDungeonOptions = {}
       const x = g.cx * k, y = g.cy * k, badge = on.numbers && g.number !== undefined;
       if (badge) {
         const txt = String(g.number), fs = numberSize(u, o.pageScale), bh = fs * 1.45, bw = Math.max(bh, txt.length * fs * 0.62 + fs * 0.7);
-        nums += `<rect x="${n1(x - bw / 2)}" y="${n1(y - bh / 2)}" width="${n1(bw)}" height="${n1(bh)}" rx="${n1(bh * 0.32)}" fill="${INK}"/><text x="${n1(x)}" y="${n1(y + fs * 0.36)}" font-size="${n1(fs)}" font-weight="700" text-anchor="middle" fill="${PAPER}">${esc(txt)}</text>`;
+        nums += linked(g.room.href, `<rect x="${n1(x - bw / 2)}" y="${n1(y - bh / 2)}" width="${n1(bw)}" height="${n1(bh)}" rx="${n1(bh * 0.32)}" fill="${INK}"/><text x="${n1(x)}" y="${n1(y + fs * 0.36)}" font-size="${n1(fs)}" font-weight="700" text-anchor="middle" fill="${PAPER}">${esc(txt)}</text>`);
       }
-      if (on.labels && g.room.label) names += haloText(g.room.label, x, y + (badge ? numberSize(u, o.pageScale) * (31 / 19) : 5 * u), nameSize(u, o.pageScale), INK, TH, 'font-weight="700"');
+      if (on.labels && g.room.label) names += linked(g.room.href, haloText(g.room.label, x, y + (badge ? numberSize(u, o.pageScale) * (31 / 19) : 5 * u), nameSize(u, o.pageScale), INK, TH, 'font-weight="700"'));
     }
     if (nums) parts.push(`<g id="numbers">${nums}</g>`);
     if (names) parts.push(`<g id="room-labels">${names}</g>`);
@@ -248,44 +360,17 @@ export function renderDungeonSvg(spec: DungeonSpec, o: RenderDungeonOptions = {}
       const base = labelSize(lb, u, o.pageScale), lx = at[i].x / k, ly = at[i].y / k;
       const attrs = lb.kind === 'area' ? `font-weight="700" letter-spacing="${n1(base * 0.16)}"` : lb.kind === 'name' ? 'font-weight="700"' : 'font-style="italic"';
       const tx = haloText(lb.kind === 'area' ? lb.text.toUpperCase() : lb.text, lx * k, ly * k + base * 0.35, base, INK, TH, attrs);
-      return lb.angle ? `<g transform="rotate(${n1(lb.angle)} ${n1(lx * k)} ${n1(ly * k)})">${tx}</g>` : tx;
+      return linked(lb.href, lb.angle ? `<g transform="rotate(${n1(lb.angle)} ${n1(lx * k)} ${n1(ly * k)})">${tx}</g>` : tx);
     }).join('');
     parts.push(`<g id="labels">${g}</g>`);
   }
 
-  const box = (x: number, y: number, w: number, h: number) => `<rect x="${n1(x)}" y="${n1(y)}" width="${n1(w)}" height="${n1(h)}" rx="${n1(4 * u)}" fill="${PAPER}" stroke="${INK}" stroke-width="${n1(u)}"/>`;
-  const pad = 12 * u;
-
-  if (on.legend) {
-    const kinds = [...new Set(spec.overlay.symbols.map(s => s.kind))];
-    if (kinds.length) {
-      const rh = 22 * u, fs = 12 * u, bw = 190 * u, bh = kinds.length * rh + 12 * u, x = fr.r - bw - pad, y = fr.b - bh - pad;
-      let g = box(x, y, bw, bh);
-      kinds.forEach((kind, i) => {
-        const sy = y + 6 * u + i * rh + rh / 2, sym = SYMBOLS[kind] ?? SYMBOLS.trap;
-        g += `<g transform="translate(${n1(x + 18 * u)} ${n1(sy)}) scale(${((18 * u) / 20).toFixed(3)})">${sym.svg.replaceAll('{ink}', INK).replaceAll('{fill}', PAPER)}</g>`;
-        g += `<text x="${n1(x + 36 * u)}" y="${n1(sy + fs * 0.35)}" font-size="${n1(fs)}" fill="${INK}">${esc(LEGEND_NAMES(kind))}</text>`;
-      });
-      parts.push(`<g id="legend">${g}</g>`);
-    }
-  }
-
-  if (on.scale) {
-    const n = scaleCells(fr.w / k), len = n * k, fs = 11 * u, x = fr.x + pad + 8 * u, y = fr.b - pad - 20 * u, seg = Math.min(4, n);
-    let g = box(fr.x + pad, y - 18 * u, len + 34 * u, 40 * u);
-    for (let i = 0; i < seg; i++) g += `<rect x="${n1(x + (len / seg) * i)}" y="${n1(y)}" width="${n1(len / seg)}" height="${n1(5 * u)}" fill="${i % 2 ? PAPER : INK}" stroke="${INK}" stroke-width="${n1(0.8 * u)}"/>`;
-    g += `<text x="${n1(x)}" y="${n1(y - 5 * u)}" font-size="${n1(fs)}" fill="${INK}" text-anchor="middle">0</text>`;
-    g += `<text x="${n1(x + len)}" y="${n1(y - 5 * u)}" font-size="${n1(fs)}" fill="${INK}" text-anchor="middle">${n * spec.scale.perCell} ${esc(spec.scale.unit)}</text>`;
-    g += `<text x="${n1(x + len / 2)}" y="${n1(y + 16 * u)}" font-size="${n1(fs * 0.85)}" fill="${INK}" text-anchor="middle">1 square = ${spec.scale.perCell} ${esc(spec.scale.unit)}</text>`;
-    parts.push(`<g id="scale">${g}</g>`);
-  }
-
-  if (on.compass) parts.push(compassSvg(fr.r - pad - 22 * u, fr.y + pad + 32 * u, 18 * u, u, TH));
-
-  if (on.title && spec.title) {
-    const fs = 24 * u, w = Math.max(120 * u, spec.title.length * fs * 0.62 + 30 * u);
-    parts.push(`<g id="title">${box(fr.x + pad, fr.y + pad, w, fs * 1.7)}<text x="${n1(fr.x + pad + w / 2)}" y="${n1(fr.y + pad + fs * 1.18)}" font-size="${n1(fs)}" font-weight="700" letter-spacing="${n1(fs * 0.06)}" text-anchor="middle" fill="${INK}">${esc(spec.title)}</text></g>`);
-  }
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" ${sizeAttrs(fr, o.unit)} font-family="${FONT}"><defs>${defs.join('')}<clipPath id="map-clip"><rect x="${fr.x}" y="${fr.y}" width="${fr.w}" height="${fr.h}"/></clipPath></defs><g clip-path="url(#map-clip)">${parts.join('')}</g></svg>`;
+  const furn = dungeonFurniture(spec, o, l, on);
+  const drawn = furn.placed.map(p => p.item.draw(p.x, p.y)).join('');
+  const out = { ...fr, w: fr.w + furn.band.right, h: fr.h + furn.band.bottom, r: fr.r + furn.band.right, b: fr.b + furn.band.bottom };
+  // with a band, the map gets a frame and the band plain paper (no grid or hatching runs into it)
+  const band = furn.band.right || furn.band.bottom ? `<rect x="${n1(out.x)}" y="${n1(out.y)}" width="${n1(out.w)}" height="${n1(out.h)}" fill="${PAPER}"/>` : '';
+  const frame = band ? `<rect x="${n1(fr.x)}" y="${n1(fr.y)}" width="${n1(fr.w)}" height="${n1(fr.h)}" fill="none" stroke="${INK}" stroke-width="${n1(1.5 * u)}"/>` : '';
+  // with no band, the furniture is drawn on the map, inside its clip; with one, over the band and the frame
+  return `<svg xmlns="http://www.w3.org/2000/svg" ${sizeAttrs(out, o.unit)} font-family="${FONT}"><defs>${defs.join('')}<clipPath id="map-clip"><rect x="${fr.x}" y="${fr.y}" width="${fr.w}" height="${fr.h}"/></clipPath></defs>${band}<g clip-path="url(#map-clip)">${parts.join('')}${band ? '' : drawn}</g>${frame}${band ? drawn : ''}</svg>`;
 }

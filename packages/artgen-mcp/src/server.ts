@@ -16,8 +16,8 @@ import { isAbsolute, join, relative, resolve } from 'node:path';
 import { dungeon, encodePNG, map, MATERIALS, parseDirection, PRESET_NAMES, type Grid, type Size } from 'artgen-core';
 import { BENCH_DIRECTIONS } from 'artgen-core/bench';
 import {
-  approve, briefWarnings, candidateNames, cornerPoint, createDungeon, describeDungeon, gridMode, listDungeons, readDungeon, renderDungeonFiles, updateDungeon, createMap, describeMap, exportPacks, listMaps, readMap, renderMapFiles, updateMap, feedback, findProject, fxRun, gallery, loadCandidate, lockedDirection, make, openAsset, passState, projectAnalytics,
-  readBriefs, renderVersion, requireLocked, restyle, reviewVersion, projectStatus, scoreVersion, textureRun, VERSION, versionsIn, writeNextFinish, writeTile, type Project,
+  approve, briefWarnings, candidateNames, cornerPoint, corridorEnd, createDungeon, describeDungeon, gridMode, listDungeons, readDungeon, renderDungeonFiles, updateDungeon, createMap, describeMap, exportPacks, listMaps, readMap, renderMapFiles, updateMap, feedback, findProject, fxRun, gallery, loadCandidate, lockedDirection, make, openAsset, passState, projectAnalytics,
+  readBriefs, renderVersion, requireLocked, restyle, reviewVersion, projectStatus, scoreVersion, textureRun, VERSION, versionsIn, writeNextFinish, writeTile, type Project, checkDungeonFile, warningLines,
 } from 'artgen-cli';
 
 export const SERVER = { name: 'artgen', version: VERSION === 'dev' ? '0.0.0-dev' : VERSION };
@@ -269,7 +269,7 @@ export const TOOLS: ToolDef[] = [
         if (a.clear === 'labels' || a.clear === 'all') m.overlay.labels = [];
         if (a.clear === 'symbols' || a.clear === 'all') m.overlay.symbols = [];
         drop(m.overlay.labels, a.remove_labels); drop(m.overlay.symbols, a.remove_symbols);
-        for (const l of (a.add_labels as Json[] | undefined) ?? []) { const [x, y] = pt(l); m.overlay.labels.push({ text: String(l.text), x, y, kind: (l.kind ?? 'place') as map.LabelKind, ...(typeof l.size === 'number' && { size: l.size }), ...(typeof l.angle === 'number' && { angle: l.angle }) }); }
+        for (const l of (a.add_labels as Json[] | undefined) ?? []) { const [x, y] = pt(l); m.overlay.labels.push({ text: String(l.text), x, y, kind: (l.kind ?? 'place') as map.LabelKind, ...(typeof l.size === 'number' && { size: l.size }), ...(typeof l.angle === 'number' && { angle: l.angle }), ...(typeof l.href === 'string' && l.href && { href: l.href }) }); }
         for (const s of (a.add_symbols as Json[] | undefined) ?? []) {
           if (!map.SYMBOLS[String(s.kind)]) throw new Error(`unknown symbol ${String(s.kind)} (have: ${map.SYMBOL_KINDS.join(', ')})`);
           const [x, y] = pt(s); m.overlay.symbols.push({ kind: String(s.kind), x, y, ...(typeof s.scale === 'number' && { scale: s.scale }) });
@@ -300,7 +300,7 @@ export const TOOLS: ToolDef[] = [
     async run(a, p) { const m = readDungeon(p, a.id as string); return [text(describeDungeon(m)), text(m)]; },
   },
   {
-    name: 'dungeon_new', description: 'Create a dungeon map. mode "generate" (default): rooms and corridors from the seed and gen settings ({rooms, minSize, maxSize, caves, round, loops, doors, corridorWidth, spacing, entrance}); "room": one room of shape rect|circle|octagon|cave, w × h cells, with exits [{side: n|e|s|w, door?: kind|null, at?: offset along the wall}] running off the map, a label and a number; "empty": nothing yet (add rooms with dungeon_edit). One cell is 5 ft. Render with dungeon_render.',
+    name: 'dungeon_new', description: 'Create a dungeon map. mode "generate" (default): rooms and corridors from the seed and gen settings ({rooms, minSize, maxSize, caves, round, loops, doors, corridorWidth, spacing, entrance, layout: scatter|dense|blocks (dense: rooms side by side joined through shared walls; blocks: blocks split into rooms joined by corridors), density (dense: share of the sheet filled, 0..1)}); "room": one room of shape rect|circle|octagon|cave, w × h cells, with exits [{side: n|e|s|w, door?: kind|null, at?: offset along the wall, text?: a note at the edge saying where it leads}] running off the map, a label and a number; "empty": nothing yet (add rooms with dungeon_edit). One cell is 5 ft. Render with dungeon_render.',
     inputSchema: obj({ id: str, mode: { type: 'string', enum: ['generate', 'room', 'empty'] }, cols: num, rows: num, seed: num, title: str, gen: { type: 'object' }, shape: { type: 'string', enum: ['rect', 'circle', 'octagon', 'cave'] }, w: num, h: num, exits: { type: 'array', items: { type: 'object' } }, label: str, number: num }, ['id']),
     async run(a, p) {
       let m = dungeon.newDungeon(a.id as string, {
@@ -314,12 +314,15 @@ export const TOOLS: ToolDef[] = [
     },
   },
   {
-    name: 'dungeon_update', description: 'Change a dungeon\'s settings (not its rooms). grid_mode: "10" | "5" | "10+5" (10 ft lines with a fainter 5 ft sub-grid) | "none"; grid: {show, size (cells), sub, clip: floor|all}; style: {hatch: band|full|none, band (cells of hatching along the walls), wall (weight)}; scale: {perCell, unit}; gen: generator settings (used by dungeon_generate); title, numbers, scale_bar, compass, cols, rows.',
-    inputSchema: obj({ id: str, grid_mode: str, grid: { type: 'object' }, style: { type: 'object' }, scale: { type: 'object' }, gen: { type: 'object' }, title: str, numbers: bool, scale_bar: bool, compass: bool, cols: num, rows: num }, ['id']),
+    name: 'dungeon_update', description: 'Change a dungeon\'s settings (not its rooms). grid_size: the grid size in the map unit (10 = a line every 10 ft; a whole number of squares), grid_unit: the unit (ft, m, …; it is also the scale unit), sub_grid: true for a fainter line at every square, show_grid; grid_mode: "10" | "5" | "10+5" | "none" (a shorthand); grid: {show, size (cells), sub, clip: floor|all}; style: {hatch: band|full|none, band (cells of hatching along the walls), wall (weight)}; scale: {perCell, unit}; gen: generator settings (used by dungeon_generate); title, numbers, scale_bar, compass, cols, rows; furniture: {place: over|outside|auto, side?: bottom|right} (where the title, scale bar, compass and legend go: over the map, in a band beside it, or in the band only when they would cover something).',
+    inputSchema: obj({ id: str, grid_size: num, grid_unit: str, sub_grid: bool, show_grid: bool, grid_mode: str, grid: { type: 'object' }, style: { type: 'object' }, scale: { type: 'object' }, gen: { type: 'object' }, title: str, numbers: bool, scale_bar: bool, compass: bool, cols: num, rows: num, furniture: { type: 'object' } }, ['id']),
     async run(a, p) {
       const m = updateDungeon(p, a.id as string, m => {
+        if (a.furniture && typeof a.furniture === 'object') m.furniture = a.furniture as dungeon.DungeonSpec['furniture'];
         for (const k of ['grid', 'style', 'scale', 'gen'] as const) if (a[k] && typeof a[k] === 'object') Object.assign(m[k], a[k]);
+        if (typeof a.grid_unit === 'string' && a.grid_unit) m.scale.unit = a.grid_unit;
         if (typeof a.grid_mode === 'string') m.grid = gridMode(m, a.grid_mode);
+        m.grid = dungeon.gridFromUnits(m, { size: typeof a.grid_size === 'number' ? a.grid_size : undefined, sub: typeof a.sub_grid === 'boolean' ? a.sub_grid : undefined, show: typeof a.show_grid === 'boolean' ? a.show_grid : undefined });
         if (typeof a.title === 'string') { if (a.title) m.title = a.title; else delete m.title; }
         if (typeof a.numbers === 'boolean') m.numbers = a.numbers;
         if (typeof a.scale_bar === 'boolean') m.scaleBar = a.scale_bar;
@@ -345,14 +348,18 @@ export const TOOLS: ToolDef[] = [
     },
   },
   {
-    name: 'dungeon_edit', description: 'Change a dungeon\'s rooms and corridors, in order. Coordinates are cells (x right, y down; 1 cell = 5 ft); a point is [x,y], "x,y" or a cell name "C4". ops: {op:"add_room", shape: rect|circle|octagon|cave|poly, at: top-left, w, h, points? (poly: [x,y,…]), label?, number? (false hides it), id?} | {op:"move_room", room, at} | {op:"set_room", room, shape?, w?, h?, label?, number?} | {op:"remove_room", room} (and its corridors) | {op:"link", from: room id or point, to: room id or point (a point is an exit or dead end; past the map edge it runs off the map), width?, route?: auto|hv|vh|straight, via?: [x,y,…], doors?: [kind|null, kind|null]} | {op:"unlink", index} | {op:"door", index, end: from|to, kind: door|secret|locked|portcullis|arch|null} | {op:"fit", margin?}.',
+    name: 'dungeon_edit', description: 'Change a dungeon\'s rooms and corridors, in order. Coordinates are cells (x right, y down; 1 cell = 5 ft); a point is [x,y], "x,y" or a cell name "C4". ops: {op:"add_room", shape: rect|circle|octagon|cave|poly, at: top-left, w, h, points? (poly: [x,y,…]), label?, number? (false hides it), href? (a link from its number and name: http(s), a relative path or #anchor), id?} | {op:"move_room", room, at} | {op:"set_room", room, shape?, w?, h?, label?, number?, href? ("" removes it)} | {op:"remove_room", room} (and its corridors) | {op:"add_block", shape: rect|octagon|circle|hex|poly, at, w, h, points?, split?: bsp|rows|cols|grid|cuts, min? (cells, about the size of each room), cuts?: {x?: [], y?: []}, seed?, doors? (0..1, extra doors), id?} (one shape split into rooms that share walls, with doors and openings between them; its rooms are ordinary rooms, ids <block>-1, <block>-2, …) | {op:"split_block", id, split?, min?, seed?} (split again: a new seed unless given) | {op:"remove_block", id} | {op:"link", from: room id, point or "corridor:<id>", to: the same (a point is an exit or dead end; past the map edge it runs off the map; a corridor is a junction on its centre line), from_side?/to_side?: n|e|s|w (leave the room by that wall), from_offset?/to_offset? (cells along that wall), width?, route?: auto|hv|vh|straight|around (around: along the grid, round the rooms in the way), via?: [x,y,…], curve?: "smooth", style?: "natural" (rough cave-like walls), seed?, id? (a name other corridors can join), exit?: {text, href?, fade?} (to a point past the edge: the corridor fades out and a boxed note says where it leads), doors?: [kind|null, kind|null]} | {op:"unlink", index} | {op:"connect", a: room, b: room, kind?: door|secret|locked|portcullis|arch|open, at?: a point on their shared wall, width?} (a door or opening in the wall two touching rooms share; touching rooms without one keep the wall) | {op:"disconnect", index} | {op:"door", index, end: from|to, kind: door|secret|locked|portcullis|arch|null} | {op:"fit", margin?}.',
     inputSchema: obj({ id: str, ops: { type: 'array', items: { type: 'object' } } }, ['id', 'ops']),
     async run(a, p) {
       const m = updateDungeon(p, a.id as string, m => {
         const pt = (v: unknown): [number, number] => (Array.isArray(v) ? [Number(v[0]), Number(v[1])] : dungeon.parsePoint(String(v)));
         const corner = (v: unknown): [number, number] => (Array.isArray(v) ? pt(v) : cornerPoint(String(v)));
         const room = (rid: unknown) => { const r = m.rooms.find(r => r.id === rid); if (!r) throw new Error(`no room ${String(rid)} (have: ${m.rooms.map(r => r.id).join(', ') || 'none'})`); return r; };
-        const end = (v: unknown): dungeon.CorridorEnd => (typeof v === 'string' && m.rooms.some(r => r.id === v) ? { room: v } : { at: pt(v) });
+        const end = (v: unknown, side?: unknown, offset?: unknown): dungeon.CorridorEnd => {
+          if (v && typeof v === 'object' && !Array.isArray(v)) return v as dungeon.CorridorEnd;
+          if (typeof v === 'string' && (m.rooms.some(r => r.id === v) || v.startsWith('corridor:') || m.corridors.some(c => c.id === v))) return corridorEnd(m, v, typeof side === 'string' ? side : undefined, typeof offset === 'number' ? offset : undefined);
+          return { at: pt(v) };
+        };
         const corridor = (i: unknown) => { const c = m.corridors[Number(i)]; if (!c) throw new Error(`no corridor ${String(i)} (0..${m.corridors.length - 1})`); return c; };
         let out = m;
         for (const op of (a.ops as Json[]) ?? []) {
@@ -363,6 +370,7 @@ export const TOOLS: ToolDef[] = [
               : { id: rid, shape, ...(([x, y]) => ({ x, y }))(corner(op.at ?? [op.x, op.y])), w: Number(op.w), h: Number(op.h) };
             if (typeof op.label === 'string') r.label = op.label;
             if (typeof op.number === 'number' || op.number === false) r.number = op.number;
+            if (typeof op.href === 'string' && op.href) r.href = op.href;
             m.rooms.push(r);
           } else if (op.op === 'move_room') {
             const r = room(op.room), [x, y] = corner(op.at ?? [op.x, op.y]), dx = x - r.x, dy = y - r.y;
@@ -375,29 +383,60 @@ export const TOOLS: ToolDef[] = [
             if (typeof op.h === 'number') r.h = op.h;
             if (typeof op.label === 'string') { if (op.label) r.label = op.label; else delete r.label; }
             if (typeof op.number === 'number' || op.number === false) r.number = op.number;
+            if (typeof op.href === 'string') { if (op.href) r.href = op.href; else delete r.href; }
           } else if (op.op === 'remove_room') {
-            const r = room(op.room);
-            m.rooms = m.rooms.filter(x => x !== r);
-            m.corridors = m.corridors.filter(c => !(('room' in c.from && c.from.room === r.id) || ('room' in c.to && c.to.room === r.id)));
+            dungeon.removeRoom(m, room(op.room).id);
           } else if (op.op === 'link') {
             m.corridors.push({
-              from: end(op.from), to: end(op.to), ...(typeof op.width === 'number' && { width: op.width }), ...(typeof op.route === 'string' && { route: op.route as dungeon.Route }),
+              ...(typeof op.id === 'string' && { id: op.id }),
+              from: end(op.from, op.from_side, op.from_offset), to: ((e: dungeon.CorridorEnd) => (op.exit && typeof op.exit === 'object' && 'at' in e ? { ...e, exit: op.exit as dungeon.Exit } : e))(end(op.to, op.to_side, op.to_offset)), ...(typeof op.width === 'number' && { width: op.width }), ...(typeof op.route === 'string' && { route: op.route as dungeon.Route }),
+              ...(op.curve === 'smooth' && { curve: 'smooth' as const }), ...(op.style === 'natural' && { style: 'natural' as const }), ...(typeof op.seed === 'number' && { seed: op.seed }),
               ...(Array.isArray(op.via) && { via: (op.via as number[]).map(Number) }), ...(Array.isArray(op.doors) && { doors: op.doors as [dungeon.DoorKind | null, dungeon.DoorKind | null] }),
             });
-          } else if (op.op === 'unlink') { corridor(op.index); m.corridors.splice(Number(op.index), 1); }
+          } else if (op.op === 'unlink') { corridor(op.index); dungeon.removeCorridor(m, Number(op.index)); }
+          else if (op.op === 'add_block' || op.op === 'split_block') {
+            let id = String(op.id ?? '');
+            const split = { mode: (op.split ?? 'bsp') as dungeon.SplitMode, ...(typeof op.min === 'number' && { min: op.min }), ...(op.cuts && typeof op.cuts === 'object' ? { cuts: op.cuts as { x?: number[]; y?: number[] } } : {}), ...(typeof op.seed === 'number' && { seed: op.seed }) };
+            if (op.op === 'add_block') {
+              const used = new Set((m.blocks ?? []).map(b => b.id));
+              if (!id) for (let n = 1; ; n++) if (!used.has(`b${n}`)) { id = `b${n}`; break; }
+              const [x, y] = corner(op.at ?? [op.x, op.y]), w = Number(op.w), h = Number(op.h), shape = String(op.shape ?? 'rect');
+              const b: dungeon.Block = shape === 'hex' ? { id, shape: 'poly', points: dungeon.hexPoints(x, y, w, h), x, y, w, h, split }
+                : shape === 'poly' ? { id, shape: 'poly', points: (op.points as number[]).map(Number), ...dungeon.polyBox((op.points as number[]).map(Number)), split }
+                : { id, shape: shape as dungeon.Block['shape'], x, y, w, h, split };
+              if (typeof op.doors === 'number') b.doors = op.doors;
+              (m.blocks ??= []).push(b);
+            } else {
+              const b = m.blocks?.find(x => x.id === id);
+              if (!b) throw new Error(`no block ${id}`);
+              b.split = { ...b.split, ...(op.split !== undefined && { mode: split.mode }), ...(split.min !== undefined && { min: split.min }), ...(split.cuts && { cuts: split.cuts }), seed: split.seed ?? Math.floor(Math.random() * 1e6) };
+            }
+            out = dungeon.applyBlock(dungeon.parseDungeon(m), id).spec;
+          } else if (op.op === 'remove_block') { dungeon.removeBlock(m, String(op.id)); }
+          else if (op.op === 'connect') {
+            (m.connections ??= []).push({ a: String(op.a), b: String(op.b), ...(op.at !== undefined && { at: pt(op.at) }), ...(typeof op.kind === 'string' && op.kind !== 'door' && { kind: op.kind as dungeon.DoorKind | 'open' }), ...(typeof op.width === 'number' && { width: op.width }) });
+          } else if (op.op === 'disconnect') {
+            if (!m.connections?.[Number(op.index)]) throw new Error(`no connection ${String(op.index)} (0..${(m.connections?.length ?? 0) - 1})`);
+            m.connections.splice(Number(op.index), 1);
+          }
           else if (op.op === 'door') {
             const c = corridor(op.index), d = c.doors ?? [null, null], kind = (op.kind ?? null) as dungeon.DoorKind | null;
             c.doors = op.end === 'to' ? [d[0], kind] : [kind, d[1]];
           } else if (op.op === 'fit') out = dungeon.fitDungeon(dungeon.parseDungeon(m), typeof op.margin === 'number' ? op.margin : 2);
-          else throw new Error(`unknown op ${String(op.op)} (add_room, move_room, set_room, remove_room, link, unlink, door, fit)`);
+          else throw new Error(`unknown op ${String(op.op)} (add_room, move_room, set_room, remove_room, add_block, split_block, remove_block, link, unlink, connect, disconnect, door, fit)`);
           if (out !== m) Object.assign(m, out);
         }
       });
-      return [text(describeDungeon(m))];
+      return [text([describeDungeon(m), ...warningLines(m)].join('\n'))];
     },
   },
   {
-    name: 'dungeon_overlay', description: 'Labels and symbols over a dungeon (the follow-up layer). add_labels: [{text, at:"x,y"|"C4" or x,y, kind: name|note|area, size?, angle?}]; add_symbols: [{kind, at or x,y, scale?, angle?}] (kinds from dungeon_list: stairs, pillar, statue, altar, chest, trap, pit, pool, …); remove_labels / remove_symbols: indices (from dungeon_get); clear: "labels"|"symbols"|"all". Room names and numbers are room settings (dungeon_edit set_room).',
+    name: 'dungeon_check', description: 'Check a dungeon: every error in its file with the JSON path (a field out of range, a room id that is not there), then drawing errors and warnings (a room outline that crosses itself, rooms laid over each other, a corridor through a room it does not join or across another, a door never drawn, a mark off the sheet or on a room number). Fix errors before rendering; look at each warning.',
+    inputSchema: obj({ id: str }, ['id']),
+    async run(a, p) { return [text(checkDungeonFile(p, a.id as string))]; },
+  },
+  {
+    name: 'dungeon_overlay', description: 'Labels and symbols over a dungeon (the follow-up layer). add_labels: [{text, at:"x,y"|"C4" or x,y, kind: name|note|area, size?, angle?, href? (a link: http(s), a relative path or #anchor)}]; add_symbols: [{kind, at or x,y, scale?, angle?}] (kinds from dungeon_list: stairs, pillar, statue, altar, chest, trap, pit, pool, …); remove_labels / remove_symbols: indices (from dungeon_get); clear: "labels"|"symbols"|"all". Room names and numbers are room settings (dungeon_edit set_room).',
     inputSchema: obj({ id: str, add_labels: { type: 'array', items: { type: 'object' } }, add_symbols: { type: 'array', items: { type: 'object' } }, remove_labels: { type: 'array', items: num }, remove_symbols: { type: 'array', items: num }, clear: str }, ['id']),
     async run(a, p) {
       const m = updateDungeon(p, a.id as string, m => {
@@ -406,7 +445,7 @@ export const TOOLS: ToolDef[] = [
         if (a.clear === 'labels' || a.clear === 'all') m.overlay.labels = [];
         if (a.clear === 'symbols' || a.clear === 'all') m.overlay.symbols = [];
         drop(m.overlay.labels, a.remove_labels); drop(m.overlay.symbols, a.remove_symbols);
-        for (const l of (a.add_labels as Json[] | undefined) ?? []) { const [x, y] = pt(l); m.overlay.labels.push({ text: String(l.text), x, y, kind: (l.kind ?? 'name') as dungeon.LabelKind, ...(typeof l.size === 'number' && { size: l.size }), ...(typeof l.angle === 'number' && { angle: l.angle }) }); }
+        for (const l of (a.add_labels as Json[] | undefined) ?? []) { const [x, y] = pt(l); m.overlay.labels.push({ text: String(l.text), x, y, kind: (l.kind ?? 'name') as dungeon.LabelKind, ...(typeof l.size === 'number' && { size: l.size }), ...(typeof l.angle === 'number' && { angle: l.angle }), ...(typeof l.href === 'string' && l.href && { href: l.href }) }); }
         for (const s of (a.add_symbols as Json[] | undefined) ?? []) {
           if (!dungeon.SYMBOLS[String(s.kind)]) throw new Error(`unknown symbol ${String(s.kind)} (have: ${dungeon.SYMBOL_KINDS.join(', ')})`);
           const [x, y] = pt(s); m.overlay.symbols.push({ kind: String(s.kind), x, y, ...(typeof s.scale === 'number' && { scale: s.scale }), ...(typeof s.angle === 'number' && { angle: s.angle }) });

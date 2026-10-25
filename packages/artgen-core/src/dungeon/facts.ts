@@ -42,6 +42,8 @@ export interface RoomFacts {
   shape: string;
   box: Boxed;
   doors: RoomDoor[];
+  /** The rooms it is joined to through a shared wall (`connections`): the other room, the door kind or `open`, and where; absent when there are none. */
+  connections?: { to: string; kind: DoorKind | 'open'; at: Point | null; connection: number }[];
 }
 
 export interface CorridorFacts {
@@ -53,6 +55,8 @@ export interface CorridorFacts {
   doors: [DoorKind | null, DoorKind | null];
   /** Its run between the two ends: outside the rooms it joins, from the edge of one to the edge of the other. */
   length: Length;
+  /** Where it joins another corridor (a `{corridor: id}` end): the corridor's index and the point; absent when it joins none. */
+  joins?: { corridor: number; at: Point }[];
 }
 
 export interface ExitFacts {
@@ -67,6 +71,9 @@ export interface ExitFacts {
   edge: Edge;
   /** How far the point is from that edge; negative when it lies beyond it. */
   distance: Length;
+  /** The note at the map's edge and its link, when the end has an `exit`. */
+  text?: string;
+  href?: string;
 }
 
 export interface OverlapFacts {
@@ -87,7 +94,7 @@ export interface DungeonFacts {
   corridors: CorridorFacts[];
   exits: ExitFacts[];
   overlaps: OverlapFacts[];
-  /** Rooms no corridor starts or ends at. */
+  /** Rooms no corridor starts or ends at and no connection joins. */
   unreached: string[];
   /** Each wall's corners, towers and gates and the rooms it encloses (only when the file has `walls`). */
   walls?: WallFacts[];
@@ -115,19 +122,27 @@ export function dungeonFacts(spec: DungeonSpec, layout: DungeonLayout = layoutDu
     let run = 0;
     for (let i = 2; i < geom.pts.length; i += 2) run += Math.hypot(geom.pts[i] - geom.pts[i - 2], geom.pts[i + 1] - geom.pts[i - 1]);
     run = Math.max(0, run - (geom.ends[0]?.along ?? 0) - (geom.ends[1]?.along ?? 0));
-    corridors.push({ index, from: c.from, to: c.to, width: geom.width, doors, length: length(run) });
+    const joins = ends.flatMap((side, k) => { const e = c[side]; if (!('corridor' in e)) return []; const j = spec.corridors.findIndex(x => x.id === e.corridor), p = geom.ends[k]; return j >= 0 && p ? [{ corridor: j, at: pt(p.x, p.y) }] : []; });
+    corridors.push({ index, from: c.from, to: c.to, width: geom.width, doors, length: length(run), ...(joins.length && { joins }) });
     ends.forEach((side, k) => {
       const e = c[side], p = geom.ends[k], other = roomOf(c[ends[1 - k]]);
       if ('room' in e) {
         reached.add(e.room);
         if (doors[k]) byId.get(e.room)?.doors.push({ kind: doors[k]!, at: p ? pt(p.x, p.y) : null, corridor: index, to: other });
-      } else {
+      } else if ('at' in e) {
         const [x, y] = e.at, dist: [Edge, number][] = [['n', y], ['e', spec.cols - x], ['s', spec.rows - y], ['w', x]];
         const [edge, d] = dist.reduce((a, b) => (b[1] < a[1] ? b : a));
-        exits.push({ corridor: index, end: side, at: pt(x, y), room: other, door: doors[k], edge, distance: length(d) });
+        exits.push({ corridor: index, end: side, at: pt(x, y), room: other, door: doors[k], edge, distance: length(d), ...(e.exit && { text: e.exit.text }), ...(e.exit?.href && { href: e.exit.href }) });
       }
     });
   });
+
+  for (const c of layout.connections) for (const [id, other] of [[c.a, c.b], [c.b, c.a]] as const) {
+    const r = byId.get(id);
+    if (!r) continue;
+    reached.add(id);
+    (r.connections ??= []).push({ to: other, kind: c.kind, at: c.wall ? pt(c.x, c.y) : null, connection: c.index });
+  }
 
   const overlaps: OverlapFacts[] = [];
   for (let a = 0; a < layout.rooms.length; a++) for (let b = a + 1; b < layout.rooms.length; b++) {

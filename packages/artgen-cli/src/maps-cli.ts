@@ -6,7 +6,7 @@
  * project and renders beside the file unless `--out` says otherwise.
  */
 import { dungeon, map, parseCrop, parseFit, type Crop, type Fit, type SyncReport } from 'artgen-core/maps';
-import { checkDungeonFile, cornerPoint, describeDungeonFacts, corridorEnd, createDungeon, describeDungeon, doorPair, dungeonSummary, gridMode, listDungeons, readDungeon, renderDungeonFiles, updateDungeon } from './dungeon.ts';
+import { checkDungeonFile, warningLines, cornerPoint, describeDungeonFacts, corridorEnd, createDungeon, describeDungeon, doorPair, dungeonSummary, gridMode, listDungeons, readDungeon, renderDungeonFiles, updateDungeon } from './dungeon.ts';
 import { checkMapFile, createMap, describeMap, describeMapFacts, factsQuery, listMaps, mapSummary, numbers, onOff, parseLayers, readMap, renderMapFiles, shapeFrom, updateMap } from './map.ts';
 import { fileId, readJson, requireProject } from './projectfs.ts';
 
@@ -61,15 +61,19 @@ export const MAP_USAGE = `       artgen map new <id> [--preset regional|local] [
                   ground and the rivers and roads that cross it; neither gives the whole map's rivers, roads, hilltops, hollows and terrain shares.
                   Positions in map units, lengths also in the scale unit, heights in topo.unit and whole multiples of topo.interval
        artgen map check <id> [--json]   the file's format errors with their JSON paths, then each \`require\` entry measured: \`C-forest terrain forest 0.71 < 0.80 unmet\`; exits 1 on any error or unmet requirement
-       artgen dungeon new <id> [--size 40x30] [--seed n] [--title "..."] [--empty] | new <id> --room rect|circle|octagon|cave --room-size 8x6 [--exits n,e:secret,s:none,w] [--label "..."] [--number n|off]
+       artgen dungeon new <id> [--size 40x30] [--seed n] [--title "..."] [--empty] | new <id> --room rect|circle|octagon|cave --room-size 8x6 [--exits n,e:secret,s:none:To the caves,w] [--label "..."] [--number n|off]
        artgen dungeon gen <id> [--seed n] [--rooms n] [--min-size n] [--max-size n] [--caves f] [--round f] [--loops f] [--doors f] [--corridor-width n] [--spacing n] [--entrance on|off] [--size 40x30]
-       artgen dungeon room <id> add <shape> --at x,y|C4 --size WxH [--points x,y,…] [--label "..."] [--number n|off] [--room-id r9] [--fill floor|building|yard|cellar] [--origin name] | move <rid> --at x,y | set <rid> [--shape s] [--size WxH] [--label "..."] [--number n|off] [--fill f] | rm <rid>
-       artgen dungeon link <id> <room> <room|x,y|C4> [--width 1] [--route auto|hv|vh|straight] [--via x,y,…] [--doors door,none] [--origin name] | unlink <id> <i> | door <id> <i> from|to <kind|none>
+                  [--layout scatter|dense|blocks] [--density f]   dense: rooms side by side, joined through shared walls; blocks: blocks split into rooms, joined by corridors
+       artgen dungeon room <id> add <shape> --at x,y|C4 --size WxH [--points x,y,…] [--label "..."] [--number n|off] [--room-id r9] [--fill floor|building|yard|cellar] [--href url] [--origin name] | move <rid> --at x,y | set <rid> [--shape s] [--size WxH] [--label "..."] [--number n|off] [--fill f] [--href url|none] | rm <rid>
+       artgen dungeon link <id> <room|corridor:id> <room|x,y|C4|corridor:id> [--width 1] [--route auto|hv|vh|straight|around] [--via x,y,…] [--doors door,none] [--from-side n|e|s|w] [--from-offset n] [--to-side …] [--to-offset n] [--curve smooth] [--style natural] [--seed n] [--id name] [--exit "To the caves" [--exit-href url] [--fade 3]] [--origin name] | unlink <id> <i> | door <id> <i> from|to <kind|none>
+       artgen dungeon block <id> add rect|octagon|circle|hex|poly --at x,y --size WxH [--points x,y,…] [--split bsp|rows|cols|grid|cuts] [--min 3] [--cuts-x 4,8] [--cuts-y 6] [--seed n] [--doors 0.25] [--block-id b1]
+                  | split <bid> [--seed n] [--split mode] [--min n] | rm <bid>   one shape split into rooms that share walls, with doors between (a block id in link means its nearest room)
+       artgen dungeon connect <id> <room> <room> [--kind door|secret|locked|portcullis|arch|open] [--at x,y] [--width 1] | disconnect <id> <i>   a door or opening in the wall two touching rooms share
                   (shapes: ${dungeon.ROOM_SHAPES.join(', ')}; doors: ${dungeon.DOOR_KINDS.join(', ')})
-       artgen dungeon grid <id> 10|5|10+5|none [--clip floor|all] | style <id> [--hatch band|full|none] [--band n] [--wall f] [--numbers on|off] [--scale-bar on|off] [--compass on|off] [--legend on|off] [--title "..."] [--per-cell n] [--unit ft]
-       artgen dungeon label <id> "Text" --at x,y|C4 [--kind name|note|area] [--size f] [--angle deg] [--origin name] | symbol <id> <kind> --at x,y|C4 [--scale f] [--angle deg] [--origin name] | symbols
+       artgen dungeon grid <id> [10|5|10+5|none] [--size 10] [--unit ft] [--sub on|off] [--show on|off] [--clip floor|all] | style <id> [--hatch band|full|none] [--band n] [--wall f] [--numbers on|off] [--scale-bar on|off] [--compass on|off] [--legend on|off] [--title "..."] [--per-cell n] [--unit ft] [--furniture over|outside|auto] [--furniture-side bottom|right] [--shared-walls on|off|auto]
+       artgen dungeon label <id> "Text" --at x,y|C4 [--kind name|note|area] [--size f] [--angle deg] [--href url] [--origin name] | symbol <id> <kind> --at x,y|C4 [--scale f] [--angle deg] [--origin name] | symbols
        artgen dungeon overlay <id> rm label|symbol <i> | clear [labels|symbols] | fit <id> [--margin 2]
-       artgen dungeon check <id> [--json]   every error in the file with its JSON path; exits 1 when there are any
+       artgen dungeon check <id> [--json]   every error in the file with its JSON path, then drawing errors and warnings (a room outline that crosses itself, rooms laid over each other, a corridor through a room it does not join or across another, a door never drawn, a mark off the sheet or on a badge); exits 1 when there are errors
        artgen map sync <id>|--file target.json --from new.json --origin tables [--json]   replace the entries of one origin, keep every other (hand entries last); lists what that disturbs
        artgen dungeon sync <id>|--file target.json --from new.json --origin tables [--json]   the same for rooms, corridors, walls, labels and symbols; a hand-edited field of a generated room is reported and the table's value kept
        artgen dungeon facts <id> [--json]   each room's box and doors, each corridor's ends and length, the exits, the overlapping rooms and the rooms no corridor reaches
@@ -276,6 +280,9 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
       const v = num(args, f); if (v !== undefined) m.gen[k] = v;
     }
     if (onOff(flag(args, '--entrance')) !== undefined) m.gen.entrance = onOff(flag(args, '--entrance'))!;
+    const layout = flag(args, '--layout');
+    if (layout !== undefined) { if (!dungeon.GEN_LAYOUTS.includes(layout as dungeon.GenLayout)) throw new Error(`--layout: ${dungeon.GEN_LAYOUTS.join(', ')}`); if (layout === 'scatter') delete m.gen.layout; else m.gen.layout = layout as dungeon.GenLayout; }
+    if (num(args, '--density') !== undefined) m.gen.density = num(args, '--density');
   };
   if (sub === 'new') {
     const base = dungeon.newDungeon(file ? id ?? fileId(file) : need('<id> is required') as string, { seed: Math.floor(Math.random() * 1e6), ...(flag(args, '--title') && { title: flag(args, '--title') }) });
@@ -286,9 +293,9 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
       if (!dungeon.ROOM_SHAPES.includes(shape) || shape === 'poly') throw new Error('--room: rect, circle, octagon or cave');
       const [w, h] = sizeFlag(args, '--room-size') ?? [8, 8];
       const exits = (list(args, '--exits') ?? []).map(e => {
-        const [side, kind] = e.split(':');
-        if (!['n', 'e', 's', 'w'].includes(side)) throw new Error('--exits: sides n, e, s, w, each optionally :door kind (n,e:secret,s:none)');
-        return { side: side as 'n' | 'e' | 's' | 'w', door: kind === undefined ? undefined : doorPair(kind)![0] };
+        const [side, kind, ...note] = e.split(':');
+        if (!['n', 'e', 's', 'w'].includes(side)) throw new Error('--exits: sides n, e, s, w, each optionally :door kind and :a note (n,e:secret,s:none:To the caves)');
+        return { side: side as 'n' | 'e' | 's' | 'w', door: kind === undefined || kind === '' ? undefined : doorPair(kind)![0], ...(note.length && { text: note.join(':') }) };
       });
       m = dungeon.singleRoom(m, { shape, w, h, exits, label: flag(args, '--label'), number: roomNumber(args) });
     } else if (!args.includes('--empty')) m = dungeon.generateDungeon(m);
@@ -324,6 +331,7 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
         if (n !== undefined) room.number = n;
         const fill = fillFlag(args);
         if (fill) room.fill = fill;
+        if (flag(args, '--href')) room.href = flag(args, '--href');
         Object.assign(room, originFlag(args));
         m.rooms.push(room);
         summary = `added ${shape} room ${roomId}`;
@@ -344,49 +352,132 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
         if (n !== undefined) r.number = n;
         const fill = fillFlag(args);
         if (fill) { if (fill === 'floor') delete r.fill; else r.fill = fill; handEdit(r, ['fill']); }
+        const href = flag(args, '--href');
+        if (href !== undefined) { if (href && href !== 'none') r.href = href; else delete r.href; }
         summary = `changed ${r.id}`;
       } else if (op === 'rm') {
-        const r = find(), before = m.corridors.length;
-        m.rooms = m.rooms.filter(x => x !== r);
-        m.corridors = m.corridors.filter(c => !(('room' in c.from && c.from.room === r.id) || ('room' in c.to && c.to.room === r.id)));
-        summary = `removed ${r.id} and ${before - m.corridors.length} corridors`;
+        const r = find(), n = dungeon.removeRoom(m, r.id);
+        summary = `removed ${r.id} and ${n} corridors`;
       } else throw new Error('dungeon room <id> add|move|set|rm');
     });
-    print(`${m.id}: ${summary} (${m.rooms.length} rooms)\n${next(m.id)}`, m.rooms);
+    print([`${m.id}: ${summary} (${m.rooms.length} rooms)`, ...warningLines(m), next(m.id)].join('\n'), m.rooms);
     return 0;
   }
   if (sub === 'link') {
     const [, a, b] = pos;
-    if (!a || !b) throw new Error('dungeon link <id> <room> <room|x,y|C4>');
+    if (!a || !b) throw new Error('dungeon link <id> <room|corridor:id> <room|x,y|C4|corridor:id>');
+    let [ea, eb] = [a, b];
     const m = updateDungeon(p, need('<id>'), m => {
+      // a block id stands for its room nearest the other end
+      const isBlock = (v: string) => !!m.blocks?.some(x => x.id === v) && !m.rooms.some(r => r.id === v);
+      const centre = (v: string): [number, number] => { const r = m.rooms.find(x => x.id === v); return r ? [r.x + r.w / 2, r.y + r.h / 2] : (() => { try { return dungeon.parsePoint(v); } catch { return [m.cols / 2, m.rows / 2]; } })(); };
+      if (isBlock(ea)) ea = dungeon.blockRoomNear(m, ea, ...(isBlock(eb) ? [m.cols / 2, m.rows / 2] as [number, number] : centre(eb))) ?? ea;
+      if (isBlock(eb)) eb = dungeon.blockRoomNear(m, eb, ...centre(ea)) ?? eb;
       const route = flag(args, '--route') as dungeon.Route | undefined, doors = doorPair(flag(args, '--doors'));
       if (route && !dungeon.ROUTES.includes(route)) throw new Error(`--route: ${dungeon.ROUTES.join(', ')}`);
+      const curve = flag(args, '--curve') as dungeon.Curve | undefined, style = flag(args, '--style') as dungeon.CorridorStyle | undefined, cid = flag(args, '--id');
+      const note = flag(args, '--exit'), exit = note !== undefined ? { text: note, ...(flag(args, '--exit-href') && { href: flag(args, '--exit-href') }), ...(num(args, '--fade') !== undefined && { fade: num(args, '--fade') }) } : undefined;
+      const withExit = (e: dungeon.CorridorEnd): dungeon.CorridorEnd => (exit && 'at' in e ? { ...e, exit } : e);
+      if (curve && !dungeon.CURVES.includes(curve)) throw new Error(`--curve: ${dungeon.CURVES.join(', ')}`);
+      if (style && !dungeon.CORRIDOR_STYLES.includes(style)) throw new Error(`--style: ${dungeon.CORRIDOR_STYLES.join(', ')}`);
+      if (exit && !('at' in corridorEnd(m, eb))) throw new Error('--exit: the second end must be a point (x,y or a cell name), where the corridor leaves the map');
       m.corridors.push({
-        from: corridorEnd(m, a), to: corridorEnd(m, b), ...(num(args, '--width') !== undefined && { width: num(args, '--width') }),
-        ...(route && { route }), ...(flag(args, '--via') && { via: numbers(flag(args, '--via'), '--via') }), ...(doors && { doors }), ...originFlag(args),
+        ...(cid && { id: cid }),
+        from: corridorEnd(m, ea, flag(args, '--from-side'), num(args, '--from-offset')), to: withExit(corridorEnd(m, eb, flag(args, '--to-side'), num(args, '--to-offset'))),
+        ...(num(args, '--width') !== undefined && { width: num(args, '--width') }),
+        ...(route && { route }), ...(flag(args, '--via') && { via: numbers(flag(args, '--via'), '--via') }), ...(doors && { doors }),
+        ...(curve && curve !== 'none' && { curve }), ...(style && style !== 'built' && { style }), ...(num(args, '--seed') !== undefined && { seed: num(args, '--seed') }), ...originFlag(args),
       });
     });
-    print(`${m.id}: corridor ${m.corridors.length - 1}: ${a} → ${b}\n${next(m.id)}`, m.corridors);
+    print([`${m.id}: corridor ${m.corridors.length - 1}: ${ea} → ${eb}`, ...warningLines(m), next(m.id)].join('\n'), m.corridors);
+    return 0;
+  }
+  if (sub === 'block') {
+    const op = pos[1], bid = pos[2];
+    let note = '';
+    const m = updateDungeon(p, need('<id> add|split|rm'), m => {
+      const splitFlags = (base?: dungeon.Block['split']): dungeon.Block['split'] => {
+        const mode = (flag(args, '--split') ?? base?.mode ?? 'bsp') as dungeon.SplitMode;
+        if (!dungeon.SPLIT_MODES.includes(mode)) throw new Error(`--split: ${dungeon.SPLIT_MODES.join(', ')}`);
+        const cx = flag(args, '--cuts-x'), cy = flag(args, '--cuts-y'), cuts = cx || cy ? { ...(cx && { x: numbers(cx, '--cuts-x', false) }), ...(cy && { y: numbers(cy, '--cuts-y', false) }) } : base?.cuts;
+        const min = num(args, '--min') ?? base?.min, seed = num(args, '--seed') ?? (op === 'split' && !flag(args, '--split') && num(args, '--min') === undefined ? Math.floor(Math.random() * 1e6) : base?.seed);
+        return { mode, ...(min !== undefined && { min }), ...(cuts && { cuts }), ...(seed !== undefined && { seed }) };
+      };
+      let id: string;
+      if (op === 'add') {
+        const shape = bid, at = flag(args, '--at'), sz = sizeFlag(args, '--size');
+        if (!['rect', 'octagon', 'circle', 'hex', 'poly'].includes(shape)) throw new Error('dungeon block <id> add rect|octagon|circle|hex|poly');
+        id = flag(args, '--block-id') ?? (() => { const used = new Set((m.blocks ?? []).map(b => b.id)); for (let n = 1; ; n++) if (!used.has(`b${n}`)) return `b${n}`; })();
+        let b: dungeon.Block;
+        if (shape === 'poly') { const points = numbers(flag(args, '--points'), '--points'); b = { id, shape: 'poly', points, ...dungeon.polyBox(points), split: splitFlags() }; }
+        else {
+          if (!at || !sz) throw new Error('dungeon block <id> add <shape> --at x,y|C4 --size WxH');
+          const [x, y] = cornerPoint(at);
+          b = shape === 'hex' ? { id, shape: 'poly', points: dungeon.hexPoints(x, y, sz[0], sz[1]), x, y, w: sz[0], h: sz[1], split: splitFlags() } : { id, shape: shape as dungeon.Block['shape'], x, y, w: sz[0], h: sz[1], split: splitFlags() };
+        }
+        if (num(args, '--doors') !== undefined) b.doors = num(args, '--doors');
+        (m.blocks ??= []).push(b);
+      } else if (op === 'split') {
+        const b = m.blocks?.find(x => x.id === bid);
+        if (!b) throw new Error(`no block ${bid} (have: ${(m.blocks ?? []).map(x => x.id).join(', ') || 'none'})`);
+        b.split = splitFlags(b.split);
+        if (num(args, '--doors') !== undefined) b.doors = num(args, '--doors');
+        id = b.id;
+      } else if (op === 'rm') {
+        if (!m.blocks?.some(x => x.id === bid)) throw new Error(`no block ${bid}`);
+        dungeon.removeBlock(m, bid); note = `removed block ${bid} and its rooms`;
+        return;
+      } else throw new Error('dungeon block <id> add|split|rm');
+      const r = dungeon.applyBlock(dungeon.parseDungeon(m), id);
+      const made = r.spec.rooms.filter(x => x.origin === `block:${id}`).length;
+      note = [`block ${id}: ${made} rooms, ${(r.spec.connections ?? []).filter(c => c.origin === `block:${id}`).length} connections`, ...r.dropped.map(d => `  dropped ${d}`)].join('\n');
+      return r.spec;
+    });
+    print([`${m.id}: ${note}`, ...warningLines(m), next(m.id)].join('\n'), m.blocks ?? []);
+    return 0;
+  }
+  if (sub === 'connect') {
+    const [, a, b] = pos;
+    if (!a || !b) throw new Error('dungeon connect <id> <room> <room> [--kind door|secret|locked|portcullis|arch|open] [--at x,y] [--width 1]');
+    const m = updateDungeon(p, need('<id>'), m => {
+      const kind = flag(args, '--kind') ?? 'door', at = flag(args, '--at'), width = num(args, '--width');
+      if (kind !== 'open' && !dungeon.DOOR_KINDS.includes(kind as dungeon.DoorKind)) throw new Error(`--kind: open or one of ${dungeon.DOOR_KINDS.join(', ')}`);
+      (m.connections ??= []).push({ a, b, ...(at && { at: dungeon.parsePoint(at) }), ...(kind !== 'door' && { kind: kind as dungeon.DoorKind | 'open' }), ...(width !== undefined && { width }), ...originFlag(args) });
+    });
+    print([`${m.id}: connection ${m.connections!.length - 1}: ${a} ↔ ${b}`, ...warningLines(m), next(m.id)].join('\n'), m.connections);
+    return 0;
+  }
+  if (sub === 'disconnect') {
+    const i = Number(pos[1]);
+    const m = updateDungeon(p, need('<id> <index>'), m => {
+      if (!Number.isInteger(i) || i < 0 || i >= (m.connections?.length ?? 0)) throw new Error(`dungeon disconnect <id> <index> (connections 0..${(m.connections?.length ?? 0) - 1}; artgen dungeon show)`);
+      m.connections!.splice(i, 1);
+      if (!m.connections!.length) delete m.connections;
+    });
+    print(`${m.id}: ${m.connections?.length ?? 0} connections\n${next(m.id)}`, m.connections ?? []);
     return 0;
   }
   if (sub === 'unlink' || sub === 'door') {
     const i = Number(pos[1]);
     const m = updateDungeon(p, need(`<id> <index>`), m => {
       if (!Number.isInteger(i) || i < 0 || i >= m.corridors.length) throw new Error(`dungeon ${sub} <id> <index> (corridors 0..${m.corridors.length - 1}; artgen dungeon show)`);
-      if (sub === 'unlink') { m.corridors.splice(i, 1); return; }
+      if (sub === 'unlink') { dungeon.removeCorridor(m, i); return; }
       const end = pos[2], kind = doorPair(pos[3] ?? 'none')![0];
       if (end !== 'from' && end !== 'to') throw new Error('dungeon door <id> <index> from|to <kind|none>');
       const c = m.corridors[i], d = c.doors ?? [null, null];
       c.doors = end === 'from' ? [kind, d[1]] : [d[0], kind];
     });
-    print(`${m.id}: ${m.corridors.length} corridors\n${next(m.id)}`, m.corridors);
+    print([`${m.id}: ${m.corridors.length} corridors`, ...warningLines(m), next(m.id)].join('\n'), m.corridors);
     return 0;
   }
   if (sub === 'grid') {
-    const mode = pos[1];
-    if (!mode) throw new Error('dungeon grid <id> 10|5|10+5|none [--clip floor|all]');
+    const mode = pos[1], size = num(args, '--size'), sub = onOff(flag(args, '--sub')), show = onOff(flag(args, '--show')), unit = flag(args, '--unit');
+    if (!mode && size === undefined && sub === undefined && show === undefined && !unit && !flag(args, '--clip'))
+      throw new Error('dungeon grid <id> [10|5|10+5|none] [--size 10] [--unit ft] [--sub on|off] [--show on|off] [--clip floor|all]');
     const m = updateDungeon(p, need('<id>'), m => {
-      m.grid = gridMode(m, mode);
+      if (unit) m.scale.unit = unit;
+      if (mode) m.grid = gridMode(m, mode);
+      m.grid = dungeon.gridFromUnits(m, { size, sub, show });
       const clip = flag(args, '--clip');
       if (clip) { if (clip !== 'floor' && clip !== 'all') throw new Error('--clip: floor or all'); m.grid.clip = clip; }
     });
@@ -399,11 +490,20 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
       if (hatch) { if (!dungeon.HATCH_STYLES.includes(hatch)) throw new Error(`--hatch: ${dungeon.HATCH_STYLES.join(', ')}`); m.style.hatch = hatch; }
       if (num(args, '--band') !== undefined) m.style.band = num(args, '--band')!;
       if (num(args, '--wall') !== undefined) m.style.wall = num(args, '--wall')!;
+      const shared = flag(args, '--shared-walls');
+      if (shared === 'auto') delete m.style.sharedWalls; else if (onOff(shared) !== undefined) m.style.sharedWalls = onOff(shared)!;
       const t = flag(args, '--title');
       if (t !== undefined) { if (t) m.title = t; else delete m.title; }
       for (const [f, k] of [['--numbers', 'numbers'], ['--scale-bar', 'scaleBar'], ['--compass', 'compass'], ['--legend', 'legend']] as const) { const v = onOff(flag(args, f)); if (v !== undefined) m[k] = v; }
       if (num(args, '--per-cell') !== undefined) m.scale.perCell = num(args, '--per-cell')!;
       if (flag(args, '--unit')) m.scale.unit = flag(args, '--unit')!;
+      const place = flag(args, '--furniture'), side = flag(args, '--furniture-side');
+      if (place !== undefined || side !== undefined) {
+        if (place !== undefined && !dungeon.FURNITURE_PLACES.includes(place as dungeon.FurniturePlace)) throw new Error(`--furniture: ${dungeon.FURNITURE_PLACES.join(', ')}`);
+        if (side !== undefined && !dungeon.FURNITURE_SIDES.includes(side as dungeon.FurnitureSide)) throw new Error(`--furniture-side: ${dungeon.FURNITURE_SIDES.join(', ')}`);
+        const f = { place: (place ?? m.furniture?.place ?? 'outside') as dungeon.FurniturePlace, ...((side ?? m.furniture?.side) && { side: (side ?? m.furniture?.side) as dungeon.FurnitureSide }) };
+        if (f.place === 'over' && !f.side) delete m.furniture; else m.furniture = f;
+      }
     });
     print(`${describeDungeon(m)}\n${next(m.id)}`, m);
     return 0;
@@ -416,14 +516,14 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
       if (sub === 'label') {
         const kind = (flag(args, '--kind') ?? 'name') as dungeon.LabelKind;
         if (!dungeon.LABEL_KINDS.includes(kind)) throw new Error(`--kind: ${dungeon.LABEL_KINDS.join(', ')}`);
-        m.overlay.labels.push({ text: what, x, y, kind, ...(num(args, '--size') !== undefined && { size: num(args, '--size') }), ...(angle !== undefined && { angle }), ...originFlag(args) });
+        m.overlay.labels.push({ text: what, x, y, kind, ...(num(args, '--size') !== undefined && { size: num(args, '--size') }), ...(angle !== undefined && { angle }), ...(flag(args, '--href') && { href: flag(args, '--href') }), ...originFlag(args) });
       } else {
         if (!dungeon.SYMBOLS[what]) throw new Error(`unknown symbol ${what} (have: ${dungeon.SYMBOL_KINDS.join(', ')})`);
         m.overlay.symbols.push({ kind: what, x, y, ...(num(args, '--scale') !== undefined && { scale: num(args, '--scale') }), ...(angle !== undefined && { angle }), ...originFlag(args) });
       }
     });
     const n = sub === 'label' ? m.overlay.labels.length : m.overlay.symbols.length;
-    print(`${m.id}: ${sub} ${n - 1} "${what}"\n${next(m.id)}`, sub === 'label' ? m.overlay.labels : m.overlay.symbols);
+    print([`${m.id}: ${sub} ${n - 1} "${what}"`, ...warningLines(m), next(m.id)].join('\n'), sub === 'label' ? m.overlay.labels : m.overlay.symbols);
     return 0;
   }
   if (sub === 'overlay') {
@@ -443,7 +543,9 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
   }
   if (sub === 'check') {
     const r = checkDungeonFile(p, need('<id>'));
-    print(r.ok ? `${r.file}: ok` : [`${r.file}: ${r.errors.length} error${r.errors.length === 1 ? '' : 's'}`, ...r.errors.map(e => `  ${e.path || '(file)'}: ${e.message}`)].join('\n'), r);
+    const n = (k: number, w: string) => `${k} ${w}${k === 1 ? '' : 's'}`;
+    print([r.ok ? `${r.file}: ok${r.warnings.length ? `, ${n(r.warnings.length, 'warning')}` : ''}` : `${r.file}: ${n(r.errors.length, 'error')}${r.warnings.length ? `, ${n(r.warnings.length, 'warning')}` : ''}`,
+      ...r.errors.map(e => `  error: ${e.path || '(file)'}: ${e.message}`), ...r.warnings.map(e => `  warning: ${e.path || '(file)'}: ${e.message}`)].join('\n'), r);
     return r.ok ? 0 : 1;
   }
   if (sub === 'fit') {
@@ -475,7 +577,7 @@ export async function dungeonCommand(sub: string | undefined, args: string[], em
     print(syncText(String(file ?? id), report), report);
     return 0;
   }
-  throw new Error('dungeon: new | gen | room | link | unlink | door | grid | style | label | symbol | symbols | overlay | check | fit | render | show | facts | sync | list (artgen --help)');
+  throw new Error('dungeon: new | gen | room | block | link | unlink | door | connect | disconnect | grid | style | label | symbol | symbols | overlay | check | fit | render | show | facts | sync | list (artgen --help)');
 }
 
 /** `artgen formats [--json]`: the map and dungeon file format versions this artgen reads and writes. */

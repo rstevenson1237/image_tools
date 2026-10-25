@@ -31,7 +31,7 @@ describe('artgen MCP server', () => {
     const r = (await handle({ jsonrpc: '2.0', id: 4, method: 'tools/list' }, root))!.result as { tools: { name: string; inputSchema: { type: string } }[] };
     expect(r.tools.map(t => t.name)).toEqual(['direction_get', 'direction_tile', 'pass_status', 'render', 'review', 'conformance', 'score', 'finish', 'make', 'brief_lint', 'status',
       'gallery', 'feedback', 'approve', 'texture', 'fx', 'export', 'restyle', 'analytics', 'map_list', 'map_get', 'map_new', 'map_update', 'map_edit', 'map_overlay', 'map_render',
-      'dungeon_list', 'dungeon_get', 'dungeon_new', 'dungeon_update', 'dungeon_generate', 'dungeon_edit', 'dungeon_overlay', 'dungeon_render']);
+      'dungeon_list', 'dungeon_get', 'dungeon_new', 'dungeon_update', 'dungeon_generate', 'dungeon_edit', 'dungeon_check', 'dungeon_overlay', 'dungeon_render']);
     expect(r.tools.every(t => t.inputSchema.type === 'object')).toBe(true);
   });
 
@@ -173,6 +173,18 @@ describe('artgen MCP server on a locked project (W2 tools)', () => {
     expect((await call('dungeon_overlay', { id: 'crypt', add_symbols: [{ kind: 'dragon', x: 1, y: 1 }] })).isError).toBe(true);
     const got = JSON.parse((await call('dungeon_get', { id: 'crypt' })).content[1].text!);
     expect(got).toMatchObject({ title: 'Crypt', grid: { show: true, size: 2, sub: true }, style: { hatch: 'full' }, rooms: [{ id: 'r1', x: 2, y: 2, label: 'Hall' }, { id: 'r2', shape: 'cave' }], corridors: [{ doors: ['door', null] }, { doors: ['portcullis', null] }], overlay: { labels: [{ text: 'Bones', x: 2.5, y: 3.5 }], symbols: [{ kind: 'stairs', angle: 90 }] } });
+    await call('dungeon_edit', { id: 'crypt', ops: [{ op: 'add_block', shape: 'hex', at: [3, 12], w: 12, h: 8, split: 'grid', min: 4, id: 'hx' }, { op: 'split_block', id: 'hx', seed: 4 }] });
+    const blk = JSON.parse((await call('dungeon_get', { id: 'crypt' })).content[1].text!);
+    expect(blk.blocks).toEqual([expect.objectContaining({ id: 'hx', shape: 'poly', split: { mode: 'grid', min: 4, seed: 4 } })]);
+    expect(blk.rooms.filter((r: { origin?: string }) => r.origin === 'block:hx').length).toBeGreaterThan(1);
+    await call('dungeon_edit', { id: 'crypt', ops: [{ op: 'remove_block', id: 'hx' }] });
+    expect(JSON.parse((await call('dungeon_get', { id: 'crypt' })).content[1].text!).blocks).toBeUndefined();
+    const chk = JSON.parse((await call('dungeon_check', { id: 'crypt' })).content[0].text!);
+    expect(chk).toMatchObject({ ok: true, errors: [] });
+    expect(chk.warnings).toEqual(expect.any(Array));
+    await call('dungeon_update', { id: 'crypt', grid_size: 15, sub_grid: false });
+    expect(JSON.parse((await call('dungeon_get', { id: 'crypt' })).content[1].text!).grid).toMatchObject({ show: true, size: 3, sub: false });
+    expect((await call('dungeon_update', { id: 'crypt', grid_size: 12 })).isError).toBe(true);
     await call('dungeon_generate', { id: 'crypt', seed: 3, gen: { rooms: 5 }, cols: 30, rows: 24 });
     expect(JSON.parse((await call('dungeon_get', { id: 'crypt' })).content[1].text!).overlay.labels).toHaveLength(1);
     expect(JSON.parse((await call('dungeon_list')).content[0].text!).dungeons.map((d: { id: string }) => d.id).sort()).toEqual(['cell', 'crypt']);
