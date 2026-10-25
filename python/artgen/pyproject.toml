@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "artgen"
-version = "0.10.0"
+version = "0.11.0"
 description = "Thin Python client for the artgen pixel-art pipeline: calls the artgen CLI with --json and returns dicts and Pillow images."
 readme = "README.md"
 requires-python = ">=3.9"

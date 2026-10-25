@@ -57,7 +57,7 @@ furniture at true size), shown close up or cut away on the site; colour or black
 is `art/settlements/<id>/settlement.json`; the **Settlement Map** tool in the image tools opens, edits and saves it.
 
 Later: `npx -y github:rstevenson1237/image_tools#artgen-dist update` (keeps your local edits), or pin a release with
-`#artgen-dist-v0.10.0` ([changelog](packages/artgen-dist/CHANGELOG.md)). `node tools/artgen/artgen.js --help` lists
+`#artgen-dist-v0.11.0` ([changelog](packages/artgen-dist/CHANGELOG.md)). `node tools/artgen/artgen.js --help` lists
 the CLI; the same tools are an MCP server (`artgen`) in every install, and `python/artgen` is a Python client.
 [`examples/`](examples/) holds three small games built entirely this way: a top-down swamp (Pixi.js), an isometric
 dungeon (Pixi.js) and a first-person billboard crawler (three.js).

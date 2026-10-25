@@ -2,7 +2,12 @@
 
 Releases of the committed install (`artgen-dist`), the MCP server, the runtime it vendors and the Python client.
 
-## Unreleased
+## 0.11.0 — 2026-10-25
+
+Settlement maps (villages, towns, cities and castles, with each building's floor plans) join terrain maps and
+dungeons; the map and dungeon engines become usable alone by a consumer (path mode, a maps-only bundle, format
+versions, facts, checks, requirements, crops and page-sized text); dungeons gain underlays, walls, dense layouts,
+blocks, links and exits.
 
 Reads: **map format 1**, **dungeon format 1**, **settlement format 1**. `artgen formats --json` prints
 `{"map": 1, "dungeon": 1, "settlement": 1}`.
