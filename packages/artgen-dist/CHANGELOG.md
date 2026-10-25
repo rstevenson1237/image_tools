@@ -4,7 +4,43 @@ Releases of the committed install (`artgen-dist`), the MCP server, the runtime i
 
 ## Unreleased
 
-Reads: **map format 1**, **dungeon format 1**. `artgen formats --json` prints `{"map": 1, "dungeon": 1}`.
+Reads: **map format 1**, **dungeon format 1**, **settlement format 1**. `artgen formats --json` prints
+`{"map": 1, "dungeon": 1, "settlement": 1}`.
+
+**Settlement maps** (new: `art/settlements/<id>/settlement.json`, settlement format 1)
+- A third map engine beside terrain maps and dungeons: hamlets, villages, towns, cities and castles laid out from plain
+  shapes as a referee's reference, in colour or black and white. The file holds roads (`highway street lane alley path
+  track`), water (`river stream canal moat` lines, `pond lake sea` areas; bridges are drawn where roads cross water),
+  walls (`curtain stone palisade fence hedge drystone ruined`) with round or square towers at the corners or every N
+  cells and gates (`gatehouse gate postern opening`, with an optional drawbridge over a moat), buildings (19 kinds from
+  house to keep; `rect L T circle octagon poly`, turned by `angle`; `gable hip flat battlement cone thatch none`
+  roofs), areas (`field garden orchard wood scrub marsh graveyard market square yard paddock rubble`; woods and
+  orchards fill with trees), trees and boulders, site props, labels and symbols, and an optional terrain-map `underlay`.
+- Each building can hold its floors (`level` 0 ground, 1 up, -1 cellar): rooms and connections as in a dungeon, doors
+  and windows in the outer wall, and furniture and fixtures from a registry of 56 kinds drawn at true size (beds,
+  tables, benches, chests, hearths, ovens, forges, anvils, altars, pews, thrones, stairs up and down, spiral stairs,
+  ladders, trapdoors, wells, fountains, stalls, carts, …; `artgen settlement fixtures`).
+- Two views of one file: the **site** (buildings as roofs, as outlines, or cut away to their ground floor) and a
+  building's **plan** (one floor at 5 ft a cell with its own grid, walls, doors, windows, furniture, room names, a
+  title naming the building and floor, a scale bar, a compass turned with the building and a legend of the furniture).
+- The generator lays a settlement out from a seed and `gen` (`buildings density streets wall water trees fields market
+  castle interiors`): through roads routed round water and up gentle slopes to a market square, lanes and alleys, a
+  town wall with gates where the roads cross it, a castle (curtain wall, gatehouse, keep, hall, chapel, barracks, moat
+  and outer bailey), buildings along the streets with the inn, temple, smithy and mill at fitting spots, gardens,
+  fields, a graveyard and a wood, trees and props. With `interiors` (or `settlement interior <id> <building>`) every
+  building gets its floors: rooms by what the building is, a door on the side facing the road, windows, stairs at the
+  same spot on every floor and furniture by room. Over a terrain map the map's rivers, lakes, sea and forest become the
+  settlement's water and woods. Entries without `origin: "gen"` are kept when it runs again.
+- CLI: `artgen settlement new|gen|building|interior|floor|room|connect|disconnect|door|window|fixture|prop|road|water|
+  wall|area|tree|grid|style|label|symbol|overlay|check|facts|render|show|list|fixtures|symbols`, `--file` path mode,
+  and in the maps-only bundle. `render --view site|plan --building b3 --floor 1 --buildings roofs|outline|interior
+  --theme color|bw|both --plans`. `check` lists file errors with their JSON paths and drawing warnings (buildings on
+  each other, in water or across a road, furniture outside its building, stairs that meet nothing).
+- MCP: `settlement_list`, `settlement_get`, `settlement_new`, `settlement_update`, `settlement_generate`,
+  `settlement_edit` (one op vocabulary with the CLI and the web tool), `settlement_check`, `settlement_facts`,
+  `settlement_render` (the PNG inline). Skill `settlement-map`, command `/artgen-settlement`.
+- Web: the **Settlement Map** tool in the image tools edits the same file.
+- The dungeon underlay now takes any sheet (an internal signature; dungeon files and renders are unchanged).
 
 **File format versions** (`map.json`, `dungeon.json`)
 - The `version` in the file is read, no longer overwritten. A file without one reads as 1; a file at an older version is

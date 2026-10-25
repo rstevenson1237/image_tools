@@ -197,7 +197,8 @@ describe('map check', () => {
 
 describe('the maps-only entry', () => {
   test('formats, version, help and the same commands; other commands are refused', async () => {
-    expect(JSON.parse((await runMaps('formats', '--json')).out)).toEqual({ map: 1, dungeon: 1 });
+    expect(JSON.parse((await runMaps('formats', '--json')).out)).toEqual({ map: 1, dungeon: 1, settlement: 1 });
+    expect((await runMaps('--help')).out).toContain('artgen settlement render');
     expect((await runMaps('--version')).out).toMatch(/^\S+ \(\S+\)$/);
     expect((await runMaps('--help')).out).toContain('artgen dungeon check');
     expect((await runMaps('--help')).out).toContain('artgen map check');

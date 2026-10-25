@@ -11,7 +11,8 @@ export {
   renderSettlementSvg, settlementRenderSize, settlementLayersFor, planSheet, planTarget, SITE_LAYERS, PLAN_LAYERS, VIEWS, BUILDING_MODES, SYMBOLS, SYMBOL_KINDS, PLAN_MARGIN,
   type SettlementLayer, type SettlementView, type BuildingMode, type RenderSettlementOptions,
 } from './render.ts';
-export { generateSettlement, settlementFromMap, groundFromMap, feetIn, type Ground } from './generate.ts';
+export { generateSettlement, settlementFromMap, groundFromMap, feetIn, type GroundSampler } from './generate.ts';
 export { generateInterior, withInterior, frontSide, storiesOf } from './interior.ts';
 export { lintSettlement, type Finding, type Severity } from './lint.ts';
 export { settlementFacts, type SettlementFacts } from './facts.ts';
+export { editSettlement, SETTLEMENT_OPS, type SettlementOp } from './edit.ts';

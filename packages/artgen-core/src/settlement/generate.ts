@@ -23,10 +23,10 @@ const r2 = (v: number) => Math.round(v * 100) / 100;
 const flat = (pts: P[]) => pts.flatMap(([x, y]) => [r2(x), r2(y)]);
 
 /** The ground a settlement stands on: what the terrain map says at a sheet point, or open dry ground. */
-export interface Ground { water(x: number, y: number): boolean; slope(x: number, y: number): number; forest(x: number, y: number): boolean }
+export interface GroundSampler { water(x: number, y: number): boolean; slope(x: number, y: number): number; forest(x: number, y: number): boolean }
 
 /** The terrain map under the sheet (`underlay`), sampled in sheet cells. */
-export function groundFromMap(spec: SettlementSpec, field: MapField): Ground {
+export function groundFromMap(spec: SettlementSpec, field: MapField): GroundSampler {
   const u = spec.underlay!, T = (t: string) => TERRAINS.indexOf(t as never);
   const at = (x: number, y: number) => {
     const mx = u.origin[0] + x * u.scale, my = u.origin[1] + y * u.scale, i = Math.floor(mx * field.res), j = Math.floor(my * field.res);
@@ -40,7 +40,7 @@ export function groundFromMap(spec: SettlementSpec, field: MapField): Ground {
   };
 }
 
-const FLAT: Ground = { water: () => false, slope: () => 0, forest: () => false };
+const FLAT: GroundSampler = { water: () => false, slope: () => 0, forest: () => false };
 
 /** Building sizes in feet: [frontage min, max, depth min, max]. */
 const SIZE_FT: Record<BuildingKind, [number, number, number, number]> = {
@@ -154,7 +154,7 @@ function mapWater(spec: SettlementSpec, field: MapField): Water[] {
 }
 
 /** Woods from the map's forest under the sheet. */
-function mapWoods(spec: SettlementSpec, ground: Ground): Area[] {
+function mapWoods(spec: SettlementSpec, ground: GroundSampler): Area[] {
   const W = spec.cols + 3, H = spec.rows + 3, f = new Float32Array(W * H), out: Area[] = [];
   for (let j = 1; j < H - 1; j++) for (let i = 1; i < W - 1; i++) f[j * W + i] = ground.forest(i - 1, j - 1) ? 1 : 0;
   for (const l of isolines(f, W, H, 0.5)) {

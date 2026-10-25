@@ -30,9 +30,10 @@ describe('artgen-dist', () => {
       'dist/tools/artgen/resvg.wasm', 'dist/tools/artgen/VERSION', 'dist/tools/artgen/templates/topdown/character/base.js',
       'dist/claude/skills/artgen/SKILL.md', 'dist/claude/skills/art-direction/SKILL.md', 'dist/claude/agents/art-reviewer.md', 'dist/claude/agents/art-maker.md',
       'dist/claude/commands/artgen-init.md', 'dist/claude/commands/artgen-direction.md', 'dist/claude/skills/asset-production/SKILL.md',
-      ...['brief', 'make', 'review', 'feedback', 'approve', 'export', 'restyle', 'map', 'dungeon'].map(c => `dist/claude/commands/artgen-${c}.md`),
+      ...['brief', 'make', 'review', 'feedback', 'approve', 'export', 'restyle', 'map', 'dungeon', 'settlement'].map(c => `dist/claude/commands/artgen-${c}.md`),
       'dist/claude/skills/terrain-map/SKILL.md', 'plugin/skills/terrain-map/SKILL.md', 'plugin/commands/map.md',
       'dist/claude/skills/dungeon-map/SKILL.md', 'plugin/skills/dungeon-map/SKILL.md', 'plugin/commands/dungeon.md',
+      'dist/claude/skills/settlement-map/SKILL.md', 'plugin/skills/settlement-map/SKILL.md', 'plugin/commands/settlement.md',
       'dist/tools/artgen/fonts/AlegreyaSans-Regular.ttf', 'dist/tools/artgen/fonts/OFL.txt', 'plugin/tools/artgen/fonts/AlegreyaSans-Bold.ttf',
       'dist/tools/artgen/templates/topdown/character-walk/base.js', 'plugin/commands/make.md',
       'dist/tools/artgen/runtime/index.ts', 'dist/tools/artgen/runtime/adapters/pixi.ts', 'dist/tools/artgen/runtime/adapters/three.ts',
@@ -91,6 +92,15 @@ describe('artgen-dist', () => {
     for (const f of ['lair.svg', 'lair.png']) expect(existsSync(join(GAME, 'art/dungeons/lair/out', f)), f).toBe(true);
   });
 
+  test('settlement from the committed files: generated village → a floor plan → render (bundled fonts)', () => {
+    const cli = (...a: string[]) => { const r = node(['tools/artgen/artgen.js', ...a]); expect(r.status, r.stderr + r.stdout).toBe(0); return r.stdout; };
+    cli('settlement', 'new', 'brook', '--kind', 'hamlet', '--seed', '3', '--title', 'Brook');
+    cli('settlement', 'interior', 'brook', 'b1');
+    expect(cli('settlement', 'render', 'brook', '--ppu', '6', '--theme', 'both')).toMatch(/brook\.bw\.png/);
+    expect(cli('settlement', 'render', 'brook', '--building', 'b1', '--ppu', '16')).toMatch(/brook\.b1\.f0\.color\.png/);
+    for (const f of ['brook.color.png', 'brook.bw.png', 'brook.b1.f0.color.png']) expect(existsSync(join(GAME, 'art/settlements/brook/out', f)), f).toBe(true);
+  });
+
   test('session-equivalent W2 run from the committed files: brief → make → review/score → status → export (drafts)', () => {
     const cli = (...a: string[]) => { const r = node(['tools/artgen/artgen.js', ...a]); expect(r.status, r.stderr + r.stdout).toBe(0); return r.stdout; };
     cli('brief', 'add', 'wisp', '--kind', 'effect', '--object', 'will-o-wisp flame with orbiting sparks', '--anims', 'idle:4');
@@ -122,7 +132,7 @@ describe('artgen-dist', () => {
     const r = node(['tools/artgen/artgen-mcp.js'], msgs.map(m => JSON.stringify(m)).join('\n') + '\n');
     const out = r.stdout.trim().split('\n').map(l => JSON.parse(l));
     expect(out.map(m => m.id)).toEqual([1, 2, 3]);
-    expect(out[1].result.tools.map((t: { name: string }) => t.name)).toEqual(expect.arrayContaining(['make', 'approve', 'texture', 'fx', 'export', 'analytics', 'map_render', 'dungeon_render']));
+    expect(out[1].result.tools.map((t: { name: string }) => t.name)).toEqual(expect.arrayContaining(['make', 'approve', 'texture', 'fx', 'export', 'analytics', 'map_render', 'dungeon_render', 'settlement_render']));
     expect(out[2].result.content.map((c: { type: string }) => c.type)).toEqual(['text', 'image']);
   });
 
@@ -193,7 +203,7 @@ describe('maps/ (the maps-only bundle)', () => {
 
   test('--version prints the release and the commit it was built from; formats --json', () => {
     expect(ok('--version').trim()).toBe(`${readFileSync(join(OUT, 'maps', 'VERSION'), 'utf8').trim()} (${sourceSha()})`);
-    expect(JSON.parse(ok('formats', '--json'))).toEqual({ map: 1, dungeon: 1 });
+    expect(JSON.parse(ok('formats', '--json'))).toEqual({ map: 1, dungeon: 1, settlement: 1 });
   });
 
   test('check, fit and an SVG render of the fixtures from an empty folder, with no resvg.wasm and no fonts', () => {
@@ -238,6 +248,6 @@ describe('maps/ (the maps-only bundle)', () => {
   test('other commands are not in the bundle', () => {
     const r = maps('render', 'art/assets/character/x');
     expect(r.status).toBe(1);
-    expect(r.stderr).toMatch(/map, dungeon and formats/);
+    expect(r.stderr).toMatch(/map, dungeon, settlement and formats/);
   });
 });
