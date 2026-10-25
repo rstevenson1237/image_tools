@@ -11,8 +11,11 @@ import { n1 } from '../lib/svgdraw.ts';
 import type { Crop } from '../lib/view.ts';
 import type { DungeonSpec } from './spec.ts';
 
+/** What the underlay needs of the sheet it lies under (a dungeon's or a settlement's). */
+export type UnderlaySheet = Pick<DungeonSpec, 'cols' | 'rows' | 'underlay'>;
+
 /** The part of the map under the dungeon, in map units, cut to the map; null when the dungeon lies wholly off it. */
-export function underlayWindow(spec: DungeonSpec, map: Pick<MapSpec, 'cols' | 'rows'>): Crop | null {
+export function underlayWindow(spec: UnderlaySheet, map: Pick<MapSpec, 'cols' | 'rows'>): Crop | null {
   const u = spec.underlay;
   if (!u) return null;
   const x0 = Math.max(0, u.origin[0]), y0 = Math.max(0, u.origin[1]);
@@ -21,7 +24,7 @@ export function underlayWindow(spec: DungeonSpec, map: Pick<MapSpec, 'cols' | 'r
 }
 
 /** The underlay as SVG at `k` pixels per dungeon cell (empty when there is none, or it lies off the map). */
-export function underlaySvg(spec: DungeonSpec, map: MapSpec, k: number, field?: MapField): string {
+export function underlaySvg(spec: UnderlaySheet, map: MapSpec, k: number, field?: MapField): string {
   const u = spec.underlay, win = underlayWindow(spec, map);
   if (!u || !win) return '';
   const ppu = k / u.scale;
