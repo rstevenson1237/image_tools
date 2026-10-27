@@ -1,7 +1,8 @@
 # Tooling plan: separate, refactor, and build a feedback loop
 
-Status: proposal, 2026-10-27. Nothing here is built yet. It follows on from the finished artgen plan
-([`archive/artgen/PLAN.md`](archive/artgen/PLAN.md)) and reuses its decisions (`Dn`) where they still hold.
+Status: proposal, 2026-10-27; the open decisions were settled the same day (§12). Nothing here is built yet. It
+follows on from the finished artgen plan ([`archive/artgen/PLAN.md`](archive/artgen/PLAN.md)) and reuses its
+decisions (`Dn`) where they still hold.
 
 ## 1. Summary
 
@@ -10,9 +11,10 @@ This plan covers five things:
 1. **Keep one source repo, split what gets published.** Split the engine into layered packages (primitives → scene →
    artgen and mapgen → workflow → interfaces). Then publish each one on its own, so a game repo or a tool like
    setting_builder takes only what it needs.
-2. **Keep the `npx … init` committed install.** It is still the only way that works in both cloud and local Claude
-   Code sessions (D1). Add modules (`init --with art,maps`), a scheduled update pull request in each consumer repo,
-   and npm packages for code that imports the engine directly.
+2. **Deliver everything through npm.** Game repos still commit the installed files, because that is the only way
+   that works in both cloud and local Claude Code sessions (D1). What changes is where the installer comes from:
+   `npx -y @artgen/install init` instead of a GitHub branch. The engine libraries and the runtime are ordinary npm
+   packages. Add modules (`init --with art,maps`) and a scheduled update pull request in each consumer repo.
 3. **Make the loop run both ways.** Each consumer repo can send back a feedback bundle (`artgen report`) and its local
    edits (`artgen upstream`). This repo turns them into consumer fixtures and tests every release against them before
    it ships. Metrics from every repo are pooled, so you can see if a change made the work faster.
@@ -101,22 +103,30 @@ install.
 | Option | Cloud sessions | Takes only what's needed | Updates | Two-way | Verdict |
 |---|---|---|---|---|---|
 | **A. `npx …#artgen-dist init` (today)** | ✅ files are committed | ◐ all or maps-only | `update`, by hand | one way | keep, extend |
-| A+. A with modules (`init --with maps`, `add art`) | ✅ | ✅ | scheduled pull request | `report`, `upstream` | **recommended** |
+| A+. A with modules (`init --with maps`, `add art`) | ✅ | ✅ | scheduled pull request | `report`, `upstream` | the shape of F, delivered from a GitHub branch |
 | B. git submodule / subtree of a slim dist repo | submodule ✗ (not documented in cloud), subtree ✅ | ✅ | `subtree pull` | `subtree push` sends edits back | heavy for collaborators. Skills still have to be copied into `.claude/` |
 | C. npm package dependency | ✅ after `npm install`, but needs the network or a lockfile cache | ✅ | Renovate | ✗ | good for **code** consumers (runtime, mapgen library), not for skills |
 | D. Plugin marketplace | ✗ in cloud (D1) | ✅ | auto | ✗ | optional, local only |
 | E. Split the source into separate repos | n/a | n/a | releases in lockstep | n/a | not now (D2 still holds: the UI and CLI must run the same engine) |
 
-**Recommendation.** Use A+ for Claude Code tooling (skills, agents, commands, CLI and MCP bundles), and C for code that
-imports the engine.
+| **F. A+ delivered through npm** (`npx -y @artgen/install init`) | ✅ the installer copies files, which are committed | ✅ | `update`, or Renovate/Dependabot bump the pin | `report`, `upstream` | **chosen** (§12) |
 
+**Decision (§12): one source repo, everything delivered through npm.** npm is the public registry for JavaScript
+packages; `npx` downloads a package and runs it once, without adding it to the project.
+
+- **Claude Code tooling** (skills, agents, commands, CLI and MCP bundles) ships as the `@artgen/install` package. Its
+  installer copies the chosen modules into the game repo, where they are committed as today. After that, sessions need
+  no network or npm, as now.
+- **Code that imports the engine** (a game's runtime, a tool like setting_builder that builds maps in code) depends on
+  `@artgen/runtime`, `@artgen/mapgen` and the others like any npm package.
+- The `artgen-dist` GitHub branch stays published as a fallback for a release or two, then is retired.
 - The source stays in this repo, which avoids version skew between the web UI and the CLI.
 - The installer gets **modules**: `core` (always), `art`, `maps`, and `ui-links`. A module is a list of skills,
   commands, agents, bundles and the `CLAUDE.md` sections it needs. `MANIFEST.json` records the modules a repo has.
 - The `maps` module is a first-class product (`mapgen`), with its own version line and changelog section. The
-  maps-only bundle setting_builder uses today becomes this module.
-- A separate source repo only makes sense if mapgen gains consumers that never use artgen **and** someone else
-  maintains it. §12 records this as a later decision.
+  maps-only bundle setting_builder uses today becomes this module. Its command stays `artgen map …` (§12).
+- New tools join the same way: a package in this repo, a module in the installer, and a group of `artgen`
+  subcommands.
 
 ## 5. The two-way loop
 
@@ -143,10 +153,14 @@ imports the engine.
 - **Consumer CI.** Before a release, run every fixture against the candidate build, and stop the release on a
   regression.
 - **Update pull requests.** The install ships `.github/workflows/artgen-update.yml` (opt-in). Once a week it runs
-  `npx …#artgen-dist update` and opens a pull request with the changelog section, and it never overwrites local edits
-  (it already refuses without `--force`).
-- **Metrics pooling.** `artgen metrics export` writes counts and ratios only (passes, tokens, minutes, scores, gate
-  failures by check, per kind and per version) to `art/metrics/<version>.json`. There are no images and no prose.
+  `npx -y @artgen/install@latest update` and opens a pull request with the changelog section, and it never overwrites
+  local edits (it already refuses without `--force`). Code packages (`@artgen/runtime`, …) are bumped by Renovate or
+  Dependabot like any other dependency.
+- **Metrics pooling.** Every generator reports metrics: art assets, all three map engines, and any tool added later
+  (§12). The `workflow` package (§7) makes this part of what a generator must provide, so a new tool can't skip it.
+  `artgen metrics export` writes counts and ratios only (passes, tokens, minutes, scores, check failures, per kind and
+  per version) to `art/metrics/<version>.json`. There are no images and no prose. It is on by default in your own
+  repos.
   `analytics --across` already pools across repos; a script here collects the files from known consumers. This is
   how you check whether a release made production cheaper.
 - **Lessons.** When the pooled metrics show a pitfall that repeats (a gate check that fails often, or a kind that
@@ -234,11 +248,17 @@ Output × camera targets. "Built" means it exists today; the phase number says w
 |---|---|---|---|---|---|
 | 2D | built | built | built | textures, built | — |
 | 2.5D | oblique, built | parallax, built | built | billboards, built | — |
-| Voxel | built | built | built | `.vox`/`.glb`, built | P7 orbit preview |
-| 3D (low-poly glTF) | P7 | P7 | P7 | P7 | P7 |
+| Voxel | built | built | built | `.vox`/`.glb`, built | R7a orbit preview |
+| True 3D (glTF meshes) | R7a | R7a | R7a | R7a | R7a |
 
-3D means primitives from `Scene3D` exported as meshes (not voxels): flat-shaded low-poly with palette colours, so it
-keeps the direction model. Painted textures and PBR stay out of scope (D18 still applies).
+Voxel and true 3D are both targets (§12), built from the same `Scene3D` primitives:
+
+- **Voxel** keeps today's path: cells, `.vox`, greedy-mesh `.glb`.
+- **True 3D** turns the primitives into real meshes (smooth or faceted, with a set polygon budget). The meshes get
+  UVs, and their textures (colour, normal, roughness) are baked from the direction's palette and the same proc layers.
+  Each mesh is skinned to the shared rig library (§8, stage 2), with animation clips and levels of detail, and the
+  whole asset exports as one `.glb`. A restyle re-bakes the textures, so 3D assets keep the direction model.
+- Generated images stay out (D18): every texture comes from code and the palette.
 
 ## 9. One operation registry for all interfaces
 
@@ -252,8 +272,8 @@ From that one declaration:
 - the web UI gets its forms and the commands it can call in the worker;
 - the docs get a reference table, and a parity test fails when an interface is missing an operation.
 
-The Node/JS library interface comes from P1 + P3: `primitives`, `scene`, `mapgen` and `runtime` published to npm under
-one scope, built to JS with type declarations. Today the packages export TypeScript source.
+The Node/JS library interface comes from R1 + R3: `@artgen/primitives`, `@artgen/scene`, `@artgen/mapgen` and
+`@artgen/runtime` published to npm, built to JS with type declarations. Today the packages export TypeScript source.
 
 ## 10. Phases
 
@@ -292,11 +312,14 @@ faster for the phases after it.
   <module>`. Record the modules in `MANIFEST.json`.
 - Give `mapgen` its own version line in the changelog. Keep the format versions as they are.
 - Ship the opt-in `artgen-update.yml` workflow (§5).
-- Publish `runtime`, `primitives`, `scene` and `mapgen` to npm. This is an owner step: pick the npm scope first.
+- Publish `@artgen/install`, `@artgen/runtime`, `@artgen/primitives`, `@artgen/scene` and `@artgen/mapgen` from the
+  release workflow, using npm trusted publishing: GitHub Actions proves who it is to npm, so no token is stored, and
+  each package carries a provenance record linking it to the commit it was built from. The owner steps are in §12.
+- The README quickstart switches to `npx -y @artgen/install init`. `#artgen-dist` keeps working as a fallback.
 - **Makes later work faster:** consumers stay current without being asked, so feedback arrives about the current
   version, not an old one.
 - **Accept:** a maps-only install has no art skills in it; an update opens a pull request in a scratch repo; the
-  release acceptance script passes for both modules.
+  release acceptance script passes for both modules, installing from npm.
 
 ### R4 — Feedback loop (M)
 - Add `artgen report`, `artgen upstream`, `artgen metrics export`, the issue template, and the intake script that
@@ -312,6 +335,8 @@ faster for the phases after it.
 ### R5 — One workflow for maps and assets (M–L)
 - Build the `workflow` package (§7): versions, ledger, review and approval for maps; map briefs; map themes as a
   locked direction; the one-page data sheet for both maps and assets; references shown on review sheets.
+- Make metrics part of what every generator must provide, so terrain, dungeon and settlement maps report the same
+  fields as art (§12).
 - The Asset Review tool lists maps as well.
 - **Makes later work faster:** maps get metrics, so map work can be tuned the same way art is; a single review tool
   is less code to maintain.
@@ -328,15 +353,20 @@ faster for the phases after it.
 - **Accept:** on the bench, tokens and passes per approved asset fall against the R0 baseline, with no drop in blind
   score; a restyle re-runs only stages 3 and later.
 
-### R7 — Output and camera breadth (L)
-- Add low-poly glTF output from `Scene3D` primitives (flat-shaded, palette materials) and a free-camera orbit preview
-  in the web UI (three.js is already a runtime adapter).
-- Add Tiled and LDtk export for maps and tilesets.
-- Each new camera is a view module (projection, probe set, context view, check, runtime helper), the plug-in shape
-  D8 already set.
-- **Makes later work faster:** more of the output matrix can be filled without new pipelines, since it is the same
-  primitives and the same review.
-- **Accept:** every cell in §8's matrix has a template and one bench asset at or above the approval bar.
+### R7 — Output and camera breadth (L, three sub-phases)
+- **R7a — true 3D meshes and the free camera.** Turn `Scene3D` primitives into meshes (polygon budget, smooth or
+  faceted), add UVs and bake textures (colour, normal, roughness) from the palette and proc layers, and export `.glb`.
+  Add a perspective camera and an orbit preview in the web UI for both voxel and mesh assets (three.js is already a
+  runtime adapter). Add mesh checks: closed (watertight) meshes, polygon budget, scale, UVs that don't overlap, and
+  texel density.
+- **R7b — rigged and animated 3D.** Skin meshes to the shared rig library (R6b), export animation clips and levels of
+  detail, and load them through the three.js adapter.
+- **R7c — map and camera exports.** Add Tiled and LDtk export for maps and tilesets. Each new camera is a view module
+  (projection, probe set, context view, check, runtime helper), the plug-in shape D8 already set.
+- **Makes later work faster:** voxel and mesh output share the same primitives, rigs and review, so every cell of the
+  output matrix is filled without a new pipeline.
+- **Accept:** every cell in §8's matrix has a template and one bench asset at or above the approval bar; a rigged
+  `.glb` character walks in the three.js example game.
 
 ### R8 — Web UI consolidation (M)
 - One shell: project bar, a per-asset stage view (a simple node graph of §8's stages with cache status), a metrics
@@ -372,15 +402,28 @@ straight after R3. The `report` command alone does not need the registry.
   single-file path.
 - **Metrics leak project details.** The export holds counts and ratios only and is opt-in. The person reads the file
   before it is shared.
-- **3D output pulls focus from the pixel pipeline.** R7 comes last and stays low-poly with palette colours.
-  Self-scoring stays calibrated against blind scores.
+- **True 3D pulls focus from the pixel pipeline.** R7 comes after the stage graph, so meshes reuse its rigs and cache
+  instead of growing a second pipeline. 3D review sheets show fixed turntable angles, so the reviewer scores the same
+  views every time. Self-scoring stays calibrated against blind scores.
+- **The npm scope can't be had.** Fall back to your user scope (`@rstevenson1237/…`). Only the names change.
 
-**Decisions for you**
+**Decisions (settled 2026-10-27)**
 
-1. Package names and npm scope (`@<scope>/primitives`, `…/mapgen`). This is needed before R3 publishes anything.
-2. Whether `mapgen` keeps the `artgen` CLI name in game repos (`artgen map …`) or gets its own (`mapgen …`).
-   Recommendation: keep `artgen map` and add a `mapgen` alias.
-3. Which consumers send metrics. Recommendation: your own repos, opt-in per repo.
-4. Is 3D low-poly output wanted at all, or is voxel enough? This decides whether R7's first half happens.
-5. Whether to split the source into a separate repo later. Recommendation: revisit only if mapgen gets a second
-   maintainer or consumers that never use artgen.
+1. **npm scope: `@artgen`**, as a free npm organisation, with the packages listed in R3. The unscoped name `artgen`
+   is already taken on npm by an unrelated package, so the scope is needed. If the `artgen` organisation is taken,
+   use your user scope `@rstevenson1237`; it always exists once you have an account.
+2. **The command stays `artgen`** (`artgen map …`, `artgen dungeon …`). New tools are added as more `artgen`
+   subcommands and installer modules. There is no separate `mapgen` command.
+3. **Every generator sends metrics:** art, all map engines and every later tool, on by default in your repos (§5,
+   R5).
+4. **Both true 3D and voxel** are targets (§8, R7a–R7b).
+5. **One source repo, everything delivered through npm** (§4). No separate source repo.
+
+**Owner steps for npm** (before R3 publishes; each takes a few minutes in the browser):
+
+1. Create an account at npmjs.com and turn on two-factor authentication.
+2. Create a free organisation named `artgen` (*Add organization*, public packages only). If the name is taken, skip
+   this and use `@rstevenson1237`.
+3. After R3's first release, on each package's *Settings* page add a **trusted publisher**: GitHub Actions, repo
+   `rstevenson1237/image_tools`, workflow `artgen-release.yml`. Releases then publish with no stored token. The first
+   publish of a new package needs a one-off token; R3 documents that step.
