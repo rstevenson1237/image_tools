@@ -1,0 +1,67 @@
+name: artgen-intake
+
+# Turns a feedback issue (artgen report --issue, or a bundle pasted by hand) into a consumer fixture and opens a pull request with it
+# (docs/TOOLING-PLAN.md R4). Run by hand: Actions → artgen-intake → Run workflow, with the issue number. The fixture is held to the
+# minimum by the fixture tests (it parses, check and render run, the render is the same twice); the pull request is where the
+# maintainer writes down what the file must go on stating, and where the fix goes.
+on:
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: 'The issue number of the feedback bundle'
+        required: true
+      consumer:
+        description: 'The consumer folder under fixtures/ (default: from the bundle, e.g. setting-builder)'
+        required: false
+      case:
+        description: 'The case name (default: the bundle id)'
+        required: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  intake:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ISSUE: ${{ inputs.issue }}
+      CONSUMER: ${{ inputs.consumer }}
+      CASE: ${{ inputs.case }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Write the fixture
+        run: |
+          set -euo pipefail
+          [[ "$ISSUE" =~ ^[0-9]+$ ]] || { echo "the issue is a number" >&2; exit 1; }
+          args=("$ISSUE" --repo "$GITHUB_REPOSITORY")
+          [ -n "$CONSUMER" ] && args+=(--consumer "$CONSUMER")
+          [ -n "$CASE" ] && args+=(--case "$CASE")
+          node scripts/artgen-intake.mjs "${args[@]}"
+
+      # the new case has to pass the fixture tests before anyone sees it
+      - run: npm test -w artgen-cli -- fixtures
+
+      - name: Open the pull request
+        run: |
+          set -euo pipefail
+          branch="intake/issue-${ISSUE}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add packages/artgen-cli/fixtures
+          git commit -m "Fixture from feedback issue #${ISSUE}"
+          git push origin "$branch"
+          gh pr create --title "Fixture from feedback issue #${ISSUE}" --head "$branch" --body "Closes #${ISSUE} once the file is understood and fixed.
+
+          The case is held to the minimum (\`status: reported\` in its case.md): it parses, \`check\` and a render run, and the render is the same twice. Before this merges, write down what the file must go on stating (case.md and the fixture tests), as the other cases do."

@@ -49,6 +49,9 @@ jobs:
 
       - run: npm run build -w artgen-dist
 
+      # every consumer fixture against this build (docs/TOOLING-PLAN.md R4); a regression keeps the branch where it is
+      - run: node scripts/artgen-consumer-ci.mjs --dist packages/artgen-dist/out
+
       # the same publish step the release workflow uses (scripts/artgen-publish-dist.sh), without a tag
       - name: Commit the build to the artgen-dist branch
         run: scripts/artgen-publish-dist.sh packages/artgen-dist/out

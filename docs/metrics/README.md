@@ -36,3 +36,23 @@ npm run build && npm run build:dist && node scripts/metrics-baseline.mjs --time
 The first command refreshes the ledger numbers, sizes and boundary count and keeps the recorded timings. The second
 re-measures timings too (about 5 minutes) and needs the builds to exist. Change the file in the same pull request that
 changes a phase's numbers, so the comparison is in the diff.
+
+## Pooled metrics from several repos (R4)
+
+`baseline.json` is measured from this repo's own ledgers. Metrics from game repos arrive another way: each repo runs `artgen metrics
+export`, which writes `art/metrics/<artgen version>.json` (counts and ratios only: assets, approved, passes, tokens, minutes, scores,
+first-pass approval, gate checks that failed, per kind; no images, ids, notes or paths; the person reads the file first). Files that
+repos send in go into [`pool/`](pool/), and one command puts them side by side per artgen version:
+
+```bash
+npm run metrics:pool
+```
+
+That writes [`pool/POOL.md`](pool/POOL.md): per artgen version, the repos, assets, approved assets, tokens and minutes per approved
+asset, first-pass approval and the gate checks that fail most. A release made production cheaper when a later version shows fewer
+tokens per approved asset for the same kinds of asset. (`artgen analytics --across <root>,<root>…` pools the ledgers themselves, for
+tuning budgets; the export is for comparing versions, and works without the ledgers leaving the repo.)
+
+The three files in `pool/` today are exports of this repo's example games (`examples/`), made with the sources (`dev`) from ledgers
+that older versions wrote, and they stand for the mechanism: the first real consumer export replaces them.
+

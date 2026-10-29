@@ -11,7 +11,8 @@ const PKGS = fileURLToPath(new URL('../../', import.meta.url));
 const CORE = ['artgen-core', 'src'].join(sep) + sep, CLI = ['artgen-cli', 'src'].join(sep) + sep;
 const PRIM = ['artgen-primitives', 'src'].join(sep) + sep, MAPGEN = ['artgen-mapgen', 'src'].join(sep) + sep;
 const OPS = ['registry', 'cli', 'core', 'maps', 'maps-shared', 'maps-map', 'maps-dungeon', 'maps-settlement'].map(f => ['ops', `${f}.ts`].join(sep));   // the operation registry, its parser and the map module's operations (never the art ones)
-const ALLOWED_CLI = new Set(['maps-bin.ts', 'maps-cli.ts', 'map.ts', 'dungeon.ts', 'settlement.ts', 'node-svg.ts', 'projectfs.ts', 'ui-server.ts', ...OPS]);
+const LOOP = ['feedback-bundle', 'diff', 'upstream'].map(f => ['loop', `${f}.ts`].join(sep));   // the feedback loop's report and upstream: Node and the map files only
+const ALLOWED_CLI = new Set(['maps-bin.ts', 'maps-cli.ts', 'map.ts', 'dungeon.ts', 'settlement.ts', 'node-svg.ts', 'projectfs.ts', 'ui-server.ts', 'version.ts', ...OPS, ...LOOP]);
 const ALLOWED_MODULES = [/^node_modules[\\/]@resvg[\\/]resvg-wasm[\\/]/, /^node_modules[\\/]fflate[\\/]/];
 
 test('the maps bundle imports only artgen-primitives, artgen-mapgen and a short list of CLI files', async () => {

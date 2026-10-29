@@ -1,0 +1,134 @@
+{
+  "schema": 1,
+  "repo": "example-swamp-topdown",
+  "artgen": "dev",
+  "modules": {
+    "core": "0.11.0",
+    "art": "0.11.0",
+    "maps": "0.11.0"
+  },
+  "exported": "2026-10-29",
+  "assets": {
+    "total": 10,
+    "final": 10,
+    "approved": 10
+  },
+  "maps": {
+    "map": 0,
+    "dungeon": 0,
+    "settlement": 0
+  },
+  "byKind": {
+    "character": {
+      "assets": 2,
+      "meanFinal": 7,
+      "meanPasses": 4.5,
+      "meanCost": 0.06
+    },
+    "creature": {
+      "assets": 1,
+      "meanFinal": 6.5,
+      "meanPasses": 4,
+      "meanCost": 0.04
+    },
+    "effect": {
+      "assets": 1,
+      "meanFinal": 7,
+      "meanPasses": 4,
+      "meanCost": 0.03
+    },
+    "prop": {
+      "assets": 4,
+      "meanFinal": 6.88,
+      "meanPasses": 4.75,
+      "meanCost": 0.03
+    },
+    "tile": {
+      "assets": 2,
+      "meanFinal": 6.5,
+      "meanPasses": 6,
+      "meanCost": 0.05
+    }
+  },
+  "passes": [
+    {
+      "pass": "r1",
+      "n": 10,
+      "regressed": 0,
+      "gatePass": 9,
+      "outTokens": 6455,
+      "imageTokens": 4820,
+      "wallMinutes": 2.8
+    },
+    {
+      "pass": "r2",
+      "n": 10,
+      "meanDelta": 0.95,
+      "regressed": 0,
+      "gatePass": 10,
+      "outTokens": 2831,
+      "imageTokens": 5080,
+      "wallMinutes": 2
+    },
+    {
+      "pass": "r3",
+      "n": 10,
+      "meanDelta": 0.35,
+      "regressed": 1,
+      "gatePass": 10,
+      "outTokens": 1926,
+      "imageTokens": 7984,
+      "wallMinutes": 2.2
+    },
+    {
+      "pass": "f",
+      "n": 10,
+      "meanDelta": 0.1,
+      "regressed": 0,
+      "gatePass": 10,
+      "outTokens": 1430,
+      "imageTokens": 8013,
+      "wallMinutes": 1.5
+    },
+    {
+      "pass": "u",
+      "n": 3,
+      "meanDelta": 0.5,
+      "regressed": 0,
+      "gatePass": 3,
+      "outTokens": 1563,
+      "imageTokens": 2301,
+      "wallMinutes": 0.2
+    },
+    {
+      "pass": "f2+",
+      "n": 5,
+      "meanDelta": 0.3,
+      "regressed": 0,
+      "gatePass": 5,
+      "outTokens": 850,
+      "imageTokens": 3080,
+      "wallMinutes": 0.5
+    }
+  ],
+  "totals": {
+    "outTokens": 15055,
+    "inTokens": 0,
+    "imageTokens": 31278,
+    "cost": 0.43,
+    "wallMinutes": 9.3
+  },
+  "firstPassApproval": {
+    "approved": 10,
+    "untouched": 5,
+    "rate": 0.5
+  },
+  "userRevisionRate": 0.5,
+  "gateFailures": {
+    "light": 1
+  },
+  "blind": {
+    "n": 2,
+    "meanGap": 1.25
+  }
+}

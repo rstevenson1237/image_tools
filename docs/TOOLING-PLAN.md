@@ -1,7 +1,7 @@
 # Tooling plan: separate, refactor, and build a feedback loop
 
-Status: proposal, 2026-10-27; decisions settled 2026-10-27 and revised 2026-10-29 (§12). R0, R1, R2 and R3 are built
-(§10); the rest is not. It follows on from the finished artgen plan ([`archive/artgen/PLAN.md`](archive/artgen/PLAN.md)) and reuses its
+Status: proposal, 2026-10-27; decisions settled 2026-10-27 and revised 2026-10-29 (§12). R0, R1, R2 and R3 are built, and R4's
+code is built but its acceptance run is not (§10); the rest is not. It follows on from the finished artgen plan ([`archive/artgen/PLAN.md`](archive/artgen/PLAN.md)) and reuses its
 decisions (`Dn`) where they still hold.
 
 ## 1. Summary
@@ -152,7 +152,7 @@ install.
  update PR (scheduled workflow) ◀── release artgen-dist-vX ◀──┘  (+ changelog, fixtures that now pass)
 ```
 
-- **`artgen report <asset|map> [--note]`** writes `art/feedback/<date>-<id>/`. It holds the input file, the
+- **`artgen report <asset|map> [--note]`** writes `art/feedback/<date>-<id>/`. (The older `artgen report <dir>`, a markdown report on benchmark runs, is now `artgen bench-report <dir>`.) It holds the input file, the
   command, the version, the render, the ledger lines and a `case.md` in the consumer-fixture layout that already
   exists. With `--issue` it opens a GitHub issue on this repo from a template; without a token, it prints the link
   instead. The person still decides what gets sent.
@@ -511,7 +511,7 @@ faster for the phases after it.
     `artgen-mcp.js`, which belongs to `art`). Size: the installed UI is 1.3 MB (the estimate was 1–3 MB); the copy
     of the rasteriser and fonts it would have carried (3.2 MB) is shared with the `core` module instead.
 
-### R4 — Feedback loop (M)
+### R4 — Feedback loop (M) — built 2026-10-29, acceptance not run
 - Add `artgen report`, `artgen upstream`, `artgen metrics export`, the issue template, and the intake script that
   turns an issue into a fixture.
 - Add pull request review for cloud sessions (`/artgen-review --pr`, §5b), and run it once from the phone app.
@@ -521,6 +521,49 @@ faster for the phases after it.
   which decides the order of R6's work.
 - **Accept:** one real report from setting_builder goes through the whole path, from issue to fixture to fix to
   release to update pull request; pooled metrics show two repos.
+- **Built:**
+  - **`artgen report <id>`** (operation `report`, module `core`: the maps-only bundle has it too). It finds the id as an asset,
+    map, dungeon or settlement in the project (`--kind` when it is more than one; `--file <path>` for a map file outside a project)
+    and writes `art/feedback/<date>-<id>/`: the input file (an asset's folder, the direction and config, and the asset's own brief cut out of `briefs.yaml`), the render (a map's
+    SVG and PNG; an asset's latest review sheet), the ledger lines of that asset, `case.md` in the consumer-fixture layout (kind,
+    format version, consumer repo and commit, artgen version, the command, what `check` says), `report.json` and `ISSUE.md`, the text
+    of the issue. Nothing is sent. `--issue` opens the issue on this repo through the GitHub API when `GH_TOKEN` or `GITHUB_TOKEN` is
+    set, and prints a prefilled link when it is not. The old `artgen report <dir>` (benchmark markdown) is now `artgen bench-report <dir>`.
+    The issue template is `.github/ISSUE_TEMPLATE/artgen-feedback.md`.
+  - **`artgen upstream`** (module `core`). The build now records where each copied file comes from (`dist/modules.json` `sources`, and
+    `sources` in the install's `MANIFEST.json`: skills, agents, commands, templates, runtime, the update workflow; bundles are built, so
+    they are listed as `built` and have no patch). `upstream` compares each installed file with the manifest hash and writes the edited
+    ones as one unified diff against the source paths (`art/feedback/upstream-<date>.patch`), with the build's `{{ARTGEN}}`, `{{CMD}}`
+    and `{{CMD_DIRECTION}}` put back so the patch applies to the sources with `git apply`. The file as installed (the diff's base)
+    comes from `--base <artgen-dist folder>` or from the release tag on GitHub, and a base that is not the installed file is flagged. An
+    install made before this release has no `sources`: one `update` records them. New commands `/artgen-report` and `/artgen-upstream`
+    (a new content folder for the `core` module, which also has a `CLAUDE.md` section now) and `/artgen-metrics` (art).
+  - **`artgen metrics export`** (module `art`) writes `art/metrics/<artgen version>.json`: counts and ratios from the ledger and briefs
+    (assets, approved, passes, tokens, minutes, scores, first-pass approval, gate failures by check, per kind), the artgen version and
+    the modules; no images, ids, notes or paths. `artgen metrics pool <file|folder>…` puts exports from several repos side by side per
+    artgen version. `npm run metrics:pool` pools `docs/metrics/pool/` (see `docs/metrics/README.md`); `analytics --across` is unchanged.
+  - **Intake.** `scripts/artgen-intake.mjs <issue number | issue.json | ISSUE.md>` (or `--bundle <folder>`, which also takes asset
+    bundles) writes `packages/artgen-cli/fixtures/<consumer>/<case>/` with the input file and the case.md marked `status: reported`
+    and `intake: <issue>`; it refuses a report with no consumer commit and never overwrites a case without `--force`. The fixture
+    tests hold every `status: reported` case to the minimum (it parses, `check` and a render run, the render is the same twice; an
+    asset renders in a scratch project) until the maintainer writes down its facts. `.github/workflows/artgen-intake.yml` runs it for
+    an issue number and opens a pull request.
+  - **Review on the pull request.** `artgen pr prepare [ids]` copies each final's review sheet (and the sheet of the version the last
+    feedback was on, as the "before") to `art/review/` and writes `REVIEW.md`; `artgen pr parse` reads the user's comment (`approve
+    goblin`, `goblin: arms too long`, `goblin: finish: eyes too dark`) into the calls it asks for, and lists lines that name no asset
+    apart; a quoted line (`> approve goblin`) is never read as a command. `approve` and `feedback` take `--via pr`, recorded in the ledger like the UI's `"via": "image-tools"`. `/artgen-review --pr` and
+    the asset-production skill §4 say how the session commits `art/review/`, asks in a comment and watches for the answer.
+  - **Consumer CI.** `scripts/artgen-consumer-ci.mjs` runs every fixture case against the candidate build (the bundles, not the
+    sources): `check` must exit as case.md says ("Must go on failing" or not), and a passing case renders the same SVG twice. It runs in
+    CI (`consumers` job), in `artgen-dist.yml` before the branch is published and in `artgen-release.yml` before anything is. The
+    facts each case states stay with the fixture tests (`npm test`).
+  - **Pooled metrics.** `docs/metrics/pool/` holds exports from this repo's three example games and the pooled table. They stand for
+    the mechanism only: they were made from `dev` sources over ledgers older versions wrote.
+  - **Not done.** The acceptance runs need people and repos this session does not have: one real report from setting_builder through
+    issue, fixture, fix, release and update pull request; a review answered from the phone app; a full local-session production
+    run; exports from two real consumers. `--issue` is tested against a stand-in `fetch`, and `upstream`'s fetch from the release tag
+    against a local folder; neither has talked to GitHub (the tag fetch needs the repository to be readable without a token). The
+    intake workflow and the new CI steps have not run on GitHub.
 
 ### R5 — One workflow for maps and assets (M–L)
 - Build the `workflow` package (§7): versions, ledger, review and approval for maps; map briefs; map themes as a

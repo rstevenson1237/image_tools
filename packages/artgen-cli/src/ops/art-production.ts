@@ -157,6 +157,7 @@ export const feedbackOp = defineOp({
     note: p.str('what was asked for', { required: 'feedback: --note "<what the user asked for>" is required' }),
     by: p.str('user (default), roster or agent: who the note is from', { schema: { type: 'string', enum: ['user', 'roster', 'agent'] } }),
     region: p.list('number', 'x,y,w,h in sprite pixels of the cell'), cell: p.str('state/facing/frame'), force: p.bool('record it even when the asset is not final'),
+    via: p.str('where the feedback came from, recorded in the ledger (pr: a pull request comment)', { mcp: false }),
   },
   async run(i: Inp, ctx) {
     const mcp = ctx.surface === 'mcp';
@@ -165,10 +166,10 @@ export const feedbackOp = defineOp({
     // --by roster | agent: the agent acting on a roster note — recorded as the agent's, never as the user's
     if (!mcp && i.by !== undefined && !['user', 'roster', 'agent'].includes(i.by)) throw new Error('feedback --by user (default) | roster | agent');
     const agent = i.by === 'roster' || i.by === 'agent';
-    return feedback(ctx.project(), i.id, { route: i.route, note: i.note, region: Array.isArray(i.region) ? (i.region as number[]) : undefined, cell: typeof i.cell === 'string' ? i.cell : undefined, force: i.force === true, ...(agent && { by: 'agent' as const, source: i.by as string }) });
+    return feedback(ctx.project(), i.id, { route: i.route, note: i.note, region: Array.isArray(i.region) ? (i.region as number[]) : undefined, cell: typeof i.cell === 'string' ? i.cell : undefined, force: i.force === true, ...(agent && { by: 'agent' as const, source: i.by as string }), ...(typeof i.via === 'string' && { via: i.via }) });
   },
   cli: {
-    usage: '       artgen feedback <id> --route base|finish --note "..." [--region x,y,w,h] [--cell s/f/n] [--by roster] [--force]',
+    usage: '       artgen feedback <id> --route base|finish --note "..." [--region x,y,w,h] [--cell s/f/n] [--by roster] [--via pr] [--force]',
     text: (r, i) => `feedback recorded (${i.by === 'roster' || i.by === 'agent' ? `${i.by} revision` : 'user iteration'} ${r.iterations}): opens ${r.opens}\nnext: ${r.next.action} ${'version' in r.next ? r.next.version : ''} — ${r.next.why}`,
   },
   mcp: {}, python: {},
@@ -180,13 +181,14 @@ export const approveOp = defineOp({
   params: {
     id: p.str('the brief id', { positional: true, required: true }), note: p.str('the user\'s words'),
     user_approved: p.bool('true only when the user explicitly approved this asset', { required: true, cli: false }),
+    via: p.str('where the approval came from, recorded in the ledger (pr: a pull request comment)', { mcp: false }),
   },
   async run(i: Inp, ctx) {
     if (ctx.surface === 'mcp' && i.user_approved !== true) throw new Error('approve: only the user approves assets — show them the gallery and ask; pass user_approved: true once they say so');
-    return approve(ctx.project(), i.id, typeof i.note === 'string' ? i.note : '');
+    return approve(ctx.project(), i.id, typeof i.note === 'string' ? i.note : '', typeof i.via === 'string' ? i.via : undefined);
   },
   cli: {
-    usage: '       artgen approve <id> [--note "..."]              user approval (a passing gate and a review sheet)',
+    usage: '       artgen approve <id> [--note "..."] [--via pr]   user approval (a passing gate and a review sheet)',
     text: e => { const warn = (e.warnings as string[] | undefined) ?? []; return `approved ${e.asset} ${e.version} (direction v${e.direction?.version})${warn.length ? `\nnote for the user: ${warn.join('; ')}` : ''}`; },
   },
   mcp: {}, python: {},

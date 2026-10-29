@@ -31,7 +31,7 @@ exit 0
 }
 
 $ artgen texture stone
-threw: artgen-maps: texture: not a command here; this bundle has map, dungeon, settlement, formats and ui (--help)
+threw: artgen-maps: texture: not a command here; this bundle has map, dungeon, settlement, formats, ui, report, upstream (--help)
 
 $ artgen --version
 exit 0

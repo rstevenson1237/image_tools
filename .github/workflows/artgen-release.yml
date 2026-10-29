@@ -77,6 +77,11 @@ jobs:
 
       - run: npm run build -w artgen-dist
 
+      # Consumer CI (docs/TOOLING-PLAN.md R4): every fixture against the candidate build. A regression stops the release here,
+      # before anything is published.
+      - name: Consumer fixtures against the candidate build
+        run: node scripts/artgen-consumer-ci.mjs --dist packages/artgen-dist/out
+
       # the library package files, named like the ones packages.json in the distribution lists (the installer's `update`
       # moves a consumer's release URLs to them)
       - name: Library package files

@@ -394,7 +394,7 @@ export function rosterRecord(p: Project, file: string, reviewer = 'self'): { iss
  * `finish` = pixels). The agent's (`by: agent`, `source: roster` — acting on a roster note) opens an extra autonomous
  * revision recorded as the agent's, within `review.rosterRevisions` per asset; the user's iteration budget is untouched.
  */
-export async function feedback(p: Project, id: string, o: { route: 'base' | 'finish'; note: string; region?: number[]; cell?: string; force?: boolean; by?: 'user' | 'agent'; source?: string }): Promise<{ opens: string; next: NextStep; iterations: number }> {
+export async function feedback(p: Project, id: string, o: { route: 'base' | 'finish'; note: string; region?: number[]; cell?: string; force?: boolean; by?: 'user' | 'agent'; source?: string; via?: string }): Promise<{ opens: string; next: NextStep; iterations: number }> {
   const b = readBriefs(p).find(x => x.id === id);
   if (!b) throw new Error(`no brief ${id}`);
   requireLocked(p);
@@ -407,12 +407,12 @@ export async function feedback(p: Project, id: string, o: { route: 'base' | 'fin
     : `${id}: ${iterations - 1} user iterations already (budget.maxUserIterations ${max}) — escalate: talk it through with the user, or pass --force`);
   const vs = versionsIn(a), kind = o.route === 'base' ? 'base' : 'finish';
   const opens = `${kind}.v${Math.max(0, ...vs.map(parseVersion).filter(v => v!.kind === kind).map(v => v!.n)) + 1}`;
-  appendLedger(ledgerFile(p), { type: 'feedback', asset: id, route: o.route, opens, on: row.final, note: o.note, ...(o.region && { region: o.region }), ...(o.cell && { cell: o.cell }), ...(agent ? { by: 'agent', source: o.source ?? 'roster' } : { by: 'user' }) });
+  appendLedger(ledgerFile(p), { type: 'feedback', asset: id, route: o.route, opens, on: row.final, note: o.note, ...(o.region && { region: o.region }), ...(o.cell && { cell: o.cell }), ...(agent ? { by: 'agent', source: o.source ?? 'roster' } : { by: 'user' }), ...(o.via && { via: o.via }) });
   return { opens, next: (await passState(openAsset(assetPathOf(p, b)))).next, iterations };
 }
 
 /** Approve a finished asset (R6: needs a passing gate on the final and a review sheet of it; D10: user only). */
-export async function approve(p: Project, id: string, note = ''): Promise<LedgerEntry> {
+export async function approve(p: Project, id: string, note = '', via?: string): Promise<LedgerEntry> {
   const b = readBriefs(p).find(x => x.id === id);
   if (!b) throw new Error(`no brief ${id}`);
   const dir = requireLocked(p), row = await assetRow(p, b);
@@ -429,7 +429,7 @@ export async function approve(p: Project, id: string, note = ''): Promise<Ledger
   if (rv.blind === undefined) warnings.push(rv.reviewer === 'self' || !rv.reviewer ? 'scored only by the agent that made it, with no blind re-score' : 'no blind re-score of the final');
   warnings.push(...row.issues.filter(x => x.startsWith('blind re-score')));
   if (rv.blind !== undefined && rv.blind < cfg.approveMin && !warnings.some(x => x.startsWith('blind re-score'))) warnings.push(`blind re-score ${rv.blind} is under ${cfg.approveMin}`);
-  const e = { type: 'approve' as const, asset: id, version: row.final, sourceHash: finalHash(a, row.final!), outputHash: r.strip.hash(), sheet: existsSync(kept) ? relative(p.art, kept).split('\\').join('/') : sheet, direction: { id: dir.id, version: dir.version }, note, ...(warnings.length && { warnings }), by: 'user' as const };
+  const e = { type: 'approve' as const, asset: id, version: row.final, sourceHash: finalHash(a, row.final!), outputHash: r.strip.hash(), sheet: existsSync(kept) ? relative(p.art, kept).split('\\').join('/') : sheet, direction: { id: dir.id, version: dir.version }, note, ...(warnings.length && { warnings }), by: 'user' as const, ...(via && { via }) };
   appendLedger(ledgerFile(p), e);
   return { ts: new Date().toISOString(), ...e };
 }
