@@ -6,7 +6,7 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// ../artgen-core/src/map/index.ts
+// ../artgen-mapgen/src/map/index.ts
 var map_exports = {};
 __export(map_exports, {
   DIRECTED: () => DIRECTED,
@@ -59,7 +59,7 @@ __export(map_exports, {
   validateMap: () => validateMap
 });
 
-// ../artgen-core/src/format.ts
+// ../artgen-primitives/src/format.ts
 function readFormat(raw, kind, current, migrations = {}) {
   const r = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
   const v = r.version === void 0 ? 1 : r.version;
@@ -74,7 +74,7 @@ function readFormat(raw, kind, current, migrations = {}) {
   return out;
 }
 
-// ../artgen-core/src/map/spec.ts
+// ../artgen-mapgen/src/map/spec.ts
 var TERRAINS = ["deep", "water", "marsh", "sand", "desert", "grass", "scrub", "forest", "rock", "snow"];
 var TERRAIN_NAMES = {
   deep: "Deep water",
@@ -284,7 +284,7 @@ function parsePoint(spec, at3) {
   return cellCenter(spec, at3.replace(/^(hex|cell):/i, ""));
 }
 
-// ../artgen-core/src/lib/rng.ts
+// ../artgen-primitives/src/lib/rng.ts
 function rng(seed = 1) {
   let a = seed >>> 0;
   return () => {
@@ -296,7 +296,7 @@ function rng(seed = 1) {
   };
 }
 
-// ../artgen-core/src/lib/noise.ts
+// ../artgen-primitives/src/lib/noise.ts
 var hash2 = (i, j, seed) => {
   let h = Math.imul(i, 374761393) ^ Math.imul(j, 668265263) ^ Math.imul(seed, 2246822519);
   h = Math.imul(h ^ h >>> 13, 1274126177);
@@ -324,7 +324,7 @@ function pGradient(x, y, o) {
   return Math.max(0, Math.min(1, 0.5 + sum / norm * 0.75));
 }
 
-// ../artgen-core/src/map/geometry.ts
+// ../artgen-mapgen/src/map/geometry.ts
 function coverage(s, x, y, soft = false) {
   const fall = (d, r) => d >= r ? 0 : !soft || d <= r * 0.4 ? 1 : 0.5 + 0.5 * Math.cos((d - r * 0.4) / (r * 0.6) * Math.PI);
   if ("circle" in s) return fall(Math.hypot(x - s.circle[0], y - s.circle[1]), s.circle[2]);
@@ -402,7 +402,7 @@ function distanceTo(f, s, reach, inside = false) {
   return out;
 }
 
-// ../artgen-core/src/map/shape.ts
+// ../artgen-mapgen/src/map/shape.ts
 var WET_EDGE = /* @__PURE__ */ new Set(["forest", "grass", "scrub", "desert", "marsh"]);
 function bands(t, local) {
   const dry = [0.08, (local ? 0.7 : 0.64) - 0.12];
@@ -649,7 +649,7 @@ function routeRoad(points, f, elev, wet) {
   return out;
 }
 
-// ../artgen-core/src/lib/trace.ts
+// ../artgen-primitives/src/lib/trace.ts
 function isolines(f, w, h, t) {
   const segs = [];
   const hk = (i, j) => `h${j * w + i}`, vk = (i, j) => `v${j * w + i}`;
@@ -800,7 +800,7 @@ function pathData(lines, k = 1) {
   }).join("");
 }
 
-// ../artgen-core/src/map/generate.ts
+// ../artgen-mapgen/src/map/generate.ts
 var T = Object.fromEntries(TERRAINS.map((t, i) => [t, i]));
 var isWater = (t) => t === T.deep || t === T.water;
 function quantile(f, q) {
@@ -1157,7 +1157,7 @@ function terrainsUsed(f) {
   return TERRAINS.map((t, i) => [t, count[i]]).filter(([, c]) => c > 0).sort((a, b) => b[1] - a[1]).map(([t]) => t);
 }
 
-// ../artgen-core/src/map/gridlines.ts
+// ../artgen-mapgen/src/map/gridlines.ts
 var letters = (n) => {
   let s = "";
   for (n += 1; n > 0; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + (n - 1) % 26) + s;
@@ -1184,7 +1184,7 @@ function gridGeometry(spec, k = 1) {
   return { d, cells };
 }
 
-// ../artgen-core/src/map/symbols.ts
+// ../artgen-mapgen/src/map/symbols.ts
 var SYMBOLS = {
   village: { name: "Village", svg: '<circle r="3.2" fill="{ink}"/>' },
   town: { name: "Town", svg: '<circle r="5.5" fill="{fill}" stroke="{ink}" stroke-width="1.6"/><circle r="2.2" fill="{ink}"/>' },
@@ -1212,7 +1212,7 @@ var SYMBOLS = {
 var DIRECTED = ["cave-mouth", "gate"];
 var SYMBOL_KINDS = Object.keys(SYMBOLS);
 
-// ../artgen-core/src/map/theme.ts
+// ../artgen-mapgen/src/map/theme.ts
 var THEMES = ["color", "bw"];
 var PATTERNS = {
   lines: '<path d="M0 2.5H10M0 7.5H10" stroke="{ink}" stroke-width="0.7"/>',
@@ -1290,7 +1290,7 @@ var THEME = {
   }
 };
 
-// ../artgen-core/src/lib/view.ts
+// ../artgen-primitives/src/lib/view.ts
 var PX_PER_MM = 96 / 25.4;
 var r3 = (v) => Math.round(v * 1e3) / 1e3;
 function clampCrop(c, cols, rows2) {
@@ -1324,7 +1324,7 @@ function sizeAttrs(f, unit = "px") {
   return `width="${s(f.w)}" height="${s(f.h)}" viewBox="${r3(f.x)} ${r3(f.y)} ${r3(f.w)} ${r3(f.h)}"`;
 }
 
-// ../artgen-core/src/lib/page.ts
+// ../artgen-primitives/src/lib/page.ts
 var PAGE_PT = {
   map: { region: 12, place: 9, water: 8, note: 7 },
   dungeon: { name: 9, note: 7, area: 12, room: 8, number: 8 }
@@ -1366,7 +1366,7 @@ function placeLabels(labels, obstacles, bounds, gap = 0) {
   return out;
 }
 
-// ../artgen-core/src/lib/svgdraw.ts
+// ../artgen-primitives/src/lib/svgdraw.ts
 var esc = (t) => t.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 var n1 = (v) => (Math.round(v * 10) / 10).toString();
 var FONT_FAMILY = "Alegreya Sans";
@@ -1379,7 +1379,7 @@ function compassSvg(cx, cy, r, u, th) {
   return `<g id="compass" stroke="${th.ink}" stroke-width="${n1(u)}" stroke-linejoin="round"><circle cx="${n1(cx)}" cy="${n1(cy)}" r="${n1(r)}" fill="${th.paper}" fill-opacity="0.85"/><path d="M${n1(cx)} ${n1(cy - r * 0.9)}L${n1(cx + r * 0.3)} ${n1(cy)}L${n1(cx)} ${n1(cy + r * 0.9)}L${n1(cx - r * 0.3)} ${n1(cy)}Z" fill="${th.paper}"/><path d="M${n1(cx)} ${n1(cy - r * 0.9)}L${n1(cx + r * 0.3)} ${n1(cy)}L${n1(cx - r * 0.3)} ${n1(cy)}Z" fill="${th.ink}"/><text x="${n1(cx)}" y="${n1(cy - r - 4 * u)}" font-size="${n1(13 * u)}" font-weight="700" text-anchor="middle" fill="${th.ink}" stroke="none">N</text></g>`;
 }
 
-// ../artgen-core/src/map/render.ts
+// ../artgen-mapgen/src/map/render.ts
 var MAP_LAYERS = ["terrain", "rivers", "roads", "contours", "grid", "symbols", "labels", "legend", "scale", "compass", "title"];
 var LEGEND_SYMBOLS = ["cave-mouth", "gate"];
 function mapLabelLayout(spec, k, pageScale) {
@@ -1576,7 +1576,7 @@ function renderMapSvg(spec, o = {}) {
   return `<svg xmlns="http://www.w3.org/2000/svg" ${sizeAttrs(fr, o.unit)} font-family="${FONT}"><defs>${patternDefs(th, tile)}${defs.join("")}<clipPath id="map-clip"><rect x="${fr.x}" y="${fr.y}" width="${fr.w}" height="${fr.h}"/></clipPath></defs><g clip-path="url(#map-clip)">${parts.join("")}</g></svg>`;
 }
 
-// ../artgen-core/src/lib/round.ts
+// ../artgen-primitives/src/lib/round.ts
 function roundTo(v, step) {
   const out = Math.round(v / step) * step;
   return +(out === 0 ? 0 : out).toFixed(6);
@@ -1594,7 +1594,7 @@ function percentShares(counts) {
   return raw.filter((r) => r.share > 0).map((r) => [r.k, r.share]);
 }
 
-// ../artgen-core/src/map/facts.ts
+// ../artgen-mapgen/src/map/facts.ts
 var RULES = {
   /** Heights (and heights above a reference) are whole multiples of `topo.interval`. */
   height: "topo.interval",
@@ -1881,7 +1881,7 @@ function mapFacts(spec, q = {}, field = generateMap(spec)) {
   return out;
 }
 
-// ../artgen-core/src/map/require.ts
+// ../artgen-mapgen/src/map/require.ts
 var two2 = (v) => v.toFixed(2);
 function distanceToLines(lines, x, y) {
   let best = Infinity;
@@ -1925,7 +1925,7 @@ function checkRequirements(spec, field = generateMap(spec)) {
   });
 }
 
-// ../artgen-core/src/lib/sync.ts
+// ../artgen-primitives/src/lib/sync.ts
 function checkIncoming(name, incoming, origin) {
   incoming.forEach((e, i) => {
     if (e.origin !== origin) throw new Error(`--from: ${name}[${i}] has ${e.origin === void 0 ? "no origin" : `origin ${JSON.stringify(e.origin)}`}, not ${JSON.stringify(origin)}: every entry in the file synced from carries the origin`);
@@ -1950,7 +1950,7 @@ function mergeList(name, target, incoming, origin) {
 }
 var near = (a, b, d) => Math.hypot(a.x - b.x, a.y - b.y) < d;
 
-// ../artgen-core/src/map/sync.ts
+// ../artgen-mapgen/src/map/sync.ts
 var MARK_DISTANCE = 0.75;
 var markName = (m) => m.text !== void 0 ? `label "${m.text}"` : `symbol ${m.kind}`;
 function syncMap(target, from, origin) {
@@ -1974,7 +1974,7 @@ function syncMap(target, from, origin) {
   return { spec, report: { version: MAP_FORMAT, origin, lists, conflicts } };
 }
 
-// ../artgen-core/src/dungeon/index.ts
+// ../artgen-mapgen/src/dungeon/index.ts
 var dungeon_exports = {};
 __export(dungeon_exports, {
   BLOCK_SHAPES: () => BLOCK_SHAPES,
@@ -2063,7 +2063,7 @@ __export(dungeon_exports, {
   wrapText: () => wrapText
 });
 
-// ../artgen-core/src/dungeon/spec.ts
+// ../artgen-mapgen/src/dungeon/spec.ts
 var ROOM_SHAPES = ["rect", "circle", "octagon", "cave", "poly"];
 var DOOR_KINDS = ["door", "secret", "locked", "portcullis", "arch"];
 var DOOR_NAMES = {
@@ -2459,7 +2459,7 @@ function nextRoomId(spec) {
   for (let n = spec.rooms.length + 1; ; n++) if (!used.has(`r${n}`)) return `r${n}`;
 }
 
-// ../artgen-core/src/dungeon/geom.ts
+// ../artgen-mapgen/src/dungeon/geom.ts
 var geom_exports = {};
 __export(geom_exports, {
   area2: () => area2,
@@ -2543,7 +2543,7 @@ function sharedEdges(a, b, eps = 1e-6) {
   return out;
 }
 
-// ../artgen-core/src/dungeon/corridors.ts
+// ../artgen-mapgen/src/dungeon/corridors.ts
 var snap = (v, w) => Math.round(w) % 2 ? Math.floor(v) + 0.5 : Math.round(v);
 var OUT = { n: [0, -1], e: [1, 0], s: [0, 1], w: [-1, 0] };
 function sidePort(g, side, offset, width) {
@@ -2727,7 +2727,7 @@ function naturalOutline(pts2, width, seed) {
   return chaikin({ pts: [...left, ...right], closed: true }, 2).pts;
 }
 
-// ../artgen-core/src/dungeon/walls.ts
+// ../artgen-mapgen/src/dungeon/walls.ts
 var WALL_DEFAULTS = { thickness: 1, inset: 1, towerSize: 3, gateWidth: 2, posternWidth: 1 };
 function convexHull(pts2) {
   const ps = [];
@@ -2817,7 +2817,7 @@ function wallFacts(spec, l) {
   }));
 }
 
-// ../artgen-core/src/dungeon/layout.ts
+// ../artgen-mapgen/src/dungeon/layout.ts
 var idSeed = (id) => [...id].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0, 2166136261);
 function roomOutline(r) {
   const { x, y, w, h } = r, cx = x + w / 2, cy = y + h / 2;
@@ -3137,7 +3137,7 @@ function roomCrop(spec, ids, margin = 2, l = layoutDungeon(spec)) {
   return [x0, y0, Math.max(...xs) - x0, Math.max(...ys) - y0];
 }
 
-// ../artgen-core/src/dungeon/blocks.ts
+// ../artgen-mapgen/src/dungeon/blocks.ts
 function hexPoints(x, y, w, h) {
   return [x + w / 4, y, x + 3 * w / 4, y, x + w, y + h / 2, x + 3 * w / 4, y + h, x + w / 4, y + h, x, y + h / 2];
 }
@@ -3304,7 +3304,7 @@ function blockRoomNear(spec, id, x, y) {
   return own.reduce((m, r) => Math.hypot(r.x + r.w / 2 - x, r.y + r.h / 2 - y) < Math.hypot(m.x + m.w / 2 - x, m.y + m.h / 2 - y) ? r : m).id;
 }
 
-// ../artgen-core/src/dungeon/generate.ts
+// ../artgen-mapgen/src/dungeon/generate.ts
 var DOOR_WEIGHTS = { door: 70, secret: 8, locked: 10, portcullis: 6, arch: 6 };
 function singleRoom(spec, o) {
   const m = o.margin ?? 3, out = structuredClone(spec);
@@ -3518,7 +3518,7 @@ function generateBlocks(spec) {
   return out;
 }
 
-// ../artgen-core/src/dungeon/symbols.ts
+// ../artgen-mapgen/src/dungeon/symbols.ts
 var SYMBOLS2 = {
   stairs: { name: "Stairs (rise to the right)", svg: '<rect x="-9" y="-9" width="18" height="18" fill="{fill}" stroke="{ink}" stroke-width="1.4"/><path d="M-5.5 -9V9M-2 -9V9M1.5 -9V9M5 -9V9" stroke="{ink}" stroke-width="1.2"/>' },
   "stairs-up": { name: "Stairs up (climb toward its angle)", svg: '<path d="M-9 -4L9 -9V9L-9 4Z" fill="{fill}" stroke="{ink}" stroke-width="1.4" stroke-linejoin="round"/><path d="M-5.5 -4.6V4.6M-2 -5.8V5.8M1.5 -7V7M5 -8.2V8.2" stroke="{ink}" stroke-width="1.2"/><path d="M-7.5 0H5.5M2.2 -3.2L5.8 0L2.2 3.2Z" fill="{ink}" stroke="{ink}" stroke-width="1.2" stroke-linejoin="round"/>' },
@@ -3551,7 +3551,7 @@ var SYMBOLS2 = {
 };
 var SYMBOL_KINDS2 = Object.keys(SYMBOLS2);
 
-// ../artgen-core/src/dungeon/exits.ts
+// ../artgen-mapgen/src/dungeon/exits.ts
 var EXIT_FADE = 3;
 function pointAt(path, d) {
   let at3 = 0;
@@ -3600,7 +3600,7 @@ function layoutExits(spec, l) {
   return out;
 }
 
-// ../artgen-core/src/dungeon/furniture.ts
+// ../artgen-mapgen/src/dungeon/furniture.ts
 var FURNITURE_PLACES = ["over", "outside", "auto"];
 var FURNITURE_SIDES = ["bottom", "right"];
 function coversContent(spec, l, k, box2) {
@@ -3659,7 +3659,7 @@ function placeFurniture(items, fr, place2, side, pad, covers) {
   return { placed, band: { right: Math.max(0, right), bottom: Math.max(0, bottom) } };
 }
 
-// ../artgen-core/src/dungeon/underlay.ts
+// ../artgen-mapgen/src/dungeon/underlay.ts
 function underlayWindow(spec, map) {
   const u = spec.underlay;
   if (!u) return null;
@@ -3683,7 +3683,7 @@ function underlaySvg(spec, map, k, field) {
   return `<g id="underlay">${placed}</g>`;
 }
 
-// ../artgen-core/src/dungeon/render.ts
+// ../artgen-mapgen/src/dungeon/render.ts
 var DUNGEON_LAYERS = ["underlay", "rock", "floors", "buildings", "enclosure", "grid", "exits", "doors", "symbols", "cellars", "numbers", "labels", "legend", "title", "scale", "compass"];
 var INK = "#000000";
 var PAPER = "#ffffff";
@@ -3961,7 +3961,7 @@ function renderDungeonSvg(spec, o = {}) {
   return `<svg xmlns="http://www.w3.org/2000/svg" ${sizeAttrs(out, o.unit)} font-family="${FONT}"><defs>${defs.join("")}<clipPath id="map-clip"><rect x="${fr.x}" y="${fr.y}" width="${fr.w}" height="${fr.h}"/></clipPath></defs>${band}<g clip-path="url(#map-clip)">${parts.join("")}${band ? "" : drawn}</g>${frame}${band ? drawn : ""}</svg>`;
 }
 
-// ../artgen-core/src/dungeon/facts.ts
+// ../artgen-mapgen/src/dungeon/facts.ts
 var RULES2 = {
   /** Positions, lengths and distances in cells. */
   position: 0.1
@@ -4044,7 +4044,7 @@ function dungeonFacts(spec, layout = layoutDungeon(spec)) {
   };
 }
 
-// ../artgen-core/src/dungeon/sync.ts
+// ../artgen-mapgen/src/dungeon/sync.ts
 var MARK_DISTANCE2 = 0.75;
 var markName2 = (m) => m.text !== void 0 ? `label "${m.text}"` : `symbol ${m.kind}`;
 var insideRoom = (rooms, m) => rooms.find((g) => inPolygon(g.outline, m.x, m.y))?.room.id;
@@ -4114,7 +4114,7 @@ function syncDungeon(target, from, origin) {
   return { spec, report: { version: DUNGEON_FORMAT, origin, lists, conflicts } };
 }
 
-// ../artgen-core/src/dungeon/lint.ts
+// ../artgen-mapgen/src/dungeon/lint.ts
 var MIN_AREA = 0.5;
 var LABEL_CELLS = { area: 24 / 40, name: 15 / 40, note: 12 / 40 };
 var NUMBER_CELLS = 19 / 40;
@@ -4229,7 +4229,7 @@ function lintDungeon(spec, l = layoutDungeon(spec)) {
   return out;
 }
 
-// ../artgen-core/src/settlement/index.ts
+// ../artgen-mapgen/src/settlement/index.ts
 var settlement_exports = {};
 __export(settlement_exports, {
   AREA_KINDS: () => AREA_KINDS,
@@ -4318,7 +4318,7 @@ __export(settlement_exports, {
   withInterior: () => withInterior
 });
 
-// ../artgen-core/src/settlement/fixtures.ts
+// ../artgen-mapgen/src/settlement/fixtures.ts
 var R = (x, y, w, h, fill, s, extra = "") => `<rect x="${n1(x)}" y="${n1(y)}" width="${n1(w)}" height="${n1(h)}" fill="${fill}" stroke="{ink}" stroke-width="${n1(s)}"${extra}/>`;
 var C = (cx, cy, r, fill, s) => `<circle cx="${n1(cx)}" cy="${n1(cy)}" r="${n1(Math.max(0.5, r))}" fill="${fill}" stroke="{ink}" stroke-width="${n1(s)}"/>`;
 var E = (rx, ry, fill, s) => `<ellipse rx="${n1(Math.max(0.5, rx))}" ry="${n1(Math.max(0.5, ry))}" fill="${fill}" stroke="{ink}" stroke-width="${n1(s)}"/>`;
@@ -4429,7 +4429,7 @@ function fixtureSize(f, perCell) {
   return [f.w ?? (k ? k.ft[0] / perCell : 1), f.h ?? (k ? k.ft[1] / perCell : 1)];
 }
 
-// ../artgen-core/src/settlement/spec.ts
+// ../artgen-mapgen/src/settlement/spec.ts
 var SETTLEMENT_KINDS = ["hamlet", "village", "town", "city", "castle"];
 var GROUNDS = ["grass", "dirt", "sand", "snow", "stone"];
 var STREET_PLANS = ["organic", "grid", "radial"];
@@ -4824,7 +4824,7 @@ function removeBuilding(m, id) {
   return m.buildings.length !== n;
 }
 
-// ../artgen-core/src/settlement/theme.ts
+// ../artgen-mapgen/src/settlement/theme.ts
 var THEMES2 = ["color", "bw"];
 var C2 = THEME.color;
 var PALETTES = {
@@ -4938,7 +4938,7 @@ var AREA_PATTERNS = {
 };
 var patternInk = (theme) => theme === "bw" ? "#000000" : "#5e5340";
 
-// ../artgen-core/src/settlement/layout.ts
+// ../artgen-mapgen/src/settlement/layout.ts
 var TREE_FT = { tree: 15, conifer: 12, bush: 5, rock: 4, boulder: 8, stump: 2, reeds: 4 };
 var GATE_FT = { gatehouse: 12, gate: 10, postern: 4, opening: 10 };
 var TOWER_FT = 20;
@@ -5176,7 +5176,7 @@ function layoutFloor(spec, b, floor2) {
   return { outline: outline2, w, h, rooms: dl.rooms, partitions, inner, doors, windows, fixtures };
 }
 
-// ../artgen-core/src/settlement/render.ts
+// ../artgen-mapgen/src/settlement/render.ts
 var SITE_LAYERS = ["ground", "underlay", "areas", "water", "roads", "bridges", "walls", "buildings", "trees", "props", "grid", "symbols", "numbers", "labels", "legend", "title", "scale", "compass"];
 var PLAN_LAYERS = ["ground", "floor", "grid", "walls", "doors", "windows", "fixtures", "numbers", "labels", "legend", "title", "scale", "compass"];
 var VIEWS = ["site", "plan"];
@@ -5648,7 +5648,7 @@ function settlementRenderSize(spec, o = {}) {
   return { width: m ? +m[1] : 0, height: m ? +m[2] : 0 };
 }
 
-// ../artgen-core/src/settlement/interior.ts
+// ../artgen-mapgen/src/settlement/interior.ts
 var ORIGIN = "gen";
 var ROLES = {
   house: { ground: ["hall", "store"], upper: [["bedroom", "bedroom"]], min: 3, stories: 1 },
@@ -5940,7 +5940,7 @@ function withInterior(spec, id, o = {}) {
   return { ...spec, buildings: spec.buildings.map((x) => x.id === id ? { ...x, floors, ...o.stories !== void 0 && { stories: o.stories } } : x) };
 }
 
-// ../artgen-core/src/settlement/generate.ts
+// ../artgen-mapgen/src/settlement/generate.ts
 var ORIGIN2 = "gen";
 var r22 = (v) => Math.round(v * 100) / 100;
 var flat = (pts2) => pts2.flatMap(([x, y]) => [r22(x), r22(y)]);
@@ -6489,7 +6489,7 @@ function settlementFromMap(spec, mapPath, map, field, origin) {
   return generateSettlement(s, { map, field });
 }
 
-// ../artgen-core/src/settlement/lint.ts
+// ../artgen-mapgen/src/settlement/lint.ts
 function share(poly, test) {
   const xs = poly.filter((_, i) => i % 2 === 0), ys = poly.filter((_, i) => i % 2 === 1);
   let n = 0, hit = 0;
@@ -6569,7 +6569,7 @@ function lintSettlement(spec, l = layoutSettlement(spec)) {
   return out;
 }
 
-// ../artgen-core/src/settlement/facts.ts
+// ../artgen-mapgen/src/settlement/facts.ts
 var r12 = (v) => roundTo(v, 0.1);
 var tally = (xs) => xs.reduce((m, k) => (m[k] = (m[k] ?? 0) + 1, m), {});
 function settlementFacts(spec, l = layoutSettlement(spec)) {
@@ -6609,7 +6609,7 @@ function settlementFacts(spec, l = layoutSettlement(spec)) {
   };
 }
 
-// ../artgen-core/src/settlement/edit.ts
+// ../artgen-mapgen/src/settlement/edit.ts
 var SETTLEMENT_OPS = [
   "building.add",
   "building.set",
@@ -7441,7 +7441,7 @@ try {
 } catch (e) {
 }
 
-// ../artgen-core/src/lib/color.ts
+// ../artgen-primitives/src/lib/color.ts
 var cache = /* @__PURE__ */ new Map();
 function parseColor(c) {
   const hit = cache.get(c);
@@ -7464,7 +7464,7 @@ function parseColor(c) {
 var h2 = (v) => v.toString(16).padStart(2, "0");
 var toHex = (r, g, b) => "#" + h2(r) + h2(g) + h2(b);
 
-// ../artgen-core/src/lib/grid.ts
+// ../artgen-primitives/src/lib/grid.ts
 var Grid2 = class _Grid {
   w;
   h;
@@ -7638,7 +7638,7 @@ var Grid2 = class _Grid {
   }
 };
 
-// ../artgen-core/src/lib/png.ts
+// ../artgen-primitives/src/lib/png.ts
 var SIG = [137, 80, 78, 71, 13, 10, 26, 10];
 var CRC = new Uint32Array(256).map((_, n) => {
   let c = n;
@@ -8254,7 +8254,7 @@ function isCustomFontsOptions(value) {
   return Object.prototype.hasOwnProperty.call(value, "fontBuffers");
 }
 
-// ../artgen-core/src/lib/post.ts
+// ../artgen-primitives/src/lib/post.ts
 var N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 var N8 = [...N4, [1, 1], [-1, -1], [1, -1], [-1, 1]];
 var BAYER = {
@@ -8262,7 +8262,7 @@ var BAYER = {
   bayer4: [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]].map((r) => r.map((v) => (v + 0.5) / 16))
 };
 
-// ../artgen-core/src/lib/svg.ts
+// ../artgen-primitives/src/lib/svg.ts
 var ready = null;
 var initialised = false;
 function initSvg(wasm2) {
@@ -9881,7 +9881,7 @@ ${MAP_USAGE}
   if (cmd === "settlement") return settlementCommand(sub, args, print);
   throw new Error(`artgen-maps: ${cmd}: not a command here; this bundle has map, dungeon, settlement and formats (--help)`);
 }
-var MAPS_VERSION = `${true ? "0.11.0" : "dev"} (${true ? "1eb8e45" : "unknown"})`;
+var MAPS_VERSION = `${true ? "0.11.0" : "dev"} (${true ? "bbfc6d6" : "unknown"})`;
 
 // ../artgen-cli/src/maps-bin.ts
 mapsMain(process.argv.slice(2)).then((code) => process.exit(code), (e) => {
