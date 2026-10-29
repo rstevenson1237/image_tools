@@ -381,13 +381,17 @@ Sizes follow the archive plan: S is about one session, M is 2–3 sessions, L is
 `npm run check`, `npm test`, `check:packages`, `test:packages` and the bench. Each phase also states what it makes
 faster for the phases after it.
 
-### R0 — Baseline and boundaries (S)
+### R0 — Baseline and boundaries (S) — done 2026-10-29
 - Record today's numbers from the ledgers and bench: passes, tokens and minutes per approved asset; first-pass
   approval rate; gate failures by check; build and test time; bundle sizes.
 - Add a boundary lint (dependency-cruiser, or a small script) that encodes §6's arrows, warning only for now.
 - Pick the KPIs in §11 and write them to `docs/metrics/baseline.json`.
 - **Makes later work faster:** every later phase has a number to beat, and new cross-module imports stop appearing.
 - **Accept:** baseline file committed; the lint runs in CI.
+- **Built:** `scripts/metrics-baseline.mjs` writes [`docs/metrics/baseline.json`](metrics/baseline.json)
+  (see [`metrics/README.md`](metrics/README.md)); `scripts/check-boundaries.mjs` is the lint (`npm run
+  lint:boundaries`). It found 15 imports that point the wrong way, mostly the scene layer importing `direction.ts`: R1
+  has to move the direction types below `scene` before the lint can go strict.
 
 ### R1 — Package split, no change in behaviour (M–L)
 - Move the code into `primitives`, `scene`, `artgen` and `mapgen` (§6). `artgen-core` stays as a re-exporting facade.

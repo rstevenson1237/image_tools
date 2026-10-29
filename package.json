@@ -18,6 +18,8 @@
     "test": "vitest run",
     "check:packages": "npm run typecheck --workspaces",
     "test:packages": "npm test --workspaces",
+    "lint:boundaries": "node scripts/check-boundaries.mjs",
+    "metrics:baseline": "node scripts/metrics-baseline.mjs",
     "build:dist": "npm run build -w artgen-dist",
     "fixtures:install": "npm run build -w artgen-dist && node scripts/artgen-fixtures.mjs"
   },

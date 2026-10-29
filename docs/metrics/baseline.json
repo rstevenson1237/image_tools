@@ -1,0 +1,660 @@
+{
+  "schema": 1,
+  "note": "R0 baseline (docs/TOOLING-PLAN.md §10-11). Later phases are compared against this file. Refresh with scripts/metrics-baseline.mjs.",
+  "measuredAtCommit": "cbc346e",
+  "date": "2026-10-29",
+  "ledgerKpis": {
+    "sources": {
+      "packages/artgen-core/bench/p6": {
+        "group": "bench",
+        "ledgerLines": 205,
+        "scoredAssets": 21,
+        "approvedAssets": 0,
+        "passesPerAsset": {
+          "mean": 4.29,
+          "byKind": {
+            "character": {
+              "assets": 4,
+              "mean": 4
+            },
+            "creature": {
+              "assets": 3,
+              "mean": 4
+            },
+            "effect": {
+              "assets": 3,
+              "mean": 5.33
+            },
+            "layer": {
+              "assets": 1,
+              "mean": 4
+            },
+            "prop": {
+              "assets": 2,
+              "mean": 4
+            },
+            "texture": {
+              "assets": 5,
+              "mean": 4
+            },
+            "tileset": {
+              "assets": 2,
+              "mean": 5
+            },
+            "viewmodel": {
+              "assets": 1,
+              "mean": 4
+            }
+          }
+        },
+        "tokensPerAsset": {
+          "mean": 5013.71,
+          "basis": "code + measured input + review images + agent input, per scored asset"
+        },
+        "minutesPerAsset": {
+          "mean": 0.83,
+          "median": 0.89,
+          "assetsTimed": 21,
+          "idleGapsLeftOut": 0,
+          "basis": "sum of recorded pass wall time (generation and render), passes over 30 minutes left out as idle gaps; not time spent by a person"
+        },
+        "firstPassApprovalRate": null,
+        "blindScore": null,
+        "scoredBy": {
+          "self": 90
+        },
+        "gate": {
+          "versions": 90,
+          "versionsFailing": 2,
+          "failByCheck": {
+            "line": 2
+          },
+          "flagByCheck": {
+            "lint": 26,
+            "height": 9,
+            "repetition": 4,
+            "fill": 2,
+            "frames": 1
+          }
+        }
+      },
+      "packages/artgen-core/bench/pipeline": {
+        "group": "bench",
+        "ledgerLines": 51,
+        "scoredAssets": 6,
+        "approvedAssets": 0,
+        "passesPerAsset": {
+          "mean": 4,
+          "byKind": {
+            "character": {
+              "assets": 2,
+              "mean": 4
+            },
+            "creature": {
+              "assets": 1,
+              "mean": 4
+            },
+            "prop": {
+              "assets": 1,
+              "mean": 4
+            },
+            "vehicle": {
+              "assets": 2,
+              "mean": 4
+            }
+          }
+        },
+        "tokensPerAsset": {
+          "mean": 5406.17,
+          "basis": "code + measured input + review images + agent input, per scored asset"
+        },
+        "minutesPerAsset": {
+          "mean": null,
+          "median": null,
+          "assetsTimed": 0,
+          "idleGapsLeftOut": 0,
+          "basis": "sum of recorded pass wall time (generation and render), passes over 30 minutes left out as idle gaps; not time spent by a person"
+        },
+        "firstPassApprovalRate": null,
+        "blindScore": null,
+        "scoredBy": {
+          "unrecorded": 24
+        },
+        "gate": {
+          "versions": 24,
+          "versionsFailing": 0,
+          "failByCheck": {},
+          "flagByCheck": {}
+        }
+      },
+      "examples/swamp-topdown": {
+        "group": "example",
+        "ledgerLines": 236,
+        "scoredAssets": 10,
+        "approvedAssets": 10,
+        "passesPerAsset": {
+          "mean": 4.8,
+          "byKind": {
+            "character": {
+              "assets": 2,
+              "mean": 4.5
+            },
+            "creature": {
+              "assets": 1,
+              "mean": 4
+            },
+            "effect": {
+              "assets": 1,
+              "mean": 4
+            },
+            "prop": {
+              "assets": 4,
+              "mean": 4.75
+            },
+            "tile": {
+              "assets": 2,
+              "mean": 6
+            }
+          }
+        },
+        "tokensPerAsset": {
+          "mean": 4633.3,
+          "basis": "code + measured input + review images + agent input, per scored asset"
+        },
+        "minutesPerAsset": {
+          "mean": 0.93,
+          "median": 0.9,
+          "assetsTimed": 10,
+          "idleGapsLeftOut": 0,
+          "basis": "sum of recorded pass wall time (generation and render), passes over 30 minutes left out as idle gaps; not time spent by a person"
+        },
+        "firstPassApprovalRate": {
+          "rate": 0.5,
+          "approvedAssets": 10
+        },
+        "blindScore": {
+          "n": 2,
+          "meanBlind": 5.25,
+          "meanOwn": 6.5,
+          "meanGap": 1.25
+        },
+        "scoredBy": {
+          "unrecorded": 44,
+          "self": 4
+        },
+        "gate": {
+          "versions": 48,
+          "versionsFailing": 1,
+          "failByCheck": {
+            "light": 1
+          },
+          "flagByCheck": {
+            "lint": 9,
+            "seam": 2
+          }
+        }
+      },
+      "examples/iso-dungeon": {
+        "group": "example",
+        "ledgerLines": 230,
+        "scoredAssets": 10,
+        "approvedAssets": 10,
+        "passesPerAsset": {
+          "mean": 4.8,
+          "byKind": {
+            "character": {
+              "assets": 2,
+              "mean": 4.5
+            },
+            "creature": {
+              "assets": 1,
+              "mean": 4
+            },
+            "effect": {
+              "assets": 1,
+              "mean": 4
+            },
+            "prop": {
+              "assets": 5,
+              "mean": 4.6
+            },
+            "tile": {
+              "assets": 1,
+              "mean": 8
+            }
+          }
+        },
+        "tokensPerAsset": {
+          "mean": 6054.3,
+          "basis": "code + measured input + review images + agent input, per scored asset"
+        },
+        "minutesPerAsset": {
+          "mean": 1.13,
+          "median": 1.05,
+          "assetsTimed": 10,
+          "idleGapsLeftOut": 0,
+          "basis": "sum of recorded pass wall time (generation and render), passes over 30 minutes left out as idle gaps; not time spent by a person"
+        },
+        "firstPassApprovalRate": {
+          "rate": 0.6,
+          "approvedAssets": 10
+        },
+        "blindScore": {
+          "n": 1,
+          "meanBlind": 5,
+          "meanOwn": 6.5,
+          "meanGap": 1.5
+        },
+        "scoredBy": {
+          "unrecorded": 46,
+          "self": 2
+        },
+        "gate": {
+          "versions": 48,
+          "versionsFailing": 3,
+          "failByCheck": {
+            "line": 3
+          },
+          "flagByCheck": {
+            "lint": 7
+          }
+        }
+      },
+      "examples/billboard-crawler": {
+        "group": "example",
+        "ledgerLines": 221,
+        "scoredAssets": 10,
+        "approvedAssets": 10,
+        "passesPerAsset": {
+          "mean": 4.7,
+          "byKind": {
+            "character": {
+              "assets": 1,
+              "mean": 5
+            },
+            "creature": {
+              "assets": 2,
+              "mean": 5
+            },
+            "effect": {
+              "assets": 1,
+              "mean": 4
+            },
+            "prop": {
+              "assets": 3,
+              "mean": 5
+            },
+            "texture": {
+              "assets": 1,
+              "mean": 4
+            },
+            "tile": {
+              "assets": 1,
+              "mean": 5
+            },
+            "ui-icon": {
+              "assets": 1,
+              "mean": 4
+            }
+          }
+        },
+        "tokensPerAsset": {
+          "mean": 6182.7,
+          "basis": "code + measured input + review images + agent input, per scored asset"
+        },
+        "minutesPerAsset": {
+          "mean": 1.31,
+          "median": 1.25,
+          "assetsTimed": 10,
+          "idleGapsLeftOut": 1,
+          "basis": "sum of recorded pass wall time (generation and render), passes over 30 minutes left out as idle gaps; not time spent by a person"
+        },
+        "firstPassApprovalRate": {
+          "rate": 0.5,
+          "approvedAssets": 10
+        },
+        "blindScore": null,
+        "scoredBy": {
+          "unrecorded": 47
+        },
+        "gate": {
+          "versions": 47,
+          "versionsFailing": 0,
+          "failByCheck": {},
+          "flagByCheck": {
+            "lint": 9
+          }
+        }
+      }
+    },
+    "bench": {
+      "scoredAssets": 27,
+      "approvedAssets": 0,
+      "passesPerAsset": {
+        "mean": 4.22,
+        "byKind": {
+          "character": {
+            "assets": 6,
+            "mean": 4
+          },
+          "creature": {
+            "assets": 4,
+            "mean": 4
+          },
+          "effect": {
+            "assets": 3,
+            "mean": 5.33
+          },
+          "layer": {
+            "assets": 1,
+            "mean": 4
+          },
+          "prop": {
+            "assets": 3,
+            "mean": 4
+          },
+          "texture": {
+            "assets": 5,
+            "mean": 4
+          },
+          "tileset": {
+            "assets": 2,
+            "mean": 5
+          },
+          "vehicle": {
+            "assets": 2,
+            "mean": 4
+          },
+          "viewmodel": {
+            "assets": 1,
+            "mean": 4
+          }
+        }
+      },
+      "tokensPerAsset": {
+        "mean": 5100.93,
+        "basis": "code + measured input + review images + agent input, per scored asset"
+      },
+      "minutesPerAsset": {
+        "mean": 0.83,
+        "median": 0.89,
+        "assetsTimed": 21,
+        "idleGapsLeftOut": 0,
+        "basis": "sum of recorded pass wall time (generation and render), passes over 30 minutes left out as idle gaps; not time spent by a person"
+      },
+      "firstPassApprovalRate": null,
+      "blindScore": null,
+      "scoredBy": {
+        "self": 90,
+        "unrecorded": 24
+      },
+      "gate": {
+        "versions": 114,
+        "versionsFailing": 2,
+        "failByCheck": {
+          "line": 2
+        },
+        "flagByCheck": {
+          "lint": 26,
+          "height": 9,
+          "repetition": 4,
+          "fill": 2,
+          "frames": 1
+        }
+      }
+    },
+    "examples": {
+      "scoredAssets": 30,
+      "approvedAssets": 30,
+      "passesPerAsset": {
+        "mean": 4.77,
+        "byKind": {
+          "character": {
+            "assets": 5,
+            "mean": 4.6
+          },
+          "creature": {
+            "assets": 4,
+            "mean": 4.5
+          },
+          "effect": {
+            "assets": 3,
+            "mean": 4
+          },
+          "prop": {
+            "assets": 12,
+            "mean": 4.75
+          },
+          "texture": {
+            "assets": 1,
+            "mean": 4
+          },
+          "tile": {
+            "assets": 4,
+            "mean": 6.25
+          },
+          "ui-icon": {
+            "assets": 1,
+            "mean": 4
+          }
+        }
+      },
+      "tokensPerAsset": {
+        "mean": 5623.43,
+        "basis": "code + measured input + review images + agent input, per scored asset"
+      },
+      "minutesPerAsset": {
+        "mean": 1.12,
+        "median": 1.06,
+        "assetsTimed": 30,
+        "idleGapsLeftOut": 1,
+        "basis": "sum of recorded pass wall time (generation and render), passes over 30 minutes left out as idle gaps; not time spent by a person"
+      },
+      "firstPassApprovalRate": {
+        "rate": 0.53,
+        "approvedAssets": 30
+      },
+      "blindScore": {
+        "n": 3,
+        "meanBlind": 5.17,
+        "meanOwn": 6.5,
+        "meanGap": 1.33
+      },
+      "scoredBy": {
+        "unrecorded": 137,
+        "self": 6
+      },
+      "gate": {
+        "versions": 143,
+        "versionsFailing": 4,
+        "failByCheck": {
+          "line": 3,
+          "light": 1
+        },
+        "flagByCheck": {
+          "lint": 25,
+          "seam": 2
+        }
+      }
+    },
+    "pooled": {
+      "scoredAssets": 57,
+      "approvedAssets": 30,
+      "passesPerAsset": {
+        "mean": 4.51,
+        "byKind": {
+          "character": {
+            "assets": 11,
+            "mean": 4.27
+          },
+          "creature": {
+            "assets": 8,
+            "mean": 4.25
+          },
+          "effect": {
+            "assets": 6,
+            "mean": 4.67
+          },
+          "layer": {
+            "assets": 1,
+            "mean": 4
+          },
+          "prop": {
+            "assets": 15,
+            "mean": 4.6
+          },
+          "texture": {
+            "assets": 6,
+            "mean": 4
+          },
+          "tile": {
+            "assets": 4,
+            "mean": 6.25
+          },
+          "tileset": {
+            "assets": 2,
+            "mean": 5
+          },
+          "ui-icon": {
+            "assets": 1,
+            "mean": 4
+          },
+          "vehicle": {
+            "assets": 2,
+            "mean": 4
+          },
+          "viewmodel": {
+            "assets": 1,
+            "mean": 4
+          }
+        }
+      },
+      "tokensPerAsset": {
+        "mean": 5375.93,
+        "basis": "code + measured input + review images + agent input, per scored asset"
+      },
+      "minutesPerAsset": {
+        "mean": 1,
+        "median": 1.01,
+        "assetsTimed": 51,
+        "idleGapsLeftOut": 1,
+        "basis": "sum of recorded pass wall time (generation and render), passes over 30 minutes left out as idle gaps; not time spent by a person"
+      },
+      "firstPassApprovalRate": {
+        "rate": 0.53,
+        "approvedAssets": 30
+      },
+      "blindScore": {
+        "n": 3,
+        "meanBlind": 5.17,
+        "meanOwn": 6.5,
+        "meanGap": 1.33
+      },
+      "scoredBy": {
+        "unrecorded": 161,
+        "self": 96
+      },
+      "gate": {
+        "versions": 257,
+        "versionsFailing": 6,
+        "failByCheck": {
+          "line": 5,
+          "light": 1
+        },
+        "flagByCheck": {
+          "lint": 51,
+          "height": 9,
+          "repetition": 4,
+          "fill": 2,
+          "seam": 2,
+          "frames": 1
+        }
+      }
+    }
+  },
+  "timings": {
+    "seconds": {
+      "checkApp": 14.6,
+      "testApp": 12.2,
+      "checkPackages": 36.4,
+      "testPackages": {
+        "packages/artgen-cli": 111.8,
+        "packages/artgen-core": 16.5,
+        "packages/artgen-dist": 28.8,
+        "packages/artgen-mcp": 8.3,
+        "packages/artgen-runtime": 3.2
+      },
+      "buildWeb": 9.6,
+      "buildDist": 0.9,
+      "testPackagesTotal": 168.6
+    },
+    "machine": {
+      "node": "v22.22.0",
+      "cpus": 4,
+      "platform": "linux"
+    },
+    "note": "one run; expect tens of percent of variation"
+  },
+  "sizes": {
+    "note": "bytes; run `npm run build` and `npm run build:dist` first",
+    "dist": {
+      "total": 15843290,
+      "files": {
+        "dist/tools/artgen/artgen.js": {
+          "bytes": 1342388,
+          "gzip": 353362
+        },
+        "dist/tools/artgen/artgen-mcp.js": {
+          "bytes": 1215980,
+          "gzip": 319105
+        },
+        "dist/tools/artgen/resvg.wasm": {
+          "bytes": 2478606
+        },
+        "maps/artgen-maps.js": {
+          "bytes": 533711,
+          "gzip": 145920
+        }
+      }
+    },
+    "web": {
+      "total": 14918651,
+      "assets": 4539842,
+      "vendor": 10378215,
+      "jsFiles": 24,
+      "jsBytes": 1284867,
+      "jsGzip": 454247,
+      "note": "vendor is the 10 MB OpenCV asset R5b removes; compare the rest"
+    }
+  },
+  "boundaries": {
+    "total": 15,
+    "byArrow": {
+      "scene -> artgen": 12,
+      "workflow -> artgen": 3
+    }
+  },
+  "fixtures": {
+    "consumers": [
+      {
+        "consumer": "setting-builder",
+        "cases": 9
+      }
+    ],
+    "total": 9
+  },
+  "interfaces": {
+    "mcpTools": 44
+  },
+  "notReportedYet": {
+    "timeToFirstPlaceholder": "needs the placeholder stage (R6a)",
+    "consumerLag": "needs modules in MANIFEST.json and pooled metrics (R3, R4)",
+    "regressionsCaughtBeforeRelease": "needs consumer CI before release (R4)",
+    "operationsMissingFromAnInterface": "needs the operation registry and parity test (R2); mcpTools above is the count to cover"
+  },
+  "caveats": [
+    "Approvals in the example repos were given by a simulated user (see their ledger notes), so first-pass approval is a placeholder until real runs are recorded.",
+    "The bench ledgers hold scores and gate results but no approvals: approval-based KPIs come from the examples only.",
+    "Most scores were self-scored (see scoredBy); blindScore shows the gap where a blind re-score exists."
+  ]
+}

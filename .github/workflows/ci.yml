@@ -42,6 +42,9 @@ jobs:
 
       - run: npm run test:packages
 
+      # Package boundaries (docs/TOOLING-PLAN.md §6). Warns only until R1 has moved the code; then `--strict`.
+      - run: npm run lint:boundaries
+
       # A branch can be type-clean and green on tests and still fail to build.
       # Use the same sub-path the deploy uses so this catches it on the PR.
       - name: Build
