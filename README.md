@@ -73,6 +73,8 @@ dungeon (Pixi.js) and a first-person billboard crawler (three.js).
 
 How artgen was designed and built (intake, spec, plan, decisions, per-phase findings and the original artlab
 experiments) is archived in [`docs/archive/artgen`](docs/archive/artgen/README.md).
+What comes next (package split, modular install, the feedback loop, stages) is proposed in
+[`docs/TOOLING-PLAN.md`](docs/TOOLING-PLAN.md).
 
 ## The image tools
 
