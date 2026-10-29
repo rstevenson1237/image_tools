@@ -334,7 +334,7 @@ describe('setting-builder/frontier', () => {
     expect(reach(field)).toBeGreaterThan(half);
     const open = map.generateMap({ ...spec, require: spec.require!.filter(r => r.id !== 'B-road-clear') });
     expect(reach(open)).toBeLessThan(half);
-  });
+  }, 120_000);   // generates the map twice; over the 5 s default on a loaded CI runner
 
   test('C\'s forest edge is not a straight line: no run of more than 4 squares along one row or column; a painted forest has one', () => {
     const c = (area('C-ground') as { poly: number[] }).poly;
