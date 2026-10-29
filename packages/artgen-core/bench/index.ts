@@ -2,7 +2,7 @@
  * The artlab parity benchmark (PLAN P1): artlab's six best finals ported as asset modules, their briefs, the
  * review settings artlab used, and the scores they must be matched by (P1b gate).
  */
-import type { Direction } from '../src/direction.ts';
+import type { Direction } from 'artgen-scene/direction.ts';
 import type { AssetModule, Brief } from '../src/render.ts';
 import benchmarkDir from './directions/benchmark.json' with { type: 'json' };
 import altDir from './directions/alt.json' with { type: 'json' };

@@ -5,10 +5,10 @@
  * Every generated direction has the same **role ramps** (`ROLES`), so the probe set and asset templates can
  * reference roles (`pal.cloth`, `mat: 'metal'`) and render under any candidate without edits (R11).
  */
-import { normHex, toHsl, fromHsl, lumaOf } from '../lib/color.ts';
-import { generateRamp } from '../lib/palette.ts';
-import { hashString } from '../lib/rng.ts';
-import { parseDirection, type Direction, type Size, type View } from '../direction.ts';
+import { normHex, toHsl, fromHsl, lumaOf } from 'artgen-primitives/lib/color.ts';
+import { generateRamp } from 'artgen-primitives/lib/palette.ts';
+import { hashString } from 'artgen-primitives/lib/rng.ts';
+import { parseDirection, type Direction, type Size, type View } from 'artgen-scene/direction.ts';
 
 /** Ramp names every generated direction defines; templates use these. */
 export const ROLES = ['skin', 'hair', 'cloth', 'leather', 'metal', 'wood', 'stone', 'dirt', 'grass', 'accent', 'glow'] as const;

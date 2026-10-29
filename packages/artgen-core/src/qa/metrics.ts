@@ -1,6 +1,6 @@
 /** artlab `measure()`: objective pixel-art hygiene signals that complement visual review. */
-import { luma, parseColor } from '../lib/color.ts';
-import type { Grid } from '../lib/grid.ts';
+import { luma, parseColor } from 'artgen-primitives/lib/color.ts';
+import type { Grid } from 'artgen-primitives/lib/grid.ts';
 
 export interface Metrics {
   fillPct: number;

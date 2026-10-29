@@ -393,7 +393,7 @@ faster for the phases after it.
   lint:boundaries`). It found 15 imports that point the wrong way, mostly the scene layer importing `direction.ts`: R1
   has to move the direction types below `scene` before the lint can go strict.
 
-### R1 — Package split, no change in behaviour (M–L)
+### R1 — Package split, no change in behaviour (M–L) — done 2026-10-29
 - Move the code into `primitives`, `scene`, `artgen` and `mapgen` (§6). `artgen-core` stays as a re-exporting facade.
 - Split the web app's sidebar into the image, maps and art groups. Pull the code the three map editors repeat into
   one shared map-editor shell.
@@ -402,6 +402,32 @@ faster for the phases after it.
   runs), and each module can be released on its own.
 - **Accept:** the bench and fixtures give byte-identical output; the dist bundles are no larger; the boundary lint
   passes; the web app's build is no larger.
+- **Built:**
+  - Three new packages, `artgen-primitives`, `artgen-scene` and `artgen-mapgen`, each with its own `index.ts`, typecheck
+    and tests (`npm run test -w artgen-mapgen` no longer runs the pixel pipeline). Files moved with `git mv`; the only
+    edits to them are import paths. A package also exports its files by path (`artgen-scene/direction.ts`).
+  - `artgen-core` keeps the **artgen** layer (render, pipeline, QA, W1/W2) and is the facade: `src/index.ts` re-exports the
+    three packages, and `artgen-core/maps` re-exports `artgen-mapgen`. The CLI, MCP server and web app are unchanged.
+    The plan's separate `artgen` package is not cut out: the facade would have had to be a fourth package that
+    re-exports it, for no gain yet.
+  - To make the arrows point down: `direction.ts` (a leaf module the scene layer reads through `DirContext`) moved into
+    `artgen-scene`, and `finish.ts` (it works on a `RenderResult`, and nothing in the scene layer uses it) moved from
+    `t2/` into the artgen layer. The ledger and status logic still import `conformance`, `metrics` and `pipeline`, so
+    they stay in the artgen layer; the `workflow` package is built in R5.
+  - `npm run lint:boundaries -- --strict` runs in CI with one package per layer: **0 violations** (R0: 15). Test files
+    are linted too. The one allowed exception is the runtime's type-parity test, which imports `artgen-core` on purpose.
+  - Tests that render through the pipeline (`direction`, `t2`, `tex`, `anim`, `voxel`, `fp`) stay in
+    `artgen-core/src/scene/`. The parts that need only the scene layer moved to `artgen-scene` (21 tests).
+  - Web: the sidebar has three groups (image, maps, art). `src/core/maps/` holds the shared map-editor shell
+    (`MapEditorShell.svelte` with the layout and shared styles, `MapProjectFiles` for open / save / download,
+    `createPreviewLoop` for the debounced render, and the input and font helpers). Terrain, Dungeon and Settlement use it
+    and shrink by about 600 lines in total; the shared modules add about 340 (net −260). Behaviour is unchanged (screenshots
+    before and after match).
+  - Measured against the R0 baseline: all tests pass with the same counts; the bench golden hashes and the consumer
+    fixtures are unchanged; the maps-only bundle's import graph is still primitives + mapgen only. Raw bundle size is
+    +0.06% (`artgen.js` +855 B, `artgen-maps.js` +162 B), all from longer package names in the bundler's per-module path
+    comments; gzip size is within ±0.03% (two bundles smaller, `artgen-maps.js` +35 B). The web build is 8.5 KB smaller
+    in JS and 12 KB smaller overall.
 
 ### R2 — Operation registry (M)
 - Add the registry (§9) and move the map, dungeon and settlement operations onto it first, since they already share

@@ -1,16 +1,17 @@
-// Package-boundary lint (docs/TOOLING-PLAN.md §6, phase R0). Sorts source files into the planned layers and reports
-// every relative import that points the wrong way:
+// Package-boundary lint (docs/TOOLING-PLAN.md §6, phase R1). Each package is one layer, and a file may import only
+// from the layers below it:
 //
 //   interfaces (cli, mcp, python, web)  →  anything
-//   artgen                              →  scene, workflow, primitives
+//   artgen (artgen-core)                →  scene, workflow, primitives
 //   mapgen, imagekit, workflow, scene   →  primitives   (mapgen also gets workflow from R5)
 //   primitives, runtime                 →  nothing
 //
-// The packages don't exist yet, so the layers are told apart by path inside artgen-core (LAYERS below). R1 moves the
-// files; this table then becomes "one package = one layer" and the lint passes `--strict` in CI.
+// artgen-core is both the artgen layer and the facade that re-exports the lower packages for existing imports. Its
+// `index.ts` and `maps.ts` are the facade and sit outside the layers; everything else under `src/` is the artgen layer.
+// The workflow package arrives in R5; until then the ledger and status logic stay in the artgen layer.
 //
-//   node scripts/check-boundaries.mjs            list violations as warnings, exit 0 (R0)
-//   node scripts/check-boundaries.mjs --strict   exit 1 on any violation (R1)
+//   node scripts/check-boundaries.mjs            list violations (exit 0)
+//   node scripts/check-boundaries.mjs --strict   exit 1 on any violation (CI)
 //   node scripts/check-boundaries.mjs --json     machine-readable summary
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
@@ -31,23 +32,28 @@ export const ALLOWED = {
 };
 
 const CORE = 'packages/artgen-core/src/';
-// First match wins. Paths are repo-relative with `/`; a trailing `/` matches a directory.
+// Not layered: the facade re-exports every layer (§6), and the bench drives the whole pipeline.
+const EXEMPT = [CORE + 'index.ts', CORE + 'maps.ts', 'packages/artgen-core/bench/'];
+// First match wins. Paths are repo-relative with `/`.
 const LAYERS = [
   ['runtime', ['packages/artgen-runtime/']],
-  ['primitives', [CORE + 'lib/', CORE + 't2/geom', CORE + 't2/raster', CORE + 'format']],
-  // ledger and status logic are the seed of the workflow package (§6)
-  ['workflow', [CORE + 'qa/ledger', CORE + 'w2/status']],
-  ['scene', [CORE + 't2/', CORE + 'voxel/', CORE + 'views/', CORE + 'anim/', CORE + 'fx/', CORE + 'tex/']],
-  ['mapgen', [CORE + 'map/', CORE + 'dungeon/', CORE + 'settlement/', CORE + 'maps.']],
-  ['artgen', [CORE + 'direction', CORE + 'pipeline', CORE + 'render', CORE + 'w1/', CORE + 'w2/', CORE + 'qa/']],
+  ['primitives', ['packages/artgen-primitives/']],
+  ['scene', ['packages/artgen-scene/']],
+  ['mapgen', ['packages/artgen-mapgen/']],
+  ['artgen', [CORE]],
   ['interface', ['packages/artgen-cli/', 'packages/artgen-mcp/', 'packages/artgen-dist/', 'src/', 'python/']],
 ];
-// Not layered: the facade re-exports every layer (§6), and the bench drives the whole pipeline. Test files are
-// exempt too: they are not shipped, and integration tests reach across layers on purpose.
-const EXEMPT = [CORE + 'index.ts', 'packages/artgen-core/bench/'];
+/** The layer a bare package specifier belongs to. `artgen-core` is the facade: a layer must not import it. */
+const PACKAGE_LAYER = { 'artgen-primitives': 'primitives', 'artgen-scene': 'scene', 'artgen-mapgen': 'mapgen', 'artgen-runtime': 'runtime' };
+
+/** Test files that import the facade on purpose. */
+const FACADE_TESTS = [
+  // checks that the dependency-free runtime's manifest type accepts what artgen-core writes
+  'packages/artgen-runtime/src/runtime.test.ts',
+];
 
 export const layerOf = file => {
-  if (EXEMPT.some(p => file.startsWith(p)) || /\.test\.[a-z]+$/.test(file)) return undefined;
+  if (EXEMPT.some(p => file.startsWith(p))) return undefined;
   return LAYERS.find(([, prefixes]) => prefixes.some(p => file.startsWith(p)))?.[0];
 };
 
@@ -89,9 +95,11 @@ export function findViolations(dir = root) {
           if (!target) continue;
           if (rel(target) === CORE + 'index.ts') { out.push({ file: rel(file), line: lineOf(text, m), from, to: 'facade', spec }); continue; }
           to = layerOf(rel(target));
-        } else if (/^artgen-(core|cli|mcp)\b/.test(spec)) to = 'facade';
+        } else if (PACKAGE_LAYER[spec.split('/')[0]]) to = PACKAGE_LAYER[spec.split('/')[0]];
+        else if (/^artgen-(core|cli|mcp)\b/.test(spec)) to = 'facade';
         else continue;
         if (!to || to === from) continue;
+        if (to === 'facade' && FACADE_TESTS.includes(rel(file))) continue;
         if (to === 'facade' || !ALLOWED[from].includes(to)) out.push({ file: rel(file), line: lineOf(text, m), from, to, spec });
       }
     }

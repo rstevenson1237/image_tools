@@ -1,7 +1,7 @@
 // W2 core (PLAN P3): briefs.yaml, the status lifecycle, the atlas packer + pack.json, analytics, restyle diff and edit ops.
 import { describe, expect, test } from 'vitest';
-import { parseDirection } from '../direction.ts';
-import { Grid } from '../lib/grid.ts';
+import { parseDirection } from 'artgen-scene/direction.ts';
+import { Grid } from 'artgen-primitives/lib/grid.ts';
 import { renderAsset, type AssetModule } from '../render.ts';
 import type { NextStep } from '../pipeline.ts';
 import type { LedgerEntry } from '../qa/ledger.ts';

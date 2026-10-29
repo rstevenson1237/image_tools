@@ -5,36 +5,53 @@ same build. Rule numbers (R3, R11, …) are the rules listed in the `artgen` ski
 (`packages/artgen-dist/content/skills/artgen/SKILL.md`); "artlab" is the prototype the engine was ported from, archived
 with the design docs in [`docs/archive/artgen`](../../docs/archive/artgen/README.md).
 
+## Packages
+
+The engine is split by layer ([`docs/TOOLING-PLAN.md`](../../docs/TOOLING-PLAN.md) §6, phase R1). A layer imports only
+the layers below it, and `npm run lint:boundaries -- --strict` (run in CI) enforces that.
+
+| Package | Layer | Holds | Imports |
+|---|---|---|---|
+| [`artgen-primitives`](../artgen-primitives) | primitives | grid, colour, palette, rng, noise, PNG/GIF, SVG, fonts, page layout, geometry, raster, format versions | nothing |
+| [`artgen-scene`](../artgen-scene) | scene | the direction types, `Scene2D` / `Scene3D`, procedural layers, voxels, views and cameras, animation, effects, textures | primitives |
+| [`artgen-mapgen`](../artgen-mapgen) | mapgen | the terrain, dungeon and settlement engines | primitives |
+| `artgen-core` (this package) | artgen | rendering, passes, QA, the W1 and W2 workflows, finishing ops; also the facade | scene, primitives |
+
+`artgen-core` re-exports the other three (`src/index.ts`), so `import { Grid, map } from 'artgen-core'` keeps working;
+`artgen-core/maps` is the maps-only entry (`src/maps.ts` re-exports `artgen-mapgen`). Tests that render through the
+pipeline sit in `src/scene/`; the other layers keep their own tests. The paths in the table below name the package
+each file lives in.
+
 ## Layout
 
 | Module | What it holds |
 |---|---|
-| `src/lib/grid.ts` | `Grid` RGBA buffer (artlab semantics) + `crop/pad/trim/flip/scale/hash/toIndexed/over/diffCount` |
-| `src/lib/color.ts`, `rng.ts`, `png.ts`, `font.ts` | colour parsing/HSL, seeded mulberry32, pure-JS PNG codec (fflate), 3×5 pixel font for sheet labels |
-| `src/lib/palette.ts` | Lospec `.hex` / GIMP `.gpl` import, hue-shifted `generateRamp`, `extractPalette` (median cut → ramps), `restrict`, `swapColors` |
-| `src/lib/post.ts` | artlab post passes (`outline`, `quantize`, `modeDownsample`, `dropShadow`, `despeckle`) + `selout`, ordered dither |
-| `src/lib/prim.ts` | artlab T2 primitives (`Scene`), the T2+ starting point |
-| `src/lib/blit.ts` | artlab T1 char-map writes (`blit`, `blitMirrored`, `shadeSide`), the future finishing `patch` |
-| `src/lib/svg.ts` | artlab T3 raster path on resvg-wasm (`raw | crisp | ss`), the future T2+ `ss` mode (R3) |
-| `src/lib/iso.ts`, `voxel.ts` | 2:1 iso helpers, artlab T4 `Voxels` + `cubes` renderer (future T2+ 3D mode) |
-| `src/direction.ts` | `direction.json` types, `validateDirection` (defaults + path-tagged errors), `dirContext`, `resolveToken`, `kindPalette`, `resolveSize` |
+| `artgen-primitives/src/lib/grid.ts` | `Grid` RGBA buffer (artlab semantics) + `crop/pad/trim/flip/scale/hash/toIndexed/over/diffCount` |
+| `artgen-primitives/src/lib/color.ts`, `rng.ts`, `png.ts`, `font.ts` | colour parsing/HSL, seeded mulberry32, pure-JS PNG codec (fflate), 3×5 pixel font for sheet labels |
+| `artgen-primitives/src/lib/palette.ts` | Lospec `.hex` / GIMP `.gpl` import, hue-shifted `generateRamp`, `extractPalette` (median cut → ramps), `restrict`, `swapColors` |
+| `artgen-primitives/src/lib/post.ts` | artlab post passes (`outline`, `quantize`, `modeDownsample`, `dropShadow`, `despeckle`) + `selout`, ordered dither |
+| `artgen-primitives/src/lib/prim.ts` | artlab T2 primitives (`Scene`), the T2+ starting point |
+| `artgen-primitives/src/lib/blit.ts` | artlab T1 char-map writes (`blit`, `blitMirrored`, `shadeSide`), the future finishing `patch` |
+| `artgen-primitives/src/lib/svg.ts` | artlab T3 raster path on resvg-wasm (`raw | crisp | ss`), the future T2+ `ss` mode (R3) |
+| `artgen-primitives/src/lib/iso.ts`, `voxel.ts` | 2:1 iso helpers, artlab T4 `Voxels` + `cubes` renderer (future T2+ 3D mode) |
+| `artgen-scene/src/direction.ts` | `direction.json` types, `validateDirection` (defaults + path-tagged errors), `dirContext`, `resolveToken`, `kindPalette`, `resolveSize` |
 | `src/render.ts` | asset module contract, `renderAsset` over states × facings × frames (west facings mirror east ones), `assembleSheet` |
 | `src/qa/` | `measure` (artlab hygiene), `conformance` gate, `reviewSheet` / `contactSheet`, ledger lines |
-| `src/t2/geom.ts` | affine transforms, SVG path data → polygons, primitive outlines, `Mask` (coverage bitmap + windowed EDT) |
-| `src/t2/scene.ts` | T2+ 2D scenes (S1): primitives, booleans, groups, clip, repeat, mirror copies, underlays, shading, `direct` / `ss` raster |
-| `src/t2/raster.ts` | `Raster`: owner item + ramp step per pixel, so S2 and finishing move pixels along their own ramp |
-| `src/t2/proc.ts` | procedural pass v1 (S2): `materialNoise`, `pattern`, `rimLight`, `ao`, `castShadow`, `dither`, `groundShadow`, `dropShadow` |
-| `src/t2/scene3d.ts` | T2+ 3D mode: box / slab / ellipsoid / capsule / sdf, groups, booleans → voxels → `cubes` renderer, 4 facings, R5 lint |
-| `src/t2/finish.ts` | finishing ops (`px.fix/fx/light/outline/patch`), `applyFinish`, anchor-following patches, `finishStale` |
-| `src/t2/params.ts` | param schema (`range`, `toggle`, `choice`, `swap`) and seeded variants |
+| `artgen-primitives/src/geom.ts` | affine transforms, SVG path data → polygons, primitive outlines, `Mask` (coverage bitmap + windowed EDT) |
+| `artgen-scene/src/t2/scene.ts` | T2+ 2D scenes (S1): primitives, booleans, groups, clip, repeat, mirror copies, underlays, shading, `direct` / `ss` raster |
+| `artgen-primitives/src/raster.ts` | `Raster`: owner item + ramp step per pixel, so S2 and finishing move pixels along their own ramp |
+| `artgen-scene/src/t2/proc.ts` | procedural pass v1 (S2): `materialNoise`, `pattern`, `rimLight`, `ao`, `castShadow`, `dither`, `groundShadow`, `dropShadow` |
+| `artgen-scene/src/t2/scene3d.ts` | T2+ 3D mode: box / slab / ellipsoid / capsule / sdf, groups, booleans → voxels → `cubes` renderer, 4 facings, R5 lint |
+| `src/finish.ts` | finishing ops (`px.fix/fx/light/outline/patch`), `applyFinish`, anchor-following patches, `finishStale` |
+| `artgen-scene/src/t2/params.ts` | param schema (`range`, `toggle`, `choice`, `swap`) and seeded variants |
 | `src/pipeline.ts` | pass state machine: v1 → v2 → v3 (from the best, R12) → finish → ready (re-finish when a later base wins); ledger pass ids |
 | `src/w1/candidates.ts` | art direction: interview → three candidate directions (A faithful, B bold, C muted) over the shared role ramps, `mixDirections`, `lockDirection` |
 | `src/w1/sheets.ts` | art direction: `styleTile` (the probe set under each candidate, one column each) and `styleSheet` (`art/direction.png`) |
-| `src/views/` | view cameras and modules, `fp.ts`: the first-person raycaster preview, `fpShots`, `sky` |
-| `src/voxel/` | voxel `raster` renderer (any yaw and camera, depth / part / normal buffers, `toon`), `.vox`, greedy-mesh `.glb` |
-| `src/tex/` | periodic noise, material recipes (13 incl. `brick`), autotiles, iso tiles, WFC, L-systems |
-| `src/anim/anim.ts` | keyframe tracks, pose rig with 2-bone IK, spring chains, sweeps, sub-frame timing |
-| `src/fx/particles.ts` | particle emitters (+ `blob` metaball layers), 11 presets, `flame`, palette cycling |
+| `artgen-scene/src/views/` | view cameras and modules, `fp.ts`: the first-person raycaster preview, `fpShots`, `sky` |
+| `artgen-scene/src/voxel/` | voxel `raster` renderer (any yaw and camera, depth / part / normal buffers, `toon`), `.vox`, greedy-mesh `.glb` |
+| `artgen-scene/src/tex/` | periodic noise, material recipes (13 incl. `brick`), autotiles, iso tiles, WFC, L-systems |
+| `artgen-scene/src/anim/anim.ts` | keyframe tracks, pose rig with 2-bone IK, spring chains, sweeps, sub-frame timing |
+| `artgen-scene/src/fx/particles.ts` | particle emitters (+ `blob` metaball layers), 11 presets, `flame`, palette cycling |
 | `src/qa/anim.ts` | frame QA, attack QA, solid-fill metric, onion skin |
 | `bench/` | the artlab parity benchmark: six asset modules, `benchmark` + `alt` directions, artlab reference PNGs, golden hashes |
 | `bench/p6/` | the breadth benchmarks (views, voxel, textures, effects, animation, first-person) through the full pipeline |
@@ -98,7 +115,7 @@ export const anchors = ctx => ({ head: [16, 10] });
 - Procedural pass: `ctx.lib.proc(sceneOrGrid).add(layer, { part, mat, … }).render()`; the direction's
   `pipeline.procedural` names default layers.
 - Finishing (`finish.vM.js`): `export const base = 'base.v3'; export function finish(g, ctx) { … }` with `ctx.lib.px`,
-  `ctx.at(anchor)`, `ctx.key(state, frame)`, `ctx.protect(...)`. See `src/t2/finish.ts` for the op list.
+  `ctx.at(anchor)`, `ctx.key(state, frame)`, `ctx.protect(...)`. See `src/finish.ts` for the op list.
 
 SVG rendering needs the wasm module once per process: `await initSvg(wasmBytes)` (the Node adapter in
 `artgen-cli` does this with `initNodeSvg()`).

@@ -5,6 +5,7 @@ export type WorkerKind = 'opencv' | 'artgen' | 'ffmpeg' | 'native';
 /** Sidebar sections. Tools without a group sit under the first one. */
 export const toolGroups = [
   { id: 'image', name: 'Image tools' },
+  { id: 'maps', name: 'Maps' },
   { id: 'art', name: 'Art pipeline' },
 ] as const;
 
@@ -56,7 +57,7 @@ export const tools: ToolDefinition[] = [
     name: 'Terrain Map',
     blurb: 'TTRPG maps: contours, terrain, hex or square grid, labels; colour or B&W.',
     icon: '⛰',
-    group: 'image',
+    group: 'maps',
     load: () => import('../../tools/TerrainMap/index.svelte') as Loaded,
     requiredWorkers: ['artgen'],
   },
@@ -65,7 +66,7 @@ export const tools: ToolDefinition[] = [
     name: 'Dungeon Map',
     blurb: 'TTRPG dungeons and lairs: rooms, corridors, doors, 10/5 ft grid; black & white.',
     icon: '▦',
-    group: 'image',
+    group: 'maps',
     load: () => import('../../tools/DungeonMap/index.svelte') as Loaded,
     requiredWorkers: ['artgen'],
   },
@@ -74,7 +75,7 @@ export const tools: ToolDefinition[] = [
     name: 'Settlement Map',
     blurb: 'TTRPG villages, towns and castles: roads, walls, water, buildings and their floor plans.',
     icon: '⌂',
-    group: 'image',
+    group: 'maps',
     load: () => import('../../tools/SettlementMap/index.svelte') as Loaded,
     requiredWorkers: ['artgen'],
   },

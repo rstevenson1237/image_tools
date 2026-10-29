@@ -3,10 +3,10 @@
  * way?) and the hand-edit round trip (SPEC §6.6: an edited PNG becomes token ops in a finishing revision, so the
  * edit survives a restyle wherever it maps to a palette ramp).
  */
-import { dirContext, type Direction } from '../direction.ts';
-import { parseColor, dist2 } from '../lib/color.ts';
-import { drawText, GLYPH_H, textWidth } from '../lib/font.ts';
-import { Grid } from '../lib/grid.ts';
+import { dirContext, type Direction } from 'artgen-scene/direction.ts';
+import { parseColor, dist2 } from 'artgen-primitives/lib/color.ts';
+import { drawText, GLYPH_H, textWidth } from 'artgen-primitives/lib/font.ts';
+import { Grid } from 'artgen-primitives/lib/grid.ts';
 import { checker } from '../qa/sheet.ts';
 
 /** Colour → token (`ramp.i`, `outline`) under a direction; partial alpha is `shadow`; null for transparent or off-palette. */

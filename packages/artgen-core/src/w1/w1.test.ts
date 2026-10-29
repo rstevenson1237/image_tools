@@ -1,7 +1,7 @@
 // W1 art direction (PLAN P2): candidate generation, mixing, locking, style tile and style sheet.
 import { describe, expect, test } from 'vitest';
-import { kindPalette, validateDirection, type Direction } from '../direction.ts';
-import { Grid } from '../lib/grid.ts';
+import { kindPalette, validateDirection, type Direction } from 'artgen-scene/direction.ts';
+import { Grid } from 'artgen-primitives/lib/grid.ts';
 import { conformance } from '../qa/conformance.ts';
 import { generateCandidates, lockDirection, mixDirections, moodProfile, PER_KIND, ROLES, slug, type Interview } from './candidates.ts';
 import { paletteLuma, styleSheet, styleTile, wrap } from './sheets.ts';

@@ -4,9 +4,9 @@
  * of shuffled lettered black silhouettes (named by a fresh reviewer before they see the asset list), the drawn heights
  * against the briefs' real-world heights, and the most-overlapping silhouette pairs. Pure: the CLI renders and writes.
  */
-import { drawText } from '../lib/font.ts';
-import { Grid } from '../lib/grid.ts';
-import { rng } from '../lib/rng.ts';
+import { drawText } from 'artgen-primitives/lib/font.ts';
+import { Grid } from 'artgen-primitives/lib/grid.ts';
+import { rng } from 'artgen-primitives/lib/rng.ts';
 
 export interface RosterItem {
   id: string; kind: string; grid: Grid; notes?: string;

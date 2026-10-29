@@ -1,0 +1,18 @@
+{
+  "name": "artgen-scene",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Scene layer: art direction types, Scene2D/Scene3D, procedural layers, voxels, views, animation, effects, textures. Depends on primitives only.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "artgen-primitives": "0.0.0"
+  }
+}

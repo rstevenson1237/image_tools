@@ -1,0 +1,19 @@
+{
+  "name": "artgen-primitives",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Primitives layer: grid, colour, palette, rng, noise, raster, geometry, SVG, fonts, page layout, format versions. TS, ESM, no Node or DOM imports.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@resvg/resvg-wasm": "^2.6.2",
+    "fflate": "^0.8.3"
+  }
+}

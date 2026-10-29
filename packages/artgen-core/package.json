@@ -2,7 +2,7 @@
   "name": "artgen-core",
   "private": true,
   "version": "0.0.0",
-  "description": "artgen engine: TS, ESM, no Node or DOM imports.",
+  "description": "artgen engine: the artgen layer (direction-driven pipeline, QA, workflows) and the facade that re-exports primitives, scene and mapgen. TS, ESM, no Node or DOM imports.",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
@@ -14,8 +14,9 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@resvg/resvg-wasm": "^2.6.2",
-    "fflate": "^0.8.3",
+    "artgen-primitives": "0.0.0",
+    "artgen-scene": "0.0.0",
+    "artgen-mapgen": "0.0.0",
     "yaml": "^2.9.1"
   }
 }

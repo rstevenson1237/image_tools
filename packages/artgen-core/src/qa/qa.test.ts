@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
-import { parseDirection } from '../direction.ts';
-import { Grid } from '../lib/grid.ts';
+import { parseDirection } from 'artgen-scene/direction.ts';
+import { Grid } from 'artgen-primitives/lib/grid.ts';
 import { bodyHeight, checkerWindows, conformance, drawnHeight, histogramDistance, lintSource } from './conformance.ts';
 import { formatLedgerLine, imageTokens, parseLedger, sourceHash } from './ledger.ts';
 import { measure } from './metrics.ts';

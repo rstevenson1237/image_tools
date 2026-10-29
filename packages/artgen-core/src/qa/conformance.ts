@@ -2,9 +2,9 @@
  * Conformance gate (SPEC §4.3): does an asset follow its direction? Each check passes, fails, flags
  * (reported, never blocking) or is skipped when its inputs are missing. Plus artlab hygiene metrics.
  */
-import { kindPalette, type Direction, type Size } from '../direction.ts';
-import { luma, normHex, parseColor } from '../lib/color.ts';
-import type { Grid } from '../lib/grid.ts';
+import { kindPalette, type Direction, type Size } from 'artgen-scene/direction.ts';
+import { luma, normHex, parseColor } from 'artgen-primitives/lib/color.ts';
+import type { Grid } from 'artgen-primitives/lib/grid.ts';
 import { isShadowPixel, measure, type Metrics } from './metrics.ts';
 import { animChecks, type AnimInput } from './anim.ts';
 import type { RenderResult } from '../render.ts';

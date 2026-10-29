@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { parseDirection } from './direction.ts';
+import { parseDirection } from 'artgen-scene/direction.ts';
 import { assembleSheet, FACINGS, mirrorFacing, renderAsset, type AssetModule, type RenderContext } from './render.ts';
 
 const dir = parseDirection({
