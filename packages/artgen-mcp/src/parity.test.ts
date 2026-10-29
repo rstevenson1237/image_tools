@@ -4,7 +4,7 @@
 // the operations reference on disk are current; no two operations collide on a surface.
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { ART_OPS, cliOf, findOp, isExcluded, main, MAP_OPS, mapsMain, mcpName, mcpOf, operationsDoc, OPS, pythonOps, pyName, usageLines, wordsOf } from 'artgen-cli';
+import { ART_OPS, CORE_OPS, cliOf, findOp, isExcluded, main, MAP_OPS, mapsMain, mcpName, mcpOf, operationsDoc, OPS, pythonOps, pyName, usageLines, wordsOf } from 'artgen-cli';
 import { handle } from './index.ts';
 
 const REPO = new URL('../../../', import.meta.url);
@@ -20,9 +20,9 @@ afterEach(() => { vi.restoreAllMocks(); });
 beforeEach(() => { vi.spyOn(console, 'error').mockImplementation(() => {}); });
 
 describe('the registry', () => {
-  test('is the art module, then the maps module, with every operation named once', () => {
-    expect(OPS).toEqual([...ART_OPS, ...MAP_OPS]);
-    expect(ART_OPS.every(op => op.module === 'art') && MAP_OPS.every(op => op.module === 'maps')).toBe(true);
+  test('is the art module, then the maps module, then the core module, with every operation named once', () => {
+    expect(OPS).toEqual([...ART_OPS, ...MAP_OPS, ...CORE_OPS]);
+    expect(ART_OPS.every(op => op.module === 'art') && MAP_OPS.every(op => op.module === 'maps') && CORE_OPS.every(op => op.module === 'core')).toBe(true);
     expect(new Set(OPS.map(op => op.name)).size).toBe(OPS.length);
     expect(new Set(OPS.map(op => wordsOf(op).join(' '))).size).toBe(OPS.length);
   });

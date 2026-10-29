@@ -77,7 +77,7 @@ and the bench stay green, and existing CLI and MCP behaviour is unchanged (the t
 
 ```ts
 // packages/artgen-cli/src/ops/registry.ts (no node: or engine imports)
-export type Module = 'art' | 'maps';
+export type Module = 'core' | 'art' | 'maps';   // core: what every install has (`ui`, the review server); it is in both CLI bundles
 /** read: writes nothing. write: changes a source file (a map, briefs, the ledger, direction.json). render: writes only derived files (out/, sheets/). */
 export type Effect = 'read' | 'write' | 'render';
 

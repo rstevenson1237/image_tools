@@ -7,13 +7,6 @@
   `/artgen-restyle`) to produce, show, approve and export assets, the **artgen** skill for authoring sprite, prop, tile
   or effect sources; the **art-reviewer** subagent scores versions, **art-maker** subagents write one asset each in a
   parallel `make` round.
-- Tabletop terrain maps live in `art/maps/<id>/map.json` (renders in `out/`): use the **terrain-map** skill
-  (`/artgen-map`). The web app's **Terrain Map** tool edits the same file; re-read it before changing a map.
-- Tabletop dungeon maps live in `art/dungeons/<id>/dungeon.json` (renders in `out/`): use the **dungeon-map** skill
-  (`/artgen-dungeon`). The web app's **Dungeon Map** tool edits the same file; re-read it before changing a dungeon.
-- Tabletop settlement maps (villages, towns, castles and their buildings' floor plans) live in
-  `art/settlements/<id>/settlement.json` (renders in `out/`): use the **settlement-map** skill (`/artgen-settlement`).
-  The web app's **Settlement Map** tool edits the same file; re-read it before changing a settlement.
 - Game code reads art through the vendored runtime in `src/art/runtime/` (`export --runtime`; never edit it by hand
   unless you mean to keep a local fork) and the typed ids in `src/art/assets.ts` (generated — don't edit).
 - The pipeline runs autonomously: don't ask the user between passes; they see finished assets and approve or give
@@ -26,4 +19,14 @@
 - Never edit a version that has a score; write the next `base.vN.js` / `finish.vM.js` (R10).
 - CLI: `node tools/artgen/artgen.js <command>` (no npm install needed); the `artgen` MCP server exposes the same tools (images come back
   inline). Python scripts can use the `artgen` client (`python/artgen` in the artgen repo), which calls this CLI.
+
+## Tabletop maps (artgen)
+- Tabletop terrain maps live in `art/maps/<id>/map.json` (renders in `out/`): use the **terrain-map** skill
+  (`/artgen-map`). The web app's **Terrain Map** tool edits the same file; re-read it before changing a map.
+- Tabletop dungeon maps live in `art/dungeons/<id>/dungeon.json` (renders in `out/`): use the **dungeon-map** skill
+  (`/artgen-dungeon`). The web app's **Dungeon Map** tool edits the same file; re-read it before changing a dungeon.
+- Tabletop settlement maps (villages, towns, castles and their buildings' floor plans) live in
+  `art/settlements/<id>/settlement.json` (renders in `out/`): use the **settlement-map** skill (`/artgen-settlement`).
+  The web app's **Settlement Map** tool edits the same file; re-read it before changing a settlement.
+- CLI: `node tools/artgen/artgen.js <command>` with `map`, `dungeon` or `settlement` (no npm install needed); every command takes `--json`, and `--file <path>` in place of an id.
 <!-- artgen:end -->

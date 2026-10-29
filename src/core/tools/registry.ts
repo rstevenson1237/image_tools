@@ -1,4 +1,5 @@
 import type { Component } from 'svelte';
+import { BUNDLED } from '../bundle';
 
 export type WorkerKind = 'opencv' | 'artgen' | 'ffmpeg' | 'native';
 
@@ -33,7 +34,8 @@ export interface ToolDefinition {
 
 type Loaded = Promise<{ default: Component<Record<string, never>> }>;
 
-export const tools: ToolDefinition[] = [
+/** The OpenCV image tools. The review UI that `artgen ui` serves leaves them out (BUNDLED is a build-time constant, so their chunks are not built). */
+const imageTools: ToolDefinition[] = BUNDLED ? [] : [
   {
     id: 'token-cutter',
     name: 'VTT Token Cutter',
@@ -52,6 +54,10 @@ export const tools: ToolDefinition[] = [
     load: () => import('../../tools/SvgTracer/index.svelte') as Loaded,
     requiredWorkers: ['opencv'],
   },
+];
+
+export const tools: ToolDefinition[] = [
+  ...imageTools,
   {
     id: 'terrain-map',
     name: 'Terrain Map',
@@ -107,6 +113,13 @@ export const tools: ToolDefinition[] = [
     requiredWorkers: ['artgen'],
   },
 ];
+
+/** The installer module whose files a tool works on (`art/maps/…` belongs to `maps`); null for a tool of no module. */
+export const moduleOf = (t: ToolDefinition): 'art' | 'maps' | null => (t.group === 'maps' ? 'maps' : t.group === 'art' ? 'art' : null);
+
+/** The tools a repo with these modules can use (all of them when the modules are unknown). */
+export const toolsFor = (modules: readonly string[] | null, list: ToolDefinition[] = tools): ToolDefinition[] =>
+  modules ? list.filter(t => { const m = moduleOf(t); return !m || modules.includes(m); }) : list;
 
 export function getTool(id: string): ToolDefinition | undefined {
   return tools.find((t) => t.id === id);

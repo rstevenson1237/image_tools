@@ -1,5 +1,5 @@
 {
   "extends": "../tsconfig.base.json",
   "compilerOptions": { "types": ["node"], "allowJs": true, "checkJs": false },
-  "include": ["test/**/*.ts", "vitest.config.ts", "build.mjs", "src/**/*.mjs"]
+  "include": ["test/**/*.ts", "vitest.config.ts", "build.mjs", "ui-build.mjs", "lib-packages.mjs", "src/**/*.mjs"]
 }

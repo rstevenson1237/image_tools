@@ -56,6 +56,23 @@ terrain map if you have one) or drawn by hand. Each building can hold its floor 
 furniture at true size), shown close up or cut away on the site; colour or black and white, with a grid. A settlement
 is `art/settlements/<id>/settlement.json`; the **Settlement Map** tool in the image tools opens, edits and saves it.
 
+**Modules.** A bare `init` installs `core`, `art` and `maps`. Take only what the repo needs, and add or drop the rest later:
+```bash
+npx -y github:rstevenson1237/image_tools#artgen-dist init --with maps          # tabletop maps only: no art skills, agents or CLI
+npx -y github:rstevenson1237/image_tools#artgen-dist add ui update-pr         # the review UI, and the weekly update pull request
+npx -y github:rstevenson1237/image_tools#artgen-dist remove maps              # edited files stay; `modules` lists what each holds
+```
+`ui` is the review UI: `node tools/artgen/artgen.js ui` serves Asset Review, Art Direction, Asset Lab and the map editors
+from the repo, opens its `art/` through that local server (any browser) and writes approvals and notes to the same
+files and ledger lines the CLI does; it always matches the repo's engine version. Cloud sessions can't be reached from
+your browser, so review there on the pull request instead. `update-pr` adds `.github/workflows/artgen-update.yml`: once a
+week it runs `update` and opens a pull request with the changelog and the files it kept because you edited them.
+
+Code that imports the engine (a game's runtime, a tool that builds maps in code) installs the library packages attached
+to each release: `npm install https://github.com/rstevenson1237/image_tools/releases/download/artgen-v0.12.0/artgen-mapgen-0.11.0.tgz`
+(`artgen-runtime`, `artgen-primitives`, `artgen-scene` and `artgen-mapgen`; no registry). `update` moves those URLs in
+your `package.json` to the new release.
+
 Later: `npx -y github:rstevenson1237/image_tools#artgen-dist update` (keeps your local edits), or pin a release with
 `#artgen-dist-v0.11.0` ([changelog](packages/artgen-dist/CHANGELOG.md)). `node tools/artgen/artgen.js --help` lists
 the CLI; the same tools are an MCP server (`artgen`) in every install, and `python/artgen` is a Python client.
@@ -71,7 +88,7 @@ dungeon (Pixi.js) and a first-person billboard crawler (three.js).
 | [`packages/artgen-cli`](packages/artgen-cli) | the `artgen` CLI the skills call |
 | [`packages/artgen-runtime`](packages/artgen-runtime) | the runtime vendored into games, with Pixi.js / three.js / Canvas 2D adapters |
 | [`packages/artgen-mcp`](packages/artgen-mcp) | the MCP server |
-| [`packages/artgen-dist`](packages/artgen-dist) | builds the installable distribution and the installer |
+| [`packages/artgen-dist`](packages/artgen-dist) | builds the installable distribution (modules `core`, `art`, `maps`, `ui`, `update-pr`), the installer and the release library packages |
 | [`python/artgen`](python/artgen) | Python client |
 
 How artgen was designed and built (intake, spec, plan, decisions, per-phase findings and the original artlab
@@ -119,7 +136,10 @@ npm run preview # serve the production build
 
 npm run check:packages  # typecheck the artgen workspace packages
 npm run test:packages   # vitest in each artgen workspace package
-npm run build:dist      # build the artgen committed-install distribution (packages/artgen-dist/out)
+npm run build:dist      # build the artgen committed-install distribution (packages/artgen-dist/out), review UI included
+npm run pack:libs       # build the library package files a release attaches (lib-dist/)
+npm run accept:ui       # headless-browser run of `artgen ui` against a fixture game (needs Playwright)
+npm run accept:release  # tag → `npx …#artgen-dist-v<B> update` for the full and the maps-only install
 npm run fixtures:install  # restore the generated tools in the examples/ fixture game repos
 ```
 

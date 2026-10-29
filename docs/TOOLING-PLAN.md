@@ -1,6 +1,6 @@
 # Tooling plan: separate, refactor, and build a feedback loop
 
-Status: proposal, 2026-10-27; decisions settled 2026-10-27 and revised 2026-10-29 (§12). R0, R1 and R2 are built
+Status: proposal, 2026-10-27; decisions settled 2026-10-27 and revised 2026-10-29 (§12). R0, R1, R2 and R3 are built
 (§10); the rest is not. It follows on from the finished artgen plan ([`archive/artgen/PLAN.md`](archive/artgen/PLAN.md)) and reuses its
 decisions (`Dn`) where they still hold.
 
@@ -131,8 +131,8 @@ install.
   https://github.com/rstevenson1237/image_tools/releases/download/artgen-v0.12.0/artgen-mapgen-0.12.0.tgz`. The
   release workflow already creates GitHub releases and attaches the Python files, so this adds files, not a service.
 - The source stays in this repo, which avoids version skew between the web UI and the CLI.
-- The installer gets **modules**: `core` (always), `art`, `maps`, and `ui-links`. A module is a list of skills,
-  commands, agents, bundles and the `CLAUDE.md` sections it needs. `MANIFEST.json` records the modules a repo has.
+- The installer gets **modules**: `core` (always), `art`, `maps`, `ui` and `update-pr`. A module is a list of skills,
+  commands, agents, bundles and the `CLAUDE.md` section it needs. `MANIFEST.json` records the modules a repo has.
 - The `maps` module is a first-class product (`mapgen`), with its own version line and changelog section. The
   maps-only bundle setting_builder uses today becomes this module. Its command stays `artgen map …` (§12).
 - New tools join the same way: a package in this repo, a module in the installer, and a group of `artgen`
@@ -476,6 +476,40 @@ faster for the phases after it.
 - **Accept:** a maps-only install has no art skills in it; an update opens a pull request in a scratch repo; `artgen
   ui` approves an asset in Chromium and Firefox and the CLI shows it; the release acceptance script passes for both
   modules.
+- **Built:** see [`packages/artgen-dist/README.md`](../packages/artgen-dist/README.md) for the layout.
+  - **Modules.** The distribution is built module by module (`content/<module>/` holds each one's skills, agents, commands
+    and `CLAUDE.md` fragment) and `dist/modules.json` lists the files of each; the build fails if a file belongs to none or two.
+    `core` is the rasteriser, fonts and `VERSION`; `art` the full CLI, MCP server, templates, runtime and art skills; `maps`
+    `artgen-maps.js` and the three map skills (they call the maps-only bundle, so a maps-only repo has everything they use);
+    `ui` the review UI; `update-pr` the workflow. `init` installs `core`, `art` and `maps` (what an install held before);
+    `init --with`, `add`, `remove` and `modules` are new, `status` shows the version of each. A manifest from before
+    modules counts as `core`, `art` and `maps`. `remove` deletes untouched files and keeps edited ones; the `.mcp.json`
+    entry and the `CLAUDE.md` section follow the modules.
+  - **mapgen's own version line.** `packages/artgen-mapgen/package.json` (0.11.0) is the version of the `maps` module, of
+    `artgen-maps.js --version` and of its library package file. `scripts/artgen-release.mjs` moves it a patch when a commit
+    since the last tag touched the map engines (`--mapgen` decides otherwise), and each changelog section names it and lists
+    those commits again under `### mapgen`. Format versions are unchanged.
+  - **Update pull requests.** `artgen-update.yml` (module `update-pr`) runs `update --notes` weekly and on demand, pushes
+    `artgen-update-<version>` and opens (or edits) a pull request whose text is the changelog since the installed version,
+    the modules moved and the files kept because they were edited. `update` also moves the release URLs of the library
+    packages in the game's `package.json`. `scripts/artgen-release-acceptance.mjs` runs the workflow's own steps against a
+    stand-in `gh` and a bare `origin`; it has not run on GitHub.
+  - **Review UI.** `artgen ui` (operation `ui`, module `core`: in `artgen.js` and in `artgen-maps.js`) serves
+    `tools/artgen/ui/` and a file API over `art/` on 127.0.0.1: token in the link, `Host` check, paths confined to `art/`
+    (no `..`, `.git` or links out). The page is the web app built in bundle mode (`vite.ui.config.ts`, 1.3 MB: no OpenCV
+    tools, and the rasteriser and fonts are the `core` module's files, served from `tools/artgen/`). It uses an `HttpFiles`
+    backend beside the folder-handle and zip ones, so it needs no folder picker and runs the repo's own engine version. The
+    sidebar shows the tools of the installed modules. `scripts/artgen-ui-bundle-accept.mjs` drives it in headless Chromium
+    through the Art Direction, Asset Review and Asset Lab flow of the older acceptance and checks a maps-only repo's sidebar.
+  - **Library packages.** `packages/artgen-dist/pack-libs.mjs` builds `artgen-runtime`, `artgen-primitives`, `artgen-scene`
+    and `artgen-mapgen` (tsc output with declarations, `npm pack`; `primitives` and `scene` follow the release version, the other
+    two their own lines) and the release workflow attaches them. A test unpacks them like `npm install <url>` would, imports
+    them in Node and type-checks a consumer with the library check on.
+  - **Not done here.** The first review on your own machine in a real local session, and in Firefox (not installed in the
+    sandbox this was built in; the file API is plain `fetch`, so nothing in it is browser-specific). The update workflow and
+    the release attachment have not run on GitHub. A maps-only install has no MCP server (the maps tools are in
+    `artgen-mcp.js`, which belongs to `art`). Size: the installed UI is 1.3 MB (the estimate was 1–3 MB); the copy
+    of the rasteriser and fonts it would have carried (3.2 MB) is shared with the `core` module instead.
 
 ### R4 — Feedback loop (M)
 - Add `artgen report`, `artgen upstream`, `artgen metrics export`, the issue template, and the intake script that

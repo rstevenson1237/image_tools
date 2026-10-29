@@ -7,7 +7,7 @@
 import type { AssetDir } from '../asset.ts';
 import type { Project } from '../projectfs.ts';
 
-export type Module = 'art' | 'maps';
+export type Module = 'core' | 'art' | 'maps';
 /** read: writes nothing. write: changes a source file (a map, briefs, the ledger, direction.json). render: writes only derived files (out/, sheets/). */
 export type Effect = 'read' | 'write' | 'render';
 

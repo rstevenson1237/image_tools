@@ -6,7 +6,9 @@ name: artgen-release
 # This workflow checks the tag against the version, runs the package and Python tests, publishes the build to the
 # `artgen-dist` branch, tags that commit `artgen-dist-v<version>` (what game repos pin:
 # `npx -y github:rstevenson1237/image_tools#artgen-dist-v0.9.0 update`) and creates the GitHub release with the
-# changelog section and the Python client's sdist/wheel attached. PyPI is not published (on the owner's go-ahead only).
+# changelog section, the Python client's sdist/wheel and the library package files (artgen-runtime, artgen-primitives,
+# artgen-scene, artgen-mapgen: `npm install <release url>/artgen-mapgen-<version>.tgz`, no registry) attached.
+# PyPI is not published (on the owner's go-ahead only).
 # Safe to run again for the same tag: a dist tag already published from the same commit is left as it is, and a
 # release that already exists (one made by hand in the GitHub UI, which also pushes the tag) gets the changelog notes
 # and the Python files instead of failing. To finish a release whose run failed, run this workflow by hand
@@ -75,6 +77,16 @@ jobs:
 
       - run: npm run build -w artgen-dist
 
+      # the library package files, named like the ones packages.json in the distribution lists (the installer's `update`
+      # moves a consumer's release URLs to them)
+      - name: Library package files
+        run: |
+          set -euo pipefail
+          node packages/artgen-dist/pack-libs.mjs lib-dist --release "${{ steps.v.outputs.version }}"
+          for f in $(node -p "Object.values(require('./packages/artgen-dist/out/dist/packages.json').packages).map(p => p.file).join(' ')"); do
+            test -f "lib-dist/$f" || { echo "lib-dist/$f is missing" >&2; exit 1; }
+          done
+
       - name: Publish the artgen-dist branch and tag the release
         run: scripts/artgen-publish-dist.sh packages/artgen-dist/out "artgen-dist-v${{ steps.v.outputs.version }}"
 
@@ -86,14 +98,16 @@ jobs:
           version=${{ steps.v.outputs.version }}
           # this release's section of the changelog
           awk -v v="## ${version} " 'index($0, v) == 1 { on = 1; print; next } /^## / { on = 0 } on' packages/artgen-dist/CHANGELOG.md > notes.md
-          printf '\nInstall or update in a game repo:\n\n    npx -y github:%s#artgen-dist-v%s update\n' "$GITHUB_REPOSITORY" "$version" >> notes.md
+          printf '\nInstall or update in a game repo (modules: core, art, maps, ui, update-pr):\n\n    npx -y github:%s#artgen-dist-v%s init --with art,maps\n    npx -y github:%s#artgen-dist-v%s update\n' "$GITHUB_REPOSITORY" "$version" "$GITHUB_REPOSITORY" "$version" >> notes.md
+          printf '\nLibrary packages for code that imports the engine (attached to this release):\n\n' >> notes.md
+          for f in lib-dist/*.tgz; do printf '    npm install https://github.com/%s/releases/download/%s/%s\n' "$GITHUB_REPOSITORY" "$TAG" "$(basename "$f")" >> notes.md; done
           python -m build python/artgen --outdir python-dist
           if gh release view "$TAG" >/dev/null 2>&1; then
-            # made by hand (or by an earlier run): give it the changelog notes and the Python files
+            # made by hand (or by an earlier run): give it the changelog notes and the Python and library files
             gh release edit "$TAG" --title "artgen $version" --notes-file notes.md
-            gh release upload "$TAG" python-dist/* --clobber
+            gh release upload "$TAG" python-dist/* lib-dist/* --clobber
           else
-            gh release create "$TAG" --title "artgen $version" --notes-file notes.md python-dist/*
+            gh release create "$TAG" --title "artgen $version" --notes-file notes.md python-dist/* lib-dist/*
           fi
 
   runtime-npm:

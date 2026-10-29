@@ -4,6 +4,7 @@
  *   HandleFiles   File System Access directory handle (Chromium; also the origin-private file system, which the
  *                 acceptance run uses because a directory picker can't be driven headlessly)
  *   MemoryFiles   an in-memory copy: the zip fallback for browsers without `showDirectoryPicker`, and the tests
+ *   HttpFiles     the local review server's file API (`artgen ui`, the `ui` module): works in every browser
  *
  * Paths are relative to the `art/` folder and use `/`. Rune-free and DOM-light so it runs under vitest in node.
  */
@@ -15,7 +16,7 @@ export interface FileStat {
 }
 
 export interface ProjectFiles {
-  readonly kind: 'handle' | 'memory';
+  readonly kind: 'handle' | 'memory' | 'server';
   /** Display name of the opened folder. */
   readonly name: string;
   /** Entries directly under `dir` ('' = the art folder); folders end in `/`. Missing folder → []. */
@@ -166,4 +167,47 @@ export class HandleFiles implements ProjectFiles {
     await w.write(text);
     await w.close();
   }
+}
+
+/** The local review server's file API (`artgen ui`, packages/artgen-cli/src/ui-server.ts) over `fetch`. */
+export class HttpFiles implements ProjectFiles {
+  readonly kind = 'server' as const;
+
+  /** `name`: the game repo's folder name; `token`: the access token from the link `artgen ui` printed. */
+  constructor(readonly name: string, private readonly token: string, private readonly base = '', private readonly doFetch: typeof fetch = (...a) => fetch(...a)) {}
+
+  private async call(route: string, params: Record<string, string>, init: RequestInit = {}): Promise<Response> {
+    const r = await this.doFetch(`${this.base}/api/${route}?${new URLSearchParams(params)}`, { ...init, headers: { 'x-artgen-token': this.token } });
+    if (!r.ok) {
+      const why = await r.json().then((j: { error?: string }) => j.error, () => undefined);
+      throw new Error(`artgen ui: ${route} ${params.path ?? params.dir ?? ''} failed (${r.status}${why ? `: ${why}` : ''})`);
+    }
+    return r;
+  }
+
+  /** Connect to the server and ask it about the repo (its folder name and the installed modules). */
+  static async connect(token: string, base = '', doFetch?: typeof fetch): Promise<{ files: HttpFiles; modules: string[] | null }> {
+    const info = (await (await new HttpFiles('', token, base, doFetch).call('info', {})).json()) as { name: string; modules?: string[] };
+    return { files: new HttpFiles(info.name, token, base, doFetch), modules: info.modules?.length ? info.modules : null };
+  }
+
+  async list(dir: string): Promise<string[]> { return (await (await this.call('list', { dir })).json()) as string[]; }
+
+  async readBytes(path: string): Promise<Uint8Array | undefined> {
+    const r = await this.call('read', { path });
+    return r.status === 204 ? undefined : new Uint8Array(await r.arrayBuffer());
+  }
+
+  async readText(path: string): Promise<string | undefined> {
+    const r = await this.call('read', { path });
+    return r.status === 204 ? undefined : r.text();
+  }
+
+  async stat(path: string): Promise<FileStat | undefined> {
+    return ((await (await this.call('stat', { path })).json()) as FileStat | null) ?? undefined;
+  }
+
+  async write(path: string, data: string | Uint8Array): Promise<void> { await this.call('write', { path }, { method: 'PUT', body: data as BodyInit }); }
+
+  async append(path: string, text: string): Promise<void> { await this.call('append', { path }, { method: 'POST', body: text }); }
 }

@@ -25,7 +25,7 @@ const EXAMPLES = fileURLToPath(new URL('../../../examples/', import.meta.url));
 const FIXTURES = ['swamp-topdown', 'iso-dungeon', 'billboard-crawler'];
 const ENGINE: Record<string, string> = { 'swamp-topdown': 'pixi', 'iso-dungeon': 'pixi', 'billboard-crawler': 'three' };
 const TSC = createRequire(import.meta.url).resolve('typescript/bin/tsc');
-const GENERATED = new Set(['tools/artgen/artgen.js', 'tools/artgen/artgen-mcp.js', 'tools/artgen/resvg.wasm',
+const GENERATED = new Set(['tools/artgen/artgen.js', 'tools/artgen/artgen-mcp.js', 'tools/artgen/artgen-maps.js', 'tools/artgen/resvg.wasm',
   ...['Regular', 'Bold', 'Italic'].map(w => `tools/artgen/fonts/AlegreyaSans-${w}.ttf`)]);
 const sha = (b: Buffer) => createHash('sha256').update(b).digest('hex').slice(0, 16);
 let dist = '';
@@ -141,7 +141,10 @@ describe.each(FIXTURES)('fixture %s', name => {
 
   test('the installed toolset matches the current distribution', () => {
     const stale: string[] = [];
-    for (const [rel, src] of Object.entries(distFiles(dist) as Record<string, string>)) {
+    // the modules this fixture installed (a bare `init`: core, art and maps; the review UI and the update workflow are opt-in)
+    const modules = Object.keys(readJson<{ modules: Record<string, string> }>(join(root, 'tools/artgen/MANIFEST.json')).modules);
+    expect(modules).toEqual(['core', 'art', 'maps']);
+    for (const [rel, src] of Object.entries(distFiles(dist, modules) as Record<string, string>)) {
       if (GENERATED.has(rel)) continue;
       const f = join(root, rel);
       if (!existsSync(f) || sha(readFileSync(f)) !== sha(readFileSync(src))) stale.push(relative(EXAMPLES, f));

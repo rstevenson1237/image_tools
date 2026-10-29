@@ -9,10 +9,12 @@ packages/artgen-core/bench/pipeline/*/out/
 packages/artgen-core/bench/p6/*/out/
 packages/artgen-cli/scratch-*.ts
 packages/artgen-dist/out/
+lib-dist/
 # fixture game repos keep their committed install except the generated bundles, wasm and map fonts (~3.4 MB each);
 # `npm run fixtures:install` restores them from packages/artgen-dist
 examples/*/tools/artgen/artgen.js
 examples/*/tools/artgen/artgen-mcp.js
+examples/*/tools/artgen/artgen-maps.js
 examples/*/tools/artgen/resvg.wasm
 examples/*/tools/artgen/fonts/*.ttf
 
