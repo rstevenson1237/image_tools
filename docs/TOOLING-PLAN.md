@@ -1,7 +1,7 @@
 # Tooling plan: separate, refactor, and build a feedback loop
 
-Status: proposal, 2026-10-27; decisions settled 2026-10-27 and revised 2026-10-29 (§12). Nothing here is built
-yet. It follows on from the finished artgen plan ([`archive/artgen/PLAN.md`](archive/artgen/PLAN.md)) and reuses its
+Status: proposal, 2026-10-27; decisions settled 2026-10-27 and revised 2026-10-29 (§12). R0, R1 and R2 are built
+(§10); the rest is not. It follows on from the finished artgen plan ([`archive/artgen/PLAN.md`](archive/artgen/PLAN.md)) and reuses its
 decisions (`Dn`) where they still hold.
 
 ## 1. Summary
@@ -80,7 +80,7 @@ Coverage against the areas you listed (✅ have, ◐ partial, ✗ missing):
 | | Metrics | ✅ art, ✗ maps | ledger, analytics v2, pixel hygiene. Maps have none |
 | **Interface** | Node/JS | ◐ | the CLI works. Library packages are `private` and export TS source, so nothing can `npm install` them |
 | | Python / CLI | ✅ | thin client over the CLI and MCP (`python/artgen`) |
-| | MCP | ✅ | about 45 tools, defined by hand in `artgen-mcp/src/server.ts` |
+| | MCP | ✅ | about 45 tools, defined by hand in `artgen-mcp/src/server.ts` (R2: generated from the operation registry) |
 | | Web UI | ✅ | 8 tools. Three of them (Terrain, Dungeon, Settlement) repeat each other's editor code |
 
 Known gaps from the archive still apply: acceptance never ran in a local session, scores were mostly self-scored, and
@@ -436,6 +436,32 @@ faster for the phases after it.
 - **Makes later work faster:** a new operation is written once instead of four times, so R5–R7 features reach every
   interface for free.
 - **Accept:** the MCP tool list comes from the registry; the parity test passes; the Python tests pass unchanged.
+- **Built:** the design and what was built are in [`OPERATION-REGISTRY.md`](OPERATION-REGISTRY.md); the generated
+  reference of every operation is [`OPERATIONS.md`](OPERATIONS.md).
+  - Every CLI command and MCP tool is one declaration in `packages/artgen-cli/src/ops/` (114 operations). The art
+    operations are in `art-*.ts`, and the map, dungeon and settlement ones are in `maps-*.ts`, which the maps-only
+    bundle holds alone. A declaration gives the name, the module, the typed parameters, the side effect, the
+    implementation, and how each interface shows it.
+  - The CLI's `main()` has no command branches left. One parser reads every command's flags from its declaration.
+    `artgen --help` and the new `artgen <command> --help` are generated. Unknown flags and extra arguments are now
+    errors instead of being ignored. Every `{{ARTGEN}}` example in the shipped skills (80 lines) still parses.
+  - The MCP tool list is generated: today's 44 tools in today's order, plus `brief_add`, `brief_list`, `map_facts`,
+    `map_check`, `dungeon_facts` and `formats`. Every operation that is not a tool states why (a batch tool covers it, it
+    reads a path outside `art/`, or the user or a skill drives it). An MCP call reaches only the arguments in its
+    schema, so a CLI-only path argument can't escape the sandbox.
+  - The CLI gains what only MCP had: `conformance`, the batch edits (`dungeon edit <id> --ops '<json>'`, `map update`,
+    `settlement edit`, …) and `direction show --candidate`.
+  - The Python client gets a generated method for every CLI command (`python/artgen/src/artgen/_ops.py`, made by `npm
+    run gen:ops`). The hand-written methods are unchanged and the Python tests pass unchanged.
+  - The dungeon edits had two implementations, one in the CLI and one in `dungeon_edit`. They are now one vocabulary,
+    `editDungeon`, in `artgen-mapgen`, beside `editSettlement`, so the web editors can use it.
+  - Guards: transcripts of 556 CLI commands and of every MCP tool, recorded before anything moved, are unchanged. A
+    snapshot of the old MCP schemas is still satisfied. A parity test checks that every operation is on the CLI, MCP
+    and Python or names its reason, and that the generated files are current. The bench golden hashes are unchanged.
+  - Bundles grew: `artgen.js` 1.35 → 1.48 MB, `artgen-mcp.js` 1.22 → 1.48 MB and `artgen-maps.js` 0.53 → 0.62 MB. The
+    MCP bundle now holds every command's text formatting, and every bundle holds the usage text.
+  - Left for R8: building the web UI's forms from the registry (`ops/registry.ts` has no Node imports, so the web app
+    can use it).
 
 ### R3 — Modular install, bundled review UI, update pull requests (M–L)
 - Add installer modules (`core`, `art`, `maps`, `ui`), plus `init --with`, `add <module>` and `remove
@@ -512,6 +538,7 @@ faster for the phases after it.
 ### R8 — Web UI consolidation (M)
 - One shell: project bar, a per-asset stage view (a simple node graph of §8's stages with cache status), a metrics
   dashboard fed by pooled analytics, and the same keyboard shortcuts and layout in every tool.
+- Build the web tools' forms and worker commands from the operation registry (R2 left this for the one shell).
 - Fill the archive's untested Firefox zip fallback.
 - **Makes later work faster:** you can see where time goes and approve stages without Claude Code open.
 - **Accept:** the headless UI acceptance (`scripts/artgen-ui-accept.mjs`) covers the stage view and maps review.

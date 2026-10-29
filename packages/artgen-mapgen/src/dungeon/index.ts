@@ -13,3 +13,4 @@ export * as geom from './geom.ts';
 export { FURNITURE_PLACES, FURNITURE_SIDES, coversContent, placeFurniture, type FurniturePlace, type FurnitureSide, type FurnitureItem, type FurnitureLayout } from './furniture.ts';
 export { layoutExits, EXIT_FADE, type ExitGeom } from './exits.ts';
 export { splitBlock, applyBlock, removeBlock, blockOutline, blockRoomNear, clipToRect, hexPoints } from './blocks.ts';
+export { DUNGEON_OPS, editDungeon, linkEnds, cornerPoint, corridorEnd, doorPair, gridMode, type DungeonOp } from './edit.ts';

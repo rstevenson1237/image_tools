@@ -1,0 +1,3969 @@
+### direction_get {}
+text: {
+  "locked": {
+    "theme": {
+      "pitch": "Torchdeep - an isometric, turn-based dungeon crawler. A small party pushes down through torch-lit crypts, fighting skeleton knights in tight tactical rooms and looting iron-banded chests. Cold blue-grey stone, warm torchlight, glints of gold.",
+      "mood": [
+        "grim",
+        "torchlit",
+        "cold stone",
+        "tactical"
+      ],
+      "era": "dark fantasy",
+      "notes": "mix mix1: C as the base, line from A, shading from A. user choice (simulated for the fixture): C's cold stone palette with A's outline and 3-band shading | v2 (simulated user): ember-orange torchlight, colder stone. simulated user: ember torchlight, colder stone"
+    },
+    "camera": {
+      "light": [
+        -1,
+        -1,
+        1
+      ],
+      "directions": 4,
+      "pixelScale": 3,
+      "view": "iso",
+      "iso": {
+        "tile": [
+          32,
+          16
+        ]
+      }
+    },
+    "scale": {
+      "character": [
+        24,
+        32
+      ],
+      "prop": [
+        32,
+        32
+      ],
+      "tile": [
+        32,
+        16
+      ],
+      "effect": [
+        24,
+        24
+      ],
+      "large": [
+        48,
+        48
+      ],
+      "proportions": {
+        "headRatio": 0.32
+      }
+    },
+    "palette": {
+      "shadow": {
+        "color": "#091511",
+        "alpha": 0.35
+      },
+      "materials": {
+        "cloth": "cloth",
+        "skin": "skin",
+        "hair": "hair",
+        "leather": "leather",
+        "metal": "metal",
+        "steel": "metal",
+        "wood": "wood",
+        "stone": "stone",
+        "dirt": "dirt",
+        "ground": "dirt",
+        "grass": "grass",
+        "foliage": "grass",
+        "accent": "accent",
+        "gold": "accent",
+        "glow": "glow",
+        "fx": "glow"
+      },
+      "perKindMax": {
+        "character": 19,
+        "creature": 19,
+        "prop": 16,
+        "tile": 10,
+        "effect": 6
+      },
+      "perKind": {
+        "character": [
+          "skin",
+          "hair",
+          "cloth",
+          "leather",
+          "metal",
+          "accent"
+        ],
+        "creature": [
+          "skin",
+          "hair",
+          "cloth",
+          "leather",
+          "grass",
+          "accent"
+        ],
+        "prop": [
+          "wood",
+          "metal",
+          "stone",
+          "leather",
+          "accent"
+        ],
+        "tile": [
+          "dirt",
+          "grass",
+          "stone"
+        ],
+        "effect": [
+          "accent",
+          "glow"
+        ]
+      },
+      "source": "generated",
+      "maxColors": 31,
+      "ramps": {
+        "skin": [
+          "#a4a38f",
+          "#7a765d",
+          "#474234"
+        ],
+        "hair": [
+          "#66695b",
+          "#36392f",
+          "#0a0b09"
+        ],
+        "cloth": [
+          "#708384",
+          "#445254",
+          "#1b2022"
+        ],
+        "leather": [
+          "#717564",
+          "#414538",
+          "#11120f"
+        ],
+        "metal": [
+          "#969a9d",
+          "#686c6f",
+          "#3c3e40"
+        ],
+        "wood": [
+          "#7c816c",
+          "#4b5140",
+          "#1b1e17"
+        ],
+        "stone": [
+          "#7f8790",
+          "#515862",
+          "#25292e"
+        ],
+        "dirt": [
+          "#636468",
+          "#363739",
+          "#0a0a0a"
+        ],
+        "grass": [
+          "#676a61",
+          "#383b34",
+          "#0a0b09"
+        ],
+        "accent": [
+          "#d8784a",
+          "#b0402a",
+          "#5e1a14"
+        ],
+        "glow": [
+          "#f0b088",
+          "#d84418"
+        ]
+      },
+      "outline": "#131615"
+    },
+    "line": {
+      "outer": "dark",
+      "inner": "selective",
+      "weight": 1
+    },
+    "shading": {
+      "bands": 3,
+      "hueShift": 12,
+      "dither": "none",
+      "highlight": "sparing",
+      "aa": false
+    },
+    "detail": {
+      "density": "low",
+      "minFeaturePx": 2
+    },
+    "pipeline": {
+      "revisionPasses": 3,
+      "finishPass": true,
+      "raster": {
+        "directMaxPx": 32,
+        "ss": 8
+      },
+      "procedural": [
+        "dither"
+      ],
+      "finish": {
+        "allow": [
+          "patch",
+          "fix",
+          "fx",
+          "light",
+          "outline"
+        ]
+      }
+    },
+    "effects": {
+      "fps": 12,
+      "maxFrames": 8,
+      "palette": [
+        "glow",
+        "accent"
+      ]
+    },
+    "anchors": [
+      "anchors/character.png",
+      "anchors/prop.png",
+      "anchors/tile.png",
+      "anchors/effect.png"
+    ],
+    "rules": {
+      "do": [
+        "read the unit's facing at 1x",
+        "keep floor tiles low-contrast so units pop"
+      ],
+      "dont": [
+        "saturated greens",
+        "pure black fills"
+      ]
+    },
+    "id": "torchdeep",
+    "version": 2,
+    "status": "locked",
+    "background": "#1e1e1f"
+  },
+  "candidates": [
+    "a",
+    "b",
+    "c",
+    "mix1",
+    "next"
+  ]
+}
+
+### direction_get {"candidate":"a"}
+text: {
+  "theme": {
+    "pitch": "Torchdeep - an isometric, turn-based dungeon crawler. A small party pushes down through torch-lit crypts, fighting skeleton knights in tight tactical rooms and looting iron-banded chests. Cold blue-grey stone, warm torchlight, glints of gold.",
+    "mood": [
+      "grim",
+      "torchlit",
+      "cold stone",
+      "tactical"
+    ],
+    "era": "dark fantasy",
+    "notes": "candidate A (faithful): palette true to the pitch, dark outline, 3 bands, no dither, classic proportions. torch orange and gold are the only warm colours"
+  },
+  "camera": {
+    "light": [
+      -1,
+      -1,
+      1
+    ],
+    "directions": 4,
+    "pixelScale": 3,
+    "view": "iso",
+    "iso": {
+      "tile": [
+        32,
+        16
+      ]
+    }
+  },
+  "scale": {
+    "character": [
+      24,
+      32
+    ],
+    "prop": [
+      32,
+      32
+    ],
+    "tile": [
+      32,
+      16
+    ],
+    "effect": [
+      24,
+      24
+    ],
+    "large": [
+      48,
+      48
+    ],
+    "proportions": {
+      "headRatio": 0.4
+    }
+  },
+  "palette": {
+    "shadow": {
+      "color": "#090b15",
+      "alpha": 0.35
+    },
+    "materials": {
+      "cloth": "cloth",
+      "skin": "skin",
+      "hair": "hair",
+      "leather": "leather",
+      "metal": "metal",
+      "steel": "metal",
+      "wood": "wood",
+      "stone": "stone",
+      "dirt": "dirt",
+      "ground": "dirt",
+      "grass": "grass",
+      "foliage": "grass",
+      "accent": "accent",
+      "gold": "accent",
+      "glow": "glow",
+      "fx": "glow"
+    },
+    "perKindMax": {
+      "character": 19,
+      "creature": 19,
+      "prop": 16,
+      "tile": 10,
+      "effect": 6
+    },
+    "perKind": {
+      "character": [
+        "skin",
+        "hair",
+        "cloth",
+        "leather",
+        "metal",
+        "accent"
+      ],
+      "creature": [
+        "skin",
+        "hair",
+        "cloth",
+        "leather",
+        "grass",
+        "accent"
+      ],
+      "prop": [
+        "wood",
+        "metal",
+        "stone",
+        "leather",
+        "accent"
+      ],
+      "tile": [
+        "dirt",
+        "grass",
+        "stone"
+      ],
+      "effect": [
+        "accent",
+        "glow"
+      ]
+    },
+    "source": "generated",
+    "maxColors": 32,
+    "ramps": {
+      "skin": [
+        "#cbbfb5",
+        "#a27a6b",
+        "#603d3a"
+      ],
+      "hair": [
+        "#88786c",
+        "#4b3b37",
+        "#0c0808"
+      ],
+      "cloth": [
+        "#9a8ca6",
+        "#5a4f70",
+        "#211f2d"
+      ],
+      "leather": [
+        "#978379",
+        "#5c4541",
+        "#191112"
+      ],
+      "metal": [
+        "#bdc0c2",
+        "#80848d",
+        "#494a52"
+      ],
+      "wood": [
+        "#a39285",
+        "#6c524a",
+        "#291b1b"
+      ],
+      "stone": [
+        "#a2a4a9",
+        "#666772",
+        "#303036"
+      ],
+      "dirt": [
+        "#7c7a83",
+        "#444348",
+        "#0c0c0d"
+      ],
+      "grass": [
+        "#7f8875",
+        "#434c3e",
+        "#0b0d0a"
+      ],
+      "accent": [
+        "#e3c57f",
+        "#dd7712",
+        "#782704"
+      ],
+      "glow": [
+        "#efe69c",
+        "#ff850c"
+      ]
+    },
+    "outline": "#121317"
+  },
+  "line": {
+    "outer": "dark",
+    "inner": "selective",
+    "weight": 1
+  },
+  "shading": {
+    "bands": 3,
+    "hueShift": 12,
+    "dither": "none",
+    "highlight": "sparing",
+    "aa": false
+  },
+  "detail": {
+    "density": "medium",
+    "minFeaturePx": 2
+  },
+  "pipeline": {
+    "revisionPasses": 3,
+    "finishPass": true,
+    "raster": {
+      "directMaxPx": 32,
+      "ss": 8
+    },
+    "procedural": [],
+    "finish": {
+      "allow": [
+        "patch",
+        "fix",
+        "fx",
+        "light",
+        "outline"
+      ]
+    }
+  },
+  "effects": {
+    "fps": 12,
+    "maxFrames": 8,
+    "palette": [
+      "glow",
+      "accent"
+    ]
+  },
+  "anchors": [],
+  "rules": {
+    "do": [
+      "read the unit's facing at 1x",
+      "keep floor tiles low-contrast so units pop"
+    ],
+    "dont": [
+      "saturated greens",
+      "pure black fills"
+    ]
+  },
+  "id": "torchdeep-a",
+  "version": 1,
+  "status": "candidate",
+  "background": "#252527"
+}
+
+### pass_status {"asset":"barrel"}
+text: {
+  "asset": "barrel",
+  "rows": [
+    {
+      "version": "base.v1",
+      "pass": "r1",
+      "score": 5,
+      "gate": true
+    },
+    {
+      "version": "base.v2",
+      "pass": "r2",
+      "score": 6,
+      "gate": true
+    },
+    {
+      "version": "base.v3",
+      "pass": "r3",
+      "score": 6,
+      "gate": true
+    },
+    {
+      "version": "finish.v1",
+      "pass": "f",
+      "score": 6,
+      "gate": true,
+      "base": "base.v3"
+    },
+    {
+      "version": "finish.v2",
+      "pass": "f2",
+      "score": 6.5,
+      "gate": true,
+      "base": "base.v3"
+    }
+  ],
+  "best": {
+    "version": "base.v3",
+    "score": 6
+  },
+  "next": {
+    "action": "ready",
+    "final": "finish.v2",
+    "best": "base.v3",
+    "issues": [],
+    "why": "approved by the user; nothing newer since"
+  }
+}
+
+### render {"asset":"barrel"}
+text: {
+  "version": "finish.v2",
+  "pass": true,
+  "checks": [
+    {
+      "id": "palette",
+      "status": "pass",
+      "detail": "9 colours, all in prop ramps"
+    },
+    {
+      "id": "scale",
+      "status": "pass",
+      "detail": "32x32"
+    },
+    {
+      "id": "aa",
+      "status": "pass",
+      "detail": "no partial alpha"
+    },
+    {
+      "id": "line",
+      "status": "pass",
+      "detail": "dark edge 95.2% of 84 edge px (min 85%)"
+    },
+    {
+      "id": "light",
+      "status": "pass",
+      "detail": "lit − shaded edge luma 61.5"
+    },
+    {
+      "id": "dither",
+      "status": "pass",
+      "detail": "0 checkerboard windows"
+    },
+    {
+      "id": "source",
+      "status": "pass",
+      "detail": "no colour literals"
+    },
+    {
+      "id": "lint",
+      "status": "pass",
+      "detail": "clean"
+    },
+    {
+      "id": "height",
+      "status": "skip",
+      "detail": "no real-world height in the brief"
+    },
+    {
+      "id": "frames",
+      "status": "skip",
+      "detail": "no animated states"
+    },
+    {
+      "id": "attack",
+      "status": "skip",
+      "detail": "no attack states"
+    },
+    {
+      "id": "fill",
+      "status": "skip",
+      "detail": "prop: not an effect"
+    },
+    {
+      "id": "anchors",
+      "status": "skip",
+      "detail": "no anchors for this kind"
+    }
+  ],
+  "metrics": {
+    "fillPct": 58.6,
+    "colors": 9,
+    "aaPartialPct": 0,
+    "offPalettePct": 0,
+    "orphanPct": 0.5,
+    "outlinePct": 94.7,
+    "symmetryPct": 0,
+    "hygiene": 10
+  },
+  "stale": []
+}
+image image/png: 128x128 sha256:1c98c1184a04f67a
+
+### render {"asset":"barrel","version":"base.v1","scale":2}
+text: {
+  "version": "base.v1",
+  "pass": true,
+  "checks": [
+    {
+      "id": "palette",
+      "status": "pass",
+      "detail": "7 colours, all in prop ramps"
+    },
+    {
+      "id": "scale",
+      "status": "pass",
+      "detail": "32x32"
+    },
+    {
+      "id": "aa",
+      "status": "pass",
+      "detail": "no partial alpha"
+    },
+    {
+      "id": "line",
+      "status": "pass",
+      "detail": "dark edge 100.0% of 68 edge px (min 85%)"
+    },
+    {
+      "id": "light",
+      "status": "pass",
+      "detail": "lit − shaded edge luma 55.8"
+    },
+    {
+      "id": "dither",
+      "status": "pass",
+      "detail": "0 checkerboard windows"
+    },
+    {
+      "id": "source",
+      "status": "pass",
+      "detail": "no colour literals"
+    },
+    {
+      "id": "lint",
+      "status": "pass",
+      "detail": "clean"
+    },
+    {
+      "id": "height",
+      "status": "skip",
+      "detail": "no real-world height in the brief"
+    },
+    {
+      "id": "frames",
+      "status": "skip",
+      "detail": "no animated states"
+    },
+    {
+      "id": "attack",
+      "status": "skip",
+      "detail": "no attack states"
+    },
+    {
+      "id": "fill",
+      "status": "skip",
+      "detail": "prop: not an effect"
+    },
+    {
+      "id": "anchors",
+      "status": "skip",
+      "detail": "no anchors for this kind"
+    }
+  ],
+  "metrics": {
+    "fillPct": 43.8,
+    "colors": 7,
+    "aaPartialPct": 0,
+    "offPalettePct": 0,
+    "orphanPct": 0,
+    "outlinePct": 100,
+    "symmetryPct": 0,
+    "hygiene": 10
+  }
+}
+image image/png: 64x64 sha256:55c80158bb2386f1
+
+### review {"asset":"barrel","detail":"low"}
+text: {
+  "sheet": "art/assets/prop/barrel/out/review-finish.v2.png",
+  "imageTokens": 287,
+  "pass": true,
+  "checks": [
+    {
+      "id": "palette",
+      "status": "pass",
+      "detail": "9 colours, all in prop ramps"
+    },
+    {
+      "id": "scale",
+      "status": "pass",
+      "detail": "32x32"
+    },
+    {
+      "id": "aa",
+      "status": "pass",
+      "detail": "no partial alpha"
+    },
+    {
+      "id": "line",
+      "status": "pass",
+      "detail": "dark edge 95.2% of 84 edge px (min 85%)"
+    },
+    {
+      "id": "light",
+      "status": "pass",
+      "detail": "lit − shaded edge luma 61.5"
+    },
+    {
+      "id": "dither",
+      "status": "pass",
+      "detail": "0 checkerboard windows"
+    },
+    {
+      "id": "source",
+      "status": "pass",
+      "detail": "no colour literals"
+    },
+    {
+      "id": "lint",
+      "status": "pass",
+      "detail": "clean"
+    },
+    {
+      "id": "height",
+      "status": "skip",
+      "detail": "no real-world height in the brief"
+    },
+    {
+      "id": "frames",
+      "status": "skip",
+      "detail": "no animated states"
+    },
+    {
+      "id": "attack",
+      "status": "skip",
+      "detail": "no attack states"
+    },
+    {
+      "id": "fill",
+      "status": "skip",
+      "detail": "prop: not an effect"
+    },
+    {
+      "id": "anchors",
+      "status": "skip",
+      "detail": "no anchors for this kind"
+    }
+  ]
+}
+image image/png: 510x422 sha256:6968ddca111d96cb
+
+### conformance {"asset":"barrel"}
+text: {
+  "pass": true,
+  "checks": [
+    {
+      "id": "palette",
+      "status": "pass",
+      "detail": "9 colours, all in prop ramps"
+    },
+    {
+      "id": "scale",
+      "status": "pass",
+      "detail": "32x32"
+    },
+    {
+      "id": "aa",
+      "status": "pass",
+      "detail": "no partial alpha"
+    },
+    {
+      "id": "line",
+      "status": "pass",
+      "detail": "dark edge 95.2% of 84 edge px (min 85%)"
+    },
+    {
+      "id": "light",
+      "status": "pass",
+      "detail": "lit − shaded edge luma 61.5"
+    },
+    {
+      "id": "dither",
+      "status": "pass",
+      "detail": "0 checkerboard windows"
+    },
+    {
+      "id": "source",
+      "status": "pass",
+      "detail": "no colour literals"
+    },
+    {
+      "id": "lint",
+      "status": "pass",
+      "detail": "clean"
+    },
+    {
+      "id": "height",
+      "status": "skip",
+      "detail": "no real-world height in the brief"
+    },
+    {
+      "id": "frames",
+      "status": "skip",
+      "detail": "no animated states"
+    },
+    {
+      "id": "attack",
+      "status": "skip",
+      "detail": "no attack states"
+    },
+    {
+      "id": "fill",
+      "status": "skip",
+      "detail": "prop: not an effect"
+    },
+    {
+      "id": "anchors",
+      "status": "skip",
+      "detail": "no anchors for this kind"
+    }
+  ],
+  "metrics": {
+    "fillPct": 58.6,
+    "colors": 9,
+    "aaPartialPct": 0,
+    "offPalettePct": 0,
+    "orphanPct": 0.5,
+    "outlinePct": 94.7,
+    "symmetryPct": 0,
+    "hygiene": 10
+  }
+}
+
+### brief_lint {}
+text: [
+  {
+    "id": "brazier",
+    "warnings": [
+      "names \"brazier\" (glow) but prop colours leave out the glow ramp (palette.perKind.prop: wood, metal, stone, leather, accent): add it to the direction before drawing, or reword the brief"
+    ]
+  },
+  {
+    "id": "rubble",
+    "warnings": [
+      "names \"rubble\" (dirt) but prop colours leave out the dirt ramp (palette.perKind.prop: wood, metal, stone, leather, accent): add it to the direction before drawing, or reword the brief"
+    ]
+  }
+]
+
+### status {}
+text: [
+  {
+    "id": "hero",
+    "kind": "character",
+    "path": "art/assets/character/hero",
+    "issues": [],
+    "imageTokens": 6746,
+    "status": "exported",
+    "final": "finish.v1",
+    "score": 7,
+    "gate": true,
+    "next": {
+      "action": "ready",
+      "final": "finish.v1",
+      "best": "base.v3",
+      "issues": [],
+      "why": "approved by the user; nothing newer since"
+    },
+    "why": "in pack main"
+  },
+  {
+    "id": "skeleton-knight",
+    "kind": "character",
+    "path": "art/assets/character/skeleton-knight",
+    "issues": [],
+    "imageTokens": 1972,
+    "status": "exported",
+    "final": "finish.v2",
+    "score": 7,
+    "gate": true,
+    "next": {
+      "action": "ready",
+      "final": "finish.v2",
+      "best": "base.v2",
+      "issues": [],
+      "why": "approved by the user; nothing newer since"
+    },
+    "why": "in pack main"
+  },
+  {
+    "id": "slime",
+    "kind": "creature",
+    "path": "art/assets/creature/slime",
+    "issues": [],
+    "imageTokens": 4626,
+    "status": "exported",
+    "final": "finish.v1",
+    "score": 6.5,
+    "gate": true,
+    "next": {
+      "action": "ready",
+      "final": "finish.v1",
+      "best": "base.v3",
+      "issues": [],
+      "why": "approved by the user; nothing newer since"
+    },
+    "why": "in pack main (approval carried over a no-change restyle)"
+  },
+  {
+    "id": "torch-flame",
+    "kind": "effect",
+    "path": "art/assets/effect/torch-flame",
+    "issues": [],
+    "imageTokens": 3713,
+    "status": "exported",
+    "final": "finish.v1",
+    "score": 7,
+    "gate": true,
+    "next": {
+      "action": "ready",
+      "final": "finish.v1",
+      "best": "base.v3",
+      "issues": [],
+      "why": "approved by the user; nothing newer since"
+    },
+    "why": "in pack main"
+  },
+  {
+    "id": "chest",
+    "kind": "prop",
+    "path": "art/assets/prop/chest",
+    "issues": [],
+    "imageTokens": 4121,
+    "status": "exported",
+    "final": "finish.v1",
+    "score": 6.5,
+    "gate": true,
+    "next": {
+      "action": "ready",
+      "final": "finish.v1",
+      "best": "base.v3",
+      "issues": [],
+      "why": "approved by the user; nothing newer since"
+    },
+    "why": "in pack main"
+  },
+  {
+    "id": "barrel",
+    "kind": "prop",
+    "path": "art/assets/prop/barrel",
+    "issues": [],
+    "imageTokens": 2703,
+    "status": "exported",
+    "final": "finish.v2",
+    "score": 6.5,
+    "gate": true,
+    "next": {
+      "action": "ready",
+      "final": "finish.v2",
+      "best": "base.v3",
+      "issues": [],
+      "why": "approved by the user; nothing newer since"
+    },
+    "why": "in pack main (approval carried over a no-change restyle)"
+  },
+  {
+    "id": "pillar",
+    "kind": "prop",
+    "path": "art/assets/prop/pillar",
+    "issues": [],
+    "imageTokens": 1656,
+    "status": "exported",
+    "final": "finish.v1",
+    "score": 6.5,
+    "gate": true,
+    "next": {
+      "action": "ready",
+      "final": "finish.v1",
+      "best": "base.v3",
+      "issues": [],
+      "why": "approved by the user; nothing newer since"
+    },
+    "why": "in pack main"
+  },
+  {
+    "id": "brazier",
+    "kind": "prop",
+    "path": "art/assets/prop/brazier",
+    "issues": [],
+    "imageTokens": 1656,
+    "status": "exported",
+    "final": "finish.v1",
+    "score": 6.5,
+    "gate": true,
+    "next": {
+      "action": "ready",
+      "final": "finish.v1",
+      "best": "base.v3",
+      "issues": [],
+      "why": "approved by the user; nothing newer since"
+    },
+    "why": "in pack main"
+  },
+  {
+    "id": "rubble",
+    "kind": "prop",
+    "path": "art/assets/prop/rubble",
+    "issues": [],
+    "imageTokens": 3204,
+    "status": "exported",
+    "final": "finish.v2",
+    "score": 6.5,
+    "gate": true,
+    "next": {
+      "action": "ready",
+      "final": "finish.v2",
+      "best": "base.v4",
+      "issues": [],
+      "why": "approved by the user; nothing newer since"
+    },
+    "why": "in pack main"
+  },
+  {
+    "id": "floor",
+    "kind": "tile",
+    "path": "art/assets/tile/floor",
+    "issues": [],
+    "imageTokens": 27413,
+    "status": "exported",
+    "final": "finish.v3",
+    "score": 6.5,
+    "gate": true,
+    "next": {
+      "action": "ready",
+      "final": "finish.v3",
+      "best": "base.v5",
+      "issues": [],
+      "why": "approved by the user; nothing newer since"
+    },
+    "why": "in pack main",
+    "blind": 5,
+    "belowBar": true
+  }
+]
+
+### status {"ids":["hero","barrel"]}
+text: [
+  {
+    "id": "hero",
+    "kind": "character",
+    "path": "art/assets/character/hero",
+    "issues": [],
+    "imageTokens": 6746,
+    "status": "exported",
+    "final": "finish.v1",
+    "score": 7,
+    "gate": true,
+    "next": {
+      "action": "ready",
+      "final": "finish.v1",
+      "best": "base.v3",
+      "issues": [],
+      "why": "approved by the user; nothing newer since"
+    },
+    "why": "in pack main"
+  },
+  {
+    "id": "barrel",
+    "kind": "prop",
+    "path": "art/assets/prop/barrel",
+    "issues": [],
+    "imageTokens": 2703,
+    "status": "exported",
+    "final": "finish.v2",
+    "score": 6.5,
+    "gate": true,
+    "next": {
+      "action": "ready",
+      "final": "finish.v2",
+      "best": "base.v3",
+      "issues": [],
+      "why": "approved by the user; nothing newer since"
+    },
+    "why": "in pack main (approval carried over a no-change restyle)"
+  }
+]
+
+### gallery {}
+text: no finished assets waiting for review
+
+### texture {"list":true}
+text: [
+  "stone",
+  "cobble",
+  "wood",
+  "metal",
+  "grass",
+  "dirt",
+  "sand",
+  "snow",
+  "water",
+  "lava",
+  "tech",
+  "carpet",
+  "brick"
+]
+
+### texture {"material":"stone","size":16,"seed":3}
+text: {
+  "files": [
+    "art/sheets/textures/stone.png",
+    "art/sheets/textures/stone.n.png",
+    "art/sheets/textures/stone-3x3@4x.png"
+  ],
+  "seam": {
+    "ratio": 0.49,
+    "edge": 17.6,
+    "interior": 124.4
+  },
+  "repetition": {
+    "lowStd": 2.6,
+    "landmark": 6.9,
+    "markShare": 0.176,
+    "markContrast": 46.3,
+    "marks": 8.13,
+    "markBlobs": 2,
+    "standouts": 0,
+    "radius": 3
+  },
+  "issues": [
+    "2 contrasting marks land on the same spots every tile (weight 8.13)"
+  ],
+  "ramps": {
+    "base": "stone"
+  }
+}
+image image/png: 192x192 sha256:e00b1c185faaa8b7
+image image/png: 16x16 sha256:86cadc204f57b527
+
+### fx {"list":true}
+text: [
+  "explosion",
+  "smoke",
+  "fire",
+  "sparks",
+  "magic",
+  "heal",
+  "muzzle",
+  "impact",
+  "splash",
+  "dust",
+  "trail"
+]
+
+### fx {"preset":"sparks","size":16,"frames":4,"seed":3}
+text: {
+  "files": [
+    "art/sheets/fx/sparks.png",
+    "art/sheets/fx/sparks-onion@4x.png",
+    "art/sheets/fx/sparks.gif",
+    "art/sheets/fx/sparks.apng"
+  ],
+  "fill": {
+    "interior": [
+      0.46,
+      0.5,
+      0.32,
+      0.29
+    ],
+    "brightest": [
+      0.46,
+      0.38,
+      0.11,
+      0
+    ]
+  },
+  "frames": 4
+}
+image image/png: 67x16 sha256:3e95baf0d0aef3be
+image image/png: 268x64 sha256:dc35eed82f3f9ff8
+
+### analytics {}
+text: # torchdeep: pipeline analytics
+
+10 assets. Price basis: $4/M input (review images, measured input), $20/M output (code; estimated at 3.5 chars/token unless measured).
+
+Totals: 14818 output tok, 45725 review-image tok, est. $0.479. Average gain from revisions +1.3, from the finishing pass +0.1.
+
+The cost leaves out what the agents read (skills, direction, rigs): pass `score --agent-tokens-in <n>` to count it.
+
+## Per pass
+
+| Pass | n | Mean score | Mean Δ | Regressed | Gate pass | Output tok | Review tok | Mean wall s |
+|---|---|---|---|---|---|---|---|---|
+| r1 | 10 | 5.1 | - | 0 | 9/10 | 6462 | 5766 | 18 |
+| r2 | 10 | 5.95 | +0.85 | 1 | 9/10 | 3028 | 7725 | 14 |
+| r3 | 10 | 6.25 | +0.3 | 2 | 9/10 | 2077 | 10213 | 13 |
+| f | 10 | 6.45 | +0.05 | 0 | 10/10 | 1370 | 10222 | 13 |
+| u | 3 | 6.5 | +0.83 | 0 | 3/3 | 1153 | 5402 | 8 |
+| f2+ | 5 | 6.6 | +0.1 | 0 | 5/5 | 728 | 6397 | 13 |
+
+## Per asset
+
+| Asset | Kind | r1 | Best revision | Final | From revisions | From finish | Passes | Output tok | Review tok | Est. cost |
+|---|---|---|---|---|---|---|---|---|---|---|
+| hero | character | 5.5 | 7 | 7 | +1.5 | +0 | 4 | 2695 | 6746 | $0.0809 |
+| skeleton-knight | character | 6 | 7 | 7 | +1 | +0 | 5 | 2022 | 1972 | $0.0483 |
+| slime | creature | 5 | 6.5 | 6.5 | +1.5 | +0 | 4 | 1234 | 4626 | $0.0432 |
+| torch-flame | effect | 5.5 | 7 | 7 | +1.5 | +0 | 4 | 1088 | 3713 | $0.0366 |
+| chest | prop | 6 | 6.5 | 6.5 | +0.5 | +0 | 4 | 1072 | 3142 | $0.0340 |
+| barrel | prop | 5 | 6 | 6.5 | +1 | +0.5 | 5 | 1160 | 2172 | $0.0319 |
+| pillar | prop | 5.5 | 6.5 | 6.5 | +1 | +0 | 4 | 919 | 1656 | $0.0250 |
+| brazier | prop | 3.5 | 6 | 6.5 | +2.5 | +0.5 | 4 | 949 | 1656 | $0.0256 |
+| rubble | prop | 3.5 | 5.5 | 6.5 | +2 | +0 | 6 | 1419 | 2688 | $0.0391 |
+| floor | tile | 5.5 | 6 | 6.5 | +0.5 | +0 | 8 | 2260 | 17354 | $0.1146 |
+
+## Cost by kind
+
+| kind | n | Mean final | Mean cost | Mean passes |
+|---|---|---|---|---|
+| character | 2 | 7 | $0.0600 | 4.5 |
+| creature | 1 | 6.5 | $0.0400 | 4 |
+| effect | 1 | 7 | $0.0400 | 4 |
+| prop | 5 | 6.5 | $0.0300 | 4.6 |
+| tile | 1 | 6.5 | $0.1100 | 8 |
+
+## Cost by size
+
+| size | n | Mean final | Mean cost | Mean passes |
+|---|---|---|---|---|
+| character | 2 | 7 | $0.0600 | 4.5 |
+| creature | 1 | 6.5 | $0.0400 | 4 |
+| effect | 1 | 7 | $0.0400 | 4 |
+| prop | 5 | 6.5 | $0.0300 | 4.6 |
+| tile | 1 | 6.5 | $0.1100 | 8 |
+
+## Cost by view
+
+| view | n | Mean final | Mean cost | Mean passes |
+|---|---|---|---|---|
+| iso | 10 | 6.65 | $0.0500 | 4.8 |
+
+## Cost by importance
+
+| importance | n | Mean final | Mean cost | Mean passes |
+|---|---|---|---|---|
+| standard | 10 | 6.65 | $0.0500 | 4.8 |
+
+## First-pass quality by template
+
+| Template | n | Mean r1 |
+|---|---|---|
+| topdown/character-walk | 1 | 5.5 |
+| iso/character | 2 | 5.5 |
+| iso/effect | 1 | 5.5 |
+| iso/prop | 5 | 4.7 |
+| iso/tile | 1 | 5.5 |
+
+## Regressions
+
+- skeleton-knight base.v3 (r3) -0.5
+- chest base.v2 (r2) -1
+- floor base.v3 (r3) -1
+
+## User revisions
+
+5 feedback rounds over 10 finished assets (rate 0.4); by route: base 3, finish 2.
+
+## Model / effort per stage
+
+| Model | Effort | Passes | Mean Δ | Δ per 1k tok |
+|---|---|---|---|---|
+| default | default | 48 | +0.39 | 0.248 |
+
+## Review tiers
+
+Passes by the model that scored them (`models.reviewEarly` for r1/r2, `models.review` for the rest).
+
+| Reviewer model | Passes | n | Mean Δ | Δ per 1k tok |
+|---|---|---|---|---|
+| default | f, r, u | 48 | +0.39 | 0.248 |
+
+## Review independence
+
+Scores by reviewer: unrecorded 46, self 2. Blind re-scores: 1, mean gap +1.5 (own − blind), 1 more than 1 point apart.
+
+| Asset | Final | Own | Blind | Gap |
+|---|---|---|---|---|
+| floor | finish.v3 | 6.5 | 5 | +1.5 |
+
+## Budget suggestions
+
+- none: nothing crosses a threshold (v3 adding ≤ 0.1 or ≥ 0.75 over ≥ 3 assets of a kind, or of the batch when every kind is smaller; v2 not improving; the first finish adding ≤ 0 or regressing ≥ 30% of ≥ 3 assets; ≥ 30% of revisions regressing)
+
+
+### direction_tile {"candidates":["a","b"]}
+text: {
+  "sheet": "art/candidates/style-tile-r7.png",
+  "round": 7,
+  "imageTokens": 1149,
+  "columns": [
+    {
+      "name": "a",
+      "id": "torchdeep-a",
+      "gates": {
+        "character": true,
+        "prop": true,
+        "tile": true,
+        "effect": true
+      },
+      "failing": []
+    },
+    {
+      "name": "b",
+      "id": "torchdeep-b",
+      "gates": {
+        "character": true,
+        "prop": true,
+        "tile": true,
+        "effect": true
+      },
+      "failing": []
+    }
+  ],
+  "distinct": {
+    "pairs": 2,
+    "minLumaGap": 14.8
+  }
+}
+image image/png: 860x1002 sha256:ae224cef63e0fadc
+
+### make {"ids":["barrel"]}
+text: {
+  "rows": [
+    {
+      "id": "barrel",
+      "kind": "prop",
+      "path": "art/assets/prop/barrel",
+      "issues": [],
+      "imageTokens": 2703,
+      "status": "exported",
+      "final": "finish.v2",
+      "score": 6.5,
+      "gate": true,
+      "next": {
+        "action": "ready",
+        "final": "finish.v2",
+        "best": "base.v3",
+        "issues": [],
+        "why": "approved by the user; nothing newer since"
+      },
+      "why": "in pack main (approval carried over a no-change restyle)"
+    }
+  ],
+  "scaffolded": [],
+  "finals": [],
+  "overBudget": []
+}
+
+### finish {"asset":"barrel"}
+text: {
+  "file": "art/assets/prop/barrel/finish.v3.js",
+  "base": "base.v3"
+}
+
+### score {"asset":"barrel","version":"finish.v2","score":6.5,"note":"transcript","reviewer":"transcript"}
+text: {
+  "ts": "<ts>",
+  "type": "score",
+  "asset": "barrel",
+  "version": "finish.v2",
+  "pass": "f2",
+  "score": 6.5,
+  "note": "transcript",
+  "sourceHash": "3dbc72984fcfc100",
+  "outputHash": "18c4e23756f285",
+  "direction": {
+    "id": "torchdeep",
+    "version": 2
+  },
+  "metrics": {
+    "fillPct": 58.6,
+    "colors": 9,
+    "aaPartialPct": 0,
+    "offPalettePct": 0,
+    "orphanPct": 0.5,
+    "outlinePct": 94.7,
+    "symmetryPct": 0,
+    "hygiene": 10
+  },
+  "conformance": {
+    "pass": true,
+    "checks": [
+      {
+        "id": "palette",
+        "status": "pass",
+        "detail": "9 colours, all in prop ramps"
+      },
+      {
+        "id": "scale",
+        "status": "pass",
+        "detail": "32x32"
+      },
+      {
+        "id": "aa",
+        "status": "pass",
+        "detail": "no partial alpha"
+      },
+      {
+        "id": "line",
+        "status": "pass",
+        "detail": "dark edge 95.2% of 84 edge px (min 85%)"
+      },
+      {
+        "id": "light",
+        "status": "pass",
+        "detail": "lit − shaded edge luma 61.5"
+      },
+      {
+        "id": "dither",
+        "status": "pass",
+        "detail": "0 checkerboard windows"
+      },
+      {
+        "id": "source",
+        "status": "pass",
+        "detail": "no colour literals"
+      },
+      {
+        "id": "lint",
+        "status": "pass",
+        "detail": "clean"
+      },
+      {
+        "id": "height",
+        "status": "skip",
+        "detail": "no real-world height in the brief"
+      },
+      {
+        "id": "frames",
+        "status": "skip",
+        "detail": "no animated states"
+      },
+      {
+        "id": "attack",
+        "status": "skip",
+        "detail": "no attack states"
+      },
+      {
+        "id": "fill",
+        "status": "skip",
+        "detail": "prop: not an effect"
+      },
+      {
+        "id": "anchors",
+        "status": "skip",
+        "detail": "no anchors for this kind"
+      }
+    ]
+  },
+  "base": "base.v3",
+  "tokens": {
+    "code": 251,
+    "edit": 251
+  },
+  "imageTokens": 287,
+  "by": "agent",
+  "model": "default",
+  "effort": "default",
+  "reviewModel": "default",
+  "wallMs": <ms>,
+  "delta": 0.5,
+  "reviewer": "transcript"
+}
+
+### feedback {"id":"hero","route":"finish","note":"a pixel off"}
+text: {
+  "opens": "finish.v2",
+  "next": {
+    "action": "write-finish",
+    "version": "finish.v2",
+    "pass": "f2",
+    "base": "base.v3",
+    "why": "user feedback (pixels): finish revision on base.v3 — user: \"a pixel off\""
+  },
+  "iterations": 1
+}
+
+### approve {"id":"barrel","user_approved":false} (isError)
+text: approve: only the user approves assets — show them the gallery and ask; pass user_approved: true once they say so
+
+### approve {"id":"barrel","user_approved":true,"note":"transcript"} (isError)
+text: barrel is in-pipeline: only a final asset can be approved
+
+### export {"include_drafts":true}
+text: {
+  "packs": [
+    {
+      "pack": "main",
+      "dir": "public/assets/main",
+      "atlases": [
+        "public/assets/main/main-0.png"
+      ],
+      "assets": [
+        "skeleton-knight",
+        "slime",
+        "torch-flame",
+        "chest",
+        "pillar",
+        "brazier",
+        "rubble",
+        "floor"
+      ],
+      "drafts": []
+    }
+  ],
+  "assetsTs": "src/art/assets.ts",
+  "skipped": [
+    {
+      "id": "hero",
+      "status": "revision"
+    },
+    {
+      "id": "barrel",
+      "status": "in-pipeline"
+    }
+  ],
+  "contracts": []
+}
+
+### restyle {}
+text: {
+  "from": 1,
+  "to": 2,
+  "sheet": "art/sheets/restyle-v1-v2.png",
+  "tokens": 1141,
+  "assets": [
+    {
+      "id": "skeleton-knight",
+      "final": "finish.v2",
+      "changedPct": 0.4,
+      "tokenSame": 1,
+      "consistent": true,
+      "gate": true,
+      "stale": []
+    },
+    {
+      "id": "slime",
+      "final": "finish.v1",
+      "changedPct": 0,
+      "tokenSame": 1,
+      "consistent": true,
+      "gate": true,
+      "stale": []
+    },
+    {
+      "id": "torch-flame",
+      "final": "finish.v1",
+      "changedPct": 23,
+      "tokenSame": 1,
+      "consistent": true,
+      "gate": true,
+      "stale": []
+    },
+    {
+      "id": "chest",
+      "final": "finish.v1",
+      "changedPct": 18.4,
+      "tokenSame": 1,
+      "consistent": true,
+      "gate": true,
+      "stale": []
+    },
+    {
+      "id": "pillar",
+      "final": "finish.v1",
+      "changedPct": 32.1,
+      "tokenSame": 1,
+      "consistent": true,
+      "gate": true,
+      "stale": []
+    },
+    {
+      "id": "brazier",
+      "final": "finish.v1",
+      "changedPct": 13,
+      "tokenSame": 1,
+      "consistent": true,
+      "gate": true,
+      "stale": []
+    },
+    {
+      "id": "rubble",
+      "final": "finish.v2",
+      "changedPct": 13.5,
+      "tokenSame": 1,
+      "consistent": true,
+      "gate": true,
+      "stale": []
+    },
+    {
+      "id": "floor",
+      "final": "finish.v3",
+      "changedPct": 50,
+      "tokenSame": 1,
+      "consistent": true,
+      "gate": true,
+      "stale": []
+    }
+  ]
+}
+image image/png: 904x946 sha256:aece3e9f807b98ce
+
+### pass_status {"asset":"../../etc"} (isError)
+text: asset path ../../etc is outside art/ (sandbox)
+
+### render {"asset":"nope"} (isError)
+text: <root>/art/nope: no brief.json and no brief "nope" in art/briefs.yaml
+
+### map_list {}
+text: {
+  "maps": [],
+  "terrains": [
+    "deep",
+    "water",
+    "marsh",
+    "sand",
+    "desert",
+    "grass",
+    "scrub",
+    "forest",
+    "rock",
+    "snow"
+  ],
+  "symbols": [
+    "village",
+    "town",
+    "city",
+    "castle",
+    "tower",
+    "ruin",
+    "temple",
+    "cave",
+    "dungeon",
+    "camp",
+    "port",
+    "bridge",
+    "battle",
+    "poi",
+    "mountain",
+    "hill",
+    "tree",
+    "skull",
+    "door",
+    "cave-mouth",
+    "gate",
+    "treasure"
+  ],
+  "labelKinds": [
+    "region",
+    "place",
+    "water",
+    "note"
+  ],
+  "presets": [
+    "regional",
+    "local"
+  ]
+}
+
+### map_new {"id":"isle","preset":"regional","cols":14,"rows":10,"seed":4,"grid":"square","title":"Isle"}
+text: {
+  "file": "art/maps/isle/map.json",
+  "summary": "isle \"Isle\": regional, 14×10 cells of 6 mi, seed 4\n  gen: land mixed, sea 0.3, moisture 0.5, roughness 0.5, relief 0.5, rivers 3, simplify 3, feature 10\n  topo: every 500 ft up to 5000, major every 5\n  grid: square size 1, coordinates; legend on, scale bar on, compass on\n  edits (0):\n  labels (0):\n  symbols (0):"
+}
+
+### map_new {"id":"bluff","preset":"local","cols":12,"rows":10,"seed":5}
+text: {
+  "file": "art/maps/bluff/map.json",
+  "summary": "bluff: local, 12×10 cells of 5 ft, seed 5\n  gen: land inland, sea 0.08, moisture 0.55, roughness 0.4, relief 0.3, rivers 1, simplify 2, feature 14\n  topo: every 5 ft up to 40, major every 4\n  grid: square size 1; legend on, scale bar on, compass off\n  edits (0):\n  labels (0):\n  symbols (0):"
+}
+
+### map_new {"id":"isle"} (isError)
+text: map isle already exists (edit it, or pick another id)
+
+### map_new {"id":"../../etc"} (isError)
+text: map id "../../etc": letters, digits, - and _ only
+
+### map_update {"id":"isle","seed":6,"gen":{"land":"island","sea":0.4},"topo":{"interval":100},"grid":{"coords":true},"scale":{"perCell":10,"unit":"yd"},"title":"Isle 2","legend":false,"scale_bar":true,"compass":false}
+text: isle "Isle 2": regional, 14×10 cells of 10 yd, seed 6
+  gen: land island, sea 0.4, moisture 0.5, roughness 0.5, relief 0.5, rivers 3, simplify 3, feature 10
+  topo: every 100 ft up to 5000, major every 5
+  grid: square size 1, coordinates; legend off, scale bar on, compass off
+  edits (0):
+  labels (0):
+  symbols (0):
+
+### map_edit {"id":"isle","ops":[{"op":"paint","terrain":"forest","shape":{"circle":[6,5,2]}},{"op":"road","points":[1,1,8,8]},{"op":"elevate","amount":0.3,"shape":{"poly":[2,2,6,2,6,6]}},{"op":"river","points":[1,1,8,9],"width":1,"delta":false}]}
+text: {
+  "edits": 4,
+  "last": [
+    {
+      "op": "road",
+      "points": [
+        1,
+        1,
+        8,
+        8
+      ]
+    },
+    {
+      "op": "elevate",
+      "amount": 0.3,
+      "shape": {
+        "poly": [
+          2,
+          2,
+          6,
+          2,
+          6,
+          6
+        ]
+      }
+    },
+    {
+      "op": "river",
+      "points": [
+        1,
+        1,
+        8,
+        9
+      ],
+      "width": 1,
+      "delta": false
+    }
+  ]
+}
+
+### map_edit {"id":"isle","undo":1}
+text: {
+  "edits": 3,
+  "last": [
+    {
+      "op": "paint",
+      "terrain": "forest",
+      "shape": {
+        "circle": [
+          6,
+          5,
+          2
+        ]
+      }
+    },
+    {
+      "op": "road",
+      "points": [
+        1,
+        1,
+        8,
+        8
+      ]
+    },
+    {
+      "op": "elevate",
+      "amount": 0.3,
+      "shape": {
+        "poly": [
+          2,
+          2,
+          6,
+          2,
+          6,
+          6
+        ]
+      }
+    }
+  ]
+}
+
+### map_edit {"id":"isle","undo":99} (isError)
+text: isle: only 3 edits to undo
+
+### map_edit {"id":"isle","ops":[{"op":"paint","terrain":"lava","shape":{"circle":[1,1,1]}}]} (isError)
+text: invalid map isle:
+  edits[3].terrain: one of deep, water, marsh, sand, desert, grass, scrub, forest, rock, snow
+
+### map_overlay {"id":"isle","add_labels":[{"text":"Port Ash","at":"C4","kind":"place","size":1.2,"angle":10,"href":"http://example.com/ash"},{"text":"The Deep","x":2,"y":2,"kind":"water"}],"add_symbols":[{"kind":"port","x":3,"y":3,"scale":1.5},{"kind":"cave","at":"5,5"}]}
+text: {
+  "labels": [
+    "0. place \"Port Ash\" at 2.5,3.5",
+    "1. water \"The Deep\" at 2,2"
+  ],
+  "symbols": [
+    "0. port at 3,3",
+    "1. cave at 5,5"
+  ]
+}
+
+### map_overlay {"id":"isle","remove_symbols":[0],"remove_labels":[1]}
+text: {
+  "labels": [
+    "0. place \"Port Ash\" at 2.5,3.5"
+  ],
+  "symbols": [
+    "0. cave at 5,5"
+  ]
+}
+
+### map_overlay {"id":"isle","add_symbols":[{"kind":"dragon","x":1,"y":1}]} (isError)
+text: unknown symbol dragon (have: village, town, city, castle, tower, ruin, temple, cave, dungeon, camp, port, bridge, battle, poi, mountain, hill, tree, skull, door, cave-mouth, gate, treasure)
+
+### map_overlay {"id":"isle","remove_labels":[9]} (isError)
+text: no overlay item 9
+
+### map_overlay {"id":"isle","clear":"all"}
+text: {
+  "labels": [],
+  "symbols": []
+}
+
+### map_overlay {"id":"isle","add_labels":[{"text":"Port Ash","at":"C4"}]}
+text: {
+  "labels": [
+    "0. place \"Port Ash\" at 2.5,3.5"
+  ],
+  "symbols": []
+}
+
+### map_get {"id":"isle"}
+text: isle "Isle 2": regional, 14×10 cells of 10 yd, seed 6
+  gen: land island, sea 0.4, moisture 0.5, roughness 0.5, relief 0.5, rivers 3, simplify 3, feature 10
+  topo: every 100 ft up to 5000, major every 5
+  grid: square size 1, coordinates; legend off, scale bar on, compass off
+  edits (3):
+    0. paint forest {"circle":[6,5,2]}
+    1. road [1,1,8,8]
+    2. elevate 0.3 {"poly":[2,2,6,2,6,6]}
+  labels (1):
+    0. place "Port Ash" at 2.5,3.5
+  symbols (0):
+text: {
+  "cols": 14,
+  "rows": 10,
+  "gen": {
+    "land": "island",
+    "sea": 0.4,
+    "moisture": 0.5,
+    "roughness": 0.5,
+    "relief": 0.5,
+    "rivers": 3,
+    "simplify": 3,
+    "feature": 10
+  },
+  "topo": {
+    "maxElevation": 5000,
+    "interval": 100,
+    "majorEvery": 5,
+    "unit": "ft",
+    "labels": false
+  },
+  "grid": {
+    "type": "square",
+    "size": 1,
+    "coords": true
+  },
+  "scale": {
+    "perCell": 10,
+    "unit": "yd"
+  },
+  "legend": false,
+  "scaleBar": true,
+  "compass": false,
+  "seed": 6,
+  "title": "Isle 2",
+  "id": "isle",
+  "version": 1,
+  "preset": "regional",
+  "edits": [
+    {
+      "op": "paint",
+      "terrain": "forest",
+      "shape": {
+        "circle": [
+          6,
+          5,
+          2
+        ]
+      }
+    },
+    {
+      "op": "road",
+      "points": [
+        1,
+        1,
+        8,
+        8
+      ]
+    },
+    {
+      "op": "elevate",
+      "amount": 0.3,
+      "shape": {
+        "poly": [
+          2,
+          2,
+          6,
+          2,
+          6,
+          6
+        ]
+      }
+    }
+  ],
+  "overlay": {
+    "labels": [
+      {
+        "text": "Port Ash",
+        "x": 2.5,
+        "y": 3.5,
+        "kind": "place"
+      }
+    ],
+    "symbols": []
+  }
+}
+
+### map_get {"id":"../isle"} (isError)
+text: map id "../isle": letters, digits, - and _ only
+
+### map_get {"id":"nope"} (isError)
+text: no map nope (art/maps/nope/map.json) — artgen map new nope
+
+### map_render {"id":"isle","theme":"both","layers":{"grid":false}}
+text: {
+  "files": [
+    "art/maps/isle/out/isle.color.svg",
+    "art/maps/isle/out/isle.color.png",
+    "art/maps/isle/out/isle.bw.svg",
+    "art/maps/isle/out/isle.bw.png"
+  ],
+  "terrains": [
+    "water",
+    "forest",
+    "grass",
+    "deep",
+    "rock",
+    "snow",
+    "scrub",
+    "marsh"
+  ],
+  "rivers": 0,
+  "size": [
+    560,
+    400
+  ],
+  "crop": [
+    0,
+    0,
+    14,
+    10
+  ],
+  "ppu": 40,
+  "svg": {
+    "width": 560,
+    "height": 400,
+    "unit": "px"
+  },
+  "pageScale": null,
+  "unplaced": []
+}
+image image/png: 336x240 sha256:b12dd67bfdee5b45
+image image/png: 336x240 sha256:380b3b05784dfdc1
+
+### map_render {"id":"isle","ppu":6}
+text: {
+  "files": [
+    "art/maps/isle/out/isle.color.svg",
+    "art/maps/isle/out/isle.color.png"
+  ],
+  "terrains": [
+    "water",
+    "forest",
+    "grass",
+    "deep",
+    "rock",
+    "snow",
+    "scrub",
+    "marsh"
+  ],
+  "rivers": 0,
+  "size": [
+    84,
+    60
+  ],
+  "crop": [
+    0,
+    0,
+    14,
+    10
+  ],
+  "ppu": 6,
+  "svg": {
+    "width": 84,
+    "height": 60,
+    "unit": "px"
+  },
+  "pageScale": null,
+  "unplaced": []
+}
+image image/png: 84x60 sha256:b5ba7a94278e63cd
+
+### map_render {"id":"bluff","theme":"bw","ppu":5}
+text: {
+  "files": [
+    "art/maps/bluff/out/bluff.bw.svg",
+    "art/maps/bluff/out/bluff.bw.png"
+  ],
+  "terrains": [
+    "forest",
+    "grass",
+    "scrub",
+    "rock",
+    "sand",
+    "water"
+  ],
+  "rivers": 1,
+  "size": [
+    60,
+    50
+  ],
+  "crop": [
+    0,
+    0,
+    12,
+    10
+  ],
+  "ppu": 5,
+  "svg": {
+    "width": 60,
+    "height": 50,
+    "unit": "px"
+  },
+  "pageScale": null,
+  "unplaced": []
+}
+image image/png: 60x50 sha256:ff756eda52aab660
+
+### map_list {}
+text: {
+  "maps": [
+    {
+      "id": "bluff",
+      "preset": "local",
+      "size": "12x10",
+      "edits": 0,
+      "labels": 0,
+      "symbols": 0
+    },
+    {
+      "id": "isle",
+      "preset": "regional",
+      "size": "14x10",
+      "title": "Isle 2",
+      "edits": 3,
+      "labels": 1,
+      "symbols": 0
+    }
+  ],
+  "terrains": [
+    "deep",
+    "water",
+    "marsh",
+    "sand",
+    "desert",
+    "grass",
+    "scrub",
+    "forest",
+    "rock",
+    "snow"
+  ],
+  "symbols": [
+    "village",
+    "town",
+    "city",
+    "castle",
+    "tower",
+    "ruin",
+    "temple",
+    "cave",
+    "dungeon",
+    "camp",
+    "port",
+    "bridge",
+    "battle",
+    "poi",
+    "mountain",
+    "hill",
+    "tree",
+    "skull",
+    "door",
+    "cave-mouth",
+    "gate",
+    "treasure"
+  ],
+  "labelKinds": [
+    "region",
+    "place",
+    "water",
+    "note"
+  ],
+  "presets": [
+    "regional",
+    "local"
+  ]
+}
+
+### dungeon_list {}
+text: {
+  "dungeons": [],
+  "shapes": [
+    "rect",
+    "circle",
+    "octagon",
+    "cave",
+    "poly"
+  ],
+  "doors": [
+    "door",
+    "secret",
+    "locked",
+    "portcullis",
+    "arch"
+  ],
+  "symbols": [
+    "stairs",
+    "stairs-up",
+    "stairs-down",
+    "curtain",
+    "dais",
+    "gate",
+    "ladder",
+    "pillar",
+    "statue",
+    "altar",
+    "chest",
+    "trap",
+    "pit",
+    "pool",
+    "fountain",
+    "rubble",
+    "throne",
+    "bed",
+    "table",
+    "coffin",
+    "barrel",
+    "crate",
+    "fire",
+    "web",
+    "bones",
+    "skull",
+    "door",
+    "arrow"
+  ],
+  "labelKinds": [
+    "name",
+    "note",
+    "area"
+  ],
+  "routes": [
+    "auto",
+    "hv",
+    "vh",
+    "straight",
+    "around"
+  ]
+}
+
+### dungeon_new {"id":"cell","mode":"room","shape":"rect","w":6,"h":6,"number":20,"label":"Cell","seed":3,"exits":[{"side":"n"},{"side":"e","door":"secret"},{"side":"s","door":null,"text":"To the caves"}]}
+text: {
+  "file": "art/dungeons/cell/dungeon.json",
+  "summary": "cell: 12×12 cells of 5 ft, seed 3\n  gen: rooms 8, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on\n  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls off (auto); numbers on, scale bar on, compass off\n  rooms (1):\n    r1: rect 6×6 at 3,3, #20 \"Cell\"\n  corridors (3):\n    0. r1 → (6.5,-1), via 6.5,6, doors door/none\n    1. r1 → (13,6.5), via 6,6.5, doors secret/none\n    2. r1 → (6.5,13) \"To the caves\", via 6.5,6\n  labels (0):\n  symbols (0):"
+}
+
+### dungeon_new {"id":"crypt","mode":"empty","cols":30,"rows":20,"seed":7,"title":"Crypt"}
+text: {
+  "file": "art/dungeons/crypt/dungeon.json",
+  "summary": "crypt \"Crypt\": 30×20 cells of 5 ft, seed 7\n  gen: rooms 8, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on\n  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls off (auto); numbers on, scale bar on, compass off\n  rooms (0):\n  corridors (0):\n  labels (0):\n  symbols (0):"
+}
+
+### dungeon_new {"id":"vault","cols":40,"rows":30,"seed":11,"gen":{"rooms":6,"layout":"dense","density":0.6}}
+text: {
+  "file": "art/dungeons/vault/dungeon.json",
+  "summary": "vault: 40×30 cells of 5 ft, seed 11\n  gen: rooms 6, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on, layout dense (density 0.6)\n  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls on (auto); numbers on, scale bar on, compass off\n  rooms (6):\n    r1: rect 6×7 at 11,6\n    r2: rect 4×3 at 17,9\n    r3: rect 5×8 at 21,10\n    r4: rect 8×6 at 26,9\n    r5: rect 7×6 at 11,13\n    r6: rect 3×5 at 18,12\n  corridors (1):\n    0. r1 → (14.5,-1), via 14.5,9.5, doors door/none\n  connections (6):\n    0. r2 ↔ r6: locked\n    1. r1 ↔ r2: door\n    2. r2 ↔ r3: door\n    3. r3 ↔ r6: open\n    4. r5 ↔ r6: secret\n    5. r3 ↔ r4: open\n  labels (0):\n  symbols (0):"
+}
+
+### dungeon_new {"id":"vault"} (isError)
+text: dungeon vault already exists (edit it, or pick another id)
+
+### dungeon_new {"id":"../../etc"} (isError)
+text: invalid dungeon ../../etc:
+  id: letters, digits, - and _ only
+
+### dungeon_edit {"id":"crypt","ops":[{"op":"add_room","shape":"rect","at":"3,3","w":6,"h":4,"label":"Hall","number":1,"href":"http://example.com/hall"},{"op":"add_room","shape":"cave","at":[16,4],"w":8,"h":6,"number":false},{"op":"add_room","shape":"poly","points":[3,12,9,12,6,17],"id":"tri"},{"op":"set_room","room":"r1","label":"Great Hall","w":7,"number":2,"href":""},{"op":"move_room","room":"tri","at":"C9"},{"op":"link","from":"r1","to":"r2","doors":["door",null],"route":"hv","width":2},{"op":"link","from":"r2","to":[29,15],"exit":{"text":"To the caves","fade":3},"id":"out1","curve":"smooth","style":"natural","seed":3},{"op":"link","from":"r1","to":"corridor:out1","from_side":"e","from_offset":1},{"op":"door","index":1,"end":"from","kind":"portcullis"},{"op":"unlink","index":2},{"op":"remove_room","room":"tri"},{"op":"fit","margin":2}]}
+text: crypt "Crypt": 32×17 cells of 5 ft, seed 7
+  gen: rooms 8, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on
+  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls off (auto); numbers on, scale bar on, compass off
+  rooms (2):
+    r1: rect 7×4 at 2,2, #2 "Great Hall"
+    r2: cave 8×6 at 15,3, no number
+  corridors (2):
+    0. r1 → r2, width 2, hv, doors door/none
+    1. [out1] r2 → (28,14) "To the caves", curved, natural, doors portcullis/none
+  labels (0):
+  symbols (0):
+
+### dungeon_edit {"id":"crypt","ops":[{"op":"add_block","shape":"hex","at":[3,12],"w":12,"h":8,"split":"grid","min":4,"id":"hx","doors":0.25},{"op":"split_block","id":"hx","seed":4}]}
+text: crypt "Crypt": 32×17 cells of 5 ft, seed 7
+  gen: rooms 8, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on
+  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls on (auto); numbers on, scale bar on, compass off
+  rooms (8):
+    r1: rect 7×4 at 2,2, #2 "Great Hall"
+    r2: cave 8×6 at 15,3, no number
+    hx-1: poly 4×4 at 3,12
+    hx-2: rect 4×4 at 7,12
+    hx-3: poly 4×4 at 11,12
+    hx-4: poly 4×4 at 3,16
+    hx-5: rect 4×4 at 7,16
+    hx-6: poly 4×4 at 11,16
+  corridors (2):
+    0. r1 → r2, width 2, hv, doors door/none
+    1. [out1] r2 → (28,14) "To the caves", curved, natural, doors portcullis/none
+  blocks (1):
+    hx: poly 12×8 at 3,12, split grid (min 4), seed 4: 6 rooms
+  connections (6):
+    0. hx-2 ↔ hx-3: door
+    1. hx-3 ↔ hx-6: door
+    2. hx-2 ↔ hx-5: door
+    3. hx-1 ↔ hx-2: door
+    4. hx-4 ↔ hx-5: door
+    5. hx-1 ↔ hx-4: door
+  labels (0):
+  symbols (0):
+  warning: rooms[5]: hx-4 runs off the sheet (0,0 to 32,17); `dungeon fit` makes room
+  warning: rooms[6]: hx-5 runs off the sheet (0,0 to 32,17); `dungeon fit` makes room
+  warning: rooms[7]: hx-6 runs off the sheet (0,0 to 32,17); `dungeon fit` makes room
+
+### dungeon_edit {"id":"crypt","ops":[{"op":"connect","a":"hx-2","b":"hx-1","kind":"arch"},{"op":"disconnect","index":0}]}
+text: crypt "Crypt": 32×17 cells of 5 ft, seed 7
+  gen: rooms 8, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on
+  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls on (auto); numbers on, scale bar on, compass off
+  rooms (8):
+    r1: rect 7×4 at 2,2, #2 "Great Hall"
+    r2: cave 8×6 at 15,3, no number
+    hx-1: poly 4×4 at 3,12
+    hx-2: rect 4×4 at 7,12
+    hx-3: poly 4×4 at 11,12
+    hx-4: poly 4×4 at 3,16
+    hx-5: rect 4×4 at 7,16
+    hx-6: poly 4×4 at 11,16
+  corridors (2):
+    0. r1 → r2, width 2, hv, doors door/none
+    1. [out1] r2 → (28,14) "To the caves", curved, natural, doors portcullis/none
+  blocks (1):
+    hx: poly 12×8 at 3,12, split grid (min 4), seed 4: 6 rooms
+  connections (6):
+    0. hx-3 ↔ hx-6: door
+    1. hx-2 ↔ hx-5: door
+    2. hx-1 ↔ hx-2: door
+    3. hx-4 ↔ hx-5: door
+    4. hx-1 ↔ hx-4: door
+    5. hx-2 ↔ hx-1: arch
+  labels (0):
+  symbols (0):
+  warning: rooms[5]: hx-4 runs off the sheet (0,0 to 32,17); `dungeon fit` makes room
+  warning: rooms[6]: hx-5 runs off the sheet (0,0 to 32,17); `dungeon fit` makes room
+  warning: rooms[7]: hx-6 runs off the sheet (0,0 to 32,17); `dungeon fit` makes room
+
+### dungeon_edit {"id":"crypt","ops":[{"op":"remove_block","id":"hx"}]}
+text: crypt "Crypt": 32×17 cells of 5 ft, seed 7
+  gen: rooms 8, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on
+  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls off (auto); numbers on, scale bar on, compass off
+  rooms (2):
+    r1: rect 7×4 at 2,2, #2 "Great Hall"
+    r2: cave 8×6 at 15,3, no number
+  corridors (2):
+    0. r1 → r2, width 2, hv, doors door/none
+    1. [out1] r2 → (28,14) "To the caves", curved, natural, doors portcullis/none
+  labels (0):
+  symbols (0):
+
+### dungeon_edit {"id":"crypt","ops":[{"op":"move_room","room":"nope","at":"1,1"}]} (isError)
+text: no room nope (have: r1, r2)
+
+### dungeon_edit {"id":"crypt","ops":[{"op":"sing"}]} (isError)
+text: unknown op sing (add_room, move_room, set_room, remove_room, add_block, split_block, remove_block, link, unlink, connect, disconnect, door, fit)
+
+### dungeon_update {"id":"crypt","grid_mode":"10+5","style":{"hatch":"full"},"title":"The Crypt","numbers":true,"scale_bar":true,"compass":false,"furniture":{"place":"outside","side":"right"}}
+text: crypt "The Crypt": 32×17 cells of 5 ft, seed 7
+  gen: rooms 8, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on
+  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch full; shared walls off (auto); numbers on, scale bar on, compass off
+  furniture: outside, band right
+  rooms (2):
+    r1: rect 7×4 at 2,2, #2 "Great Hall"
+    r2: cave 8×6 at 15,3, no number
+  corridors (2):
+    0. r1 → r2, width 2, hv, doors door/none
+    1. [out1] r2 → (28,14) "To the caves", curved, natural, doors portcullis/none
+  labels (0):
+  symbols (0):
+
+### dungeon_update {"id":"crypt","grid_size":15,"sub_grid":false,"grid_unit":"ft","show_grid":true}
+text: crypt "The Crypt": 32×17 cells of 5 ft, seed 7
+  gen: rooms 8, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on
+  grid: size 15 ft, sub-grid off, on the floor; hatch full; shared walls off (auto); numbers on, scale bar on, compass off
+  furniture: outside, band right
+  rooms (2):
+    r1: rect 7×4 at 2,2, #2 "Great Hall"
+    r2: cave 8×6 at 15,3, no number
+  corridors (2):
+    0. r1 → r2, width 2, hv, doors door/none
+    1. [out1] r2 → (28,14) "To the caves", curved, natural, doors portcullis/none
+  labels (0):
+  symbols (0):
+
+### dungeon_update {"id":"crypt","grid_size":12} (isError)
+text: grid size: a whole number of squares (1 square = 5 ft), so 5, 10, 15 …
+
+### dungeon_overlay {"id":"crypt","add_labels":[{"text":"Bones","at":"C4","kind":"note","size":1.2,"angle":10,"href":"#bones"}],"add_symbols":[{"kind":"stairs","x":4,"y":4,"angle":90},{"kind":"pillar","at":"5,5","scale":1.5}]}
+text: {
+  "labels": [
+    "0. note \"Bones\" at 2.5,3.5"
+  ],
+  "symbols": [
+    "0. stairs at 4,4",
+    "1. pillar at 5,5"
+  ]
+}
+
+### dungeon_overlay {"id":"crypt","remove_symbols":[1]}
+text: {
+  "labels": [
+    "0. note \"Bones\" at 2.5,3.5"
+  ],
+  "symbols": [
+    "0. stairs at 4,4"
+  ]
+}
+
+### dungeon_overlay {"id":"crypt","add_symbols":[{"kind":"dragon","x":1,"y":1}]} (isError)
+text: unknown symbol dragon (have: stairs, stairs-up, stairs-down, curtain, dais, gate, ladder, pillar, statue, altar, chest, trap, pit, pool, fountain, rubble, throne, bed, table, coffin, barrel, crate, fire, web, bones, skull, door, arrow)
+
+### dungeon_overlay {"id":"crypt","clear":"labels"}
+text: {
+  "labels": [],
+  "symbols": [
+    "0. stairs at 4,4"
+  ]
+}
+
+### dungeon_generate {"id":"vault","seed":3,"gen":{"rooms":5},"cols":30,"rows":24}
+text: vault: 30×24 cells of 5 ft, seed 3
+  gen: rooms 5, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on, layout dense (density 0.6)
+  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls on (auto); numbers on, scale bar on, compass off
+  rooms (5):
+    r1: rect 8×5 at 8,3
+    r2: rect 6×8 at 1,9
+    r3: rect 4×6 at 7,8
+    r4: rect 7×8 at 11,8
+    r5: rect 4×4 at 14,16
+  corridors (1):
+    0. r2 → (-1,13.5), via 4,13.5, doors door/none
+  connections (4):
+    0. r4 ↔ r5: open
+    1. r2 ↔ r3: door
+    2. r1 ↔ r3: locked
+    3. r3 ↔ r4: open
+  labels (0):
+  symbols (0):
+
+### dungeon_check {"id":"crypt"}
+text: {
+  "file": "art/dungeons/crypt/dungeon.json",
+  "ok": true,
+  "errors": [],
+  "warnings": []
+}
+
+### dungeon_check {"id":"vault"}
+text: {
+  "file": "art/dungeons/vault/dungeon.json",
+  "ok": true,
+  "errors": [],
+  "warnings": []
+}
+
+### dungeon_get {"id":"crypt"}
+text: crypt "The Crypt": 32×17 cells of 5 ft, seed 7
+  gen: rooms 8, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on
+  grid: size 15 ft, sub-grid off, on the floor; hatch full; shared walls off (auto); numbers on, scale bar on, compass off
+  furniture: outside, band right
+  rooms (2):
+    r1: rect 7×4 at 2,2, #2 "Great Hall"
+    r2: cave 8×6 at 15,3, no number
+  corridors (2):
+    0. r1 → r2, width 2, hv, doors door/none
+    1. [out1] r2 → (28,14) "To the caves", curved, natural, doors portcullis/none
+  labels (0):
+  symbols (1):
+    0. stairs at 4,4 turned 90°
+text: {
+  "cols": 32,
+  "rows": 17,
+  "gen": {
+    "rooms": 8,
+    "minSize": 3,
+    "maxSize": 8,
+    "caves": 0.15,
+    "round": 0.1,
+    "loops": 0.25,
+    "doors": 0.6,
+    "corridorWidth": 1,
+    "spacing": 2,
+    "entrance": true
+  },
+  "grid": {
+    "show": true,
+    "size": 3,
+    "sub": false,
+    "clip": "floor"
+  },
+  "style": {
+    "hatch": "full",
+    "band": 0.9,
+    "wall": 1
+  },
+  "scale": {
+    "perCell": 5,
+    "unit": "ft"
+  },
+  "numbers": true,
+  "scaleBar": true,
+  "compass": false,
+  "seed": 7,
+  "title": "The Crypt",
+  "id": "crypt",
+  "version": 1,
+  "rooms": [
+    {
+      "id": "r1",
+      "shape": "rect",
+      "x": 2,
+      "y": 2,
+      "w": 7,
+      "h": 4,
+      "label": "Great Hall",
+      "number": 2
+    },
+    {
+      "id": "r2",
+      "shape": "cave",
+      "x": 15,
+      "y": 3,
+      "w": 8,
+      "h": 6,
+      "number": false
+    }
+  ],
+  "corridors": [
+    {
+      "from": {
+        "room": "r1"
+      },
+      "to": {
+        "room": "r2"
+      },
+      "width": 2,
+      "route": "hv",
+      "doors": [
+        "door",
+        null
+      ]
+    },
+    {
+      "id": "out1",
+      "from": {
+        "room": "r2"
+      },
+      "to": {
+        "at": [
+          28,
+          14
+        ],
+        "exit": {
+          "text": "To the caves",
+          "fade": 3
+        }
+      },
+      "curve": "smooth",
+      "style": "natural",
+      "seed": 3,
+      "doors": [
+        "portcullis",
+        null
+      ]
+    }
+  ],
+  "overlay": {
+    "labels": [],
+    "symbols": [
+      {
+        "kind": "stairs",
+        "x": 4,
+        "y": 4,
+        "angle": 90
+      }
+    ]
+  },
+  "furniture": {
+    "place": "outside",
+    "side": "right"
+  }
+}
+
+### dungeon_get {"id":"../crypt"} (isError)
+text: dungeon id "../crypt": letters, digits, - and _ only
+
+### dungeon_render {"id":"crypt"}
+text: {
+  "files": [
+    "art/dungeons/crypt/out/crypt.svg",
+    "art/dungeons/crypt/out/crypt.png"
+  ],
+  "rooms": 2,
+  "corridors": 2,
+  "doors": 2,
+  "size": [
+    1578,
+    680
+  ],
+  "crop": [
+    0,
+    0,
+    32,
+    17
+  ],
+  "ppu": 40,
+  "svg": {
+    "width": 1578,
+    "height": 680,
+    "unit": "px"
+  },
+  "pageScale": null,
+  "unplaced": []
+}
+image image/png: 947x408 sha256:395525fac5385870
+
+### dungeon_render {"id":"cell","ppu":6,"layers":{"grid":false}}
+text: {
+  "files": [
+    "art/dungeons/cell/out/cell.svg",
+    "art/dungeons/cell/out/cell.png"
+  ],
+  "rooms": 1,
+  "corridors": 3,
+  "doors": 2,
+  "size": [
+    72,
+    72
+  ],
+  "crop": [
+    0,
+    0,
+    12,
+    12
+  ],
+  "ppu": 6,
+  "svg": {
+    "width": 72,
+    "height": 72,
+    "unit": "px"
+  },
+  "pageScale": null,
+  "unplaced": []
+}
+image image/png: 72x72 sha256:959ea0d89b9c2102
+
+### dungeon_list {}
+text: {
+  "dungeons": [
+    {
+      "id": "cell",
+      "size": "12x12",
+      "rooms": 1,
+      "corridors": 3,
+      "labels": 0,
+      "symbols": 0
+    },
+    {
+      "id": "crypt",
+      "size": "32x17",
+      "title": "The Crypt",
+      "rooms": 2,
+      "corridors": 2,
+      "labels": 0,
+      "symbols": 1
+    },
+    {
+      "id": "vault",
+      "size": "30x24",
+      "rooms": 5,
+      "corridors": 1,
+      "labels": 0,
+      "symbols": 0
+    }
+  ],
+  "shapes": [
+    "rect",
+    "circle",
+    "octagon",
+    "cave",
+    "poly"
+  ],
+  "doors": [
+    "door",
+    "secret",
+    "locked",
+    "portcullis",
+    "arch"
+  ],
+  "symbols": [
+    "stairs",
+    "stairs-up",
+    "stairs-down",
+    "curtain",
+    "dais",
+    "gate",
+    "ladder",
+    "pillar",
+    "statue",
+    "altar",
+    "chest",
+    "trap",
+    "pit",
+    "pool",
+    "fountain",
+    "rubble",
+    "throne",
+    "bed",
+    "table",
+    "coffin",
+    "barrel",
+    "crate",
+    "fire",
+    "web",
+    "bones",
+    "skull",
+    "door",
+    "arrow"
+  ],
+  "labelKinds": [
+    "name",
+    "note",
+    "area"
+  ],
+  "routes": [
+    "auto",
+    "hv",
+    "vh",
+    "straight",
+    "around"
+  ]
+}
+
+### settlement_list {}
+text: {
+  "settlements": [],
+  "kinds": [
+    "hamlet",
+    "village",
+    "town",
+    "city",
+    "castle"
+  ],
+  "buildings": [
+    "house",
+    "cottage",
+    "shop",
+    "inn",
+    "tavern",
+    "smithy",
+    "temple",
+    "chapel",
+    "hall",
+    "barn",
+    "stable",
+    "mill",
+    "warehouse",
+    "keep",
+    "tower",
+    "gatehouse",
+    "barracks",
+    "manor",
+    "ruin"
+  ],
+  "shapes": [
+    "rect",
+    "L",
+    "T",
+    "circle",
+    "octagon",
+    "poly"
+  ],
+  "roofs": [
+    "gable",
+    "hip",
+    "flat",
+    "battlement",
+    "cone",
+    "thatch",
+    "none"
+  ],
+  "roads": [
+    "highway",
+    "street",
+    "lane",
+    "alley",
+    "path",
+    "track"
+  ],
+  "water": [
+    "river",
+    "stream",
+    "canal",
+    "moat",
+    "pond",
+    "lake",
+    "sea"
+  ],
+  "walls": [
+    "curtain",
+    "stone",
+    "palisade",
+    "fence",
+    "hedge",
+    "drystone",
+    "ruined"
+  ],
+  "gates": [
+    "gatehouse",
+    "gate",
+    "postern",
+    "opening"
+  ],
+  "areas": [
+    "field",
+    "garden",
+    "orchard",
+    "wood",
+    "scrub",
+    "marsh",
+    "graveyard",
+    "market",
+    "square",
+    "yard",
+    "paddock",
+    "rubble"
+  ],
+  "trees": [
+    "tree",
+    "conifer",
+    "bush",
+    "rock",
+    "boulder",
+    "stump",
+    "reeds"
+  ],
+  "fixtures": [
+    "bed",
+    "double-bed",
+    "table",
+    "round-table",
+    "long-table",
+    "chair",
+    "stool",
+    "bench",
+    "chest",
+    "wardrobe",
+    "shelf",
+    "bookcase",
+    "desk",
+    "counter",
+    "bar",
+    "barrel",
+    "crate",
+    "sacks",
+    "hearth",
+    "fireplace",
+    "oven",
+    "forge",
+    "anvil",
+    "cauldron",
+    "loom",
+    "altar",
+    "pew",
+    "throne",
+    "rug",
+    "statue",
+    "pillar",
+    "bath",
+    "privy",
+    "trough",
+    "weapon-rack",
+    "stairs",
+    "stairs-up",
+    "stairs-down",
+    "spiral-stairs",
+    "ladder",
+    "trapdoor",
+    "millstone",
+    "bunk",
+    "dais",
+    "well",
+    "fountain",
+    "stall",
+    "cart",
+    "haystack",
+    "woodpile",
+    "signpost",
+    "cross",
+    "gallows",
+    "pen",
+    "boat",
+    "dock"
+  ],
+  "symbols": [
+    "village",
+    "town",
+    "city",
+    "castle",
+    "tower",
+    "ruin",
+    "temple",
+    "cave",
+    "dungeon",
+    "camp",
+    "port",
+    "bridge",
+    "battle",
+    "poi",
+    "mountain",
+    "hill",
+    "tree",
+    "skull",
+    "door",
+    "cave-mouth",
+    "gate",
+    "treasure",
+    "stairs",
+    "stairs-up",
+    "stairs-down",
+    "curtain",
+    "dais",
+    "ladder",
+    "pillar",
+    "statue",
+    "altar",
+    "chest",
+    "trap",
+    "pit",
+    "pool",
+    "fountain",
+    "rubble",
+    "throne",
+    "bed",
+    "table",
+    "coffin",
+    "barrel",
+    "crate",
+    "fire",
+    "web",
+    "bones",
+    "arrow"
+  ],
+  "labelKinds": [
+    "name",
+    "note",
+    "area",
+    "street"
+  ],
+  "ops": [
+    "building.add",
+    "building.set",
+    "building.move",
+    "building.rm",
+    "interior",
+    "interior.clear",
+    "floor.add",
+    "floor.rm",
+    "room.add",
+    "room.set",
+    "room.rm",
+    "connect",
+    "disconnect",
+    "door",
+    "window",
+    "fixture.add",
+    "fixture.rm",
+    "road.add",
+    "road.rm",
+    "water.add",
+    "water.rm",
+    "wall.add",
+    "wall.gate",
+    "wall.rm",
+    "area.add",
+    "area.rm",
+    "tree.add",
+    "tree.scatter",
+    "tree.rm",
+    "prop.add",
+    "prop.rm",
+    "label",
+    "symbol",
+    "label.rm",
+    "symbol.rm"
+  ]
+}
+
+### settlement_new {"id":"mill","kind":"hamlet","seed":4}
+text: {
+  "file": "art/settlements/mill/settlement.json",
+  "summary": "mill: a hamlet, 50×40 cells of 5 ft (plans in 5 ft cells), seed 4, grass ground\n  gen: buildings 7, density 0.6, streets organic, wall none, water river, trees 0.4, fields 0.5, market off, castle off, interiors off\n  grid: every 10 ft; numbers on, scale bar on, compass on, legend off\n  buildings (7):\n    b1 #1: cottage, rect 3.84×2.7 at 26.7,23.81 turned 144.07°\n    b2 #2: barn, rect 9.08×5.23 at 18.26,14.92 turned 144.07°\n    b3 #3: cottage, rect 4.22×3.01 at 28.81,14.98 turned 179.03°\n    b4 #4: house, rect 4.19×3.6 at 24.98,29.22 turned 107.12°\n    b5 #5: cottage, rect 3.14×2.43 at 13.87,21.87 turned 152.19°\n    b6 #6: cottage, rect 3.01×2.58 at 14.99,29.26 turned 153.42°\n    b7 #7: cottage, rect 3.13×2.87 at 9.39,23.44 turned 157.34°\n  roads (3): 1 street, 2 lane\n  water (1): 1 stream; 1 bridge\n  walls (0):\n  areas (4): 3 garden, 1 wood; trees 10 (+16 in woods and orchards); props: 1 well, 1 haystack\n  labels 0, symbols 0"
+}
+
+### settlement_new {"id":"ford","mode":"empty","cols":30,"rows":24,"seed":2,"title":"The Ford"}
+text: {
+  "file": "art/settlements/ford/settlement.json",
+  "summary": "ford \"The Ford\": a village, 30×24 cells of 5 ft (plans in 5 ft cells), seed 2, grass ground\n  gen: buildings 22, density 0.6, streets organic, wall none, water river, trees 0.4, fields 0.5, market on, castle off, interiors off\n  grid: every 10 ft; numbers on, scale bar on, compass on, legend off\n  buildings (0):\n  roads (0): none\n  water (0): none\n  walls (0):\n  areas (0): none; trees 0 (+0 in woods and orchards); props: none\n  labels 0, symbols 0"
+}
+
+### settlement_new {"id":"onmap","kind":"village","seed":3,"cols":40,"rows":30,"map":"isle","at":[2,2],"gen":{"buildings":8}}
+text: {
+  "file": "art/settlements/onmap/settlement.json",
+  "summary": "onmap: a village, 40×30 cells of 5 ft (plans in 5 ft cells), seed 3, grass ground\n  gen: buildings 8, density 0.6, streets organic, wall none, water river, trees 0.4, fields 0.5, market on, castle off, interiors off\n  grid: every 10 ft; numbers on, scale bar on, compass on, legend off; underlay ../../maps/isle/map.json at 2,2, 0.1667 map units a cell\n  buildings (7):\n    b1 #1: cottage, rect 3.52×3.15 at 14.88,20.56 turned -111.71°\n    b2 #2: cottage, rect 4.09×2.63 at 26.58,11.98 turned -44.07°\n    b3 #3: house, L 5.7×3.57 at 20.2,5.52 turned 135.93°\n    b4 #4: house, rect 5.4×3.53 at 5.58,19.28 turned -0.55°\n    b5 #5: house, rect 5.62×3.47 at 25.9,19.46 turned -166.6°\n    b6 #6: house, rect 5.82×3.1 at 5.28,10.03 turned -0.55°\n    b7 #7: inn, L 8.23×7.49 at 27.09,0.9 turned -44.07° \"The Golden Lantern\"\n  roads (5): 3 street, 2 lane\n  water (0): none\n  walls (0):\n  areas (4): 1 wood, 1 square, 2 garden; trees 6 (+101 in woods and orchards); props: 1 well, 1 cart\n  labels 0, symbols 0"
+}
+
+### settlement_new {"id":"ford"} (isError)
+text: settlement ford already exists (edit it, or pick another id)
+
+### settlement_new {"id":"../../etc"} (isError)
+text: invalid settlement ../../etc:
+  id: letters, digits, - and _ only
+
+### settlement_edit {"id":"ford","ops":[{"op":"road.add","kind":"lane","points":[0,12,30,12],"width":2,"curve":"smooth","label":"Mill Lane"},{"op":"building.add","kind":"smithy","x":4,"y":4,"w":6,"h":5,"id":"smith","shape":"L","wing":[3,2],"roof":"gable","stories":2,"label":"Smithy"},{"op":"interior","id":"smith","seed":3},{"op":"wall.add","kind":"fence","points":[2,2,12,2,12,10]},{"op":"tree.add","kind":"tree","x":20,"y":4},{"op":"prop.add","kind":"well","x":16,"y":16},{"op":"water.add","kind":"river","points":[0,20,30,20],"width":3},{"op":"area.add","kind":"field","points":[20,12,28,12,28,18,20,18]},{"op":"label","text":"Ford","x":15,"y":20,"kind":"area"},{"op":"symbol","kind":"well","x":10,"y":10}]}
+text: added a lane (road 0)
+added smithy smith at 4,4 (6×5)
+laid out smith: level 0 2 rooms, 9 fixtures; level 1 2 rooms, 6 fixtures
+added a fence wall (wall 0)
+added a tree at 20,4
+added well on the site at 16,16
+added a river (water 0)
+added a field (area 0)
+label "Ford" at 15,20
+symbol well at 10,10
+
+### settlement_edit {"id":"ford","ops":[{"op":"building.move","id":"nope","x":1,"y":1}]} (isError)
+text: no building nope (there are smith)
+
+### settlement_update {"id":"ford","title":"Ford Town","ground":"sand","legend":true,"numbers":true,"scale_bar":true,"compass":false,"grid_size":10,"plan_cell":5,"furniture":{"place":"outside"},"scale":{"unit":"ft"}}
+text: ford "Ford Town": a village, 30×24 cells of 5 ft (plans in 5 ft cells), seed 2, sand ground
+  gen: buildings 22, density 0.6, streets organic, wall none, water river, trees 0.4, fields 0.5, market on, castle off, interiors off
+  grid: every 10 ft; numbers on, scale bar on, compass off, legend on
+
+### settlement_update {"id":"ford","underlay":null}
+text: ford "Ford Town": a village, 30×24 cells of 5 ft (plans in 5 ft cells), seed 2, sand ground
+  gen: buildings 22, density 0.6, streets organic, wall none, water river, trees 0.4, fields 0.5, market on, castle off, interiors off
+  grid: every 10 ft; numbers on, scale bar on, compass off, legend on
+
+### settlement_generate {"id":"mill","seed":9,"kind":"village","gen":{"interiors":true},"cols":50,"rows":40}
+text: mill: a village, 50×40 cells of 5 ft (plans in 5 ft cells), seed 9, grass ground
+  gen: buildings 7, density 0.6, streets organic, wall none, water river, trees 0.4, fields 0.5, market off, castle off, interiors on
+  grid: every 10 ft; numbers on, scale bar on, compass on, legend off
+  buildings (9):
+    b1 #1: inn, L 8.37×7.67 at 23.87,17.03 turned -66.88° "The Laughing Kettle"; floors -1 (2 rooms, 12 fixtures), 0 (3 rooms, 19 fixtures), 1 (10 rooms, 17 fixtures)
+    b2 #2: cottage, rect 3.07×2.48 at 18.13,11.15 turned 118.68°; floors 0 (1 rooms, 5 fixtures)
+    b3 #3: house, rect 5.31×3.46 at 11.59,20.18 turned 115.95°; floors 0 (1 rooms, 5 fixtures)
+    b4 #4: house, L 5.27×3.61 at 16.88,4.29 turned 108.81°; floors 0 (2 rooms, 7 fixtures), 1 (2 rooms, 6 fixtures)
+    b5 #5: cottage, rect 3.67×2.53 at 20.09,32.34 turned -71.22°; floors 0 (1 rooms, 7 fixtures)
+    b6 #6: house, rect 4.83×3.22 at 28.89,2.16 turned 23.2°; floors 0 (1 rooms, 5 fixtures), 1 (2 rooms, 5 fixtures)
+    b7 #7: temple, T 8.65×12.61 at 36.34,11.25 "Temple"; floors 0 (3 rooms, 14 fixtures)
+    b8 #8: smithy, rect 5.76×4.94 at 4.33,8.07 turned -153.43°; floors 0 (2 rooms, 9 fixtures)
+    b9 #9: mill, rect 5.58×5.4 at 4.71,17.68 turned -153.43°; floors 0 (4 rooms, 17 fixtures), 1 (1 rooms, 5 fixtures)
+  roads (6): 3 street, 3 lane
+  water (1): 1 river; 2 bridges
+  walls (0):
+  areas (5): 1 yard, 3 garden, 1 wood; trees 10 (+15 in woods and orchards); props: 1 well, 1 cart, 1 woodpile
+  labels 0, symbols 0
+
+### settlement_check {"id":"ford"}
+text: {
+  "file": "art/settlements/ford/settlement.json",
+  "ok": true,
+  "errors": [],
+  "warnings": []
+}
+
+### settlement_facts {"id":"ford"}
+text: {
+  "version": 1,
+  "id": "ford",
+  "kind": "village",
+  "size": {
+    "cols": 30,
+    "rows": 24,
+    "scale": "1 cell = 5 ft"
+  },
+  "counts": {
+    "buildings": {
+      "smithy": 1
+    },
+    "roads": {
+      "lane": 1
+    },
+    "walls": {
+      "fence": 1
+    },
+    "water": {
+      "river": 1
+    },
+    "areas": {
+      "field": 1
+    },
+    "trees": 1,
+    "props": {
+      "well": 1
+    }
+  },
+  "buildings": [
+    {
+      "id": "smith",
+      "number": 1,
+      "kind": "smithy",
+      "label": "Smithy",
+      "box": {
+        "x": 4,
+        "y": 4,
+        "w": 6,
+        "h": 5,
+        "angle": 0
+      },
+      "size": "30 × 25 ft",
+      "stories": 2,
+      "floors": [
+        {
+          "level": 0,
+          "name": "Ground floor",
+          "rooms": 2,
+          "doors": 2,
+          "windows": 4,
+          "fixtures": {
+            "stairs-up": 1,
+            "forge": 1,
+            "anvil": 1,
+            "trough": 1,
+            "weapon-rack": 1,
+            "barrel": 2,
+            "crate": 1,
+            "sacks": 1
+          }
+        },
+        {
+          "level": 1,
+          "name": "Upper floor",
+          "rooms": 2,
+          "doors": 1,
+          "windows": 5,
+          "fixtures": {
+            "stairs-down": 1,
+            "barrel": 2,
+            "sacks": 1,
+            "bed": 1,
+            "chest": 1
+          }
+        }
+      ]
+    }
+  ],
+  "walls": [
+    {
+      "index": 0,
+      "kind": "fence",
+      "length": 90,
+      "closed": false,
+      "towers": 0,
+      "gates": []
+    }
+  ],
+  "roads": [
+    {
+      "index": 0,
+      "kind": "lane",
+      "length": 150,
+      "label": "Mill Lane"
+    }
+  ],
+  "water": [
+    {
+      "index": 0,
+      "kind": "river",
+      "length": 150
+    }
+  ],
+  "areas": [
+    {
+      "index": 0,
+      "kind": "field",
+      "area": 1200
+    }
+  ],
+  "bridges": 0
+}
+
+### settlement_get {"id":"ford"}
+text: ford "Ford Town": a village, 30×24 cells of 5 ft (plans in 5 ft cells), seed 2, sand ground
+  gen: buildings 22, density 0.6, streets organic, wall none, water river, trees 0.4, fields 0.5, market on, castle off, interiors off
+  grid: every 10 ft; numbers on, scale bar on, compass off, legend on
+  buildings (1):
+    smith #1: smithy, L 6×5 at 4,4 "Smithy"; floors 0 (2 rooms, 9 fixtures), 1 (2 rooms, 6 fixtures)
+  roads (1): 1 lane
+  water (1): 1 river
+  walls (1):
+    0. fence, 3 points, 0 towers, gates none
+  areas (1): 1 field; trees 1 (+0 in woods and orchards); props: 1 well
+  labels 1, symbols 1
+text: {
+  "cols": 30,
+  "rows": 24,
+  "ground": "sand",
+  "gen": {
+    "buildings": 22,
+    "density": 0.6,
+    "streets": "organic",
+    "wall": "none",
+    "water": "river",
+    "trees": 0.4,
+    "fields": 0.5,
+    "market": true,
+    "castle": false,
+    "interiors": false
+  },
+  "grid": {
+    "show": true,
+    "size": 2,
+    "sub": false
+  },
+  "scale": {
+    "perCell": 5,
+    "unit": "ft"
+  },
+  "interior": {
+    "perCell": 5
+  },
+  "numbers": true,
+  "scaleBar": true,
+  "compass": false,
+  "seed": 2,
+  "title": "Ford Town",
+  "id": "ford",
+  "kind": "village",
+  "version": 1,
+  "roads": [
+    {
+      "kind": "lane",
+      "points": [
+        0,
+        12,
+        30,
+        12
+      ],
+      "width": 2,
+      "curve": "smooth",
+      "label": "Mill Lane"
+    }
+  ],
+  "water": [
+    {
+      "kind": "river",
+      "points": [
+        0,
+        20,
+        30,
+        20
+      ],
+      "width": 3
+    }
+  ],
+  "walls": [
+    {
+      "kind": "fence",
+      "points": [
+        2,
+        2,
+        12,
+        2,
+        12,
+        10
+      ]
+    }
+  ],
+  "buildings": [
+    {
+      "id": "smith",
+      "kind": "smithy",
+      "shape": "L",
+      "x": 4,
+      "y": 4,
+      "w": 6,
+      "h": 5,
+      "roof": "gable",
+      "stories": 2,
+      "label": "Smithy",
+      "wing": [
+        3,
+        2
+      ],
+      "floors": [
+        {
+          "level": 0,
+          "rooms": [
+            {
+              "id": "f0a-1",
+              "shape": "rect",
+              "x": 0,
+              "y": 0,
+              "w": 3,
+              "h": 5,
+              "origin": "gen",
+              "label": "Forge"
+            },
+            {
+              "id": "f0b-1",
+              "shape": "rect",
+              "x": 3,
+              "y": 3,
+              "w": 3,
+              "h": 2,
+              "origin": "gen",
+              "label": "Store"
+            }
+          ],
+          "connections": [
+            {
+              "a": "f0a-1",
+              "b": "f0b-1",
+              "origin": "gen"
+            }
+          ],
+          "origin": "gen",
+          "doors": [
+            {
+              "at": [
+                3,
+                5
+              ]
+            }
+          ],
+          "windows": [
+            {
+              "at": [
+                0,
+                2.5
+              ]
+            },
+            {
+              "at": [
+                1.5,
+                0
+              ]
+            },
+            {
+              "at": [
+                3,
+                1.5
+              ]
+            },
+            {
+              "at": [
+                4.5,
+                3
+              ]
+            }
+          ],
+          "fixtures": [
+            {
+              "kind": "stairs-up",
+              "x": 1.15,
+              "y": 0.55,
+              "origin": "gen"
+            },
+            {
+              "kind": "forge",
+              "x": 0.52,
+              "y": 2.68,
+              "angle": 270,
+              "origin": "gen"
+            },
+            {
+              "kind": "anvil",
+              "x": 1.5,
+              "y": 2.5,
+              "angle": 90,
+              "origin": "gen"
+            },
+            {
+              "kind": "trough",
+              "x": 1.32,
+              "y": 4.68,
+              "angle": 180,
+              "origin": "gen"
+            },
+            {
+              "kind": "weapon-rack",
+              "x": 2.78,
+              "y": 2.37,
+              "angle": 90,
+              "origin": "gen"
+            },
+            {
+              "kind": "barrel",
+              "x": 5.68,
+              "y": 4.68,
+              "origin": "gen"
+            },
+            {
+              "kind": "barrel",
+              "x": 3.32,
+              "y": 3.32,
+              "origin": "gen"
+            },
+            {
+              "kind": "crate",
+              "x": 5.68,
+              "y": 3.32,
+              "origin": "gen"
+            },
+            {
+              "kind": "sacks",
+              "x": 4.78,
+              "y": 3.32,
+              "origin": "gen"
+            }
+          ]
+        },
+        {
+          "level": 1,
+          "rooms": [
+            {
+              "id": "f1a-1",
+              "shape": "rect",
+              "x": 0,
+              "y": 0,
+              "w": 3,
+              "h": 5,
+              "origin": "gen",
+              "label": "Store"
+            },
+            {
+              "id": "f1b-1",
+              "shape": "rect",
+              "x": 3,
+              "y": 3,
+              "w": 3,
+              "h": 2,
+              "origin": "gen",
+              "label": "Bedroom"
+            }
+          ],
+          "connections": [
+            {
+              "a": "f1a-1",
+              "b": "f1b-1",
+              "origin": "gen"
+            }
+          ],
+          "origin": "gen",
+          "windows": [
+            {
+              "at": [
+                0,
+                2.5
+              ]
+            },
+            {
+              "at": [
+                1.5,
+                0
+              ]
+            },
+            {
+              "at": [
+                3,
+                1.5
+              ]
+            },
+            {
+              "at": [
+                4.5,
+                3
+              ]
+            },
+            {
+              "at": [
+                3,
+                5
+              ]
+            }
+          ],
+          "fixtures": [
+            {
+              "kind": "stairs-down",
+              "x": 1.15,
+              "y": 0.55,
+              "origin": "gen"
+            },
+            {
+              "kind": "barrel",
+              "x": 0.32,
+              "y": 4.68,
+              "origin": "gen"
+            },
+            {
+              "kind": "barrel",
+              "x": 2.68,
+              "y": 0.32,
+              "origin": "gen"
+            },
+            {
+              "kind": "sacks",
+              "x": 0.32,
+              "y": 3.88,
+              "angle": 270,
+              "origin": "gen"
+            },
+            {
+              "kind": "bed",
+              "x": 5.28,
+              "y": 4.51,
+              "angle": 90,
+              "origin": "gen"
+            },
+            {
+              "kind": "chest",
+              "x": 4.18,
+              "y": 4.72,
+              "angle": 180,
+              "origin": "gen"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "areas": [
+    {
+      "kind": "field",
+      "points": [
+        20,
+        12,
+        28,
+        12,
+        28,
+        18,
+        20,
+        18
+      ]
+    }
+  ],
+  "trees": [
+    {
+      "kind": "tree",
+      "x": 20,
+      "y": 4
+    }
+  ],
+  "props": [
+    {
+      "kind": "well",
+      "x": 16,
+      "y": 16
+    }
+  ],
+  "overlay": {
+    "labels": [
+      {
+        "text": "Ford",
+        "x": 15,
+        "y": 20,
+        "kind": "area"
+      }
+    ],
+    "symbols": [
+      {
+        "kind": "well",
+        "x": 10,
+        "y": 10
+      }
+    ]
+  },
+  "legend": true,
+  "furniture": {
+    "place": "outside"
+  }
+}
+
+### settlement_get {"id":"ford","file":false}
+text: ford "Ford Town": a village, 30×24 cells of 5 ft (plans in 5 ft cells), seed 2, sand ground
+  gen: buildings 22, density 0.6, streets organic, wall none, water river, trees 0.4, fields 0.5, market on, castle off, interiors off
+  grid: every 10 ft; numbers on, scale bar on, compass off, legend on
+  buildings (1):
+    smith #1: smithy, L 6×5 at 4,4 "Smithy"; floors 0 (2 rooms, 9 fixtures), 1 (2 rooms, 6 fixtures)
+  roads (1): 1 lane
+  water (1): 1 river
+  walls (1):
+    0. fence, 3 points, 0 towers, gates none
+  areas (1): 1 field; trees 1 (+0 in woods and orchards); props: 1 well
+  labels 1, symbols 1
+
+### settlement_get {"id":"../ford"} (isError)
+text: settlement id "../ford": letters, digits, - and _ only
+
+### settlement_render {"id":"ford","building":"smith"}
+text: {
+  "files": [
+    "art/settlements/ford/out/ford.smith.f0.color.svg",
+    "art/settlements/ford/out/ford.smith.f0.color.png"
+  ],
+  "view": "plan",
+  "building": "smith",
+  "floor": 0,
+  "size": [
+    400,
+    605
+  ],
+  "crop": [
+    0,
+    0,
+    10,
+    9
+  ],
+  "ppu": 40,
+  "svg": {
+    "width": 400,
+    "height": 605.4,
+    "unit": "px"
+  }
+}
+image image/png: 280x424 sha256:4ca8ab8154e914a7
+
+### settlement_render {"id":"ford","theme":"both","buildings":"outline"}
+text: {
+  "files": [
+    "art/settlements/ford/out/ford.color.svg",
+    "art/settlements/ford/out/ford.color.png",
+    "art/settlements/ford/out/ford.bw.svg",
+    "art/settlements/ford/out/ford.bw.png"
+  ],
+  "view": "site",
+  "size": [
+    720,
+    692
+  ],
+  "crop": [
+    0,
+    0,
+    30,
+    24
+  ],
+  "ppu": 24,
+  "svg": {
+    "width": 720,
+    "height": 692,
+    "unit": "px"
+  }
+}
+image image/png: 480x461 sha256:1b89c724fe72c3ee
+image image/png: 480x461 sha256:520dab6771a4b420
+
+### settlement_render {"id":"ford","ppu":6}
+text: {
+  "files": [
+    "art/settlements/ford/out/ford.color.svg",
+    "art/settlements/ford/out/ford.color.png"
+  ],
+  "view": "site",
+  "size": [
+    180,
+    173
+  ],
+  "crop": [
+    0,
+    0,
+    30,
+    24
+  ],
+  "ppu": 6,
+  "svg": {
+    "width": 180,
+    "height": 173,
+    "unit": "px"
+  }
+}
+image image/png: 180x173 sha256:840eb3406f218555
+
+### settlement_render {"id":"mill","plans":true,"ppu":4}
+text: {
+  "renders": 15,
+  "files": [
+    "art/settlements/mill/out/mill.color.svg",
+    "art/settlements/mill/out/mill.color.png",
+    "art/settlements/mill/out/mill.b1.c1.color.svg",
+    "art/settlements/mill/out/mill.b1.c1.color.png",
+    "art/settlements/mill/out/mill.b1.f0.color.svg",
+    "art/settlements/mill/out/mill.b1.f0.color.png",
+    "art/settlements/mill/out/mill.b1.f1.color.svg",
+    "art/settlements/mill/out/mill.b1.f1.color.png",
+    "art/settlements/mill/out/mill.b2.f0.color.svg",
+    "art/settlements/mill/out/mill.b2.f0.color.png",
+    "art/settlements/mill/out/mill.b3.f0.color.svg",
+    "art/settlements/mill/out/mill.b3.f0.color.png",
+    "art/settlements/mill/out/mill.b4.f0.color.svg",
+    "art/settlements/mill/out/mill.b4.f0.color.png",
+    "art/settlements/mill/out/mill.b4.f1.color.svg",
+    "art/settlements/mill/out/mill.b4.f1.color.png",
+    "art/settlements/mill/out/mill.b5.f0.color.svg",
+    "art/settlements/mill/out/mill.b5.f0.color.png",
+    "art/settlements/mill/out/mill.b6.f0.color.svg",
+    "art/settlements/mill/out/mill.b6.f0.color.png",
+    "art/settlements/mill/out/mill.b6.f1.color.svg",
+    "art/settlements/mill/out/mill.b6.f1.color.png",
+    "art/settlements/mill/out/mill.b7.f0.color.svg",
+    "art/settlements/mill/out/mill.b7.f0.color.png",
+    "art/settlements/mill/out/mill.b8.f0.color.svg",
+    "art/settlements/mill/out/mill.b8.f0.color.png",
+    "art/settlements/mill/out/mill.b9.f0.color.svg",
+    "art/settlements/mill/out/mill.b9.f0.color.png",
+    "art/settlements/mill/out/mill.b9.f1.color.svg",
+    "art/settlements/mill/out/mill.b9.f1.color.png"
+  ]
+}
+
+### settlement_list {}
+text: {
+  "settlements": [
+    {
+      "id": "ford",
+      "kind": "village",
+      "size": "30x24",
+      "title": "Ford Town",
+      "buildings": 1,
+      "interiors": 1,
+      "roads": 1,
+      "walls": 1,
+      "water": 1
+    },
+    {
+      "id": "mill",
+      "kind": "village",
+      "size": "50x40",
+      "buildings": 9,
+      "interiors": 9,
+      "roads": 6,
+      "walls": 0,
+      "water": 1
+    },
+    {
+      "id": "onmap",
+      "kind": "village",
+      "size": "40x30",
+      "buildings": 7,
+      "interiors": 0,
+      "roads": 5,
+      "walls": 0,
+      "water": 0
+    }
+  ],
+  "kinds": [
+    "hamlet",
+    "village",
+    "town",
+    "city",
+    "castle"
+  ],
+  "buildings": [
+    "house",
+    "cottage",
+    "shop",
+    "inn",
+    "tavern",
+    "smithy",
+    "temple",
+    "chapel",
+    "hall",
+    "barn",
+    "stable",
+    "mill",
+    "warehouse",
+    "keep",
+    "tower",
+    "gatehouse",
+    "barracks",
+    "manor",
+    "ruin"
+  ],
+  "shapes": [
+    "rect",
+    "L",
+    "T",
+    "circle",
+    "octagon",
+    "poly"
+  ],
+  "roofs": [
+    "gable",
+    "hip",
+    "flat",
+    "battlement",
+    "cone",
+    "thatch",
+    "none"
+  ],
+  "roads": [
+    "highway",
+    "street",
+    "lane",
+    "alley",
+    "path",
+    "track"
+  ],
+  "water": [
+    "river",
+    "stream",
+    "canal",
+    "moat",
+    "pond",
+    "lake",
+    "sea"
+  ],
+  "walls": [
+    "curtain",
+    "stone",
+    "palisade",
+    "fence",
+    "hedge",
+    "drystone",
+    "ruined"
+  ],
+  "gates": [
+    "gatehouse",
+    "gate",
+    "postern",
+    "opening"
+  ],
+  "areas": [
+    "field",
+    "garden",
+    "orchard",
+    "wood",
+    "scrub",
+    "marsh",
+    "graveyard",
+    "market",
+    "square",
+    "yard",
+    "paddock",
+    "rubble"
+  ],
+  "trees": [
+    "tree",
+    "conifer",
+    "bush",
+    "rock",
+    "boulder",
+    "stump",
+    "reeds"
+  ],
+  "fixtures": [
+    "bed",
+    "double-bed",
+    "table",
+    "round-table",
+    "long-table",
+    "chair",
+    "stool",
+    "bench",
+    "chest",
+    "wardrobe",
+    "shelf",
+    "bookcase",
+    "desk",
+    "counter",
+    "bar",
+    "barrel",
+    "crate",
+    "sacks",
+    "hearth",
+    "fireplace",
+    "oven",
+    "forge",
+    "anvil",
+    "cauldron",
+    "loom",
+    "altar",
+    "pew",
+    "throne",
+    "rug",
+    "statue",
+    "pillar",
+    "bath",
+    "privy",
+    "trough",
+    "weapon-rack",
+    "stairs",
+    "stairs-up",
+    "stairs-down",
+    "spiral-stairs",
+    "ladder",
+    "trapdoor",
+    "millstone",
+    "bunk",
+    "dais",
+    "well",
+    "fountain",
+    "stall",
+    "cart",
+    "haystack",
+    "woodpile",
+    "signpost",
+    "cross",
+    "gallows",
+    "pen",
+    "boat",
+    "dock"
+  ],
+  "symbols": [
+    "village",
+    "town",
+    "city",
+    "castle",
+    "tower",
+    "ruin",
+    "temple",
+    "cave",
+    "dungeon",
+    "camp",
+    "port",
+    "bridge",
+    "battle",
+    "poi",
+    "mountain",
+    "hill",
+    "tree",
+    "skull",
+    "door",
+    "cave-mouth",
+    "gate",
+    "treasure",
+    "stairs",
+    "stairs-up",
+    "stairs-down",
+    "curtain",
+    "dais",
+    "ladder",
+    "pillar",
+    "statue",
+    "altar",
+    "chest",
+    "trap",
+    "pit",
+    "pool",
+    "fountain",
+    "rubble",
+    "throne",
+    "bed",
+    "table",
+    "coffin",
+    "barrel",
+    "crate",
+    "fire",
+    "web",
+    "bones",
+    "arrow"
+  ],
+  "labelKinds": [
+    "name",
+    "note",
+    "area",
+    "street"
+  ],
+  "ops": [
+    "building.add",
+    "building.set",
+    "building.move",
+    "building.rm",
+    "interior",
+    "interior.clear",
+    "floor.add",
+    "floor.rm",
+    "room.add",
+    "room.set",
+    "room.rm",
+    "connect",
+    "disconnect",
+    "door",
+    "window",
+    "fixture.add",
+    "fixture.rm",
+    "road.add",
+    "road.rm",
+    "water.add",
+    "water.rm",
+    "wall.add",
+    "wall.gate",
+    "wall.rm",
+    "area.add",
+    "area.rm",
+    "tree.add",
+    "tree.scatter",
+    "tree.rm",
+    "prop.add",
+    "prop.rm",
+    "label",
+    "symbol",
+    "label.rm",
+    "symbol.rm"
+  ]
+}
