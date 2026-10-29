@@ -250,7 +250,9 @@ export function install(target, { mode = 'init', modules, force = false, dryRun 
   if (mode === 'update') report.packages = bumpPackages(target, dist, dryRun);
   if (!dryRun) {
     mkdirSync(join(target, 'tools', 'artgen'), { recursive: true });
-    writeFileSync(join(target, MANIFEST), JSON.stringify({ version: to, modules: report.modules, files: hashes, claudeMd: cm.hash }, null, 2) + '\n');
+    // `sources`: where each installed file comes from in the artgen repo, for `artgen upstream`
+    const sources = Object.fromEntries(Object.entries(index.sources ?? {}).map(([f, s]) => [targetOf(f), s]).filter(([t]) => hashes[t]));
+    writeFileSync(join(target, MANIFEST), JSON.stringify({ version: to, modules: report.modules, files: hashes, ...(Object.keys(sources).length && { sources }), claudeMd: cm.hash }, null, 2) + '\n');
   }
   if (scaffold && !dryRun) scaffoldProject(target, names, report);
   if (notes && !dryRun) writeFileSync(resolve(notes), releaseNotes(report, dist));
@@ -292,7 +294,10 @@ export function remove(target, names, { force = false, dryRun = false, dist = DI
   report.mcp = mergeMcp(target, keep.includes('art'), dryRun);
   const cm = writeClaudeMd(target, claudeSection(dist, keep), old.claudeMd, force, dryRun);
   report.claudeMd = cm.action;
-  if (!dryRun) writeFileSync(join(target, MANIFEST), JSON.stringify({ ...old, modules: report.modules, files: hashes, claudeMd: cm.hash }, null, 2) + '\n');
+  if (!dryRun) {
+    const sources = old.sources && Object.fromEntries(Object.entries(old.sources).filter(([t]) => hashes[t]));
+    writeFileSync(join(target, MANIFEST), JSON.stringify({ ...old, modules: report.modules, files: hashes, ...(sources && { sources }), claudeMd: cm.hash }, null, 2) + '\n');
+  }
   log?.(formatReport(report, 'remove', dryRun));
   return report;
 }
