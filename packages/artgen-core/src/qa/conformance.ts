@@ -10,8 +10,9 @@ import { animChecks, type AnimInput } from './anim.ts';
 import type { RenderResult } from '../render.ts';
 import { borderContrast, periodicPatch, repetitionIssues, repetitionMetric, seamMetric } from './tiles.ts';
 
-export type CheckStatus = 'pass' | 'fail' | 'flag' | 'skip';
-export interface Check { id: string; status: CheckStatus; detail: string }
+import type { Check, CheckStatus } from 'artgen-workflow/check.ts';
+
+export type { Check, CheckStatus };
 export interface ConformanceReport { pass: boolean; checks: Check[]; metrics: Metrics }
 
 export interface ConformanceInput {

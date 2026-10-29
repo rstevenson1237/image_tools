@@ -1,0 +1,18 @@
+{
+  "name": "artgen-workflow",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Workflow layer: the ledger, status rules, versions and diffs, analytics, generator metrics and the data sheet, shared by pixel art and the map engines. Depends on primitives only. TS, ESM, no Node or DOM imports.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "artgen-primitives": "0.0.0"
+  }
+}

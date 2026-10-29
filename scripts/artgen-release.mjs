@@ -22,9 +22,9 @@ const DIST_PKG = join(root, 'packages/artgen-dist/package.json'), CHANGELOG = jo
 const MAPGEN_PKG = join(root, 'packages/artgen-mapgen/package.json');
 /** What the map engines are made of: a commit touching one of these is a mapgen change. */
 export const MAPGEN_PATHS = [
-  'packages/artgen-mapgen', 'packages/artgen-primitives', 'packages/artgen-core/src/maps.ts',
+  'packages/artgen-mapgen', 'packages/artgen-primitives', 'packages/artgen-workflow', 'packages/artgen-core/src/maps.ts',
   'packages/artgen-cli/src/map.ts', 'packages/artgen-cli/src/dungeon.ts', 'packages/artgen-cli/src/settlement.ts',
-  'packages/artgen-cli/src/maps-cli.ts', 'packages/artgen-cli/src/maps-bin.ts', 'packages/artgen-cli/src/ops/maps*.ts',
+  'packages/artgen-cli/src/maps-cli.ts', 'packages/artgen-cli/src/maps-bin.ts', 'packages/artgen-cli/src/workflow.ts', 'packages/artgen-cli/src/ops/maps*.ts',
 ];
 const PYPROJECT = join(root, 'python/artgen/pyproject.toml'), PYINIT = join(root, 'python/artgen/src/artgen/__init__.py');
 const git = (...a) => execFileSync('git', a, { cwd: root, encoding: 'utf8' }).trim();

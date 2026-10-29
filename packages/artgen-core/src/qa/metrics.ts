@@ -2,7 +2,7 @@
 import { luma, parseColor } from 'artgen-primitives/lib/color.ts';
 import type { Grid } from 'artgen-primitives/lib/grid.ts';
 
-export interface Metrics {
+export type Metrics = {
   fillPct: number;
   colors: number;
   aaPartialPct: number;
@@ -12,7 +12,7 @@ export interface Metrics {
   symmetryPct: number;
   /** Heuristic 0–10: clean palette, outlines, few orphans, limited colours. */
   hygiene: number;
-}
+};
 
 export interface MeasureOptions {
   symAxis?: 'x' | 'y' | 'none';
