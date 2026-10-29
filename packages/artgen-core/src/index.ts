@@ -4,7 +4,7 @@ export const name = 'artgen-core';
 export * from 'artgen-primitives';
 export * from 'artgen-scene';
 export * from 'artgen-workflow';
-export { map, dungeon, settlement } from 'artgen-mapgen';
+export { map, dungeon, settlement, subjects, mapDirection } from 'artgen-mapgen';
 export * from './render.ts';
 export * from './qa/metrics.ts';
 export * from './qa/conformance.ts';

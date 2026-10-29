@@ -3,11 +3,12 @@
  * operation, declared once for the CLI, the MCP server and (from stage 3) the Python client. It imports only files the
  * maps-only bundle may hold (`packages/artgen-dist/test/maps-graph.test.ts`), never the pixel-art pipeline. The order
  * is the MCP tools' order (each group as the MCP list had it, new tools after their group) with the command-line-only
- * operations beside their relatives.
+ * operations beside their relatives; the workflow operations (`maps-workflow.ts`) come last.
  */
 import { dungeon, map, settlement } from 'artgen-core/maps';
 import { DUNGEON_OPS_LIST } from './maps-dungeon.ts';
 import { MAP_MAP_OPS } from './maps-map.ts';
+import { WORKFLOW_OPS } from './maps-workflow.ts';
 import { SETTLEMENT_OPS_LIST } from './maps-settlement.ts';
 import { defineOp, usageLines, type OpDef } from './registry.ts';
 
@@ -20,7 +21,7 @@ const formats = defineOp({
   mcp: {}, python: {},
 });
 
-export const MAP_OPS: OpDef[] = [...MAP_MAP_OPS, ...DUNGEON_OPS_LIST, ...SETTLEMENT_OPS_LIST, formats];
+export const MAP_OPS: OpDef[] = [...MAP_MAP_OPS, ...DUNGEON_OPS_LIST, ...SETTLEMENT_OPS_LIST, formats, ...WORKFLOW_OPS];
 
 /** The note under the map operations' `--help` lines. */
 export const MAP_NOTE = '       (map, dungeon and settlement commands take --file <path> in place of <id>: no project needed; renders go beside the file or to --out)';

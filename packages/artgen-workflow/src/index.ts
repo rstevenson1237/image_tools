@@ -7,3 +7,4 @@ export * from './subject.ts';
 export * from './versions.ts';
 export * from './metrics.ts';
 export * from './sheet.ts';
+export * from './brief.ts';

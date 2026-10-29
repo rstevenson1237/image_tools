@@ -32,7 +32,7 @@ describe('artgen MCP server', () => {
     expect(r.tools.map(t => t.name)).toEqual(['direction_get', 'direction_tile', 'pass_status', 'render', 'review', 'conformance', 'score', 'finish', 'make', 'brief_lint', 'brief_add', 'brief_list', 'status',
       'gallery', 'feedback', 'approve', 'texture', 'fx', 'export', 'restyle', 'analytics', 'metrics_export', 'pr_prepare', 'pr_parse', 'map_list', 'map_get', 'map_new', 'map_update', 'map_edit', 'map_overlay', 'map_render', 'map_facts', 'map_check',
       'dungeon_list', 'dungeon_get', 'dungeon_new', 'dungeon_update', 'dungeon_generate', 'dungeon_edit', 'dungeon_check', 'dungeon_overlay', 'dungeon_render', 'dungeon_facts',
-      'settlement_list', 'settlement_get', 'settlement_new', 'settlement_update', 'settlement_generate', 'settlement_edit', 'settlement_check', 'settlement_facts', 'settlement_render', 'formats', 'report']);
+      'settlement_list', 'settlement_get', 'settlement_new', 'settlement_update', 'settlement_generate', 'settlement_edit', 'settlement_check', 'settlement_facts', 'settlement_render', 'formats', 'map_brief', 'map_version', 'map_diff', 'map_review', 'map_feedback', 'map_approve', 'map_status', 'map_sheet', 'map_direction', 'dungeon_brief', 'dungeon_version', 'dungeon_diff', 'dungeon_review', 'dungeon_feedback', 'dungeon_approve', 'dungeon_status', 'dungeon_sheet', 'settlement_brief', 'settlement_version', 'settlement_diff', 'settlement_review', 'settlement_feedback', 'settlement_approve', 'settlement_status', 'settlement_sheet', 'report']);
     expect(r.tools.every(t => t.inputSchema.type === 'object')).toBe(true);
   });
 
@@ -241,4 +241,38 @@ describe('artgen MCP server on a locked project (W2 tools)', () => {
     expect((await call('settlement_new', { id: '../../etc' })).isError).toBe(true);
     expect((await call('settlement_get', { id: '../ford' })).isError).toBe(true);
   }, 60_000);
+
+  test('the map workflow: version, review (a PNG), feedback; approving and locking the direction are the user\'s', async () => {
+    await call('map_new', { id: 'keep', preset: 'local', cols: 12, rows: 9, seed: 3 });
+    expect(JSON.parse((await call('map_status', { ids: ['keep'] })).content[0].text!).rows).toMatchObject([{ id: 'keep', status: 'in-pipeline' }]);
+    expect(JSON.parse((await call('map_version', { id: 'keep', note: 'first' })).content[0].text!)).toMatchObject({ version: 'v1', file: 'art/maps/keep/map.v1.json' });
+    expect((await call('map_version', { id: 'keep' })).content[0].text).toMatch(/keep: no change since v1/);
+    const rv = await call('map_review', { id: 'keep' });
+    expect(rv.content.map(c => c.type)).toEqual(['text', 'image']);
+    expect(JSON.parse(rv.content[0].text!)).toMatchObject({ version: 'v1', sheet: 'art/maps/keep/out/review-v1.png', pass: true });
+    // only the user approves: without user_approved the call is refused and nothing is written
+    for (const args of [{ id: 'keep' }, { id: 'keep', user_approved: false }]) {
+      const refused = await call('map_approve', args);
+      expect(refused.isError).toBe(true);
+      expect(refused.content[0].text).toMatch(/only the user approves/);
+    }
+    expect(readFileSync(join(root, 'art', 'ledger.jsonl'), 'utf8')).not.toContain('"type":"approve"');
+    const ok = await call('map_approve', { id: 'keep', user_approved: true, note: 'looks right' });
+    expect(ok.isError).toBeFalsy();
+    expect(readFileSync(join(root, 'art', 'ledger.jsonl'), 'utf8')).toContain('"asset":"map:keep","version":"v1"');
+    expect(JSON.parse((await call('map_status', { ids: ['keep'] })).content[0].text!)).toMatchObject({ rows: [{ status: 'approved' }], history: expect.any(Array) });
+    expect((await call('map_feedback', { id: 'keep' })).isError).toBe(true);
+    expect((await call('map_feedback', { id: 'keep', note: 'the river is too wide' })).isError).toBeFalsy();
+    expect(JSON.parse((await call('map_status', { ids: ['keep'] })).content[0].text!).rows[0].status).toBe('revision');
+    // the map direction: a draft is anyone's, a lock is the user's
+    expect((await call('map_direction', { theme: 'map=bw' })).isError).toBeFalsy();
+    const lock = await call('map_direction', { lock: true });
+    expect(lock.isError).toBe(true);
+    expect(lock.content[0].text).toMatch(/only the user locks/);
+    expect((await call('map_direction', { lock: true, user_approved: true, note: 'bw for print' })).isError).toBeFalsy();
+    expect(JSON.parse(readFileSync(join(root, 'art', 'map-direction.json'), 'utf8'))).toMatchObject({ version: 1, status: 'locked' });
+    // the sandbox: a map id is a name, never a path
+    expect((await call('map_version', { id: '../keep' })).isError).toBe(true);
+    expect((await call('map_sheet', { id: 'keep' })).content.map(c => c.type)).toEqual(['text', 'image']);
+  }, 90_000);
 });

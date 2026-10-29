@@ -23,9 +23,9 @@ const cliCtx = (root: string | undefined): Ctx => ({ surface: 'cli', project: ()
 
 /** What a group of commands says when no command of it matches (the full CLI uses these too). */
 export const GROUP_HELP: Record<string, string> = {
-  map: 'map: new | gen | edit | grid | label | symbol | symbols | overlay | set | render | show | facts | check | sync | list (artgen --help)',
-  dungeon: 'dungeon: new | gen | room | block | link | unlink | door | connect | disconnect | grid | style | label | symbol | symbols | overlay | check | fit | render | show | facts | sync | list (artgen --help)',
-  settlement: 'settlement: new | gen | building | interior | floor | room | connect | disconnect | door | window | fixture | prop | road | water | wall | area | tree | grid | style | label | symbol | overlay | check | facts | render | show | list | fixtures | symbols (artgen --help)',
+  map: 'map: new | gen | edit | grid | label | symbol | symbols | overlay | set | render | show | facts | check | sync | list | brief | version | diff | review | feedback | approve | status | sheet | direction (artgen --help)',
+  dungeon: 'dungeon: new | gen | room | block | link | unlink | door | connect | disconnect | grid | style | label | symbol | symbols | overlay | check | fit | render | show | facts | sync | list | brief | version | diff | review | feedback | approve | status | sheet (artgen --help)',
+  settlement: 'settlement: new | gen | building | interior | floor | room | connect | disconnect | door | window | fixture | prop | road | water | wall | area | tree | grid | style | label | symbol | overlay | check | facts | render | show | list | fixtures | symbols | brief | version | diff | review | feedback | approve | status | sheet (artgen --help)',
 };
 
 /** Run a command line (`['map', 'render', 'isle', …]`) against the map module's operations. */
