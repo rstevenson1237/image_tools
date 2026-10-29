@@ -14,3 +14,6 @@ export * from './templates.ts';
 export * from './w1.ts';
 export * from './w2.ts';
 export * from './runtime.ts';
+export { MAP_OPS, MAP_USAGE } from './ops/maps.ts';
+export { runCli, findOp, type CliIO } from './ops/cli.ts';
+export { defineOp, inputSchema, mcpName, mcpOf, cliOf, isExcluded, paramSchema, opHelp, usageLines, flagOf, wordsOf, type OpDef, type Ctx, type Param, type Effect, type Module, type Excluded, type Content as OpContent } from './ops/registry.ts';

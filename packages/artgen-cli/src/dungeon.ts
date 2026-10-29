@@ -160,51 +160,12 @@ export async function renderDungeonFiles(p: Project | null, ref: DungeonRef, o: 
   return { files: files.map(f => relative(process.cwd(), f)), rooms: m.rooms.length, corridors: m.corridors.length, doors: layout.doors.length, size, crop, ppu, svg: svgSize([0, 0, px.width, px.height], 1, unit), pageScale: pageScale ?? null, unplaced: dungeon.dungeonLabelLayout(m, ppu, pageScale, layout).unplaced };
 }
 
-/** A room's top-left corner: `x,y` as given, or a cell name (`C4`) meaning that cell's corner. */
-export function cornerPoint(at: string): [number, number] {
-  const [x, y] = dungeon.parsePoint(at);
-  return /^\s*-?[\d.]+\s*,/.test(at) ? [x, y] : [Math.floor(x), Math.floor(y)];
-}
-
-/**
- * A corridor end: a room id in the dungeon (leaving by its `side` wall, `offset` cells along, when given), a corridor
- * (`corridor:<id>`, or an id no room has) for a junction, else a point.
- */
-export function corridorEnd(m: DungeonSpec, ref: string, side?: string, offset?: number): dungeon.CorridorEnd {
-  if (side !== undefined && !dungeon.SIDES.includes(side as dungeon.Side)) throw new Error(`--from-side / --to-side: ${dungeon.SIDES.join(', ')}`);
-  if (m.rooms.some(r => r.id === ref)) return { room: ref, ...(side && { side: side as dungeon.Side }), ...(side && offset !== undefined && { offset }) };
-  if (side) throw new Error(`a side goes with a room end, and ${ref} is not a room`);
-  const c = ref.replace(/^corridor:/, '');
-  if (ref.startsWith('corridor:') || m.corridors.some(x => x.id === c)) {
-    if (!m.corridors.some(x => x.id === c)) throw new Error(`no corridor with id ${c} (give one an id: link … --id ${c})`);
-    return { corridor: c };
-  }
-  return { at: dungeon.parsePoint(ref) };
-}
+/** Moved to `artgen-mapgen` with the dungeon edits (`dungeon/edit.ts`); re-exported for the MCP server and the tests that import them from here. */
+export const { cornerPoint, corridorEnd, doorPair, gridMode } = dungeon;
 
 /** A corridor end as text: a room (and the wall it leaves by), a point, or the corridor it joins. */
 export const endText = (e: dungeon.CorridorEnd): string =>
   'room' in e ? `${e.room}${e.side ? `.${e.side}${e.offset !== undefined ? `+${e.offset}` : ''}` : ''}` : 'at' in e ? `(${e.at.join(',')})${e.exit ? ` "${e.exit.text}"` : ''}` : `corridor ${e.corridor}`;
-
-/** `door,none` / `secret` → the door pair (a single kind is used at both ends). */
-export function doorPair(v: string | undefined): [dungeon.DoorKind | null, dungeon.DoorKind | null] | undefined {
-  if (v === undefined) return undefined;
-  const parts = v.split(',').map(s => s.trim()), kind = (s: string | undefined) => {
-    if (!s || s === 'none' || s === 'open') return null;
-    if (!dungeon.DOOR_KINDS.includes(s as dungeon.DoorKind)) throw new Error(`--doors: none or one of ${dungeon.DOOR_KINDS.join(', ')}`);
-    return s as dungeon.DoorKind;
-  };
-  return [kind(parts[0]), kind(parts.length > 1 ? parts[1] : parts[0])];
-}
-
-/** `10` / `5` / `10+5` / `none` (in feet, at 5 ft a cell) → grid settings. */
-export function gridMode(m: DungeonSpec, mode: string): DungeonSpec['grid'] {
-  const per = m.scale.perCell, g = { ...m.grid };
-  if (mode === 'none' || mode === 'off') return { ...g, show: false };
-  const parts = mode.split('+').map(Number);
-  if (!parts.length || parts.some(n => !Number.isFinite(n) || n <= 0)) throw new Error('grid: 10, 5, 10+5 or none (feet; or the map\'s unit)');
-  return { ...g, show: true, size: parts[0] / per, sub: parts.length > 1 };
-}
 
 /** The drawing warnings for a dungeon after a change, as lines for a command's output (at most `max`, then a count). */
 export function warningLines(m: DungeonSpec, max = 5): string[] {

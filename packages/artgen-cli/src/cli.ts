@@ -56,14 +56,15 @@
  *   artgen anim <asset> [--version v] [--state s] [--facing f] [--scale n]          GIF + APNG previews per state (P6c)
  *   artgen fx <preset> [--size 32] [--frames 8] [--seed n] | --list                particle preset quick look (P6c)
  *
- * Terrain maps (TTRPG; art/maps/<id>/map.json, see map.ts):
- *   artgen map new|gen|edit|grid|label|symbol|overlay|set|render|show|facts|check|list|symbols
+ * Terrain maps (TTRPG; art/maps/<id>/map.json, see map.ts). map, dungeon and settlement commands are operations of the
+ * registry (ops/maps.ts), parsed by ops/cli.ts: an unknown flag is an error, and `<command> --help` is generated.
+ *   artgen map new|gen|update|edit|grid|label|symbol|overlay|set|render|show|facts|check|sync|list|symbols
  *
  * Dungeon maps (TTRPG; art/dungeons/<id>/dungeon.json, see dungeon.ts):
- *   artgen dungeon new|gen|room|link|unlink|door|grid|style|label|symbol|overlay|fit|check|render|show|facts|list|symbols
+ *   artgen dungeon new|gen|update|edit|room|block|link|unlink|door|connect|disconnect|grid|style|label|symbol|overlay|fit|check|render|show|facts|sync|list|symbols
  *
  * Settlement maps (TTRPG; art/settlements/<id>/settlement.json, see settlement.ts):
- *   artgen settlement new|gen|building|interior|floor|room|connect|door|window|fixture|prop|road|water|wall|area|tree|grid|style|label|symbol|overlay|check|facts|render|show|list|fixtures|symbols
+ *   artgen settlement new|gen|update|edit|building|interior|floor|room|connect|disconnect|door|window|fixture|prop|road|water|wall|area|tree|grid|style|label|symbol|overlay|check|facts|render|show|list|fixtures|symbols
  *
  * File formats: artgen formats [--json]   the map, dungeon and settlement file format versions this artgen reads and writes
  *
@@ -326,7 +327,7 @@ export async function main(argv: string[]): Promise<number> {
     print(`${r.cell}: ${r.voxels} voxels, ${r.materials} materials, ${r.size.join('x')}\n  ${r.vox}\n  ${r.glb}`, r);
     return 0;
   }
-  if (cmd === 'formats') return formatsCommand(print);
+  if (cmd === 'formats') return formatsCommand(args);
   if (cmd === 'map') return mapCommand(sub, args, print);
   if (cmd === 'dungeon') return dungeonCommand(sub, args, print);
   if (cmd === 'settlement') return settlementCommand(sub, args, print);

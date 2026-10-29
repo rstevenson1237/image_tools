@@ -341,3 +341,15 @@ boolean param keyed `file` with `cli: false`. Param keys are MCP names; CLI flag
 3. **Art**: `ops/art.ts`; `main()` dispatches everything through the registry; `TOOLS` is fully generated and the
    hand-written list is gone; `USAGE` is generated; `gen.ts`, `_ops.py`, `docs/OPERATIONS.md`, the parity and skill
    tests.
+
+## 10. As built (stage 2, maps)
+
+What stage 2 added or did differently from §3, so stage 3 builds on the code and not on the sketch:
+
+- **Files.** `ops/registry.ts` (types, `p` helpers, JSON Schema, help), `ops/cli.ts` (`parseCli` reads a command line into an operation's values and errors; `runCli` runs it), and the map module's operations in `ops/maps-map.ts`, `maps-dungeon.ts`, `maps-settlement.ts` (shared flag readers in `maps-shared.ts`), joined by `ops/maps.ts` as `MAP_OPS` (+ `MAP_USAGE`, generated from the operations' usage lines). `maps-cli.ts` keeps `mapCommand`, `dungeonCommand`, `settlementCommand`, `formatsCommand` and `mapsMain`, which call `runCli(MAP_OPS, …)` with the Node pieces (`requireProject`, `readFile`, the group's "unknown command" message). The MCP server's `mcpTool(op)` builds its tool from `inputSchema`, `mcpName` and `mcp.content`.
+- **Param additions.** `multi` (a flag that takes every value up to the next flag, `map facts --at 3,3 C4`), `error` (what a bad value is told, after `<flag>: `; the defaults are in `convert`), and boolean `style: 'either'` (`--interiors`, or `--interiors on|off`). A `kind` decides how the command line reads a value and `schema` how MCP describes it, so one key can be text on the CLI and an object on MCP (`layers`, `exits`, `number`, `at`); `run` accepts both.
+- **Order.** `MAP_OPS` is in MCP order (today's tools in today's order, `map_facts`, `map_check`, `dungeon_facts` after their group, `formats` last) with the CLI-only operations beside their relatives, so `--help` follows it; the old fused usage lines are split per operation.
+- **Surface checks.** `ctx.surface` decides the few defaults that differ: `map render --theme` (CLI both, MCP color), the strict "nothing to do" errors of `map edit` and `map overlay` (CLI only), settlement `view` (MCP: a building means a plan).
+- **Dungeon edits.** `editDungeon` takes a `reseed: false` on `split_block` (keep the block's seed; the CLI's `block split --min` uses it) and returns the line a command prints. The CLI commands that check an argument first (a corridor index, a room that exists) keep their own messages, then call it.
+- **Stricter than before.** Unknown flags, extra positionals and a flag with no value are errors (a trailing `--room` used to read the next flag as its value); `--land` and `--grid` on `map` are checked against their lists.
+
