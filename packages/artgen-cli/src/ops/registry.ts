@@ -42,9 +42,13 @@ export interface Ctx {
   findProject(): Project | null;
   /** A path a core function reported, as the surface shows it (MCP: relative to the project root). */
   rel(file: string): string;
+  /** The `--root` given on the command line (CLI only; `init` creates a project there). */
+  root?: string;
   /** art module only (set by the CLI's and the MCP server's art context): resolve and open an asset argument. */
   asset?(arg: unknown, o?: { direction?: string; ledger?: string }): AssetDir;
   assetPath?(arg: unknown): string;
+  /** art module only: a `direction` argument as the engine takes it (CLI: as given; MCP: a bench name or a file under the project root). */
+  direction?(d: unknown): string | undefined;
 }
 
 export interface OpDef<I = Record<string, any>, R = any> {

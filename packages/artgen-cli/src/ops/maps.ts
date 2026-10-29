@@ -22,6 +22,7 @@ const formats = defineOp({
 
 export const MAP_OPS: OpDef[] = [...MAP_MAP_OPS, ...DUNGEON_OPS_LIST, ...SETTLEMENT_OPS_LIST, formats];
 
+/** The note under the map operations' `--help` lines. */
+export const MAP_NOTE = '       (map, dungeon and settlement commands take --file <path> in place of <id>: no project needed; renders go beside the file or to --out)';
 /** The `--help` lines of these operations, in order. */
-export const MAP_USAGE = `${MAP_OPS.flatMap(usageLines).join('\n')}
-       (map, dungeon and settlement commands take --file <path> in place of <id>: no project needed; renders go beside the file or to --out)`;
+export const MAP_USAGE = `${MAP_OPS.flatMap(usageLines).join('\n')}\n${MAP_NOTE}`;

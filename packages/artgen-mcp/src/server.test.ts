@@ -29,7 +29,7 @@ describe('artgen MCP server', () => {
 
   test('tools/list names the full tool set (SPEC §14) with input schemas', async () => {
     const r = (await handle({ jsonrpc: '2.0', id: 4, method: 'tools/list' }, root))!.result as { tools: { name: string; inputSchema: { type: string } }[] };
-    expect(r.tools.map(t => t.name)).toEqual(['direction_get', 'direction_tile', 'pass_status', 'render', 'review', 'conformance', 'score', 'finish', 'make', 'brief_lint', 'status',
+    expect(r.tools.map(t => t.name)).toEqual(['direction_get', 'direction_tile', 'pass_status', 'render', 'review', 'conformance', 'score', 'finish', 'make', 'brief_lint', 'brief_add', 'brief_list', 'status',
       'gallery', 'feedback', 'approve', 'texture', 'fx', 'export', 'restyle', 'analytics', 'map_list', 'map_get', 'map_new', 'map_update', 'map_edit', 'map_overlay', 'map_render', 'map_facts', 'map_check',
       'dungeon_list', 'dungeon_get', 'dungeon_new', 'dungeon_update', 'dungeon_generate', 'dungeon_edit', 'dungeon_check', 'dungeon_overlay', 'dungeon_render', 'dungeon_facts',
       'settlement_list', 'settlement_get', 'settlement_new', 'settlement_update', 'settlement_generate', 'settlement_edit', 'settlement_check', 'settlement_facts', 'settlement_render', 'formats']);
@@ -106,6 +106,16 @@ describe('artgen MCP server on a locked project (W2 tools)', () => {
     await lock(project, 'a');
     for (const id of ['goblin', 'crate', 'reed']) addBrief(project, { id, kind: id === 'goblin' ? 'character' : 'prop' });
   }, 60_000);
+
+  test('arguments the schema does not list never reach the operation (a path, a ledger or another project is command-line only)', async () => {
+    const a = await call2('analytics', { across: ['/nonexistent-project'], out: join(proj, 'leak.md') });
+    expect(a.isError, a.content[0].text).toBeUndefined();
+    expect(a.content[0].text).toMatch(/pipeline analytics/);
+    expect(existsSync(join(proj, 'leak.md'))).toBe(false);
+    const m = await call2('map_get', { id: 'nope', path: join(proj, 'elsewhere.json') });
+    expect(m.isError).toBe(true);
+    expect(m.content[0].text).not.toContain('elsewhere.json');
+  });
 
   test('make with parallel: one maker packet per asset, capped, the rest queued', async () => {
     const r = await call2('make', { parallel: 2 });

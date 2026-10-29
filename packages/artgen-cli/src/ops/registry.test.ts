@@ -1,11 +1,12 @@
 // The operation registry (docs/OPERATION-REGISTRY.md): how each parameter kind reads off a command line and what it is told
 // when it is wrong, the JSON Schema and help made from a declaration, path mode, rest and repeated flags, unknown flags,
-// and that every concrete map, dungeon and settlement example in the shipped skills and commands parses.
+// and that every concrete example in the shipped skills and commands parses against the operations.
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, test } from 'vitest';
 import { findOp, parseCli, runCli, type CliIO } from './cli.ts';
 import { MAP_OPS } from './maps.ts';
+import { OPS } from './index.ts';
 import { defineOp, inputSchema, mcpName, opHelp, p, usageLines, type Ctx } from './registry.ts';
 
 const ctx: Ctx = { surface: 'cli', project: () => ({ root: '/p', art: '/p/art' }), findProject: () => null, rel: f => f };
@@ -213,18 +214,18 @@ describe('the examples in the skills and commands', () => {
     for (const raw of readFileSync(file, 'utf8').split('\n')) {
       if (raw.trimStart().startsWith('```')) { code = !code; continue; }
       if (!code) continue;
-      const m = raw.trim().match(/^\{\{ARTGEN\}\} ((?:map|dungeon|settlement|formats)\b.*)$/);
+      const m = raw.trim().match(/^\{\{ARTGEN\}\} (\S.*)$/);
       if (!m) continue;
       const line = m[1].replace(/\s+#\s.*$/, '').replace(/<[a-z-]+>/g, 'x').replace(/\{\{ARTGEN\}\}/g, 'artgen');
       if (/[|…\[\]]|\.\.\./.test(line) || /\s#$/.test(line)) continue;
       examples.push({ file: file.slice(CONTENT.length + 1), line });
     }
   }
-  test('there are some', () => { expect(examples.length).toBeGreaterThan(40); });
+  test('there are some', () => { expect(examples.length).toBeGreaterThan(70); });
   test('each concrete one names a known operation and only flags it has', () => {
     const bad: string[] = [];
     for (const { file, line } of examples) {
-      try { parseCli(MAP_OPS, words(line), { readFile: () => '[]' }); } catch (e) { bad.push(`${file}: ${line}\n    ${(e as Error).message}`); }
+      try { parseCli(OPS, words(line), { readFile: () => '[]' }); } catch (e) { bad.push(`${file}: ${line}\n    ${(e as Error).message}`); }
     }
     expect(bad).toEqual([]);
   });

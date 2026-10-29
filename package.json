@@ -18,6 +18,7 @@
     "test": "vitest run",
     "check:packages": "npm run typecheck --workspaces",
     "test:packages": "npm test --workspaces",
+    "gen:ops": "node packages/artgen-cli/src/gen-bin.ts",
     "lint:boundaries": "node scripts/check-boundaries.mjs",
     "metrics:baseline": "node scripts/metrics-baseline.mjs",
     "build:dist": "npm run build -w artgen-dist",

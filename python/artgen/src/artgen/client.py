@@ -17,6 +17,8 @@ from typing import Any, Iterable, Mapping, Optional, Sequence, Union
 
 from PIL import Image
 
+from ._ops import _OPS, Ops
+
 PathLike = Union[str, "os.PathLike[str]"]
 
 
@@ -212,8 +214,37 @@ class Session:
         self.close()
 
 
-class Artgen:
+def _num(v: Any) -> str:
+    """A number as the CLI reads it (``3.0`` → ``3``)."""
+    return str(int(v)) if isinstance(v, float) and v.is_integer() else str(v)
+
+
+def _flag_args(flag: str, kind: str, value: Any) -> list[str]:
+    """One keyword as command-line words, by the kind the generated table gives its flag (``_ops.py``)."""
+    if kind == "switch":
+        return [flag] if value else []
+    if kind == "onoff":
+        return [flag, "on" if value else "off"]
+    if kind == "either":
+        return [flag] if value else [flag, "off"]
+    if kind in ("list", "points"):
+        return [flag, value if isinstance(value, str) else ",".join(_num(v) for v in value)]
+    if kind == "size":
+        return [flag, value if isinstance(value, str) else "x".join(_num(v) for v in value)]
+    if kind == "json":
+        return [flag, value if isinstance(value, str) else json.dumps(value)]  # a string is JSON text or ``@file.json``, passed on
+    if kind == "repeat":
+        return [w for v in value for w in (flag, _num(v))]
+    if kind == "multi":
+        return [flag, *(_num(v) for v in value)]
+    return [flag, _num(value)]
+
+
+class Artgen(Ops):
     """One artgen project (a game repo root with ``art/artgen.config.json``).
+
+    Every CLI command has a method (generated in ``_ops.py`` from the operation registry); the ones written below
+    keep their names and return richer results (``render``, ``review``, ``texture``, …).
 
     >>> ag = Artgen("examples/iso-dungeon")
     >>> tex = ag.texture("stone", size=32)
@@ -272,6 +303,16 @@ class Artgen:
             argv += self._opt(k.replace("_", "-"), v)
         r = self.run(*argv)
         return cls(r, self.root, r.code) if isinstance(r, Result) else r
+
+    def _op(self, name: str, positionals: Sequence[Any], flags: Mapping[str, Any]) -> Any:
+        """Run a generated operation: its command words, the positional arguments, then the flags that are set (``None`` = not given)."""
+        words, _positional_keys, table = _OPS[name]
+        argv = [*words, *(_num(v) for v in positionals if v is not None)]
+        for key, value in flags.items():
+            if value is not None:
+                flag, kind = table[key]
+                argv += _flag_args(flag, kind, value)
+        return self._call(Result, *argv)
 
     def session(self, mcp: Optional[PathLike] = None) -> Session:
         """A persistent MCP session for bulk work (see Session); use it as a context manager."""

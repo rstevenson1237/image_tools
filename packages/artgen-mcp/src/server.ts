@@ -1,27 +1,22 @@
 /**
  * artgen MCP server (SPEC §14): JSON-RPC 2.0 over stdio, newline-delimited, no SDK dependency so it bundles into
- * one file for the committed install. P2 served the W1 and pipeline tools, P3 added `status`; P7 completes the set:
- * `finish`, `make` (with the parallel round), `feedback`, `approve`, `gallery`, `texture`, `fx`, `export`, `restyle`
- * and `analytics`; 0.10.0 adds `brief_lint`. Image results are returned as MCP image content (base64 PNG).
+ * one file for the committed install. Every tool is generated from the operation registry (`artgen-cli`'s `ops/`, see
+ * docs/OPERATION-REGISTRY.md): its name, description and input schema come from the operation's declaration, its behaviour
+ * from the operation's `run`. This file holds what is MCP's own: the sandbox, the project context, the JSON-RPC framing.
+ * Image results are returned as MCP image content (base64 PNG).
  *
  * Terrain maps (`map_*`) work on `art/maps/<id>/map.json`, dungeon maps (`dungeon_*`) on `art/dungeons/<id>/dungeon.json`,
  * settlement maps (`settlement_*`) on `art/settlements/<id>/settlement.json`; a map, dungeon or settlement id is a name,
- * never a path. Their tools are generated from the operation registry (`artgen-cli`'s `ops/maps.ts`), with the `formats`
- * tool; the pixel-art tools below are still written by hand.
+ * never a path.
  *
  * Paths are sandboxed: every asset argument must resolve inside the project's `art/` folder (a brief id resolves
  * through art/briefs.yaml), and the quick-look tools (`texture`, `fx`) write only under art/sheets/. `export` writes
  * where art/artgen.config.json says (the game's pack and runtime folders), as the CLI does.
  */
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve } from 'node:path';
-import { encodePNG, MATERIALS, parseDirection, PRESET_NAMES, type Grid, type Size } from 'artgen-core';
 import { BENCH_DIRECTIONS } from 'artgen-core/bench';
-import {
-  approve, briefWarnings, candidateNames, exportPacks, feedback, findProject, fxRun, gallery, loadCandidate, lockedDirection, make, openAsset, passState, projectAnalytics,
-  readBriefs, renderVersion, requireLocked, restyle, reviewVersion, projectStatus, scoreVersion, textureRun, VERSION, versionsIn, writeNextFinish, writeTile, type Project,
-  MAP_OPS, inputSchema, mcpName, mcpOf, type Ctx, type OpDef,
-} from 'artgen-cli';
+import { findProject, openAsset, OPS, readBriefs, VERSION, inputSchema, mcpName, mcpOf, type Ctx, type OpDef, type Project } from 'artgen-cli';
 
 export const SERVER = { name: 'artgen', version: VERSION === 'dev' ? '0.0.0-dev' : VERSION };
 const PROTOCOLS = ['2025-06-18', '2025-03-26', '2024-11-05'];
@@ -31,22 +26,20 @@ type Content = { type: 'text'; text: string } | { type: 'image'; data: string; m
 interface ToolDef { name: string; description: string; inputSchema: Json; annotations?: { readOnlyHint: boolean }; run(args: Json, p: Project): Promise<Content[]> }
 
 const text = (v: unknown): Content => ({ type: 'text', text: typeof v === 'string' ? v : JSON.stringify(v, null, 2) });
-const image = (g: Grid): Content => ({ type: 'image', data: Buffer.from(encodePNG(g)).toString('base64'), mimeType: 'image/png' });
-const pngFile = (f: string): Content => ({ type: 'image', data: readFileSync(f).toString('base64'), mimeType: 'image/png' });
-const str = { type: 'string' } as const, num = { type: 'number' } as const, bool = { type: 'boolean' } as const, strs = { type: 'array', items: str } as const;
 /** A file a core function reported (relative to the process's cwd) as a path relative to the project root. */
 const projRel = (p: Project, f: string) => relative(p.root, resolve(f)).split('\\').join('/');
-const sizeArg = (v: unknown, d = 32): Size => (Array.isArray(v) && v.length === 2 ? [Number(v[0]), Number(v[1])] : [Number(v ?? d), Number(v ?? d)]);
-const obj = (properties: Json, required: string[] = []) => ({ type: 'object', properties, required });
-
-/** What an operation sees on MCP: the server's project, and paths relative to its root. */
-const mcpCtx = (p: Project): Ctx => ({ surface: 'mcp', project: () => p, findProject: () => p, rel: f => projRel(p, f) });
+/** What an operation sees on MCP: the server's project, paths relative to its root, assets only inside `art/` (and no `ledger` override). */
+const mcpCtx = (p: Project): Ctx => ({
+  surface: 'mcp', project: () => p, findProject: () => p, rel: f => projRel(p, f),
+  assetPath: arg => assetPath(p, arg), asset: (arg, o) => openAsset(assetPath(p, arg), { direction: dirOpt(p, o?.direction) }), direction: d => dirOpt(p, d),
+});
 /** A tool made from an operation of the registry (docs/OPERATION-REGISTRY.md §4): its schema, description and content come from the declaration. */
 function mcpTool(op: OpDef): ToolDef {
-  const m = mcpOf(op)!;
+  const m = mcpOf(op)!, schema = inputSchema(op), known = new Set(Object.keys(schema.properties));
   return {
-    name: mcpName(op), description: op.description ?? op.summary, inputSchema: inputSchema(op), annotations: { readOnlyHint: op.effect === 'read' },
-    async run(a, p) { const ctx = mcpCtx(p), r = await op.run(a, ctx); return m.content ? m.content(r, a, ctx) : [text(r)]; },
+    name: mcpName(op), description: op.description ?? op.summary, inputSchema: schema, annotations: { readOnlyHint: op.effect === 'read' },
+    // only the arguments the schema lists reach the operation: a command-line-only one (`path`, `ledger`, `out`, `across`) names a file outside the sandbox
+    async run(given, p) { const a = Object.fromEntries(Object.entries(given).filter(([k]) => known.has(k))), ctx = mcpCtx(p), r = await op.run(a, ctx); return m.content ? m.content(r, a, ctx) : [text(r)]; },
   };
 }
 
@@ -65,171 +58,10 @@ export function assetPath(p: Project, arg: unknown): string {
 }
 
 /** `direction`: a bench direction name (`benchmark`, `alt`) or a file relative to the project root. */
-const dirOpt = (p: Project, args: Json) => (typeof args.direction !== 'string' ? undefined : BENCH_DIRECTIONS[args.direction] ? args.direction : join(p.root, args.direction));
-const asset = (p: Project, args: Json) => openAsset(assetPath(p, args.asset), { direction: dirOpt(p, args) });
-const ids = (a: Json) => (Array.isArray(a.ids) ? (a.ids as string[]) : undefined);
+const dirOpt = (p: Project, d: unknown) => (typeof d !== 'string' ? undefined : BENCH_DIRECTIONS[d] ? d : join(p.root, d));
 
-export const TOOLS: ToolDef[] = [
-  {
-    name: 'direction_get', description: 'The locked art direction (direction.json) and the candidate names; call before writing any asset so colours, sizes, line and shading come from tokens.',
-    inputSchema: obj({ candidate: { ...str, description: 'return this candidate instead of the locked direction' } }),
-    async run(a, p) {
-      if (typeof a.candidate === 'string') return [text(loadCandidate(p, a.candidate))];
-      return [text({ locked: lockedDirection(p), candidates: candidateNames(p) })];
-    },
-  },
-  {
-    name: 'direction_tile', description: 'Render the probe set (character, prop, tile, effect) under each candidate into one style tile sheet (art/candidates/style-tile-rN.png) and return it.',
-    inputSchema: obj({ candidates: { type: 'array', items: str, description: 'candidate names; default all' } }),
-    async run(a, p) {
-      const r = await writeTile(p, Array.isArray(a.candidates) ? (a.candidates as string[]) : undefined);
-      return [text({ sheet: r.path, round: r.round, imageTokens: r.tokens, columns: r.columns, distinct: r.distinct }), pngFile(join(p.root, r.path))];
-    },
-  },
-  {
-    name: 'pass_status', description: 'Pipeline state of an asset directory: versions, scores, gate, best base, and the next step (write-base, review, write-finish, blind-review, ready).',
-    inputSchema: obj({ asset: { ...str, description: 'asset directory, e.g. art/probes/character' }, direction: str }, ['asset']),
-    async run(a, p) { return [text(await passState(asset(p, a)))]; },
-  },
-  {
-    name: 'render', description: 'Render one version of an asset (all states × facings × frames side by side) and run the conformance gate.',
-    inputSchema: obj({ asset: str, version: { ...str, description: 'base.vN or finish.vM; default the latest' }, variant: num, scale: num, direction: str }, ['asset']),
-    async run(a, p) {
-      const ad = asset(p, a), vs = versionsIn(ad), version = typeof a.version === 'string' ? a.version : vs[vs.length - 1];
-      if (!version) throw new Error(`${a.asset}: no versions yet`);
-      const r = await renderVersion(ad, version, { variant: typeof a.variant === 'number' ? a.variant : 0 });
-      return [text({ version, pass: r.report.pass, checks: r.report.checks, metrics: r.report.metrics, stale: r.stale }), image(r.strip.scale(typeof a.scale === 'number' ? a.scale : 4))];
-    },
-  },
-  {
-    name: 'review', description: 'Build the review sheet for a version (best so far, v(n-1), v(n), checker + scaled + in context + silhouette), log it to the ledger and return it. blind: the version alone (no earlier versions, scores or notes) for a fresh reviewer\'s blind re-score of a version. detail: low = the first facing at 3x beside the previous version only (about half the image tokens; the default for r1), full = every facing and the best so far. scene: add the sprite at game zoom on the background, a floor and beside a wall (contrast check).',
-    inputSchema: obj({ asset: str, version: str, blind: { type: 'boolean' }, detail: { type: 'string', enum: ['low', 'full'] }, scene: bool, direction: str }, ['asset']),
-    async run(a, p) {
-      const ad = asset(p, a), vs = versionsIn(ad), version = typeof a.version === 'string' ? a.version : vs[vs.length - 1];
-      const r = await reviewVersion(ad, version, { blind: a.blind === true, ...((a.detail === 'low' || a.detail === 'full') && { detail: a.detail }), scene: a.scene === true });
-      return [text({ sheet: relative(p.root, r.path), imageTokens: r.tokens, pass: r.render.report.pass, checks: r.render.report.checks }), pngFile(r.path)];
-    },
-  },
-  {
-    name: 'conformance', description: 'Conformance gate (palette, scale, aa, line, light, dither, source lint, scene lint, anchors) for a version.',
-    inputSchema: obj({ asset: str, version: str, direction: str }, ['asset']),
-    async run(a, p) {
-      const ad = asset(p, a), vs = versionsIn(ad), version = typeof a.version === 'string' ? a.version : vs[vs.length - 1];
-      return [text((await renderVersion(ad, version)).report)];
-    },
-  },
-  {
-    name: 'score', description: 'Record a 0-10 visual score for a reviewed version (the art-reviewer verdict) with gate results and token estimates. reviewer: who scored (the subagent name; omitted = self). blind: a blind re-score from the blind sheet (needs a reviewer). agent_tokens_in: the total input tokens the maker or reviewer agent read for this pass, when known (analytics counts what the orchestration costs).',
-    inputSchema: obj({ asset: str, version: str, score: num, note: str, reviewer: str, blind: { type: 'boolean' }, agent_tokens_in: num, direction: str }, ['asset', 'version', 'score']),
-    async run(a, p) {
-      const s = a.score as number, reviewer = typeof a.reviewer === 'string' && a.reviewer ? a.reviewer : 'self';
-      if (!(s >= 0 && s <= 10)) throw new Error('score must be 0-10');
-      if (a.blind === true && reviewer === 'self') throw new Error('a blind re-score needs reviewer: it comes from a fresh reviewer that saw only the blind sheet');
-      return [text(await scoreVersion(asset(p, a), a.version as string, s, typeof a.note === 'string' ? a.note : '', { reviewer, ...(a.blind === true && { blind: true }), ...(typeof a.agent_tokens_in === 'number' && a.agent_tokens_in >= 0 && { measured: { agentIn: a.agent_tokens_in } }) }))];
-    },
-  },
-  {
-    name: 'finish', description: 'Write the next finish.vM.js for an asset from the finish template, bound to the best scored base (or `base`). Edit it with the finishing ops, then review it.',
-    inputSchema: obj({ asset: str, base: { ...str, description: 'base.vN to bind; default the pass machine\'s choice' }, direction: str }, ['asset']),
-    async run(a, p) {
-      const r = await writeNextFinish(assetPath(p, a.asset), { base: typeof a.base === 'string' ? a.base : undefined, direction: dirOpt(p, a) });
-      return [text({ file: projRel(p, r.file), base: r.base })];
-    },
-  },
-  {
-    name: 'make', description: 'One tick of the autonomous production run: scaffold missing assets from templates, mark finished pipelines final, and name the next step. parallel: n also returns a round of up to n maker packets (one subagent per asset; each writes only its own files, then runs render + review; resume: true = a version written but never reviewed, complete and review it) and the main agent\'s review steps. wave: finish n assets before starting more (survives usage-limit pauses: call make again, the ledger is the state). roster: assets held at v1 for the v1 roster review (artgen roster --stage v1); finalRoster: finals with no roster review yet.',
-    inputSchema: obj({ ids: { ...strs, description: 'brief ids; default all' }, parallel: { ...num, description: 'maker subagents per round' }, wave: { ...num, description: 'assets in flight at once; the rest wait until those reach final' } }),
-    async run(a, p) { return [text(await make(p, ids(a), { parallel: typeof a.parallel === 'number' && a.parallel >= 1 ? a.parallel : undefined, wave: typeof a.wave === 'number' && a.wave >= 1 ? a.wave : undefined }))]; },
-  },
-  {
-    name: 'brief_lint', description: 'Warnings for briefs before any drawing starts: materials a brief names (wood, steel, lava, rubble…) that its kind\'s ramps leave out, and briefs with no template for their view.',
-    inputSchema: obj({ ids: { ...strs, description: 'brief ids; default all' } }),
-    async run(a, p) {
-      const dir = requireLocked(p), want = ids(a);
-      const rows = readBriefs(p).filter(b => !want?.length || want.includes(b.id)).map(b => ({ id: b.id, warnings: briefWarnings(b, dir) })).filter(r => r.warnings.length);
-      return [text(rows.length ? rows : 'no brief warnings')];
-    },
-  },
-  {
-    name: 'status', description: 'Production status of every brief in art/briefs.yaml (brief, in-pipeline, final, approved, exported, revision, stale), with the final version, score, open issues and the next pipeline step.',
-    inputSchema: obj({ ids: { type: 'array', items: str, description: 'brief ids; default all' } }),
-    async run(a, p) { return [text(await projectStatus(p, ids(a)))]; },
-  },
-  {
-    name: 'gallery', description: 'Sheet(s) of finished assets for the user (final render, score, blind score, open issues), logged to the ledger and returned.',
-    inputSchema: obj({ ids: strs }),
-    async run(a, p) {
-      const r = await gallery(p, { ids: ids(a) });
-      return [text(r.sheets.length ? r : 'no finished assets waiting for review'), ...r.sheets.map(f => pngFile(join(p.root, f)))];
-    },
-  },
-  {
-    name: 'feedback', description: 'Record feedback on a finished asset and open a revision. by: user (default) = the user\'s words, a U-stage iteration; by: roster = the agent acting on a roster note — recorded as the agent\'s (an extra autonomous revision within review.rosterRevisions), never as the user\'s. route base = form, proportion, colour (new base); finish = pixel fixes (finish revision). region x,y,w,h in sprite pixels of cell state/facing/frame.',
-    inputSchema: obj({ id: str, route: { type: 'string', enum: ['base', 'finish'] }, note: str, by: { type: 'string', enum: ['user', 'roster', 'agent'] }, region: { type: 'array', items: num }, cell: str, force: bool }, ['id', 'route', 'note']),
-    async run(a, p) {
-      if (a.route !== 'base' && a.route !== 'finish') throw new Error('route: base | finish');
-      if (typeof a.note !== 'string' || !a.note) throw new Error('note: the user\'s words (or the roster note) are required');
-      const agent = a.by === 'roster' || a.by === 'agent';
-      return [text(await feedback(p, a.id as string, { route: a.route, note: a.note, region: Array.isArray(a.region) ? (a.region as number[]) : undefined, cell: typeof a.cell === 'string' ? a.cell : undefined, force: a.force === true, ...(agent && { by: 'agent' as const, source: a.by as string }) }))];
-    },
-  },
-  {
-    name: 'approve', description: 'Record the USER\'s approval of a final asset (approval is the user\'s call, never the agent\'s). Call only after the user said so in this conversation; user_approved must be true and note should quote them. Needs a passing gate and a review sheet of the final (R6).',
-    inputSchema: obj({ id: str, note: str, user_approved: { ...bool, description: 'true only when the user explicitly approved this asset' } }, ['id', 'user_approved']),
-    async run(a, p) {
-      if (a.user_approved !== true) throw new Error('approve: only the user approves assets — show them the gallery and ask; pass user_approved: true once they say so');
-      return [text(await approve(p, a.id as string, typeof a.note === 'string' ? a.note : ''))];
-    },
-  },
-  {
-    name: 'texture', description: 'Render a material recipe under the locked direction (or `direction`) into art/sheets/textures: the tile, its normal map and a 3×3 repeat preview, with the seam and repetition metrics. list: the material names.',
-    inputSchema: obj({ material: str, size: { description: 'px, or [w, h]; default 32' }, seed: num, ramps: { type: 'object', description: 'layer → ramp, e.g. { "base": "stone" }' }, scale: num, list: bool, direction: str }),
-    async run(a, p) {
-      if (a.list === true || !a.material) return [text(MATERIALS)];
-      const dir = typeof a.direction === 'string' ? openDirection(p, a) : requireLocked(p), out = join(p.art, 'sheets', 'textures');
-      const r = textureRun(dir, a.material as string, { size: sizeArg(a.size), seed: typeof a.seed === 'number' ? a.seed : undefined, ramps: a.ramps as Record<string, string> | undefined, scale: typeof a.scale === 'number' ? a.scale : undefined, out });
-      const files = r.files.map(f => projRel(p, f));
-      return [text({ ...r, files }), pngFile(join(p.root, files[2])), pngFile(join(p.root, files[1]))];
-    },
-  },
-  {
-    name: 'fx', description: 'Quick look at a particle preset under the locked direction (or `direction`) in art/sheets/fx: the frame strip and an onion-skin sheet (plus GIF/APNG files), with the solid-fill numbers. list: the preset names.',
-    inputSchema: obj({ preset: str, size: { description: 'px, or [w, h]; default 32' }, frames: num, seed: num, scale: num, list: bool, direction: str }),
-    async run(a, p) {
-      if (a.list === true || !a.preset) return [text(PRESET_NAMES)];
-      const dir = typeof a.direction === 'string' ? openDirection(p, a) : requireLocked(p), out = join(p.art, 'sheets', 'fx');
-      const r = fxRun(dir, a.preset as string, { size: sizeArg(a.size), frames: typeof a.frames === 'number' ? a.frames : 8, seed: typeof a.seed === 'number' ? a.seed : undefined, scale: typeof a.scale === 'number' ? a.scale : undefined, out });
-      const files = r.files.map(f => projRel(p, f));
-      return [text({ ...r, files }), pngFile(join(p.root, files[0])), pngFile(join(p.root, files[1]))];
-    },
-  },
-  {
-    name: 'export', description: 'Export approved assets into the configured packs (atlases, pack.json, Aseprite JSON, typed assets.ts); include_drafts adds finals; runtime vendors the artgen runtime + adapters. Animation contracts are enforced unless break_contract names the asset (or *).',
-    inputSchema: obj({ packs: strs, include_drafts: bool, runtime: bool, force: bool, break_contract: strs }),
-    async run(a, p) {
-      return [text(await exportPacks(p, { packs: a.packs as string[] | undefined, includeDrafts: a.include_drafts === true, generator: `artgen ${VERSION} (mcp)`, runtime: a.runtime === true, force: a.force === true, breakContract: a.break_contract as string[] | undefined }))];
-    },
-  },
-  {
-    name: 'restyle', description: 'Re-render every finished asset under the newly locked direction: before | after | token-diff sheet (returned), per-asset change numbers; changed assets go back to final for re-approval.',
-    inputSchema: obj({ from: { ...num, description: 'direction version to compare from; default the previous one' } }),
-    async run(a, p) {
-      const r = await restyle(p, { from: typeof a.from === 'number' ? a.from : undefined });
-      return [text(r), pngFile(join(p.root, r.sheet))];
-    },
-  },
-  {
-    name: 'analytics', description: 'Pipeline analytics for this project (per-pass gains, cost per asset, regressions, user revision rate, review independence, budget suggestions) as markdown.',
-    inputSchema: obj({}),
-    async run(_a, p) { return [text(projectAnalytics(p).markdown)]; },
-  },
-  ...MAP_OPS.filter(op => mcpOf(op)).map(mcpTool),
-];
-
-function openDirection(p: Project, a: Json) {
-  const name = dirOpt(p, a)!;
-  return parseDirection(BENCH_DIRECTIONS[name] ?? JSON.parse(readFileSync(name, 'utf8')));
-}
+/** The MCP tools: every operation of the registry that is not left off MCP, in registry order. */
+export const TOOLS: ToolDef[] = OPS.filter(op => mcpOf(op)).map(mcpTool);
 
 export interface RpcMessage { jsonrpc: '2.0'; id?: number | string | null; method?: string; params?: Json; result?: unknown; error?: unknown }
 

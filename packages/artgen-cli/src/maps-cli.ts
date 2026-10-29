@@ -17,22 +17,11 @@ declare const __ARTGEN_SHA__: string | undefined;
 
 export { MAP_USAGE };
 
-export function flag(args: string[], name: string): string | undefined {
-  const i = args.indexOf(name);
-  return i >= 0 ? args[i + 1] : undefined;
-}
-
-/** Comma-separated values of a flag (`--states idle,walk`). */
-export function list(args: string[], name: string): string[] | undefined {
-  const v = flag(args, name);
-  return v === undefined ? undefined : v.split(',').map(s => s.trim()).filter(Boolean);
-}
-
 /** The context the command line gives an operation: the project found from `--root` (or the working directory), paths as they are. */
 const cliCtx = (root: string | undefined): Ctx => ({ surface: 'cli', project: () => requireProject(root), findProject: () => findProject(root), rel: f => f });
 
-/** What a group of commands says when no command of it matches. */
-const GROUPS: Record<string, string> = {
+/** What a group of commands says when no command of it matches (the full CLI uses these too). */
+export const GROUP_HELP: Record<string, string> = {
   map: 'map: new | gen | edit | grid | label | symbol | symbols | overlay | set | render | show | facts | check | sync | list (artgen --help)',
   dungeon: 'dungeon: new | gen | room | block | link | unlink | door | connect | disconnect | grid | style | label | symbol | symbols | overlay | check | fit | render | show | facts | sync | list (artgen --help)',
   settlement: 'settlement: new | gen | building | interior | floor | room | connect | disconnect | door | window | fixture | prop | road | water | wall | area | tree | grid | style | label | symbol | overlay | check | facts | render | show | list | fixtures | symbols (artgen --help)',
@@ -41,18 +30,8 @@ const GROUPS: Record<string, string> = {
 /** Run a command line (`['map', 'render', 'isle', …]`) against the map module's operations. */
 const dispatch = (argv: string[]): Promise<number> => runCli(MAP_OPS, argv, {
   log: s => console.log(s), ctx: cliCtx, readFile: f => readFileSync(f, 'utf8'),
-  unknown: a => { throw new Error(GROUPS[a[0]] ?? `artgen: unknown command '${a.slice(0, 2).join(' ')}' — run artgen --help for the list`); },
+  unknown: a => { throw new Error(GROUP_HELP[a[0]] ?? `artgen: unknown command '${a.slice(0, 2).join(' ')}' — run artgen --help for the list`); },
 });
-
-/** `artgen map …` (terrain maps, ops/maps-map.ts). `args` is the words after `map`, the way `main` splits the command line. */
-export const mapCommand = (_sub: string | undefined, args: string[], _emit?: unknown): Promise<number> => dispatch(['map', ...args]);
-/** `artgen dungeon …` (dungeon maps, ops/maps-dungeon.ts). */
-export const dungeonCommand = (_sub: string | undefined, args: string[], _emit?: unknown): Promise<number> => dispatch(['dungeon', ...args]);
-/** `artgen settlement …` (villages, towns and castles, ops/maps-settlement.ts). */
-export const settlementCommand = (_sub: string | undefined, args: string[], _emit?: unknown): Promise<number> => dispatch(['settlement', ...args]);
-
-/** `artgen formats [--json]`: the map, dungeon and settlement file format versions this artgen reads and writes. */
-export const formatsCommand = (args: string[] = []): Promise<number> => dispatch(['formats', ...args]);
 
 /** Entry point of the maps-only bundle (`artgen-maps.js`): `map`, `dungeon`, `settlement` and `formats`, nothing else. */
 export async function mapsMain(argv: string[]): Promise<number> {
