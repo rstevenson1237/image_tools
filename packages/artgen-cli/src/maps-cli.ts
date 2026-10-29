@@ -9,8 +9,9 @@
 import { readFileSync } from 'node:fs';
 import { findProject, requireProject } from './projectfs.ts';
 import { runCli } from './ops/cli.ts';
+import { CORE_OPS } from './ops/core.ts';
 import { MAP_OPS, MAP_USAGE } from './ops/maps.ts';
-import type { Ctx } from './ops/registry.ts';
+import { usageLines, type Ctx } from './ops/registry.ts';
 
 declare const __ARTGEN_VERSION__: string | undefined;
 declare const __ARTGEN_SHA__: string | undefined;
@@ -28,18 +29,21 @@ export const GROUP_HELP: Record<string, string> = {
 };
 
 /** Run a command line (`['map', 'render', 'isle', …]`) against the map module's operations. */
-const dispatch = (argv: string[]): Promise<number> => runCli(MAP_OPS, argv, {
+const dispatch = (argv: string[]): Promise<number> => runCli([...MAP_OPS, ...CORE_OPS], argv, {
   log: s => console.log(s), ctx: cliCtx, readFile: f => readFileSync(f, 'utf8'),
   unknown: a => { throw new Error(GROUP_HELP[a[0]] ?? `artgen: unknown command '${a.slice(0, 2).join(' ')}' — run artgen --help for the list`); },
 });
 
-/** Entry point of the maps-only bundle (`artgen-maps.js`): `map`, `dungeon`, `settlement` and `formats`, nothing else. */
+/** The `--help` lines of the maps-only bundle: the map operations, then the core module's (`ui`). */
+const MAPS_BUNDLE_USAGE = `${MAP_USAGE}\n${CORE_OPS.flatMap(usageLines).join('\n')}`;
+
+/** Entry point of the maps-only bundle (`artgen-maps.js`): `map`, `dungeon`, `settlement`, `formats` and `ui`, nothing else. */
 export async function mapsMain(argv: string[]): Promise<number> {
   const [cmd, sub, ...rest] = argv, args = [sub, ...rest].filter((a): a is string => a !== undefined);
   if (cmd === '--version' || cmd === 'version') { console.log(MAPS_VERSION); return 0; }
-  if (!cmd || cmd === '--help' || cmd === 'help') { console.log(`artgen-maps ${MAPS_VERSION} — the artgen map, dungeon and settlement engines, usable alone.\n\nusage:\n${MAP_USAGE}\n       artgen-maps.js --version | --help`); return 0; }
-  if (cmd === 'formats' || cmd === 'map' || cmd === 'dungeon' || cmd === 'settlement') return dispatch([cmd, ...args]);
-  throw new Error(`artgen-maps: ${cmd}: not a command here; this bundle has map, dungeon, settlement and formats (--help)`);
+  if (!cmd || cmd === '--help' || cmd === 'help') { console.log(`artgen-maps ${MAPS_VERSION} — the artgen map, dungeon and settlement engines, usable alone.\n\nusage:\n${MAPS_BUNDLE_USAGE}\n       artgen-maps.js --version | --help`); return 0; }
+  if (cmd === 'formats' || cmd === 'map' || cmd === 'dungeon' || cmd === 'settlement' || cmd === 'ui') return dispatch([cmd, ...args]);
+  throw new Error(`artgen-maps: ${cmd}: not a command here; this bundle has map, dungeon, settlement, formats and ui (--help)`);
 }
 
 /** `artgen-maps.js --version`: the release and the commit it was built from. */

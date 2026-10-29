@@ -10,6 +10,10 @@ on:
     branches: [main]
     paths:
       - 'packages/**'
+      # the review UI (the `ui` module) is built from the web app
+      - 'src/**'
+      - 'index.html'
+      - 'vite.ui.config.ts'
       - 'package-lock.json'
       - '.github/workflows/artgen-dist.yml'
   workflow_dispatch:
@@ -39,7 +43,8 @@ jobs:
       - run: npm run check:packages
 
       # Includes the install smoke test (packages/artgen-dist/test): build, install into a scratch game repo,
-      # run the CLI and MCP server from the installed files, and the update/edit-protection cases.
+      # run the CLI and MCP server from the installed files, the update/edit-protection cases, the modules and the
+      # library packages.
       - run: npm run test:packages
 
       - run: npm run build -w artgen-dist

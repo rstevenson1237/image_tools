@@ -9,9 +9,10 @@
 import type { Remote } from 'comlink';
 import type { LedgerEntry } from 'artgen-core';
 import type { ArtgenApi } from '../../workers/artgen.worker';
+import { BUNDLED, serverToken } from '../bundle';
 import { downloadBlob } from '../utils/download';
 import type { FileOp } from './engine';
-import { HandleFiles, isFolder, MemoryFiles, type FileStat, type ProjectFiles } from './files';
+import { HandleFiles, HttpFiles, isFolder, MemoryFiles, type FileStat, type ProjectFiles } from './files';
 import { forgetHandle, recallHandle, rememberHandle } from './persist';
 import { findArt, loadSnapshot, WATCHED, type LoadedSnapshot } from './snapshot';
 import { artFromZip, zipArt } from './zip';
@@ -38,6 +39,10 @@ class ProjectStore {
   /** Name of a remembered folder that needs a click to reopen (permission is per session). */
   remembered = $state<string | null>(null);
   readonly canPickFolder = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
+  /** This is the review UI served by `artgen ui`: the repo is the server's, not picked. */
+  readonly bundled = BUNDLED;
+  /** The installer modules of the served repo (`art`, `maps`, …); null when unknown. Decides which tools the sidebar shows. */
+  modules = $state.raw<string[] | null>(null);
 
   private handle: FileSystemDirectoryHandle | null = null;
 
@@ -47,6 +52,7 @@ class ProjectStore {
 
   get name(): string { return this.files?.name ?? ''; }
   get isZip(): boolean { return this.files?.kind === 'memory'; }
+  get isServer(): boolean { return this.files?.kind === 'server'; }
   get dirty(): string[] { return this.files instanceof MemoryFiles ? [...this.files.dirty].sort() : []; }
 
   private async guard<T>(run: () => Promise<T>): Promise<T | undefined> {
@@ -62,6 +68,17 @@ class ProjectStore {
       try { h = await pick({ id: 'artgen-project', mode: 'readwrite' }); } catch (e) { if ((e as DOMException).name === 'AbortError') return; throw e; }
       await this.useHandle(h);
       await rememberHandle(h);
+    }) as Promise<void>;
+  }
+
+  /** Open the repo `artgen ui` serves, with the token from the link. */
+  openServer(): Promise<void> {
+    return this.guard(async () => {
+      const token = serverToken();
+      if (!token) throw new Error('No access token: open the link `artgen ui` printed (it ends in ?t=…).');
+      const { files, modules } = await HttpFiles.connect(token);
+      this.modules = modules;
+      await this.use(files);
     }) as Promise<void>;
   }
 

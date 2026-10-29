@@ -1,6 +1,13 @@
 <script lang="ts">
-  import { groupedTools } from './core/tools/registry';
+  import { groupedTools, toolsFor } from './core/tools/registry';
   import { activeTool } from './core/stores/activeTool.svelte';
+  import { project } from './core/project/store.svelte';
+
+  // the review UI shows the tools of the modules the served repo has installed
+  const visible = $derived(toolsFor(project.modules));
+  $effect(() => {
+    if (visible.length && !visible.some(t => t.id === activeTool.id)) activeTool.select(visible[0].id);
+  });
 
   const definition = $derived(activeTool.definition);
 
@@ -12,7 +19,7 @@
 <div class="shell">
   <nav aria-label="Tools">
     <h1>Game Asset Suite</h1>
-    {#each groupedTools() as group (group.id)}
+    {#each groupedTools(visible) as group (group.id)}
       <h2>{group.name}</h2>
       <ul>
         {#each group.tools as tool (tool.id)}
@@ -33,7 +40,7 @@
         {/each}
       </ul>
     {/each}
-    <p class="footnote">Everything runs locally in your browser.</p>
+    <p class="footnote">{project.bundled ? 'Served by artgen ui from your repo; nothing leaves this machine.' : 'Everything runs locally in your browser.'}</p>
   </nav>
 
   <main>

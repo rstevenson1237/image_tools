@@ -22,7 +22,7 @@
 
 <header class="bar">
   {#if project.files}
-    <span class="name" title={project.isZip ? 'working on a zip in memory' : 'live folder'}>
+    <span class="name" title={project.isZip ? 'working on a zip in memory' : project.isServer ? 'served by artgen ui' : 'live folder'}>
       <span class="dot" class:zip={project.isZip}></span>{project.name}{project.isZip ? ' (zip)' : ''}
     </span>
     <button type="button" onclick={() => project.reload()} disabled={project.busy} title="re-read the files (after Claude Code changed them)">Reload</button>
@@ -31,7 +31,9 @@
         Download art.zip{project.dirty.length ? ` (${project.dirty.length} changed)` : ''}
       </button>
     {/if}
-    <button type="button" onclick={() => project.close()}>Close</button>
+    {#if !project.bundled}<button type="button" onclick={() => project.close()}>Close</button>{/if}
+  {:else if project.bundled}
+    {#if project.busy}<span class="hint">Connecting to artgen ui…</span>{:else}<button type="button" class="primary" onclick={() => project.openServer()}>Connect</button>{/if}
   {:else}
     {#if project.canPickFolder}
       <button type="button" class="primary" onclick={() => project.open()} disabled={project.busy}>Open game folder…</button>

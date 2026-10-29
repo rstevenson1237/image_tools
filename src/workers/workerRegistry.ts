@@ -1,4 +1,5 @@
 import * as Comlink from 'comlink';
+import { BUNDLED } from '../core/bundle';
 import type { WorkerKind } from '../core/tools/registry';
 
 /**
@@ -13,8 +14,8 @@ import type { WorkerKind } from '../core/tools/registry';
 type WorkerFactory = () => Worker;
 
 const factories: Partial<Record<WorkerKind, WorkerFactory>> = {
-  opencv: () =>
-    new Worker(new URL('./opencv.worker.ts', import.meta.url), { type: 'module' }),
+  // the review UI served by `artgen ui` has no OpenCV tools (BUNDLED is a build-time constant: the worker isn't built)
+  ...(BUNDLED ? {} : { opencv: () => new Worker(new URL('./opencv.worker.ts', import.meta.url), { type: 'module' }) }),
   artgen: () =>
     new Worker(new URL('./artgen.worker.ts', import.meta.url), { type: 'module' }),
 };

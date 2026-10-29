@@ -1,8 +1,8 @@
 {
   "name": "artgen-mapgen",
   "private": true,
-  "version": "0.0.0",
-  "description": "Mapgen layer: terrain, dungeon and settlement map engines. Depends on primitives only.",
+  "version": "0.11.0",
+  "description": "Mapgen layer: terrain, dungeon and settlement map engines. Depends on primitives only. Its version is the map engines' own line (the maps module and the release package file carry it); the core package depends on it as \"*\".",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",

@@ -115,7 +115,7 @@ export function pythonOps(ops: readonly OpDef[]): string {
 
 // ---- docs/OPERATIONS.md
 const cell = (s: string) => s.replace(/\|/g, '\\|').replace(/\n/g, ' ');
-const MODULES: Record<string, string> = { art: 'Pixel-art module', maps: 'Maps module' };
+const MODULES: Record<string, string> = { art: 'Pixel-art module', maps: 'Maps module', core: 'Core module' };
 
 /** `artgen map render <id> [flags]`: the command, its positional arguments and whether it takes flags. */
 function cliForm(op: OpDef): string {

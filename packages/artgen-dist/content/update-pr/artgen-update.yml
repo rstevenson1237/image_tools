@@ -1,0 +1,81 @@
+name: artgen-update
+
+# Opens a pull request when a new artgen release is out (installed by the `update-pr` module of the artgen installer).
+# Once a week, and on demand (Actions → artgen-update → Run workflow), it runs
+#   npx -y github:rstevenson1237/image_tools#artgen-dist update
+# in a clean checkout. When that changes anything, the changes go on the branch `artgen-update-<version>` with a pull
+# request whose description is the changelog since the version installed here, the modules that were updated and the
+# files that were kept because they were edited locally (the update never overwrites those). Merging is up to you.
+#
+# One setting is needed: Settings → Actions → General → "Allow GitHub Actions to create and approve pull requests".
+# One secret is worth adding: a personal access token (contents, pull requests and workflows: write) as ARTGEN_UPDATE_TOKEN.
+# Pull requests opened with the built-in token don't start this repository's other workflows, and the built-in token may
+# not push changes to files under .github/workflows/ (including this one), so without the secret an update leaves those
+# files as they are and says so in the pull request.
+on:
+  schedule:
+    - cron: '23 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# one update at a time
+concurrency:
+  group: artgen-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    env:
+      # `#artgen-dist` follows main; `#artgen-dist-v0.12.0` would stay on a release
+      ARTGEN_SOURCE: github:rstevenson1237/image_tools#artgen-dist
+      GH_TOKEN: ${{ secrets.ARTGEN_UPDATE_TOKEN || github.token }}
+      # true when the secret is set: the token may then push workflow files
+      HAS_UPDATE_TOKEN: ${{ secrets.ARTGEN_UPDATE_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.ARTGEN_UPDATE_TOKEN || github.token }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Update artgen
+        id: update
+        run: |
+          set -euo pipefail
+          from=$(node -p "require('./tools/artgen/MANIFEST.json').version")
+          skip=""; if [ "${HAS_UPDATE_TOKEN:-false}" != "true" ]; then skip="--skip-workflows"; fi
+          npx -y "$ARTGEN_SOURCE" update $skip --notes "$RUNNER_TEMP/artgen-notes.md"
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "artgen $from is current"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "version=$(cat tools/artgen/VERSION)" >> "$GITHUB_OUTPUT"
+          # code that installs the library packages from release URLs: the lockfile follows the bumped URLs
+          if ! git diff --quiet -- package.json && [ -f package-lock.json ]; then npm install --package-lock-only --ignore-scripts --no-audit --no-fund; fi
+
+      - name: Open the pull request
+        if: steps.update.outputs.changed == 'true'
+        run: |
+          set -euo pipefail
+          version=${{ steps.update.outputs.version }}
+          branch="artgen-update-${version}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add -A
+          git commit -m "artgen ${version}"
+          git push --force origin "$branch"
+          number=$(gh pr list --head "$branch" --state open --json number --jq '.[0].number // empty')
+          if [ -n "$number" ]; then
+            gh pr edit "$number" --title "artgen ${version}" --body-file "$RUNNER_TEMP/artgen-notes.md"
+          else
+            gh pr create --head "$branch" --title "artgen ${version}" --body-file "$RUNNER_TEMP/artgen-notes.md"
+          fi

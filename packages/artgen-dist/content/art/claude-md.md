@@ -6,13 +6,6 @@
   `{{CMD}}restyle`) to produce, show, approve and export assets, the **artgen** skill for authoring sprite, prop, tile
   or effect sources; the **art-reviewer** subagent scores versions, **art-maker** subagents write one asset each in a
   parallel `make` round.
-- Tabletop terrain maps live in `art/maps/<id>/map.json` (renders in `out/`): use the **terrain-map** skill
-  (`{{CMD}}map`). The web app's **Terrain Map** tool edits the same file; re-read it before changing a map.
-- Tabletop dungeon maps live in `art/dungeons/<id>/dungeon.json` (renders in `out/`): use the **dungeon-map** skill
-  (`{{CMD}}dungeon`). The web app's **Dungeon Map** tool edits the same file; re-read it before changing a dungeon.
-- Tabletop settlement maps (villages, towns, castles and their buildings' floor plans) live in
-  `art/settlements/<id>/settlement.json` (renders in `out/`): use the **settlement-map** skill (`{{CMD}}settlement`).
-  The web app's **Settlement Map** tool edits the same file; re-read it before changing a settlement.
 - Game code reads art through the vendored runtime in `src/art/runtime/` (`export --runtime`; never edit it by hand
   unless you mean to keep a local fork) and the typed ids in `src/art/assets.ts` (generated — don't edit).
 - The pipeline runs autonomously: don't ask the user between passes; they see finished assets and approve or give

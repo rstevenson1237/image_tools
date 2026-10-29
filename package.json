@@ -22,6 +22,9 @@
     "lint:boundaries": "node scripts/check-boundaries.mjs",
     "metrics:baseline": "node scripts/metrics-baseline.mjs",
     "build:dist": "npm run build -w artgen-dist",
+    "pack:libs": "node packages/artgen-dist/pack-libs.mjs lib-dist",
+    "accept:ui": "node scripts/artgen-ui-bundle-accept.mjs",
+    "accept:release": "node scripts/artgen-release-acceptance.mjs",
     "fixtures:install": "npm run build -w artgen-dist && node scripts/artgen-fixtures.mjs"
   },
   "devDependencies": {

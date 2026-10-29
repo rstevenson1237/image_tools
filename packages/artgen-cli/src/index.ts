@@ -15,7 +15,7 @@ export * from './w1.ts';
 export * from './w2.ts';
 export * from './runtime.ts';
 export { MAP_OPS, MAP_USAGE } from './ops/maps.ts';
-export { OPS, ART_OPS } from './ops/index.ts';
+export { OPS, ART_OPS, CORE_OPS } from './ops/index.ts';
 export { ART_USAGE } from './ops/art.ts';
 export { pythonOps, operationsDoc, pyName } from './ops/gen.ts';
 export { mapsMain } from './maps-cli.ts';
