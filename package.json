@@ -1,7 +1,7 @@
 {
   "name": "artgen-dist",
   "version": "0.11.0",
-  "description": "artgen committed install: run `init` or `update` in a game repo root, then commit.",
+  "description": "artgen committed install: run `init`, `add`, `remove` or `update` in a game repo root, then commit.",
   "type": "module",
   "bin": {
     "artgen-dist": "install.mjs"

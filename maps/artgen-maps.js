@@ -7,7 +7,7 @@ var __export = (target, all) => {
 };
 
 // ../artgen-cli/src/maps-cli.ts
-import { readFileSync as readFileSync7 } from "node:fs";
+import { readFileSync as readFileSync9 } from "node:fs";
 
 // ../artgen-cli/src/projectfs.ts
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -202,6 +202,248 @@ async function runCli(ops, argv, io) {
   else io.log(json ? JSON.stringify(cli.json ? cli.json(r, values) : r, null, 2) : cli.text ? cli.text(r, values) : JSON.stringify(r, null, 2));
   return cli.exit ? cli.exit(r, values) : 0;
 }
+
+// ../artgen-cli/src/ops/core.ts
+import { spawn } from "node:child_process";
+import { existsSync as existsSync3, readFileSync as readFileSync3 } from "node:fs";
+import { dirname as dirname3, join as join3 } from "node:path";
+import { fileURLToPath } from "node:url";
+
+// ../artgen-cli/src/ui-server.ts
+import { randomBytes, timingSafeEqual } from "node:crypto";
+import { appendFileSync, existsSync as existsSync2, lstatSync, mkdirSync as mkdirSync2, readdirSync, readFileSync as readFileSync2, realpathSync, statSync, writeFileSync as writeFileSync2 } from "node:fs";
+import { createServer } from "node:http";
+import { basename as basename2, dirname as dirname2, extname as extname2, join as join2, resolve as resolve2, sep } from "node:path";
+var TYPES = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".mjs": "text/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".wasm": "application/wasm",
+  ".woff2": "font/woff2",
+  ".woff": "font/woff",
+  ".ttf": "font/ttf",
+  ".txt": "text/plain; charset=utf-8",
+  ".map": "application/json; charset=utf-8"
+};
+var MAX_WRITE = 64 * 1024 * 1024;
+var HttpError = class extends Error {
+  status;
+  constructor(status, message) {
+    super(message);
+    this.status = status;
+  }
+};
+function artPath(raw) {
+  if (raw.includes("\0") || raw.includes("\\") || raw.startsWith("/") || /^[a-zA-Z]:/.test(raw)) throw new HttpError(400, `bad path ${JSON.stringify(raw)}`);
+  const parts = raw.split("/").filter(Boolean);
+  if (parts.some((p2) => p2 === "." || p2 === ".." || p2.toLowerCase() === ".git")) throw new HttpError(400, `bad path ${JSON.stringify(raw)}`);
+  return parts;
+}
+var ArtFiles = class {
+  art;
+  constructor(root) {
+    const art = join2(resolve2(root), "art");
+    if (!existsSync2(art)) throw new Error(`${art} does not exist`);
+    this.art = realpathSync(art);
+  }
+  /**
+   * The absolute path of `parts` under `art/`, refusing one that leaves it through a symbolic link. Every part that exists
+   * is looked at, so a link to a folder outside, and a link to nothing (which a write would create the target of), are both refused.
+   */
+  at(parts) {
+    let cur = this.art;
+    for (const part of parts) {
+      cur = join2(cur, part);
+      const l = lstatSync(cur, { throwIfNoEntry: false });
+      if (!l) break;
+      if (l.isSymbolicLink()) {
+        let real;
+        try {
+          real = realpathSync(cur);
+        } catch {
+          throw new HttpError(403, "path leaves art/");
+        }
+        if (real !== this.art && !real.startsWith(this.art + sep)) throw new HttpError(403, "path leaves art/");
+      }
+    }
+    return join2(this.art, ...parts);
+  }
+  list(dir) {
+    const p2 = this.at(artPath(dir));
+    if (!existsSync2(p2) || !statSync(p2).isDirectory()) return [];
+    return readdirSync(p2, { withFileTypes: true }).filter((e) => e.name !== ".git").map((e) => e.isDirectory() || e.isSymbolicLink() && statSync(join2(p2, e.name), { throwIfNoEntry: false })?.isDirectory() ? `${e.name}/` : e.name).sort();
+  }
+  stat(path) {
+    const s = statSync(this.at(artPath(path)), { throwIfNoEntry: false });
+    return s?.isFile() ? { size: s.size, lastModified: Math.trunc(s.mtimeMs) } : void 0;
+  }
+  read(path) {
+    const p2 = this.at(artPath(path));
+    return statSync(p2, { throwIfNoEntry: false })?.isFile() ? readFileSync2(p2) : void 0;
+  }
+  write(path, data) {
+    const parts = artPath(path);
+    if (!parts.length) throw new HttpError(400, "no file name");
+    const p2 = this.at(parts);
+    mkdirSync2(dirname2(p2), { recursive: true });
+    this.at(parts);
+    writeFileSync2(p2, data);
+  }
+  append(path, data) {
+    const parts = artPath(path);
+    if (!parts.length) throw new HttpError(400, "no file name");
+    const p2 = this.at(parts);
+    mkdirSync2(dirname2(p2), { recursive: true });
+    appendFileSync(p2, data);
+  }
+};
+var sameToken = (a, b) => {
+  const x = Buffer.from(a), y = Buffer.from(b);
+  return x.length === y.length && timingSafeEqual(x, y);
+};
+async function body(req) {
+  const chunks = [];
+  let n = 0;
+  for await (const c of req) {
+    n += c.length;
+    if (n > MAX_WRITE) throw new HttpError(413, "too large");
+    chunks.push(c);
+  }
+  return Buffer.concat(chunks);
+}
+var send = (res, status, data, type = "application/json; charset=utf-8", extra = {}) => {
+  res.writeHead(status, { "content-type": type, "cache-control": "no-store", "x-content-type-options": "nosniff", ...extra });
+  res.end(data);
+};
+async function startUiServer(o) {
+  const files = new ArtFiles(o.root), ui = resolve2(o.uiDir), token = o.token ?? randomBytes(16).toString("hex");
+  if (!existsSync2(join2(ui, "index.html"))) throw new Error(`no web tools in ${ui} \u2014 install the ui module: npx -y github:rstevenson1237/image_tools#artgen-dist add ui`);
+  let port = 0;
+  const hostOk = (h) => h === `127.0.0.1:${port}` || h === `localhost:${port}`;
+  const api = async (req, res, url) => {
+    const t = req.headers["x-artgen-token"];
+    if (typeof t !== "string" || !sameToken(t, token)) throw new HttpError(401, "missing or wrong token \u2014 open the link `artgen ui` printed");
+    const path = url.searchParams.get("path") ?? "", route3 = url.pathname.slice("/api/".length);
+    if (req.method === "GET" && route3 === "info") return send(res, 200, JSON.stringify({ name: basename2(resolve2(o.root)), ...o.info }));
+    if (req.method === "GET" && route3 === "list") return send(res, 200, JSON.stringify(files.list(url.searchParams.get("dir") ?? "")));
+    if (req.method === "GET" && route3 === "stat") return send(res, 200, JSON.stringify(files.stat(path) ?? null));
+    if (req.method === "GET" && route3 === "read") {
+      const b = files.read(path);
+      return b ? send(res, 200, b, "application/octet-stream") : send(res, 204, "");
+    }
+    if (req.method === "PUT" && route3 === "write") {
+      files.write(path, await body(req));
+      return send(res, 200, "{}");
+    }
+    if (req.method === "POST" && route3 === "append") {
+      files.append(path, await body(req));
+      return send(res, 200, "{}");
+    }
+    throw new HttpError(404, `no such call: ${req.method} /api/${route3}`);
+  };
+  const serve = (req, res, url) => {
+    if (req.method !== "GET" && req.method !== "HEAD") throw new HttpError(405, "GET only");
+    let decoded;
+    try {
+      decoded = decodeURIComponent(url.pathname);
+    } catch {
+      throw new HttpError(400, "bad address");
+    }
+    if (decoded.includes("\0")) throw new HttpError(400, "bad address");
+    const rel = decoded.replace(/^\/+/, "") || "index.html";
+    const base = o.shared && (rel === "resvg.wasm" || /^fonts\/[^/]+$/.test(rel)) ? resolve2(o.shared) : ui;
+    const f = resolve2(base, rel);
+    if (f !== base && !f.startsWith(base + sep)) throw new HttpError(403, "outside the web tools");
+    if (!statSync(f, { throwIfNoEntry: false })?.isFile()) throw new HttpError(404, "not found");
+    send(res, 200, req.method === "HEAD" ? "" : readFileSync2(f), TYPES[extname2(f).toLowerCase()] ?? "application/octet-stream", { "cache-control": "no-cache" });
+  };
+  const server = createServer((req, res) => {
+    void (async () => {
+      try {
+        if (!hostOk(req.headers.host)) throw new HttpError(403, "unexpected Host header");
+        let url;
+        try {
+          url = new URL(req.url ?? "/", `http://127.0.0.1:${port}`);
+        } catch {
+          throw new HttpError(400, "bad address");
+        }
+        if (url.pathname.startsWith("/api/")) await api(req, res, url);
+        else serve(req, res, url);
+      } catch (e) {
+        const status = e instanceof HttpError ? e.status : 500;
+        if (!res.headersSent) send(res, status, JSON.stringify({ error: e instanceof Error ? e.message : String(e) }));
+        else res.end();
+      }
+    })();
+  });
+  return new Promise((ok, fail) => {
+    server.once("error", fail);
+    server.listen(o.port ?? 0, "127.0.0.1", () => {
+      port = server.address().port;
+      ok({ url: `http://127.0.0.1:${port}/?t=${token}`, port, token, server, close: () => new Promise((r) => {
+        server.close(() => r());
+        server.closeAllConnections();
+      }) });
+    });
+  });
+}
+
+// ../artgen-cli/src/ops/core.ts
+function openBrowser(url) {
+  const [cmd, args] = process.platform === "darwin" ? ["open", [url]] : process.platform === "win32" ? ["cmd", ["/c", "start", "", url]] : ["xdg-open", [url]];
+  try {
+    spawn(cmd, args, { stdio: "ignore", detached: true }).on("error", () => {
+    }).unref();
+  } catch {
+  }
+}
+function installedModules(root) {
+  try {
+    return Object.keys(JSON.parse(readFileSync3(join3(root, "tools", "artgen", "MANIFEST.json"), "utf8")).modules ?? {});
+  } catch {
+    return [];
+  }
+}
+var uiOp = defineOp({
+  name: "ui",
+  module: "core",
+  effect: "write",
+  summary: "Serve the review UI (Asset Review, Art Direction, Asset Lab, the map editors) for this repo's art/ on this machine.",
+  params: {
+    port: p.int("the port to listen on (default: any free one)", { mcp: false }),
+    dir: p.str("the folder with the built web tools (default: ui/ beside this program; for development)", { mcp: false }),
+    open: p.bool("open the link in the default browser", { mcp: false })
+  },
+  async run(i, ctx) {
+    const project = ctx.project(), here = dirname3(fileURLToPath(import.meta.url)), uiDir = i.dir ?? join3(here, "ui");
+    if (!existsSync3(join3(uiDir, "index.html"))) throw new Error(`ui: no web tools in ${uiDir} \u2014 install the ui module: npx -y github:rstevenson1237/image_tools#artgen-dist add ui`);
+    const modules = installedModules(project.root), s = await startUiServer({ root: project.root, uiDir, shared: here, port: i.port, info: { modules } });
+    console.log(`artgen ui: ${s.url}
+serving ${project.art} \u2014 Ctrl-C to stop`);
+    if (i.open) openBrowser(s.url);
+    const signals = ["SIGINT", "SIGTERM"];
+    await new Promise((done) => {
+      const stop = () => {
+        for (const sig of signals) process.off(sig, stop);
+        done();
+      };
+      for (const sig of signals) process.on(sig, stop);
+    });
+    await s.close();
+    return { url: s.url, stopped: true };
+  },
+  cli: {
+    usage: "       artgen ui [--port N] [--open]                   serve the review UI for art/ on this machine (the ui module); prints the link",
+    text: () => "artgen ui: stopped"
+  },
+  mcp: { exclude: "starts a server that waits for a person at a browser" },
+  python: { exclude: "starts a server that waits for a person at a browser" }
+});
+var CORE_OPS = [uiOp];
 
 // ../artgen-mapgen/src/map/index.ts
 var map_exports = {};
@@ -5785,7 +6027,7 @@ function wallSvg(w, k, p2, u, W, H, defs) {
   const mid = `wall-gates-${w.index}`, cut = w.gates.map((g2) => `<rect x="${n1(-g2.width * k / 2)}" y="${n1(-th * 2)}" width="${n1(g2.width * k)}" height="${n1(th * 4)}" transform="translate(${n1(g2.x * k)} ${n1(g2.y * k)}) rotate(${n1(g2.angle)})" fill="#000"/>`).join("");
   if (cut) defs.push(`<mask id="${mid}" maskUnits="userSpaceOnUse" x="0" y="0" width="${n1(W)}" height="${n1(H)}"><rect width="${n1(W)}" height="${n1(H)}" fill="#fff"/>${cut}</mask>`);
   const S = (width, color, extra = "") => `<path d="${d}" fill="none" stroke="${color}" stroke-width="${n1(width)}"${extra.includes("linecap") ? "" : ' stroke-linejoin="miter" stroke-linecap="butt"'}${extra}/>`;
-  let body = "";
+  let body2 = "";
   const dots = (step, r, fill, edge) => {
     const pts2 = w.closed ? [...w.pts, w.pts[0], w.pts[1]] : w.pts;
     let s = "", carry = 0;
@@ -5797,14 +6039,14 @@ function wallSvg(w, k, p2, u, W, H, defs) {
     }
     return s;
   };
-  if (w.kind === "curtain") body = S(th + 2 * sw, p2.ink) + S(th, tone) + S(th * 0.28, p2.ink, ` stroke-dasharray="${n1(th * 0.45)} ${n1(th * 0.35)}"`);
-  else if (w.kind === "stone") body = S(th + 2 * sw, p2.ink) + S(th, tone);
-  else if (w.kind === "ruined") body = S(th + 2 * sw, p2.ink, ` stroke-dasharray="${n1(k * 3)} ${n1(k * 1.2)} ${n1(k * 1.5)} ${n1(k * 0.9)}"`) + S(th, tone, ` stroke-dasharray="${n1(k * 3)} ${n1(k * 1.2)} ${n1(k * 1.5)} ${n1(k * 0.9)}"`);
-  else if (w.kind === "drystone") body = S(th + 2 * sw, p2.ink) + S(th, p2.ripples ? p2.paper : tone) + S(th * 0.45, p2.ink, ` stroke-dasharray="${n1(th * 0.3)} ${n1(th * 0.5)}" stroke-opacity="0.7"`);
-  else if (w.kind === "palisade") body = S(th * 0.5, p2.wall.palisade) + dots(th * 0.95, th / 2, p2.ripples ? p2.paper : "#a07a50", p2.ink);
-  else if (w.kind === "hedge") body = S(th, p2.ripples ? p2.paper : tone, ' stroke-linecap="round" stroke-linejoin="round"') + dots(th * 0.7, th * 0.52, p2.ripples ? p2.paper : tone, p2.treeDark);
-  else body = S(Math.max(sw, th * 0.6), tone) + dots(Math.max(1, 6 / Math.max(1, th / k)) * k * 0.25 + k, Math.max(sw, th * 0.7), tone, p2.ink);
-  let g = `<g${cut ? ` mask="url(#${mid})"` : ""}>${body}</g>`;
+  if (w.kind === "curtain") body2 = S(th + 2 * sw, p2.ink) + S(th, tone) + S(th * 0.28, p2.ink, ` stroke-dasharray="${n1(th * 0.45)} ${n1(th * 0.35)}"`);
+  else if (w.kind === "stone") body2 = S(th + 2 * sw, p2.ink) + S(th, tone);
+  else if (w.kind === "ruined") body2 = S(th + 2 * sw, p2.ink, ` stroke-dasharray="${n1(k * 3)} ${n1(k * 1.2)} ${n1(k * 1.5)} ${n1(k * 0.9)}"`) + S(th, tone, ` stroke-dasharray="${n1(k * 3)} ${n1(k * 1.2)} ${n1(k * 1.5)} ${n1(k * 0.9)}"`);
+  else if (w.kind === "drystone") body2 = S(th + 2 * sw, p2.ink) + S(th, p2.ripples ? p2.paper : tone) + S(th * 0.45, p2.ink, ` stroke-dasharray="${n1(th * 0.3)} ${n1(th * 0.5)}" stroke-opacity="0.7"`);
+  else if (w.kind === "palisade") body2 = S(th * 0.5, p2.wall.palisade) + dots(th * 0.95, th / 2, p2.ripples ? p2.paper : "#a07a50", p2.ink);
+  else if (w.kind === "hedge") body2 = S(th, p2.ripples ? p2.paper : tone, ' stroke-linecap="round" stroke-linejoin="round"') + dots(th * 0.7, th * 0.52, p2.ripples ? p2.paper : tone, p2.treeDark);
+  else body2 = S(Math.max(sw, th * 0.6), tone) + dots(Math.max(1, 6 / Math.max(1, th / k)) * k * 0.25 + k, Math.max(sw, th * 0.7), tone, p2.ink);
+  let g = `<g${cut ? ` mask="url(#${mid})"` : ""}>${body2}</g>`;
   for (const gt of w.gates) if (gt.drawbridge > 0) {
     const a = Math.atan2(gt.outward[1], gt.outward[0]) * 180 / Math.PI, len = gt.drawbridge * k, bw = gt.width * k;
     let planks = "";
@@ -8728,62 +8970,62 @@ function rasterizeSvg(svg, w, h) {
 }
 
 // ../artgen-cli/src/ops/maps-dungeon.ts
-import { join as join5 } from "node:path";
+import { join as join7 } from "node:path";
 
 // ../artgen-cli/src/dungeon.ts
-import { existsSync as existsSync4, mkdirSync as mkdirSync3, readdirSync as readdirSync2, readFileSync as readFileSync4, writeFileSync as writeFileSync3 } from "node:fs";
-import { dirname as dirname3, join as join4, relative as relative2, resolve as resolve3 } from "node:path";
+import { existsSync as existsSync6, mkdirSync as mkdirSync4, readdirSync as readdirSync3, readFileSync as readFileSync6, writeFileSync as writeFileSync4 } from "node:fs";
+import { dirname as dirname5, join as join6, relative as relative2, resolve as resolve4 } from "node:path";
 
 // ../artgen-cli/src/map.ts
-import { existsSync as existsSync3, mkdirSync as mkdirSync2, readdirSync, readFileSync as readFileSync3, writeFileSync as writeFileSync2 } from "node:fs";
-import { dirname as dirname2, join as join3, relative, resolve as resolve2 } from "node:path";
+import { existsSync as existsSync5, mkdirSync as mkdirSync3, readdirSync as readdirSync2, readFileSync as readFileSync5, writeFileSync as writeFileSync3 } from "node:fs";
+import { dirname as dirname4, join as join5, relative, resolve as resolve3 } from "node:path";
 
 // ../artgen-cli/src/node-svg.ts
-import { existsSync as existsSync2, readFileSync as readFileSync2 } from "node:fs";
+import { existsSync as existsSync4, readFileSync as readFileSync4 } from "node:fs";
 import { createRequire as createRequire2 } from "node:module";
-import { join as join2 } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join as join4 } from "node:path";
+import { fileURLToPath as fileURLToPath2 } from "node:url";
 var require3 = createRequire2(import.meta.url);
 function initNodeSvg() {
-  const local = fileURLToPath(new URL("./resvg.wasm", import.meta.url));
+  const local = fileURLToPath2(new URL("./resvg.wasm", import.meta.url));
   let file = local;
-  if (!existsSync2(local)) {
+  if (!existsSync4(local)) {
     try {
       file = require3.resolve("@resvg/resvg-wasm/index_bg.wasm");
     } catch {
       throw new Error(`PNG output needs resvg.wasm next to this script (${local}) \u2014 copy it from artgen-dist maps/, or render --format svg`);
     }
   }
-  return initSvg(readFileSync2(file));
+  return initSvg(readFileSync4(file));
 }
 var MAP_FONTS = ["AlegreyaSans-Regular.ttf", "AlegreyaSans-Bold.ttf", "AlegreyaSans-Italic.ttf"];
 async function initNodeMapSvg() {
   await initNodeSvg();
-  const local = fileURLToPath(new URL("./fonts/", import.meta.url)), dir = existsSync2(join2(local, MAP_FONTS[0])) ? local : fileURLToPath(new URL("../../artgen-core/assets/fonts/", import.meta.url));
-  if (!MAP_FONTS.every((f) => existsSync2(join2(dir, f)))) {
+  const local = fileURLToPath2(new URL("./fonts/", import.meta.url)), dir = existsSync4(join4(local, MAP_FONTS[0])) ? local : fileURLToPath2(new URL("../../artgen-core/assets/fonts/", import.meta.url));
+  if (!MAP_FONTS.every((f) => existsSync4(join4(dir, f)))) {
     console.error(`note: no fonts/ next to this script (${local}); labels are left out of the PNG`);
     return;
   }
-  setSvgFonts(MAP_FONTS.map((f) => new Uint8Array(readFileSync2(join2(dir, f)))), map_exports.FONT_FAMILY);
+  setSvgFonts(MAP_FONTS.map((f) => new Uint8Array(readFileSync4(join4(dir, f)))), map_exports.FONT_FAMILY);
 }
 
 // ../artgen-cli/src/map.ts
-var mapsDir = (p2) => join3(p2.art, "maps");
+var mapsDir = (p2) => join5(p2.art, "maps");
 function mapFile(p2, ref) {
-  if (typeof ref !== "string") return resolve2(ref.file);
+  if (typeof ref !== "string") return resolve3(ref.file);
   if (!/^[\w-]+$/.test(ref ?? "")) throw new Error(`map id ${JSON.stringify(ref)}: letters, digits, - and _ only`);
   if (!p2) throw new Error("no artgen project here: name the map file with --file <path>");
-  return join3(mapsDir(p2), ref, "map.json");
+  return join5(mapsDir(p2), ref, "map.json");
 }
 var shown = (p2, f) => relative(p2?.root ?? process.cwd(), f);
 var mapSummary = (m) => ({ id: m.id, preset: m.preset, size: `${m.cols}x${m.rows}`, ...m.title && { title: m.title }, edits: m.edits.length, labels: m.overlay.labels.length, symbols: m.overlay.symbols.length });
 function listMaps(p2) {
-  if (!existsSync3(mapsDir(p2))) return [];
-  return readdirSync(mapsDir(p2), { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync3(join3(mapsDir(p2), d.name, "map.json"))).map((d) => mapSummary(readMap(p2, d.name)));
+  if (!existsSync5(mapsDir(p2))) return [];
+  return readdirSync2(mapsDir(p2), { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync5(join5(mapsDir(p2), d.name, "map.json"))).map((d) => mapSummary(readMap(p2, d.name)));
 }
 function readMap(p2, ref) {
   const f = mapFile(p2, ref);
-  if (!existsSync3(f)) throw new Error(typeof ref === "string" ? `no map ${ref} (${shown(p2, f)}) \u2014 artgen map new ${ref}` : `no map file ${shown(p2, f)} \u2014 artgen map new --file ${ref.file}`);
+  if (!existsSync5(f)) throw new Error(typeof ref === "string" ? `no map ${ref} (${shown(p2, f)}) \u2014 artgen map new ${ref}` : `no map file ${shown(p2, f)} \u2014 artgen map new --file ${ref.file}`);
   return map_exports.parseMap(readJson(f));
 }
 function writeMap(p2, m, ref = m.id) {
@@ -8792,7 +9034,7 @@ function writeMap(p2, m, ref = m.id) {
   return shown(p2, f);
 }
 function createMap(p2, id2, preset, over = {}, force = false, at3 = id2) {
-  if (existsSync3(mapFile(p2, at3)) && !force) throw new Error(typeof at3 === "string" ? `map ${id2} already exists (edit it, or pick another id)` : `${shown(p2, mapFile(p2, at3))} already exists (edit it, or --force)`);
+  if (existsSync5(mapFile(p2, at3)) && !force) throw new Error(typeof at3 === "string" ? `map ${id2} already exists (edit it, or pick another id)` : `${shown(p2, mapFile(p2, at3))} already exists (edit it, or --force)`);
   const m = map_exports.newMap(id2, preset, over);
   return { file: writeMap(p2, m, at3), map: m };
 }
@@ -8806,7 +9048,7 @@ function checkMapFile(p2, ref) {
   const f = mapFile(p2, ref);
   let raw;
   try {
-    raw = JSON.parse(readFileSync3(f, "utf8"));
+    raw = JSON.parse(readFileSync5(f, "utf8"));
   } catch (e) {
     const missing = e.code === "ENOENT";
     return { file: shown(p2, f), ok: false, errors: [{ path: "", message: missing ? `no such file: ${shown(p2, f)}` : `not JSON: ${e.message}` }], requirements: [], unmet: [] };
@@ -8818,22 +9060,22 @@ function checkMapFile(p2, ref) {
 }
 async function renderMapFiles(p2, ref, o = {}) {
   const m = readMap(p2, ref), field = map_exports.generateMap(m), id2 = typeof ref === "string" ? ref : fileStem(ref.file);
-  const out = o.out ?? (typeof ref === "string" ? join3(mapsDir(p2), id2, "out") : dirname2(mapFile(p2, ref)));
+  const out = o.out ?? (typeof ref === "string" ? join5(mapsDir(p2), id2, "out") : dirname4(mapFile(p2, ref)));
   const formats2 = o.formats ?? ["svg", "png"], files = [];
   if (o.fit && o.ppu !== void 0) throw new Error("--fit and --ppu both set the scale: use one");
   const crop = clampCrop(o.crop ?? [0, 0, m.cols, m.rows], m.cols, m.rows), ppu = o.fit ? fitPpu(crop[2], crop[3], o.fit) : o.ppu ?? 40;
   const size = [Math.round(crop[2] * ppu), Math.round(crop[3] * ppu)], unit = o.fit?.unit ?? "px";
   const pageScale = o.pageScale ?? (o.fit ? PX_PER_MM : void 0);
   if (formats2.includes("png")) await initNodeMapSvg();
-  mkdirSync2(out, { recursive: true });
+  mkdirSync3(out, { recursive: true });
   for (const theme of o.themes ?? ["color"]) {
-    const svg = map_exports.renderMapSvg(m, { theme, ppu, layers: o.layers, field, ...o.crop && { crop }, unit, pageScale }), base = join3(out, `${id2}.${theme}`);
+    const svg = map_exports.renderMapSvg(m, { theme, ppu, layers: o.layers, field, ...o.crop && { crop }, unit, pageScale }), base = join5(out, `${id2}.${theme}`);
     if (formats2.includes("svg")) {
-      writeFileSync2(`${base}.svg`, svg);
+      writeFileSync3(`${base}.svg`, svg);
       files.push(`${base}.svg`);
     }
     if (formats2.includes("png")) {
-      writeFileSync2(`${base}.png`, encodePNG(rasterizeSvg(svg, size[0], size[1])));
+      writeFileSync3(`${base}.png`, encodePNG(rasterizeSvg(svg, size[0], size[1])));
       files.push(`${base}.png`);
     }
   }
@@ -8913,22 +9155,22 @@ function describeMapFacts(r) {
 }
 
 // ../artgen-cli/src/dungeon.ts
-var dungeonsDir = (p2) => join4(p2.art, "dungeons");
+var dungeonsDir = (p2) => join6(p2.art, "dungeons");
 function dungeonFile(p2, ref) {
-  if (typeof ref !== "string") return resolve3(ref.file);
+  if (typeof ref !== "string") return resolve4(ref.file);
   if (!/^[\w-]+$/.test(ref ?? "")) throw new Error(`dungeon id ${JSON.stringify(ref)}: letters, digits, - and _ only`);
   if (!p2) throw new Error("no artgen project here: name the dungeon file with --file <path>");
-  return join4(dungeonsDir(p2), ref, "dungeon.json");
+  return join6(dungeonsDir(p2), ref, "dungeon.json");
 }
 var shown2 = (p2, f) => relative2(p2?.root ?? process.cwd(), f);
 var dungeonSummary = (m) => ({ id: m.id, size: `${m.cols}x${m.rows}`, ...m.title && { title: m.title }, rooms: m.rooms.length, corridors: m.corridors.length, labels: m.overlay.labels.length, symbols: m.overlay.symbols.length });
 function listDungeons(p2) {
-  if (!existsSync4(dungeonsDir(p2))) return [];
-  return readdirSync2(dungeonsDir(p2), { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync4(join4(dungeonsDir(p2), d.name, "dungeon.json"))).map((d) => dungeonSummary(readDungeon(p2, d.name)));
+  if (!existsSync6(dungeonsDir(p2))) return [];
+  return readdirSync3(dungeonsDir(p2), { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync6(join6(dungeonsDir(p2), d.name, "dungeon.json"))).map((d) => dungeonSummary(readDungeon(p2, d.name)));
 }
 function readDungeon(p2, ref) {
   const f = dungeonFile(p2, ref);
-  if (!existsSync4(f)) throw new Error(typeof ref === "string" ? `no dungeon ${ref} (${shown2(p2, f)}) \u2014 artgen dungeon new ${ref}` : `no dungeon file ${shown2(p2, f)} \u2014 artgen dungeon new --file ${ref.file}`);
+  if (!existsSync6(f)) throw new Error(typeof ref === "string" ? `no dungeon ${ref} (${shown2(p2, f)}) \u2014 artgen dungeon new ${ref}` : `no dungeon file ${shown2(p2, f)} \u2014 artgen dungeon new --file ${ref.file}`);
   return dungeon_exports.parseDungeon(readJson(f));
 }
 function writeDungeon(p2, m, ref = m.id) {
@@ -8937,7 +9179,7 @@ function writeDungeon(p2, m, ref = m.id) {
   return shown2(p2, f);
 }
 function createDungeon(p2, m, force = false, at3 = m.id) {
-  if (existsSync4(dungeonFile(p2, at3)) && !force) throw new Error(typeof at3 === "string" ? `dungeon ${m.id} already exists (edit it, or pick another id)` : `${shown2(p2, dungeonFile(p2, at3))} already exists (edit it, or --force)`);
+  if (existsSync6(dungeonFile(p2, at3)) && !force) throw new Error(typeof at3 === "string" ? `dungeon ${m.id} already exists (edit it, or pick another id)` : `${shown2(p2, dungeonFile(p2, at3))} already exists (edit it, or --force)`);
   return { file: writeDungeon(p2, m, at3), dungeon: m };
 }
 function updateDungeon(p2, ref, change) {
@@ -8949,7 +9191,7 @@ function checkDungeonFile(p2, ref) {
   const f = dungeonFile(p2, ref);
   let raw;
   try {
-    raw = JSON.parse(readFileSync4(f, "utf8"));
+    raw = JSON.parse(readFileSync6(f, "utf8"));
   } catch (e) {
     const missing = e.code === "ENOENT";
     return { file: shown2(p2, f), ok: false, errors: [{ path: "", message: missing ? `no such file: ${shown2(p2, f)}` : `not JSON: ${e.message}` }], warnings: [] };
@@ -8957,20 +9199,20 @@ function checkDungeonFile(p2, ref) {
   const r = dungeon_exports.checkDungeon(raw), errors = [...r.errors], warnings = [];
   if (!errors.length) for (const x of dungeon_exports.lintDungeon(dungeon_exports.parseDungeon(raw))) (x.severity === "error" ? errors : warnings).push({ path: x.path, message: x.message });
   const u = raw?.underlay;
-  if (!errors.some((e) => e.path.startsWith("underlay")) && u && typeof u.map === "string" && !existsSync4(resolve3(dirname3(f), u.map)))
+  if (!errors.some((e) => e.path.startsWith("underlay")) && u && typeof u.map === "string" && !existsSync6(resolve4(dirname5(f), u.map)))
     errors.push({ path: "underlay.map", message: `no such map file ${u.map}` });
   return { file: shown2(p2, f), ok: !errors.length, errors, warnings };
 }
 function readUnderlay(p2, ref, m) {
   if (!m.underlay) return null;
-  const f = resolve3(dirname3(dungeonFile(p2, ref)), m.underlay.map);
-  if (!existsSync4(f)) throw new Error(`underlay.map: no such map file ${m.underlay.map} (looked for ${shown2(p2, f)})`);
+  const f = resolve4(dirname5(dungeonFile(p2, ref)), m.underlay.map);
+  if (!existsSync6(f)) throw new Error(`underlay.map: no such map file ${m.underlay.map} (looked for ${shown2(p2, f)})`);
   const spec = map_exports.parseMap(readJson(f));
   return { map: spec, field: map_exports.generateMap(spec) };
 }
 async function renderDungeonFiles(p2, ref, o = {}) {
   const m = readDungeon(p2, ref), layout = dungeon_exports.layoutDungeon(m), id2 = typeof ref === "string" ? ref : fileStem(ref.file);
-  const out = o.out ?? (typeof ref === "string" ? join4(dungeonsDir(p2), id2, "out") : dirname3(dungeonFile(p2, ref)));
+  const out = o.out ?? (typeof ref === "string" ? join6(dungeonsDir(p2), id2, "out") : dirname5(dungeonFile(p2, ref)));
   const formats2 = o.formats ?? ["svg", "png"], files = [];
   if (o.fit && o.ppu !== void 0) throw new Error("--fit and --ppu both set the scale: use one");
   if (o.crop && o.rooms?.length) throw new Error("--crop and --room both set the window: use one");
@@ -8995,14 +9237,14 @@ async function renderDungeonFiles(p2, ref, o = {}) {
   }
   const px = dungeon_exports.dungeonRenderSize(m, { ...view, ppu }), size = [Math.round(px.width), Math.round(px.height)];
   if (formats2.includes("png")) await initNodeMapSvg();
-  mkdirSync3(out, { recursive: true });
-  const svg = dungeon_exports.renderDungeonSvg(m, { ...view, ppu, unit, ...underlay && { underlay } }), base = join4(out, id2);
+  mkdirSync4(out, { recursive: true });
+  const svg = dungeon_exports.renderDungeonSvg(m, { ...view, ppu, unit, ...underlay && { underlay } }), base = join6(out, id2);
   if (formats2.includes("svg")) {
-    writeFileSync3(`${base}.svg`, svg);
+    writeFileSync4(`${base}.svg`, svg);
     files.push(`${base}.svg`);
   }
   if (formats2.includes("png")) {
-    writeFileSync3(`${base}.png`, encodePNG(rasterizeSvg(svg, size[0], size[1])));
+    writeFileSync4(`${base}.png`, encodePNG(rasterizeSvg(svg, size[0], size[1])));
     files.push(`${base}.png`);
   }
   return { files: files.map((f) => relative2(process.cwd(), f)), rooms: m.rooms.length, corridors: m.corridors.length, doors: layout.doors.length, size, crop, ppu, svg: svgSize([0, 0, px.width, px.height], 1, unit), pageScale: pageScale ?? null, unplaced: dungeon_exports.dungeonLabelLayout(m, ppu, pageScale, layout).unplaced };
@@ -9058,9 +9300,9 @@ function describeDungeonFacts(r) {
 }
 
 // ../artgen-cli/src/ops/maps-shared.ts
-import { readFileSync as readFileSync5 } from "node:fs";
+import { readFileSync as readFileSync7 } from "node:fs";
 var text = (v) => ({ type: "text", text: typeof v === "string" ? v : JSON.stringify(v, null, 2) });
-var pngFile = (f) => ({ type: "image", data: readFileSync5(f).toString("base64"), mimeType: "image/png" });
+var pngFile = (f) => ({ type: "image", data: readFileSync7(f).toString("base64"), mimeType: "image/png" });
 var withVersion = (data, version) => data && typeof data === "object" && !Array.isArray(data) ? { version, ...data } : { version, items: data };
 var projectOf = (i, ctx) => i.path ? null : ctx.project();
 var refOf = (i) => i.path ? { file: i.path } : i.id;
@@ -9913,8 +10155,8 @@ var overlay = defineOp({
 async function renderPreview(r, i, ctx) {
   const P = ctx.project(), layers = layersOf(i.layers, (v) => parseLayers(v, dungeon_exports.DUNGEON_LAYERS));
   const files = r.files.map((f) => ctx.rel(f));
-  const look = typeof i.ppu === "number" ? files.filter((f) => f.endsWith(".png")) : (await renderDungeonFiles(P, i.id, { ppu: 24, layers, formats: ["png"], out: join5(P.art, "dungeons", i.id, "out", "preview") })).files.map((f) => ctx.rel(f));
-  return [text({ ...r, files }), ...look.map((f) => pngFile(join5(P.root, f)))];
+  const look = typeof i.ppu === "number" ? files.filter((f) => f.endsWith(".png")) : (await renderDungeonFiles(P, i.id, { ppu: 24, layers, formats: ["png"], out: join7(P.art, "dungeons", i.id, "out", "preview") })).files.map((f) => ctx.rel(f));
+  return [text({ ...r, files }), ...look.map((f) => pngFile(join7(P.root, f)))];
 }
 var render = defineOp({
   name: "dungeon.render",
@@ -9998,7 +10240,7 @@ var sync = defineOp({
 var DUNGEON_OPS_LIST = [list2, symbols, show2, create, update, grid, style, gen, edit, roomCmd, block, link, unlink, door, connect, disconnect, fit, label, symbol, check, overlay, render, facts, sync];
 
 // ../artgen-cli/src/ops/maps-map.ts
-import { join as join6 } from "node:path";
+import { join as join8 } from "node:path";
 var V2 = (data) => withVersion(data, map_exports.MAP_FORMAT);
 var next2 = (i, id2) => i.path ? `next: artgen map render --file ${i.path}` : `next: artgen map render ${id2 ?? i.id}`;
 var LAYER_DOC = "layers to turn off/on, e.g. grid=off,labels=off";
@@ -10383,8 +10625,8 @@ ${next2(i, m.id)}`, json: (m) => V2(m) },
 async function renderPreview2(r, i, ctx) {
   const P = ctx.project(), theme = i.theme ?? "color", themes = theme === "both" ? ["color", "bw"] : [theme === "bw" ? "bw" : "color"], layers = layersOf(i.layers, (v) => parseLayers(v));
   const files = r.files.map((f) => ctx.rel(f));
-  const look = typeof i.ppu === "number" ? files.filter((f) => f.endsWith(".png")) : (await renderMapFiles(P, i.id, { themes, ppu: 24, layers, formats: ["png"], out: join6(P.art, "maps", i.id, "out", "preview") })).files.map((f) => ctx.rel(f));
-  return [text({ ...r, files }), ...look.map((f) => pngFile(join6(P.root, f)))];
+  const look = typeof i.ppu === "number" ? files.filter((f) => f.endsWith(".png")) : (await renderMapFiles(P, i.id, { themes, ppu: 24, layers, formats: ["png"], out: join8(P.art, "maps", i.id, "out", "preview") })).files.map((f) => ctx.rel(f));
+  return [text({ ...r, files }), ...look.map((f) => pngFile(join8(P.root, f)))];
 }
 var render2 = defineOp({
   name: "map.render",
@@ -10507,17 +10749,17 @@ var sync2 = defineOp({
 var MAP_MAP_OPS = [list3, symbols2, show3, create2, gen2, update2, edit2, grid2, label2, symbol2, overlay2, set, render2, facts2, check2, sync2];
 
 // ../artgen-cli/src/ops/maps-settlement.ts
-import { join as join8 } from "node:path";
+import { join as join10 } from "node:path";
 
 // ../artgen-cli/src/settlement.ts
-import { existsSync as existsSync5, mkdirSync as mkdirSync4, readdirSync as readdirSync3, readFileSync as readFileSync6, writeFileSync as writeFileSync4 } from "node:fs";
-import { dirname as dirname4, join as join7, relative as relative3, resolve as resolve4 } from "node:path";
-var settlementsDir = (p2) => join7(p2.art, "settlements");
+import { existsSync as existsSync7, mkdirSync as mkdirSync5, readdirSync as readdirSync4, readFileSync as readFileSync8, writeFileSync as writeFileSync5 } from "node:fs";
+import { dirname as dirname6, join as join9, relative as relative3, resolve as resolve5 } from "node:path";
+var settlementsDir = (p2) => join9(p2.art, "settlements");
 function settlementFile(p2, ref) {
-  if (typeof ref !== "string") return resolve4(ref.file);
+  if (typeof ref !== "string") return resolve5(ref.file);
   if (!/^[\w-]+$/.test(ref ?? "")) throw new Error(`settlement id ${JSON.stringify(ref)}: letters, digits, - and _ only`);
   if (!p2) throw new Error("no artgen project here: name the settlement file with --file <path>");
-  return join7(settlementsDir(p2), ref, "settlement.json");
+  return join9(settlementsDir(p2), ref, "settlement.json");
 }
 var shown3 = (p2, f) => relative3(p2?.root ?? process.cwd(), f);
 var settlementSummary = (m) => ({
@@ -10532,12 +10774,12 @@ var settlementSummary = (m) => ({
   water: m.water.length
 });
 function listSettlements(p2) {
-  if (!existsSync5(settlementsDir(p2))) return [];
-  return readdirSync3(settlementsDir(p2), { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync5(join7(settlementsDir(p2), d.name, "settlement.json"))).map((d) => settlementSummary(readSettlement(p2, d.name)));
+  if (!existsSync7(settlementsDir(p2))) return [];
+  return readdirSync4(settlementsDir(p2), { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync7(join9(settlementsDir(p2), d.name, "settlement.json"))).map((d) => settlementSummary(readSettlement(p2, d.name)));
 }
 function readSettlement(p2, ref) {
   const f = settlementFile(p2, ref);
-  if (!existsSync5(f)) throw new Error(typeof ref === "string" ? `no settlement ${ref} (${shown3(p2, f)}) \u2014 artgen settlement new ${ref}` : `no settlement file ${shown3(p2, f)} \u2014 artgen settlement new --file ${ref.file}`);
+  if (!existsSync7(f)) throw new Error(typeof ref === "string" ? `no settlement ${ref} (${shown3(p2, f)}) \u2014 artgen settlement new ${ref}` : `no settlement file ${shown3(p2, f)} \u2014 artgen settlement new --file ${ref.file}`);
   return settlement_exports.parseSettlement(readJson(f));
 }
 function writeSettlement(p2, m, ref = m.id) {
@@ -10546,7 +10788,7 @@ function writeSettlement(p2, m, ref = m.id) {
   return shown3(p2, f);
 }
 function createSettlement(p2, m, force = false, at3 = m.id) {
-  if (existsSync5(settlementFile(p2, at3)) && !force) throw new Error(typeof at3 === "string" ? `settlement ${m.id} already exists (edit it, or pick another id)` : `${shown3(p2, settlementFile(p2, at3))} already exists (edit it, or --force)`);
+  if (existsSync7(settlementFile(p2, at3)) && !force) throw new Error(typeof at3 === "string" ? `settlement ${m.id} already exists (edit it, or pick another id)` : `${shown3(p2, settlementFile(p2, at3))} already exists (edit it, or --force)`);
   return { file: writeSettlement(p2, m, at3), settlement: m };
 }
 function updateSettlement(p2, ref, change) {
@@ -10556,24 +10798,24 @@ function updateSettlement(p2, ref, change) {
 }
 function readSettlementUnderlay(p2, ref, m) {
   if (!m.underlay) return null;
-  const f = resolve4(dirname4(settlementFile(p2, ref)), m.underlay.map);
-  if (!existsSync5(f)) throw new Error(`underlay.map: no such map file ${m.underlay.map} (looked for ${shown3(p2, f)})`);
+  const f = resolve5(dirname6(settlementFile(p2, ref)), m.underlay.map);
+  if (!existsSync7(f)) throw new Error(`underlay.map: no such map file ${m.underlay.map} (looked for ${shown3(p2, f)})`);
   const spec = map_exports.parseMap(readJson(f));
   return { map: spec, field: map_exports.generateMap(spec) };
 }
 function mapForSettlement(p2, ref, mapRef) {
-  const path = /[\\/.]/.test(mapRef) ? resolve4(mapRef) : (() => {
+  const path = /[\\/.]/.test(mapRef) ? resolve5(mapRef) : (() => {
     if (!p2) throw new Error("--map: a map file path (no project here)");
-    return join7(p2.art, "maps", mapRef, "map.json");
+    return join9(p2.art, "maps", mapRef, "map.json");
   })();
-  if (!existsSync5(path)) throw new Error(`--map: no map ${mapRef} (${shown3(p2, path)})`);
-  return { path, rel: relative3(dirname4(settlementFile(p2, ref)), path).split("\\").join("/") };
+  if (!existsSync7(path)) throw new Error(`--map: no map ${mapRef} (${shown3(p2, path)})`);
+  return { path, rel: relative3(dirname6(settlementFile(p2, ref)), path).split("\\").join("/") };
 }
 function checkSettlementFile(p2, ref) {
   const f = settlementFile(p2, ref);
   let raw;
   try {
-    raw = JSON.parse(readFileSync6(f, "utf8"));
+    raw = JSON.parse(readFileSync8(f, "utf8"));
   } catch (e) {
     const missing = e.code === "ENOENT";
     return { file: shown3(p2, f), ok: false, errors: [{ path: "", message: missing ? `no such file: ${shown3(p2, f)}` : `not JSON: ${e.message}` }], warnings: [] };
@@ -10581,7 +10823,7 @@ function checkSettlementFile(p2, ref) {
   const r = settlement_exports.checkSettlement(raw), errors = [...r.errors], warnings = [];
   if (!errors.length) for (const x of settlement_exports.lintSettlement(settlement_exports.parseSettlement(raw))) (x.severity === "error" ? errors : warnings).push({ path: x.path, message: x.message });
   const u = raw?.underlay;
-  if (!errors.some((e) => e.path.startsWith("underlay")) && u && typeof u.map === "string" && !existsSync5(resolve4(dirname4(f), u.map))) errors.push({ path: "underlay.map", message: `no such map file ${u.map}` });
+  if (!errors.some((e) => e.path.startsWith("underlay")) && u && typeof u.map === "string" && !existsSync7(resolve5(dirname6(f), u.map))) errors.push({ path: "underlay.map", message: `no such map file ${u.map}` });
   return { file: shown3(p2, f), ok: !errors.length, errors, warnings };
 }
 function settlementWarningLines(m, max = 5) {
@@ -10592,7 +10834,7 @@ function settlementWarningLines(m, max = 5) {
 }
 async function renderSettlementFiles(p2, ref, o = {}) {
   const m = readSettlement(p2, ref), id2 = typeof ref === "string" ? ref : fileStem(ref.file);
-  const out = o.out ?? (typeof ref === "string" ? join7(settlementsDir(p2), id2, "out") : dirname4(settlementFile(p2, ref)));
+  const out = o.out ?? (typeof ref === "string" ? join9(settlementsDir(p2), id2, "out") : dirname6(settlementFile(p2, ref)));
   const formats2 = o.formats ?? ["svg", "png"], themes = o.themes ?? ["color"];
   if (o.fit && o.ppu !== void 0) throw new Error("--fit and --ppu both set the scale: use one");
   const underlay = readSettlementUnderlay(p2, ref, m), layout = settlement_exports.layoutSettlement(m);
@@ -10605,7 +10847,7 @@ async function renderSettlementFiles(p2, ref, o = {}) {
     jobs.push({ view: "plan", building: t.building.id, ...t.floor && { floor: t.floor.level } });
   } else jobs.push({ view: "site" });
   if (formats2.includes("png")) await initNodeMapSvg();
-  mkdirSync4(out, { recursive: true });
+  mkdirSync5(out, { recursive: true });
   const results = [];
   for (const job of jobs) {
     const sheet = job.view === "plan" ? settlement_exports.planSheet(m, m.buildings.find((b) => b.id === job.building)) : { cols: m.cols, rows: m.rows };
@@ -10630,13 +10872,13 @@ async function renderSettlementFiles(p2, ref, o = {}) {
     const px = settlement_exports.settlementRenderSize(m, { ...view, ppu }), size = [Math.round(px.width), Math.round(px.height)], files = [];
     const stem = job.view === "plan" ? `${id2}.${job.building}.${(job.floor ?? 0) < 0 ? `c${-(job.floor ?? 0)}` : `f${job.floor ?? 0}`}` : id2;
     for (const theme of themes) {
-      const svg = settlement_exports.renderSettlementSvg(m, { ...view, ppu, unit, theme, ...underlay && job.view === "site" && { underlay } }), base = join7(out, `${stem}.${theme}`);
+      const svg = settlement_exports.renderSettlementSvg(m, { ...view, ppu, unit, theme, ...underlay && job.view === "site" && { underlay } }), base = join9(out, `${stem}.${theme}`);
       if (formats2.includes("svg")) {
-        writeFileSync4(`${base}.svg`, svg);
+        writeFileSync5(`${base}.svg`, svg);
         files.push(`${base}.svg`);
       }
       if (formats2.includes("png")) {
-        writeFileSync4(`${base}.png`, encodePNG(rasterizeSvg(svg, size[0], size[1])));
+        writeFileSync5(`${base}.png`, encodePNG(rasterizeSvg(svg, size[0], size[1])));
         files.push(`${base}.png`);
       }
     }
@@ -11330,8 +11572,8 @@ async function renderPreview3(rs, i, ctx) {
   const P = ctx.project(), o = renderOptions(i, ctx), files = rs.flatMap((r) => r.files.map((f) => ctx.rel(f)));
   if (i.plans === true) return [text({ renders: rs.length, files })];
   const spec = readSettlement(P, i.id);
-  const look = typeof i.ppu === "number" ? files.filter((f) => f.endsWith(".png")) : (await renderSettlementFiles(P, i.id, { ...o, ppu: o.view === "plan" ? 28 : Math.max(4, Math.min(16, Math.round(1100 / Math.max(spec.cols, spec.rows)))), formats: ["png"], out: join8(P.art, "settlements", i.id, "out", "preview") })).flatMap((r) => r.files.map((f) => ctx.rel(f)));
-  return [text({ ...rs[0], files }), ...look.map((f) => pngFile(join8(P.root, f)))];
+  const look = typeof i.ppu === "number" ? files.filter((f) => f.endsWith(".png")) : (await renderSettlementFiles(P, i.id, { ...o, ppu: o.view === "plan" ? 28 : Math.max(4, Math.min(16, Math.round(1100 / Math.max(spec.cols, spec.rows)))), formats: ["png"], out: join10(P.art, "settlements", i.id, "out", "preview") })).flatMap((r) => r.files.map((f) => ctx.rel(f)));
+  return [text({ ...rs[0], files }), ...look.map((f) => pngFile(join10(P.root, f)))];
 }
 var render3 = defineOp({
   name: "settlement.render",
@@ -11438,14 +11680,16 @@ var GROUP_HELP = {
   dungeon: "dungeon: new | gen | room | block | link | unlink | door | connect | disconnect | grid | style | label | symbol | symbols | overlay | check | fit | render | show | facts | sync | list (artgen --help)",
   settlement: "settlement: new | gen | building | interior | floor | room | connect | disconnect | door | window | fixture | prop | road | water | wall | area | tree | grid | style | label | symbol | overlay | check | facts | render | show | list | fixtures | symbols (artgen --help)"
 };
-var dispatch = (argv) => runCli(MAP_OPS, argv, {
+var dispatch = (argv) => runCli([...MAP_OPS, ...CORE_OPS], argv, {
   log: (s) => console.log(s),
   ctx: cliCtx,
-  readFile: (f) => readFileSync7(f, "utf8"),
+  readFile: (f) => readFileSync9(f, "utf8"),
   unknown: (a) => {
     throw new Error(GROUP_HELP[a[0]] ?? `artgen: unknown command '${a.slice(0, 2).join(" ")}' \u2014 run artgen --help for the list`);
   }
 });
+var MAPS_BUNDLE_USAGE = `${MAP_USAGE}
+${CORE_OPS.flatMap(usageLines).join("\n")}`;
 async function mapsMain(argv) {
   const [cmd, sub, ...rest] = argv, args = [sub, ...rest].filter((a) => a !== void 0);
   if (cmd === "--version" || cmd === "version") {
@@ -11456,14 +11700,14 @@ async function mapsMain(argv) {
     console.log(`artgen-maps ${MAPS_VERSION} \u2014 the artgen map, dungeon and settlement engines, usable alone.
 
 usage:
-${MAP_USAGE}
+${MAPS_BUNDLE_USAGE}
        artgen-maps.js --version | --help`);
     return 0;
   }
-  if (cmd === "formats" || cmd === "map" || cmd === "dungeon" || cmd === "settlement") return dispatch([cmd, ...args]);
-  throw new Error(`artgen-maps: ${cmd}: not a command here; this bundle has map, dungeon, settlement and formats (--help)`);
+  if (cmd === "formats" || cmd === "map" || cmd === "dungeon" || cmd === "settlement" || cmd === "ui") return dispatch([cmd, ...args]);
+  throw new Error(`artgen-maps: ${cmd}: not a command here; this bundle has map, dungeon, settlement, formats and ui (--help)`);
 }
-var MAPS_VERSION = `${true ? "0.11.0" : "dev"} (${true ? "64da8e1" : "unknown"})`;
+var MAPS_VERSION = `${true ? "0.11.0" : "dev"} (${true ? "63bd608" : "unknown"})`;
 
 // ../artgen-cli/src/maps-bin.ts
 mapsMain(process.argv.slice(2)).then((code) => process.exit(code), (e) => {

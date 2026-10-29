@@ -18,6 +18,11 @@ npx -y github:rstevenson1237/image_tools#artgen-dist update    # later: shows th
 npx -y github:rstevenson1237/image_tools#artgen-dist status
 ```
 
+**Modules.** `init` installs `core`, `art` and `maps`. `init --with maps` is the maps only (no art skills, agents, commands,
+CLI or MCP server); `add ui` / `add update-pr` / `add art` and `remove maps` change an install later (`modules` lists them):
+`core` (always), `art` (the pixel-art pipeline), `maps` (terrain, dungeon and settlement maps, `artgen-maps.js`), `ui` (the
+review UI, below) and `update-pr` (a weekly workflow that opens a pull request with the new release).
+
 **Releases.** `#artgen-dist` follows `main`. To pin a release, use its tag instead (see the
 [changelog](https://github.com/rstevenson1237/image_tools/blob/main/packages/artgen-dist/CHANGELOG.md)):
 `npx -y github:rstevenson1237/image_tools#artgen-dist-v0.11.0 update`. Release tags never move.
@@ -33,12 +38,23 @@ that. Start with `/artgen-direction` (or ask Claude to set the art direction).
   `/artgen-approve`, `/artgen-export`, `/artgen-restyle`, `/artgen-map`, `/artgen-dungeon`.
 - CLI: `node tools/artgen/artgen.js --help` (Node 20+). MCP server: `artgen` (`node tools/artgen/artgen-mcp.js`), the
   full tool set with image results. Python: the `artgen` client in the repo's `python/artgen` calls the same CLI.
-- `tools/artgen/MANIFEST.json` records installed file hashes; `update` replaces untouched files and keeps edited ones
-  unless `--force`. `--dry-run` shows the plan.
+- `tools/artgen/MANIFEST.json` records the modules and installed file hashes; `update` replaces untouched files and keeps
+  edited ones unless `--force`. `--dry-run` shows the plan. `update --notes <file>` writes the changelog and the kept files
+  for a pull request description.
+- **Review UI** (`ui` module): `node tools/artgen/artgen.js ui` (`artgen-maps.js ui` with the maps module alone) serves
+  Asset Review, Art Direction, Asset Lab and the map editors on a local address and prints the link; `--port N`, `--open`.
+  The page opens this repo's `art/` through that server, so it works in any browser and always runs this install's engine.
+  Only this machine can reach it and the file API needs the token in the link. A cloud session's container can't be reached
+  from your browser: review on the pull request there.
+- **Library packages** (code that imports the engine): the release attaches `artgen-runtime`, `artgen-primitives`,
+  `artgen-scene` and `artgen-mapgen` as `.tgz` files, installed by URL
+  (`npm install https://github.com/rstevenson1237/image_tools/releases/download/artgen-v0.12.0/artgen-mapgen-0.11.0.tgz`).
+  `update` moves such URLs in the repo's `package.json` to the new release.
 
 ## Maps only (`maps/`)
 
-A repo that builds tabletop maps and nothing else needs none of the above. `maps/` holds `artgen-maps.js` (the `map`,
+A repo that builds tabletop maps and nothing else needs none of the above: `init --with maps` installs just that (the `maps` module,
+with its skills and commands). For a repo that wants a folder it controls, the same engines are here as a folder to copy. `maps/` holds `artgen-maps.js` (the `map`,
 `dungeon` and `formats` commands, no pixel-art pipeline), `resvg.wasm` (PNG output only), `fonts/` (optional) and
 `VERSION`. Copy the folder at a commit of this branch into the repo's own `tools/artgen/` and commit it; nothing runs at
 install (steps in the CHANGELOG). Every command takes `--file <path>` in place of an id and needs no project:

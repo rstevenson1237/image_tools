@@ -2657,7 +2657,7 @@ var init_svg = __esm({
     initialised = false;
     fonts = [];
     defaultFont = "";
-    doc = (w, h, body2, extra = "") => `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" ${extra}>${body2}</svg>`;
+    doc = (w, h, body3, extra = "") => `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" ${extra}>${body3}</svg>`;
   }
 });
 
@@ -4650,11 +4650,11 @@ function encodeVox(m) {
     const [r, g, b] = parseColor(m.palette[i] ?? "#000000");
     rgba.set([r, g, b, 255], i * 4);
   }
-  const body2 = concat([chunk2("SIZE", size), chunk2("XYZI", xyzi), chunk2("RGBA", rgba)]);
+  const body3 = concat([chunk2("SIZE", size), chunk2("XYZI", xyzi), chunk2("RGBA", rgba)]);
   const head = new Uint8Array(8);
   head.set(ascii("VOX "), 0);
   new DataView(head.buffer).setInt32(4, 150, true);
-  return concat([head, chunk2("MAIN", new Uint8Array(0), body2)]);
+  return concat([head, chunk2("MAIN", new Uint8Array(0), body3)]);
 }
 function voxFromSet(set2) {
   if (set2.mats.length > 255) throw new Error("vox: more than 255 materials");
@@ -12127,7 +12127,7 @@ function wallSvg(w, k, p2, u, W3, H, defs) {
   const mid = `wall-gates-${w.index}`, cut = w.gates.map((g2) => `<rect x="${n1(-g2.width * k / 2)}" y="${n1(-th * 2)}" width="${n1(g2.width * k)}" height="${n1(th * 4)}" transform="translate(${n1(g2.x * k)} ${n1(g2.y * k)}) rotate(${n1(g2.angle)})" fill="#000"/>`).join("");
   if (cut) defs.push(`<mask id="${mid}" maskUnits="userSpaceOnUse" x="0" y="0" width="${n1(W3)}" height="${n1(H)}"><rect width="${n1(W3)}" height="${n1(H)}" fill="#fff"/>${cut}</mask>`);
   const S3 = (width, color, extra = "") => `<path d="${d}" fill="none" stroke="${color}" stroke-width="${n1(width)}"${extra.includes("linecap") ? "" : ' stroke-linejoin="miter" stroke-linecap="butt"'}${extra}/>`;
-  let body2 = "";
+  let body3 = "";
   const dots = (step, r, fill2, edge) => {
     const pts2 = w.closed ? [...w.pts, w.pts[0], w.pts[1]] : w.pts;
     let s2 = "", carry = 0;
@@ -12139,14 +12139,14 @@ function wallSvg(w, k, p2, u, W3, H, defs) {
     }
     return s2;
   };
-  if (w.kind === "curtain") body2 = S3(th + 2 * sw, p2.ink) + S3(th, tone) + S3(th * 0.28, p2.ink, ` stroke-dasharray="${n1(th * 0.45)} ${n1(th * 0.35)}"`);
-  else if (w.kind === "stone") body2 = S3(th + 2 * sw, p2.ink) + S3(th, tone);
-  else if (w.kind === "ruined") body2 = S3(th + 2 * sw, p2.ink, ` stroke-dasharray="${n1(k * 3)} ${n1(k * 1.2)} ${n1(k * 1.5)} ${n1(k * 0.9)}"`) + S3(th, tone, ` stroke-dasharray="${n1(k * 3)} ${n1(k * 1.2)} ${n1(k * 1.5)} ${n1(k * 0.9)}"`);
-  else if (w.kind === "drystone") body2 = S3(th + 2 * sw, p2.ink) + S3(th, p2.ripples ? p2.paper : tone) + S3(th * 0.45, p2.ink, ` stroke-dasharray="${n1(th * 0.3)} ${n1(th * 0.5)}" stroke-opacity="0.7"`);
-  else if (w.kind === "palisade") body2 = S3(th * 0.5, p2.wall.palisade) + dots(th * 0.95, th / 2, p2.ripples ? p2.paper : "#a07a50", p2.ink);
-  else if (w.kind === "hedge") body2 = S3(th, p2.ripples ? p2.paper : tone, ' stroke-linecap="round" stroke-linejoin="round"') + dots(th * 0.7, th * 0.52, p2.ripples ? p2.paper : tone, p2.treeDark);
-  else body2 = S3(Math.max(sw, th * 0.6), tone) + dots(Math.max(1, 6 / Math.max(1, th / k)) * k * 0.25 + k, Math.max(sw, th * 0.7), tone, p2.ink);
-  let g = `<g${cut ? ` mask="url(#${mid})"` : ""}>${body2}</g>`;
+  if (w.kind === "curtain") body3 = S3(th + 2 * sw, p2.ink) + S3(th, tone) + S3(th * 0.28, p2.ink, ` stroke-dasharray="${n1(th * 0.45)} ${n1(th * 0.35)}"`);
+  else if (w.kind === "stone") body3 = S3(th + 2 * sw, p2.ink) + S3(th, tone);
+  else if (w.kind === "ruined") body3 = S3(th + 2 * sw, p2.ink, ` stroke-dasharray="${n1(k * 3)} ${n1(k * 1.2)} ${n1(k * 1.5)} ${n1(k * 0.9)}"`) + S3(th, tone, ` stroke-dasharray="${n1(k * 3)} ${n1(k * 1.2)} ${n1(k * 1.5)} ${n1(k * 0.9)}"`);
+  else if (w.kind === "drystone") body3 = S3(th + 2 * sw, p2.ink) + S3(th, p2.ripples ? p2.paper : tone) + S3(th * 0.45, p2.ink, ` stroke-dasharray="${n1(th * 0.3)} ${n1(th * 0.5)}" stroke-opacity="0.7"`);
+  else if (w.kind === "palisade") body3 = S3(th * 0.5, p2.wall.palisade) + dots(th * 0.95, th / 2, p2.ripples ? p2.paper : "#a07a50", p2.ink);
+  else if (w.kind === "hedge") body3 = S3(th, p2.ripples ? p2.paper : tone, ' stroke-linecap="round" stroke-linejoin="round"') + dots(th * 0.7, th * 0.52, p2.ripples ? p2.paper : tone, p2.treeDark);
+  else body3 = S3(Math.max(sw, th * 0.6), tone) + dots(Math.max(1, 6 / Math.max(1, th / k)) * k * 0.25 + k, Math.max(sw, th * 0.7), tone, p2.ink);
+  let g = `<g${cut ? ` mask="url(#${mid})"` : ""}>${body3}</g>`;
   for (const gt of w.gates) if (gt.drawbridge > 0) {
     const a = Math.atan2(gt.outward[1], gt.outward[0]) * 180 / Math.PI, len = gt.drawbridge * k, bw = gt.width * k;
     let planks = "";
@@ -17192,10 +17192,10 @@ ${indent}`) + "'";
             literalFallback = true;
           };
         }
-        const body2 = foldFlowLines.foldFlowLines(`${start}${foldedValue}${end}`, indent, foldFlowLines.FOLD_BLOCK, foldOptions);
+        const body3 = foldFlowLines.foldFlowLines(`${start}${foldedValue}${end}`, indent, foldFlowLines.FOLD_BLOCK, foldOptions);
         if (!literalFallback)
           return `>${header}
-${indent}${body2}`;
+${indent}${body3}`;
       }
       value = value.replace(/\n+/g, `$&${indent}`);
       return `|${header}
@@ -19211,13 +19211,13 @@ var require_stringifyDocument = __commonJS({
           contentComment = doc2.contents.comment;
         }
         const onChompKeep = contentComment ? void 0 : () => chompKeep = true;
-        let body2 = stringify2.stringify(doc2.contents, ctx, () => contentComment = null, onChompKeep);
+        let body3 = stringify2.stringify(doc2.contents, ctx, () => contentComment = null, onChompKeep);
         if (contentComment)
-          body2 += stringifyComment.lineComment(body2, "", commentString(contentComment));
-        if ((body2[0] === "|" || body2[0] === ">") && lines[lines.length - 1] === "---") {
-          lines[lines.length - 1] = `--- ${body2}`;
+          body3 += stringifyComment.lineComment(body3, "", commentString(contentComment));
+        if ((body3[0] === "|" || body3[0] === ">") && lines[lines.length - 1] === "---") {
+          lines[lines.length - 1] = `--- ${body3}`;
         } else
-          lines.push(body2);
+          lines.push(body3);
       } else {
         lines.push(stringify2.stringify(doc2.contents, ctx));
       }
@@ -19852,10 +19852,10 @@ var require_resolve_block_map = __commonJS({
       let offset = bm.offset;
       let commentEnd = null;
       for (const collItem of bm.items) {
-        const { start, key: key2, sep, value } = collItem;
+        const { start, key: key2, sep: sep2, value } = collItem;
         const keyProps = resolveProps.resolveProps(start, {
           indicator: "explicit-key-ind",
-          next: key2 ?? sep?.[0],
+          next: key2 ?? sep2?.[0],
           offset,
           onError,
           parentIndent: bm.indent,
@@ -19869,7 +19869,7 @@ var require_resolve_block_map = __commonJS({
             else if ("indent" in key2 && key2.indent !== bm.indent)
               onError(offset, "BAD_INDENT", startColMsg);
           }
-          if (!keyProps.anchor && !keyProps.tag && !sep) {
+          if (!keyProps.anchor && !keyProps.tag && !sep2) {
             commentEnd = keyProps.end;
             if (keyProps.comment) {
               if (map.comment)
@@ -19893,7 +19893,7 @@ var require_resolve_block_map = __commonJS({
         ctx.atKey = false;
         if (utilMapIncludes.mapIncludes(ctx, map.items, keyNode))
           onError(keyStart, "DUPLICATE_KEY", "Map keys must be unique");
-        const valueProps = resolveProps.resolveProps(sep ?? [], {
+        const valueProps = resolveProps.resolveProps(sep2 ?? [], {
           indicator: "map-value-ind",
           next: value,
           offset: keyNode.range[2],
@@ -19909,7 +19909,7 @@ var require_resolve_block_map = __commonJS({
             if (ctx.options.strict && keyProps.start < valueProps.found.offset - 1024)
               onError(keyNode.range, "KEY_OVER_1024_CHARS", "The : indicator must be at most 1024 chars after the start of an implicit block mapping key");
           }
-          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : composeEmptyNode(ctx, offset, sep, null, valueProps, onError);
+          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : composeEmptyNode(ctx, offset, sep2, null, valueProps, onError);
           if (ctx.schema.compat)
             utilFlowIndentCheck.flowIndentCheck(bm.indent, value, onError);
           offset = valueNode.range[2];
@@ -20000,7 +20000,7 @@ var require_resolve_end = __commonJS({
       let comment = "";
       if (end) {
         let hasSpace = false;
-        let sep = "";
+        let sep2 = "";
         for (const token of end) {
           const { source, type } = token;
           switch (type) {
@@ -20014,13 +20014,13 @@ var require_resolve_end = __commonJS({
               if (!comment)
                 comment = cb;
               else
-                comment += sep + cb;
-              sep = "";
+                comment += sep2 + cb;
+              sep2 = "";
               break;
             }
             case "newline":
               if (comment)
-                sep += source;
+                sep2 += source;
               hasSpace = true;
               break;
             default:
@@ -20063,18 +20063,18 @@ var require_resolve_flow_collection = __commonJS({
       let offset = fc.offset + fc.start.source.length;
       for (let i = 0; i < fc.items.length; ++i) {
         const collItem = fc.items[i];
-        const { start, key: key2, sep, value } = collItem;
+        const { start, key: key2, sep: sep2, value } = collItem;
         const props = resolveProps.resolveProps(start, {
           flow: fcName,
           indicator: "explicit-key-ind",
-          next: key2 ?? sep?.[0],
+          next: key2 ?? sep2?.[0],
           offset,
           onError,
           parentIndent: fc.indent,
           startOnNewline: false
         });
         if (!props.found) {
-          if (!props.anchor && !props.tag && !sep && !value) {
+          if (!props.anchor && !props.tag && !sep2 && !value) {
             if (i === 0 && props.comma)
               onError(props.comma, "UNEXPECTED_TOKEN", `Unexpected , in ${fcName}`);
             else if (i < fc.items.length - 1)
@@ -20128,8 +20128,8 @@ var require_resolve_flow_collection = __commonJS({
             }
           }
         }
-        if (!isMap2 && !sep && !props.found) {
-          const valueNode = value ? composeNode(ctx, value, props, onError) : composeEmptyNode(ctx, props.end, sep, null, props, onError);
+        if (!isMap2 && !sep2 && !props.found) {
+          const valueNode = value ? composeNode(ctx, value, props, onError) : composeEmptyNode(ctx, props.end, sep2, null, props, onError);
           coll.items.push(valueNode);
           offset = valueNode.range[2];
           if (isBlock(value))
@@ -20141,7 +20141,7 @@ var require_resolve_flow_collection = __commonJS({
           if (isBlock(key2))
             onError(keyNode.range, "BLOCK_IN_FLOW", blockMsg);
           ctx.atKey = false;
-          const valueProps = resolveProps.resolveProps(sep ?? [], {
+          const valueProps = resolveProps.resolveProps(sep2 ?? [], {
             flow: fcName,
             indicator: "map-value-ind",
             next: value,
@@ -20152,8 +20152,8 @@ var require_resolve_flow_collection = __commonJS({
           });
           if (valueProps.found) {
             if (!isMap2 && !props.found && ctx.options.strict) {
-              if (sep)
-                for (const st of sep) {
+              if (sep2)
+                for (const st of sep2) {
                   if (st === valueProps.found)
                     break;
                   if (st.type === "newline") {
@@ -20170,7 +20170,7 @@ var require_resolve_flow_collection = __commonJS({
             else
               onError(valueProps.start, "MISSING_CHAR", `Missing , or : between ${fcName} items`);
           }
-          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : valueProps.found ? composeEmptyNode(ctx, valueProps.end, sep, null, valueProps, onError) : null;
+          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : valueProps.found ? composeEmptyNode(ctx, valueProps.end, sep2, null, valueProps, onError) : null;
           if (valueNode) {
             if (isBlock(value))
               onError(valueNode.range, "BLOCK_IN_FLOW", blockMsg);
@@ -20350,7 +20350,7 @@ var require_resolve_block_scalar = __commonJS({
           chompStart = i + 1;
       }
       let value = "";
-      let sep = "";
+      let sep2 = "";
       let prevMoreIndented = false;
       for (let i = 0; i < contentStart; ++i)
         value += lines[i][0].slice(trimIndent) + "\n";
@@ -20367,24 +20367,24 @@ var require_resolve_block_scalar = __commonJS({
           indent = "";
         }
         if (type === Scalar.Scalar.BLOCK_LITERAL) {
-          value += sep + indent.slice(trimIndent) + content;
-          sep = "\n";
+          value += sep2 + indent.slice(trimIndent) + content;
+          sep2 = "\n";
         } else if (indent.length > trimIndent || content[0] === "	") {
-          if (sep === " ")
-            sep = "\n";
-          else if (!prevMoreIndented && sep === "\n")
-            sep = "\n\n";
-          value += sep + indent.slice(trimIndent) + content;
-          sep = "\n";
+          if (sep2 === " ")
+            sep2 = "\n";
+          else if (!prevMoreIndented && sep2 === "\n")
+            sep2 = "\n\n";
+          value += sep2 + indent.slice(trimIndent) + content;
+          sep2 = "\n";
           prevMoreIndented = true;
         } else if (content === "") {
-          if (sep === "\n")
+          if (sep2 === "\n")
             value += "\n";
           else
-            sep = "\n";
+            sep2 = "\n";
         } else {
-          value += sep + content;
-          sep = " ";
+          value += sep2 + content;
+          sep2 = " ";
           prevMoreIndented = false;
         }
       }
@@ -20567,25 +20567,25 @@ var require_resolve_flow_scalar = __commonJS({
         trimBoth = /^[ \t]+|[ \t]+$/g;
       }
       let res = match[1].replace(trimEnd, "");
-      let sep = " ";
+      let sep2 = " ";
       let pos = line2.lastIndex;
       while (match = line2.exec(source)) {
         const lm = match[1].replace(trimBoth, "");
         if (lm === "") {
-          if (sep === "\n")
-            res += sep;
+          if (sep2 === "\n")
+            res += sep2;
           else
-            sep = "\n";
+            sep2 = "\n";
         } else {
-          res += sep + lm;
-          sep = " ";
+          res += sep2 + lm;
+          sep2 = " ";
         }
         pos = line2.lastIndex;
       }
       const last = /[ \t]*(.*)/sy;
       last.lastIndex = pos;
       match = last.exec(source);
-      return res + sep + (match?.[1] ?? "");
+      return res + sep2 + (match?.[1] ?? "");
     }
     function doubleQuotedValue(source, onError) {
       let res = "";
@@ -21210,13 +21210,13 @@ var require_cst_scalar = __commonJS({
         case ">": {
           const he = source.indexOf("\n");
           const head = source.substring(0, he);
-          const body2 = source.substring(he + 1) + "\n";
+          const body3 = source.substring(he + 1) + "\n";
           const props = [
             { type: "block-scalar-header", offset, indent, source: head }
           ];
           if (!addEndtoBlockProps(props, end))
             props.push({ type: "newline", offset: -1, indent, source: "\n" });
-          return { type: "block-scalar", offset, indent, props, source: body2 };
+          return { type: "block-scalar", offset, indent, props, source: body3 };
         }
         case '"':
           return { type: "double-quoted-scalar", offset, indent, source, end };
@@ -21273,13 +21273,13 @@ var require_cst_scalar = __commonJS({
     function setBlockScalarValue(token, source) {
       const he = source.indexOf("\n");
       const head = source.substring(0, he);
-      const body2 = source.substring(he + 1) + "\n";
+      const body3 = source.substring(he + 1) + "\n";
       if (token.type === "block-scalar") {
         const header = token.props[0];
         if (header.type !== "block-scalar-header")
           throw new Error("Invalid block scalar header");
         header.source = head;
-        token.source = body2;
+        token.source = body3;
       } else {
         const { offset } = token;
         const indent = "indent" in token ? token.indent : -1;
@@ -21291,7 +21291,7 @@ var require_cst_scalar = __commonJS({
         for (const key2 of Object.keys(token))
           if (key2 !== "type" && key2 !== "offset")
             delete token[key2];
-        Object.assign(token, { type: "block-scalar", indent, props, source: body2 });
+        Object.assign(token, { type: "block-scalar", indent, props, source: body3 });
       }
     }
     function addEndtoBlockProps(props, end) {
@@ -21395,14 +21395,14 @@ var require_cst_stringify = __commonJS({
         }
       }
     }
-    function stringifyItem({ start, key: key2, sep, value }) {
+    function stringifyItem({ start, key: key2, sep: sep2, value }) {
       let res = "";
       for (const st of start)
         res += st.source;
       if (key2)
         res += stringifyToken(key2);
-      if (sep)
-        for (const st of sep)
+      if (sep2)
+        for (const st of sep2)
           res += st.source;
       if (value)
         res += stringifyToken(value);
@@ -22569,18 +22569,18 @@ var require_parser = __commonJS({
         if (this.type === "map-value-ind") {
           const prev = getPrevProps(this.peek(2));
           const start = getFirstKeyStartProps(prev);
-          let sep;
+          let sep2;
           if (scalar.end) {
-            sep = scalar.end;
-            sep.push(this.sourceToken);
+            sep2 = scalar.end;
+            sep2.push(this.sourceToken);
             delete scalar.end;
           } else
-            sep = [this.sourceToken];
+            sep2 = [this.sourceToken];
           const map = {
             type: "block-map",
             offset: scalar.offset,
             indent: scalar.indent,
-            items: [{ start, key: scalar, sep }]
+            items: [{ start, key: scalar, sep: sep2 }]
           };
           this.onKeyLine = true;
           this.stack[this.stack.length - 1] = map;
@@ -22733,15 +22733,15 @@ var require_parser = __commonJS({
                 } else if (isFlowToken(it.key) && !includesToken(it.sep, "newline")) {
                   const start2 = getFirstKeyStartProps(it.start);
                   const key2 = it.key;
-                  const sep = it.sep;
-                  sep.push(this.sourceToken);
+                  const sep2 = it.sep;
+                  sep2.push(this.sourceToken);
                   delete it.key;
                   delete it.sep;
                   this.stack.push({
                     type: "block-map",
                     offset: this.offset,
                     indent: this.indent,
-                    items: [{ start: start2, key: key2, sep }]
+                    items: [{ start: start2, key: key2, sep: sep2 }]
                   });
                 } else if (start.length > 0) {
                   it.sep = it.sep.concat(start, this.sourceToken);
@@ -22935,13 +22935,13 @@ var require_parser = __commonJS({
             const prev = getPrevProps(parent);
             const start = getFirstKeyStartProps(prev);
             fixFlowSeqItems(fc);
-            const sep = fc.end.splice(1, fc.end.length);
-            sep.push(this.sourceToken);
+            const sep2 = fc.end.splice(1, fc.end.length);
+            sep2.push(this.sourceToken);
             const map = {
               type: "block-map",
               offset: fc.offset,
               indent: fc.indent,
-              items: [{ start, key: fc, sep }]
+              items: [{ start, key: fc, sep: sep2 }]
             };
             this.onKeyLine = true;
             this.stack[this.stack.length - 1] = map;
@@ -25875,22 +25875,276 @@ var init_cli = __esm({
   }
 });
 
+// ../artgen-cli/src/ui-server.ts
+import { randomBytes, timingSafeEqual } from "node:crypto";
+import { appendFileSync as appendFileSync2, existsSync as existsSync6, lstatSync, mkdirSync as mkdirSync4, readdirSync as readdirSync2, readFileSync as readFileSync6, realpathSync, statSync, writeFileSync as writeFileSync6 } from "node:fs";
+import { createServer } from "node:http";
+import { basename as basename3, dirname as dirname5, extname as extname2, join as join6, resolve as resolve3, sep } from "node:path";
+function artPath(raw) {
+  if (raw.includes("\0") || raw.includes("\\") || raw.startsWith("/") || /^[a-zA-Z]:/.test(raw)) throw new HttpError(400, `bad path ${JSON.stringify(raw)}`);
+  const parts = raw.split("/").filter(Boolean);
+  if (parts.some((p2) => p2 === "." || p2 === ".." || p2.toLowerCase() === ".git")) throw new HttpError(400, `bad path ${JSON.stringify(raw)}`);
+  return parts;
+}
+async function body2(req) {
+  const chunks = [];
+  let n = 0;
+  for await (const c of req) {
+    n += c.length;
+    if (n > MAX_WRITE) throw new HttpError(413, "too large");
+    chunks.push(c);
+  }
+  return Buffer.concat(chunks);
+}
+async function startUiServer(o) {
+  const files = new ArtFiles(o.root), ui = resolve3(o.uiDir), token = o.token ?? randomBytes(16).toString("hex");
+  if (!existsSync6(join6(ui, "index.html"))) throw new Error(`no web tools in ${ui} \u2014 install the ui module: npx -y github:rstevenson1237/image_tools#artgen-dist add ui`);
+  let port = 0;
+  const hostOk = (h) => h === `127.0.0.1:${port}` || h === `localhost:${port}`;
+  const api = async (req, res, url) => {
+    const t = req.headers["x-artgen-token"];
+    if (typeof t !== "string" || !sameToken(t, token)) throw new HttpError(401, "missing or wrong token \u2014 open the link `artgen ui` printed");
+    const path = url.searchParams.get("path") ?? "", route3 = url.pathname.slice("/api/".length);
+    if (req.method === "GET" && route3 === "info") return send(res, 200, JSON.stringify({ name: basename3(resolve3(o.root)), ...o.info }));
+    if (req.method === "GET" && route3 === "list") return send(res, 200, JSON.stringify(files.list(url.searchParams.get("dir") ?? "")));
+    if (req.method === "GET" && route3 === "stat") return send(res, 200, JSON.stringify(files.stat(path) ?? null));
+    if (req.method === "GET" && route3 === "read") {
+      const b = files.read(path);
+      return b ? send(res, 200, b, "application/octet-stream") : send(res, 204, "");
+    }
+    if (req.method === "PUT" && route3 === "write") {
+      files.write(path, await body2(req));
+      return send(res, 200, "{}");
+    }
+    if (req.method === "POST" && route3 === "append") {
+      files.append(path, await body2(req));
+      return send(res, 200, "{}");
+    }
+    throw new HttpError(404, `no such call: ${req.method} /api/${route3}`);
+  };
+  const serve = (req, res, url) => {
+    if (req.method !== "GET" && req.method !== "HEAD") throw new HttpError(405, "GET only");
+    let decoded;
+    try {
+      decoded = decodeURIComponent(url.pathname);
+    } catch {
+      throw new HttpError(400, "bad address");
+    }
+    if (decoded.includes("\0")) throw new HttpError(400, "bad address");
+    const rel3 = decoded.replace(/^\/+/, "") || "index.html";
+    const base = o.shared && (rel3 === "resvg.wasm" || /^fonts\/[^/]+$/.test(rel3)) ? resolve3(o.shared) : ui;
+    const f = resolve3(base, rel3);
+    if (f !== base && !f.startsWith(base + sep)) throw new HttpError(403, "outside the web tools");
+    if (!statSync(f, { throwIfNoEntry: false })?.isFile()) throw new HttpError(404, "not found");
+    send(res, 200, req.method === "HEAD" ? "" : readFileSync6(f), TYPES[extname2(f).toLowerCase()] ?? "application/octet-stream", { "cache-control": "no-cache" });
+  };
+  const server = createServer((req, res) => {
+    void (async () => {
+      try {
+        if (!hostOk(req.headers.host)) throw new HttpError(403, "unexpected Host header");
+        let url;
+        try {
+          url = new URL(req.url ?? "/", `http://127.0.0.1:${port}`);
+        } catch {
+          throw new HttpError(400, "bad address");
+        }
+        if (url.pathname.startsWith("/api/")) await api(req, res, url);
+        else serve(req, res, url);
+      } catch (e) {
+        const status2 = e instanceof HttpError ? e.status : 500;
+        if (!res.headersSent) send(res, status2, JSON.stringify({ error: e instanceof Error ? e.message : String(e) }));
+        else res.end();
+      }
+    })();
+  });
+  return new Promise((ok, fail) => {
+    server.once("error", fail);
+    server.listen(o.port ?? 0, "127.0.0.1", () => {
+      port = server.address().port;
+      ok({ url: `http://127.0.0.1:${port}/?t=${token}`, port, token, server, close: () => new Promise((r) => {
+        server.close(() => r());
+        server.closeAllConnections();
+      }) });
+    });
+  });
+}
+var TYPES, MAX_WRITE, HttpError, ArtFiles, sameToken, send;
+var init_ui_server = __esm({
+  "../artgen-cli/src/ui-server.ts"() {
+    "use strict";
+    TYPES = {
+      ".html": "text/html; charset=utf-8",
+      ".js": "text/javascript; charset=utf-8",
+      ".mjs": "text/javascript; charset=utf-8",
+      ".css": "text/css; charset=utf-8",
+      ".json": "application/json; charset=utf-8",
+      ".svg": "image/svg+xml",
+      ".png": "image/png",
+      ".wasm": "application/wasm",
+      ".woff2": "font/woff2",
+      ".woff": "font/woff",
+      ".ttf": "font/ttf",
+      ".txt": "text/plain; charset=utf-8",
+      ".map": "application/json; charset=utf-8"
+    };
+    MAX_WRITE = 64 * 1024 * 1024;
+    HttpError = class extends Error {
+      status;
+      constructor(status2, message) {
+        super(message);
+        this.status = status2;
+      }
+    };
+    ArtFiles = class {
+      art;
+      constructor(root) {
+        const art = join6(resolve3(root), "art");
+        if (!existsSync6(art)) throw new Error(`${art} does not exist`);
+        this.art = realpathSync(art);
+      }
+      /**
+       * The absolute path of `parts` under `art/`, refusing one that leaves it through a symbolic link. Every part that exists
+       * is looked at, so a link to a folder outside, and a link to nothing (which a write would create the target of), are both refused.
+       */
+      at(parts) {
+        let cur = this.art;
+        for (const part of parts) {
+          cur = join6(cur, part);
+          const l = lstatSync(cur, { throwIfNoEntry: false });
+          if (!l) break;
+          if (l.isSymbolicLink()) {
+            let real;
+            try {
+              real = realpathSync(cur);
+            } catch {
+              throw new HttpError(403, "path leaves art/");
+            }
+            if (real !== this.art && !real.startsWith(this.art + sep)) throw new HttpError(403, "path leaves art/");
+          }
+        }
+        return join6(this.art, ...parts);
+      }
+      list(dir) {
+        const p2 = this.at(artPath(dir));
+        if (!existsSync6(p2) || !statSync(p2).isDirectory()) return [];
+        return readdirSync2(p2, { withFileTypes: true }).filter((e) => e.name !== ".git").map((e) => e.isDirectory() || e.isSymbolicLink() && statSync(join6(p2, e.name), { throwIfNoEntry: false })?.isDirectory() ? `${e.name}/` : e.name).sort();
+      }
+      stat(path) {
+        const s2 = statSync(this.at(artPath(path)), { throwIfNoEntry: false });
+        return s2?.isFile() ? { size: s2.size, lastModified: Math.trunc(s2.mtimeMs) } : void 0;
+      }
+      read(path) {
+        const p2 = this.at(artPath(path));
+        return statSync(p2, { throwIfNoEntry: false })?.isFile() ? readFileSync6(p2) : void 0;
+      }
+      write(path, data) {
+        const parts = artPath(path);
+        if (!parts.length) throw new HttpError(400, "no file name");
+        const p2 = this.at(parts);
+        mkdirSync4(dirname5(p2), { recursive: true });
+        this.at(parts);
+        writeFileSync6(p2, data);
+      }
+      append(path, data) {
+        const parts = artPath(path);
+        if (!parts.length) throw new HttpError(400, "no file name");
+        const p2 = this.at(parts);
+        mkdirSync4(dirname5(p2), { recursive: true });
+        appendFileSync2(p2, data);
+      }
+    };
+    sameToken = (a, b) => {
+      const x = Buffer.from(a), y = Buffer.from(b);
+      return x.length === y.length && timingSafeEqual(x, y);
+    };
+    send = (res, status2, data, type = "application/json; charset=utf-8", extra = {}) => {
+      res.writeHead(status2, { "content-type": type, "cache-control": "no-store", "x-content-type-options": "nosniff", ...extra });
+      res.end(data);
+    };
+  }
+});
+
+// ../artgen-cli/src/ops/core.ts
+import { spawn } from "node:child_process";
+import { existsSync as existsSync7, readFileSync as readFileSync7 } from "node:fs";
+import { dirname as dirname6, join as join7 } from "node:path";
+import { fileURLToPath as fileURLToPath3 } from "node:url";
+function openBrowser(url) {
+  const [cmd, args] = process.platform === "darwin" ? ["open", [url]] : process.platform === "win32" ? ["cmd", ["/c", "start", "", url]] : ["xdg-open", [url]];
+  try {
+    spawn(cmd, args, { stdio: "ignore", detached: true }).on("error", () => {
+    }).unref();
+  } catch {
+  }
+}
+function installedModules(root) {
+  try {
+    return Object.keys(JSON.parse(readFileSync7(join7(root, "tools", "artgen", "MANIFEST.json"), "utf8")).modules ?? {});
+  } catch {
+    return [];
+  }
+}
+var uiOp, CORE_OPS;
+var init_core = __esm({
+  "../artgen-cli/src/ops/core.ts"() {
+    "use strict";
+    init_ui_server();
+    init_registry();
+    uiOp = defineOp({
+      name: "ui",
+      module: "core",
+      effect: "write",
+      summary: "Serve the review UI (Asset Review, Art Direction, Asset Lab, the map editors) for this repo's art/ on this machine.",
+      params: {
+        port: p.int("the port to listen on (default: any free one)", { mcp: false }),
+        dir: p.str("the folder with the built web tools (default: ui/ beside this program; for development)", { mcp: false }),
+        open: p.bool("open the link in the default browser", { mcp: false })
+      },
+      async run(i, ctx) {
+        const project2 = ctx.project(), here = dirname6(fileURLToPath3(import.meta.url)), uiDir = i.dir ?? join7(here, "ui");
+        if (!existsSync7(join7(uiDir, "index.html"))) throw new Error(`ui: no web tools in ${uiDir} \u2014 install the ui module: npx -y github:rstevenson1237/image_tools#artgen-dist add ui`);
+        const modules = installedModules(project2.root), s2 = await startUiServer({ root: project2.root, uiDir, shared: here, port: i.port, info: { modules } });
+        console.log(`artgen ui: ${s2.url}
+serving ${project2.art} \u2014 Ctrl-C to stop`);
+        if (i.open) openBrowser(s2.url);
+        const signals = ["SIGINT", "SIGTERM"];
+        await new Promise((done) => {
+          const stop = () => {
+            for (const sig of signals) process.off(sig, stop);
+            done();
+          };
+          for (const sig of signals) process.on(sig, stop);
+        });
+        await s2.close();
+        return { url: s2.url, stopped: true };
+      },
+      cli: {
+        usage: "       artgen ui [--port N] [--open]                   serve the review UI for art/ on this machine (the ui module); prints the link",
+        text: () => "artgen ui: stopped"
+      },
+      mcp: { exclude: "starts a server that waits for a person at a browser" },
+      python: { exclude: "starts a server that waits for a person at a browser" }
+    });
+    CORE_OPS = [uiOp];
+  }
+});
+
 // ../artgen-cli/src/map.ts
-import { existsSync as existsSync6, mkdirSync as mkdirSync4, readdirSync as readdirSync2, readFileSync as readFileSync6, writeFileSync as writeFileSync6 } from "node:fs";
-import { dirname as dirname5, join as join6, relative as relative2, resolve as resolve3 } from "node:path";
+import { existsSync as existsSync8, mkdirSync as mkdirSync5, readdirSync as readdirSync3, readFileSync as readFileSync8, writeFileSync as writeFileSync7 } from "node:fs";
+import { dirname as dirname7, join as join8, relative as relative2, resolve as resolve4 } from "node:path";
 function mapFile(p2, ref) {
-  if (typeof ref !== "string") return resolve3(ref.file);
+  if (typeof ref !== "string") return resolve4(ref.file);
   if (!/^[\w-]+$/.test(ref ?? "")) throw new Error(`map id ${JSON.stringify(ref)}: letters, digits, - and _ only`);
   if (!p2) throw new Error("no artgen project here: name the map file with --file <path>");
-  return join6(mapsDir(p2), ref, "map.json");
+  return join8(mapsDir(p2), ref, "map.json");
 }
 function listMaps(p2) {
-  if (!existsSync6(mapsDir(p2))) return [];
-  return readdirSync2(mapsDir(p2), { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync6(join6(mapsDir(p2), d.name, "map.json"))).map((d) => mapSummary(readMap(p2, d.name)));
+  if (!existsSync8(mapsDir(p2))) return [];
+  return readdirSync3(mapsDir(p2), { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync8(join8(mapsDir(p2), d.name, "map.json"))).map((d) => mapSummary(readMap(p2, d.name)));
 }
 function readMap(p2, ref) {
   const f = mapFile(p2, ref);
-  if (!existsSync6(f)) throw new Error(typeof ref === "string" ? `no map ${ref} (${shown(p2, f)}) \u2014 artgen map new ${ref}` : `no map file ${shown(p2, f)} \u2014 artgen map new --file ${ref.file}`);
+  if (!existsSync8(f)) throw new Error(typeof ref === "string" ? `no map ${ref} (${shown(p2, f)}) \u2014 artgen map new ${ref}` : `no map file ${shown(p2, f)} \u2014 artgen map new --file ${ref.file}`);
   return map_exports.parseMap(readJson(f));
 }
 function writeMap(p2, m, ref = m.id) {
@@ -25899,7 +26153,7 @@ function writeMap(p2, m, ref = m.id) {
   return shown(p2, f);
 }
 function createMap(p2, id2, preset2, over = {}, force = false, at3 = id2) {
-  if (existsSync6(mapFile(p2, at3)) && !force) throw new Error(typeof at3 === "string" ? `map ${id2} already exists (edit it, or pick another id)` : `${shown(p2, mapFile(p2, at3))} already exists (edit it, or --force)`);
+  if (existsSync8(mapFile(p2, at3)) && !force) throw new Error(typeof at3 === "string" ? `map ${id2} already exists (edit it, or pick another id)` : `${shown(p2, mapFile(p2, at3))} already exists (edit it, or --force)`);
   const m = map_exports.newMap(id2, preset2, over);
   return { file: writeMap(p2, m, at3), map: m };
 }
@@ -25913,7 +26167,7 @@ function checkMapFile(p2, ref) {
   const f = mapFile(p2, ref);
   let raw;
   try {
-    raw = JSON.parse(readFileSync6(f, "utf8"));
+    raw = JSON.parse(readFileSync8(f, "utf8"));
   } catch (e) {
     const missing = e.code === "ENOENT";
     return { file: shown(p2, f), ok: false, errors: [{ path: "", message: missing ? `no such file: ${shown(p2, f)}` : `not JSON: ${e.message}` }], requirements: [], unmet: [] };
@@ -25925,22 +26179,22 @@ function checkMapFile(p2, ref) {
 }
 async function renderMapFiles(p2, ref, o = {}) {
   const m = readMap(p2, ref), field = map_exports.generateMap(m), id2 = typeof ref === "string" ? ref : fileStem(ref.file);
-  const out = o.out ?? (typeof ref === "string" ? join6(mapsDir(p2), id2, "out") : dirname5(mapFile(p2, ref)));
+  const out = o.out ?? (typeof ref === "string" ? join8(mapsDir(p2), id2, "out") : dirname7(mapFile(p2, ref)));
   const formats2 = o.formats ?? ["svg", "png"], files = [];
   if (o.fit && o.ppu !== void 0) throw new Error("--fit and --ppu both set the scale: use one");
   const crop2 = clampCrop(o.crop ?? [0, 0, m.cols, m.rows], m.cols, m.rows), ppu = o.fit ? fitPpu(crop2[2], crop2[3], o.fit) : o.ppu ?? 40;
   const size = [Math.round(crop2[2] * ppu), Math.round(crop2[3] * ppu)], unit = o.fit?.unit ?? "px";
   const pageScale = o.pageScale ?? (o.fit ? PX_PER_MM : void 0);
   if (formats2.includes("png")) await initNodeMapSvg();
-  mkdirSync4(out, { recursive: true });
+  mkdirSync5(out, { recursive: true });
   for (const theme of o.themes ?? ["color"]) {
-    const svg4 = map_exports.renderMapSvg(m, { theme, ppu, layers: o.layers, field, ...o.crop && { crop: crop2 }, unit, pageScale }), base = join6(out, `${id2}.${theme}`);
+    const svg4 = map_exports.renderMapSvg(m, { theme, ppu, layers: o.layers, field, ...o.crop && { crop: crop2 }, unit, pageScale }), base = join8(out, `${id2}.${theme}`);
     if (formats2.includes("svg")) {
-      writeFileSync6(`${base}.svg`, svg4);
+      writeFileSync7(`${base}.svg`, svg4);
       files.push(`${base}.svg`);
     }
     if (formats2.includes("png")) {
-      writeFileSync6(`${base}.png`, encodePNG(rasterizeSvg(svg4, size[0], size[1])));
+      writeFileSync7(`${base}.png`, encodePNG(rasterizeSvg(svg4, size[0], size[1])));
       files.push(`${base}.png`);
     }
   }
@@ -26022,7 +26276,7 @@ var init_map2 = __esm({
     init_maps();
     init_node_svg();
     init_projectfs();
-    mapsDir = (p2) => join6(p2.art, "maps");
+    mapsDir = (p2) => join8(p2.art, "maps");
     shown = (p2, f) => relative2(p2?.root ?? process.cwd(), f);
     mapSummary = (m) => ({ id: m.id, preset: m.preset, size: `${m.cols}x${m.rows}`, ...m.title && { title: m.title }, edits: m.edits.length, labels: m.overlay.labels.length, symbols: m.overlay.symbols.length });
     onOff2 = (v) => v === void 0 ? void 0 : /^(on|true|yes|1)$/i.test(v);
@@ -26032,21 +26286,21 @@ var init_map2 = __esm({
 });
 
 // ../artgen-cli/src/dungeon.ts
-import { existsSync as existsSync7, mkdirSync as mkdirSync5, readdirSync as readdirSync3, readFileSync as readFileSync7, writeFileSync as writeFileSync7 } from "node:fs";
-import { dirname as dirname6, join as join7, relative as relative3, resolve as resolve4 } from "node:path";
+import { existsSync as existsSync9, mkdirSync as mkdirSync6, readdirSync as readdirSync4, readFileSync as readFileSync9, writeFileSync as writeFileSync8 } from "node:fs";
+import { dirname as dirname8, join as join9, relative as relative3, resolve as resolve5 } from "node:path";
 function dungeonFile(p2, ref) {
-  if (typeof ref !== "string") return resolve4(ref.file);
+  if (typeof ref !== "string") return resolve5(ref.file);
   if (!/^[\w-]+$/.test(ref ?? "")) throw new Error(`dungeon id ${JSON.stringify(ref)}: letters, digits, - and _ only`);
   if (!p2) throw new Error("no artgen project here: name the dungeon file with --file <path>");
-  return join7(dungeonsDir(p2), ref, "dungeon.json");
+  return join9(dungeonsDir(p2), ref, "dungeon.json");
 }
 function listDungeons(p2) {
-  if (!existsSync7(dungeonsDir(p2))) return [];
-  return readdirSync3(dungeonsDir(p2), { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync7(join7(dungeonsDir(p2), d.name, "dungeon.json"))).map((d) => dungeonSummary(readDungeon(p2, d.name)));
+  if (!existsSync9(dungeonsDir(p2))) return [];
+  return readdirSync4(dungeonsDir(p2), { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync9(join9(dungeonsDir(p2), d.name, "dungeon.json"))).map((d) => dungeonSummary(readDungeon(p2, d.name)));
 }
 function readDungeon(p2, ref) {
   const f = dungeonFile(p2, ref);
-  if (!existsSync7(f)) throw new Error(typeof ref === "string" ? `no dungeon ${ref} (${shown2(p2, f)}) \u2014 artgen dungeon new ${ref}` : `no dungeon file ${shown2(p2, f)} \u2014 artgen dungeon new --file ${ref.file}`);
+  if (!existsSync9(f)) throw new Error(typeof ref === "string" ? `no dungeon ${ref} (${shown2(p2, f)}) \u2014 artgen dungeon new ${ref}` : `no dungeon file ${shown2(p2, f)} \u2014 artgen dungeon new --file ${ref.file}`);
   return dungeon_exports.parseDungeon(readJson(f));
 }
 function writeDungeon(p2, m, ref = m.id) {
@@ -26055,7 +26309,7 @@ function writeDungeon(p2, m, ref = m.id) {
   return shown2(p2, f);
 }
 function createDungeon(p2, m, force = false, at3 = m.id) {
-  if (existsSync7(dungeonFile(p2, at3)) && !force) throw new Error(typeof at3 === "string" ? `dungeon ${m.id} already exists (edit it, or pick another id)` : `${shown2(p2, dungeonFile(p2, at3))} already exists (edit it, or --force)`);
+  if (existsSync9(dungeonFile(p2, at3)) && !force) throw new Error(typeof at3 === "string" ? `dungeon ${m.id} already exists (edit it, or pick another id)` : `${shown2(p2, dungeonFile(p2, at3))} already exists (edit it, or --force)`);
   return { file: writeDungeon(p2, m, at3), dungeon: m };
 }
 function updateDungeon(p2, ref, change) {
@@ -26067,7 +26321,7 @@ function checkDungeonFile(p2, ref) {
   const f = dungeonFile(p2, ref);
   let raw;
   try {
-    raw = JSON.parse(readFileSync7(f, "utf8"));
+    raw = JSON.parse(readFileSync9(f, "utf8"));
   } catch (e) {
     const missing = e.code === "ENOENT";
     return { file: shown2(p2, f), ok: false, errors: [{ path: "", message: missing ? `no such file: ${shown2(p2, f)}` : `not JSON: ${e.message}` }], warnings: [] };
@@ -26075,20 +26329,20 @@ function checkDungeonFile(p2, ref) {
   const r = dungeon_exports.checkDungeon(raw), errors = [...r.errors], warnings = [];
   if (!errors.length) for (const x of dungeon_exports.lintDungeon(dungeon_exports.parseDungeon(raw))) (x.severity === "error" ? errors : warnings).push({ path: x.path, message: x.message });
   const u = raw?.underlay;
-  if (!errors.some((e) => e.path.startsWith("underlay")) && u && typeof u.map === "string" && !existsSync7(resolve4(dirname6(f), u.map)))
+  if (!errors.some((e) => e.path.startsWith("underlay")) && u && typeof u.map === "string" && !existsSync9(resolve5(dirname8(f), u.map)))
     errors.push({ path: "underlay.map", message: `no such map file ${u.map}` });
   return { file: shown2(p2, f), ok: !errors.length, errors, warnings };
 }
 function readUnderlay(p2, ref, m) {
   if (!m.underlay) return null;
-  const f = resolve4(dirname6(dungeonFile(p2, ref)), m.underlay.map);
-  if (!existsSync7(f)) throw new Error(`underlay.map: no such map file ${m.underlay.map} (looked for ${shown2(p2, f)})`);
+  const f = resolve5(dirname8(dungeonFile(p2, ref)), m.underlay.map);
+  if (!existsSync9(f)) throw new Error(`underlay.map: no such map file ${m.underlay.map} (looked for ${shown2(p2, f)})`);
   const spec = map_exports.parseMap(readJson(f));
   return { map: spec, field: map_exports.generateMap(spec) };
 }
 async function renderDungeonFiles(p2, ref, o = {}) {
   const m = readDungeon(p2, ref), layout2 = dungeon_exports.layoutDungeon(m), id2 = typeof ref === "string" ? ref : fileStem(ref.file);
-  const out = o.out ?? (typeof ref === "string" ? join7(dungeonsDir(p2), id2, "out") : dirname6(dungeonFile(p2, ref)));
+  const out = o.out ?? (typeof ref === "string" ? join9(dungeonsDir(p2), id2, "out") : dirname8(dungeonFile(p2, ref)));
   const formats2 = o.formats ?? ["svg", "png"], files = [];
   if (o.fit && o.ppu !== void 0) throw new Error("--fit and --ppu both set the scale: use one");
   if (o.crop && o.rooms?.length) throw new Error("--crop and --room both set the window: use one");
@@ -26113,14 +26367,14 @@ async function renderDungeonFiles(p2, ref, o = {}) {
   }
   const px = dungeon_exports.dungeonRenderSize(m, { ...view, ppu }), size = [Math.round(px.width), Math.round(px.height)];
   if (formats2.includes("png")) await initNodeMapSvg();
-  mkdirSync5(out, { recursive: true });
-  const svg4 = dungeon_exports.renderDungeonSvg(m, { ...view, ppu, unit, ...underlay && { underlay } }), base = join7(out, id2);
+  mkdirSync6(out, { recursive: true });
+  const svg4 = dungeon_exports.renderDungeonSvg(m, { ...view, ppu, unit, ...underlay && { underlay } }), base = join9(out, id2);
   if (formats2.includes("svg")) {
-    writeFileSync7(`${base}.svg`, svg4);
+    writeFileSync8(`${base}.svg`, svg4);
     files.push(`${base}.svg`);
   }
   if (formats2.includes("png")) {
-    writeFileSync7(`${base}.png`, encodePNG(rasterizeSvg(svg4, size[0], size[1])));
+    writeFileSync8(`${base}.png`, encodePNG(rasterizeSvg(svg4, size[0], size[1])));
     files.push(`${base}.png`);
   }
   return { files: files.map((f) => relative3(process.cwd(), f)), rooms: m.rooms.length, corridors: m.corridors.length, doors: layout2.doors.length, size, crop: crop2, ppu, svg: svgSize([0, 0, px.width, px.height], 1, unit), pageScale: pageScale ?? null, unplaced: dungeon_exports.dungeonLabelLayout(m, ppu, pageScale, layout2).unplaced };
@@ -26180,7 +26434,7 @@ var init_dungeon2 = __esm({
     init_map2();
     init_node_svg();
     init_projectfs();
-    dungeonsDir = (p2) => join7(p2.art, "dungeons");
+    dungeonsDir = (p2) => join9(p2.art, "dungeons");
     shown2 = (p2, f) => relative3(p2?.root ?? process.cwd(), f);
     dungeonSummary = (m) => ({ id: m.id, size: `${m.cols}x${m.rows}`, ...m.title && { title: m.title }, rooms: m.rooms.length, corridors: m.corridors.length, labels: m.overlay.labels.length, symbols: m.overlay.symbols.length });
     ({ cornerPoint: cornerPoint2, corridorEnd: corridorEnd2, doorPair: doorPair2, gridMode: gridMode2 } = dungeon_exports);
@@ -26189,7 +26443,7 @@ var init_dungeon2 = __esm({
 });
 
 // ../artgen-cli/src/ops/maps-shared.ts
-import { readFileSync as readFileSync8 } from "node:fs";
+import { readFileSync as readFileSync10 } from "node:fs";
 function viewOf(i, cell) {
   return { ...i.crop !== void 0 && { crop: parseCrop(i.crop, cell()) }, ...i.fit !== void 0 && { fit: parseFit(i.fit) } };
 }
@@ -26238,7 +26492,7 @@ var init_maps_shared = __esm({
     init_map2();
     init_registry();
     text = (v) => ({ type: "text", text: typeof v === "string" ? v : JSON.stringify(v, null, 2) });
-    pngFile = (f) => ({ type: "image", data: readFileSync8(f).toString("base64"), mimeType: "image/png" });
+    pngFile = (f) => ({ type: "image", data: readFileSync10(f).toString("base64"), mimeType: "image/png" });
     withVersion = (data, version) => data && typeof data === "object" && !Array.isArray(data) ? { version, ...data } : { version, items: data };
     projectOf = (i, ctx) => i.path ? null : ctx.project();
     refOf = (i) => i.path ? { file: i.path } : i.id;
@@ -26279,7 +26533,7 @@ var init_maps_shared = __esm({
 });
 
 // ../artgen-cli/src/ops/maps-dungeon.ts
-import { join as join8 } from "node:path";
+import { join as join10 } from "node:path";
 function applyGenFlags(m, i) {
   if (typeof i.seed === "number") m.seed = i.seed;
   if (i.size) [m.cols, m.rows] = i.size;
@@ -26294,8 +26548,8 @@ function applyGenFlags(m, i) {
 async function renderPreview(r, i, ctx) {
   const P2 = ctx.project(), layers = layersOf(i.layers, (v) => parseLayers(v, dungeon_exports.DUNGEON_LAYERS));
   const files = r.files.map((f) => ctx.rel(f));
-  const look = typeof i.ppu === "number" ? files.filter((f) => f.endsWith(".png")) : (await renderDungeonFiles(P2, i.id, { ppu: 24, layers, formats: ["png"], out: join8(P2.art, "dungeons", i.id, "out", "preview") })).files.map((f) => ctx.rel(f));
-  return [text({ ...r, files }), ...look.map((f) => pngFile(join8(P2.root, f)))];
+  const look = typeof i.ppu === "number" ? files.filter((f) => f.endsWith(".png")) : (await renderDungeonFiles(P2, i.id, { ppu: 24, layers, formats: ["png"], out: join10(P2.art, "dungeons", i.id, "out", "preview") })).files.map((f) => ctx.rel(f));
+  return [text({ ...r, files }), ...look.map((f) => pngFile(join10(P2.root, f)))];
 }
 var V, next, CELLS, numberOf, findRoom2, GEN_PARAMS, GEN_KEYS, list2, symbols, show2, create, update, grid, style, gen, OPS_DOC, edit, roomCmd, link, corridorOf, unlink, door, block, connect, disconnect, fit, label, symbol, check, overlay, render7, facts, sync, DUNGEON_OPS_LIST;
 var init_maps_dungeon = __esm({
@@ -27151,12 +27405,12 @@ ${next(i, m.id)}`, json: (m) => V({ cols: m.cols, rows: m.rows }) },
 });
 
 // ../artgen-cli/src/ops/maps-map.ts
-import { join as join9 } from "node:path";
+import { join as join11 } from "node:path";
 async function renderPreview2(r, i, ctx) {
   const P2 = ctx.project(), theme = i.theme ?? "color", themes = theme === "both" ? ["color", "bw"] : [theme === "bw" ? "bw" : "color"], layers = layersOf(i.layers, (v) => parseLayers(v));
   const files = r.files.map((f) => ctx.rel(f));
-  const look = typeof i.ppu === "number" ? files.filter((f) => f.endsWith(".png")) : (await renderMapFiles(P2, i.id, { themes, ppu: 24, layers, formats: ["png"], out: join9(P2.art, "maps", i.id, "out", "preview") })).files.map((f) => ctx.rel(f));
-  return [text({ ...r, files }), ...look.map((f) => pngFile(join9(P2.root, f)))];
+  const look = typeof i.ppu === "number" ? files.filter((f) => f.endsWith(".png")) : (await renderMapFiles(P2, i.id, { themes, ppu: 24, layers, formats: ["png"], out: join11(P2.art, "maps", i.id, "out", "preview") })).files.map((f) => ctx.rel(f));
+  return [text({ ...r, files }), ...look.map((f) => pngFile(join11(P2.root, f)))];
 }
 var V2, next2, LAYER_DOC, list3, symbols2, show3, create2, gen2, update2, edit2, grid2, label2, symbol2, overlay2, set, render8, facts2, check2, sync2, MAP_MAP_OPS;
 var init_maps_map = __esm({
@@ -27671,21 +27925,21 @@ ${next2(i, m.id)}`, json: (m) => V2(m) },
 });
 
 // ../artgen-cli/src/settlement.ts
-import { existsSync as existsSync8, mkdirSync as mkdirSync6, readdirSync as readdirSync4, readFileSync as readFileSync9, writeFileSync as writeFileSync8 } from "node:fs";
-import { dirname as dirname7, join as join10, relative as relative4, resolve as resolve5 } from "node:path";
+import { existsSync as existsSync10, mkdirSync as mkdirSync7, readdirSync as readdirSync5, readFileSync as readFileSync11, writeFileSync as writeFileSync9 } from "node:fs";
+import { dirname as dirname9, join as join12, relative as relative4, resolve as resolve6 } from "node:path";
 function settlementFile(p2, ref) {
-  if (typeof ref !== "string") return resolve5(ref.file);
+  if (typeof ref !== "string") return resolve6(ref.file);
   if (!/^[\w-]+$/.test(ref ?? "")) throw new Error(`settlement id ${JSON.stringify(ref)}: letters, digits, - and _ only`);
   if (!p2) throw new Error("no artgen project here: name the settlement file with --file <path>");
-  return join10(settlementsDir(p2), ref, "settlement.json");
+  return join12(settlementsDir(p2), ref, "settlement.json");
 }
 function listSettlements(p2) {
-  if (!existsSync8(settlementsDir(p2))) return [];
-  return readdirSync4(settlementsDir(p2), { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync8(join10(settlementsDir(p2), d.name, "settlement.json"))).map((d) => settlementSummary(readSettlement(p2, d.name)));
+  if (!existsSync10(settlementsDir(p2))) return [];
+  return readdirSync5(settlementsDir(p2), { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync10(join12(settlementsDir(p2), d.name, "settlement.json"))).map((d) => settlementSummary(readSettlement(p2, d.name)));
 }
 function readSettlement(p2, ref) {
   const f = settlementFile(p2, ref);
-  if (!existsSync8(f)) throw new Error(typeof ref === "string" ? `no settlement ${ref} (${shown3(p2, f)}) \u2014 artgen settlement new ${ref}` : `no settlement file ${shown3(p2, f)} \u2014 artgen settlement new --file ${ref.file}`);
+  if (!existsSync10(f)) throw new Error(typeof ref === "string" ? `no settlement ${ref} (${shown3(p2, f)}) \u2014 artgen settlement new ${ref}` : `no settlement file ${shown3(p2, f)} \u2014 artgen settlement new --file ${ref.file}`);
   return settlement_exports.parseSettlement(readJson(f));
 }
 function writeSettlement(p2, m, ref = m.id) {
@@ -27694,7 +27948,7 @@ function writeSettlement(p2, m, ref = m.id) {
   return shown3(p2, f);
 }
 function createSettlement(p2, m, force = false, at3 = m.id) {
-  if (existsSync8(settlementFile(p2, at3)) && !force) throw new Error(typeof at3 === "string" ? `settlement ${m.id} already exists (edit it, or pick another id)` : `${shown3(p2, settlementFile(p2, at3))} already exists (edit it, or --force)`);
+  if (existsSync10(settlementFile(p2, at3)) && !force) throw new Error(typeof at3 === "string" ? `settlement ${m.id} already exists (edit it, or pick another id)` : `${shown3(p2, settlementFile(p2, at3))} already exists (edit it, or --force)`);
   return { file: writeSettlement(p2, m, at3), settlement: m };
 }
 function updateSettlement(p2, ref, change) {
@@ -27704,24 +27958,24 @@ function updateSettlement(p2, ref, change) {
 }
 function readSettlementUnderlay(p2, ref, m) {
   if (!m.underlay) return null;
-  const f = resolve5(dirname7(settlementFile(p2, ref)), m.underlay.map);
-  if (!existsSync8(f)) throw new Error(`underlay.map: no such map file ${m.underlay.map} (looked for ${shown3(p2, f)})`);
+  const f = resolve6(dirname9(settlementFile(p2, ref)), m.underlay.map);
+  if (!existsSync10(f)) throw new Error(`underlay.map: no such map file ${m.underlay.map} (looked for ${shown3(p2, f)})`);
   const spec = map_exports.parseMap(readJson(f));
   return { map: spec, field: map_exports.generateMap(spec) };
 }
 function mapForSettlement(p2, ref, mapRef) {
-  const path = /[\\/.]/.test(mapRef) ? resolve5(mapRef) : (() => {
+  const path = /[\\/.]/.test(mapRef) ? resolve6(mapRef) : (() => {
     if (!p2) throw new Error("--map: a map file path (no project here)");
-    return join10(p2.art, "maps", mapRef, "map.json");
+    return join12(p2.art, "maps", mapRef, "map.json");
   })();
-  if (!existsSync8(path)) throw new Error(`--map: no map ${mapRef} (${shown3(p2, path)})`);
-  return { path, rel: relative4(dirname7(settlementFile(p2, ref)), path).split("\\").join("/") };
+  if (!existsSync10(path)) throw new Error(`--map: no map ${mapRef} (${shown3(p2, path)})`);
+  return { path, rel: relative4(dirname9(settlementFile(p2, ref)), path).split("\\").join("/") };
 }
 function checkSettlementFile(p2, ref) {
   const f = settlementFile(p2, ref);
   let raw;
   try {
-    raw = JSON.parse(readFileSync9(f, "utf8"));
+    raw = JSON.parse(readFileSync11(f, "utf8"));
   } catch (e) {
     const missing = e.code === "ENOENT";
     return { file: shown3(p2, f), ok: false, errors: [{ path: "", message: missing ? `no such file: ${shown3(p2, f)}` : `not JSON: ${e.message}` }], warnings: [] };
@@ -27729,7 +27983,7 @@ function checkSettlementFile(p2, ref) {
   const r = settlement_exports.checkSettlement(raw), errors = [...r.errors], warnings = [];
   if (!errors.length) for (const x of settlement_exports.lintSettlement(settlement_exports.parseSettlement(raw))) (x.severity === "error" ? errors : warnings).push({ path: x.path, message: x.message });
   const u = raw?.underlay;
-  if (!errors.some((e) => e.path.startsWith("underlay")) && u && typeof u.map === "string" && !existsSync8(resolve5(dirname7(f), u.map))) errors.push({ path: "underlay.map", message: `no such map file ${u.map}` });
+  if (!errors.some((e) => e.path.startsWith("underlay")) && u && typeof u.map === "string" && !existsSync10(resolve6(dirname9(f), u.map))) errors.push({ path: "underlay.map", message: `no such map file ${u.map}` });
   return { file: shown3(p2, f), ok: !errors.length, errors, warnings };
 }
 function settlementWarningLines(m, max2 = 5) {
@@ -27740,7 +27994,7 @@ function settlementWarningLines(m, max2 = 5) {
 }
 async function renderSettlementFiles(p2, ref, o = {}) {
   const m = readSettlement(p2, ref), id2 = typeof ref === "string" ? ref : fileStem(ref.file);
-  const out = o.out ?? (typeof ref === "string" ? join10(settlementsDir(p2), id2, "out") : dirname7(settlementFile(p2, ref)));
+  const out = o.out ?? (typeof ref === "string" ? join12(settlementsDir(p2), id2, "out") : dirname9(settlementFile(p2, ref)));
   const formats2 = o.formats ?? ["svg", "png"], themes = o.themes ?? ["color"];
   if (o.fit && o.ppu !== void 0) throw new Error("--fit and --ppu both set the scale: use one");
   const underlay = readSettlementUnderlay(p2, ref, m), layout2 = settlement_exports.layoutSettlement(m);
@@ -27753,7 +28007,7 @@ async function renderSettlementFiles(p2, ref, o = {}) {
     jobs.push({ view: "plan", building: t.building.id, ...t.floor && { floor: t.floor.level } });
   } else jobs.push({ view: "site" });
   if (formats2.includes("png")) await initNodeMapSvg();
-  mkdirSync6(out, { recursive: true });
+  mkdirSync7(out, { recursive: true });
   const results = [];
   for (const job of jobs) {
     const sheet = job.view === "plan" ? settlement_exports.planSheet(m, m.buildings.find((b) => b.id === job.building)) : { cols: m.cols, rows: m.rows };
@@ -27778,13 +28032,13 @@ async function renderSettlementFiles(p2, ref, o = {}) {
     const px = settlement_exports.settlementRenderSize(m, { ...view, ppu }), size = [Math.round(px.width), Math.round(px.height)], files = [];
     const stem = job.view === "plan" ? `${id2}.${job.building}.${(job.floor ?? 0) < 0 ? `c${-(job.floor ?? 0)}` : `f${job.floor ?? 0}`}` : id2;
     for (const theme of themes) {
-      const svg4 = settlement_exports.renderSettlementSvg(m, { ...view, ppu, unit, theme, ...underlay && job.view === "site" && { underlay } }), base = join10(out, `${stem}.${theme}`);
+      const svg4 = settlement_exports.renderSettlementSvg(m, { ...view, ppu, unit, theme, ...underlay && job.view === "site" && { underlay } }), base = join12(out, `${stem}.${theme}`);
       if (formats2.includes("svg")) {
-        writeFileSync8(`${base}.svg`, svg4);
+        writeFileSync9(`${base}.svg`, svg4);
         files.push(`${base}.svg`);
       }
       if (formats2.includes("png")) {
-        writeFileSync8(`${base}.png`, encodePNG(rasterizeSvg(svg4, size[0], size[1])));
+        writeFileSync9(`${base}.png`, encodePNG(rasterizeSvg(svg4, size[0], size[1])));
         files.push(`${base}.png`);
       }
     }
@@ -27831,7 +28085,7 @@ var init_settlement2 = __esm({
     init_map2();
     init_node_svg();
     init_projectfs();
-    settlementsDir = (p2) => join10(p2.art, "settlements");
+    settlementsDir = (p2) => join12(p2.art, "settlements");
     shown3 = (p2, f) => relative4(p2?.root ?? process.cwd(), f);
     settlementSummary = (m) => ({
       id: m.id,
@@ -27848,7 +28102,7 @@ var init_settlement2 = __esm({
 });
 
 // ../artgen-cli/src/ops/maps-settlement.ts
-import { join as join11 } from "node:path";
+import { join as join13 } from "node:path";
 function applyGenFlags2(m, i) {
   if (typeof i.seed === "number") m.seed = i.seed;
   if (i.size) [m.cols, m.rows] = i.size;
@@ -27917,8 +28171,8 @@ async function renderPreview3(rs, i, ctx) {
   const P2 = ctx.project(), o = renderOptions(i, ctx), files = rs.flatMap((r) => r.files.map((f) => ctx.rel(f)));
   if (i.plans === true) return [text({ renders: rs.length, files })];
   const spec = readSettlement(P2, i.id);
-  const look = typeof i.ppu === "number" ? files.filter((f) => f.endsWith(".png")) : (await renderSettlementFiles(P2, i.id, { ...o, ppu: o.view === "plan" ? 28 : Math.max(4, Math.min(16, Math.round(1100 / Math.max(spec.cols, spec.rows)))), formats: ["png"], out: join11(P2.art, "settlements", i.id, "out", "preview") })).flatMap((r) => r.files.map((f) => ctx.rel(f)));
-  return [text({ ...rs[0], files }), ...look.map((f) => pngFile(join11(P2.root, f)))];
+  const look = typeof i.ppu === "number" ? files.filter((f) => f.endsWith(".png")) : (await renderSettlementFiles(P2, i.id, { ...o, ppu: o.view === "plan" ? 28 : Math.max(4, Math.min(16, Math.round(1100 / Math.max(spec.cols, spec.rows)))), formats: ["png"], out: join13(P2.art, "settlements", i.id, "out", "preview") })).flatMap((r) => r.files.map((f) => ctx.rel(f)));
+  return [text({ ...rs[0], files }), ...look.map((f) => pngFile(join13(P2.root, f)))];
 }
 var V3, next3, CELLS2, numberOf2, pointOf, OBJ, GEN_PARAMS2, list4, symbols3, fixtures, show4, create3, gen3, update3, edit3, editText, editJson, id, level, LEVEL, AT, SIZE, BUILDING_PARAMS, building2, interior, floor2, room2, KINDS_DOOR, connect2, disconnect2, openingParams, door2, windowOp, fixture, prop, LINE_PARAMS, road, water, wall, area, tree, grid3, style2, label3, symbol3, overlay3, check3, facts3, renderOptions, render9, SETTLEMENT_OPS_LIST;
 var init_maps_settlement = __esm({
@@ -28627,24 +28881,28 @@ ${MAP_NOTE}`;
 });
 
 // ../artgen-cli/src/maps-cli.ts
-var GROUP_HELP;
+var GROUP_HELP, MAPS_BUNDLE_USAGE;
 var init_maps_cli = __esm({
   "../artgen-cli/src/maps-cli.ts"() {
     "use strict";
     init_projectfs();
     init_cli();
+    init_core();
     init_maps2();
+    init_registry();
     GROUP_HELP = {
       map: "map: new | gen | edit | grid | label | symbol | symbols | overlay | set | render | show | facts | check | sync | list (artgen --help)",
       dungeon: "dungeon: new | gen | room | block | link | unlink | door | connect | disconnect | grid | style | label | symbol | symbols | overlay | check | fit | render | show | facts | sync | list (artgen --help)",
       settlement: "settlement: new | gen | building | interior | floor | room | connect | disconnect | door | window | fixture | prop | road | water | wall | area | tree | grid | style | label | symbol | overlay | check | facts | render | show | list | fixtures | symbols (artgen --help)"
     };
+    MAPS_BUNDLE_USAGE = `${MAP_USAGE}
+${CORE_OPS.flatMap(usageLines).join("\n")}`;
   }
 });
 
 // ../artgen-cli/src/p6.ts
-import { mkdirSync as mkdirSync7, writeFileSync as writeFileSync9 } from "node:fs";
-import { join as join12, relative as relative5 } from "node:path";
+import { mkdirSync as mkdirSync8, writeFileSync as writeFileSync10 } from "node:fs";
+import { join as join14, relative as relative5 } from "node:path";
 async function voxelExport(a, o = {}) {
   const version = o.version ?? versionsIn(a).filter((v) => v.startsWith("base.")).pop();
   if (!version) throw new Error(`${a.brief.id}: no base version`);
@@ -28654,11 +28912,11 @@ async function voxelExport(a, o = {}) {
   } });
   const first = r.render.cells[0], cell = o.cell ?? `${first.state}/${first.facing}/${first.frame}`, scene = scenes.get(cell);
   if (!scene) throw new Error(`${a.brief.id} ${version}: ${scenes.size ? `no 3D scene for cell ${cell} (have ${[...scenes.keys()].join(", ")})` : "renders no 3D-mode scene (ctx.lib.t2.scene3d)"}`);
-  const set2 = scene.voxelSet(), vox = voxFromSet(set2), out = o.out ?? join12(a.path, "out");
-  mkdirSync7(out, { recursive: true });
-  const id2 = a.brief.id, voxFile = join12(out, `${id2}.vox`), glbFile = join12(out, `${id2}.glb`);
-  writeFileSync9(voxFile, encodeVox(vox));
-  writeFileSync9(glbFile, voxelGlb(set2, { scale: o.scale ?? 0.1, name: id2 }));
+  const set2 = scene.voxelSet(), vox = voxFromSet(set2), out = o.out ?? join14(a.path, "out");
+  mkdirSync8(out, { recursive: true });
+  const id2 = a.brief.id, voxFile = join14(out, `${id2}.vox`), glbFile = join14(out, `${id2}.glb`);
+  writeFileSync10(voxFile, encodeVox(vox));
+  writeFileSync10(glbFile, voxelGlb(set2, { scale: o.scale ?? 0.1, name: id2 }));
   return { vox: relative5(process.cwd(), voxFile), glb: relative5(process.cwd(), glbFile), voxels: set2.cells.length, materials: set2.mats.length, size: vox.size, cell };
 }
 function textureRun(dir, name, o) {
@@ -28666,7 +28924,7 @@ function textureRun(dir, name, o) {
   const [w, h] = o.size, t = material(name, dirContext(dir), { w, h, seed: o.seed, ramps: o.ramps, scale: o.scale });
   const pre = new Grid(w * 3, h * 3);
   for (let j = 0; j < 3; j++) for (let i = 0; i < 3; i++) pre.blit(t.grid, i * w, j * h);
-  const files = [join12(o.out, `${name}.png`), join12(o.out, `${name}.n.png`), join12(o.out, `${name}-3x3@4x.png`)];
+  const files = [join14(o.out, `${name}.png`), join14(o.out, `${name}.n.png`), join14(o.out, `${name}-3x3@4x.png`)];
   writeGrid(files[0], t.grid);
   writeGrid(files[1], t.normal);
   writeGrid(files[2], pre.scale(4));
@@ -28676,18 +28934,18 @@ function textureRun(dir, name, o) {
 async function animPreview(a, o = {}) {
   const version = o.version ?? versionsIn(a).pop();
   if (!version) throw new Error(`${a.brief.id}: no versions yet`);
-  const { render: r } = await renderVersion(a, version), out = o.out ?? join12(a.path, "out"), sc = o.scale ?? a.brief.review?.scale ?? 4;
+  const { render: r } = await renderVersion(a, version), out = o.out ?? join14(a.path, "out"), sc = o.scale ?? a.brief.review?.scale ?? 4;
   const defs = stateDefs(a.brief, a.dir, Object.fromEntries(r.states.map((s2) => [s2, r.frames[s2] / Math.max(1, Math.floor(a.brief.anims?.[s2]?.sub ?? 1))])));
   const states2 = o.state ? [o.state] : r.states, facings = o.facing ? [o.facing] : [r.facings[0]];
   for (const s2 of states2) if (!r.states.includes(s2)) throw new Error(`${a.brief.id}: no state ${s2} (has ${r.states.join(", ")})`);
   for (const f of facings) if (!r.facings.includes(f)) throw new Error(`${a.brief.id}: no facing ${f} (has ${r.facings.join(", ")})`);
-  mkdirSync7(out, { recursive: true });
+  mkdirSync8(out, { recursive: true });
   const res = { files: [], states: [] };
   for (const s2 of states2) for (const f of facings) {
     const frames = r.cells.filter((c) => c.state === s2 && c.facing === f).sort((x, y) => x.frame - y.frame).map((c) => c.grid.scale(sc)), d = displayDurations(defs[s2]);
-    const base = join12(out, `${a.brief.id}-${version}-${s2}-${f}`);
-    writeFileSync9(`${base}.gif`, encodeGIF(frames, d));
-    writeFileSync9(`${base}.apng`, encodeAPNG(frames, d));
+    const base = join14(out, `${a.brief.id}-${version}-${s2}-${f}`);
+    writeFileSync10(`${base}.gif`, encodeGIF(frames, d));
+    writeFileSync10(`${base}.apng`, encodeAPNG(frames, d));
     res.files.push(relative5(process.cwd(), `${base}.gif`), relative5(process.cwd(), `${base}.apng`));
     res.states.push({ state: s2, facing: f, frames: frames.length, ms: d.reduce((x, y) => x + y, 0) });
   }
@@ -28698,15 +28956,15 @@ function fxRun(dir, name, o) {
   const line2 = dir.line.outer === "none" ? false : (g) => dir.line.outer === "selout" ? post_exports.selout(g, Object.values(dc.pal), dc.outline) : post_exports.outline(g, dc.outline);
   const layers = preset(name, { w, h, duration });
   const frames = Array.from({ length: o.frames }, (_, i) => particles(dc, { w, h, t: i / o.frames, duration, layers, seed: o.seed ?? 1, line: line2 }));
-  mkdirSync7(o.out, { recursive: true });
+  mkdirSync8(o.out, { recursive: true });
   const strip2 = new Grid(o.frames * (w + 1) - 1, h);
   frames.forEach((f, i) => strip2.blit(f, i * (w + 1), 0));
-  const files = [join12(o.out, `${name}.png`), join12(o.out, `${name}-onion@${sc}x.png`), join12(o.out, `${name}.gif`), join12(o.out, `${name}.apng`)];
+  const files = [join14(o.out, `${name}.png`), join14(o.out, `${name}-onion@${sc}x.png`), join14(o.out, `${name}.gif`), join14(o.out, `${name}.apng`)];
   writeGrid(files[0], strip2);
   writeGrid(files[1], onionSkin(frames).scale(sc));
   const big = frames.map((f) => f.scale(sc)), d = frames.map(() => Math.round(1e3 / fps));
-  writeFileSync9(files[2], encodeGIF(big, d));
-  writeFileSync9(files[3], encodeAPNG(big, d));
+  writeFileSync10(files[2], encodeGIF(big, d));
+  writeFileSync10(files[3], encodeAPNG(big, d));
   return { files: files.map((f) => relative5(process.cwd(), f)), fill: fillQA(frames, dir), frames: o.frames };
 }
 var init_p6 = __esm({
@@ -28719,10 +28977,10 @@ var init_p6 = __esm({
 });
 
 // ../artgen-cli/src/report.ts
-import { existsSync as existsSync9, readdirSync as readdirSync5, writeFileSync as writeFileSync10 } from "node:fs";
-import { join as join13, resolve as resolve6 } from "node:path";
+import { existsSync as existsSync11, readdirSync as readdirSync6, writeFileSync as writeFileSync11 } from "node:fs";
+import { join as join15, resolve as resolve7 } from "node:path";
 function assetDirs(root) {
-  return readdirSync5(root, { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync9(join13(root, d.name, "brief.json"))).map((d) => join13(root, d.name));
+  return readdirSync6(root, { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync11(join15(root, d.name, "brief.json"))).map((d) => join15(root, d.name));
 }
 async function report(root, opts = {}) {
   const assets = assetDirs(root).map((p2) => openAsset(p2));
@@ -28777,8 +29035,8 @@ Price basis (same as artlab): $${PRICE2.inPerM}/M input (review images), $${PRIC
 Totals: ${tot.out} output tok, ${tot.inp} review tok, est. $${cost(tot.out, tot.inp).toFixed(3)}. Average gain from revisions ${avg((s2) => s2.revisionGain)}, from the finishing pass ${avg((s2) => s2.finishGain)}. ${summaries.filter((s2) => s2.met).length}/${summaries.length} assets at or above target.
 `;
   if (opts.out) {
-    writeFileSync10(opts.out, md);
-    await finalComparison(assets, summaries, resolve6(opts.out, "..", "final-comparison.png"));
+    writeFileSync11(opts.out, md);
+    await finalComparison(assets, summaries, resolve7(opts.out, "..", "final-comparison.png"));
   }
   return { markdown: md, summaries };
 }
@@ -28790,7 +29048,7 @@ async function finalComparison(assets, summaries, path) {
     const fin = (await renderVersion(a, s2.final)).strip, R3 = a.brief.review ?? {};
     const ctx = (g) => R3.iso ? iso_exports.isoFloor(g.w, g.h) : void 0;
     if (a.brief.reference) {
-      const ref = readGrid(resolve6(a.path, a.brief.reference));
+      const ref = readGrid(resolve7(a.path, a.brief.reference));
       items.push({ label: `${a.brief.id} ref ${s2.target ?? ""}`, grid: ref, bg: R3.bg, context: ctx(ref) });
     }
     items.push({ label: `${a.brief.id} ${s2.final} ${s2.finish ?? s2.bestRevision?.score ?? ""}`, grid: fin, bg: R3.bg, context: ctx(fin) });
@@ -28884,35 +29142,35 @@ var init_src5 = __esm({
 
 // ../artgen-cli/src/runtime.ts
 import { createHash } from "node:crypto";
-import { existsSync as existsSync10, mkdirSync as mkdirSync8, readdirSync as readdirSync6, readFileSync as readFileSync10, rmSync, writeFileSync as writeFileSync11 } from "node:fs";
-import { dirname as dirname8, join as join14, relative as relative6 } from "node:path";
-import { fileURLToPath as fileURLToPath3 } from "node:url";
+import { existsSync as existsSync12, mkdirSync as mkdirSync9, readdirSync as readdirSync7, readFileSync as readFileSync12, rmSync, writeFileSync as writeFileSync12 } from "node:fs";
+import { dirname as dirname10, join as join16, relative as relative6 } from "node:path";
+import { fileURLToPath as fileURLToPath4 } from "node:url";
 function runtimeRoot() {
-  const here = dirname8(fileURLToPath3(import.meta.url));
-  for (const p2 of [join14(here, "runtime"), join14(here, "..", "..", "artgen-runtime", "src")]) if (existsSync10(join14(p2, "pack.ts"))) return p2;
+  const here = dirname10(fileURLToPath4(import.meta.url));
+  for (const p2 of [join16(here, "runtime"), join16(here, "..", "..", "artgen-runtime", "src")]) if (existsSync12(join16(p2, "pack.ts"))) return p2;
   throw new Error(`artgen runtime sources not found next to ${here}`);
 }
 function runtimeFiles(adapters, root = runtimeRoot()) {
-  const ts = (d) => existsSync10(d) ? readdirSync6(d).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts") && f !== "testkit.ts" && f !== "contract.ts") : [];
-  const available = ts(join14(root, "adapters")).map((f) => f.replace(/\.ts$/, ""));
+  const ts = (d) => existsSync12(d) ? readdirSync7(d).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts") && f !== "testkit.ts" && f !== "contract.ts") : [];
+  const available = ts(join16(root, "adapters")).map((f) => f.replace(/\.ts$/, ""));
   for (const a of adapters) if (!available.includes(a)) throw new Error(`unknown runtime adapter "${a}" in artgen.config.json (available: ${available.join(", ")})`);
   return [...ts(root).sort(), ...[...new Set(adapters)].map((a) => `adapters/${a}.ts`)];
 }
 function vendorRuntime(p2, o = {}) {
   const cfg = projectConfig(p2), root = runtimeRoot(), adapters = cfg.runtime.adapters, files = runtimeFiles(adapters, root);
-  const dir = join14(p2.root, cfg.export.runtimeDir), stampFile = join14(dir, STAMP);
-  const old = existsSync10(stampFile) ? readJson(stampFile) : null;
+  const dir = join16(p2.root, cfg.export.runtimeDir), stampFile = join16(dir, STAMP);
+  const old = existsSync12(stampFile) ? readJson(stampFile) : null;
   const generator = o.generator ?? "artgen";
   const r = { dir: relative6(p2.root, dir).split("\\").join("/"), version: RUNTIME_VERSION, from: old?.runtime ?? null, adapters, written: [], unchanged: [], kept: [], removed: [] };
   const hashes = {};
   const edited = (f) => {
-    const dest = join14(dir, f);
-    return existsSync10(dest) && old?.files[f] !== void 0 && sha(readFileSync10(dest, "utf8")) !== old.files[f];
+    const dest = join16(dir, f);
+    return existsSync12(dest) && old?.files[f] !== void 0 && sha(readFileSync12(dest, "utf8")) !== old.files[f];
   };
   for (const f of files) {
-    const text2 = vendoredSource(f, root), h = sha(text2), dest = join14(dir, f);
-    if (existsSync10(dest)) {
-      const cur = sha(readFileSync10(dest, "utf8"));
+    const text2 = vendoredSource(f, root), h = sha(text2), dest = join16(dir, f);
+    if (existsSync12(dest)) {
+      const cur = sha(readFileSync12(dest, "utf8"));
       if (cur === h) {
         r.unchanged.push(f);
         hashes[f] = h;
@@ -28924,19 +29182,19 @@ function vendorRuntime(p2, o = {}) {
         continue;
       }
     }
-    mkdirSync8(dirname8(dest), { recursive: true });
-    writeFileSync11(dest, text2);
+    mkdirSync9(dirname10(dest), { recursive: true });
+    writeFileSync12(dest, text2);
     r.written.push(f);
     hashes[f] = h;
   }
   for (const f of Object.keys(old?.files ?? {})) {
-    if (files.includes(f) || !existsSync10(join14(dir, f))) continue;
+    if (files.includes(f) || !existsSync12(join16(dir, f))) continue;
     if (!o.force && edited(f)) {
       r.kept.push(f);
       hashes[f] = old.files[f];
       continue;
     }
-    rmSync(join14(dir, f));
+    rmSync(join16(dir, f));
     r.removed.push(f);
   }
   writeJson(stampFile, { runtime: RUNTIME_VERSION, generator, adapters, files: hashes });
@@ -28953,34 +29211,34 @@ var init_runtime = __esm({
     HEADER = `// Vendored by \`artgen export --runtime\` (artgen-runtime ${RUNTIME_VERSION}). Local edits are detected and kept;
 // re-export with --force to overwrite them. Source: packages/artgen-runtime in rstevenson1237/image_tools.
 `;
-    vendoredSource = (file, root = runtimeRoot()) => HEADER + readFileSync10(join14(root, file), "utf8");
+    vendoredSource = (file, root = runtimeRoot()) => HEADER + readFileSync12(join16(root, file), "utf8");
   }
 });
 
 // ../artgen-cli/src/templates.ts
-import { existsSync as existsSync11, mkdirSync as mkdirSync9, readFileSync as readFileSync11, writeFileSync as writeFileSync12 } from "node:fs";
-import { dirname as dirname9, join as join15, resolve as resolve7 } from "node:path";
-import { fileURLToPath as fileURLToPath4 } from "node:url";
+import { existsSync as existsSync13, mkdirSync as mkdirSync10, readFileSync as readFileSync13, writeFileSync as writeFileSync13 } from "node:fs";
+import { dirname as dirname11, join as join17, resolve as resolve8 } from "node:path";
+import { fileURLToPath as fileURLToPath5 } from "node:url";
 function templatesRoot() {
-  const here = dirname9(fileURLToPath4(import.meta.url));
-  for (const p2 of [join15(here, "templates"), join15(here, "..", "templates")]) if (existsSync11(join15(p2, "finish.js"))) return p2;
+  const here = dirname11(fileURLToPath5(import.meta.url));
+  for (const p2 of [join17(here, "templates"), join17(here, "..", "templates")]) if (existsSync13(join17(p2, "finish.js"))) return p2;
   throw new Error(`artgen templates not found next to ${here}`);
 }
 function findTemplate(view, kind) {
   const root = templatesRoot(), alias = KIND_ALIAS[kind] ?? kind;
   for (const [v, k] of [[view, kind], ["topdown", kind], [view, alias], ["topdown", alias], [view, "prop"], ["topdown", "prop"]]) {
-    const dir = join15(root, v, k);
-    if (existsSync11(join15(dir, "base.js"))) return { view: v, kind: k, dir, fallback: v !== view || k !== kind };
+    const dir = join17(root, v, k);
+    if (existsSync13(join17(dir, "base.js"))) return { view: v, kind: k, dir, fallback: v !== view || k !== kind };
   }
   throw new Error(`no template for ${view}/${kind}`);
 }
 function newAsset(path, o) {
-  const t = findTemplate(o.view, o.kind), base = join15(path, "base.v1.js");
-  if (existsSync11(base)) throw new Error(`${base} exists \u2014 write the next version instead (R10)`);
-  mkdirSync9(path, { recursive: true });
+  const t = findTemplate(o.view, o.kind), base = join17(path, "base.v1.js");
+  if (existsSync13(base)) throw new Error(`${base} exists \u2014 write the next version instead (R10)`);
+  mkdirSync10(path, { recursive: true });
   const brief = {
     id: o.id,
-    ...JSON.parse(readFileSync11(join15(t.dir, "brief.json"), "utf8")),
+    ...JSON.parse(readFileSync13(join17(t.dir, "brief.json"), "utf8")),
     kind: o.kind,
     view: o.view,
     ...o.size && { size: o.size },
@@ -28988,16 +29246,16 @@ function newAsset(path, o) {
     ...o.directions && { directions: o.directions },
     ...o.notes && { notes: o.notes }
   };
-  writeFileSync12(join15(path, "brief.json"), JSON.stringify(brief, null, 2) + "\n");
-  writeFileSync12(base, fill(readFileSync11(join15(t.dir, "base.js"), "utf8"), { ID: o.id }));
-  return { files: [join15(path, "brief.json"), base], template: t };
+  writeFileSync13(join17(path, "brief.json"), JSON.stringify(brief, null, 2) + "\n");
+  writeFileSync13(base, fill(readFileSync13(join17(t.dir, "base.js"), "utf8"), { ID: o.id }));
+  return { files: [join17(path, "brief.json"), base], template: t };
 }
 function newFinish(path, n, base, kind) {
-  const file = join15(path, `finish.v${n}.js`);
-  if (existsSync11(file)) throw new Error(`${file} exists`);
-  if (kind === void 0 && existsSync11(join15(path, "brief.json"))) kind = JSON.parse(readFileSync11(join15(path, "brief.json"), "utf8")).kind;
-  writeFileSync12(file, fill(readFileSync11(finishTemplate(kind), "utf8"), { BASE: base, N: String(n) }));
-  return resolve7(file);
+  const file = join17(path, `finish.v${n}.js`);
+  if (existsSync13(file)) throw new Error(`${file} exists`);
+  if (kind === void 0 && existsSync13(join17(path, "brief.json"))) kind = JSON.parse(readFileSync13(join17(path, "brief.json"), "utf8")).kind;
+  writeFileSync13(file, fill(readFileSync13(finishTemplate(kind), "utf8"), { BASE: base, N: String(n) }));
+  return resolve8(file);
 }
 var KIND_ALIAS, fill, FACE_KINDS, finishTemplate;
 var init_templates = __esm({
@@ -29006,32 +29264,32 @@ var init_templates = __esm({
     KIND_ALIAS = { creature: "character", tileset: "tile", texture: "tile", viewmodel: "prop", "ui-icon": "prop" };
     fill = (text2, vars) => text2.replace(/\{\{(\w+)\}\}/g, (m, k) => vars[k] ?? m);
     FACE_KINDS = /* @__PURE__ */ new Set(["character", "creature"]);
-    finishTemplate = (kind) => join15(templatesRoot(), kind && FACE_KINDS.has(kind) ? "finish-character.js" : "finish.js");
+    finishTemplate = (kind) => join17(templatesRoot(), kind && FACE_KINDS.has(kind) ? "finish-character.js" : "finish.js");
   }
 });
 
 // ../artgen-cli/src/w1.ts
-import { existsSync as existsSync12, readdirSync as readdirSync7, readFileSync as readFileSync12 } from "node:fs";
-import { basename as basename3, join as join16, relative as relative7 } from "node:path";
+import { existsSync as existsSync14, readdirSync as readdirSync8, readFileSync as readFileSync14 } from "node:fs";
+import { basename as basename4, join as join18, relative as relative7 } from "node:path";
 function directionVersion(p2, version) {
   const f = directionFile(p2, version);
-  if (existsSync12(f)) return parseDirection(readJson(f));
+  if (existsSync14(f)) return parseDirection(readJson(f));
   const cur = lockedDirection(p2);
   if (cur?.version === version) return cur;
   throw new Error(`direction v${version} is not archived (art/directions/v${version}.json) \u2014 directions locked by older artgen versions are archived on the next lock`);
 }
 function candidateNames(p2) {
-  if (!existsSync12(cdir(p2))) return [];
-  return readdirSync7(cdir(p2)).filter((f) => f.endsWith(".json")).map((f) => f.slice(0, -5)).sort((x, y) => (x.length === 1 ? 0 : 1) - (y.length === 1 ? 0 : 1) || x.localeCompare(y, "en", { numeric: true }));
+  if (!existsSync14(cdir(p2))) return [];
+  return readdirSync8(cdir(p2)).filter((f) => f.endsWith(".json")).map((f) => f.slice(0, -5)).sort((x, y) => (x.length === 1 ? 0 : 1) - (y.length === 1 ? 0 : 1) || x.localeCompare(y, "en", { numeric: true }));
 }
 function loadCandidate(p2, name) {
-  const file = existsSync12(join16(cdir(p2), `${name}.json`)) ? join16(cdir(p2), `${name}.json`) : name;
-  if (!existsSync12(file)) throw new Error(`no candidate ${name} (have: ${candidateNames(p2).join(", ") || "none \u2014 run direction candidates"})`);
+  const file = existsSync14(join18(cdir(p2), `${name}.json`)) ? join18(cdir(p2), `${name}.json`) : name;
+  if (!existsSync14(file)) throw new Error(`no candidate ${name} (have: ${candidateNames(p2).join(", ") || "none \u2014 run direction candidates"})`);
   return parseDirection(readJson(file));
 }
 function lockedDirection(p2) {
-  const f = join16(p2.art, "direction.json");
-  if (!existsSync12(f)) return null;
+  const f = join18(p2.art, "direction.json");
+  if (!existsSync14(f)) return null;
   const raw = readJson(f);
   return isPlaceholderDirection(raw) ? null : parseDirection(raw);
 }
@@ -29039,7 +29297,7 @@ function ensureProbes(p2, view) {
   const created = [], fallbacks = [];
   for (const kind of PROBE_KINDS) {
     const d = probeDir(p2, kind);
-    if (existsSync12(join16(d, "brief.json"))) continue;
+    if (existsSync14(join18(d, "brief.json"))) continue;
     const r = newAsset(d, { id: `probe-${kind}`, kind, view });
     created.push(...r.files.map((f) => rel(p2, f)));
     if (r.template.fallback) fallbacks.push(`${kind}: ${view} has no template yet, used ${r.template.view}/${r.template.kind}`);
@@ -29047,11 +29305,11 @@ function ensureProbes(p2, view) {
   return { created, fallbacks };
 }
 function writeCandidates(p2, iv) {
-  const ivFile = join16(p2.art, "interview.json");
+  const ivFile = join18(p2.art, "interview.json");
   writeJson(ivFile, iv);
   const dirs = generateCandidates(iv), out = [];
   dirs.forEach((d, i) => {
-    const name = "abc"[i], file = join16(cdir(p2), `${name}.json`);
+    const name = "abc"[i], file = join18(cdir(p2), `${name}.json`);
     writeJson(file, d);
     out.push({ name, file: rel(p2, file), summary: [d.theme.notes ?? "", ...describeDirection(d)] });
   });
@@ -29065,7 +29323,7 @@ function probeVersion(a) {
   return [...vs].reverse().find((v) => v.startsWith("finish.")) ?? vs.filter((v) => v.startsWith("base.")).pop();
 }
 function probeAsset(p2, kind, dir) {
-  const path = probeDir(p2, kind), brief = readJson(join16(path, "brief.json"));
+  const path = probeDir(p2, kind), brief = readJson(join18(path, "brief.json"));
   return { path, brief: { ...brief, id: brief.id ?? `probe-${kind}` }, dir, ledgerPath: ledgerPath(p2) };
 }
 async function renderProbes(p2, dir, opts = {}) {
@@ -29091,9 +29349,9 @@ async function writeTile(p2, names) {
     hashes.push(images.character.hash() + images.prop.hash());
   }
   const versions = PROBE_KINDS.map((k) => `${k} ${probeVersion(probeAsset(p2, k, loadCandidate(p2, list5[0])))}`).join(", ");
-  const round3 = (existsSync12(cdir(p2)) ? readdirSync7(cdir(p2)).filter((f) => /^style-tile-r\d+\.png$/.test(f)).length : 0) + 1;
+  const round3 = (existsSync14(cdir(p2)) ? readdirSync8(cdir(p2)).filter((f) => /^style-tile-r\d+\.png$/.test(f)).length : 0) + 1;
   const sheet = styleTile(`style tile round ${round3}: ${versions}`, columns);
-  const path = join16(cdir(p2), `style-tile-r${round3}.png`);
+  const path = join18(cdir(p2), `style-tile-r${round3}.png`);
   writeGrid(path, sheet);
   const tokens = imageTokens(sheet.w, sheet.h);
   appendLedger(ledgerPath(p2), { type: "review", asset: "direction", version: `tile-r${round3}`, sheet: relative7(p2.art, path).split("\\").join("/"), imageTokens: tokens, candidates: list5, by: "agent" });
@@ -29111,7 +29369,7 @@ function writeMix(p2, base, take, name) {
   }
   const b = loadCandidate(p2, base), d = mixDirections(b, parts, `${b.id.replace(/-[a-z]$/, "")}-${n}`);
   d.theme.notes = `mix ${n}: ${base.toUpperCase()} as the base${Object.entries(take).map(([k, v]) => `, ${k} from ${String(v).toUpperCase()}`).join("")}`;
-  const file = join16(cdir(p2), `${n}.json`);
+  const file = join18(cdir(p2), `${n}.json`);
   writeJson(file, d);
   appendLedger(ledgerPath(p2), { type: "note", asset: "direction", note: d.theme.notes, by: "user" });
   return { name: n, file: rel(p2, file), dir: d };
@@ -29120,7 +29378,7 @@ function writeDraft(p2, from, name = "next") {
   const src = from ? loadCandidate(p2, from) : lockedDirection(p2);
   if (!src) throw new Error("nothing to start from: no locked direction; use --from <candidate>");
   const d = { ...JSON.parse(JSON.stringify(src)), status: "draft" };
-  const file = join16(cdir(p2), `${name}.json`);
+  const file = join18(cdir(p2), `${name}.json`);
   writeJson(file, d);
   return { name, file: rel(p2, file) };
 }
@@ -29139,14 +29397,14 @@ async function writeAnchors(p2) {
   };
   for (const kind of PROBE_KINDS) {
     const g = kind === "effect" ? strip2(images.effect) : images[kind];
-    const f = join16(p2.art, "anchors", `${kind}.png`);
+    const f = join18(p2.art, "anchors", `${kind}.png`);
     writeGrid(f, g);
     files.push(relative7(p2.art, f).split("\\").join("/"));
     list5.push({ label: kind, grid: g });
   }
-  const file = join16(p2.art, "direction.json"), raw = readJson(file);
+  const file = join18(p2.art, "direction.json"), raw = readJson(file);
   writeJson(file, { ...raw, anchors: files });
-  const sheet = join16(p2.art, "direction.png");
+  const sheet = join18(p2.art, "direction.png");
   writeGrid(sheet, styleSheet({ ...dir, anchors: files }, list5));
   const versions = Object.fromEntries(Object.entries(renders).map(([k, r]) => [k, r.version]));
   appendLedger(ledgerPath(p2), { type: "note", asset: "direction", version: `v${dir.version}`, note: `anchors from probes ${Object.entries(versions).map(([k, v]) => `${k} ${v}`).join(", ")}`, by: "agent" });
@@ -29156,8 +29414,8 @@ async function lock(p2, name, opts = {}) {
   const chosen = loadCandidate(p2, name), prev = lockedDirection(p2);
   const d = lockDirection(chosen, prev, opts.id);
   d.theme = { ...d.theme, notes: `${d.theme.notes ?? ""}${opts.note ? `. ${opts.note}` : ""}`.trim() };
-  const file = join16(p2.art, "direction.json");
-  if (prev && !existsSync12(directionFile(p2, prev.version))) writeJson(directionFile(p2, prev.version), readJson(file));
+  const file = join18(p2.art, "direction.json");
+  if (prev && !existsSync14(directionFile(p2, prev.version))) writeJson(directionFile(p2, prev.version), readJson(file));
   writeJson(file, d);
   appendLedger(ledgerPath(p2), { type: "approve", asset: "direction", version: `v${d.version}`, note: `locked ${name}${opts.note ? `: ${opts.note}` : ""}`, direction: { id: d.id, version: d.version }, by: "user" });
   const anchors2 = await writeAnchors(p2);
@@ -29167,16 +29425,16 @@ async function lock(p2, name, opts = {}) {
 function show5(p2) {
   const locked = lockedDirection(p2);
   const candidates2 = candidateNames(p2).map((n) => {
-    const raw = readJson(join16(cdir(p2), `${n}.json`)), r = validateDirection(raw);
+    const raw = readJson(join18(cdir(p2), `${n}.json`)), r = validateDirection(raw);
     return r.ok ? { name: n, id: r.direction.id, status: r.direction.status, summary: describeDirection(r.direction) } : { name: n, id: "?", status: "invalid", summary: r.errors.slice(0, 3) };
   });
-  const tiles = existsSync12(cdir(p2)) ? readdirSync7(cdir(p2)).filter((f) => /^style-tile-r\d+\.png$/.test(f)).sort((a, b) => parseInt(a.slice(12)) - parseInt(b.slice(12))).map((f) => rel(p2, join16(cdir(p2), f))) : [];
+  const tiles = existsSync14(cdir(p2)) ? readdirSync8(cdir(p2)).filter((f) => /^style-tile-r\d+\.png$/.test(f)).sort((a, b) => parseInt(a.slice(12)) - parseInt(b.slice(12))).map((f) => rel(p2, join18(cdir(p2), f))) : [];
   const probes = {};
-  for (const k of PROBE_KINDS) if (existsSync12(join16(probeDir(p2, k), "brief.json"))) {
-    const a = { path: probeDir(p2, k), brief: readJson(join16(probeDir(p2, k), "brief.json")), dir: void 0, ledgerPath: ledgerPath(p2) };
+  for (const k of PROBE_KINDS) if (existsSync14(join18(probeDir(p2, k), "brief.json"))) {
+    const a = { path: probeDir(p2, k), brief: readJson(join18(probeDir(p2, k), "brief.json")), dir: void 0, ledgerPath: ledgerPath(p2) };
     probes[k] = versionsIn(a).join(" ");
   }
-  const history = existsSync12(ledgerPath(p2)) ? ledgerFor({ brief: { id: "direction" }, ledgerPath: ledgerPath(p2) }).length : 0;
+  const history = existsSync14(ledgerPath(p2)) ? ledgerFor({ brief: { id: "direction" }, ledgerPath: ledgerPath(p2) }).length : 0;
   return { locked, candidates: candidates2, tiles, probes, history };
 }
 var cdir, probeDir, ledgerPath, rel, directionFile, readInterview;
@@ -29188,31 +29446,31 @@ var init_w1 = __esm({
     init_node();
     init_project();
     init_templates();
-    cdir = (p2) => join16(p2.art, "candidates");
-    probeDir = (p2, kind) => join16(p2.art, "probes", kind);
-    ledgerPath = (p2) => join16(p2.art, "ledger.jsonl");
+    cdir = (p2) => join18(p2.art, "candidates");
+    probeDir = (p2, kind) => join18(p2.art, "probes", kind);
+    ledgerPath = (p2) => join18(p2.art, "ledger.jsonl");
     rel = (p2, f) => relative7(p2.root, f).split("\\").join("/");
-    directionFile = (p2, version) => join16(p2.art, "directions", `v${version}.json`);
+    directionFile = (p2, version) => join18(p2.art, "directions", `v${version}.json`);
     readInterview = (file) => {
-      const iv = JSON.parse(readFileSync12(file, "utf8"));
-      if (!iv.pitch) throw new Error(`${basename3(file)}: "pitch" is required`);
+      const iv = JSON.parse(readFileSync14(file, "utf8"));
+      if (!iv.pitch) throw new Error(`${basename4(file)}: "pitch" is required`);
       return iv;
     };
   }
 });
 
 // ../artgen-cli/src/w2.ts
-import { copyFileSync, existsSync as existsSync13, mkdirSync as mkdirSync10, readdirSync as readdirSync8, readFileSync as readFileSync13, writeFileSync as writeFileSync13 } from "node:fs";
-import { dirname as dirname10, join as join17, relative as relative8, resolve as resolve8 } from "node:path";
+import { copyFileSync, existsSync as existsSync15, mkdirSync as mkdirSync11, readdirSync as readdirSync9, readFileSync as readFileSync15, writeFileSync as writeFileSync14 } from "node:fs";
+import { dirname as dirname12, join as join19, relative as relative8, resolve as resolve9 } from "node:path";
 function readBriefs(p2) {
-  if (!existsSync13(briefsFile(p2))) return [];
-  const r = parseBriefs(readFileSync13(briefsFile(p2), "utf8"));
+  if (!existsSync15(briefsFile(p2))) return [];
+  const r = parseBriefs(readFileSync15(briefsFile(p2), "utf8"));
   if (!r.ok) throw new Error(`art/briefs.yaml:
   ${r.errors.join("\n  ")}`);
   return r.briefs;
 }
 function readContract(p2, id2) {
-  return existsSync13(contractFile(p2, id2)) ? readJson(contractFile(p2, id2)) : void 0;
+  return existsSync15(contractFile(p2, id2)) ? readJson(contractFile(p2, id2)) : void 0;
 }
 function addBrief(p2, b, o = {}) {
   const old = readContract(p2, b.id), dir = old && lockedDirection(p2);
@@ -29222,17 +29480,17 @@ function addBrief(p2, b, o = {}) {
   ${d.breaking.join("\n  ")}
 game code may depend on it; re-run with --break-contract if that is intended`);
   }
-  const text2 = existsSync13(briefsFile(p2)) ? readFileSync13(briefsFile(p2), "utf8") : "";
-  writeFileSync13(briefsFile(p2), upsertBrief(text2, b));
+  const text2 = existsSync15(briefsFile(p2)) ? readFileSync15(briefsFile(p2), "utf8") : "";
+  writeFileSync14(briefsFile(p2), upsertBrief(text2, b));
   return readBriefs(p2);
 }
 function removeBriefFile(p2, id2) {
-  const text2 = readFileSync13(briefsFile(p2), "utf8"), out = removeBrief(text2, id2);
-  if (out !== text2) writeFileSync13(briefsFile(p2), out);
+  const text2 = readFileSync15(briefsFile(p2), "utf8"), out = removeBrief(text2, id2);
+  if (out !== text2) writeFileSync14(briefsFile(p2), out);
   return out !== text2;
 }
 function resolveAssetArg(p2, arg) {
-  if (existsSync13(arg)) return arg;
+  if (existsSync15(arg)) return arg;
   if (p2) {
     const b = readBriefs(p2).find((x) => x.id === arg);
     if (b) return assetPathOf(p2, b);
@@ -29252,17 +29510,17 @@ function briefWarnings(b, dir) {
 }
 function scaffoldAsset(p2, b, dir) {
   const path = assetPathOf(p2, b), t = templateFor(b, dir), template = `${t.view}/${t.kind}`;
-  if (existsSync13(join17(path, "base.v1.js"))) return { path, created: false, template };
-  mkdirSync10(path, { recursive: true });
-  const tb = readJson(join17(t.dir, "brief.json"));
-  if (!existsSync13(join17(path, "brief.json"))) writeJson(join17(path, "brief.json"), { id: b.id, template, review: tb.review ?? {} });
-  writeFileSync13(join17(path, "base.v1.js"), readFileSync13(join17(t.dir, "base.js"), "utf8").replace(/\{\{ID\}\}/g, b.id));
+  if (existsSync15(join19(path, "base.v1.js"))) return { path, created: false, template };
+  mkdirSync11(path, { recursive: true });
+  const tb = readJson(join19(t.dir, "brief.json"));
+  if (!existsSync15(join19(path, "brief.json"))) writeJson(join19(path, "brief.json"), { id: b.id, template, review: tb.review ?? {} });
+  writeFileSync14(join19(path, "base.v1.js"), readFileSync15(join19(t.dir, "base.js"), "utf8").replace(/\{\{ID\}\}/g, b.id));
   return { path, created: true, template };
 }
 async function assetRow(p2, b) {
   const path = assetPathOf(p2, b);
   const base = { id: b.id, kind: b.kind, path: rel2(p2, path), issues: effectObjectIssues(b).map((x) => `brief: ${x}`), imageTokens: 0 };
-  if (!existsSync13(join17(path, "base.v1.js")) && !versionsInPath(path).length) return { ...base, status: "brief", why: "not started" };
+  if (!existsSync15(join19(path, "base.v1.js")) && !versionsInPath(path).length) return { ...base, status: "brief", why: "not started" };
   const a = openAsset(path), st = await passState(a), ledger = ledgerFor(a);
   const imageTokens2 = ledger.filter((e) => e.type === "review").reduce((n, e) => n + (e.imageTokens ?? 0), 0);
   if (!ledger.length && st.next.action === "review" && st.next.version === "base.v1") return { ...base, status: "in-pipeline", next: st.next, why: "base.v1 from the template: adapt it to the brief, then review", imageTokens: imageTokens2 };
@@ -29317,7 +29575,7 @@ async function make(p2, ids, o = {}) {
   const scaffolded = [], finals = [], overBudget = [], rows2 = [], reviewed = /* @__PURE__ */ new Map();
   for (const b of briefs) {
     const sc = scaffoldAsset(p2, b, dir);
-    if (sc.created) scaffolded.push(rel2(p2, join17(sc.path, "base.v1.js")));
+    if (sc.created) scaffolded.push(rel2(p2, join19(sc.path, "base.v1.js")));
     let row = await assetRow(p2, b);
     const a = openAsset(sc.path), ledger = ledgerFor(a);
     if (row.next?.action === "review") {
@@ -29344,7 +29602,7 @@ async function make(p2, ids, o = {}) {
   const roster3 = earlyRoster(p2, rows2.filter((r) => active.has(r.id)));
   const held = new Set(roster3?.ids ?? []), pending = rows2.filter((r) => active.has(r.id) && r.next && r.next.action !== "ready" && !held.has(r.id));
   const n0 = pending[0], next4 = n0 && { id: n0.id, path: n0.path, step: n0.next };
-  const finalRoster = rows2.filter((r) => r.status === "final" && !TILE_KINDS.has(r.kind) && !ledgerFor(openAsset(join17(p2.root, r.path))).some((e) => e.type === "roster" && e.version === r.final && Array.isArray(e.issues))).map((r) => r.id);
+  const finalRoster = rows2.filter((r) => r.status === "final" && !TILE_KINDS.has(r.kind) && !ledgerFor(openAsset(join19(p2.root, r.path))).some((e) => e.type === "roster" && e.version === r.final && Array.isArray(e.issues))).map((r) => r.id);
   const res = { rows: rows2, ...next4 && { next: next4 }, scaffolded, finals, overBudget, ...roster3 && { roster: roster3 }, ...finalRoster.length >= 2 && { finalRoster } };
   if (!o.parallel) return res;
   const packets = pending.map((r) => workPacket(r, reviewed.get(r.id) ?? true)).filter((x) => !!x), makers = packets.filter((x) => x.role === "maker");
@@ -29357,7 +29615,7 @@ function earlyRoster(p2, rows2) {
   if (figures.length < 2) return void 0;
   const atV1 = v1Rows(p2, figures), ready2 = new Set(atV1.map((r) => r.id));
   const beforeV1 = figures.filter((r) => !ready2.has(r.id) && r.next?.action !== "ready" && (r.next?.action === "review" || r.next?.action === "write-base") && "version" in r.next && r.next.version === "base.v1");
-  const uncovered2 = atV1.filter((r) => !ledgerFor(openAsset(join17(p2.root, r.path))).some((e) => e.type === "roster" && e.version === "base.v1" && Array.isArray(e.issues)));
+  const uncovered2 = atV1.filter((r) => !ledgerFor(openAsset(join19(p2.root, r.path))).some((e) => e.type === "roster" && e.version === "base.v1" && Array.isArray(e.issues)));
   if (uncovered2.length < 2 && !(uncovered2.length && atV1.length >= 2)) return void 0;
   if (beforeV1.length) return { stage: "v1", ids: uncovered2.map((r) => r.id), why: `holding v2 for the v1 roster until ${beforeV1.map((r) => r.id).join(", ")} ${beforeV1.length > 1 ? "have" : "has"} a scored v1` };
   return { stage: "v1", ids: uncovered2.map((r) => r.id), why: "every v1 is scored: run the v1 roster (`roster --stage v1`, a fresh art-reviewer, `roster record`) before any v2 \u2014 its notes go into each v2 brief" };
@@ -29374,7 +29632,7 @@ async function gallery(p2, opts = {}) {
   const dir = requireLocked(p2), want = opts.statuses ?? ["final"], rows2 = (await projectStatus(p2, opts.ids)).filter((r) => r.final && (opts.ids?.length || want.includes(r.status)));
   const items = [], assets = [];
   for (const r of rows2) {
-    const a = openAsset(join17(p2.root, r.path)), v = await renderVersion(a, r.final);
+    const a = openAsset(join19(p2.root, r.path)), v = await renderVersion(a, r.final);
     const rv = reviewOf(a, r.final);
     const tag = `${r.id} ${r.final} ${r.score ?? "-"}${rv.blind !== void 0 ? ` b${rv.blind}` : rv.reviewer === "self" ? " SELF" : ""}${r.gate === false ? " GATE" : ""}${r.belowBar ? " BELOW BAR" : ""}${r.top ? ` final\u2260best ${r.top.version} ${r.top.score}` : ""}${r.issues.length ? ` !${r.issues.length}` : ""}`;
     items.push({ label: tag, grid: thumb(v.render), bg: a.brief.review?.bg ?? dir.background });
@@ -29383,10 +29641,10 @@ async function gallery(p2, opts = {}) {
   if (!items.length) return { sheets: [], tokens: 0, assets };
   const sheets = [];
   let tokens = 0;
-  const n0 = (existsSync13(join17(p2.art, "sheets")) ? readdirCount(join17(p2.art, "sheets"), /^gallery-\d+\.png$/) : 0) + 1;
+  const n0 = (existsSync15(join19(p2.art, "sheets")) ? readdirCount(join19(p2.art, "sheets"), /^gallery-\d+\.png$/) : 0) + 1;
   for (let i = 0; i < items.length; i += 12) {
     const page2 = items.slice(i, i + 12), sheet = contactSheet(`${dir.id} v${dir.version}: finished assets ${i + 1}-${i + page2.length} of ${items.length} (score, b blind score, !issues; BELOW BAR under ${projectConfig(p2).review.approveMin})`, page2, 4, Math.min(4, page2.length));
-    const f = join17(p2.art, "sheets", `gallery-${n0 + i / 12}.png`);
+    const f = join19(p2.art, "sheets", `gallery-${n0 + i / 12}.png`);
     writeGrid(f, sheet);
     sheets.push(rel2(p2, f));
     tokens += imageTokens(sheet.w, sheet.h);
@@ -29398,14 +29656,14 @@ function v1Rows(p2, rows2) {
   const out = [];
   for (const r of rows2) {
     if (TILE_KINDS.has(r.kind) || r.status === "brief") continue;
-    const a = openAsset(join17(p2.root, r.path)), vs = versionsIn(a);
+    const a = openAsset(join19(p2.root, r.path)), vs = versionsIn(a);
     if (!vs.includes("base.v1") || vs.includes("base.v2") || (a.budget?.revisionPasses ?? 3) < 2) continue;
     if (ledgerFor(a).some((e) => e.type === "score" && !e.blind && e.version === "base.v1")) out.push(r);
   }
   return out;
 }
 async function rosterRun(p2, o = {}) {
-  const dir = requireLocked(p2), briefs = readBriefs(p2), ledgerAll = parseLedger(existsSync13(ledgerFile(p2)) ? readFileSync13(ledgerFile(p2), "utf8") : ""), stage = o.stage ?? "final";
+  const dir = requireLocked(p2), briefs = readBriefs(p2), ledgerAll = parseLedger(existsSync15(ledgerFile(p2)) ? readFileSync15(ledgerFile(p2), "utf8") : ""), stage = o.stage ?? "final";
   const ids = o.ids?.length ? o.ids : void 0;
   const all = await projectStatus(p2, ids), rows2 = stage === "v1" ? v1Rows(p2, all) : all.filter((r) => r.final);
   const items = [], versions = {}, skipped = [];
@@ -29415,14 +29673,14 @@ async function rosterRun(p2, o = {}) {
       skipped.push(`${r.id} (${b.kind})`);
       continue;
     }
-    const v = await renderVersion(openAsset(join17(p2.root, r.path)), version);
+    const v = await renderVersion(openAsset(join19(p2.root, r.path)), version);
     items.push({ id: r.id, kind: b.kind, grid: v.render.cells[0].grid, drawn: drawnHeight(standFrames(v.render)), notes: b.notes, height: b.height });
     versions[r.id] = version;
   }
   if (items.length < 2) throw new Error(`roster: needs at least two ${stage === "v1" ? "non-tile assets with a scored base.v1 and no v2" : "finished non-tile assets"} (have ${items.length})`);
   const seed = o.seed ?? ledgerAll.filter((e) => e.type === "roster" && e.asset === "roster" && e.key).length + 1;
   const res = roster(items, { bg: dir.background ?? "#202020", pxPerMetre: pxPerMetre(dir), heightFail: projectConfig(p2).review.heightFail, seed });
-  const f = (n) => join17(p2.art, "sheets", n), many = res.pages.length > 1, sheets = [];
+  const f = (n) => join19(p2.art, "sheets", n), many = res.pages.length > 1, sheets = [];
   let tokens = 0;
   res.pages.forEach((pg, i) => {
     const sfx = many ? `-${i + 1}` : "";
@@ -29437,14 +29695,14 @@ async function rosterRun(p2, o = {}) {
     ...many && { pages: res.pages.map((pg, i) => ({ lineup: `roster-lineup-${i + 1}.png`, silhouettes: `roster-silhouettes-${i + 1}.png`, ids: pg.ids })) },
     assets: [...items].sort((a, b) => a.id.localeCompare(b.id)).map((it) => ({ id: it.id, kind: it.kind, notes: it.notes ?? "", ...it.height && { height: it.height } }))
   });
-  appendLedger(ledgerFile(p2), { type: "roster", asset: "roster", stage, key: res.key, versions, seed, sizes: res.sizes, pairs: res.pairs, sheet: sheets.map((x) => relative8(p2.art, join17(p2.root, x)).split("\\").join("/")).join(","), imageTokens: tokens, by: "agent" });
+  appendLedger(ledgerFile(p2), { type: "roster", asset: "roster", stage, key: res.key, versions, seed, sizes: res.sizes, pairs: res.pairs, sheet: sheets.map((x) => relative8(p2.art, join19(p2.root, x)).split("\\").join("/")).join(","), imageTokens: tokens, by: "agent" });
   return { lineup: sheets[0], silhouettes: sheets[1], sheets, assets: rel2(p2, f("roster-assets.json")), tokens, seed, stage, sizes: res.sizes, pairs: res.pairs, skipped };
 }
 function rosterRecord(p2, file, reviewer = "self") {
-  const ledgerAll = parseLedger(existsSync13(ledgerFile(p2)) ? readFileSync13(ledgerFile(p2), "utf8") : "");
+  const ledgerAll = parseLedger(existsSync15(ledgerFile(p2)) ? readFileSync15(ledgerFile(p2), "utf8") : "");
   const run = [...ledgerAll].reverse().find((e) => e.type === "roster" && e.asset === "roster" && e.key);
   if (!run) throw new Error("roster record: run `artgen roster` first");
-  const review2 = readJson(resolve8(file)), key2 = run.key, versions = run.versions;
+  const review2 = readJson(resolve9(file)), key2 = run.key, versions = run.versions;
   const issues = rosterIssues(review2, key2);
   for (const id2 of Object.values(key2)) {
     const s2 = (review2.silhouettes ?? []).find((x) => key2[x.letter] === id2);
@@ -29476,16 +29734,16 @@ async function approve(p2, id2, note = "") {
   if (!r.report.pass) throw new Error(`${id2} ${row.final}: the gate fails (${r.report.checks.filter((c) => c.status === "fail").map((c) => c.id).join(", ")}) \u2014 give feedback instead (R6)`);
   const sheet = [...ledgerFor(a)].reverse().find((e2) => e2.type === "review" && e2.version === row.final)?.sheet;
   if (!sheet) throw new Error(`${id2} ${row.final}: no review sheet yet \u2014 artgen review first (R6)`);
-  const kept = join17(p2.art, "sheets", "approved", `${id2}-${row.final}.png`), src = resolve8(dirname10(ledgerFile(p2)), String(sheet));
-  if (existsSync13(src)) {
-    mkdirSync10(dirname10(kept), { recursive: true });
+  const kept = join19(p2.art, "sheets", "approved", `${id2}-${row.final}.png`), src = resolve9(dirname12(ledgerFile(p2)), String(sheet));
+  if (existsSync15(src)) {
+    mkdirSync11(dirname12(kept), { recursive: true });
     copyFileSync(src, kept);
   }
   const rv = reviewOf(a, row.final), cfg = projectConfig(p2).review, warnings = [];
   if (rv.blind === void 0) warnings.push(rv.reviewer === "self" || !rv.reviewer ? "scored only by the agent that made it, with no blind re-score" : "no blind re-score of the final");
   warnings.push(...row.issues.filter((x) => x.startsWith("blind re-score")));
   if (rv.blind !== void 0 && rv.blind < cfg.approveMin && !warnings.some((x) => x.startsWith("blind re-score"))) warnings.push(`blind re-score ${rv.blind} is under ${cfg.approveMin}`);
-  const e = { type: "approve", asset: id2, version: row.final, sourceHash: finalHash(a, row.final), outputHash: r.strip.hash(), sheet: existsSync13(kept) ? relative8(p2.art, kept).split("\\").join("/") : sheet, direction: { id: dir.id, version: dir.version }, note, ...warnings.length && { warnings }, by: "user" };
+  const e = { type: "approve", asset: id2, version: row.final, sourceHash: finalHash(a, row.final), outputHash: r.strip.hash(), sheet: existsSync15(kept) ? relative8(p2.art, kept).split("\\").join("/") : sheet, direction: { id: dir.id, version: dir.version }, note, ...warnings.length && { warnings }, by: "user" };
   appendLedger(ledgerFile(p2), e);
   return { ts: (/* @__PURE__ */ new Date()).toISOString(), ...e };
 }
@@ -29528,7 +29786,7 @@ async function exportPacks(p2, o = {}) {
     for (const r of rows2) {
       const b = briefs.find((x) => x.id === r.id);
       if (!ok(r.status) || !inPack(b, pack, def.include)) continue;
-      const a = openAsset(join17(p2.root, r.path)), n = Math.max(1, b.variants ?? 1), renders = [];
+      const a = openAsset(join19(p2.root, r.path)), n = Math.max(1, b.variants ?? 1), renders = [];
       for (let k = 0; k < n; k++) renders.push((await renderVersion(a, r.final, { variant: k })).render);
       inputs.push({ brief: a.brief, view: a.brief.view ?? dir.camera.view, renders, version: r.final, sourceHash: finalHash(a, r.final), draft: r.status === "final" });
     }
@@ -29552,15 +29810,15 @@ async function exportPacks(p2, o = {}) {
   ${refused.join("\n  ")}
 game code indexes these states and frames (art/contracts/<id>.json). Restore the brief's anims/states/directions and the base's anchors, or re-run with --break-contract <id> once the game code is updated`);
   for (const { pack, built, inputs } of builds) {
-    const pdir = join17(p2.root, cfg.export.packDir, pack);
+    const pdir = join19(p2.root, cfg.export.packDir, pack);
     built.atlases.forEach((g, i) => {
-      writeGrid(join17(pdir, built.manifest.atlases[i]), g);
-      writeJson(join17(pdir, built.manifest.atlases[i].replace(/\.png$/, ".aseprite.json")), built.aseprite[i]);
+      writeGrid(join19(pdir, built.manifest.atlases[i]), g);
+      writeJson(join19(pdir, built.manifest.atlases[i].replace(/\.png$/, ".aseprite.json")), built.aseprite[i]);
     });
-    built.normals?.forEach((g, i) => writeGrid(join17(pdir, built.manifest.normals[i]), g));
-    writeJson(join17(pdir, "pack.json"), built.manifest);
+    built.normals?.forEach((g, i) => writeGrid(join19(pdir, built.manifest.normals[i]), g));
+    writeJson(join19(pdir, "pack.json"), built.manifest);
     for (const inp of inputs) appendLedger(ledgerFile(p2), { type: "export", asset: inp.brief.id, version: inp.version, sourceHash: inp.sourceHash, pack, direction: { id: dir.id, version: dir.version }, ...inp.draft && { draft: true }, by: "agent" });
-    out.push({ pack, dir: rel2(p2, pdir), atlases: built.manifest.atlases.map((f) => rel2(p2, join17(pdir, f))), assets: inputs.map((i) => i.brief.id), drafts: built.manifest.drafts ?? [] });
+    out.push({ pack, dir: rel2(p2, pdir), atlases: built.manifest.atlases.map((f) => rel2(p2, join19(pdir, f))), assets: inputs.map((i) => i.brief.id), drafts: built.manifest.drafts ?? [] });
     const pub = cfg.export.packDir.replace(/\\/g, "/").replace(/^\.?\/?/, "");
     forTs.push({ manifest: built.manifest, url: pub.startsWith("public/") || pub === "public" ? `/${pub.slice(7)}${pub.length > 7 ? "/" : ""}${pack}/pack.json`.replace(/\/+/g, "/") : `${pub}/${pack}/pack.json` });
   }
@@ -29568,10 +29826,10 @@ game code indexes these states and frames (art/contracts/<id>.json). Restore the
     writeJson(contractFile(p2, next4.asset), next4);
     appendLedger(ledgerFile(p2), { type: "contract", asset: next4.asset, change: change.change, ...change.notes.length && { notes: change.notes }, by: "agent" });
   }
-  const tsFile = join17(p2.root, cfg.export.assetsTs);
+  const tsFile = join19(p2.root, cfg.export.assetsTs);
   if (forTs.length) {
-    mkdirSync10(dirname10(tsFile), { recursive: true });
-    writeFileSync13(tsFile, assetsTs(forTs));
+    mkdirSync11(dirname12(tsFile), { recursive: true });
+    writeFileSync14(tsFile, assetsTs(forTs));
   }
   const runtime = o.runtime ? vendorRuntime(p2, { force: o.force, generator: o.generator }) : void 0;
   return { packs: out, assetsTs: forTs.length ? rel2(p2, tsFile) : "", skipped, contracts: contracts.map((c) => c.change), ...runtime && { runtime } };
@@ -29580,10 +29838,10 @@ async function restyle(p2, o = {}) {
   const to = requireLocked(p2), from = directionVersion(p2, o.from ?? to.version - 1);
   if (from.version === to.version) throw new Error(`nothing to restyle: direction is v${to.version}`);
   const rows2 = (await projectStatus(p2)).filter((r) => r.final), sheetRows = [], assets = [];
-  const fromFile = join17(p2.art, "directions", `v${from.version}.json`);
+  const fromFile = join19(p2.art, "directions", `v${from.version}.json`);
   for (const r of rows2) {
-    const path = join17(p2.root, r.path), a = openAsset(path), old = openAsset(path, { direction: existsSync13(fromFile) ? fromFile : void 0 });
-    if (!existsSync13(fromFile)) old.dir = from;
+    const path = join19(p2.root, r.path), a = openAsset(path), old = openAsset(path, { direction: existsSync15(fromFile) ? fromFile : void 0 });
+    if (!existsSync15(fromFile)) old.dir = from;
     const [before, after] = [await renderVersion(old, r.final), await renderVersion(a, r.final)];
     const d = restyleDiff(before.strip, after.strip, from, to);
     sheetRows.push({ label: `${r.id} ${r.final}: ${d.changedPct}% px changed, tokens kept ${Math.round(d.tokenSame * 100)}%${after.report.pass ? "" : " GATE FAIL"}${after.stale?.length ? " FINISH-STALE" : ""}`, before: thumb(before.render), after: thumb(after.render), mask: tokenDiffMask(thumb(before.render), thumb(after.render), from, to), bg: to.background });
@@ -29591,7 +29849,7 @@ async function restyle(p2, o = {}) {
     appendLedger(ledgerFile(p2), { type: "restyle", asset: r.id, version: r.final, from: { id: from.id, version: from.version }, direction: { id: to.id, version: to.version }, changedPct: d.changedPct, tokenSame: d.tokenSame, consistent: d.consistent, gate: after.report.pass, outputHash: after.strip.hash(), ...after.stale?.length && { stale: after.stale }, by: "agent" });
   }
   const sheet = restyleSheet(`restyle ${from.id} v${from.version} -> ${to.id} v${to.version}`, sheetRows);
-  const f = join17(p2.art, "sheets", `restyle-v${from.version}-v${to.version}.png`);
+  const f = join19(p2.art, "sheets", `restyle-v${from.version}-v${to.version}.png`);
   writeGrid(f, sheet);
   return { from: from.version, to: to.version, sheet: rel2(p2, f), tokens: imageTokens(sheet.w, sheet.h), assets };
 }
@@ -29600,7 +29858,7 @@ async function importEdit(p2, id2, png, o = {}) {
   if (!b) throw new Error(`no brief ${id2}`);
   const dir = requireLocked(p2), row = await assetRow(p2, b);
   if (!row.final) throw new Error(`${id2} is ${row.status}: import-edit applies to a finished asset`);
-  const a = openAsset(assetPathOf(p2, b)), r = await renderVersion(a, row.final), edited = readGrid(resolve8(png)), [w, h] = r.render.size;
+  const a = openAsset(assetPathOf(p2, b)), r = await renderVersion(a, row.final), edited = readGrid(resolve9(png)), [w, h] = r.render.size;
   const cells = r.render.cells;
   let pieces2;
   if (o.cell) {
@@ -29633,16 +29891,16 @@ async function importEdit(p2, id2, png, o = {}) {
   if (!pixels) throw new Error(`${png}: no pixel differs from ${row.final}`);
   const vs = versionsIn(a), n = Math.max(0, ...vs.map(parseVersion).filter((v) => v.kind === "finish").map((v) => v.n)) + 1;
   const fin = parseVersion(row.final), base = fin.kind === "finish" ? r.base : row.final, prev = fin.kind === "finish" ? row.final : void 0;
-  const file = join17(a.path, `finish.v${n}.js`);
-  const body2 = Object.entries(edits).map(([k, ops]) => `  '${k}': ${JSON.stringify(ops)},`).join("\n");
-  writeFileSync13(file, `// finish.v${n} \u2014 hand edit imported from ${relative8(a.path, resolve8(png)).split("\\").join("/")} (artgen import-edit):
+  const file = join19(a.path, `finish.v${n}.js`);
+  const body3 = Object.entries(edits).map(([k, ops]) => `  '${k}': ${JSON.stringify(ops)},`).join("\n");
+  writeFileSync14(file, `// finish.v${n} \u2014 hand edit imported from ${relative8(a.path, resolve9(png)).split("\\").join("/")} (artgen import-edit):
 // ${pixels} pixels in ${Object.keys(edits).length} cells, as colour tokens so the edit survives a restyle.${prev ? ` Replays ${prev} first.` : ""}
 ${prev ? `import * as prev from './${prev}.js';
 ` : ""}export const base = '${base}';
 export const meta = { notes: 'hand edit (import-edit)' };
 
 const EDITS = {
-${body2}
+${body3}
 };
 
 export function finish(g, ctx) {
@@ -29652,7 +29910,7 @@ ${prev ? "  g = prev.finish(g, ctx) ?? g;\n" : ""}  for (const [x, y, t] of EDIT
   return g;
 }
 `);
-  appendLedger(ledgerFile(p2), { type: "import-edit", asset: id2, version: `finish.v${n}`, on: row.final, file: rel2(p2, resolve8(png)), pixels, snapped, by: "user" });
+  appendLedger(ledgerFile(p2), { type: "import-edit", asset: id2, version: `finish.v${n}`, on: row.final, file: rel2(p2, resolve9(png)), pixels, snapped, by: "user" });
   appendLedger(ledgerFile(p2), { type: "feedback", asset: id2, route: "finish", opens: `finish.v${n}`, on: row.final, note: `hand edit: ${pixels} px (import-edit)`, by: "user" });
   return { file: rel2(p2, file), pixels, cells: Object.keys(edits).length, snapped, conflicts };
 }
@@ -29668,32 +29926,32 @@ function projectAnalytics(p2, title) {
 }
 function projectMetas(p2, dir) {
   return readBriefs(p2).map((b) => {
-    const bj = join17(assetPathOf(p2, b), "brief.json"), local = existsSync13(bj) ? readJson(bj) : {};
+    const bj = join19(assetPathOf(p2, b), "brief.json"), local = existsSync15(bj) ? readJson(bj) : {};
     const size = Array.isArray(b.size) ? b.size.join("x") : b.size ?? b.kind;
     return { id: b.id, kind: b.kind, view: b.view ?? dir?.camera.view, size, template: local.template, importance: b.importance ?? "standard" };
   });
 }
 function ledgerSet(dir) {
-  const root = resolve8(dir), name = relative8(process.cwd(), root).split("\\").join("/") || ".";
-  if (existsSync13(join17(root, "art", "artgen.config.json"))) {
-    const p2 = { root, art: join17(root, "art") };
+  const root = resolve9(dir), name = relative8(process.cwd(), root).split("\\").join("/") || ".";
+  if (existsSync15(join19(root, "art", "artgen.config.json"))) {
+    const p2 = { root, art: join19(root, "art") };
     return { project: name, ledger: parseAll(ledgerFile(p2)), metas: projectMetas(p2, lockedDirection(p2)), config: projectConfig(p2) };
   }
-  if (!existsSync13(join17(root, "ledger.jsonl"))) throw new Error(`${dir}: neither a project (art/artgen.config.json) nor a folder with ledger.jsonl`);
+  if (!existsSync15(join19(root, "ledger.jsonl"))) throw new Error(`${dir}: neither a project (art/artgen.config.json) nor a folder with ledger.jsonl`);
   const metas = [];
-  for (const d of readdirSync8(root, { withFileTypes: true })) {
-    const bj = join17(root, d.name, "brief.json");
-    if (!d.isDirectory() || !existsSync13(bj)) continue;
+  for (const d of readdirSync9(root, { withFileTypes: true })) {
+    const bj = join19(root, d.name, "brief.json");
+    if (!d.isDirectory() || !existsSync15(bj)) continue;
     const b = readJson(bj);
     metas.push({ id: b.id ?? d.name, kind: b.kind, view: b.view, size: Array.isArray(b.size) ? b.size.join("x") : b.size, template: b.template, importance: b.importance ?? "standard" });
   }
-  return { project: name, ledger: parseAll(join17(root, "ledger.jsonl")), metas };
+  return { project: name, ledger: parseAll(join19(root, "ledger.jsonl")), metas };
 }
 function pooledAnalytics(dirs, o = {}) {
   const r = recommend(dirs.map(ledgerSet), { minAssets: o.minAssets });
   let applied;
   if (o.apply) {
-    const f = join17(o.apply.art, "artgen.config.json"), raw = readJson(f), next4 = applyRecommendations(mergeConfig(raw), r.patch);
+    const f = join19(o.apply.art, "artgen.config.json"), raw = readJson(f), next4 = applyRecommendations(mergeConfig(raw), r.patch);
     writeJson(f, { ...raw, budget: { ...raw.budget, ...next4.budget.perKind && { perKind: next4.budget.perKind } }, models: next4.models });
     applied = rel2(o.apply, f);
   }
@@ -29712,22 +29970,22 @@ var init_w2 = __esm({
     init_project();
     init_templates();
     init_w1();
-    briefsFile = (p2) => join17(p2.art, "briefs.yaml");
-    ledgerFile = (p2) => join17(p2.art, "ledger.jsonl");
+    briefsFile = (p2) => join19(p2.art, "briefs.yaml");
+    ledgerFile = (p2) => join19(p2.art, "ledger.jsonl");
     rel2 = (p2, f) => relative8(p2.root, f).split("\\").join("/");
-    contractFile = (p2, id2) => join17(p2.art, "contracts", `${id2}.json`);
+    contractFile = (p2, id2) => join19(p2.art, "contracts", `${id2}.json`);
     allowed = (list5, id2) => !!list5 && (list5.includes("*") || list5.includes(id2));
-    assetPathOf = (p2, b) => join17(p2.art, briefDir(b));
-    versionsInPath = (path) => existsSync13(path) ? versionsIn({ path }) : [];
+    assetPathOf = (p2, b) => join19(p2.art, briefDir(b));
+    versionsInPath = (path) => existsSync15(path) ? versionsIn({ path }) : [];
     DONE = ["final", "approved", "exported"];
-    readdirCount = (d, re) => readdirSync8(d).filter((f) => re.test(f)).length;
-    parseAll = (f) => existsSync13(f) ? parseLedger(readFileSync13(f, "utf8")) : [];
+    readdirCount = (d, re) => readdirSync9(d).filter((f) => re.test(f)).length;
+    parseAll = (f) => existsSync15(f) ? parseLedger(readFileSync15(f, "utf8")) : [];
   }
 });
 
 // ../artgen-cli/src/ops/art-shared.ts
-import { existsSync as existsSync14 } from "node:fs";
-import { join as join18 } from "node:path";
+import { existsSync as existsSync16 } from "node:fs";
+import { join as join20 } from "node:path";
 function versionOf(ctx, a, i, mcpEmpty) {
   if (typeof i.version === "string") return i.version;
   const vs = versionsIn(a);
@@ -29736,11 +29994,11 @@ function versionOf(ctx, a, i, mcpEmpty) {
   return vs[vs.length - 1];
 }
 function toolDirection(cmd, project2, override) {
-  const file = override ?? (project2 ? join18(project2.art, "direction.json") : void 0);
+  const file = override ?? (project2 ? join20(project2.art, "direction.json") : void 0);
   const fix = "lock one first (artgen direction candidates \u2192 tile \u2192 lock, or /artgen-direction in Claude Code), or pass --direction <file|benchmark>";
-  if (override && !existsSync14(override) && ["benchmark", "alt"].includes(override)) return { p: project2, dir: resolveDirection(override) };
-  if (override && !existsSync14(override)) throw new Error(`${cmd}: --direction ${override}: no such file (or bench direction: benchmark, alt)`);
-  if (!file || !existsSync14(file)) throw new Error(`${cmd}: no art direction found \u2014 ${fix}`);
+  if (override && !existsSync16(override) && ["benchmark", "alt"].includes(override)) return { p: project2, dir: resolveDirection(override) };
+  if (override && !existsSync16(override)) throw new Error(`${cmd}: --direction ${override}: no such file (or bench direction: benchmark, alt)`);
+  if (!file || !existsSync16(file)) throw new Error(`${cmd}: no art direction found \u2014 ${fix}`);
   const raw = readJson(file), v = validateDirection(raw);
   if (!v.ok) throw new Error(raw?.status === "draft" && !override ? `${cmd}: the art direction is still a draft \u2014 ${fix}` : `${cmd}: ${file} is not a valid direction:
   ${v.errors.join("\n  ")}`);
@@ -29779,12 +30037,12 @@ var init_art_shared = __esm({
     statusTable = (rows2) => rows2.map((r) => `  ${r.id.padEnd(16)} ${r.status.padEnd(11)} ${r.final ? `${r.final} ${r.score ?? "-"}${r.blind !== void 0 ? ` b${r.blind}` : ""}${r.gate === false ? " GATE FAIL" : ""}${r.belowBar ? " BELOW BAR" : ""}${r.top ? ` final\u2260best (${r.top.version} ${r.top.score})` : ""}` : r.next ? `${r.next.action} ${"version" in r.next ? r.next.version : ""}` : ""}${r.issues.length ? `
 ${r.issues.map((i) => `      issue: ${i}`).join("\n")}` : ""}`).join("\n");
     packetLine = (x) => `  ${x.id.padEnd(16)} ${x.step.action} ${"version" in x.step ? x.step.version : ""}${x.writes.length ? ` \u2192 writes ${x.writes.join(", ")}` : ""}${x.resume ? " (resume: written, never reviewed \u2014 check it, complete it, review it)" : ""}`;
-    projectPng = (ctx, f) => pngFile(join18(ctx.project().root, f));
+    projectPng = (ctx, f) => pngFile(join20(ctx.project().root, f));
   }
 });
 
 // ../artgen-cli/src/ops/art-asset.ts
-import { join as join19 } from "node:path";
+import { join as join21 } from "node:path";
 var PASS_NEXT, passRows, nextLine, passStatus, passNext, render10, review, conformance2, score, variants, reportOp, voxel, anim, texture, fx, bench;
 var init_art_asset = __esm({
   "../artgen-cli/src/ops/art-asset.ts"() {
@@ -29848,8 +30106,8 @@ var init_art_asset = __esm({
         const r = await renderVersion(a, version, { variant, stages });
         let files = [];
         if (ctx.surface === "cli") {
-          files = writeRender(a, r, variant ? join19(a.path, "out", `variant-${variant}`) : void 0);
-          if (stages) for (const [k, g] of stages) writeGrid(join19(a.path, "out", "stages", version, `${k.replace(/\//g, "_")}.png`), g);
+          files = writeRender(a, r, variant ? join21(a.path, "out", `variant-${variant}`) : void 0);
+          if (stages) for (const [k, g] of stages) writeGrid(join21(a.path, "out", "stages", version, `${k.replace(/\//g, "_")}.png`), g);
         }
         return { id: a.brief.id, version, r, files };
       },
@@ -30047,7 +30305,7 @@ var init_art_asset = __esm({
           m[k] = v;
           return m;
         }, {}) : i.ramps;
-        const out = mcp ? join19(pr.art, "sheets", "textures") : i.out ?? (pr ? join19(pr.art, "sheets", "textures") : "artgen-out");
+        const out = mcp ? join21(pr.art, "sheets", "textures") : i.out ?? (pr ? join21(pr.art, "sheets", "textures") : "artgen-out");
         return { material: i.material, size, r: textureRun(dir, i.material, { size, seed: typeof i.seed === "number" ? i.seed : void 0, ramps, scale: typeof i.scale === "number" ? i.scale : void 0, out }) };
       },
       cli: {
@@ -30089,7 +30347,7 @@ var init_art_asset = __esm({
         if (i.list === true || mcp && !i.preset) return { list: PRESET_NAMES };
         if (!i.preset) throw new Error("fx: name a preset (artgen fx --list)");
         const { p: pr, dir } = mcp ? { p: ctx.project(), dir: typeof i.direction === "string" ? resolveDirection(ctx.direction(i.direction)) : requireLocked(ctx.project()) } : toolDirection("fx", ctx.findProject(), i.direction);
-        const size = sizeOf(i.size), out = mcp ? join19(pr.art, "sheets", "fx") : i.out ?? (pr ? join19(pr.art, "sheets", "fx") : "artgen-out");
+        const size = sizeOf(i.size), out = mcp ? join21(pr.art, "sheets", "fx") : i.out ?? (pr ? join21(pr.art, "sheets", "fx") : "artgen-out");
         return { preset: i.preset, size, r: fxRun(dir, i.preset, { size, frames: typeof i.frames === "number" ? i.frames : 8, seed: typeof i.seed === "number" ? i.seed : void 0, scale: typeof i.scale === "number" ? i.scale : void 0, out }) };
       },
       cli: {
@@ -30138,13 +30396,13 @@ var init_art_asset = __esm({
 });
 
 // ../artgen-cli/src/ops/art-direction.ts
-import { existsSync as existsSync15, readFileSync as readFileSync14 } from "node:fs";
-import { join as join20 } from "node:path";
+import { existsSync as existsSync17, readFileSync as readFileSync16 } from "node:fs";
+import { join as join22 } from "node:path";
 function readColors(src, n = 16) {
   if (/^#?[0-9a-f]{6}(,#?[0-9a-f]{6})*$/i.test(src)) return src.split(",").map((c) => "#" + c.replace("#", "").toLowerCase());
-  if (!existsSync15(src)) throw new Error(`${src}: not found`);
+  if (!existsSync17(src)) throw new Error(`${src}: not found`);
   if (src.endsWith(".png")) return extractPalette(readGrid(src), n).colors;
-  const t = readFileSync14(src, "utf8");
+  const t = readFileSync16(src, "utf8");
   return src.endsWith(".gpl") ? parseGpl(t) : parseHexPalette(t);
 }
 var init, candidates, directionShow, tile, mix, lockOp, anchors, draft, validate, swatch, paletteFile, paletteImport, paletteExtract, ramp, newOp, finish2;
@@ -30194,7 +30452,7 @@ var init_art_direction = __esm({
         from: p.str("an interview file (default art/interview.json)")
       },
       run(i, ctx) {
-        const pr = ctx.project(), base = i.from ? readInterview(i.from) : existsSync15(join20(pr.art, "interview.json")) ? readJson(join20(pr.art, "interview.json")) : {};
+        const pr = ctx.project(), base = i.from ? readInterview(i.from) : existsSync17(join22(pr.art, "interview.json")) ? readJson(join22(pr.art, "interview.json")) : {};
         const iv = {
           ...base,
           pitch: i.pitch ?? base.pitch ?? "",
@@ -30339,7 +30597,7 @@ style sheet: ${r.sheet}`
       effect: "read",
       summary: "Check a direction file against the direction format.",
       params: { file: p.str("the direction file", { positional: true, required: true }) },
-      run: (i) => validateDirection(JSON.parse(readFileSync14(i.file, "utf8"))),
+      run: (i) => validateDirection(JSON.parse(readFileSync16(i.file, "utf8"))),
       cli: {
         usage: "       artgen direction validate <file>",
         // prints the same lines with --json
@@ -30368,7 +30626,7 @@ style sheet: ${r.sheet}`
       run(i, ctx) {
         const colors = readColors(i.file, i.n ?? 16), ramps = rampsFromColors(colors);
         if (i.interview) {
-          const f = join20(ctx.project().art, "interview.json"), iv = existsSync15(f) ? readJson(f) : { pitch: "" };
+          const f = join22(ctx.project().art, "interview.json"), iv = existsSync17(f) ? readJson(f) : { pitch: "" };
           writeJson(f, { ...iv, colors });
         }
         if (i.swatch) swatch(colors, i.swatch);
@@ -30414,12 +30672,12 @@ ${Object.entries(r.ramps).map(([k, x]) => `  ${k}: ${x.join(" ")}`).join("\n")}$
       run(i, ctx) {
         const pr = ctx.findProject(), view = i.view ?? (pr && (() => {
           try {
-            return readJson(join20(pr.art, "direction.json")).camera?.view;
+            return readJson(join22(pr.art, "direction.json")).camera?.view;
           } catch {
             return void 0;
           }
         })()) ?? "topdown";
-        const path = i.dir ?? (pr ? join20(pr.art, "assets", i.kind, i.id) : i.id);
+        const path = i.dir ?? (pr ? join22(pr.art, "assets", i.kind, i.id) : i.id);
         return { id: i.id, path, ...newAsset(path, { id: i.id, kind: i.kind, view, size: sizeKey(i.size), states: i.states, directions: i.directions, notes: i.notes }) };
       },
       cli: {
@@ -30456,7 +30714,7 @@ var init_version = __esm({
 });
 
 // ../artgen-cli/src/ops/art-production.ts
-import { writeFileSync as writeFileSync14 } from "node:fs";
+import { writeFileSync as writeFileSync15 } from "node:fs";
 var ROSTER_SKILL, briefAdd, briefList, briefRm, briefLint, makeOp, status, galleryOp, feedbackOp, approveOp, roster2, rosterRecordOp, exportOp, restyleOp, importEditOp, analytics2;
 var init_art_production = __esm({
   "../artgen-cli/src/ops/art-production.ts"() {
@@ -30847,12 +31105,12 @@ next: artgen review ${id2}`,
         if (across2) {
           if (!across2.length) throw new Error("analytics --across <project root>[,<root>\u2026]: the projects (or bench folders with a ledger.jsonl) to pool");
           const r4 = pooledAnalytics(across2, { apply: i.apply ? ctx.project() : void 0, minAssets: i.min_assets });
-          if (i.out) writeFileSync14(i.out, r4.markdown);
+          if (i.out) writeFileSync15(i.out, r4.markdown);
           return { markdown: r4.markdown + (r4.applied ? `
 applied to ${r4.applied}` : ""), data: { ...r4.report, ...r4.applied && { applied: r4.applied } } };
         }
         const r = projectAnalytics(ctx.project());
-        if (i.out) writeFileSync14(i.out, r.markdown);
+        if (i.out) writeFileSync15(i.out, r.markdown);
         return { markdown: r.markdown, data: r.report };
       },
       cli: {
@@ -30929,8 +31187,9 @@ var init_ops = __esm({
   "../artgen-cli/src/ops/index.ts"() {
     "use strict";
     init_art();
+    init_core();
     init_maps2();
-    OPS = [...ART_OPS, ...MAP_OPS];
+    OPS = [...ART_OPS, ...MAP_OPS, ...CORE_OPS];
   }
 });
 
@@ -30941,7 +31200,7 @@ __export(cli_exports, {
   VERSION: () => VERSION,
   main: () => main
 });
-import { readFileSync as readFileSync15 } from "node:fs";
+import { readFileSync as readFileSync17 } from "node:fs";
 async function main(argv) {
   const [cmd] = argv;
   if (cmd === "--version" || cmd === "version") {
@@ -30957,7 +31216,7 @@ async function main(argv) {
     console.error(`artgen: unknown command '${argv.slice(0, 2).join(" ")}' \u2014 run artgen --help for the list`);
     return 1;
   }
-  return runCli(OPS, argv, { log: (s2) => console.log(s2), ctx: cliCtx, readFile: (f) => readFileSync15(f, "utf8") });
+  return runCli(OPS, argv, { log: (s2) => console.log(s2), ctx: cliCtx, readFile: (f) => readFileSync17(f, "utf8") });
 }
 var HEADER2, FOOTER, USAGE, cliCtx;
 var init_cli2 = __esm({

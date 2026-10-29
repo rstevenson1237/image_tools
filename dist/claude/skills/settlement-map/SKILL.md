@@ -9,8 +9,8 @@ A settlement is one file, `art/settlements/<id>/settlement.json`: settings, **ro
 towers and gates), **buildings** (each with its **floors**: rooms, doors, windows and furniture), **areas** (fields,
 gardens, woods, squares), **trees**, **props** (site fixtures) and an **overlay** of labels and symbols. Every render is
 rebuilt from it into `art/settlements/<id>/out/` (gitignored). The user may also open the same file in the image tools
-web app (**Settlement Map**), draw on it and save it back: always re-read it (`node tools/artgen/artgen.js settlement show <id>`) before
-changing it. CLI: `node tools/artgen/artgen.js settlement …`; the `artgen` MCP server has the same operations as `settlement_*` tools
+web app (**Settlement Map**), draw on it and save it back: always re-read it (`node tools/artgen/artgen-maps.js settlement show <id>`) before
+changing it. CLI: `node tools/artgen/artgen-maps.js settlement …`; the `artgen` MCP server has the same operations as `settlement_*` tools
 (images come back inline).
 
 Two views of one file:
@@ -27,12 +27,12 @@ Ask only what changes the map: what kind (hamlet, village, town, city, castle) a
 plan now or only the ones the party will enter; colour or black and white. If there is a terrain map of the region,
 put the settlement on it. Then one of:
 ```
-node tools/artgen/artgen.js settlement new <id> --kind village --title "Brookby" [--seed n]           # generated (roads, buildings, fields, trees)
-node tools/artgen/artgen.js settlement new <id> --kind town --wall stone --water river --interiors    # every building with its floors laid out too
-node tools/artgen/artgen.js settlement new <id> --kind castle --water moat                              # curtain wall, gatehouse, keep, hall, chapel, outer bailey
-node tools/artgen/artgen.js settlement new <id> --kind village --map vale --at 12,20                   # on terrain map "vale", its top-left at map units 12,20
-node tools/artgen/artgen.js settlement new <id> --empty --size 60x40                                   # a blank sheet, to draw by hand
-node tools/artgen/artgen.js settlement render <id>                                                     # SVG + PNG; open the PNG and look at it
+node tools/artgen/artgen-maps.js settlement new <id> --kind village --title "Brookby" [--seed n]           # generated (roads, buildings, fields, trees)
+node tools/artgen/artgen-maps.js settlement new <id> --kind town --wall stone --water river --interiors    # every building with its floors laid out too
+node tools/artgen/artgen-maps.js settlement new <id> --kind castle --water moat                              # curtain wall, gatehouse, keep, hall, chapel, outer bailey
+node tools/artgen/artgen-maps.js settlement new <id> --kind village --map vale --at 12,20                   # on terrain map "vale", its top-left at map units 12,20
+node tools/artgen/artgen-maps.js settlement new <id> --empty --size 60x40                                   # a blank sheet, to draw by hand
+node tools/artgen/artgen-maps.js settlement render <id>                                                     # SVG + PNG; open the PNG and look at it
 ```
 Over a terrain map the map's rivers, lakes and sea become the settlement's water, its forest becomes woods, and roads
 keep to gentle slopes; the map is drawn under the sheet.
@@ -40,20 +40,20 @@ keep to gentle slopes; the map is drawn under the sheet.
 ## 2. Shape the layout
 Big changes with the generator, then fix things one by one. Render and look after each round.
 ```
-node tools/artgen/artgen.js settlement gen <id> --seed 7                                    # another layout, same settings
-node tools/artgen/artgen.js settlement gen <id> --buildings 40 --density 0.8 --streets radial --wall palisade --water lake --trees 0.6 --fields 0.3 --market on --castle off
-node tools/artgen/artgen.js settlement building <id> add inn --at 20,14 --size 8x6 --label "The Drowned Rat" --angle 15
-node tools/artgen/artgen.js settlement building <id> add temple --at 30,8 --size 8x12 --shape T --roof hip
-node tools/artgen/artgen.js settlement building <id> add tower --at 4,4 --size 5x5 --shape circle            # roof: cone; a keep: --roof battlement
-node tools/artgen/artgen.js settlement building <id> move b3 --at 22,18 | set b3 --kind shop --stories 2 | rm b3
-node tools/artgen/artgen.js settlement road <id> add street --points 0,20,30,18,60,22 --curve smooth --label "Mill Road"
-node tools/artgen/artgen.js settlement water <id> add river --points 40,0,38,30,44,60 --width 6             # lines: river stream canal moat; areas: pond lake sea
-node tools/artgen/artgen.js settlement wall <id> add stone --points 5,5,55,5,55,45,5,45 --closed --towers round --tower-every 12
-node tools/artgen/artgen.js settlement wall <id> gate 0 --at 5,25 --kind gatehouse --drawbridge              # gatehouse | gate | postern | opening
-node tools/artgen/artgen.js settlement area <id> add field --points 60,30,78,30,78,44,60,44 --label Barley      # field garden orchard wood scrub marsh graveyard market square yard paddock rubble
-node tools/artgen/artgen.js settlement tree <id> scatter tree --area 0,0,20,0,20,12,0,12 --count 25 | tree <id> add boulder --at 12,30
-node tools/artgen/artgen.js settlement prop <id> add well --at 28,22 | prop <id> add cart --at 24,20 --angle 90
-node tools/artgen/artgen.js settlement road|water|wall|area|tree|prop <id> rm <index>                        # indices from settlement show
+node tools/artgen/artgen-maps.js settlement gen <id> --seed 7                                    # another layout, same settings
+node tools/artgen/artgen-maps.js settlement gen <id> --buildings 40 --density 0.8 --streets radial --wall palisade --water lake --trees 0.6 --fields 0.3 --market on --castle off
+node tools/artgen/artgen-maps.js settlement building <id> add inn --at 20,14 --size 8x6 --label "The Drowned Rat" --angle 15
+node tools/artgen/artgen-maps.js settlement building <id> add temple --at 30,8 --size 8x12 --shape T --roof hip
+node tools/artgen/artgen-maps.js settlement building <id> add tower --at 4,4 --size 5x5 --shape circle            # roof: cone; a keep: --roof battlement
+node tools/artgen/artgen-maps.js settlement building <id> move b3 --at 22,18 | set b3 --kind shop --stories 2 | rm b3
+node tools/artgen/artgen-maps.js settlement road <id> add street --points 0,20,30,18,60,22 --curve smooth --label "Mill Road"
+node tools/artgen/artgen-maps.js settlement water <id> add river --points 40,0,38,30,44,60 --width 6             # lines: river stream canal moat; areas: pond lake sea
+node tools/artgen/artgen-maps.js settlement wall <id> add stone --points 5,5,55,5,55,45,5,45 --closed --towers round --tower-every 12
+node tools/artgen/artgen-maps.js settlement wall <id> gate 0 --at 5,25 --kind gatehouse --drawbridge              # gatehouse | gate | postern | opening
+node tools/artgen/artgen-maps.js settlement area <id> add field --points 60,30,78,30,78,44,60,44 --label Barley      # field garden orchard wood scrub marsh graveyard market square yard paddock rubble
+node tools/artgen/artgen-maps.js settlement tree <id> scatter tree --area 0,0,20,0,20,12,0,12 --count 25 | tree <id> add boulder --at 12,30
+node tools/artgen/artgen-maps.js settlement prop <id> add well --at 28,22 | prop <id> add cart --at 24,20 --angle 90
+node tools/artgen/artgen-maps.js settlement road|water|wall|area|tree|prop <id> rm <index>                        # indices from settlement show
 ```
 Generating again replaces everything the generator wrote (origin `gen`) and keeps what was added by hand: if the user
 wants "the same village but …", edit — don't regenerate. Bridges are drawn on their own where a road crosses water.
@@ -62,13 +62,13 @@ Wall kinds: `curtain` (a castle's thick, crenellated wall), `stone` (a town wall
 
 ## 3. Floor plans
 ```
-node tools/artgen/artgen.js settlement interior <id> b3 [--stories 2] [--seed n]      # lay its floors out: rooms by what the building is, doors, windows, stairs, furniture
-node tools/artgen/artgen.js settlement render <id> --building b3 [--floor 1]           # the plan of one floor (0 ground, 1 up, -1 cellar)
-node tools/artgen/artgen.js settlement room <id> b3 add rect --at 0,0 --size 6x4 --label Kitchen [--level 0]
-node tools/artgen/artgen.js settlement connect <id> b3 f0r1 f0r2 [--kind door|secret|locked|portcullis|arch|open]
-node tools/artgen/artgen.js settlement door <id> b3 --at 3,8 | window <id> b3 --at 0,2 [--width 1]   # in the outer wall
-node tools/artgen/artgen.js settlement fixture <id> b3 add bed --at 1,1.5 [--angle 90] [--size 1x2] [--level 1] | fixture <id> b3 rm 4
-node tools/artgen/artgen.js settlement fixtures                                       # every furniture and fixture kind, with its true size
+node tools/artgen/artgen-maps.js settlement interior <id> b3 [--stories 2] [--seed n]      # lay its floors out: rooms by what the building is, doors, windows, stairs, furniture
+node tools/artgen/artgen-maps.js settlement render <id> --building b3 [--floor 1]           # the plan of one floor (0 ground, 1 up, -1 cellar)
+node tools/artgen/artgen-maps.js settlement room <id> b3 add rect --at 0,0 --size 6x4 --label Kitchen [--level 0]
+node tools/artgen/artgen-maps.js settlement connect <id> b3 f0r1 f0r2 [--kind door|secret|locked|portcullis|arch|open]
+node tools/artgen/artgen-maps.js settlement door <id> b3 --at 3,8 | window <id> b3 --at 0,2 [--width 1]   # in the outer wall
+node tools/artgen/artgen-maps.js settlement fixture <id> b3 add bed --at 1,1.5 [--angle 90] [--size 1x2] [--level 1] | fixture <id> b3 rm 4
+node tools/artgen/artgen-maps.js settlement fixtures                                       # every furniture and fixture kind, with its true size
 ```
 Fixtures are placed by their centre and drawn at the kind's true size unless `--size` says otherwise. Stairs climb
 toward their angle; put `stairs-up` on one floor and `stairs-down` at the same spot on the next (`spiral-stairs` in a
@@ -76,24 +76,24 @@ tower). `settlement check` warns when stairs meet nothing.
 
 ## 4. Grid, labels and look
 ```
-node tools/artgen/artgen.js settlement grid <id> 10 [--sub on] | grid <id> none
-node tools/artgen/artgen.js settlement style <id> --title "Brookby" --legend on --compass on --ground dirt [--furniture auto]
-node tools/artgen/artgen.js settlement label <id> "Old Bridge" --at 40,24 --kind note | label <id> "MARKET" --at 30,20 --kind area
-node tools/artgen/artgen.js settlement symbol <id> skull --at 12,8          # node tools/artgen/artgen.js settlement symbols lists the kinds
+node tools/artgen/artgen-maps.js settlement grid <id> 10 [--sub on] | grid <id> none
+node tools/artgen/artgen-maps.js settlement style <id> --title "Brookby" --legend on --compass on --ground dirt [--furniture auto]
+node tools/artgen/artgen-maps.js settlement label <id> "Old Bridge" --at 40,24 --kind note | label <id> "MARKET" --at 30,20 --kind area
+node tools/artgen/artgen-maps.js settlement symbol <id> skull --at 12,8          # node tools/artgen/artgen-maps.js settlement symbols lists the kinds
 ```
 Buildings are numbered in file order on a badge (`building set b3 --number off` hides one, `--number 12` sets it).
 
 ## 5. Render and hand over
 ```
-node tools/artgen/artgen.js settlement render <id> [--theme color|bw|both] [--buildings roofs|outline|interior] [--ppu 24] [--fit 280x200mm] [--crop x,y,w,h] [--layers grid=off,numbers=off]
-node tools/artgen/artgen.js settlement render <id> --plans                  # the site and every floor of every building
-node tools/artgen/artgen.js settlement facts <id>                           # buildings, walls, roads, water and areas as numbers (a key for the adventure text)
+node tools/artgen/artgen-maps.js settlement render <id> [--theme color|bw|both] [--buildings roofs|outline|interior] [--ppu 24] [--fit 280x200mm] [--crop x,y,w,h] [--layers grid=off,numbers=off]
+node tools/artgen/artgen-maps.js settlement render <id> --plans                  # the site and every floor of every building
+node tools/artgen/artgen-maps.js settlement facts <id>                           # buildings, walls, roads, water and areas as numbers (a key for the adventure text)
 ```
 `--buildings interior` shows every building cut away to its ground floor on the site (good for a castle bailey);
 `roofs` blocks them out (good for a town). Give the user the file paths and show the PNG.
 
 ## Check, then look
-`node tools/artgen/artgen.js settlement check <id>` after every round: errors must be fixed; each warning (buildings on each other, in
+`node tools/artgen/artgen-maps.js settlement check <id>` after every round: errors must be fixed; each warning (buildings on each other, in
 water or across a road, a gate far from its wall, furniture outside its building or on other furniture, stairs that
 meet nothing) is most likely a mistake.
 

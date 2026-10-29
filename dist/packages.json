@@ -1,0 +1,22 @@
+{
+  "release": "0.11.0",
+  "repo": "rstevenson1237/image_tools",
+  "packages": {
+    "artgen-runtime": {
+      "version": "1.2.1",
+      "file": "artgen-runtime-1.2.1.tgz"
+    },
+    "artgen-primitives": {
+      "version": "0.11.0",
+      "file": "artgen-primitives-0.11.0.tgz"
+    },
+    "artgen-scene": {
+      "version": "0.11.0",
+      "file": "artgen-scene-0.11.0.tgz"
+    },
+    "artgen-mapgen": {
+      "version": "0.11.0",
+      "file": "artgen-mapgen-0.11.0.tgz"
+    }
+  }
+}
