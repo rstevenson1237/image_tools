@@ -6,4 +6,5 @@ Use the settlement-map skill. If this names an existing settlement (`{{ARTGEN}} 
 `{{ARTGEN}} settlement show <id>` and make the change; otherwise ask the few questions the skill lists, create the
 settlement, and iterate: render, look at the PNG, adjust. Finish with `{{ARTGEN}} settlement render <id>` (and the
 floor plans the user asked for) and show the user the image and the file paths.
+Before you generate, write the brief (`{{ARTGEN}} settlement brief <id> --text "…"`); when a round is done record it (`{{ARTGEN}} settlement version <id>`), review it (`{{ARTGEN}} settlement review <id>`) and show the user the sheet. Only the user approves or asks for changes (the skill's step 5).
 Request: $ARGUMENTS

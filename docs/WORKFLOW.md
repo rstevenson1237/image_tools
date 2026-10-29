@@ -1,6 +1,6 @@
 # One workflow for maps and assets (R5)
 
-Status: design, 2026-10-29. This is phase R5 of [`TOOLING-PLAN.md`](TOOLING-PLAN.md) (§7, §10). It builds on the
+Status: built, 2026-10-29, acceptance in the web UI not run (§15 has what was built and where it differs from this design). This is phase R5 of [`TOOLING-PLAN.md`](TOOLING-PLAN.md) (§7, §10). It builds on the
 operation registry ([`OPERATION-REGISTRY.md`](OPERATION-REGISTRY.md)) and the feedback loop (R4).
 
 ## 1. Goal
@@ -379,3 +379,56 @@ review sheet.
   workflow steps (brief → generate and edit → `version` → `review` → show the user → `approve` or `feedback`), with
   the rule that only the user approves. The art skill's review section mentions `refs` and `artgen sheet`.
 - This file: the status line, and a short §15 "What was built", with any place the build differs from this design.
+
+## 15. What was built
+
+Everything in §3 to §11 is built as written, with the differences below. The tooling plan's R5 section lists what was measured and what
+was not run.
+
+**Package and moves (§3).** `artgen-workflow` has the files the design lists, and two more: `decide.ts` (the approval and feedback
+rules as ledger entries, one function each, so the CLI, MCP and the web engine give the same entries and the same messages) and
+`brief.ts` (the map brief's front matter, parsed by hand, and `subjectDataSheet`, which adds the version, the theme, the brief's
+title, references and notes to an engine's sheet). `qa/ledger.ts`, `w2/status.ts` and `w2/analytics.ts` stay in `artgen-core` as one-line
+re-exports, because tests, `recommend.ts` and `scripts/metrics-baseline.mjs` import them by path. `Metrics` is a `type` alias now so it
+is assignable to `Record<string, number>`; `StepLike` has an index signature so the tests' step literals (which carry `pass`) fit it.
+`artgen-core/maps` (the maps-only facade) also re-exports `artgen-workflow`, and `artgen-mapgen` exports `subjects`, `mapDirection`,
+`decodePNG` and `Grid` for the maps CLI.
+
+**Subjects (§4).** Check ids: a format error is one `format` check each (`fail`), a clean file one `format` check that passes; each lint
+finding is one `lint` check (`fail` for an error, `flag` for a warning), because findings carry no rule name, so `lint:<rule>` is not used;
+each requirement is `require:<id>`; an underlay map that is missing is `underlay`; symbols outside the direction's set are `symbols`
+(`flag`). `checkMapFile`, `checkDungeonFile` and `checkSettlementFile` are unchanged; a test holds the subjects to their verdict on every
+fixture case (the same errors, unmet requirements and warnings).
+
+**Map direction (§7.4).** A dungeon is drawn in black and white only, so its only theme name is `bw` (`--theme dungeon=color` is refused).
+Only a **locked** direction applies: a draft changes nothing. Changing a locked direction makes it a draft again (same version) until
+`--lock`, which moves the version up. The first lock gives v1, so the file starts at version 0. A theme that is given again for a kind
+replaces it; `--symbols dungeon=` (an empty list) clears a kind's set.
+
+**Operations (§10).** 26 new operations (eight for each kind, `map.direction`, and the art `sheet`), all on the CLI, MCP and Python.
+Versions are recorded `by: 'agent'` (there is no flag to say otherwise). `review --score` logs the score for the version it has just reviewed;
+a review sheet is written even when a check fails (`pass: false`), so the user can see why. `status` rows carry the number of failing and
+flagged checks, computed fresh. `brief add` has no `--refs` flag: `refs:` is written in `briefs.yaml` (the design adds the field and its
+validation only). A blind review of an asset has no references (it is the version alone).
+
+**Metrics (§9).** `generatorMetrics` counts a map as `final` when it has an approval or its status without the working file is final
+(a version waits for the user). `imageTokens` is the sum over `review` entries. The Generators table of `analytics` (CLI and web) appears
+once the ledger holds an entry of a map, dungeon or settlement, so art-only repos read exactly as before: the recorded CLI transcript
+shows `analytics` for a project that has maps but no map work in its ledger. `metrics export` writes schema 2; in a repo with the art module
+its art fields are the ones schema 1 had. Pooling a schema 1 export and a schema 2 export of the same version works; the pooled
+markdown for the three example exports is unchanged.
+
+**Web (§11).** `ArtProject.status()` returns no rows when no art direction is locked (it used to throw), `analytics()` works without one,
+and `subjects()` lists the maps either way. A dungeon's `underlay` is not drawn in Asset Review (the web renderer for dungeons takes no
+underlay map); a settlement's is. The approval notice does not repeat the warnings the entry carries. The engine's subject code
+is checked against the CLI's on the same files (`src/core/project/engine.test.ts`).
+
+**Recorded lists that changed.** Where a test lists the CLI help, the MCP tools or a bundle's files, the new words were added. Four
+changes were not additions, and each follows from the design: `metrics_export` moved after the maps tools in the MCP tool list
+(it is a `core` operation now, and the registry orders art, maps, core); the loop tests pass the art numbers in (`art: artMetricsOf`) and
+expect schema 2; the web tool registry test lists Asset Review for a maps-only install; the `libs` test lists `artgen-workflow` and
+its dependency on primitives, and mapgen's on both.
+
+**Not done or not run.** Acceptance in the web UI on a real machine (v1, review, approve of a map in a browser, Chromium and Firefox):
+no browser was available while this was built; `npm run accept:ui` has not run. The first real use in a game repo. The pull request flow
+for maps (§12) and region pins on map renders (§12) are not built, as designed.

@@ -85,6 +85,22 @@ may not exceed `topo.maxElevation` (`map gen <id> --max-elevation 450`).
 any of `terrain rivers roads contours grid symbols labels legend scale compass title` off — e.g. a clean player copy
 without labels, or a terrain-only image to letter by hand. Give the user the file paths and show the PNGs.
 
+## 5. Brief, versions, review, and the user's approval
+A terrain map goes through the same steps as a pixel asset: write what it is for, record each round as a version, review it, show it to the user, and let them decide. **Only the user approves**: never run `approve` yourself (over MCP it needs `user_approved`, and only after they said so in this conversation).
+```
+{{ARTGEN}} map brief <id> --text "what it is for, in the user's words" --refs refs/coast.png   # before you generate; references are PNGs under art/
+{{ARTGEN}} map version <id> --note "what this round changes"   # a frozen copy (map.v1.json, v2, …); refused when nothing changed
+{{ARTGEN}} map review <id>        # the render, the one-page data sheet and the references on one sheet
+{{ARTGEN}} map review <id> --score 7 --note "labels read" --reviewer art-reviewer   # the same, and logs a score for the version
+{{ARTGEN}} map diff <id> v1 v2   # what changed between two versions (no versions named: the latest one against the file now)
+{{ARTGEN}} map status             # in-pipeline, revision, final (waiting for the user), approved, stale; with one id also its history
+{{ARTGEN}} map approve <id> --note "the user's words"    # only after the user said so
+{{ARTGEN}} map feedback <id> --note "the user's words"   # they want changes: rework, version again, review again
+```
+Look at the review sheet before you show it: labels can be read, symbols don't overlap, the legend matches what is drawn, the requirements are met, and in black and white the patterns still tell the terrains apart. The checks it lists must not fail (an approval is refused while one does); warnings are the user's to weigh. A fresh reviewer subagent scores better than the maker (`--reviewer`). Then show the user the sheet (or point them to **Asset Review** in `{{ARTGEN}} ui`, where the versions sit side by side) and ask: approve, or what to change. A map edited after its approval is `stale` until a new version is recorded and approved.
+
+The **map direction** (`art/map-direction.json`) fixes the theme of each kind of map and the symbols a kind may use, for review sheets and checks: `{{ARTGEN}} map direction --theme map=bw,settlement=color --symbols dungeon=altar,statue`, then `--lock` once the user agrees (locking moves its version up, so maps approved under the old one are `stale`). It never changes what `map render` draws.
+
 ## Readability rules (check every render)
 - **Read at a glance.** Five or six terrains carry a map; if it looks busy, raise `--simplify` or the contour interval
   before anything else. Avoid one-hex specks of terrain.
