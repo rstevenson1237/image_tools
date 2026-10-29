@@ -3,6 +3,8 @@
  * with front matter of plain `key: value` lines between `---` lines. The keys read are `title` and `refs` (comma-separated paths
  * under art/). Parsed by hand, without a YAML package: the maps-only bundle must stay small.
  */
+import type { DataSheet } from './sheet.ts';
+
 export interface SubjectBrief {
   title?: string;
   refs: string[];
@@ -44,3 +46,12 @@ export function briefNotes(body: string, n = 6, width = 60): string {
 
 /** A reference path is under `art/` and stays there: no `..`, no absolute path. */
 export const refOk = (r: string): boolean => !!r && !r.startsWith('/') && !/^[A-Za-z]:/.test(r) && !r.split(/[\\/]/).includes('..');
+
+/** The engine's rows of a subject's data sheet, then the version and theme, with the brief's title, references and notes. */
+export function subjectDataSheet(base: DataSheet, o: { version?: string; theme: string; directionVersion?: number; brief?: SubjectBrief }): DataSheet {
+  const head = [...(o.version ? [{ label: 'Version', value: o.version }] : []), { label: 'Theme', value: `${o.theme}${o.directionVersion !== undefined ? ` (map direction v${o.directionVersion})` : ''}` }];
+  return {
+    ...base, title: o.brief?.title ? `${base.title} - ${o.brief.title}` : base.title, rows: [...head, ...base.rows],
+    ...(o.brief?.refs.length && { refs: o.brief.refs }), ...(o.brief?.body && { notes: briefNotes(o.brief.body) }),
+  };
+}

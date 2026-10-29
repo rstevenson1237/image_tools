@@ -7,7 +7,7 @@
  * never rewritten.
  */
 import type { Remote } from 'comlink';
-import type { LedgerEntry } from 'artgen-core';
+import type { LedgerEntry, SubjectKind } from 'artgen-core';
 import type { ArtgenApi } from '../../workers/artgen.worker';
 import { BUNDLED, serverToken } from '../bundle';
 import { downloadBlob } from '../utils/download';
@@ -184,6 +184,16 @@ class ProjectStore {
       const r = await a.feedback(id, o);
       return { ops: [{ op: 'append', path: 'ledger.jsonl', data: await a.line(r.entry) }], result: r };
     }, r => `requested changes on ${id}: opens ${r.opens} — ask Claude Code to run /artgen-make`);
+  }
+
+  /** Approve a map, dungeon or settlement (its latest version must be final and pass its checks: the CLI's rules). */
+  approveSubject(api: Api, kind: SubjectKind, id: string, note = '') {
+    return this.act(api, async a => ({ ops: await a.approveSubject(kind, id, note), result: { kind, id } }), r => `approved ${r.kind} ${r.id}`);
+  }
+
+  /** Request changes on a map, dungeon or settlement: a note (the region is optional) on its latest version. */
+  requestSubjectChanges(api: Api, kind: SubjectKind, id: string, o: { note: string; region?: number[] }) {
+    return this.act(api, async a => ({ ops: await a.feedbackSubject(kind, id, o), result: { kind, id } }), r => `requested changes on ${r.kind} ${r.id} — ask Claude Code to rework it and record the next version`);
   }
 
   saveDraft(api: Api, name: string, direction: unknown) {

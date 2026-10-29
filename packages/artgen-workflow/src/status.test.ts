@@ -37,7 +37,9 @@ describe('subjectStatus', () => {
     expect(subjectStatus({ entries: [ver(1, 'h1'), approve(1, 'h1')], workingHash: 'h1' }).approval?.version).toBe('v1');
   });
 
-  test('the hint names the command when the ledger has the key', () => {
+  test('with the key, a subject with no version is told the command to run', () => {
     expect(subjectStatus({ entries: [] }).why).toBe('no version recorded yet');
+    expect(subjectStatus({ entries: [], key: 'dungeon:warren' }).why).toBe('no version recorded yet: artgen dungeon version warren');
+    expect(subjectStatus({ entries: [feedback('v1')], key: 'map:keep' }).why).toBe('no version recorded yet: artgen map version keep');
   });
 });

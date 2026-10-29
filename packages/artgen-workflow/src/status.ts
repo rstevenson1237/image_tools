@@ -81,6 +81,8 @@ export function assetStatus({ ledger, next, direction, finalHash }: StatusInput)
 export interface SubjectStatusInput {
   /** That subject's ledger lines, in file order. */
   entries: LedgerEntry[];
+  /** Its ledger key (`map:keep`): names the command in the hint when it has no version yet. */
+  key?: string;
   /** Hash of the working file now (`sourceHash` of its text). Unset: it is taken to equal the latest version. */
   workingHash?: string;
   /** The locked map direction now, if there is one. */
@@ -100,10 +102,10 @@ export interface SubjectStatusResult {
  * ledger and the working file, never stored. Only the user approves or gives feedback; versions come from the agent or the
  * user.
  */
-export function subjectStatus({ entries, workingHash, direction }: SubjectStatusInput): SubjectStatusResult {
+export function subjectStatus({ entries, key, workingHash, direction }: SubjectStatusInput): SubjectStatusResult {
   const iV = lastIndex(entries, e => e.type === 'version');
   if (iV < 0) {
-    const k = entries[0] && parseSubjectKey(entries[0].asset);
+    const k = parseSubjectKey(key ?? entries[0]?.asset ?? '');
     return { status: 'in-pipeline', why: `no version recorded yet${k ? `: artgen ${k.kind} version ${k.id}` : ''}` };
   }
   const V = entries[iV], v = String(V.version);

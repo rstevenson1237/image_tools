@@ -10,7 +10,7 @@
 //      → `artgen status` shows the approval and the revision, `artgen make` quotes the pinned note, and the ledger lines
 //      carry `"via": "image-tools"`.
 //   4. Asset Lab: play an asset through the runtime's canvas2d adapter.
-//   5. A maps-only repo (`init --with maps,ui`): the sidebar shows the map tools alone; a terrain map saved in the UI is the
+//   5. A maps-only repo (`init --with maps,ui`): the sidebar shows the map tools and Asset Review (which lists the maps); a terrain map saved in the UI is the
 //      file `artgen-maps.js map render` reads.
 //
 // Unlike the older acceptance (artgen-ui-accept.mjs: a folder handle in the origin-private file system, or a zip) no file
@@ -185,8 +185,8 @@ async function mapsOnly(browserType, label) {
     await page.goto(`${s.link}#terrain-map`);
     await page.locator('header.bar .name').waitFor({ timeout: 60_000 });
     const sidebar = await page.locator('nav').innerText();
-    for (const t of ['Terrain Map', 'Dungeon Map', 'Settlement Map']) if (!sidebar.includes(t)) throw new Error(`maps-only: the sidebar lacks ${t}`);
-    for (const t of ['Art Direction', 'Asset Review', 'Asset Lab', 'Token Cutter']) if (sidebar.includes(t)) throw new Error(`maps-only: the sidebar should not show ${t}`);
+    for (const t of ['Terrain Map', 'Dungeon Map', 'Settlement Map', 'Asset Review']) if (!sidebar.includes(t)) throw new Error(`maps-only: the sidebar lacks ${t}`);   // Asset Review lists the maps (R5)
+    for (const t of ['Art Direction', 'Asset Lab', 'Token Cutter']) if (sidebar.includes(t)) throw new Error(`maps-only: the sidebar should not show ${t}`);
     // a terrain map made in the editor and saved to the project is the file the maps-only CLI reads
     await page.getByRole('button', { name: 'Save to project' }).click();
     await page.getByRole('status').filter({ hasText: /saved art\/maps\// }).waitFor({ timeout: 60_000 });
@@ -195,7 +195,7 @@ async function mapsOnly(browserType, label) {
     const rendered = execFileSync(process.execPath, [join(s.repo, 'tools/artgen/artgen-maps.js'), 'map', 'render', saved[1], '--ppu', '6'], { cwd: s.repo, encoding: 'utf8' });
     if (!/\.png/.test(rendered) || !existsSync(join(s.repo, 'art/maps', saved[1], 'out', `${saved[1]}.color.png`))) throw new Error(`maps-only: artgen-maps.js could not render the saved map\n${rendered}`);
     await page.screenshot({ path: join(out, `${label}-maps-only.png`) });
-    log(`[${label}] maps-only: the sidebar shows the map tools alone; the map saved in the UI (${saved[1]}) renders with artgen-maps.js`);
+    log(`[${label}] maps-only: the sidebar shows the map tools and Asset Review, no art tools; the map saved in the UI (${saved[1]}) renders with artgen-maps.js`);
     if (errors.length) throw new Error(`maps-only: ${errors.join('; ')}`);
   } finally { await browser.close(); s.stop(); }
 }

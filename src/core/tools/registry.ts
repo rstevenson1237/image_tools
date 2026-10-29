@@ -117,9 +117,12 @@ export const tools: ToolDefinition[] = [
 /** The installer module whose files a tool works on (`art/maps/…` belongs to `maps`); null for a tool of no module. */
 export const moduleOf = (t: ToolDefinition): 'art' | 'maps' | null => (t.group === 'maps' ? 'maps' : t.group === 'art' ? 'art' : null);
 
+/** Every module a tool works for: Asset Review reviews assets (`art`) and maps, dungeons and settlements (`maps`), so either is enough. */
+export const modulesOf = (t: ToolDefinition): ('art' | 'maps')[] => (t.id === 'asset-review' ? ['art', 'maps'] : [moduleOf(t)].filter((m): m is 'art' | 'maps' => !!m));
+
 /** The tools a repo with these modules can use (all of them when the modules are unknown). */
 export const toolsFor = (modules: readonly string[] | null, list: ToolDefinition[] = tools): ToolDefinition[] =>
-  modules ? list.filter(t => { const m = moduleOf(t); return !m || modules.includes(m); }) : list;
+  modules ? list.filter(t => { const m = modulesOf(t); return !m.length || m.some(x => modules.includes(x)); }) : list;
 
 export function getTool(id: string): ToolDefinition | undefined {
   return tools.find((t) => t.id === id);

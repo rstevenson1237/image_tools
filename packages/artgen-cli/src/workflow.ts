@@ -8,8 +8,8 @@
 import { appendFileSync, copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, extname, join, relative, resolve } from 'node:path';
 import {
-  briefNotes, dataSheetMarkdown, decodePNG, diffJson, encodePNG, formatLedgerLine, formatSubjectBrief, imageTokens, mapDirection, nextVersion, parseLedger, parseSubjectBrief, refOk,
-  renderDataSheet, sortVersions, sourceHash, stemOf, subjectKey, subjectReviewSheet, subjectStatus, subjects, versionFile, versionOfFile,
+  approvalEntry, dataSheetMarkdown, decodePNG, diffJson, encodePNG, feedbackEntry, formatLedgerLine, formatSubjectBrief, imageTokens, mapDirection, nextVersion, parseLedger, parseSubjectBrief, refOk,
+  renderDataSheet, sortVersions, sourceHash, stemOf, subjectDataSheet, subjectKey, subjectReviewSheet, subjectStatus, subjects, versionFile, versionOfFile,
   type Change, type Check, type DataSheet, type LedgerEntry, type SheetRef, type SubjectBrief, type SubjectKind,
 } from 'artgen-core/maps';
 import { renderDungeonFiles } from './dungeon.ts';
@@ -90,7 +90,7 @@ export interface State { paths: Paths; text: string; entries: LedgerEntry[]; ver
 /** Everything the rules need for one subject: its files, ledger lines, the map direction, and its status. */
 export function subjectState(p: Project, kind: SubjectKind, id: string): State {
   const paths = subjectPaths(p, kind, id), text = readWorking(p, kind, id), direction = readDirection(p), entries = entriesOf(p, kind, id);
-  return { paths, text, entries, versions: listVersions(p, kind, id), direction, status: subjectStatus({ entries, workingHash: sourceHash(text), direction: mapDirection.directionRef(direction) }) };
+  return { paths, text, entries, versions: listVersions(p, kind, id), direction, status: subjectStatus({ entries, key: paths.key, workingHash: sourceHash(text), direction: mapDirection.directionRef(direction) }) };
 }
 
 const fails = (checks: Check[]): Check[] => checks.filter(c => c.status === 'fail');
@@ -169,14 +169,9 @@ async function renderPng(kind: SubjectKind, file: string, theme: string, out: st
 
 /** The data sheet of a subject: the engine's rows, then the theme and version, the brief's notes and references. */
 function sheetOf(p: Project, st: State, text: string, checks: Check[], version?: string): { sheet: DataSheet; refs: SheetRef[]; warnings: string[] } {
-  const { kind, id } = st.paths, raw = SUBJECTS[kind].parse(JSON.parse(text)), base: DataSheet = SUBJECTS[kind].sheet(raw, checks);
-  const brief = readBrief(p, kind, id)?.brief, theme = mapDirection.themeFor(st.direction, kind), locked = mapDirection.lockedMapDirection(st.direction);
-  const head = [...(version ? [{ label: 'Version', value: version }] : []), { label: 'Theme', value: `${theme}${locked ? ` (map direction v${locked.version})` : ''}` }];
+  const { kind, id } = st.paths, base = SUBJECTS[kind].sheet(SUBJECTS[kind].parse(JSON.parse(text)), checks), brief = readBrief(p, kind, id)?.brief;
   const { refs, warnings } = loadRefs(p, brief?.refs ?? []);
-  return {
-    sheet: { ...base, title: brief?.title ? `${base.title} - ${brief.title}` : base.title, rows: [...head, ...base.rows], ...(brief?.refs.length && { refs: brief.refs }), ...(brief?.body && { notes: briefNotes(brief.body) }) },
-    refs, warnings,
-  };
+  return { sheet: subjectDataSheet(base, { version, theme: mapDirection.themeFor(st.direction, kind), directionVersion: mapDirection.lockedMapDirection(st.direction)?.version, brief }), refs, warnings };
 }
 
 export interface Review { version: string; sheet: string; sheetFile: string; imageTokens: number; pass: boolean; checks: Check[]; warnings: string[]; score?: number }
@@ -216,28 +211,20 @@ export function writeSheet(p: Project, kind: SubjectKind, id: string): { png: st
 
 /** The user's feedback on the latest version; it opens a revision. */
 export function feedbackSubject(p: Project, kind: SubjectKind, id: string, o: { note: string; region?: number[]; via?: string }): { on: string; status: string; why: string } {
-  const st = subjectState(p, kind, id), on = st.versions[st.versions.length - 1];
-  if (!on) throw new Error(`${id}: no version yet — feedback is on a version (${hint(kind, 'version', id)})`);
-  if (!o.note?.trim()) throw new Error('feedback: --note "<what the user asked for>" is required');
-  if (o.region && o.region.length !== 4) throw new Error('--region: x,y,w,h');
-  appendLedger(ledgerPath(p), { type: 'feedback', asset: st.paths.key, on, note: o.note.trim(), ...(o.region && { region: o.region }), by: 'user', ...(o.via && { via: o.via }) });
+  const st = subjectState(p, kind, id), entry = feedbackEntry({ kind, id, key: st.paths.key, latest: st.versions[st.versions.length - 1] }, o);
+  appendLedger(ledgerPath(p), entry);
   const after = subjectState(p, kind, id).status;
-  return { on, status: after.status, why: after.why };
+  return { on: entry.on as string, status: after.status, why: after.why };
 }
 
 /** The user's approval of the latest version: it must be final (no unrecorded edits, no feedback open) and no check may fail. Flags are copied into the entry. */
 export function approveSubject(p: Project, kind: SubjectKind, id: string, o: { note?: string; via?: string } = {}): LedgerEntry {
-  const st = subjectState(p, kind, id), { status, version } = st.status;
-  if (status !== 'final' || !version) throw new Error(`${id} is ${status} (${st.status.why}): only a final ${kind} can be approved${status === 'in-pipeline' && version ? ` — ${hint(kind, 'version', id)} first` : ''}`);
-  const checks = checksOf(p, kind, id, readFileSync(st.paths.version(version), 'utf8')), bad = fails(checks);
-  if (bad.length) throw new Error(`${id} ${version}: ${bad.length} check${bad.length === 1 ? '' : 's'} fail (${[...new Set(bad.map(c => c.id))].join(', ')}) — fix them and record a new version, or give feedback instead`);
-  const warnings = flags(checks).map(c => `${c.id}: ${c.detail}`), ref = mapDirection.directionRef(st.direction);
-  const entry = {
-    type: 'approve' as const, asset: st.paths.key, version, sourceHash: sourceHash(st.text), ...(ref && { direction: ref }), note: o.note ?? '',
-    ...(warnings.length && { warnings }), by: 'user' as const, ...(o.via && { via: o.via }),
-  };
+  const st = subjectState(p, kind, id), version = st.status.version;
+  // the checks of the version the user approves: the working file is it when the status is final
+  const checks = st.status.status === 'final' && version ? checksOf(p, kind, id, readFileSync(st.paths.version(version), 'utf8')) : [];
+  const entry = approvalEntry({ kind, id, key: st.paths.key, status: st.status, checks, workingHash: sourceHash(st.text), direction: mapDirection.directionRef(st.direction) }, o);
   appendLedger(ledgerPath(p), entry);
-  return { ts: new Date().toISOString(), ...entry };
+  return { ts: new Date().toISOString(), ...entry } as LedgerEntry;
 }
 
 // ---- status
