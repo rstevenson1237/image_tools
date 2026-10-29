@@ -3,10 +3,10 @@
  * and the **style sheet** written to `art/direction.png` when a direction is locked (palette swatches with ramp
  * names, scale ruler, light diagram, anchors, do/don't). Pixel font only, so sheets are deterministic.
  */
-import { resolveSize, type Direction } from '../direction.ts';
-import { lumaOf } from '../lib/color.ts';
-import { drawText, GLYPH_H, textWidth } from '../lib/font.ts';
-import { Grid } from '../lib/grid.ts';
+import { resolveSize, type Direction } from 'artgen-scene/direction.ts';
+import { lumaOf } from 'artgen-primitives/lib/color.ts';
+import { drawText, GLYPH_H, textWidth } from 'artgen-primitives/lib/font.ts';
+import { Grid } from 'artgen-primitives/lib/grid.ts';
 import { checker } from '../qa/sheet.ts';
 
 const PAD = 12, TXT = 2, LINE = GLYPH_H * TXT + 6, BG = '#16161c', FG = '#dddddd', DIM = '#8a8a96', TITLE = '#ffffff';

@@ -4,9 +4,9 @@
  * and writes the files.
  */
 import type { Cell, RenderResult } from '../render.ts';
-import { Grid } from '../lib/grid.ts';
-import { fitNormalMap } from '../lib/normals.ts';
-import type { Direction, Size, View } from '../direction.ts';
+import { Grid } from 'artgen-primitives/lib/grid.ts';
+import { fitNormalMap } from 'artgen-primitives/lib/normals.ts';
+import type { Direction, Size, View } from 'artgen-scene/direction.ts';
 import type { BriefEntry } from './briefs.ts';
 
 /**

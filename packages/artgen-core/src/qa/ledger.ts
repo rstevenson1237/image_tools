@@ -2,7 +2,7 @@
  * Ledger records (`art/ledger.jsonl`, append-only, SPEC §11): one JSON object per line. Core only formats and
  * parses lines; the Node adapter (artgen-cli) and the UI's project store do the appending.
  */
-import { hashString } from '../lib/rng.ts';
+import { hashString } from 'artgen-primitives/lib/rng.ts';
 import type { ConformanceReport } from './conformance.ts';
 import type { Metrics } from './metrics.ts';
 

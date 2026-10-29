@@ -3,7 +3,7 @@
  * (W4) both read: defaults merged over the file, the effective budget of an asset, the pre-W1 direction placeholder,
  * and the base a finish is bound to. Pure data; the CLI and the UI's project store do the I/O.
  */
-import type { Direction } from '../direction.ts';
+import type { Direction } from 'artgen-scene/direction.ts';
 
 export interface BudgetCaps { revisionPasses?: number; extraAutonomousRevisions?: number; maxImageTokensPerAsset?: number }
 

@@ -6,7 +6,7 @@
  * Additions (a new state, facing or anchor) extend it; anything else needs an explicit `--break-contract`.
  */
 import { FACINGS } from '../render.ts';
-import type { Direction } from '../direction.ts';
+import type { Direction } from 'artgen-scene/direction.ts';
 import type { BriefEntry } from './briefs.ts';
 import { frameDurations, stateDefs, type PackAsset } from './pack.ts';
 

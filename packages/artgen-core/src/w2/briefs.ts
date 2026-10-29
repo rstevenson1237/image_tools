@@ -3,7 +3,7 @@
  * the CLI and the UI's project store do the file I/O. Edits go through the YAML document so comments survive.
  */
 import { isMap, isSeq, parseDocument, stringify, type Document, type YAMLMap, YAMLSeq } from 'yaml';
-import { VIEWS, type Direction, type Size, type View } from '../direction.ts';
+import { VIEWS, type Direction, type Size, type View } from 'artgen-scene/direction.ts';
 import type { Brief } from '../render.ts';
 
 export const BRIEF_KINDS = ['character', 'creature', 'prop', 'tile', 'tileset', 'texture', 'effect', 'viewmodel', 'ui-icon', 'layer'] as const;

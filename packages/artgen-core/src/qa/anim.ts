@@ -10,9 +10,9 @@
  *    solid disc of its lightest colour reads as a sticker, not light; calibrated on the P6c effects. Flag.
  * Plus the onion-skin strip used by review sheets.
  */
-import type { Direction } from '../direction.ts';
-import { normHex } from '../lib/color.ts';
-import { Grid } from '../lib/grid.ts';
+import type { Direction } from 'artgen-scene/direction.ts';
+import { normHex } from 'artgen-primitives/lib/color.ts';
+import { Grid } from 'artgen-primitives/lib/grid.ts';
 import type { RenderResult } from '../render.ts';
 import type { Check } from './conformance.ts';
 

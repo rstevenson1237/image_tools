@@ -64,7 +64,10 @@ dungeon (Pixi.js) and a first-person billboard crawler (three.js).
 
 | Package | What it is |
 |---|---|
-| [`packages/artgen-core`](packages/artgen-core) | the engine: direction model, primitives, procedural layers, finishing ops, checks, export |
+| [`packages/artgen-primitives`](packages/artgen-primitives) | engine layer 1: grid, colour, palette, noise, PNG, SVG, geometry, format versions |
+| [`packages/artgen-scene`](packages/artgen-scene) | engine layer 2: direction types, 2D/3D scenes, procedural layers, voxels, views, animation, effects, textures |
+| [`packages/artgen-mapgen`](packages/artgen-mapgen) | the terrain, dungeon and settlement map engines |
+| [`packages/artgen-core`](packages/artgen-core) | the artgen pipeline (rendering, passes, checks, workflows, export) and the facade that re-exports the three above |
 | [`packages/artgen-cli`](packages/artgen-cli) | the `artgen` CLI the skills call |
 | [`packages/artgen-runtime`](packages/artgen-runtime) | the runtime vendored into games, with Pixi.js / three.js / Canvas 2D adapters |
 | [`packages/artgen-mcp`](packages/artgen-mcp) | the MCP server |
@@ -131,16 +134,17 @@ src/
 ├── core/                   Shared infrastructure, used by every tool
 │   ├── canvas/             CanvasStage.svelte — zoom, pan, grid snap, dropzone
 │   ├── components/         StatusBadge, PixelPreview, CompareView, PaletteRamp, ProjectBar (art pipeline tools)
+│   ├── maps/               the shared map-editor shell: layout and styles, project open / save, preview render loop, helpers
 │   ├── project/            artgen project: file access (FSA / zip), snapshot, engine, store
 │   ├── stores/             activeTool, generic Command-Pattern history
-│   ├── tools/registry.ts   The tool registry (with sidebar groups)
+│   ├── tools/registry.ts   The tool registry (sidebar groups: image, maps, art)
 │   └── utils/              Geometry, ImageData helpers, downloads, pointer normalisation
 ├── tools/
 │   ├── TokenCutter/        UI, selection capture, store, export
 │   ├── SvgTracer/          UI, node editor, vector model, SVG serializer, store
-│   ├── TerrainMap/         map editor over artgen-core's `map` engine (generator, contours, themes, SVG renderer)
-│   ├── DungeonMap/         dungeon editor over artgen-core's `dungeon` engine
-│   ├── SettlementMap/      settlement editor (site and floor plans) over artgen-core's `settlement` engine
+│   ├── TerrainMap/         map editor over the `map` engine (generator, contours, themes, SVG renderer)
+│   ├── DungeonMap/         dungeon editor over the `dungeon` engine
+│   ├── SettlementMap/      settlement editor (site and floor plans) over the `settlement` engine
 │   ├── ArtDirection/       direction editor + live style tile
 │   ├── AssetReview/        gallery, timeline, compare, approve / feedback, analytics
 │   └── AssetLab/           params + runtime playback

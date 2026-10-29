@@ -4,8 +4,8 @@
  * The silhouette panel (rev 9) shows the opaque body solid black on light grey: a shape that does not read in black
  * does not read in the game.
  */
-import { drawText, GLYPH_H, textWidth } from '../lib/font.ts';
-import { Grid } from '../lib/grid.ts';
+import { drawText, GLYPH_H, textWidth } from 'artgen-primitives/lib/font.ts';
+import { Grid } from 'artgen-primitives/lib/grid.ts';
 
 export interface SheetRow {
   label: string;

@@ -2,10 +2,10 @@
 // finishing pass loses, the roster pages past 26 assets, briefs warn about materials their kind can't colour, and
 // fix.jaggies leaves an iso tile's 2:1 rim alone.
 import { describe, expect, test } from 'vitest';
-import { dirContext, parseDirection } from '../direction.ts';
-import { Grid } from '../lib/grid.ts';
+import { dirContext, parseDirection } from 'artgen-scene/direction.ts';
+import { Grid } from 'artgen-primitives/lib/grid.ts';
 import type { LedgerEntry } from '../qa/ledger.ts';
-import { makePx } from '../t2/finish.ts';
+import { makePx } from '../finish.ts';
 import { analytics, analyticsMarkdown, type AssetMeta } from './analytics.ts';
 import { briefMaterialIssues } from './briefs.ts';
 import { roster, rosterLabel } from './roster.ts';

@@ -2,30 +2,30 @@
  * Asset module contract (SPEC §6.2) and the render loop over states × facings × frames.
  * Every render gets the direction through `ctx.dir`; `ctx.lib` hands out engine pieces pre-bound to it.
  */
-import { dirContext, kindPalette, resolveSize, type DirContext, type Direction, type Size, type View } from './direction.ts';
-import * as blitLib from './lib/blit.ts';
-import { Grid } from './lib/grid.ts';
-import { fitNormalMap, flipNormalMap } from './lib/normals.ts';
-import * as iso from './lib/iso.ts';
-import * as palette from './lib/palette.ts';
-import * as post from './lib/post.ts';
-import { Scene, R, mirrorSpec, type SceneOptions } from './lib/prim.ts';
-import { rng } from './lib/rng.ts';
-import { doc, rasterizeSvg, svgToGrid, type SvgToGridOptions } from './lib/svg.ts';
-import { Voxels, face } from './lib/voxel.ts';
-import { resolveParams } from './t2/params.ts';
-import { autotile, autotileCount, autotileMask, type AutotileOptions } from './tex/autotile.ts';
-import { isoBlockTile, isoFloorTile, type IsoBlockOptions } from './tex/iso.ts';
-import { lsystem, lsystemSpecs, turtle } from './tex/lsystem.ts';
-import { material, type MaterialOptions } from './tex/materials.ts';
-import { pGradient, pValue, pWorley } from './lib/noise.ts';
-import { wfc } from './tex/wfc.ts';
-import { Proc } from './t2/proc.ts';
-import { sky, type SkyOptions } from './views/fp.ts';
-import { blend, cellTiming, ease, pingpong, rig, solveTwoBone, spring, sweep, track } from './anim/anim.ts';
-import { colorRun, flame, paletteCycle, particles, preset, PRESET_NAMES, simulate, drawParticles, type Emitter, type FlameOptions, type PresetOptions } from './fx/particles.ts';
-import { Scene2D, type Scene2DOptions } from './t2/scene.ts';
-import { Scene3D, type Scene3DOptions } from './t2/scene3d.ts';
+import { dirContext, kindPalette, resolveSize, type DirContext, type Direction, type Size, type View } from 'artgen-scene/direction.ts';
+import * as blitLib from 'artgen-primitives/lib/blit.ts';
+import { Grid } from 'artgen-primitives/lib/grid.ts';
+import { fitNormalMap, flipNormalMap } from 'artgen-primitives/lib/normals.ts';
+import * as iso from 'artgen-primitives/lib/iso.ts';
+import * as palette from 'artgen-primitives/lib/palette.ts';
+import * as post from 'artgen-primitives/lib/post.ts';
+import { Scene, R, mirrorSpec, type SceneOptions } from 'artgen-primitives/lib/prim.ts';
+import { rng } from 'artgen-primitives/lib/rng.ts';
+import { doc, rasterizeSvg, svgToGrid, type SvgToGridOptions } from 'artgen-primitives/lib/svg.ts';
+import { Voxels, face } from 'artgen-primitives/lib/voxel.ts';
+import { resolveParams } from 'artgen-scene/t2/params.ts';
+import { autotile, autotileCount, autotileMask, type AutotileOptions } from 'artgen-scene/tex/autotile.ts';
+import { isoBlockTile, isoFloorTile, type IsoBlockOptions } from 'artgen-scene/tex/iso.ts';
+import { lsystem, lsystemSpecs, turtle } from 'artgen-scene/tex/lsystem.ts';
+import { material, type MaterialOptions } from 'artgen-scene/tex/materials.ts';
+import { pGradient, pValue, pWorley } from 'artgen-primitives/lib/noise.ts';
+import { wfc } from 'artgen-scene/tex/wfc.ts';
+import { Proc } from 'artgen-scene/t2/proc.ts';
+import { sky, type SkyOptions } from 'artgen-scene/views/fp.ts';
+import { blend, cellTiming, ease, pingpong, rig, solveTwoBone, spring, sweep, track } from 'artgen-scene/anim/anim.ts';
+import { colorRun, flame, paletteCycle, particles, preset, PRESET_NAMES, simulate, drawParticles, type Emitter, type FlameOptions, type PresetOptions } from 'artgen-scene/fx/particles.ts';
+import { Scene2D, type Scene2DOptions } from 'artgen-scene/t2/scene.ts';
+import { Scene3D, type Scene3DOptions } from 'artgen-scene/t2/scene3d.ts';
 
 export interface Brief {
   id: string;
