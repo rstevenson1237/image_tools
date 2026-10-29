@@ -1,6 +1,6 @@
 # Operation registry (R2)
 
-Status: design, 2026-10-29. This is phase R2 of [`TOOLING-PLAN.md`](TOOLING-PLAN.md) (§9, §10). The generated
+Status: built, 2026-10-29 (§10 has what was built and how it differs from the design). This is phase R2 of [`TOOLING-PLAN.md`](TOOLING-PLAN.md) (§9, §10). The generated
 reference of every operation is [`OPERATIONS.md`](OPERATIONS.md).
 
 ## 1. Goal
