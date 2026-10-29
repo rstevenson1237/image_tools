@@ -3,7 +3,7 @@
 // states. A fixture changes only through a brief from its consumer or a format bump that migrates it in the same change.
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, test, vi } from 'vitest';
 import { dungeon, map } from 'artgen-core';
@@ -11,6 +11,7 @@ import { main } from './cli.ts';
 import { initProject, type Project } from './project.ts';
 import { dungeonFile, readDungeon, renderDungeonFiles } from './dungeon.ts';
 import { mapFile, readMap, renderMapFiles } from './map.ts';
+import { settlementFile } from './settlement.ts';
 
 const FIXTURES = fileURLToPath(new URL('../fixtures/', import.meta.url));
 const formatOf = (caseMd: string, kind: string): number => {
@@ -84,10 +85,11 @@ test('every case has its input file and a case.md with the commit, the command a
   for (const consumer of readdirSync(FIXTURES, { withFileTypes: true }).filter(d => d.isDirectory())) {
     for (const c of readdirSync(join(FIXTURES, consumer.name), { withFileTypes: true }).filter(d => d.isDirectory())) {
       const dir = join(FIXTURES, consumer.name, c.name), md = readFileSync(join(dir, 'case.md'), 'utf8');
-      expect(existsSync(join(dir, 'map.json')) || existsSync(join(dir, 'dungeon.json')), `${c.name}: an input file`).toBe(true);
+      const asset = /^kind: asset$/m.test(md);
+      expect(['map.json', 'dungeon.json', 'settlement.json'].some(f => existsSync(join(dir, f))) || (asset && existsSync(join(dir, 'asset'))), `${c.name}: an input file`).toBe(true);
       expect(md, `${c.name}: the consumer commit`).toMatch(/\b[0-9a-f]{40}\b/);
       expect(md, `${c.name}: the command`).toMatch(/```sh\n/);
-      expect(md, `${c.name}: format`).toMatch(/^format: (map|dungeon) \d+$/m);
+      expect(md, `${c.name}: format`).toMatch(asset ? /^kind: asset$/m : /^format: (map|dungeon|settlement) \d+$/m);
     }
   }
 });
@@ -389,4 +391,42 @@ describe('setting-builder/frontier-unmet', () => {
     expect(b.require.at(-1)).toEqual({ id: 'C-rock', kind: 'terrain', area: c.area, terrain: 'rock', share: 0.9 });
     expect({ ...b, id: a.id, require: b.require.slice(0, -1) }).toEqual(a);
   });
+});
+
+// Cases that came in through scripts/artgen-intake.mjs (case.md says `status: reported`) are held to the minimum until their
+// facts are written down: the tools do not throw on the file, and a render is the same twice. The maintainer then adds the
+// facts to case.md and a describe block above, and drops the status line.
+const reported: { consumer: string; name: string; md: string }[] = [];
+for (const consumer of readdirSync(FIXTURES, { withFileTypes: true }).filter(d => d.isDirectory())) {
+  for (const c of readdirSync(join(FIXTURES, consumer.name), { withFileTypes: true }).filter(d => d.isDirectory())) {
+    const md = readFileSync(join(FIXTURES, consumer.name, c.name, 'case.md'), 'utf8');
+    if (/^status: reported/m.test(md)) reported.push({ consumer: consumer.name, name: c.name, md });
+  }
+}
+describe.each(reported)('$consumer/$name (reported)', ({ consumer, name, md }) => {
+  const dir = join(FIXTURES, consumer, name), asset = /^kind: asset$/m.test(md);
+  const kind = (md.match(/^format: (map|dungeon|settlement) \d+$/m)?.[1] ?? 'map') as 'map' | 'dungeon' | 'settlement';
+  test('check and render run on it, and the render is the same twice', async () => {
+    const root = mkdtempSync(join(tmpdir(), `artgen-reported-${name}-`)), { project } = initProject(root);
+    if (asset) {
+      for (const f of ['direction.json', 'briefs.yaml', 'artgen.config.json', 'ledger.jsonl']) if (existsSync(join(dir, f))) cpSync(join(dir, f), join(project.art, f));
+      const at = md.match(/^asset: (\S+)$/m)?.[1];
+      expect(at, 'case.md names the asset folder (asset: assets/<kind>/<id>)').toBeTruthy();
+      cpSync(join(dir, 'asset'), join(project.art, at!), { recursive: true });
+      const r = await cli('render', basename(at!), '--root', root);
+      expect([0, 1]).toContain(r.code);
+      return;
+    }
+    const input = join(dir, `${kind}.json`), id = JSON.parse(readFileSync(input, 'utf8')).id as string | undefined ?? name;
+    const to = (kind === 'map' ? mapFile : kind === 'dungeon' ? dungeonFile : settlementFile)(project, id);
+    mkdirSync(join(to, '..'), { recursive: true });
+    cpSync(input, to);
+    const check = await cli(kind, 'check', id, '--root', root, '--json');
+    expect([0, 1]).toContain(check.code);
+    if (check.code !== 0) return;   // a file the tools refuse is not drawn
+    for (const o of ['a', 'b']) expect((await cli(kind, 'render', id, '--root', root, '--out', join(root, o))).code).toBe(0);
+    const files = readdirSync(join(root, 'a'));
+    expect(files.length).toBeGreaterThan(0);
+    for (const f of files) expect(bytes(join(root, 'a', f)).equals(bytes(join(root, 'b', f))), f).toBe(true);
+  }, 120_000);
 });

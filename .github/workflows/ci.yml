@@ -52,6 +52,24 @@ jobs:
           BASE_PATH: /${{ github.event.repository.name }}/
         run: npm run build
 
+  # Consumer fixtures (docs/TOOLING-PLAN.md R4): every case of packages/artgen-cli/fixtures against the BUILD a game repo would
+  # install, not the sources. The facts each case states are held by the fixture tests in `verify`.
+  consumers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: node packages/artgen-dist/build.mjs --no-ui
+
+      - run: node scripts/artgen-consumer-ci.mjs
+
   # The Python client (python/artgen) runs the CLI from this repo's sources, so it needs the workspace installed.
   python:
     runs-on: ubuntu-latest

@@ -1,12 +1,15 @@
 /**
  * The core module's operations: what every install has whichever of the art and maps modules it holds. Today that is
- * `ui`, the local review server (docs/TOOLING-PLAN.md §5b). It imports only Node and `ui-server.ts`, so the maps-only
- * bundle holds it too.
+ * `ui`, the local review server (docs/TOOLING-PLAN.md §5b), and the two halves of the feedback loop that need no pixel-art
+ * pipeline: `report` (a feedback bundle for the artgen repo) and `upstream` (local edits of installed files as a patch,
+ * §5). They import only Node and the files the maps-only bundle may hold, so that bundle has them too.
  */
 import { spawn } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { BUNDLE_KINDS, DEFAULT_REPO, openIssue, writeBundle } from '../loop/feedback-bundle.ts';
+import { upstream } from '../loop/upstream.ts';
 import { startUiServer } from '../ui-server.ts';
 import { defineOp, p, type OpDef } from './registry.ts';
 
@@ -52,4 +55,57 @@ export const uiOp = defineOp({
   python: { exclude: 'starts a server that waits for a person at a browser' },
 });
 
-export const CORE_OPS: OpDef[] = [uiOp];
+export const reportOp = defineOp({
+  name: 'report', module: 'core', effect: 'write',
+  summary: 'Write a feedback bundle for an asset, map, dungeon or settlement (its files, versions, render, a case.md) to send back to the artgen repo.',
+  description: 'Write a feedback bundle to art/feedback/<date>-<id>/: the input file, the command, the artgen version, the render, the ledger lines and a case.md in the layout of the artgen repo\'s consumer fixtures, plus ISSUE.md, the text of the issue it would open. Nothing is sent.',
+  params: {
+    id: p.str('the asset, map, dungeon or settlement id', { positional: true }),
+    file: p.str('a map, dungeon or settlement file by path, in place of the id', { mcp: false }),
+    kind: p.oneOf(BUNDLE_KINDS, 'which one the id (or file) is, when it could be more than one'),
+    note: p.str('what is wrong or missing, in your words'),
+    out: p.str('the folder to write the bundle to (default art/feedback/<date>-<id>/)', { mcp: false }),
+    no_render: p.bool('leave the render out'),
+    issue: p.bool('open the issue on the artgen repo with the bundle (needs GH_TOKEN or GITHUB_TOKEN; without one, prints the link to open)', { mcp: false }),
+    repo: p.str(`the repo the issue goes to (default ${DEFAULT_REPO})`, { mcp: false }),
+  },
+  async run(i: { id?: string; file?: string; kind?: (typeof BUNDLE_KINDS)[number]; note?: string; out?: string; no_render?: boolean; issue?: boolean; repo?: string }, ctx) {
+    const pr = ctx.findProject(), b = await writeBundle(pr, i.id, { file: i.file, kind: i.kind, note: i.note, out: i.out, noRender: i.no_render, repo: i.repo });
+    const token = process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN;
+    const issue = i.issue && token ? await openIssue(b, i.repo ?? DEFAULT_REPO, token) : undefined;
+    return { dir: ctx.rel(b.dir), id: b.id, kind: b.kind, files: b.files, check: b.check, link: b.link, ...(issue && { issue }) };
+  },
+  cli: {
+    usage: '       artgen report <id> [--kind asset|map|dungeon|settlement] [--file path] [--note "..."] [--no-render] [--issue]   a feedback bundle for the artgen repo (art/feedback/); --issue sends it',
+    text: (r, i) => [
+      `feedback bundle: ${r.dir} (${r.files.length} files)`, `  check: ${r.check}`,
+      r.issue ? `issue opened: ${r.issue}` : i.issue ? `no GH_TOKEN or GITHUB_TOKEN here, so nothing was sent. To send it, open:\n${r.link}` : `read ${r.dir}/ISSUE.md, then send it: artgen report ${r.id} --issue (without a token this prints the link to open)`,
+    ].join('\n'),
+  },
+  mcp: {}, python: {},
+});
+
+export const upstreamOp = defineOp({
+  name: 'upstream', module: 'core', effect: 'write',
+  summary: 'Your local edits to the installed skills, agents, commands and templates as a patch against their sources in the artgen repo.',
+  params: {
+    base: p.str('a folder with the artgen distribution at the installed version (default: fetched from the release tag on GitHub)', { mcp: false }),
+    out: p.str('where to write the patch (default art/feedback/upstream-<date>.patch)', { mcp: false }),
+    repo: p.str(`the artgen repo (default ${DEFAULT_REPO})`, { mcp: false }),
+  },
+  async run(i: { base?: string; out?: string; repo?: string }, ctx) {
+    const r = await upstream(ctx.findProject()?.root ?? process.cwd(), { base: i.base, out: i.out, repo: i.repo });
+    return { ...r, out: r.out && ctx.rel(r.out) };
+  },
+  cli: {
+    usage: '       artgen upstream [--base dir] [--out file.patch]   local edits of installed files as a patch against the artgen repo\'s sources',
+    text: r => r.files.length ? [
+      ...r.files.map((f: { installed: string; source?: string; status: string; note?: string }) => `${f.status.padEnd(8)} ${f.installed}${f.source ? ` -> ${f.source}` : ''}${f.note ? `  (${f.note})` : ''}`),
+      r.out ? `patch for artgen ${r.version}: ${r.out}\napply it in the artgen repo: git apply ${r.out}` : 'no patch to write',
+    ].join('\n') : `no installed file is edited (artgen ${r.version})`,
+    json: r => ({ ...r, patch: undefined }),
+  },
+  mcp: { exclude: 'compares installed files and may fetch from GitHub; the user sends edits upstream' }, python: {},
+});
+
+export const CORE_OPS: OpDef[] = [uiOp, reportOp, upstreamOp];

@@ -1,5 +1,5 @@
 /**
- * `artgen report <dir>`: per-pass scores, gates and cost for every asset directory under `dir`, in the style of
+ * `artgen bench-report <dir>`: per-pass scores, gates and cost for every asset directory under `dir`, in the style of
  * artlab's REPORT-iso.md, plus a final comparison sheet (reference beside the pipeline's final).
  */
 import { existsSync, readdirSync, writeFileSync } from 'node:fs';

@@ -152,11 +152,11 @@ export const variants = defineOp({
 });
 
 export const reportOp = defineOp({
-  name: 'report', module: 'art', effect: 'write', summary: 'A markdown report on every asset directory under a folder (benchmark runs).',
+  name: 'bench-report', module: 'art', effect: 'write', summary: 'A markdown report on every asset directory under a folder (benchmark runs).',
   params: { dir: p.str('the folder of asset directories', { positional: true, required: true }), out: p.str('write the report here instead of printing it'), title: p.str('the report\'s title') },
   run: (i: Inp) => report(i.dir, { out: i.out, title: i.title }),
   cli: {
-    usage: '       artgen report <dir> [--out REPORT.md] [--title "..."]',
+    usage: '       artgen bench-report <dir> [--out REPORT.md] [--title "..."]',
     // prints the markdown (never JSON), and only when it is not written to a file
     output: (r, i, io) => { if (!i.out) io.log(r.markdown); },
     exit: r => (r.summaries.every((s: any) => s.met) ? 0 : 1),

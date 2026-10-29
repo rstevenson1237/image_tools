@@ -296,7 +296,7 @@ describe('maps/ (the maps-only bundle)', () => {
   test('other commands are not in the bundle', () => {
     const r = maps('render', 'art/assets/character/x');
     expect(r.status).toBe(1);
-    expect(r.stderr).toMatch(/map, dungeon, settlement, formats and ui/);
+    expect(r.stderr).toMatch(/map, dungeon, settlement, formats, ui, report, upstream/);
   });
 });
 
@@ -372,8 +372,11 @@ describe('modules', () => {
     // removing art takes the MCP entry (ours only) and the art section; core cannot go
     remove(dir, ['art'], { dist: DIST(), force: true, ...quiet });
     expect(JSON.parse(readFileSync(join(dir, '.mcp.json'), 'utf8')).mcpServers).toEqual({ other: { command: 'x' } });
-    expect(readFileSync(join(dir, 'CLAUDE.md'), 'utf8')).not.toMatch(/artgen:begin/);
-    expect(has(dir, 'tools/artgen/artgen.js', '.claude/agents', '.claude/skills')).toEqual([false, false, false]);
+    // what stays is the core module's section (the feedback loop) and its commands
+    const left = readFileSync(join(dir, 'CLAUDE.md'), 'utf8');
+    expect(left).not.toMatch(/Art pipeline|Tabletop maps/);
+    expect(left).toMatch(/## Sending feedback back to artgen/);
+    expect(has(dir, 'tools/artgen/artgen.js', '.claude/agents', '.claude/skills', '.claude/commands/artgen-report.md', '.claude/commands/artgen-upstream.md')).toEqual([false, false, false, true, true]);
     expect(has(dir, 'tools/artgen/VERSION', 'tools/artgen/MANIFEST.json')).toEqual([true, true]);
     expect(() => remove(dir, ['core'], { dist: DIST(), ...quiet })).toThrow(/core cannot be removed/);
     expect(() => remove(dir, ['ui'], { dist: DIST(), ...quiet })).toThrow(/not installed/);

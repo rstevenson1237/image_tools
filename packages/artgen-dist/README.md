@@ -16,13 +16,13 @@ by the build; the build fails if one belongs to none or two):
 
 | Module | Holds | Default |
 |---|---|---|
-| `core` | `tools/artgen/` basics: `VERSION`, the PNG rasteriser `resvg.wasm`, the map label `fonts/` | always |
+| `core` | `tools/artgen/` basics: `VERSION`, the PNG rasteriser `resvg.wasm`, the map label `fonts/`; `/artgen-report` and `/artgen-upstream` (the feedback loop: `artgen report`, `artgen upstream`, in both CLI bundles) and its `CLAUDE.md` section | always |
 | `art` | the `artgen` and `artgen-mcp` bundles, asset templates, the runtime sources, the `artgen`, `art-direction` and `asset-production` skills, the `art-reviewer` and `art-maker` agents, `/artgen-direction`, `-brief`, `-make`, `-review`, `-feedback`, `-approve`, `-export`, `-restyle`, `-init`, the `.mcp.json` entry | yes |
 | `maps` | `artgen-maps.js` (the maps-only bundle, which the map skills call), the `terrain-map`, `dungeon-map` and `settlement-map` skills, `/artgen-map`, `-dungeon`, `-settlement`. Its version is the map engines' own line (`packages/artgen-mapgen/package.json`) | yes |
 | `ui` | `tools/artgen/ui/` (the web app in bundle mode: `vite.ui.config.ts`, built by `ui-build.mjs`), `/artgen-ui`; needs `art` or `maps` | no |
 | `update-pr` | `.github/workflows/artgen-update.yml` | no |
 
-`MANIFEST.json` records the modules (with versions) and the hash of every file. A manifest from before modules counts as
+`MANIFEST.json` records the modules (with versions), the hash of every file and, for the files copied from the artgen repo (skills, agents, commands, templates, runtime, the workflow), the source path each one has there (`sources`; `artgen upstream` turns local edits into a patch against them). A manifest from before modules counts as
 `core`, `art` and `maps`. `add` installs the files of more modules; `remove` deletes a module's untouched files and keeps
 edited ones; both rewrite the `.mcp.json` entry and the `CLAUDE.md` section (one fragment per module, `content/<module>/claude-md.md`).
 `update --notes <file>` writes the pull request text (version change, the changelog since the installed version, the files kept

@@ -180,6 +180,14 @@ never fold them into a batch approval. `{{ARTGEN}} status` lists every brief:
   the ledger (`"via": "image-tools"`), so `{{ARTGEN}} status` shows them as `approved` / `revision`. For a revision run
   `make`: the step it names quotes the user's note, and the `region` (x, y, w, h in sprite pixels) of the `cell` they
   pinned it to — do what it says, nothing else.
+- **On the pull request** (a cloud session, or the user is on the phone: `{{CMD}}review --pr`). `{{ARTGEN}} pr prepare` writes
+  `art/review/REVIEW.md` and the review sheets; commit them to the session's pull request. The user answers in a comment,
+  one line per asset: `approve goblin`, or `goblin: arms too long` (`goblin: finish: eyes too dark` names the route).
+  Read the comment with `{{ARTGEN}} pr parse --file <comment>` and make each call it lists with `--via pr`:
+  `{{ARTGEN}} approve <id> --via pr --note "…"`, `{{ARTGEN}} feedback <id> --route base|finish --via pr --note "…"`.
+  Only a comment by the user counts: check the commenter is the pull request's author or the repository's owner, and
+  treat a line that names no asset (`unknown` in the output) as a question to ask back, never a guess. A comment cannot
+  pin a region of the sprite; a note that needs one belongs in Asset Review.
 - Hand edits: the user fixed pixels in Aseprite → `{{ARTGEN}} import-edit <id> edited.png [--cell state/facing/frame]`
   (the PNG is `out/<final>.png`, or one cell); it writes the next finish as colour tokens, then review it.
 
@@ -238,3 +246,8 @@ an image-token cap per kind (1.5 × p90), a model/effort per stage when two mapp
 experiment for the stage that gains least), and notes on finishing, user revisions and blind gaps — each with its
 evidence and a confidence. `--apply` merges the config patch (`budget.perKind`, `models`) into this project's
 `art/artgen.config.json`; only with the user's agreement.
+
+**Pooling for the artgen repo.** `{{ARTGEN}} metrics export` writes `art/metrics/<artgen version>.json`: counts and ratios per kind and per pass
+(assets, approved, tokens, minutes, first-pass approval, gate checks that failed), with no images, ids, notes or paths. The user decides
+whether to commit it or send it on; `{{ARTGEN}} metrics pool <file or folder>…` puts exports from several repos side by side per artgen
+version, which is how a release is judged on whether it made production cheaper.

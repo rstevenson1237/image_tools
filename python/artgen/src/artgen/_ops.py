@@ -34,7 +34,7 @@ _OPS: dict[str, tuple[tuple[str, ...], tuple[str, ...], dict[str, tuple[str, str
     "conformance": (("conformance",), ("asset",), {"version": ("--version", "value"), "direction": ("--direction", "value"), "ledger": ("--ledger", "value")}),
     "score": (("score",), ("asset", "version", "score"), {"note": ("--note", "value"), "reviewer": ("--reviewer", "value"), "blind": ("--blind", "switch"), "model": ("--model", "value"), "effort": ("--effort", "value"), "tokens_in": ("--tokens-in", "value"), "tokens_out": ("--tokens-out", "value"), "agent_tokens_in": ("--agent-tokens-in", "value"), "ms": ("--ms", "value"), "direction": ("--direction", "value"), "ledger": ("--ledger", "value")}),
     "variants": (("variants",), ("asset",), {"version": ("--version", "value"), "n": ("--n", "value"), "direction": ("--direction", "value"), "ledger": ("--ledger", "value")}),
-    "report": (("report",), ("dir",), {"out": ("--out", "value"), "title": ("--title", "value")}),
+    "bench-report": (("bench-report",), ("dir",), {"out": ("--out", "value"), "title": ("--title", "value")}),
     "finish": (("finish",), ("asset",), {"base": ("--base", "value"), "direction": ("--direction", "value"), "ledger": ("--ledger", "value")}),
     "make": (("make",), ("*ids",), {"parallel": ("--parallel", "value"), "wave": ("--wave", "value")}),
     "brief.lint": (("brief", "lint"), ("*ids",), {}),
@@ -43,8 +43,8 @@ _OPS: dict[str, tuple[tuple[str, ...], tuple[str, ...], dict[str, tuple[str, str
     "brief.rm": (("brief", "rm"), ("id",), {}),
     "status": (("status",), ("*ids",), {}),
     "gallery": (("gallery",), ("*ids",), {}),
-    "feedback": (("feedback",), ("id",), {"route": ("--route", "value"), "note": ("--note", "value"), "by": ("--by", "value"), "region": ("--region", "list"), "cell": ("--cell", "value"), "force": ("--force", "switch")}),
-    "approve": (("approve",), ("id",), {"note": ("--note", "value")}),
+    "feedback": (("feedback",), ("id",), {"route": ("--route", "value"), "note": ("--note", "value"), "by": ("--by", "value"), "region": ("--region", "list"), "cell": ("--cell", "value"), "force": ("--force", "switch"), "via": ("--via", "value")}),
+    "approve": (("approve",), ("id",), {"note": ("--note", "value"), "via": ("--via", "value")}),
     "roster": (("roster",), ("*ids",), {"seed": ("--seed", "value"), "stage": ("--stage", "value")}),
     "roster.record": (("roster", "record"), ("file",), {"reviewer": ("--reviewer", "value")}),
     "texture": (("texture",), ("material",), {"size": ("--size", "value"), "seed": ("--seed", "value"), "ramps": ("--ramps", "list"), "scale": ("--scale", "value"), "list": ("--list", "switch"), "out": ("--out", "value"), "direction": ("--direction", "value")}),
@@ -52,6 +52,10 @@ _OPS: dict[str, tuple[tuple[str, ...], tuple[str, ...], dict[str, tuple[str, str
     "export": (("export",), (), {"pack": ("--pack", "list"), "include_drafts": ("--include-drafts", "switch"), "runtime": ("--runtime", "switch"), "force": ("--force", "switch"), "break_contract": ("--break-contract", "list")}),
     "restyle": (("restyle",), (), {"from_": ("--from", "value")}),
     "analytics": (("analytics",), (), {"across": ("--across", "list"), "apply": ("--apply", "switch"), "min_assets": ("--min-assets", "value"), "out": ("--out", "value")}),
+    "metrics.export": (("metrics", "export"), (), {"name": ("--name", "value"), "out": ("--out", "value")}),
+    "metrics.pool": (("metrics", "pool"), ("*paths",), {"out": ("--out", "value")}),
+    "pr.prepare": (("pr", "prepare"), ("*ids",), {"base": ("--base", "value")}),
+    "pr.parse": (("pr", "parse"), ("comment", "*ids"), {"file": ("--file", "value")}),
     "import-edit": (("import-edit",), ("id", "png"), {"cell": ("--cell", "value")}),
     "voxel": (("voxel",), ("asset",), {"version": ("--version", "value"), "cell": ("--cell", "value"), "out": ("--out", "value"), "scale": ("--scale", "value"), "direction": ("--direction", "value"), "ledger": ("--ledger", "value")}),
     "anim": (("anim",), ("asset",), {"version": ("--version", "value"), "state": ("--state", "value"), "facing": ("--facing", "value"), "scale": ("--scale", "value"), "out": ("--out", "value"), "direction": ("--direction", "value"), "ledger": ("--ledger", "value")}),
@@ -127,6 +131,8 @@ _OPS: dict[str, tuple[tuple[str, ...], tuple[str, ...], dict[str, tuple[str, str
     "settlement.facts": (("settlement", "facts"), ("id",), {"file": ("--file", "value")}),
     "settlement.render": (("settlement", "render"), ("id",), {"file": ("--file", "value"), "view": ("--view", "value"), "building": ("--building", "value"), "floor": ("--floor", "value"), "buildings": ("--buildings", "value"), "theme": ("--theme", "value"), "plans": ("--plans", "switch"), "ppu": ("--ppu", "value"), "layers": ("--layers", "value"), "format": ("--format", "value"), "fit": ("--fit", "value"), "page_scale": ("--page-scale", "value"), "crop": ("--crop", "value"), "out": ("--out", "value")}),
     "formats": (("formats",), (), {}),
+    "report": (("report",), ("id",), {"file": ("--file", "value"), "kind": ("--kind", "value"), "note": ("--note", "value"), "out": ("--out", "value"), "no_render": ("--no-render", "switch"), "issue": ("--issue", "switch"), "repo": ("--repo", "value")}),
+    "upstream": (("upstream",), (), {"base": ("--base", "value"), "out": ("--out", "value"), "repo": ("--repo", "value")}),
 }
 
 
@@ -216,9 +222,9 @@ class Ops:
         """A sheet of seed variants of a version, with how many are distinct. (artgen variants)"""
         return self._op("variants", [asset], {"version": version, "n": n, "direction": direction, "ledger": ledger})
 
-    def report(self, dir: str, *, out: Optional[str] = None, title: Optional[str] = None) -> "Result":
-        """A markdown report on every asset directory under a folder (benchmark runs). (artgen report)"""
-        return self._op("report", [dir], {"out": out, "title": title})
+    def bench_report(self, dir: str, *, out: Optional[str] = None, title: Optional[str] = None) -> "Result":
+        """A markdown report on every asset directory under a folder (benchmark runs). (artgen bench-report)"""
+        return self._op("bench-report", [dir], {"out": out, "title": title})
 
     def finish(self, asset: str, *, base: Optional[str] = None, direction: Optional[str] = None, ledger: Optional[str] = None) -> "Result":
         """Write the next finish.vM.js from the template, bound to the best scored base. (artgen finish)"""
@@ -252,13 +258,13 @@ class Ops:
         """A sheet of finished assets for the user: score, open issues, BELOW BAR. (artgen gallery)"""
         return self._op("gallery", [*ids], {})
 
-    def feedback(self, id: str, *, route: Optional[str] = None, note: Optional[str] = None, by: Optional[str] = None, region: Optional[Sequence[float]] = None, cell: Optional[str] = None, force: Optional[bool] = None) -> "Result":
+    def feedback(self, id: str, *, route: Optional[str] = None, note: Optional[str] = None, by: Optional[str] = None, region: Optional[Sequence[float]] = None, cell: Optional[str] = None, force: Optional[bool] = None, via: Optional[str] = None) -> "Result":
         """Record feedback on a finished asset and open a revision. (artgen feedback)"""
-        return self._op("feedback", [id], {"route": route, "note": note, "by": by, "region": region, "cell": cell, "force": force})
+        return self._op("feedback", [id], {"route": route, "note": note, "by": by, "region": region, "cell": cell, "force": force, "via": via})
 
-    def approve(self, id: str, *, note: Optional[str] = None) -> "Result":
+    def approve(self, id: str, *, note: Optional[str] = None, via: Optional[str] = None) -> "Result":
         """Record the user's approval of a final asset (a passing gate and a review sheet are needed). (artgen approve)"""
-        return self._op("approve", [id], {"note": note})
+        return self._op("approve", [id], {"note": note, "via": via})
 
     def roster(self, *ids: str, seed: Optional[float] = None, stage: Optional[str] = None) -> "Result":
         """Contact sheets of the roster for a fresh reviewer: sizes against briefs, the most similar silhouettes. (artgen roster)"""
@@ -287,6 +293,22 @@ class Ops:
     def analytics(self, *, across: Optional[Sequence[str]] = None, apply: Optional[bool] = None, min_assets: Optional[float] = None, out: Optional[str] = None) -> "Result":
         """Pipeline analytics: per-pass gains, cost per asset, budget suggestions (--across: pooled over projects). (artgen analytics)"""
         return self._op("analytics", [], {"across": across, "apply": apply, "min_assets": min_assets, "out": out})
+
+    def metrics_export(self, *, name: Optional[str] = None, out: Optional[str] = None) -> "Result":
+        """Write this repo's counts and ratios (assets, passes, tokens, minutes, scores, gate failures, per kind) to art/metrics/<version>.json for the pool. (artgen metrics export)"""
+        return self._op("metrics.export", [], {"name": name, "out": out})
+
+    def metrics_pool(self, *paths: str, out: Optional[str] = None) -> "Result":
+        """Put exported metrics from several repos side by side per artgen version (tokens and minutes per approved asset, first-pass approval, gate failures). (artgen metrics pool)"""
+        return self._op("metrics.pool", [*paths], {"out": out})
+
+    def pr_prepare(self, *ids: str, base: Optional[str] = None) -> "Result":
+        """Copy the finished assets' review sheets to art/review/ and write REVIEW.md, the table to commit to the pull request for review from the phone or the cloud. (artgen pr prepare)"""
+        return self._op("pr.prepare", [*ids], {"base": base})
+
+    def pr_parse(self, comment: Optional[str] = None, *ids: str, file: Optional[str] = None) -> "Result":
+        """Read a pull request comment into the approve and feedback calls it asks for (one line per asset). (artgen pr parse)"""
+        return self._op("pr.parse", [comment, *ids], {"file": file})
 
     def import_edit(self, id: str, png: str, *, cell: Optional[str] = None) -> "Result":
         """Take a hand-edited PNG of an asset back into the next finish.vM.js. (artgen import-edit)"""
@@ -587,3 +609,11 @@ class Ops:
     def formats(self) -> "Result":
         """The map, dungeon and settlement file format versions this artgen reads and writes. (artgen formats)"""
         return self._op("formats", [], {})
+
+    def report(self, id: Optional[str] = None, *, file: Optional[str] = None, kind: Optional[Literal["asset", "map", "dungeon", "settlement"]] = None, note: Optional[str] = None, out: Optional[str] = None, no_render: Optional[bool] = None, issue: Optional[bool] = None, repo: Optional[str] = None) -> "Result":
+        """Write a feedback bundle for an asset, map, dungeon or settlement (its files, versions, render, a case.md) to send back to the artgen repo. (artgen report)"""
+        return self._op("report", [id], {"file": file, "kind": kind, "note": note, "out": out, "no_render": no_render, "issue": issue, "repo": repo})
+
+    def upstream(self, *, base: Optional[str] = None, out: Optional[str] = None, repo: Optional[str] = None) -> "Result":
+        """Your local edits to the installed skills, agents, commands and templates as a patch against their sources in the artgen repo. (artgen upstream)"""
+        return self._op("upstream", [], {"base": base, "out": out, "repo": repo})

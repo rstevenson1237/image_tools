@@ -165,7 +165,7 @@ npx artgen review      <assetDir> [--version v]   # sheet: reference, best so fa
 npx artgen score       <assetDir> base.v2 6.5 --note "…"
 npx artgen pass status <assetDir>                 # r1..r3, f with scores and gates; flags a stale finish
 npx artgen variants    <assetDir> [--n 8]
-npx artgen report packages/artgen-core/bench/pipeline --out REPORT.md
+npx artgen bench-report packages/artgen-core/bench/pipeline --out REPORT.md
 ```
 
 Tests: `npm test -w artgen-core` (unit + stage tests, no wasm), `npm test -w artgen-cli` (SVG stage tests,

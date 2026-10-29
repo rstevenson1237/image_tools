@@ -149,7 +149,7 @@ async function committed(dist, { ui }) {
       writeFileSync(join(dist, 'claude-md', `${name}.md`), fill(readFileSync(frag, 'utf8'), vc));
     }
   };
-  await module('core', () => core(tools));
+  await module('core', () => { core(tools); moduleContent('core', claude, vc, 'artgen-'); });
   await module('art', async () => { await art(tools); moduleContent('art', claude, vc, 'artgen-'); });
   // the maps skills call the maps-only bundle, so a repo with only this module has everything they use
   await module('maps', async () => { await mapsBundle(tools); moduleContent('maps', claude, { ...vc, ARTGEN: 'node tools/artgen/artgen-maps.js' }, 'artgen-'); });
@@ -161,7 +161,26 @@ async function committed(dist, { ui }) {
   return files;
 }
 
-/** `modules.json`: for each module its version, summary, requirements and files; every file in exactly one module. */
+/**
+ * Where a distribution file comes from in this repo (repo-relative, posix), or undefined for a built file (a bundle, the wasm).
+ * `artgen upstream` uses it to turn a local edit of an installed file into a patch against its source.
+ */
+export function sourceOf(rel, module) {
+  const rules = [
+    [/^claude\/(skills|agents)\/(.+)$/, (k, r) => `packages/artgen-dist/content/${module}/${k}/${r}`],
+    [/^claude\/commands\/artgen-(.+)$/, (r) => `packages/artgen-dist/content/${module}/commands/${r}`],
+    [/^tools\/artgen\/templates\/(.+)$/, (r) => `packages/artgen-cli/templates/${r}`],
+    [/^tools\/artgen\/runtime\/(.+)$/, (r) => `packages/artgen-runtime/src/${r}`],
+    [/^github\/workflows\/artgen-update\.yml$/, () => 'packages/artgen-dist/content/update-pr/artgen-update.yml'],
+  ];
+  for (const [re, to] of rules) {
+    const m = rel.match(re);
+    if (m) { const src = to(...m.slice(1)); return existsSync(join(PKGS, '..', src)) ? src : undefined; }
+  }
+  return undefined;
+}
+
+/** `modules.json`: for each module its version, summary, requirements and files, and the source of each file; every file in exactly one module. */
 function moduleIndex(files, dist) {
   const all = walk(dist).map(f => relative(dist, f).split(sep).join('/')).filter(f => !f.startsWith('claude-md/'));
   const owner = {}, dup = [];
@@ -173,7 +192,9 @@ function moduleIndex(files, dist) {
     if (!files[name]) continue;
     modules[name] = { version: name === 'maps' ? MAPGEN_VERSION : VERSION, ...info, files: files[name] };
   }
-  return { release: VERSION, modules };
+  const sources = {};
+  for (const [f, m] of Object.entries(owner)) { const s = sourceOf(f, m); if (s) sources[f] = s; }
+  return { release: VERSION, modules, sources };
 }
 
 export async function buildDist(out = join(HERE, 'out'), { ui = true } = {}) {
@@ -187,7 +208,7 @@ export async function buildDist(out = join(HERE, 'out'), { ui = true } = {}) {
   // plugin layout (local `/plugin install` users): the art and maps content, the programs without the review UI
   const plugin = join(out, 'plugin'), vp = LAYOUTS.plugin;
   cpSync(join(dist, 'tools'), join(plugin, 'tools'), { recursive: true, filter: f => !/[\\/]tools[\\/]artgen[\\/]ui([\\/]|$)/.test(f) });
-  for (const m of ['art', 'maps']) moduleContent(m, plugin, vp, '');
+  for (const m of ['core', 'art', 'maps']) moduleContent(m, plugin, vp, '');
   const desc = 'Pixel and voxel game art pipeline: art direction, autonomous asset production, review, approval and atlas export, plus tabletop terrain, dungeon and settlement maps (artgen).';
   mkdirSync(join(plugin, '.claude-plugin'), { recursive: true });
   writeFileSync(join(plugin, '.claude-plugin', 'plugin.json'), JSON.stringify({ name: 'artgen', version: VERSION, description: desc }, null, 2) + '\n');
