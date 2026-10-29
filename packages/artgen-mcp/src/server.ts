@@ -16,7 +16,7 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve } from 'node:path';
 import { BENCH_DIRECTIONS } from 'artgen-core/bench';
-import { findProject, openAsset, OPS, readBriefs, VERSION, inputSchema, mcpName, mcpOf, type Ctx, type OpDef, type Project } from 'artgen-cli';
+import { artMetricsOf, findProject, openAsset, OPS, readBriefs, VERSION, inputSchema, mcpName, mcpOf, type Ctx, type OpDef, type Project } from 'artgen-cli';
 
 export const SERVER = { name: 'artgen', version: VERSION === 'dev' ? '0.0.0-dev' : VERSION };
 const PROTOCOLS = ['2025-06-18', '2025-03-26', '2024-11-05'];
@@ -31,7 +31,7 @@ const projRel = (p: Project, f: string) => relative(p.root, resolve(f)).split('\
 /** What an operation sees on MCP: the server's project, paths relative to its root, assets only inside `art/` (and no `ledger` override). */
 const mcpCtx = (p: Project): Ctx => ({
   surface: 'mcp', project: () => p, findProject: () => p, rel: f => projRel(p, f),
-  assetPath: arg => assetPath(p, arg), asset: (arg, o) => openAsset(assetPath(p, arg), { direction: dirOpt(p, o?.direction) }), direction: d => dirOpt(p, d),
+  assetPath: arg => assetPath(p, arg), asset: (arg, o) => openAsset(assetPath(p, arg), { direction: dirOpt(p, o?.direction) }), direction: d => dirOpt(p, d), artMetrics: artMetricsOf,
 });
 /** A tool made from an operation of the registry (docs/OPERATION-REGISTRY.md §4): its schema, description and content come from the declaration. */
 function mcpTool(op: OpDef): ToolDef {

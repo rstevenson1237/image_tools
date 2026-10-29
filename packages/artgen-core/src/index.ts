@@ -16,6 +16,7 @@ export { applyFinish, finishSnapshot, finishStale, makePx, type FinishModule, ty
 export * from './w1/candidates.ts';
 export { styleTile, styleSheet, wrap, paletteLuma, type ProbeImages, type StyleTileColumn } from './w1/sheets.ts';
 export * from './w2/briefs.ts';
+export * from './w2/sheet.ts';
 export * from './w2/pack.ts';
 export * from './w2/contract.ts';
 export * from './w2/roster.ts';

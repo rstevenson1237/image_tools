@@ -1,37 +1,9 @@
-/** The feedback-loop operations that need the pixel-art pipeline (docs/TOOLING-PLAN.md §5, §5b, R4): `metrics export`, `metrics pool`, `pr prepare`, `pr parse`. `report` and `upstream` are in `core.ts`: the maps-only bundle has them too. */
-import { readFileSync, writeFileSync } from 'node:fs';
-import { exportMetrics, pool, poolMarkdown } from '../loop/metrics.ts';
+/** The feedback-loop operations that need the pixel-art pipeline (docs/TOOLING-PLAN.md §5b, R4): `pr prepare`, `pr parse`. `report`, `upstream`, `metrics export` and `metrics pool` are in `core.ts`: the maps-only bundle has them too. */
+import { readFileSync } from 'node:fs';
 import { parseReviewComment, prepareReview } from '../loop/pr-review.ts';
 import { readBriefs } from '../w2.ts';
 import { idsParam, text, type Inp } from './art-shared.ts';
 import { defineOp, p } from './registry.ts';
-
-export const metricsExport = defineOp({
-  name: 'metrics.export', module: 'art', effect: 'write',
-  summary: 'Write this repo\'s counts and ratios (assets, passes, tokens, minutes, scores, gate failures, per kind) to art/metrics/<version>.json for the pool.',
-  description: 'Write art/metrics/<artgen version>.json: counts and ratios from the ledger and briefs (assets, passes, tokens, minutes, scores, gate failures, per kind), the artgen version and the installed modules. No images, ids, notes or paths.',
-  params: { name: p.str('how this repo appears in the pool (default: a short hash of its folder name)'), out: p.str('write the file here instead', { mcp: false }) },
-  run: (i: Inp, ctx) => { const r = exportMetrics(ctx.project(), { name: i.name, out: i.out }); return { file: ctx.rel(r.file), metrics: r.metrics }; },
-  cli: {
-    usage: '       artgen metrics export [--name repo] [--out file]   counts and ratios for the pool (art/metrics/<version>.json)',
-    text: r => `metrics for artgen ${r.metrics.artgen}: ${r.metrics.assets.total} assets, ${r.metrics.assets.approved} approved, ${r.metrics.totals.outTokens + r.metrics.totals.imageTokens} tokens\n${r.file}\nread it before you share it: it holds counts and ratios only`,
-    json: r => r.metrics,
-  },
-  mcp: {}, python: {},
-});
-
-export const metricsPool = defineOp({
-  name: 'metrics.pool', module: 'art', effect: 'read',
-  summary: 'Put exported metrics from several repos side by side per artgen version (tokens and minutes per approved asset, first-pass approval, gate failures).',
-  params: { paths: p.str('export files or folders of them', { positional: 'rest', required: 'metrics pool: name the export files or folders to pool', schema: { type: 'array', items: { type: 'string' } }, mcp: false }), out: p.str('also write the markdown here', { mcp: false }) },
-  run(i: Inp) {
-    const r = pool(i.paths as string[]), markdown = poolMarkdown(r);
-    if (i.out) writeFileSync(i.out, markdown);
-    return { markdown, pool: r };
-  },
-  cli: { usage: '       artgen metrics pool <file|folder>… [--out pool.md]   exports from several repos, per artgen version', text: r => r.markdown, json: r => r.pool },
-  mcp: { exclude: 'reads export files by path outside art/' }, python: {},
-});
 
 export const prPrepare = defineOp({
   name: 'pr.prepare', module: 'art', effect: 'render',
@@ -70,4 +42,4 @@ export const prParse = defineOp({
   mcp: {}, python: {},
 });
 
-export const LOOP_ART_OPS = [metricsExport, metricsPool, prPrepare, prParse];
+export const LOOP_ART_OPS = [prPrepare, prParse];

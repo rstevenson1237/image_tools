@@ -75,3 +75,12 @@ export function generatorMetrics(ledger: LedgerEntry[], subjects: { generator: s
   for (const s of subjects) gens.set(s.generator, [...(gens.get(s.generator) ?? []), s.key]);
   return Object.fromEntries([...gens].map(([g, keys]) => [g, metricsFor(g, keys, byKey)]));
 }
+
+/** The Generators table of the analytics report: one row per generator, the same columns for art and for each map kind. */
+export function generatorsMarkdown(g: Record<string, GeneratorMetrics>): string {
+  const cell = (v: number | undefined) => (v === undefined ? '-' : String(v));
+  let md = '\n## Generators\n\nThe same numbers for every generator: pixel art (`art`) and each kind of map, from the ledger.\n\n| Generator | Subjects | Started | Final | Approved | Passes per approved | First-pass approval | Feedback | Review tok | Minutes |\n|---|---|---|---|---|---|---|---|---|---|\n';
+  for (const [name, m] of Object.entries(g)) md += `| ${name} | ${m.subjects} | ${m.started} | ${m.final} | ${m.approved} | ${cell(m.passesPerApproved)} | ${cell(m.firstPassApproval.rate)} | ${m.feedback} | ${m.imageTokens} | ${m.wallMinutes} |\n`;
+  const fails = Object.entries(g).flatMap(([name, m]) => Object.entries(m.checkFailures).map(([id, n]) => ({ name, id, n }))).sort((a, b) => b.n - a.n || a.id.localeCompare(b.id)).slice(0, 5);
+  return fails.length ? `${md}\nChecks failing most: ${fails.map(f => `${f.name} ${f.id} x${f.n}`).join(', ')}.\n` : md;
+}

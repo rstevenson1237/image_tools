@@ -78,10 +78,10 @@ export const review = defineOp({
   },
   cli: {
     usage: '       artgen review <assetDir> [--version v] [--blind] [--detail low|full] [--scene]',
-    text: r => `review sheet ${r.path} (~${r.tokens} image tokens); gate ${r.render.report.pass ? 'pass' : 'FAIL'}`,
-    json: r => ({ sheet: r.path, tokens: r.tokens, pass: r.render.report.pass, checks: r.render.report.checks }),
+    text: r => `review sheet ${r.path} (~${r.tokens} image tokens); gate ${r.render.report.pass ? 'pass' : 'FAIL'}${(r.warnings ?? []).map((w: string) => `\n  warning: ${w}`).join('')}`,
+    json: r => ({ sheet: r.path, tokens: r.tokens, pass: r.render.report.pass, checks: r.render.report.checks, ...(r.warnings && { warnings: r.warnings }) }),
   },
-  mcp: { content: (r, _i, ctx) => [text({ sheet: ctx.rel(r.path), imageTokens: r.tokens, pass: r.render.report.pass, checks: r.render.report.checks }), pngFile(r.path)] }, python: {},
+  mcp: { content: (r, _i, ctx) => [text({ sheet: ctx.rel(r.path), imageTokens: r.tokens, pass: r.render.report.pass, checks: r.render.report.checks, ...(r.warnings && { warnings: r.warnings }) }), pngFile(r.path)] }, python: {},
 });
 
 export const conformance = defineOp({

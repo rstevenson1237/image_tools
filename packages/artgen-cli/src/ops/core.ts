@@ -2,16 +2,20 @@
  * The core module's operations: what every install has whichever of the art and maps modules it holds. Today that is
  * `ui`, the local review server (docs/TOOLING-PLAN.md §5b), and the two halves of the feedback loop that need no pixel-art
  * pipeline: `report` (a feedback bundle for the artgen repo) and `upstream` (local edits of installed files as a patch,
- * §5). They import only Node and the files the maps-only bundle may hold, so that bundle has them too.
+ * §5), and `metrics export` and `metrics pool` (R5: a maps-only repo exports too; the pixel-art numbers come from `Ctx.artMetrics`,
+ * which only the art module's contexts provide). They import only Node and the files the maps-only bundle may hold, so that bundle has them too.
  */
 import { spawn } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BUNDLE_KINDS, DEFAULT_REPO, openIssue, writeBundle } from '../loop/feedback-bundle.ts';
+import { exportMetrics, pool, poolMarkdown } from '../loop/metrics.ts';
 import { upstream } from '../loop/upstream.ts';
 import { startUiServer } from '../ui-server.ts';
 import { defineOp, p, type OpDef } from './registry.ts';
+
+type Inp = Record<string, any>;
 
 /** Open a link in the user's browser (best effort; the link is printed either way). */
 function openBrowser(url: string): void {
@@ -108,4 +112,35 @@ export const upstreamOp = defineOp({
   mcp: { exclude: 'compares installed files and may fetch from GitHub; the user sends edits upstream' }, python: {},
 });
 
-export const CORE_OPS: OpDef[] = [uiOp, reportOp, upstreamOp];
+export const metricsExport = defineOp({
+  name: 'metrics.export', module: 'core', effect: 'write',
+  summary: 'Write this repo\'s counts and ratios (assets, passes, tokens, minutes, scores, gate failures, per kind; per generator, maps too) to art/metrics/<version>.json for the pool.',
+  description: 'Write art/metrics/<artgen version>.json: counts and ratios from the ledger and briefs (per generator: pixel art and each kind of map; for art also assets, passes, tokens, minutes, scores, gate failures per kind), the artgen version and the installed modules. No images, ids, notes or paths.',
+  params: { name: p.str('how this repo appears in the pool (default: a short hash of its folder name)'), out: p.str('write the file here instead', { mcp: false }) },
+  run: (i: Inp, ctx) => { const r = exportMetrics(ctx.project(), { name: i.name, out: i.out, art: ctx.artMetrics }); return { file: ctx.rel(r.file), metrics: r.metrics }; },
+  cli: {
+    usage: '       artgen metrics export [--name repo] [--out file]   counts and ratios for the pool (art/metrics/<version>.json)',
+    text: r => {
+      const m = r.metrics, g = Object.entries(m.generators ?? {}).filter(([k]) => k !== 'art').map(([k, x]) => `${x.subjects} ${k}${x.subjects === 1 ? '' : 's'}, ${x.approved} approved`).join('; ');
+      const head = m.assets ? `${m.assets.total} assets, ${m.assets.approved} approved, ${m.totals!.outTokens + m.totals!.imageTokens} tokens${g ? `; ${g}` : ''}` : g || 'nothing to count yet';
+      return `metrics for artgen ${m.artgen}: ${head}\n${r.file}\nread it before you share it: it holds counts and ratios only`;
+    },
+    json: r => r.metrics,
+  },
+  mcp: {}, python: {},
+});
+
+export const metricsPool = defineOp({
+  name: 'metrics.pool', module: 'core', effect: 'read',
+  summary: 'Put exported metrics from several repos side by side per artgen version (tokens and minutes per approved asset, first-pass approval, gate failures; per generator).',
+  params: { paths: p.str('export files or folders of them', { positional: 'rest', required: 'metrics pool: name the export files or folders to pool', schema: { type: 'array', items: { type: 'string' } }, mcp: false }), out: p.str('also write the markdown here', { mcp: false }) },
+  run(i: Inp) {
+    const r = pool(i.paths as string[]), markdown = poolMarkdown(r);
+    if (i.out) writeFileSync(i.out, markdown);
+    return { markdown, pool: r };
+  },
+  cli: { usage: '       artgen metrics pool <file|folder>… [--out pool.md]   exports from several repos, per artgen version', text: r => r.markdown, json: r => r.pool },
+  mcp: { exclude: 'reads export files by path outside art/' }, python: {},
+});
+
+export const CORE_OPS: OpDef[] = [uiOp, reportOp, upstreamOp, metricsExport, metricsPool];

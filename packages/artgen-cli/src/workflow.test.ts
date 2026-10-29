@@ -1,7 +1,7 @@
 // The map workflow (docs/WORKFLOW.md): a map, a dungeon and a settlement go through version → review → approve in a temp project,
 // with the ledger and the status checked at every step; feedback opens a revision; an edit after approval makes it stale; and the
 // refusals (nothing changed, unrecorded edits, a failing check, only the user approves) hold.
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -243,12 +243,103 @@ describe('brief and references', () => {
   }, 120_000);
 });
 
+describe('metrics: every generator reports the same fields', () => {
+  test('a maps-only export holds the generators and the map counts, and no id, note or path', async () => {
+    const lines: string[] = [], log = vi.spyOn(console, 'log').mockImplementation((...a) => { lines.push(a.join(' ')); });
+    let code: number;
+    try { code = await mapsMain(['metrics', 'export', '--name', 'handouts', '--root', root]); } finally { log.mockRestore(); }
+    expect(code).toBe(0);
+    expect(lines.join('\n')).toMatch(/metrics for artgen .*: \d+ maps?, \d+ approved; \d+ dungeons?, \d+ approved; \d+ settlements?, \d+ approved/);
+    const f = readdirSync(join(art, 'metrics')).filter(n => n.endsWith('.json'))[0], m = JSON.parse(readFileSync(join(art, 'metrics', f), 'utf8'));
+    expect(m).toMatchObject({ schema: 2, repo: 'handouts' });
+    for (const k of ['assets', 'byKind', 'passes', 'totals', 'blind']) expect(m[k], k).toBeUndefined();
+    expect(m.maps).toMatchObject({ map: expect.any(Number), dungeon: 3, settlement: 1 });
+    expect(Object.keys(m.generators)).toEqual(['map', 'dungeon', 'settlement']);
+    const g = m.generators;
+    expect(g.map).toMatchObject({ subjects: m.maps.map, approved: expect.any(Number), feedback: expect.any(Number) });
+    expect(g.map.approved).toBe(ledger().filter(e => e.type === 'approve' && e.asset.startsWith('map:') && e.asset !== 'maps:direction').map(e => e.asset).filter((a, i, all) => all.indexOf(a) === i).length);
+    expect(g.map.firstPassApproval.untouched).toBeLessThanOrEqual(g.map.approved);
+    expect(g.map.checkFailures['require:C-forest']).toBeUndefined();
+    expect(g.map.imageTokens).toBeGreaterThan(0);
+    const text = readFileSync(join(art, 'metrics', f), 'utf8');
+    for (const id of ['keep', 'isle', 'warren', 'ford', 'coast']) expect(text).not.toContain(id);
+    expect(text).not.toContain(root);
+  }, 60_000);
+
+  test('the full CLI adds the art numbers when there are any; the pool reads schemas 1 and 2 together', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'artgen-pool-'));
+    const old = { schema: 1, repo: 'old', artgen: '0.1.0', modules: {}, exported: '2026-10-01', assets: { total: 2, final: 2, approved: 2 }, maps: { map: 0, dungeon: 0, settlement: 0 }, byKind: {}, passes: [], totals: { outTokens: 600, inTokens: 0, imageTokens: 400, cost: 1, wallMinutes: 10 }, firstPassApproval: { approved: 2, untouched: 1, rate: 0.5 }, gateFailures: { palette: 2 }, blind: { n: 0 } };
+    const gen = (approved: number, untouched: number, passes: number, tokens: number, minutes: number) => ({ subjects: approved + 1, started: approved, final: approved, approved, passesPerApproved: passes, firstPassApproval: { approved, untouched, rate: untouched / approved }, feedback: approved - untouched, imageTokens: tokens, outTokens: 0, wallMinutes: minutes, checkFailures: {} });
+    const a = { schema: 2, repo: 'a', artgen: '0.2.0', modules: {}, exported: '2026-10-02', maps: { map: 3, dungeon: 0, settlement: 0 }, generators: { map: gen(2, 1, 2, 1000, 5) } };
+    const b = { ...a, repo: 'b', generators: { map: gen(2, 2, 1, 500, 3), dungeon: gen(1, 1, 1, 200, 1) }, assets: { total: 1, final: 1, approved: 1 }, totals: { outTokens: 100, inTokens: 0, imageTokens: 100, cost: 0, wallMinutes: 4 }, firstPassApproval: { approved: 1, untouched: 1 }, gateFailures: {} };
+    for (const [n, e] of Object.entries({ old, a, b })) writeFileSync(join(dir, `${n}.json`), JSON.stringify(e));
+    const lines: string[] = [], log = vi.spyOn(console, 'log').mockImplementation((...x) => { lines.push(x.join(' ')); });
+    try { await mapsMain(['metrics', 'pool', dir]); } finally { log.mockRestore(); }
+    const md = lines.join('\n');
+    expect(md).toContain('3 exports from 3 repos: a, b, old');
+    expect(md).toContain('| 0.1.0 | 1 | 2 | 2 | 500 |');
+    expect(md).toContain('| 0.2.0 | 2 | 1 | 1 | 200 |');
+    expect(md).toContain('## Per generator');
+    expect(md).toContain('| 0.2.0 | map | 6 | 4 | 1.5 | 0.75 | 1500 | 8 |');
+    expect(md).toContain('| 0.2.0 | dungeon | 2 | 1 | 1 | 1 | 200 | 1 |');
+    expect(md).not.toContain('| 0.1.0 | map');
+  });
+});
+
 describe('the ledger and the art readers', () => {
   test('a subject key never matches a brief id, and the ids are names, never paths', async () => {
     await expect(run('map', 'version', '../x')).rejects.toThrow(/letters, digits/);
     await expect(run('map', 'status', 'nosuch')).rejects.toThrow(/no map nosuch/);
     expect([...new Set(ledger().map(e => e.asset))].every(a => a.includes(':'))).toBe(true);
   });
+
+  test('analytics: the art numbers are the same with map work in the ledger; the Generators table appears once there is some', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'artgen-analytics-'));
+    cpSync(fileURLToPath(new URL('../../../examples/iso-dungeon/art', import.meta.url)), join(dir, 'art'), { recursive: true });
+    const analytics = async (...a: string[]) => { const lines: string[] = [], log = vi.spyOn(console, 'log').mockImplementation((...x) => { lines.push(x.join(' ')); }); try { await main(['analytics', ...a, '--root', dir]); } finally { log.mockRestore(); } return lines.join('\n'); };
+    const before = await analytics('--json'), md0 = await analytics();
+    expect(JSON.parse(before).generators).toBeUndefined();
+    expect(md0).not.toContain('## Generators');
+    const at = async (...a: string[]) => { const log = vi.spyOn(console, 'log').mockImplementation(() => {}); try { await main([...a, '--root', dir]); } finally { log.mockRestore(); } };
+    await at('map', 'new', 'keep', '--preset', 'local', '--size', '12x9', '--seed', '3');
+    await at('map', 'version', 'keep');
+    await at('map', 'approve', 'keep');
+    const after = JSON.parse(await analytics('--json')), { generators, ...rest } = after;
+    expect(rest).toEqual(JSON.parse(before));
+    expect(generators.map).toMatchObject({ subjects: 1, started: 1, final: 1, approved: 1, firstPassApproval: { approved: 1, untouched: 1, rate: 1 } });
+    expect(generators.art.subjects).toBeGreaterThan(0);
+    const md = await analytics();
+    expect(md.startsWith(md0.trimEnd())).toBe(true);
+    expect(md).toMatch(/## Generators[\s\S]*\| art \| \d+ \|[\s\S]*\| map \| 1 \| 1 \| 1 \| 1 \| 1 \| 1 \| 0 \| 0 \| 0 \|/);
+    rmSync(dir, { recursive: true, force: true });
+  }, 60_000);
+});
+
+describe('an asset: the data sheet and references on the review sheet', () => {
+  test('sheet writes out/sheet.png and sheet.json; review shows the references and skips the ones it cannot read', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'artgen-assetsheet-'));
+    cpSync(fileURLToPath(new URL('../../../examples/iso-dungeon/art', import.meta.url)), join(dir, 'art'), { recursive: true });
+    const at = async (...a: string[]) => { const lines: string[] = [], log = vi.spyOn(console, 'log').mockImplementation((...x) => { lines.push(x.join(' ')); }); try { await main([...a, '--root', dir]); } finally { log.mockRestore(); } return lines.join('\n'); };
+    const sheet = JSON.parse(await at('sheet', 'skeleton-knight', '--json'));
+    expect(sheet.png).toBe('art/assets/character/skeleton-knight/out/sheet.png');
+    expect(existsSync(join(dir, sheet.png)) && existsSync(join(dir, sheet.json))).toBe(true);
+    expect(sheet.sheet).toMatchObject({ title: 'skeleton-knight — character', subject: 'skeleton-knight', swatches: expect.any(Array) });
+    expect(sheet.sheet.rows.map((r: { label: string }) => r.label)).toEqual(['Kind', 'Importance', 'View', 'Size', 'States', 'Facings', 'Frames', 'Template', 'Budget']);
+    expect((await at('sheet', 'skeleton-knight')).split('\n')[2]).toBe('# skeleton-knight — character');
+    await expect(at('sheet', 'nobody')).rejects.toThrow('no brief nobody');
+
+    const f = join(dir, 'art', 'briefs.yaml');
+    writeFileSync(f, readFileSync(f, 'utf8').replace('- id: skeleton-knight\n', '- id: skeleton-knight\n  refs: [refs/skeleton-knight-edited.png, refs/missing.png, refs/README.md]\n'));
+    expect(JSON.parse(await at('sheet', 'skeleton-knight', '--json')).warnings).toEqual(['refs/missing.png: no such file, skipped', 'refs/README.md: not a PNG, skipped']);
+    const plain = JSON.parse(await at('review', 'chest', '--json')), withRefs = JSON.parse(await at('review', 'skeleton-knight', '--json'));
+    expect(plain.warnings).toBeUndefined();
+    expect(withRefs.warnings).toEqual(['refs/missing.png: no such file, skipped', 'refs/README.md: not a PNG, skipped']);
+    expect(existsSync(withRefs.sheet)).toBe(true);
+    expect((await at('review', 'skeleton-knight')).split('\n').filter(l => l.includes('warning:'))).toHaveLength(2);
+    // a blind review is the version alone: no references
+    expect(JSON.parse(await at('review', 'skeleton-knight', '--blind', '--json')).warnings).toBeUndefined();
+    rmSync(dir, { recursive: true, force: true });
+  }, 120_000);
 });
 
 describe('the same verdict as the check commands', () => {

@@ -22,6 +22,8 @@ export interface BriefEntry extends Brief {
   anchor?: [number, number];
   /** Pack this asset goes into (default: every pack whose `include` matches). */
   pack?: string;
+  /** Reference images shown on the review sheet and the data sheet: paths under `art/refs/` (`refs/goblin-1.png`). */
+  refs?: string[];
 }
 
 const ID = /^[a-z][a-z0-9_-]*$/;
@@ -118,6 +120,9 @@ export function validateBrief(b: unknown, where = 'brief'): string[] {
   if (b.surface !== undefined && !['wall', 'floor', 'ceiling', 'sky'].includes(b.surface as string)) e.push(`${at}: surface must be wall, floor, ceiling or sky`);
   if (b.blend !== undefined && !['normal', 'add'].includes(b.blend as string)) e.push(`${at}: blend must be normal or add`);
   if (b.anchor !== undefined && !(Array.isArray(b.anchor) && b.anchor.length === 2 && b.anchor.every(n => typeof n === 'number'))) e.push(`${at}: anchor must be [x, y]`);
+  if (b.refs !== undefined) {
+    if (!Array.isArray(b.refs) || !b.refs.every(r => typeof r === 'string' && /^refs\/[^\\]+$/.test(r) && !r.split('/').includes('..'))) e.push(`${at}: refs must be a list of paths under refs/ (refs/goblin-1.png)`);
+  }
   if (b.swaps !== undefined) {
     if (!isObj(b.swaps)) e.push(`${at}: swaps must map variant name → { ramp: ramp }`);
     else for (const [n, m] of Object.entries(b.swaps)) if (!isObj(m) || !Object.values(m).every(v => typeof v === 'string' && !v.startsWith('#'))) e.push(`${at}: swaps.${n} must map ramp names to ramp names (no hex, R11)`);

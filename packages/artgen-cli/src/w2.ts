@@ -15,7 +15,7 @@
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import {
-  analytics, analyticsMarkdown, assetsTs, assetStatus, blindScores, briefContract, effectObjectIssues, briefDir, briefOrder, buildPack, contactSheet, contractOf, diffContract,
+  analytics, analyticsMarkdown, assetDataSheet, budgetFor, dataSheetMarkdown, encodePNG, generatorMetrics, renderDataSheet, generatorsMarkdown, isSubjectKey, SUBJECT_KINDS, subjectKey, assetsTs, assetStatus, blindScores, briefContract, effectObjectIssues, briefDir, briefOrder, buildPack, contactSheet, contractOf, diffContract,
   editOps, Grid, imageTokens, mirrorFacing, pxPerMetre, roster, drawnHeight, standFrames, rosterIssues, TILE_KINDS, type RosterItem, type RosterPair, type RosterReview, type RosterSize, parseBriefs, parseLedger, parseVersion, removeBrief, restyleDiff, restyleSheet, tokenDiffMask, upsertBrief,
   applyRecommendations, briefMaterialIssues, mergeConfig, recommend, recommendMarkdown, type LedgerSet,
   type AnimContract, type AssetMeta, type AssetStatus, type BriefEntry, type Direction, type LedgerEntry, type NextStep, type PackInput, type RenderResult,
@@ -30,6 +30,7 @@ import { vendorRuntime, type VendorResult } from './runtime.ts';
 import { projectConfig, readJson, writeJson, type Project } from './project.ts';
 import { findTemplate, newFinish, type TemplateRef } from './templates.ts';
 import { directionVersion, lockedDirection } from './w1.ts';
+import { listSubjectIds, loadRefs } from './workflow.ts';
 
 const briefsFile = (p: Project) => join(p.art, 'briefs.yaml');
 const ledgerFile = (p: Project) => join(p.art, 'ledger.jsonl');
@@ -613,8 +614,11 @@ function crop(g: Grid, x0: number, y0: number, w: number, h: number): Grid {
 /** Analytics over the project's ledger with brief metadata (kind, view, size, template, importance). */
 export function projectAnalytics(p: Project, title?: string) {
   const dir = requireLocked(p), all = parseAll(ledgerFile(p)), metas = projectMetas(p, dir);
-  const ids = new Set(metas.map(m => m.id)), report = analytics(all.filter(e => ids.has(e.asset) || e.asset === 'gallery'), metas);
-  return { report, markdown: analyticsMarkdown(report, title ?? `${dir.id}: pipeline analytics`) };
+  const ids = new Set(metas.map(m => m.id)), analysed = analytics(all.filter(e => ids.has(e.asset) || e.asset === 'gallery'), metas);
+  // once there is map work in the ledger, the Generators table (art and each kind of map, the same fields); before that the report reads as it always did
+  const maps = SUBJECT_KINDS.flatMap(kind => listSubjectIds(p, kind).map(id => ({ generator: kind as string, key: subjectKey(kind, id) })));
+  const generators = all.some(e => isSubjectKey(e.asset)) ? generatorMetrics(all, [...metas.map(m => ({ generator: 'art', key: m.id })), ...maps]) : undefined, report = generators ? { ...analysed, generators } : analysed;
+  return { report, markdown: analyticsMarkdown(report, title ?? `${dir.id}: pipeline analytics`) + (generators ? generatorsMarkdown(generators) : '') };
 }
 
 const parseAll = (f: string): LedgerEntry[] => (existsSync(f) ? parseLedger(readFileSync(f, 'utf8')) : []);
@@ -659,4 +663,17 @@ export function pooledAnalytics(dirs: string[], o: { apply?: Project; minAssets?
     applied = rel(o.apply, f);
   }
   return { report: r, markdown: recommendMarkdown(r, o.title), ...(applied && { applied }) };
+}
+
+/** The one-page data sheet of an asset (`artgen sheet <id>`): `<asset folder>/out/sheet.png` and `sheet.json`. */
+export function writeAssetSheet(p: Project, id: string): { png: string; pngFile: string; json: string; sheet: ReturnType<typeof assetDataSheet>; markdown: string; warnings: string[] } {
+  const b = readBriefs(p).find(x => x.id === id);
+  if (!b) throw new Error(`no brief ${id}`);
+  const dir = requireLocked(p), folder = assetPathOf(p, b), bj = join(folder, 'brief.json'), local = existsSync(bj) ? readJson<{ template?: string }>(bj) : {};
+  const brief = { ...local, ...b }, sheet = assetDataSheet(brief, dir, budgetFor(projectConfig(p), brief, dir), readContract(p, id)), { refs, warnings } = loadRefs(p, brief.refs ?? []);
+  const png = join(folder, 'out', 'sheet.png'), json = join(folder, 'out', 'sheet.json');
+  mkdirSync(dirname(png), { recursive: true });
+  writeFileSync(png, encodePNG(renderDataSheet(sheet, { refs })));
+  writeFileSync(json, JSON.stringify(sheet, null, 2) + '\n');
+  return { png: rel(p, png), pngFile: png, json: rel(p, json), sheet, markdown: dataSheetMarkdown(sheet), warnings };
 }

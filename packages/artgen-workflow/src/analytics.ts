@@ -7,6 +7,7 @@
  * sheet's image tokens, wall time since the asset's previous record, the score and the gate result.
  */
 import type { LedgerEntry } from './ledger.ts';
+import type { GeneratorMetrics } from './metrics.ts';
 import { isSubjectKey } from './subject.ts';
 
 /** Same price basis as artlab's reports (USD per million tokens), so costs are comparable. */
@@ -81,6 +82,8 @@ export interface AnalyticsReport {
   /** Who scored, and how blind re-scores of finals compare with the finals' own scores (rev 9). */
   review: { byReviewer: Record<string, number>; blind: { n: number; meanGap?: number; over1: number; assets: { asset: string; version: string; own: number; blind: number; gap: number }[] } };
   suggestions: string[];
+  /** Per generator (art and each map kind), when the repo has maps: added by the caller, which knows what maps there are. */
+  generators?: Record<string, GeneratorMetrics>;
   totals: {
     outTokens: number; inTokens: number; imageTokens: number; cost: number; meanFromRevisions?: number; meanFromFinish?: number;
     /** Agent input (context each maker and reviewer read) and how many score records reported it. */

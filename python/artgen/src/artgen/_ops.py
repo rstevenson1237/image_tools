@@ -43,6 +43,7 @@ _OPS: dict[str, tuple[tuple[str, ...], tuple[str, ...], dict[str, tuple[str, str
     "brief.rm": (("brief", "rm"), ("id",), {}),
     "status": (("status",), ("*ids",), {}),
     "gallery": (("gallery",), ("*ids",), {}),
+    "sheet": (("sheet",), ("id",), {}),
     "feedback": (("feedback",), ("id",), {"route": ("--route", "value"), "note": ("--note", "value"), "by": ("--by", "value"), "region": ("--region", "list"), "cell": ("--cell", "value"), "force": ("--force", "switch"), "via": ("--via", "value")}),
     "approve": (("approve",), ("id",), {"note": ("--note", "value"), "via": ("--via", "value")}),
     "roster": (("roster",), ("*ids",), {"seed": ("--seed", "value"), "stage": ("--stage", "value")}),
@@ -52,8 +53,6 @@ _OPS: dict[str, tuple[tuple[str, ...], tuple[str, ...], dict[str, tuple[str, str
     "export": (("export",), (), {"pack": ("--pack", "list"), "include_drafts": ("--include-drafts", "switch"), "runtime": ("--runtime", "switch"), "force": ("--force", "switch"), "break_contract": ("--break-contract", "list")}),
     "restyle": (("restyle",), (), {"from_": ("--from", "value")}),
     "analytics": (("analytics",), (), {"across": ("--across", "list"), "apply": ("--apply", "switch"), "min_assets": ("--min-assets", "value"), "out": ("--out", "value")}),
-    "metrics.export": (("metrics", "export"), (), {"name": ("--name", "value"), "out": ("--out", "value")}),
-    "metrics.pool": (("metrics", "pool"), ("*paths",), {"out": ("--out", "value")}),
     "pr.prepare": (("pr", "prepare"), ("*ids",), {"base": ("--base", "value")}),
     "pr.parse": (("pr", "parse"), ("comment", "*ids"), {"file": ("--file", "value")}),
     "import-edit": (("import-edit",), ("id", "png"), {"cell": ("--cell", "value")}),
@@ -158,6 +157,8 @@ _OPS: dict[str, tuple[tuple[str, ...], tuple[str, ...], dict[str, tuple[str, str
     "settlement.sheet": (("settlement", "sheet"), ("id",), {}),
     "report": (("report",), ("id",), {"file": ("--file", "value"), "kind": ("--kind", "value"), "note": ("--note", "value"), "out": ("--out", "value"), "no_render": ("--no-render", "switch"), "issue": ("--issue", "switch"), "repo": ("--repo", "value")}),
     "upstream": (("upstream",), (), {"base": ("--base", "value"), "out": ("--out", "value"), "repo": ("--repo", "value")}),
+    "metrics.export": (("metrics", "export"), (), {"name": ("--name", "value"), "out": ("--out", "value")}),
+    "metrics.pool": (("metrics", "pool"), ("*paths",), {"out": ("--out", "value")}),
 }
 
 
@@ -283,6 +284,10 @@ class Ops:
         """A sheet of finished assets for the user: score, open issues, BELOW BAR. (artgen gallery)"""
         return self._op("gallery", [*ids], {})
 
+    def sheet(self, id: str) -> "Result":
+        """The asset's one-page data sheet: kind, size, states, facings, frames, template, budget, palette, contract, references. (artgen sheet)"""
+        return self._op("sheet", [id], {})
+
     def feedback(self, id: str, *, route: Optional[str] = None, note: Optional[str] = None, by: Optional[str] = None, region: Optional[Sequence[float]] = None, cell: Optional[str] = None, force: Optional[bool] = None, via: Optional[str] = None) -> "Result":
         """Record feedback on a finished asset and open a revision. (artgen feedback)"""
         return self._op("feedback", [id], {"route": route, "note": note, "by": by, "region": region, "cell": cell, "force": force, "via": via})
@@ -318,14 +323,6 @@ class Ops:
     def analytics(self, *, across: Optional[Sequence[str]] = None, apply: Optional[bool] = None, min_assets: Optional[float] = None, out: Optional[str] = None) -> "Result":
         """Pipeline analytics: per-pass gains, cost per asset, budget suggestions (--across: pooled over projects). (artgen analytics)"""
         return self._op("analytics", [], {"across": across, "apply": apply, "min_assets": min_assets, "out": out})
-
-    def metrics_export(self, *, name: Optional[str] = None, out: Optional[str] = None) -> "Result":
-        """Write this repo's counts and ratios (assets, passes, tokens, minutes, scores, gate failures, per kind) to art/metrics/<version>.json for the pool. (artgen metrics export)"""
-        return self._op("metrics.export", [], {"name": name, "out": out})
-
-    def metrics_pool(self, *paths: str, out: Optional[str] = None) -> "Result":
-        """Put exported metrics from several repos side by side per artgen version (tokens and minutes per approved asset, first-pass approval, gate failures). (artgen metrics pool)"""
-        return self._op("metrics.pool", [*paths], {"out": out})
 
     def pr_prepare(self, *ids: str, base: Optional[str] = None) -> "Result":
         """Copy the finished assets' review sheets to art/review/ and write REVIEW.md, the table to commit to the pull request for review from the phone or the cloud. (artgen pr prepare)"""
@@ -742,3 +739,11 @@ class Ops:
     def upstream(self, *, base: Optional[str] = None, out: Optional[str] = None, repo: Optional[str] = None) -> "Result":
         """Your local edits to the installed skills, agents, commands and templates as a patch against their sources in the artgen repo. (artgen upstream)"""
         return self._op("upstream", [], {"base": base, "out": out, "repo": repo})
+
+    def metrics_export(self, *, name: Optional[str] = None, out: Optional[str] = None) -> "Result":
+        """Write this repo's counts and ratios (assets, passes, tokens, minutes, scores, gate failures, per kind; per generator, maps too) to art/metrics/<version>.json for the pool. (artgen metrics export)"""
+        return self._op("metrics.export", [], {"name": name, "out": out})
+
+    def metrics_pool(self, *paths: str, out: Optional[str] = None) -> "Result":
+        """Put exported metrics from several repos side by side per artgen version (tokens and minutes per approved asset, first-pass approval, gate failures; per generator). (artgen metrics pool)"""
+        return self._op("metrics.pool", [*paths], {"out": out})

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import type { LedgerEntry } from './ledger.ts';
-import { generatorMetrics } from './metrics.ts';
+import { analytics, passRecords } from './analytics.ts';
+import { generatorMetrics, generatorsMarkdown } from './metrics.ts';
 
 let n = 0;
 const e = (asset: string, type: string, x: Record<string, unknown> = {}): LedgerEntry => ({ ts: `2026-10-29T10:00:${String(n++).padStart(2, '0')}Z`, type: type as LedgerEntry['type'], asset, ...x });
@@ -58,5 +59,26 @@ describe('generatorMetrics', () => {
   test('a ledger with no subject lines gives zeros, and the direction lock is nobody\'s', () => {
     const z = generatorMetrics([e('maps:direction', 'approve', { by: 'user' })], [{ generator: 'map', key: 'map:keep' }]);
     expect(z.map).toMatchObject({ subjects: 1, started: 0, approved: 0 });
+  });
+});
+
+describe('what the art readers see', () => {
+  const art: LedgerEntry[] = [e('goblin', 'score', { version: 'base.v1', pass: 'r1', score: 6, tokens: { out: 100 }, conformance: fail('palette') }), e('goblin', 'approve', { version: 'base.v1', by: 'user' })];
+  const maps: LedgerEntry[] = [
+    e('map:keep', 'score', { version: 'v1', score: 3, reviewer: 'self' }), e('map:keep', 'score', { version: 'v1', score: 9, blind: true }), e('map:keep', 'feedback', { on: 'v1', note: 'x', by: 'user' }),
+    e('map:keep', 'status', { status: 'final' }), e('maps:direction', 'approve', { version: 'v1', by: 'user' }),
+  ];
+
+  test('analytics and pass records give the same numbers whatever the maps add to the ledger', () => {
+    expect(passRecords([...art, ...maps])).toEqual(passRecords(art));
+    expect(analytics([...maps, ...art], [{ id: 'goblin', kind: 'character' }])).toEqual(analytics(art, [{ id: 'goblin', kind: 'character' }]));
+  });
+
+  test('the Generators table has a row per generator and names the checks failing most', () => {
+    const md = generatorsMarkdown(generatorMetrics([...art, ...maps], [{ generator: 'art', key: 'goblin' }, { generator: 'map', key: 'map:keep' }]));
+    expect(md).toContain('## Generators');
+    expect(md).toContain('| art | 1 | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 |');
+    expect(md).toContain('| map | 1 | 0 | 0 | 0 | - | - | 1 | 0 | 0 |');
+    expect(md).toContain('Checks failing most: art palette x1.');
   });
 });

@@ -6,6 +6,7 @@
  */
 import { drawText, GLYPH_H, textWidth } from 'artgen-primitives/lib/font.ts';
 import { Grid } from 'artgen-primitives/lib/grid.ts';
+import { fitGrid } from 'artgen-workflow/sheet.ts';
 
 export interface SheetRow {
   label: string;
@@ -37,8 +38,17 @@ export interface ReviewSheetOptions {
   rows: SheetRow[];
   anchors?: { label: string; grid: Grid }[];
   anchorScale?: number;
+  /** The brief's reference images, in a REFERENCES row under the anchors (each shrunk to fit a box, small ones enlarged up to 3x). */
+  refs?: { label: string; grid: Grid }[];
   maxEdge?: number;
 }
+
+/** A reference as drawn: in a box of `REF_BOX` px. */
+const REF_BOX = 96;
+const refThumb = (g: Grid, k: number): Grid => {
+  const box = Math.max(24, Math.round(REF_BOX * k)), s = Math.min(3, Math.floor(box / Math.max(g.w, g.h)));
+  return s >= 1 ? g.scale(s) : fitGrid(g, box, box);
+};
 
 const PAD = 12, TXT = 2, LAB = GLYPH_H * TXT + 6, BG = '#16161c', FG = '#dddddd', TITLE = '#ffffff';
 
@@ -63,7 +73,13 @@ function layout(o: ReviewSheetOptions, k: number) {
     ay = H; const aw = anchors.reduce((n, a) => n + a.grid.w * as + PAD, PAD);
     W = Math.max(W, aw); H += LAB + Math.max(...anchors.map(a => a.grid.h * as)) + LAB + PAD;
   }
-  return { W, H, rows, as, ay };
+  const refs = (o.refs ?? []).map(r => ({ label: r.label, grid: refThumb(r.grid, k) }));
+  let ry = 0;
+  if (refs.length) {
+    ry = H; W = Math.max(W, refs.reduce((n, r) => n + Math.max(r.grid.w, textWidth(r.label, TXT)) + PAD, PAD));
+    H += LAB + Math.max(...refs.map(r => r.grid.h)) + LAB + PAD;
+  }
+  return { W, H, rows, as, ay, refs, ry };
 }
 
 export function reviewSheet(o: ReviewSheetOptions): Grid {
@@ -95,6 +111,16 @@ export function reviewSheet(o: ReviewSheetOptions): Grid {
       checker(g, x, top, big.w, big.h); g.over(big, x, top);
       drawText(g, x, top + big.h + 4, a.label, FG, TXT);
       x += big.w + PAD;
+    }
+  }
+  if (L.refs.length) {
+    drawText(g, PAD, L.ry, 'REFERENCES', FG, TXT);
+    let x = PAD;
+    for (const r of L.refs) {
+      const top = L.ry + LAB;
+      checker(g, x, top, r.grid.w, r.grid.h); g.over(r.grid, x, top);
+      drawText(g, x, top + r.grid.h + 4, r.label, FG, TXT);
+      x += Math.max(r.grid.w, textWidth(r.label, TXT)) + PAD;
     }
   }
   return g;

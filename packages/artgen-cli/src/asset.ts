@@ -18,6 +18,7 @@ import { BENCH_DIRECTIONS } from 'artgen-core/bench';
 import { strip } from './bench.ts';
 import { appendLedger, initNodeSvg, readGrid, writeGrid } from './node.ts';
 import { findProject, isPlaceholderDirection, projectConfig, type Project } from './project.ts';
+import { loadRefs } from './workflow.ts';
 
 export interface AssetBrief extends BriefEntry {
   /** Template the asset started from (`topdown/character`), recorded for analytics. */
@@ -291,7 +292,7 @@ const rowLabel = (r: VersionRender, score?: number) =>
  * `scene`: adds the sprite at game zoom on the direction background, a floor and beside a wall, where contrast
  * problems show that black review panels hide (a dark eel on a dark floor, a brown torso that reads as skin).
  */
-export async function reviewVersion(a: AssetDir, version: string, o: { blind?: boolean; detail?: SheetDetail; scene?: boolean } = {}): Promise<{ path: string; tokens: number; render: VersionRender }> {
+export async function reviewVersion(a: AssetDir, version: string, o: { blind?: boolean; detail?: SheetDetail; scene?: boolean } = {}): Promise<{ path: string; tokens: number; render: VersionRender; /** References skipped (missing, not a PNG). */ warnings?: string[] }> {
   const vs = versionsIn(a), cur = await renderVersion(a, version), R = a.brief.review ?? {};
   const pass = o.blind ? 'b' : passOf(a, version), cfg = a.project ? projectConfig(a.project) : undefined;
   const detail: SheetDetail = o.blind ? 'full' : o.detail ?? cfg?.review.sheetDetail?.[pass] ?? 'full', low = detail === 'low';
@@ -325,13 +326,15 @@ export async function reviewVersion(a: AssetDir, version: string, o: { blind?: b
   }
   const curGrid = low && multi ? firstFacing(cur.render) : cur.grid;
   rows.push({ label: `>> ${rowLabel(cur)}${low && multi ? ' | first facing (low detail)' : ''}`, grid: curGrid, scale: sc, bg: R.bg ?? a.dir.background, context: ctx(curGrid), silhouette: sil }, ...scene);
-  const sheet = reviewSheet({ title: `${R.label ?? a.brief.id} - ${version} (${pass})`, rows, anchors: anchorsFor(a), maxEdge: cfg?.budget?.maxSheetEdge });
+  // the brief's reference images go under the anchors; one that isn't a PNG or is missing is skipped with a warning
+  const refs = a.project && a.brief.refs?.length ? loadRefs(a.project, a.brief.refs) : { refs: [], warnings: [] as string[] };
+  const sheet = reviewSheet({ title: `${R.label ?? a.brief.id} - ${version} (${pass})`, rows, anchors: anchorsFor(a), ...(refs.refs.length && { refs: refs.refs }), maxEdge: cfg?.budget?.maxSheetEdge });
   const path = join(outDir(a), `review-${version}.png`);
   writeGrid(path, sheet);
   writeRender(a, cur);
   const tokens = imageTokens(sheet.w, sheet.h);
   appendLedger(a.ledgerPath, { type: 'review', asset: a.brief.id, version, pass, sheet: relPath(a, path), imageTokens: tokens, detail, ...(o.scene && { scene: true }), by: 'agent' });
-  return { path, tokens, render: cur };
+  return { path, tokens, render: cur, ...(refs.warnings.length && { warnings: refs.warnings }) };
 }
 
 /**
