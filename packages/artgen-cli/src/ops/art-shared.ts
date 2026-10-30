@@ -70,10 +70,13 @@ export function toolDirection(cmd: string, project: Project | null, override: st
   return { p: project, dir: parseDirection(raw) };
 }
 
+/** A step as the tables name it: `review base.v1`, `stage-gate shape base.v1`. */
+export const stepName = (s: { action: string; version?: string; stage?: string }): string => (s.action === 'stage-gate' ? `${s.action} ${s.stage}${s.version ? ` ${s.version}` : ''}` : `${s.action} ${s.version ?? ''}`);
+
 /** The status table `status` and `make` print. */
-export const statusTable = (rows: Awaited<ReturnType<typeof projectStatus>>): string => rows.map(r => `  ${r.id.padEnd(16)} ${r.status.padEnd(11)} ${r.final ? `${r.final} ${r.score ?? '-'}${r.blind !== undefined ? ` b${r.blind}` : ''}${r.gate === false ? ' GATE FAIL' : ''}${r.belowBar ? ' BELOW BAR' : ''}${r.top ? ` final≠best (${r.top.version} ${r.top.score})` : ''}` : (r.next ? `${r.next.action} ${'version' in r.next ? r.next.version : ''}` : '')}${r.issues.length ? `\n${r.issues.map(i => `      issue: ${i}`).join('\n')}` : ''}`).join('\n');
+export const statusTable = (rows: Awaited<ReturnType<typeof projectStatus>>): string => rows.map(r => `  ${r.id.padEnd(16)} ${r.status.padEnd(11)} ${r.final ? `${r.final} ${r.score ?? '-'}${r.blind !== undefined ? ` b${r.blind}` : ''}${r.gate === false ? ' GATE FAIL' : ''}${r.belowBar ? ' BELOW BAR' : ''}${r.top ? ` final≠best (${r.top.version} ${r.top.score})` : ''}` : (r.next ? stepName(r.next) : '')}${r.issues.length ? `\n${r.issues.map(i => `      issue: ${i}`).join('\n')}` : ''}`).join('\n');
 /** One maker or review packet of a parallel `make` round. */
-export const packetLine = (x: WorkPacket): string => `  ${x.id.padEnd(16)} ${x.step.action} ${'version' in x.step ? x.step.version : ''}${x.writes.length ? ` → writes ${x.writes.join(', ')}` : ''}${x.resume ? ' (resume: written, never reviewed — check it, complete it, review it)' : ''}`;
+export const packetLine = (x: WorkPacket): string => `  ${x.id.padEnd(16)} ${stepName(x.step)}${x.writes.length ? ` → writes ${x.writes.join(', ')}` : ''}${x.resume ? ' (resume: written, never reviewed — check it, complete it, review it)' : ''}`;
 
 /** An MCP image result that reads a PNG under the project root. */
 export const projectPng = (ctx: Ctx, f: string): Content => pngFile(join(ctx.project().root, f));

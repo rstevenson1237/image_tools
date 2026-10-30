@@ -28,6 +28,10 @@ export interface ArtMetrics {
   /** Gate checks that failed, by check id, over every conformance record. */
   gateFailures: Record<string, number>;
   blind: { n: number; meanGap?: number };
+  /** Stage gates (docs/STAGES.md §5.7): the user's approvals and rejections per gated stage. Absent until a verdict is recorded. */
+  gates?: Record<string, { approved: number; rejected: number }>;
+  /** Median minutes from an asset's first ledger entry to its first export; a placeholder export counts. */
+  firstInGameMinutes?: number;
   generators: Record<string, GeneratorMetrics>;
 }
 
@@ -68,7 +72,7 @@ export function metricsOf(p: Project, o: { name?: string; now?: Date; art?: ArtM
     artgen: VERSION, modules: modulesOf(p.root), exported: (o.now ?? new Date()).toISOString().slice(0, 10),
     ...(artFields.assets && { assets: artFields.assets }),
     maps: { map: count('map'), dungeon: count('dungeon'), settlement: count('settlement') },
-    ...(artFields.assets && { byKind: artFields.byKind, passes: artFields.passes, totals: artFields.totals, firstPassApproval: artFields.firstPassApproval, userRevisionRate: artFields.userRevisionRate, gateFailures: artFields.gateFailures, blind: artFields.blind }),
+    ...(artFields.assets && { byKind: artFields.byKind, passes: artFields.passes, totals: artFields.totals, firstPassApproval: artFields.firstPassApproval, userRevisionRate: artFields.userRevisionRate, gateFailures: artFields.gateFailures, blind: artFields.blind, ...(artFields.gates && { gates: artFields.gates }), ...(artFields.firstInGameMinutes !== undefined && { firstInGameMinutes: artFields.firstInGameMinutes }) }),
     generators,
   };
 }

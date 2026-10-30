@@ -14,5 +14,6 @@ pull request (asset-production skill §4). Run `{{ARTGEN}} pr prepare [ids]`, wh
 version their last feedback was on, as the "before") to `art/review/` and writes `art/review/REVIEW.md`. Commit `art/review/` to this
 session's pull request and push. Then post one comment on the pull request with the table (use `pr prepare --base
 https://github.com/<owner>/<repo>/blob/<branch>/art/review` for image links that work in a comment) that asks the user to answer with one
-line per asset: `approve goblin`, or `goblin: arms too long`. Watch the pull request; when the user's comment arrives, read it with
+line per asset: `approve goblin`, or `goblin: arms too long`. An asset waiting at a shape gate is in the table too, with its shape sheet:
+the answers are `approve goblin shape` and `goblin: shape: arms too long`. Watch the pull request; when the user's comment arrives, read it with
 `{{ARTGEN}} pr parse --file <comment>` and make each call it lists with `--via pr`.

@@ -642,3 +642,83 @@ Write the numbers in §13 and in the plan's R6 "Built" section. Production runs 
 
 (Filled in by each sub-phase: what was built, where it differs from this design, the numbers from §12, changed
 expectations, and what is not done.)
+
+### R6a — placeholder, shape gate, stage keys (built 2026-10-30)
+
+- **Built.**
+  - **`artgen-workflow/src/stages.ts`** (§4.1, exported from the index; `'stage'` joins `LedgerType`): `STAGES`, `GATEABLE`, `StageKeys`, `gatesFor`, `stageVerdicts`, `stageState`, `diffStageKeys`.
+  - **`artgen-core/src/qa/stages.ts`** (§4.2): `shapeMask` (opaque pixels minus the direction's outer line: `dark` removes outline-coloured edge pixels, `selout` also the darkest step of any ramp,
+    `none` nothing), `stageKeys` (8-digit cyrb53 digests of canonical byte strings: placeholder, shape, decorate, lighting, animation; rig, decal and rotation are absent or optional as §4.2 says),
+    `stageReport` (keys + the placeholder checks when a `placeholder.json` exists + the five shape checks), `shapeChecks`, `compactness`, `placeholderKey`, `stageCheckLabels`, and `shapeSheet` (§5.3).
+    `renderVersion` returns `stages: StageReport` beside `report`; it never changes `conformance.pass`, the printed check list of `render`, or the bench hashes.
+  - **`artgen-core/src/w2/placeholder.ts`** (§5.1): `defaultPlaceholder`, `parsePlaceholder`, `placeholderChecks` (`ph-size`, `ph-pivot`, `ph-box`, `ph-ramp`), `placeholderModule` (footprint in the shadow colour,
+    rounded body with the direction's outer line, facing tick, state shade, frame bob, `meta.mirror: false`); `defaultAnchor` was already exported from `w2/pack.ts`.
+  - **Pass machine** (`pipeline.ts`, §5.4): `PlanInput.gates/stageKeys/placeholderKey`, `NextStep` variant `stage-gate`, the placeholder gate (before the first base), the shape gate before base v2.. and before the finish and
+    `ready` steps, a reject that opens the next base from the rejected one. With no gates `planPasses` is unchanged (a test compares `gates: []` with none on five states).
+    `passState` fills the keys from the score entries and renders a scored base only when its entry has none (older ledgers) and the shape gate is on.
+  - **Config and briefs** (§5.4): `review.gates` (`DEFAULT_CONFIG` `{}`; `INIT_CONFIG` `{ character: ['shape'], creature: ['shape'] }`), brief `gates` validated to `placeholder | shape`, `brief add --gates`.
+  - **Operations** (`ops/art-stages.ts`, 157 now, 4 more; `OPERATIONS.md` and the Python client regenerated, parity test green): `placeholder`, `stages`, `stage.approve`, `stage.reject` (MCP `placeholder`, `stages`,
+    `stage_approve`, `stage_reject`; the last two need `user_approved: true`), plus the flags `export --placeholders`, `review --stage shape`, `brief add --gates`. Disk side in `artgen-cli/src/stages.ts`.
+  - **Make, status, export** (§5.2, §5.4): a placeholder gate stops `make` scaffolding `base.v1.js` (the asset shows `in-pipeline`, next `stage-gate placeholder`, why "waiting for the user: …"); `make` names a gate only when nothing else
+    can move, and its work packets treat a gate as the main agent's step. `export --placeholders` exports every asset that would not be exported and never had real art exported, from its placeholder (`placeholder: true`,
+    `version: "placeholder"`, `sourceHash` = the key, `manifest.placeholders` sorted, contract written and checked, `export` ledger entry marked); the plain export is unchanged. Runtime **1.3.0**: `PackAsset.placeholder`,
+    `PackManifest.placeholders` (core and runtime types), `Pack.placeholders`, `pack.isPlaceholder(id)`; no console message.
+  - **Ledger, restyle, PR, metrics** (§5.5–§5.7): score entries record `stages` and `stageChecks`, approve copies `stages` from the final's score entry, `type: 'stage'` entries (`event: 'written'` for a placeholder file, `verdict`
+    for the user's answer), restyle records `stages: { same, changed }` and labels gated assets `shape kept` / `SHAPE CHANGED`, `parseReviewComment` reads `approve goblin shape` and `goblin: shape: …`, `pr prepare` copies pending shape
+    sheets (and placeholder pictures) to `art/review/` with the answer each waits for, metrics gain `gates` and `firstInGameMinutes` (and a user stage reject counts as feedback).
+  - **Skills and docs** (§5.8): a "Stages and gates" section in `asset-production`, `art-maker` (v1 is silhouette only under a shape gate), `art-reviewer` (a shape sheet is scored on silhouette only), `/artgen-review --pr`, one line in
+    `art/claude-md.md`, `docs/metrics/README.md`, the runtime README.
+  - **Tests** (§5.9): workflow 4 (`stages.test.ts`) + 4 (metrics); core 25 (`qa/stages.test.ts`: masks, keys, restyle property, shape checks, 216 placeholder variants: kind × view × body × height, module contract) + 6 (`pipeline.test.ts` gates);
+    CLI 11 (`stages.test.ts`: placeholder, `export --placeholders`, the gate flow brief → placeholder gate → v1 → shape gate → reject → v2 → approve → v3 → finish → final → approve, `stages`, shape sheet cost, `pr prepare`, restyle,
+    every template's anchors cover the placeholder's, PR lines); MCP 1 (`user_approved`); runtime 1 (placeholders on a loaded pack).
+  - **`scripts/artgen-stage-measure.ts`** measures §12 items 1, 3 and 4 (and calibrates `shape-read`); nothing under `examples/` is written by it.
+
+- **Where the build differs from the design.**
+  1. **Top-down ground line.** The design puts the body's bottom and the footprint on the pivot, but the export anchor in top-down is the frame centre, which would give a body at most half the frame. In views whose
+     pivot is in the upper part of the frame (pivot row < 60 % of the height) the body stands on the template ground line (`round(0.95 h)`) and the pivot stays the export anchor. For the same reason `shape-pivot` and
+     `shape-box` are skipped (status `skip`, "the pivot is the frame centre") there. They run in iso, oblique, side and first-person views.
+  2. **Standing kinds** are exactly `character`, `creature`, `prop`, `vehicle`; "any kind whose default anchor is the bottom centre" would have made `viewmodel` and `layer` standing.
+  3. **Footprint** is one pixel wider than the body each side (`rx = round(w/2) + 1`), clamped into the frame; with `rx = w/2` it hid completely behind the body. The collision box is its bounding box.
+  4. **Creature anchors.** Creatures with a non-humanoid `body` get `ground`, `head`; humanoid creatures (which start from the character templates, with no `ground` anchor) get `head`, `hand`. The test renders every
+     template and checks the placeholder's anchor names are among its anchors.
+  5. **`shape-box` fails only against something firm**: the brief's `height` or a `placeholder.json`; against the default guess (0.88 of the frame) it flags at most. Against the 25 non-tile approved example finals the default guess
+     failed props and low creatures that are correctly short. Low bodies (`quadruped`, `serpent`, `flyer`) skip the `ph-box` height flag, as conformance does for `height`.
+  6. **`shape-read`** uses the design's compactness; pixel perimeter makes a disc 0.62 and a square 0.79, so the threshold is **0.70**, calibrated as asked (stand frames of the example finals and bench assets that are not tiles:
+     0.05–0.66, median 0.37, none flags). It flags solid squares and fat boxes, not round blobs. Tiles, tilesets, textures and layers skip it (they fill their frame on purpose).
+  7. **`shape-pivot` against the approved examples**: of the 25 non-tile approved example finals and 6 bench assets, 5 would fail (`shape-pivot` fails beyond 2 px: sprites drawn 3+ px above the anchor row in iso / first-person views:
+     brazier, rat, iron bed, wheelchair, isohero) and 5 flag. The rule is the design's; the shape gate applies to new characters and creatures, whose templates stand on row 0.95 h, and `--force` is recorded as `forced`.
+  8. **Placeholder picture.** `out/placeholder.png` is the strip at the review scale (default 4x), not 1x, since the user is meant to look at it.
+  9. **The shape review** is logged as a `review` entry with `stage: 'shape'`; everything that looks up "the review sheet of a version" (approve, `make`'s resume check, `score`'s image tokens, `pr prepare`, the feedback bundle)
+     skips entries with a `stage`, so a shape sheet never stands in for the full sheet. Its tokens still count in the review totals.
+  10. **Restyle** records `stages` on every restyle entry and result; only the sheet label is limited to assets with a shape gate, so ungated restyle sheets are byte-identical.
+  11. **`stages` states** gain `rejected` (a gated stage whose latest verdict on this key is a reject). `stage approve|reject` take the asset as `asset` (a brief id or directory) like the other asset operations.
+  12. **Shape reject** opens the next base as an extra autonomous revision (pass `x`), not a user iteration; it counts against `extraAutonomousRevisions` only where that budget is read (a failing gate or a blind miss).
+  13. **`firstInGameMinutes`** takes the upper middle value for an even count. `ReviewItem` / `pr prepare` return a `gates` list; the `pr.parse` MCP description names the stage lines.
+
+- **§12 numbers.**
+  1. **Shape sheet against the full review sheet** (image tokens). On the 25 non-tile finals of the three example games, built in a scratch copy with `review` and `review --stage shape` (the full sheet has the earlier versions and
+     the anchors): **36,342 against 4,110, 11 %**; per asset 5–36 % (the 8-facing figures and animated assets 5–10 %, a plain prop 26–36 %). On the six bench assets, whose full sheet is a single row of one facing with no
+     earlier version or anchors: 1,997 against 1,159, 58 % (45–86 %). A shape sheet is a fixed ~140–270 tokens, whatever the review sheet carries.
+  2. **Template code** is R6b.
+  3. **Restyle** to a palette-only change (every ramp colour turned 40° in hue, outline and line kept), temp copies of the three examples: 30 finals, **`decorate` changed in 30 of 30 and nothing else did**
+     (`placeholder`, `shape`, `animation` same; `rig`, `decal`, `lighting`, `rotation` not applicable). The same property is a test (`stageKeys` on two directions; a CLI restyle of a gated asset).
+  4. **Shape gate replay.** The example ledgers hold 8 base-route user notes with **34** scored passes before them (mean 4.3). Four are tile notes (tiling, grout, too uniform), which no shape gate sees. The other four are on shaped
+     kinds: reeds, rubble and the iron bed (props) and the ghoul (a creature), 16 passes, so a gate after v1 saves at most **12** of them. Only the ghoul is on a kind `init` gates by default (4 passes, at most **3** saved);
+     the props need `gates: [shape]` on the brief or in `review.gates`. This is an upper bound: a rejected v1 still costs its pass, and the user may reject again.
+  5. **Time to the first placeholder in the game** is a command (`placeholder`, `export --placeholders`) and a metric; a production run is needed to put a number on it.
+
+- **Recorded expectations that changed.** (§10 allows these only.)
+  - **MCP tool list** (`server.test.ts`) and **MCP transcript** (`__golden__/mcp-transcript.txt`, regenerated with `UPDATE_GOLDEN=1`): the four new tools; score entries gain `stages` and `stageChecks`; the restyle results gain `stages`
+    (and the restyle ledger entries). The diff was read line by line: nothing else moved.
+  - **`init` config**: `review.gates = { character: ['shape'], creature: ['shape'] }`. Three scripted CLI tests (`w2.test.ts`, `p7.test.ts`, `review.test.ts`) that drive the ungated pipeline now set `review.gates = {}` after `init`
+    (as they already dropped the per-kind budgets); the gated pipeline is `stages.test.ts`.
+  - **Runtime 1.3.0**: `RUNTIME_VERSION`, the package versions, `package-lock.json`, and the three example games (`npm run fixtures:install`, then `export --runtime` in each, as for 1.2.1): the installed skills, agents, command and
+    `CLAUDE.md`, the vendored runtime, `pack.json` (`runtime`, `generator`) and `*.aseprite.json` (`version`). The atlases are byte-identical. Each example ledger gains 10 appended `export` lines; no existing line changed.
+  - Bench golden hashes, the CLI transcript, the consumer fixtures, the conformance output and every render that uses no new feature: unchanged.
+
+- **Test counts, before → after.** artgen-cli 311 → 322, artgen-core 158 → 189, artgen-workflow 38 → 46, artgen-mcp 30 → 31, artgen-runtime 89 → 90, artgen-dist 73, imagekit 320, mapgen 133, primitives 41, scene 21 (unchanged); root `npm test`
+  96 (unchanged); Python 16 (unchanged). The operations: 153 → 157.
+- **Bundles, before → after** (`node packages/artgen-dist/build.mjs`): `artgen.js` 1,659,460 → 1,707,688 bytes (+48 KB), `artgen-mcp.js` 1,657,677 → 1,705,909 (+48 KB), `artgen-maps.js` 769,270 → 770,238 (+1 KB: the workflow stage module).
+  The runtime core is 4,826 → 4,858 bytes min+gz (budget 8 KB).
+- **Not done.** Production runs with gates on (tokens and passes per approved asset on the bench, blind scores, time to the first placeholder) need a model and a person answering the gates. No gate for rig, decal, lighting or rotation
+  (R6b–R6d). `shape-pivot` for top-down views (see 1). A shape sheet in the image tools' web UI (Asset Review shows the full sheet; the gate is answered by CLI, MCP or the pull request). Nothing is cached: keys save review and passes, not CPU (§3.1).

@@ -30,7 +30,7 @@ _OPS: dict[str, tuple[tuple[str, ...], tuple[str, ...], dict[str, tuple[str, str
     "pass.status": (("pass", "status"), ("asset",), {"direction": ("--direction", "value"), "ledger": ("--ledger", "value")}),
     "pass.next": (("pass", "next"), ("asset",), {"direction": ("--direction", "value"), "ledger": ("--ledger", "value")}),
     "render": (("render",), ("asset",), {"version": ("--version", "value"), "variant": ("--variant", "value"), "stages": ("--stages", "switch"), "direction": ("--direction", "value"), "ledger": ("--ledger", "value")}),
-    "review": (("review",), ("asset",), {"version": ("--version", "value"), "blind": ("--blind", "switch"), "detail": ("--detail", "value"), "scene": ("--scene", "switch"), "direction": ("--direction", "value"), "ledger": ("--ledger", "value")}),
+    "review": (("review",), ("asset",), {"version": ("--version", "value"), "blind": ("--blind", "switch"), "detail": ("--detail", "value"), "scene": ("--scene", "switch"), "stage": ("--stage", "value"), "direction": ("--direction", "value"), "ledger": ("--ledger", "value")}),
     "conformance": (("conformance",), ("asset",), {"version": ("--version", "value"), "direction": ("--direction", "value"), "ledger": ("--ledger", "value")}),
     "score": (("score",), ("asset", "version", "score"), {"note": ("--note", "value"), "reviewer": ("--reviewer", "value"), "blind": ("--blind", "switch"), "model": ("--model", "value"), "effort": ("--effort", "value"), "tokens_in": ("--tokens-in", "value"), "tokens_out": ("--tokens-out", "value"), "agent_tokens_in": ("--agent-tokens-in", "value"), "ms": ("--ms", "value"), "direction": ("--direction", "value"), "ledger": ("--ledger", "value")}),
     "variants": (("variants",), ("asset",), {"version": ("--version", "value"), "n": ("--n", "value"), "direction": ("--direction", "value"), "ledger": ("--ledger", "value")}),
@@ -38,7 +38,7 @@ _OPS: dict[str, tuple[tuple[str, ...], tuple[str, ...], dict[str, tuple[str, str
     "finish": (("finish",), ("asset",), {"base": ("--base", "value"), "direction": ("--direction", "value"), "ledger": ("--ledger", "value")}),
     "make": (("make",), ("*ids",), {"parallel": ("--parallel", "value"), "wave": ("--wave", "value")}),
     "brief.lint": (("brief", "lint"), ("*ids",), {}),
-    "brief.add": (("brief", "add"), ("id",), {"kind": ("--kind", "value"), "view": ("--view", "value"), "size": ("--size", "value"), "states": ("--states", "list"), "directions": ("--directions", "value"), "anims": ("--anims", "list"), "durations": ("--durations", "list"), "variants": ("--variants", "value"), "swaps": ("--swaps", "list"), "importance": ("--importance", "value"), "priority": ("--priority", "value"), "height": ("--height", "value"), "body": ("--body", "value"), "object": ("--object", "value"), "notes": ("--notes", "value"), "break_contract": ("--break-contract", "switch")}),
+    "brief.add": (("brief", "add"), ("id",), {"kind": ("--kind", "value"), "view": ("--view", "value"), "size": ("--size", "value"), "states": ("--states", "list"), "directions": ("--directions", "value"), "anims": ("--anims", "list"), "durations": ("--durations", "list"), "variants": ("--variants", "value"), "swaps": ("--swaps", "list"), "importance": ("--importance", "value"), "priority": ("--priority", "value"), "height": ("--height", "value"), "body": ("--body", "value"), "object": ("--object", "value"), "notes": ("--notes", "value"), "gates": ("--gates", "list"), "break_contract": ("--break-contract", "switch")}),
     "brief.list": (("brief", "list"), (), {}),
     "brief.rm": (("brief", "rm"), ("id",), {}),
     "status": (("status",), ("*ids",), {}),
@@ -46,13 +46,17 @@ _OPS: dict[str, tuple[tuple[str, ...], tuple[str, ...], dict[str, tuple[str, str
     "sheet": (("sheet",), ("id",), {}),
     "feedback": (("feedback",), ("id",), {"route": ("--route", "value"), "note": ("--note", "value"), "by": ("--by", "value"), "region": ("--region", "list"), "cell": ("--cell", "value"), "force": ("--force", "switch"), "via": ("--via", "value")}),
     "approve": (("approve",), ("id",), {"note": ("--note", "value"), "via": ("--via", "value")}),
+    "placeholder": (("placeholder",), ("asset",), {"force": ("--force", "switch"), "size": ("--size", "size"), "pivot": ("--pivot", "points"), "ramp": ("--ramp", "value"), "direction": ("--direction", "value"), "ledger": ("--ledger", "value")}),
+    "stages": (("stages",), ("asset",), {"version": ("--version", "value"), "direction": ("--direction", "value"), "ledger": ("--ledger", "value")}),
+    "stage.approve": (("stage", "approve"), ("asset", "stage"), {"version": ("--version", "value"), "note": ("--note", "value"), "force": ("--force", "switch"), "via": ("--via", "value"), "direction": ("--direction", "value"), "ledger": ("--ledger", "value")}),
+    "stage.reject": (("stage", "reject"), ("asset", "stage"), {"version": ("--version", "value"), "note": ("--note", "value"), "via": ("--via", "value"), "direction": ("--direction", "value"), "ledger": ("--ledger", "value")}),
     "roster": (("roster",), ("*ids",), {"seed": ("--seed", "value"), "stage": ("--stage", "value")}),
     "roster.record": (("roster", "record"), ("file",), {"reviewer": ("--reviewer", "value")}),
     "texture": (("texture",), ("material",), {"size": ("--size", "value"), "seed": ("--seed", "value"), "ramps": ("--ramps", "list"), "scale": ("--scale", "value"), "list": ("--list", "switch"), "out": ("--out", "value"), "direction": ("--direction", "value")}),
     "fx": (("fx",), ("preset",), {"size": ("--size", "value"), "frames": ("--frames", "value"), "seed": ("--seed", "value"), "scale": ("--scale", "value"), "list": ("--list", "switch"), "out": ("--out", "value"), "direction": ("--direction", "value")}),
     "trace-base": (("trace-base",), ("asset", "image"), {"mat": ("--mat", "value"), "margin": ("--margin", "value"), "anchor": ("--anchor", "value"), "threshold": ("--threshold", "value"), "invert": ("--invert", "switch"), "blur": ("--blur", "value"), "smoothing": ("--smoothing", "value"), "simplify": ("--simplify", "value"), "min_area": ("--min-area", "value"), "holes": ("--holes", "onoff"), "max_paths": ("--max-paths", "value"), "alpha": ("--alpha", "onoff"), "direction": ("--direction", "value"), "ledger": ("--ledger", "value")}),
     "cut": (("cut",), ("target",), {"out": ("--out", "value"), "fill": ("--fill", "value"), "color": ("--color", "value"), "padding": ("--padding", "value"), "square": ("--square", "switch"), "scale": ("--scale", "value"), "version": ("--version", "value"), "draft": ("--draft", "switch"), "state": ("--state", "value"), "facing": ("--facing", "value"), "frame": ("--frame", "value"), "threshold": ("--threshold", "value"), "invert": ("--invert", "switch"), "smoothing": ("--smoothing", "value"), "keep_all": ("--keep-all", "switch"), "direction": ("--direction", "value"), "ledger": ("--ledger", "value")}),
-    "export": (("export",), (), {"pack": ("--pack", "list"), "include_drafts": ("--include-drafts", "switch"), "runtime": ("--runtime", "switch"), "force": ("--force", "switch"), "break_contract": ("--break-contract", "list")}),
+    "export": (("export",), (), {"pack": ("--pack", "list"), "include_drafts": ("--include-drafts", "switch"), "runtime": ("--runtime", "switch"), "force": ("--force", "switch"), "break_contract": ("--break-contract", "list"), "placeholders": ("--placeholders", "switch")}),
     "restyle": (("restyle",), (), {"from_": ("--from", "value")}),
     "analytics": (("analytics",), (), {"across": ("--across", "list"), "apply": ("--apply", "switch"), "min_assets": ("--min-assets", "value"), "out": ("--out", "value")}),
     "pr.prepare": (("pr", "prepare"), ("*ids",), {"base": ("--base", "value")}),
@@ -238,9 +242,9 @@ class Ops:
         """Render one version of an asset and run the conformance gate. (artgen render)"""
         return self._op("render", [asset], {"version": version, "variant": variant, "stages": stages, "direction": direction, "ledger": ledger})
 
-    def review(self, asset: str, *, version: Optional[str] = None, blind: Optional[bool] = None, detail: Optional[str] = None, scene: Optional[bool] = None, direction: Optional[str] = None, ledger: Optional[str] = None) -> "Result":
+    def review(self, asset: str, *, version: Optional[str] = None, blind: Optional[bool] = None, detail: Optional[str] = None, scene: Optional[bool] = None, stage: Optional[str] = None, direction: Optional[str] = None, ledger: Optional[str] = None) -> "Result":
         """Build the review sheet for a version and log it to the ledger. (artgen review)"""
-        return self._op("review", [asset], {"version": version, "blind": blind, "detail": detail, "scene": scene, "direction": direction, "ledger": ledger})
+        return self._op("review", [asset], {"version": version, "blind": blind, "detail": detail, "scene": scene, "stage": stage, "direction": direction, "ledger": ledger})
 
     def conformance(self, asset: str, *, version: Optional[str] = None, direction: Optional[str] = None, ledger: Optional[str] = None) -> "Result":
         """Run the conformance gate on a version (nothing is written). (artgen conformance)"""
@@ -270,9 +274,9 @@ class Ops:
         """Warnings for briefs before any drawing starts: materials their kind's ramps leave out, views with no template. (artgen brief lint)"""
         return self._op("brief.lint", [*ids], {})
 
-    def brief_add(self, id: str, *, kind: Optional[str] = None, view: Optional[str] = None, size: Optional[str] = None, states: Optional[Sequence[str]] = None, directions: Optional[float] = None, anims: Optional[Sequence[str]] = None, durations: Optional[Sequence[str]] = None, variants: Optional[float] = None, swaps: Optional[Sequence[str]] = None, importance: Optional[Literal["hero", "standard", "filler"]] = None, priority: Optional[float] = None, height: Optional[float] = None, body: Optional[str] = None, object: Optional[str] = None, notes: Optional[str] = None, break_contract: Optional[bool] = None) -> "Result":
+    def brief_add(self, id: str, *, kind: Optional[str] = None, view: Optional[str] = None, size: Optional[str] = None, states: Optional[Sequence[str]] = None, directions: Optional[float] = None, anims: Optional[Sequence[str]] = None, durations: Optional[Sequence[str]] = None, variants: Optional[float] = None, swaps: Optional[Sequence[str]] = None, importance: Optional[Literal["hero", "standard", "filler"]] = None, priority: Optional[float] = None, height: Optional[float] = None, body: Optional[str] = None, object: Optional[str] = None, notes: Optional[str] = None, gates: Optional[Sequence[str]] = None, break_contract: Optional[bool] = None) -> "Result":
         """Add a brief to art/briefs.yaml: the asset to make (id, kind, view, size, states, animations, …). (artgen brief add)"""
-        return self._op("brief.add", [id], {"kind": kind, "view": view, "size": size, "states": states, "directions": directions, "anims": anims, "durations": durations, "variants": variants, "swaps": swaps, "importance": importance, "priority": priority, "height": height, "body": body, "object": object, "notes": notes, "break_contract": break_contract})
+        return self._op("brief.add", [id], {"kind": kind, "view": view, "size": size, "states": states, "directions": directions, "anims": anims, "durations": durations, "variants": variants, "swaps": swaps, "importance": importance, "priority": priority, "height": height, "body": body, "object": object, "notes": notes, "gates": gates, "break_contract": break_contract})
 
     def brief_list(self) -> "Result":
         """List the briefs in art/briefs.yaml. (artgen brief list)"""
@@ -302,6 +306,22 @@ class Ops:
         """Record the user's approval of a final asset (a passing gate and a review sheet are needed). (artgen approve)"""
         return self._op("approve", [id], {"note": note, "via": via})
 
+    def placeholder(self, asset: str, *, force: Optional[bool] = None, size: Optional[Union[str, Sequence[float]]] = None, pivot: Optional[Sequence[float]] = None, ramp: Optional[str] = None, direction: Optional[str] = None, ledger: Optional[str] = None) -> "Result":
+        """Write the asset's placeholder (flat shapes at the right size, pivot and footprint), render it and check it. (artgen placeholder)"""
+        return self._op("placeholder", [asset], {"force": force, "size": size, "pivot": pivot, "ramp": ramp, "direction": direction, "ledger": ledger})
+
+    def stages(self, asset: str, *, version: Optional[str] = None, direction: Optional[str] = None, ledger: Optional[str] = None) -> "Result":
+        """The stages of a version: each key, whether the user approved it as it is, and the stage checks. (artgen stages)"""
+        return self._op("stages", [asset], {"version": version, "direction": direction, "ledger": ledger})
+
+    def stage_approve(self, asset: str, stage: Literal["placeholder", "shape"], *, version: Optional[str] = None, note: Optional[str] = None, force: Optional[bool] = None, via: Optional[str] = None, direction: Optional[str] = None, ledger: Optional[str] = None) -> "Result":
+        """Record the user's approval of a stage (placeholder or shape) as it is now. (artgen stage approve)"""
+        return self._op("stage.approve", [asset, stage], {"version": version, "note": note, "force": force, "via": via, "direction": direction, "ledger": ledger})
+
+    def stage_reject(self, asset: str, stage: Literal["placeholder", "shape"], *, version: Optional[str] = None, note: Optional[str] = None, via: Optional[str] = None, direction: Optional[str] = None, ledger: Optional[str] = None) -> "Result":
+        """Record the user's rejection of a stage (placeholder or shape), with what to change. (artgen stage reject)"""
+        return self._op("stage.reject", [asset, stage], {"version": version, "note": note, "via": via, "direction": direction, "ledger": ledger})
+
     def roster(self, *ids: str, seed: Optional[float] = None, stage: Optional[str] = None) -> "Result":
         """Contact sheets of the roster for a fresh reviewer: sizes against briefs, the most similar silhouettes. (artgen roster)"""
         return self._op("roster", [*ids], {"seed": seed, "stage": stage})
@@ -326,9 +346,9 @@ class Ops:
         """Cut a token (or the flat silhouette the Shape gate reads) from an approved asset's render, or from a picture. (artgen cut)"""
         return self._op("cut", [target], {"out": out, "fill": fill, "color": color, "padding": padding, "square": square, "scale": scale, "version": version, "draft": draft, "state": state, "facing": facing, "frame": frame, "threshold": threshold, "invert": invert, "smoothing": smoothing, "keep_all": keep_all, "direction": direction, "ledger": ledger})
 
-    def export(self, *, pack: Optional[Sequence[str]] = None, include_drafts: Optional[bool] = None, runtime: Optional[bool] = None, force: Optional[bool] = None, break_contract: Optional[Sequence[str]] = None) -> "Result":
+    def export(self, *, pack: Optional[Sequence[str]] = None, include_drafts: Optional[bool] = None, runtime: Optional[bool] = None, force: Optional[bool] = None, break_contract: Optional[Sequence[str]] = None, placeholders: Optional[bool] = None) -> "Result":
         """Export approved assets into the configured packs: atlases, pack.json, Aseprite JSON, typed assets.ts. (artgen export)"""
-        return self._op("export", [], {"pack": pack, "include_drafts": include_drafts, "runtime": runtime, "force": force, "break_contract": break_contract})
+        return self._op("export", [], {"pack": pack, "include_drafts": include_drafts, "runtime": runtime, "force": force, "break_contract": break_contract, "placeholders": placeholders})
 
     def restyle(self, *, from_: Optional[float] = None) -> "Result":
         """Re-render finished assets under the newly locked direction, with a before / after / token-diff sheet. (artgen restyle)"""

@@ -11,8 +11,9 @@ import { pathToFileURL } from 'node:url';
 import {
   applyFinish, animInput, onionSkin, fpRole, fpShots, assembleSheet, budgetFor, finishBaseOf, conformance, contactSheet, parseBriefs, finishSnapshot, finishStale, Grid, imageTokens, iso, parseDirection, parseLedger,
   parseVersion, passId, planPasses, pxPerMetre, renderAsset, resolveSize, reviewSheet, sourceHash, stackStrip, standFrames, parallaxStrip, TILE_KINDS, viewContext, autotileCount, autotileMap, autotileSheet,
-  type AssetBudget, type AssetModule, type BriefEntry, type ConformanceReport, type FeedbackOpen, type Direction, type FinishModule, type LedgerEntry, type PassState, type PlanInput,
-  type PatchRecord, type RenderResult, type SheetDetail,
+  defaultPlaceholder, gatesFor, parsePlaceholder, placeholderKey, stageCheckLabels, stageReport,
+  type AssetBudget, type AssetModule, type BriefEntry, type GateStage, type ConformanceReport, type FeedbackOpen, type Direction, type FinishModule, type LedgerEntry, type PassState, type PlanInput,
+  type PatchRecord, type Placeholder, type RenderResult, type SheetDetail, type StageKeys, type StageReport,
 } from 'artgen-core';
 import { BENCH_DIRECTIONS } from 'artgen-core/bench';
 import { strip } from './bench.ts';
@@ -111,8 +112,23 @@ export const feedbackOf = (a: AssetDir): FeedbackOpen[] =>
 export const passOf = (a: AssetDir, version: string): string => passId(version, revisionPasses(a), a.project ? feedbackOf(a).filter(f => f.by !== 'agent').map(f => f.opens) : undefined);
 
 export const versionsIn = (a: AssetDir): string[] =>
-  readdirSync(a.path).map(f => parseVersion(f)?.name).filter((v): v is string => !!v)
+  (existsSync(a.path) ? readdirSync(a.path) : []).map(f => parseVersion(f)?.name).filter((v): v is string => !!v)
     .sort((x, y) => { const a1 = parseVersion(x)!, b1 = parseVersion(y)!; return a1.kind === b1.kind ? a1.n - b1.n : a1.kind === 'base' ? -1 : 1; });
+
+/** `placeholder.json` beside the asset's sources (docs/STAGES.md §5.1). */
+export const placeholderPath = (a: AssetDir): string => join(a.path, 'placeholder.json');
+
+/** The placeholder file, parsed against the brief and direction; undefined when there is none. Throws on a bad file. */
+export function readPlaceholder(a: AssetDir): Placeholder | undefined {
+  const f = placeholderPath(a);
+  return existsSync(f) ? parsePlaceholder(JSON.parse(readFileSync(f, 'utf8')), a.brief, a.dir) : undefined;
+}
+
+/** The placeholder in effect: the file, else the brief's defaults. */
+export const effectivePlaceholder = (a: AssetDir): Placeholder => readPlaceholder(a) ?? defaultPlaceholder(a.brief, a.dir);
+
+/** The stage gates of an asset: its brief's, else the project's `review.gates` for its kind. */
+export const gatesOf = (a: AssetDir): GateStage[] => gatesFor(a.project ? projectConfig(a.project).review.gates : undefined, a.brief);
 
 export const sourceOf = (a: AssetDir, version: string): string => readFileSync(join(a.path, `${version}.js`), 'utf8');
 
@@ -133,6 +149,8 @@ export interface VersionRender {
   /** Review layout: the strip for up to 8 cells, else one row per state × facing (mirrored facings left out). */
   grid: Grid;
   report: ConformanceReport;
+  /** Stage keys and the shape and placeholder checks, beside the gate (docs/STAGES.md §4): they never change `report`. */
+  stages: StageReport;
   source: string;
   /** finish versions: the base they are bound to, their patches and any stale patches. */
   base?: string;
@@ -168,7 +186,10 @@ export async function renderVersion(a: AssetDir, version: string, opts: { varian
     ...(a.brief.height && { height: { metres: a.brief.height, pxPerMetre: pxPerMetre(a.dir), frames: standFrames(render), view: a.brief.view ?? a.dir.camera.view, body: a.brief.body } }), anim: animInput(render),
     ...(a.project && { thresholds: { heightFail: projectConfig(a.project).review.heightFail } }),
   });
-  return { version: v.name, render, strip: s, grid, report, source, base, patches, stale };
+  let placeholder: Placeholder | undefined;
+  try { placeholder = readPlaceholder(a); } catch { /* a bad placeholder.json is reported by `artgen placeholder` and `artgen stages` */ }
+  const stages = stageReport(render, a.dir, { brief: a.brief, placeholder });
+  return { version: v.name, render, strip: s, grid, report, stages, source, base, patches, stale };
 }
 
 /** Review context under a sprite: the iso floor (`review.iso`), else the view module's context (oblique room, side strip). */
@@ -358,14 +379,14 @@ export function sceneGrid(dir: Direction, sprite: Grid): Grid {
 }
 
 /** Path as recorded in the ledger: relative to the ledger's folder. */
-const relPath = (a: AssetDir, p: string) => relative(dirname(resolve(a.ledgerPath)), resolve(p)).split('\\').join('/');
+export const relPath = (a: AssetDir, p: string) => relative(dirname(resolve(a.ledgerPath)), resolve(p)).split('\\').join('/');
 
 /** Record a visual score for a version, with gate results, metrics and token estimates (analytics, D19). */
 export async function scoreVersion(a: AssetDir, version: string, score: number, note = '', extra: Record<string, unknown> = {}): Promise<LedgerEntry> {
   const r = await renderVersion(a, version), v = parseVersion(version)!, pass = extra.blind === true ? 'b' : passOf(a, version);
   const vs = versionsIn(a).filter(x => parseVersion(x)!.kind === v.kind && parseVersion(x)!.n < v.n);
   const prevSrc = v.kind === 'finish' ? undefined : vs.length ? sourceOf(a, vs[vs.length - 1]) : undefined;
-  const blind = extra.blind === true, reviews = ledgerFor(a).filter(e => e.type === 'review' && e.version === version && !!e.blind === blind);
+  const blind = extra.blind === true, reviews = ledgerFor(a).filter(e => e.type === 'review' && e.version === version && !!e.blind === blind && !e.stage);
   if (blind && !reviews.length) throw new Error(`${a.brief.id} ${version}: no blind sheet yet — artgen review ${a.brief.id} --version ${version} --blind, and give only that sheet to the reviewer`);
   if (v.kind === 'finish' && r.patches) {
     const snap = join(a.path, `${version}.snapshot.json`);
@@ -379,7 +400,7 @@ export async function scoreVersion(a: AssetDir, version: string, score: number, 
   const entry = {
     type: 'score' as const, asset: a.brief.id, version, pass, score, note, sourceHash: sourceHash(r.source),
     outputHash: r.strip.hash(), direction: { id: a.dir.id, version: a.dir.version }, metrics: r.report.metrics,
-    conformance: { pass: r.report.pass, checks: r.report.checks }, ...(r.base && { base: r.base }),
+    conformance: { pass: r.report.pass, checks: r.report.checks }, stages: r.stages.keys, stageChecks: stageCheckLabels(r.stages.checks), ...(r.base && { base: r.base }),
     tokens: { code: codeTokens(r.source), edit: editTokens(prevSrc, r.source), ...(extra.measured as object | undefined) },
     imageTokens: reviews.length ? (reviews[reviews.length - 1].imageTokens as number) : undefined, by: 'agent' as const,
     ...stageModel(a, pass), ...(Number.isFinite(prevTs) && { wallMs: Date.now() - prevTs }), ...(delta !== undefined && { delta }),
@@ -395,9 +416,11 @@ export async function passState(a: AssetDir): Promise<PassState & { stale?: stri
     const b = finishBaseOf(sourceOf(a, v));
     if (b) finishBase[v] = b;
   }
+  const gates = gatesOf(a), ledger = ledgerFor(a);
   const st = planPasses({
-    asset: a.brief.id, versions, ledger: ledgerFor(a), revisionPasses: revisionPasses(a), finishPass: a.dir.pipeline.finishPass, finishBase,
+    asset: a.brief.id, versions, ledger, revisionPasses: revisionPasses(a), finishPass: a.dir.pipeline.finishPass, finishBase,
     ...(a.project && { feedback: feedbackOf(a), extraRevisions: a.budget?.extraRevisions ?? 0, ...blindConfig(a.project) }),
+    ...(gates.length && { gates, ...(await gateInputs(a, gates, versions, ledger)) }),
   });
   const lastFinish = versions.filter(v => v.startsWith('finish.')).pop();
   if (lastFinish && existsSync(join(a.path, `${lastFinish}.snapshot.json`))) {
@@ -405,6 +428,23 @@ export async function passState(a: AssetDir): Promise<PassState & { stale?: stri
     if (stale?.length) return { ...st, stale };
   }
   return st;
+}
+
+/**
+ * What the pass machine needs for stage gates (docs/STAGES.md §5.4): the stage keys recorded on each version's latest
+ * score entry (a scored version of an older ledger has none: it is rendered once for its keys, only when the shape gate
+ * is on) and the key of the current placeholder.
+ */
+async function gateInputs(a: AssetDir, gates: GateStage[], versions: string[], ledger: LedgerEntry[]): Promise<Pick<PlanInput, 'stageKeys' | 'placeholderKey'>> {
+  const out: Pick<PlanInput, 'stageKeys' | 'placeholderKey'> = {};
+  if (gates.includes('shape')) {
+    const keys: Record<string, StageKeys> = {};
+    for (const e of ledger) if (e.type === 'score' && !e.blind && e.version && e.stages && typeof e.stages === 'object') keys[e.version] = e.stages as StageKeys;
+    for (const v of versions) if (parseVersion(v)!.kind === 'base' && !keys[v] && ledger.some(e => e.type === 'score' && !e.blind && e.version === v)) keys[v] = (await renderVersion(a, v)).stages.keys;
+    out.stageKeys = keys;
+  }
+  if (gates.includes('placeholder')) { try { out.placeholderKey = placeholderKey(effectivePlaceholder(a)); } catch { /* no key: the gate stays open */ } }
+  return out;
 }
 
 /** Review policy for the pass machine: the blind re-score (rev 9), the finishing-pass policy and the blind budget. */
