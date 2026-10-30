@@ -2828,13 +2828,13 @@ function parsePath(d, tol = 0.5) {
   const toks = d.match(/[MmLlHhVvCcSsQqTtAaZz]|-?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?/g) ?? [];
   const out = [];
   let i = 0, cmd = "", cur = [0, 0], start = [0, 0], sub2 = null, lastCtrl = null, lastCmd = "";
-  const num3 = () => {
+  const num5 = () => {
     const t = toks[i++];
     if (t === void 0 || /^[a-zA-Z]$/.test(t)) throw new Error(`path: expected a number near token ${i} in "${d.slice(0, 40)}"`);
     return +t;
   };
   const pt3 = (rel3) => {
-    const x = num3(), y = num3();
+    const x = num5(), y = num5();
     return rel3 ? [cur[0] + x, cur[1] + y] : [x, y];
   };
   const lineTo = (p2) => {
@@ -2871,10 +2871,10 @@ function parsePath(d, tol = 0.5) {
     }
     if (C3 === "L") lineTo(pt3(rel3));
     else if (C3 === "H") {
-      const x = num3();
+      const x = num5();
       lineTo([rel3 ? cur[0] + x : x, cur[1]]);
     } else if (C3 === "V") {
-      const y = num3();
+      const y = num5();
       lineTo([cur[0], rel3 ? cur[1] + y : y]);
     } else if (C3 === "C" || C3 === "S") {
       const p0 = cur;
@@ -2899,7 +2899,7 @@ function parsePath(d, tol = 0.5) {
       }
       lastCtrl = c;
     } else if (C3 === "A") {
-      const rx0 = num3(), ry0 = num3(), rotDeg = num3(), large = num3(), sweep2 = num3(), p2 = pt3(rel3);
+      const rx0 = num5(), ry0 = num5(), rotDeg = num5(), large = num5(), sweep2 = num5(), p2 = pt3(rel3);
       arcTo(cur, p2, rx0, ry0, rotDeg, !!large, !!sweep2, tol).forEach(lineTo);
       lastCtrl = null;
     } else throw new Error(`path: unsupported command ${cmd}`);
@@ -2918,8 +2918,8 @@ function arcTo(p0, p1, rx, ry, rotDeg, large, sweep2, tol) {
     rx *= Math.sqrt(lam);
     ry *= Math.sqrt(lam);
   }
-  const num3 = rx * rx * ry * ry - rx * rx * y1 * y1 - ry * ry * x1 * x1, den = rx * rx * y1 * y1 + ry * ry * x1 * x1;
-  const co = (large === sweep2 ? -1 : 1) * Math.sqrt(Math.max(0, num3 / den));
+  const num5 = rx * rx * ry * ry - rx * rx * y1 * y1 - ry * ry * x1 * x1, den = rx * rx * y1 * y1 + ry * ry * x1 * x1;
+  const co = (large === sweep2 ? -1 : 1) * Math.sqrt(Math.max(0, num5 / den));
   const cx1 = co * rx * y1 / ry, cy1 = -co * ry * x1 / rx;
   const cx = cp * cx1 - sp * cy1 + (p0[0] + p1[0]) / 2, cy = sp * cx1 + cp * cy1 + (p0[1] + p1[1]) / 2;
   const ang = (ux, uy, vx, vy) => Math.atan2(ux * vy - uy * vx, ux * vx + uy * vy);
@@ -3337,33 +3337,33 @@ function validateDirection(input) {
   const oneOf2 = (path, v, opts) => {
     if (!opts.includes(v)) err2(path, `must be one of ${opts.join(" | ")} (got ${JSON.stringify(v)})`);
   };
-  const num3 = (path, v, min = -Infinity, max2 = Infinity, int = false) => {
+  const num5 = (path, v, min = -Infinity, max2 = Infinity, int = false) => {
     if (typeof v !== "number" || !Number.isFinite(v) || v < min || v > max2 || int && !Number.isInteger(v)) err2(path, `must be ${int ? "an integer" : "a number"} in [${min}, ${max2}]`);
   };
   const strs = (path, v) => {
     if (!Array.isArray(v) || v.some((s2) => typeof s2 !== "string")) err2(path, "must be an array of strings");
   };
   const size2 = (path, v) => {
-    if (typeof v === "number") num3(path, v, 1, 4096, true);
-    else if (Array.isArray(v) && v.length === 2) v.forEach((n, i) => num3(`${path}[${i}]`, n, 1, 4096, true));
+    if (typeof v === "number") num5(path, v, 1, 4096, true);
+    else if (Array.isArray(v) && v.length === 2) v.forEach((n, i) => num5(`${path}[${i}]`, n, 1, 4096, true));
     else err2(path, "must be a positive integer or [w, h]");
   };
   if (typeof d.id !== "string" || !d.id) err2("id", "required string");
-  num3("version", d.version, 1, Infinity, true);
+  num5("version", d.version, 1, Infinity, true);
   oneOf2("status", d.status, ["draft", "candidate", "locked"]);
   const cam = d.camera;
   if (!isObj(cam)) err2("camera", "required object");
   else {
     oneOf2("camera.view", d.camera.view, VIEWS);
     if (!Array.isArray(d.camera.light) || d.camera.light.length !== 3) err2("camera.light", "must be [x, y, z]");
-    else d.camera.light.forEach((n, i) => num3(`camera.light[${i}]`, n));
+    else d.camera.light.forEach((n, i) => num5(`camera.light[${i}]`, n));
     oneOf2("camera.directions", d.camera.directions, [1, 4, 8, 16]);
-    num3("camera.pixelScale", d.camera.pixelScale, 1, 16, true);
+    num5("camera.pixelScale", d.camera.pixelScale, 1, 16, true);
     if (d.camera.iso !== void 0) size2("camera.iso.tile", d.camera.iso.tile);
-    if (d.camera.oblique !== void 0) num3("camera.oblique.frontRatio", d.camera.oblique.frontRatio, 0, 1);
+    if (d.camera.oblique !== void 0) num5("camera.oblique.frontRatio", d.camera.oblique.frontRatio, 0, 1);
   }
   if (!isObj(d.scale)) err2("scale", "must be an object");
-  else for (const [k, v] of Object.entries(d.scale)) if (k === "metre") num3("scale.metre", v, 0.1, 1e3);
+  else for (const [k, v] of Object.entries(d.scale)) if (k === "metre") num5("scale.metre", v, 0.1, 1e3);
   else if (k !== "proportions") size2(`scale.${k}`, v);
   const p2 = d.palette;
   if (!isObj(d.palette)) err2("palette", "required object");
@@ -3378,7 +3378,7 @@ function validateDirection(input) {
     }
     if (typeof p2.outline !== "string" || !HEX.test(p2.outline)) err2("palette.outline", "required #rrggbb");
     if (!isObj(p2.shadow) || typeof p2.shadow.color !== "string" || !HEX.test(p2.shadow.color)) err2("palette.shadow.color", "must be #rrggbb");
-    else num3("palette.shadow.alpha", p2.shadow.alpha, 0, 1);
+    else num5("palette.shadow.alpha", p2.shadow.alpha, 0, 1);
     const ramps = isObj(p2.ramps) ? p2.ramps : {};
     const known = (path, name) => {
       if (typeof name !== "string" || !(name in ramps)) err2(path, `unknown ramp ${JSON.stringify(name)}`);
@@ -3390,10 +3390,10 @@ function validateDirection(input) {
       else v.forEach((n, i) => known(`palette.perKind.${k}[${i}]`, n));
     }
     else err2("palette.perKind", "must be an object");
-    if (isObj(p2.perKindMax)) for (const [k, v] of Object.entries(p2.perKindMax)) num3(`palette.perKindMax.${k}`, v, 1, 256, true);
+    if (isObj(p2.perKindMax)) for (const [k, v] of Object.entries(p2.perKindMax)) num5(`palette.perKindMax.${k}`, v, 1, 256, true);
     else err2("palette.perKindMax", "must be an object");
     if (p2.maxColors !== void 0) {
-      num3("palette.maxColors", p2.maxColors, 1, 256, true);
+      num5("palette.maxColors", p2.maxColors, 1, 256, true);
       if (isObj(p2.ramps) && !errors.some((e) => e.startsWith("palette.ramps"))) {
         const n = new Set(Object.values(p2.ramps).flat().map((c) => c.toLowerCase())).size;
         if (n > p2.maxColors) err2("palette.maxColors", `ramps hold ${n} colours, more than ${p2.maxColors}`);
@@ -3406,22 +3406,22 @@ function validateDirection(input) {
   }
   oneOf2("line.outer", d.line?.outer, ["dark", "selout", "none"]);
   oneOf2("line.inner", d.line?.inner, ["none", "selective", "all"]);
-  num3("line.weight", d.line?.weight, 1, 4, true);
-  num3("shading.bands", d.shading?.bands, 1, 16, true);
-  num3("shading.hueShift", d.shading?.hueShift, 0, 180);
+  num5("line.weight", d.line?.weight, 1, 4, true);
+  num5("shading.bands", d.shading?.bands, 1, 16, true);
+  num5("shading.hueShift", d.shading?.hueShift, 0, 180);
   oneOf2("shading.dither", d.shading?.dither, ["none", "bayer2", "bayer4", "noise"]);
   oneOf2("shading.highlight", d.shading?.highlight, ["none", "sparing", "rich"]);
   if (typeof d.shading?.aa !== "boolean") err2("shading.aa", "must be a boolean");
   oneOf2("detail.density", d.detail?.density, ["low", "medium", "high"]);
-  num3("detail.minFeaturePx", d.detail?.minFeaturePx, 1, 64, true);
-  num3("pipeline.revisionPasses", d.pipeline?.revisionPasses, 1, 10, true);
+  num5("detail.minFeaturePx", d.detail?.minFeaturePx, 1, 64, true);
+  num5("pipeline.revisionPasses", d.pipeline?.revisionPasses, 1, 10, true);
   if (typeof d.pipeline?.finishPass !== "boolean") err2("pipeline.finishPass", "must be a boolean");
-  num3("pipeline.raster.directMaxPx", d.pipeline?.raster?.directMaxPx, 1, 4096, true);
-  num3("pipeline.raster.ss", d.pipeline?.raster?.ss, 1, 16, true);
+  num5("pipeline.raster.directMaxPx", d.pipeline?.raster?.directMaxPx, 1, 4096, true);
+  num5("pipeline.raster.ss", d.pipeline?.raster?.ss, 1, 16, true);
   strs("pipeline.procedural", d.pipeline?.procedural);
   strs("pipeline.finish.allow", d.pipeline?.finish?.allow);
-  num3("effects.fps", d.effects?.fps, 1, 120, true);
-  num3("effects.maxFrames", d.effects?.maxFrames, 1, 256, true);
+  num5("effects.fps", d.effects?.fps, 1, 120, true);
+  num5("effects.maxFrames", d.effects?.maxFrames, 1, 256, true);
   if (d.background !== void 0 && (typeof d.background !== "string" || !HEX.test(d.background))) err2("background", "must be #rrggbb");
   strs("anchors", d.anchors);
   strs("rules.do", d.rules?.do);
@@ -3645,7 +3645,7 @@ function material(name, dir, o) {
     height[y * w + x] = s2.height;
   }
   const relief = o.relief ?? 1, [lx, ly] = dir.camera.light, ll = Math.hypot(lx, ly) || 1, hb = blurWrap(height, w, h, 1);
-  const dither = o.dither ?? dir.shading.dither !== "none", grid4 = new Grid(w, h);
+  const dither = o.dither ?? dir.shading.dither !== "none", grid5 = new Grid(w, h);
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
     const i = y * w + x, s2 = samples2[i], ramp2 = dir.pal[ramps[s2.role] ?? ramps.base];
     const gx = (hb[y * w + mod2(x + 1, w)] - hb[y * w + mod2(x - 1, w)]) / 2, gy = (hb[mod2(y + 1, h) * w + x] - hb[mod2(y - 1, h) * w + x]) / 2;
@@ -3655,11 +3655,11 @@ function material(name, dir, o) {
     const Lr = L0.filter((i2) => i2 >= r0 && i2 <= r13), L2 = Lr.length ? Lr : L0, f = tone * L2.length;
     let k = Math.min(L2.length - 1, Math.floor(f));
     if (dither && k < L2.length - 1 && f - k > BAYER4[y % 4][x % 4]) k++;
-    grid4.set(x, y, ramp2[L2[k]]);
+    grid5.set(x, y, ramp2[L2[k]]);
   }
   const normal = normalFromHeight(height, w, h, { wrap: true, strength: 3 * relief });
-  grid4.normal = normal;
-  return { grid: grid4, height, normal, ramps };
+  grid5.normal = normal;
+  return { grid: grid5, height, normal, ramps };
 }
 var ROLES, RECIPE_ROLES, MATERIALS, hash, clamp01, sstep, mod2, across, RECIPES, BAYER4;
 var init_materials = __esm({
@@ -4403,7 +4403,7 @@ function rasterVoxels(set2, o) {
     sDepth[p2] = hit.depth;
     sNorm.set(ns, p2 * 3);
   }
-  const grid4 = new Grid(w, h), depth = new Float32Array(w * h).fill(NaN), part = new Int16Array(w * h).fill(-1), nrm = new Float32Array(w * h * 3);
+  const grid5 = new Grid(w, h), depth = new Float32Array(w * h).fill(NaN), part = new Int16Array(w * h).fill(-1), nrm = new Float32Array(w * h * 3);
   const half = ss * ss / 2;
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
     const counts = /* @__PURE__ */ new Map();
@@ -4429,14 +4429,14 @@ function rasterVoxels(set2, o) {
       nz += sNorm[p2 * 3 + 2];
     }
     const q = y * w + x, band = best & 255, mat = best >> 8 & 255, pt3 = best >> 16, nl = Math.hypot(nx, ny, nz) || 1;
-    grid4.set(x, y, set2.mats[mat][band]);
+    grid5.set(x, y, set2.mats[mat][band]);
     depth[q] = dsum / bn;
     part[q] = pt3;
     nrm[q * 3] = nx / nl;
     nrm[q * 3 + 1] = ny / nl;
     nrm[q * 3 + 2] = nz / nl;
   }
-  let out = grid4;
+  let out = grid5;
   if ((o.inner ?? "depth") !== "none") {
     const thr = o.innerDepth ?? 3, inked = [];
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
@@ -4454,7 +4454,7 @@ function rasterVoxels(set2, o) {
         }
       }
     }
-    out = grid4.clone();
+    out = grid5.clone();
     for (const q of inked) out.set(q % w, q / w | 0, o.ink);
   }
   const filled = (g2, x, y) => g2.alpha(x, y) > 0;
@@ -4911,33 +4911,33 @@ var init_scene = __esm({
         const W3 = this.w * S3, H = this.h * S3, m = new Mask(W3, H, S3), tol = 0.5 / (S3 * matScale(M));
         const poly = (pts2) => pts2.map((p2) => apply(M, p2));
         const fill2 = (rings, rule = "nonzero") => fillPolygons(m, rings.map(poly), rule);
-        const num3 = (v, name) => {
+        const num5 = (v, name) => {
           if (typeof v !== "number" || !Number.isFinite(v)) throw new Error(`${s2.type}${s2.name ? ` ${s2.name}` : ""}: ${name} must be a number`);
           return v;
         };
         switch (s2.type) {
           case "rect":
-            return fill2([rectPts(num3(s2.x ?? 0, "x"), num3(s2.y ?? 0, "y"), num3(s2.w, "w"), num3(s2.h, "h"), s2.r ?? 0, tol)]);
+            return fill2([rectPts(num5(s2.x ?? 0, "x"), num5(s2.y ?? 0, "y"), num5(s2.w, "w"), num5(s2.h, "h"), s2.r ?? 0, tol)]);
           case "ellipse":
-            return fill2([ellipsePts(num3(s2.cx, "cx"), num3(s2.cy, "cy"), num3(s2.rx, "rx"), num3(s2.ry ?? s2.rx, "ry"), tol)]);
+            return fill2([ellipsePts(num5(s2.cx, "cx"), num5(s2.cy, "cy"), num5(s2.rx, "rx"), num5(s2.ry ?? s2.rx, "ry"), tol)]);
           case "circle":
-            return fill2([ellipsePts(num3(s2.cx, "cx"), num3(s2.cy, "cy"), num3(s2.r, "r"), s2.r, tol)]);
+            return fill2([ellipsePts(num5(s2.cx, "cx"), num5(s2.cy, "cy"), num5(s2.r, "r"), s2.r, tol)]);
           case "poly":
             return fill2([s2.pts ?? []], s2.fillRule);
           case "path":
             return fill2(parsePath(s2.d ?? "", tol), s2.fillRule);
           case "star":
-            return fill2([starPts(num3(s2.cx, "cx"), num3(s2.cy, "cy"), num3(s2.r, "r"), num3(s2.r2, "r2"), num3(s2.n, "n"), s2.rot ?? -90)]);
+            return fill2([starPts(num5(s2.cx, "cx"), num5(s2.cy, "cy"), num5(s2.r, "r"), num5(s2.r2, "r2"), num5(s2.n, "n"), s2.rot ?? -90)]);
           case "ring": {
-            const cx = num3(s2.cx, "cx"), cy = num3(s2.cy, "cy"), r = num3(s2.r, "r"), w = num3(s2.w, "w");
+            const cx = num5(s2.cx, "cx"), cy = num5(s2.cy, "cy"), r = num5(s2.r, "r"), w = num5(s2.w, "w");
             return fill2([ellipsePts(cx, cy, r, r, tol), ellipsePts(cx, cy, r - w, r - w, tol).reverse()], "evenodd");
           }
           case "arc": {
-            const cx = num3(s2.cx, "cx"), cy = num3(s2.cy, "cy"), r = num3(s2.r, "r"), w = num3(s2.w, "w"), a0 = num3(s2.a0, "a0"), a1 = num3(s2.a1, "a1");
+            const cx = num5(s2.cx, "cx"), cy = num5(s2.cy, "cy"), r = num5(s2.r, "r"), w = num5(s2.w, "w"), a0 = num5(s2.a0, "a0"), a1 = num5(s2.a1, "a1");
             return fill2([[...ellipsePts(cx, cy, r, r, tol, a0, a1), ...ellipsePts(cx, cy, r - w, r - w, tol, a0, a1).reverse()]]);
           }
           case "line": {
-            const a = [num3(s2.x0, "x0") + 0.5, num3(s2.y0, "y0") + 0.5], b = [num3(s2.x1, "x1") + 0.5, num3(s2.y1, "y1") + 0.5], hw = (s2.w ?? 1) / 2;
+            const a = [num5(s2.x0, "x0") + 0.5, num5(s2.y0, "y0") + 0.5], b = [num5(s2.x1, "x1") + 0.5, num5(s2.y1, "y1") + 0.5], hw = (s2.w ?? 1) / 2;
             const dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len;
             return fill2([[
               [a[0] - ux * hw - uy * hw, a[1] - uy * hw + ux * hw],
@@ -4947,12 +4947,12 @@ var init_scene = __esm({
             ]]);
           }
           case "capsule": {
-            const a = s2.a ?? [num3(s2.x0, "x0"), num3(s2.y0, "y0")], b = s2.b ?? [num3(s2.x1, "x1"), num3(s2.y1, "y1")];
-            return fill2([capsulePts(a, b, num3(s2.r, "r"), s2.r1 ?? s2.r, tol)]);
+            const a = s2.a ?? [num5(s2.x0, "x0"), num5(s2.y0, "y0")], b = s2.b ?? [num5(s2.x1, "x1"), num5(s2.y1, "y1")];
+            return fill2([capsulePts(a, b, num5(s2.r, "r"), s2.r1 ?? s2.r, tol)]);
           }
           case "tube": {
             const pts2 = s2.d ? parsePath(s2.d, tol)[0] ?? [] : s2.pts ?? [];
-            const w0 = num3(s2.w, "w"), w1 = s2.w1 ?? w0;
+            const w0 = num5(s2.w, "w"), w1 = s2.w1 ?? w0;
             const lens = pts2.map((p2, i) => i ? Math.hypot(p2[0] - pts2[i - 1][0], p2[1] - pts2[i - 1][1]) : 0);
             const total = lens.reduce((a, b) => a + b, 0) || 1;
             let acc = 0;
@@ -8370,8 +8370,8 @@ function clampCrop(c, cols, rows2) {
   if (!(x1 > x0 && y1 > y0)) throw new Error(`crop ${c.join(",")} is outside the sheet (0,0,${cols},${rows2})`);
   return [r3(x0), r3(y0), r3(x1 - x0), r3(y1 - y0)];
 }
-function frameOf(crop2, cols, rows2, k) {
-  const [x, y, w, h] = crop2 ? clampCrop(crop2, cols, rows2) : [0, 0, cols, rows2];
+function frameOf(crop3, cols, rows2, k) {
+  const [x, y, w, h] = crop3 ? clampCrop(crop3, cols, rows2) : [0, 0, cols, rows2];
   return { x: x * k, y: y * k, w: w * k, h: h * k, r: (x + w) * k, b: (y + h) * k };
 }
 function parseCrop(v, perCell = 1) {
@@ -9938,11 +9938,11 @@ function wallGeom(w, index, l) {
     return { kind: g.kind, x: s2.x, y: s2.y, angle: s2.angle, width, ...g.room !== void 0 && { room: g.room }, towers: side };
   });
   const ids = w.rooms ?? l.rooms.map((g) => g.room.id);
-  const enclosed = ids.map((room3) => {
+  const enclosed2 = ids.map((room3) => {
     const g = byId2.get(room3), flat2 = ring2.flat();
     return { room: room3, inside: !!g && g.outline.every((_, i) => i % 2 || inPolygon(flat2, g.outline[i], g.outline[i + 1]) || onRing(ring2, g.outline[i], g.outline[i + 1])) };
   });
-  return { index, ...w.id !== void 0 && { id: w.id }, thickness, ring: ring2.flat(), towers, gates, enclosed };
+  return { index, ...w.id !== void 0 && { id: w.id }, thickness, ring: ring2.flat(), towers, gates, enclosed: enclosed2 };
 }
 function layoutWalls(spec, l) {
   return (spec.walls ?? []).map((w, i) => wallGeom(w, i, l));
@@ -10322,14 +10322,14 @@ function clipToRect(poly, [x0, y0, x1, y1]) {
     [(p2) => p2[1] >= y0, (a, b) => [a[0] + (b[0] - a[0]) * (y0 - a[1]) / (b[1] - a[1]), y0]],
     [(p2) => p2[1] <= y1, (a, b) => [a[0] + (b[0] - a[0]) * (y1 - a[1]) / (b[1] - a[1]), y1]]
   ];
-  for (const [inside, cut] of edges2) {
+  for (const [inside, cut2] of edges2) {
     const out = [];
     pts2.forEach((p2, i) => {
       const prev = pts2[(i + pts2.length - 1) % pts2.length];
       if (inside(p2)) {
-        if (!inside(prev)) out.push(cut(prev, p2));
+        if (!inside(prev)) out.push(cut2(prev, p2));
         out.push(p2);
-      } else if (inside(prev)) out.push(cut(prev, p2));
+      } else if (inside(prev)) out.push(cut2(prev, p2));
     });
     pts2 = out;
     if (!pts2.length) return [];
@@ -10357,7 +10357,7 @@ function pieces(b, rand) {
     for (let j = 0; j + 1 < ys.length; j++) for (let i = 0; i + 1 < xs.length; i++) out2.push([xs[i], ys[j], xs[i + 1], ys[j + 1]]);
     return out2;
   }
-  const out = [], cut = (r, depth) => {
+  const out = [], cut2 = (r, depth) => {
     const w = r[2] - r[0], h = r[3] - r[1], big = w * h > min * min * 4;
     if (w < 2 * min && h < 2 * min || !big && depth > 1 && rand() < 0.35) {
       out.push(r);
@@ -10366,14 +10366,14 @@ function pieces(b, rand) {
     const vertical = w < 2 * min ? false : h < 2 * min ? true : w / h > 1.25 ? true : h / w > 1.25 ? false : rand() < 0.5;
     const len = vertical ? w : h, at4 = (vertical ? r[0] : r[1]) + min + Math.floor(rand() * (len - 2 * min + 1));
     if (vertical) {
-      cut([r[0], r[1], at4, r[3]], depth + 1);
-      cut([at4, r[1], r[2], r[3]], depth + 1);
+      cut2([r[0], r[1], at4, r[3]], depth + 1);
+      cut2([at4, r[1], r[2], r[3]], depth + 1);
     } else {
-      cut([r[0], r[1], r[2], at4], depth + 1);
-      cut([r[0], at4, r[2], r[3]], depth + 1);
+      cut2([r[0], r[1], r[2], at4], depth + 1);
+      cut2([r[0], at4, r[2], r[3]], depth + 1);
     }
   };
-  cut([x0, y0, x1, y1], 0);
+  cut2([x0, y0, x1, y1], 0);
   return out;
 }
 function splitBlock(b) {
@@ -11081,10 +11081,10 @@ function renderDungeonSvg(spec, o = {}) {
     const defs2 = [];
     let g = "";
     for (const w of layoutWalls(spec, l)) {
-      const ring2 = pathData([{ pts: w.ring, closed: true }], k), th = w.thickness * k, cut = w.gates.map((gt) => `<rect x="${n1(-gt.width * k / 2)}" y="${n1(-th)}" width="${n1(gt.width * k)}" height="${n1(2 * th)}" transform="translate(${n1(gt.x * k)} ${n1(gt.y * k)}) rotate(${n1(gt.angle)})" fill="#000"/>`).join("");
+      const ring2 = pathData([{ pts: w.ring, closed: true }], k), th = w.thickness * k, cut2 = w.gates.map((gt) => `<rect x="${n1(-gt.width * k / 2)}" y="${n1(-th)}" width="${n1(gt.width * k)}" height="${n1(2 * th)}" transform="translate(${n1(gt.x * k)} ${n1(gt.y * k)}) rotate(${n1(gt.angle)})" fill="#000"/>`).join("");
       const mid = `gates-${w.index}`;
-      if (cut) defs2.push(`<mask id="${mid}" maskUnits="userSpaceOnUse" x="0" y="0" width="${W3}" height="${H}"><rect width="${W3}" height="${H}" fill="#fff"/>${cut}</mask>`);
-      g += `<g id="wall-${w.index}"><g${cut ? ` mask="url(#${mid})"` : ""}><path d="${ring2}" fill="none" stroke="${INK2}" stroke-width="${n1(th)}" stroke-linejoin="miter"/></g>`;
+      if (cut2) defs2.push(`<mask id="${mid}" maskUnits="userSpaceOnUse" x="0" y="0" width="${W3}" height="${H}"><rect width="${W3}" height="${H}" fill="#fff"/>${cut2}</mask>`);
+      g += `<g id="wall-${w.index}"><g${cut2 ? ` mask="url(#${mid})"` : ""}><path d="${ring2}" fill="none" stroke="${INK2}" stroke-width="${n1(th)}" stroke-linejoin="miter"/></g>`;
       const tower = (tw) => {
         const r = tw.size * k / 2, ring22 = Math.max(1, th * 0.4);
         return tw.shape === "square" ? `<rect x="${n1(tw.x * k - r)}" y="${n1(tw.y * k - r)}" width="${n1(2 * r)}" height="${n1(2 * r)}" fill="${PAPER}" stroke="${INK2}" stroke-width="${n1(ring22)}"/>` : `<circle cx="${n1(tw.x * k)}" cy="${n1(tw.y * k)}" r="${n1(r)}" fill="${PAPER}" stroke="${INK2}" stroke-width="${n1(ring22)}"/>`;
@@ -11968,7 +11968,7 @@ var init_fixtures = __esm({
 // ../artgen-mapgen/src/settlement/spec.ts
 function newSettlement(id2, kind = "village", over = {}) {
   const d = structuredClone(DEFAULTS3), k = KIND_DEFAULTS[kind];
-  const grid4 = { ...d.grid, size: k.perCell === 10 ? 1 : 2 };
+  const grid5 = { ...d.grid, size: k.perCell === 10 ? 1 : 2 };
   return parseSettlement({
     ...d,
     cols: k.cols,
@@ -11979,7 +11979,7 @@ function newSettlement(id2, kind = "village", over = {}) {
     version: SETTLEMENT_FORMAT,
     seed: over.seed ?? 1,
     gen: { ...d.gen, buildings: k.buildings, wall: k.wall, castle: k.castle, market: k.market, ...kind === "castle" && { water: "moat", fields: 0.2 }, ...over.gen },
-    grid: { ...grid4, ...over.grid },
+    grid: { ...grid5, ...over.grid },
     scale: { ...d.scale, perCell: k.perCell, ...over.scale },
     interior: { ...d.interior, ...over.interior },
     roads: over.roads ?? [],
@@ -12671,10 +12671,10 @@ function uncovered(a, b, covers) {
   const L2 = Math.hypot(b[0] - a[0], b[1] - a[1]);
   if (L2 < 1e-9) return [];
   const ux = (b[0] - a[0]) / L2, uy = (b[1] - a[1]) / L2, t = (p2) => (p2[0] - a[0]) * ux + (p2[1] - a[1]) * uy;
-  const cut = covers.map(([p2, q]) => [Math.min(t(p2), t(q)), Math.max(t(p2), t(q))]).sort((p2, q) => p2[0] - q[0]);
+  const cut2 = covers.map(([p2, q]) => [Math.min(t(p2), t(q)), Math.max(t(p2), t(q))]).sort((p2, q) => p2[0] - q[0]);
   const out = [];
   let from = 0;
-  for (const [c0, c1] of [...cut, [L2, L2]]) {
+  for (const [c0, c1] of [...cut2, [L2, L2]]) {
     if (c0 > from + 1e-6) out.push([[a[0] + ux * from, a[1] + uy * from], [a[0] + ux * Math.min(c0, L2), a[1] + uy * Math.min(c0, L2)]]);
     from = Math.max(from, c1);
     if (from >= L2) break;
@@ -12887,7 +12887,7 @@ function roofSvg(g, k, p2, u) {
   let dd = "";
   for (const w of g.wings) {
     const r = ridgeOf(w), len = Math.hypot(r.b[0] - r.a[0], r.b[1] - r.a[1]) || 1, ux = (r.b[0] - r.a[0]) / len, uy = (r.b[1] - r.a[1]) / len;
-    const cut = roof === "hip" ? Math.min(len / 2 - 0.05, r.short / 2) : 0, a = [r.a[0] + ux * cut, r.a[1] + uy * cut], bb = [r.b[0] - ux * cut, r.b[1] - uy * cut];
+    const cut2 = roof === "hip" ? Math.min(len / 2 - 0.05, r.short / 2) : 0, a = [r.a[0] + ux * cut2, r.a[1] + uy * cut2], bb = [r.b[0] - ux * cut2, r.b[1] - uy * cut2];
     dd += `M${M(a)}L${M(bb)}`;
     if (roof === "hip") {
       for (const c of r.corners) {
@@ -12905,8 +12905,8 @@ function roofSvg(g, k, p2, u) {
 }
 function wallSvg(w, k, p2, u, W3, H, defs) {
   const d = line(w.pts, k, w.closed), th = w.thickness * k, sw = Math.max(0.8, 1.1 * u), tone = p2.wall[w.kind];
-  const mid = `wall-gates-${w.index}`, cut = w.gates.map((g2) => `<rect x="${n1(-g2.width * k / 2)}" y="${n1(-th * 2)}" width="${n1(g2.width * k)}" height="${n1(th * 4)}" transform="translate(${n1(g2.x * k)} ${n1(g2.y * k)}) rotate(${n1(g2.angle)})" fill="#000"/>`).join("");
-  if (cut) defs.push(`<mask id="${mid}" maskUnits="userSpaceOnUse" x="0" y="0" width="${n1(W3)}" height="${n1(H)}"><rect width="${n1(W3)}" height="${n1(H)}" fill="#fff"/>${cut}</mask>`);
+  const mid = `wall-gates-${w.index}`, cut2 = w.gates.map((g2) => `<rect x="${n1(-g2.width * k / 2)}" y="${n1(-th * 2)}" width="${n1(g2.width * k)}" height="${n1(th * 4)}" transform="translate(${n1(g2.x * k)} ${n1(g2.y * k)}) rotate(${n1(g2.angle)})" fill="#000"/>`).join("");
+  if (cut2) defs.push(`<mask id="${mid}" maskUnits="userSpaceOnUse" x="0" y="0" width="${n1(W3)}" height="${n1(H)}"><rect width="${n1(W3)}" height="${n1(H)}" fill="#fff"/>${cut2}</mask>`);
   const S3 = (width, color, extra = "") => `<path d="${d}" fill="none" stroke="${color}" stroke-width="${n1(width)}"${extra.includes("linecap") ? "" : ' stroke-linejoin="miter" stroke-linecap="butt"'}${extra}/>`;
   let body3 = "";
   const dots = (step, r, fill2, edge) => {
@@ -12927,7 +12927,7 @@ function wallSvg(w, k, p2, u, W3, H, defs) {
   else if (w.kind === "palisade") body3 = S3(th * 0.5, p2.wall.palisade) + dots(th * 0.95, th / 2, p2.ripples ? p2.paper : "#a07a50", p2.ink);
   else if (w.kind === "hedge") body3 = S3(th, p2.ripples ? p2.paper : tone, ' stroke-linecap="round" stroke-linejoin="round"') + dots(th * 0.7, th * 0.52, p2.ripples ? p2.paper : tone, p2.treeDark);
   else body3 = S3(Math.max(sw, th * 0.6), tone) + dots(Math.max(1, 6 / Math.max(1, th / k)) * k * 0.25 + k, Math.max(sw, th * 0.7), tone, p2.ink);
-  let g = `<g${cut ? ` mask="url(#${mid})"` : ""}>${body3}</g>`;
+  let g = `<g${cut2 ? ` mask="url(#${mid})"` : ""}>${body3}</g>`;
   for (const gt of w.gates) if (gt.drawbridge > 0) {
     const a = Math.atan2(gt.outward[1], gt.outward[0]) * 180 / Math.PI, len = gt.drawbridge * k, bw = gt.width * k;
     let planks = "";
@@ -15079,20 +15079,20 @@ function renderAsset(mod4, { dir, brief, seed = 1, variant = 0, params = {}, sta
       stage: stage ?? (() => {
       })
     };
-    const grid4 = mod4.render(ctx);
+    const grid5 = mod4.render(ctx);
     for (const sc of scenes) {
       for (const m of sc.lint()) lint.add(m);
       onScene?.(key2, sc);
     }
-    if (grid4.w !== size2[0] || grid4.h !== size2[1]) throw new Error(`${brief.id} ${key2}: rendered ${grid4.w}x${grid4.h}, brief size is ${size2.join("x")}`);
+    if (grid5.w !== size2[0] || grid5.h !== size2[1]) throw new Error(`${brief.id} ${key2}: rendered ${grid5.w}x${grid5.h}, brief size is ${size2.join("x")}`);
     return {
       state,
       facing,
       frame,
-      grid: grid4,
+      grid: grid5,
       mirrored: false,
       anchors: mod4.anchors?.(ctx),
-      ...grid4.normal && { normal: fitNormalMap(grid4, grid4.normal) },
+      ...grid5.normal && { normal: fitNormalMap(grid5, grid5.normal) },
       ...tm.sub > 1 && { logical: ct.logical, sub: ct.sub }
     };
   };
@@ -15121,14 +15121,14 @@ function renderAsset(mod4, { dir, brief, seed = 1, variant = 0, params = {}, sta
 }
 function assembleSheet(r, gap = 0) {
   const [w, h] = r.size, cols = Math.max(...Object.values(r.frames)), rows2 = r.states.length * r.facings.length;
-  const grid4 = new Grid(cols * w + (cols - 1) * gap, rows2 * h + (rows2 - 1) * gap), rects = [];
+  const grid5 = new Grid(cols * w + (cols - 1) * gap, rows2 * h + (rows2 - 1) * gap), rects = [];
   for (const c of r.cells) {
     const row = r.states.indexOf(c.state) * r.facings.length + r.facings.indexOf(c.facing);
     const x = c.frame * (w + gap), y = row * (h + gap);
-    grid4.blit(c.grid, x, y);
+    grid5.blit(c.grid, x, y);
     rects.push({ state: c.state, facing: c.facing, frame: c.frame, x, y, w, h, mirrored: c.mirrored });
   }
-  return { grid: grid4, rects };
+  return { grid: grid5, rects };
 }
 var FACINGS, mirrorFacing;
 var init_render4 = __esm({
@@ -19269,9 +19269,9 @@ var require_stringifyNumber = __commonJS({
     function stringifyNumber({ format, minFractionDigits, tag, value }) {
       if (typeof value === "bigint")
         return String(value);
-      const num3 = typeof value === "number" ? value : Number(value);
-      if (!isFinite(num3))
-        return isNaN(num3) ? ".nan" : num3 < 0 ? "-.inf" : ".inf";
+      const num5 = typeof value === "number" ? value : Number(value);
+      if (!isFinite(num5))
+        return isNaN(num5) ? ".nan" : num5 < 0 ? "-.inf" : ".inf";
       let n = Object.is(value, -0) ? "-0" : JSON.stringify(value);
       if (!format && minFractionDigits && (!tag || tag === "tag:yaml.org,2002:float") && /^-?\d/.test(n) && !n.includes("e")) {
         let i = n.indexOf(".");
@@ -19311,8 +19311,8 @@ var require_float = __commonJS({
       test: /^[-+]?(?:\.[0-9]+|[0-9]+(?:\.[0-9]*)?)[eE][-+]?[0-9]+$/,
       resolve: (str2) => parseFloat(str2),
       stringify(node) {
-        const num3 = Number(node.value);
-        return isFinite(num3) ? num3.toExponential() : stringifyNumber.stringifyNumber(node);
+        const num5 = Number(node.value);
+        return isFinite(num5) ? num5.toExponential() : stringifyNumber.stringifyNumber(node);
       }
     };
     var float = {
@@ -19751,8 +19751,8 @@ var require_float2 = __commonJS({
       test: /^[-+]?(?:[0-9][0-9_]*)?(?:\.[0-9_]*)?[eE][-+]?[0-9]+$/,
       resolve: (str2) => parseFloat(str2.replace(/_/g, "")),
       stringify(node) {
-        const num3 = Number(node.value);
-        return isFinite(num3) ? num3.toExponential() : stringifyNumber.stringifyNumber(node);
+        const num5 = Number(node.value);
+        return isFinite(num5) ? num5.toExponential() : stringifyNumber.stringifyNumber(node);
       }
     };
     var float = {
@@ -19954,23 +19954,23 @@ var require_timestamp = __commonJS({
     function parseSexagesimal(str2, asBigInt) {
       const sign = str2[0];
       const parts = sign === "-" || sign === "+" ? str2.substring(1) : str2;
-      const num3 = (n) => asBigInt ? BigInt(n) : Number(n);
-      const res = parts.replace(/_/g, "").split(":").reduce((res2, p2) => res2 * num3(60) + num3(p2), num3(0));
-      return sign === "-" ? num3(-1) * res : res;
+      const num5 = (n) => asBigInt ? BigInt(n) : Number(n);
+      const res = parts.replace(/_/g, "").split(":").reduce((res2, p2) => res2 * num5(60) + num5(p2), num5(0));
+      return sign === "-" ? num5(-1) * res : res;
     }
     function stringifySexagesimal(node) {
       let { value } = node;
-      let num3 = (n) => n;
+      let num5 = (n) => n;
       if (typeof value === "bigint")
-        num3 = (n) => BigInt(n);
+        num5 = (n) => BigInt(n);
       else if (isNaN(value) || !isFinite(value))
         return stringifyNumber.stringifyNumber(node);
       let sign = "";
       if (value < 0) {
         sign = "-";
-        value *= num3(-1);
+        value *= num5(-1);
       }
-      const _60 = num3(60);
+      const _60 = num5(60);
       const parts = [value % _60];
       if (value < 60) {
         parts.unshift(0);
@@ -25967,13 +25967,13 @@ async function renderMapFiles(p2, ref, o = {}) {
   const out = o.out ?? (typeof ref === "string" ? join3(mapsDir(p2), id2, "out") : dirname2(mapFile(p2, ref)));
   const formats2 = o.formats ?? ["svg", "png"], files = [];
   if (o.fit && o.ppu !== void 0) throw new Error("--fit and --ppu both set the scale: use one");
-  const crop2 = clampCrop(o.crop ?? [0, 0, m.cols, m.rows], m.cols, m.rows), ppu = o.fit ? fitPpu(crop2[2], crop2[3], o.fit) : o.ppu ?? 40;
-  const size2 = [Math.round(crop2[2] * ppu), Math.round(crop2[3] * ppu)], unit = o.fit?.unit ?? "px";
+  const crop3 = clampCrop(o.crop ?? [0, 0, m.cols, m.rows], m.cols, m.rows), ppu = o.fit ? fitPpu(crop3[2], crop3[3], o.fit) : o.ppu ?? 40;
+  const size2 = [Math.round(crop3[2] * ppu), Math.round(crop3[3] * ppu)], unit = o.fit?.unit ?? "px";
   const pageScale = o.pageScale ?? (o.fit ? PX_PER_MM : void 0);
   if (formats2.includes("png")) await initNodeMapSvg();
   mkdirSync2(out, { recursive: true });
   for (const theme of o.themes ?? ["color"]) {
-    const svg4 = map_exports.renderMapSvg(m, { theme, ppu, layers: o.layers, field, ...o.crop && { crop: crop2 }, unit, pageScale }), base = join3(out, `${id2}.${theme}`);
+    const svg4 = map_exports.renderMapSvg(m, { theme, ppu, layers: o.layers, field, ...o.crop && { crop: crop3 }, unit, pageScale }), base = join3(out, `${id2}.${theme}`);
     if (formats2.includes("svg")) {
       writeFileSync2(`${base}.svg`, svg4);
       files.push(`${base}.svg`);
@@ -25983,11 +25983,11 @@ async function renderMapFiles(p2, ref, o = {}) {
       files.push(`${base}.png`);
     }
   }
-  return { files: files.map((f) => relative(process.cwd(), f)), terrains: map_exports.terrainsUsed(field), rivers: field.rivers.length, size: size2, crop: crop2, ppu, svg: svgSize(crop2, ppu, unit), pageScale: pageScale ?? null, unplaced: map_exports.mapLabelLayout(m, ppu, pageScale).unplaced };
+  return { files: files.map((f) => relative(process.cwd(), f)), terrains: map_exports.terrainsUsed(field), rivers: field.rivers.length, size: size2, crop: crop3, ppu, svg: svgSize(crop3, ppu, unit), pageScale: pageScale ?? null, unplaced: map_exports.mapLabelLayout(m, ppu, pageScale).unplaced };
 }
-function svgSize(crop2, ppu, unit) {
+function svgSize(crop3, ppu, unit) {
   const f = unit === "mm" ? 96 / 25.4 : 1, r = (v) => Math.round(v * ppu / f * 100) / 100;
-  return { width: r(crop2[2]), height: r(crop2[3]), unit };
+  return { width: r(crop3[2]), height: r(crop3[3]), unit };
 }
 function numbers2(v, what, pairs2 = true) {
   const xs = (v ?? "").split(",").map((s2) => s2.trim()).filter(Boolean).map(Number);
@@ -26133,10 +26133,10 @@ async function renderDungeonFiles(p2, ref, o = {}) {
   if (o.crop && o.rooms?.length) throw new Error("--crop and --room both set the window: use one");
   if (o.margin !== void 0 && !o.rooms?.length) throw new Error("--margin goes with --room");
   const window = o.rooms?.length ? dungeon_exports.roomCrop(m, o.rooms, o.margin, layout2) : o.crop;
-  const crop2 = clampCrop(window ?? [0, 0, m.cols, m.rows], m.cols, m.rows), unit = o.fit?.unit ?? "px";
+  const crop3 = clampCrop(window ?? [0, 0, m.cols, m.rows], m.cols, m.rows), unit = o.fit?.unit ?? "px";
   const pageScale = o.pageScale ?? (o.fit ? PX_PER_MM : void 0), underlay = readUnderlay(p2, ref, m);
-  const view = { layers: o.layers, layout: layout2, ...window && { crop: crop2 }, pageScale };
-  let ppu = o.fit ? fitPpu(crop2[2], crop2[3], o.fit) : o.ppu ?? 40;
+  const view = { layers: o.layers, layout: layout2, ...window && { crop: crop3 }, pageScale };
+  let ppu = o.fit ? fitPpu(crop3[2], crop3[3], o.fit) : o.ppu ?? 40;
   const fits = (k) => {
     const r = dungeon_exports.dungeonRenderSize(m, { ...view, ppu: k }), f = o.fit.unit === "mm" ? PX_PER_MM : 1;
     return r.width <= o.fit.w * f + 1e-6 && r.height <= o.fit.h * f + 1e-6;
@@ -26162,7 +26162,7 @@ async function renderDungeonFiles(p2, ref, o = {}) {
     writeFileSync3(`${base}.png`, encodePNG(rasterizeSvg(svg4, size2[0], size2[1])));
     files.push(`${base}.png`);
   }
-  return { files: files.map((f) => relative2(process.cwd(), f)), rooms: m.rooms.length, corridors: m.corridors.length, doors: layout2.doors.length, size: size2, crop: crop2, ppu, svg: svgSize([0, 0, px.width, px.height], 1, unit), pageScale: pageScale ?? null, unplaced: dungeon_exports.dungeonLabelLayout(m, ppu, pageScale, layout2).unplaced };
+  return { files: files.map((f) => relative2(process.cwd(), f)), rooms: m.rooms.length, corridors: m.corridors.length, doors: layout2.doors.length, size: size2, crop: crop3, ppu, svg: svgSize([0, 0, px.width, px.height], 1, unit), pageScale: pageScale ?? null, unplaced: dungeon_exports.dungeonLabelLayout(m, ppu, pageScale, layout2).unplaced };
 }
 function warningLines(m, max2 = 5) {
   const found = dungeon_exports.lintDungeon(m);
@@ -26314,9 +26314,9 @@ async function renderSettlementFiles(p2, ref, o = {}) {
   const results = [];
   for (const job of jobs) {
     const sheet = job.view === "plan" ? settlement_exports.planSheet(m, m.buildings.find((b) => b.id === job.building)) : { cols: m.cols, rows: m.rows };
-    const crop2 = clampCrop(o.crop ?? [0, 0, sheet.cols, sheet.rows], sheet.cols, sheet.rows), unit = o.fit?.unit ?? "px", pageScale = o.pageScale ?? (o.fit ? PX_PER_MM : void 0);
-    const view = { view: job.view, ...job.building && { building: job.building }, ...job.floor !== void 0 && { floor: job.floor }, buildings: o.buildings, layers: o.layers, ...job.view === "site" && { layout: layout2 }, ...o.crop && { crop: crop2 }, pageScale };
-    let ppu = o.fit ? fitPpu(crop2[2], crop2[3], o.fit) : o.ppu ?? (job.view === "plan" ? 40 : 24);
+    const crop3 = clampCrop(o.crop ?? [0, 0, sheet.cols, sheet.rows], sheet.cols, sheet.rows), unit = o.fit?.unit ?? "px", pageScale = o.pageScale ?? (o.fit ? PX_PER_MM : void 0);
+    const view = { view: job.view, ...job.building && { building: job.building }, ...job.floor !== void 0 && { floor: job.floor }, buildings: o.buildings, layers: o.layers, ...job.view === "site" && { layout: layout2 }, ...o.crop && { crop: crop3 }, pageScale };
+    let ppu = o.fit ? fitPpu(crop3[2], crop3[3], o.fit) : o.ppu ?? (job.view === "plan" ? 40 : 24);
     if (o.fit) {
       const f = o.fit.unit === "mm" ? PX_PER_MM : 1, fits = (k) => {
         const r = settlement_exports.settlementRenderSize(m, { ...view, ppu: k });
@@ -26345,7 +26345,7 @@ async function renderSettlementFiles(p2, ref, o = {}) {
         files.push(`${base}.png`);
       }
     }
-    results.push({ files: files.map((f) => relative3(process.cwd(), f)), view: job.view, ...job.building && { building: job.building }, ...job.floor !== void 0 && { floor: job.floor }, size: size2, crop: crop2, ppu, svg: svgSize([0, 0, px.width, px.height], 1, unit) });
+    results.push({ files: files.map((f) => relative3(process.cwd(), f)), view: job.view, ...job.building && { building: job.building }, ...job.floor !== void 0 && { floor: job.floor }, size: size2, crop: crop3, ppu, svg: svgSize([0, 0, px.width, px.height], 1, unit) });
   }
   return results;
 }
@@ -26528,10 +26528,10 @@ async function reviewSubject(p2, kind, id2, o = {}) {
   if (o.score !== void 0 && !(o.score >= 0 && o.score <= 10)) throw new Error("--score: a number from 0 to 10");
   const vfile = st.paths.version(version), text2 = readFileSync6(vfile, "utf8"), checks = checksOf(p2, kind, id2, text2), theme = direction_exports.themeFor(st.direction, kind);
   const png = await renderPng(kind, vfile, theme, st.paths.out, text2), { sheet, refs, warnings } = sheetOf(p2, st, text2, checks, version);
-  const grid4 = subjectReviewSheet({ title: `${id2} - ${version}`, render: decodePNG(new Uint8Array(readFileSync6(png))), sheet, refs }), sheetFile = join6(st.paths.out, `review-${version}.png`);
+  const grid5 = subjectReviewSheet({ title: `${id2} - ${version}`, render: decodePNG(new Uint8Array(readFileSync6(png))), sheet, refs }), sheetFile = join6(st.paths.out, `review-${version}.png`);
   mkdirSync5(st.paths.out, { recursive: true });
-  writeFileSync5(sheetFile, encodePNG(grid4));
-  const tokens = imageTokens(grid4.w, grid4.h), conformance3 = { pass: !fails(checks).length, checks };
+  writeFileSync5(sheetFile, encodePNG(grid5));
+  const tokens = imageTokens(grid5.w, grid5.h), conformance3 = { pass: !fails(checks).length, checks };
   appendLedger(ledgerPath(p2), { type: "review", asset: st.paths.key, version, sheet: relArt(p2, sheetFile), imageTokens: tokens, conformance: conformance3, by: "agent" });
   if (o.score !== void 0) appendLedger(ledgerPath(p2), { type: "score", asset: st.paths.key, version, score: o.score, ...o.note && { note: o.note }, reviewer: o.reviewer ?? "self", conformance: conformance3, by: "agent" });
   return { version, sheet: relRoot(p2, sheetFile), sheetFile, imageTokens: tokens, pass: conformance3.pass, checks, warnings, ...o.score !== void 0 && { score: o.score } };
@@ -26882,7 +26882,7 @@ async function renderVersion(a, version, opts = {}) {
     if (existsSync9(snap2) && !opts.variant) stale = finishStale(JSON.parse(readFileSync9(snap2, "utf8")), patches);
     src = sourceOf(a, base) + "\n" + source;
   }
-  const s2 = strip(render11), grid4 = reviewGrid(render11, a.dir);
+  const s2 = strip(render11), grid5 = reviewGrid(render11, a.dir);
   const report2 = conformance({
     frames: render11.cells.map((c) => c.grid),
     dir: a.dir,
@@ -26897,7 +26897,7 @@ async function renderVersion(a, version, opts = {}) {
     anim: animInput(render11),
     ...a.project && { thresholds: { heightFail: projectConfig(a.project).review.heightFail } }
   });
-  return { version: v.name, render: render11, strip: s2, grid: grid4, report: report2, source, base, patches, stale };
+  return { version: v.name, render: render11, strip: s2, grid: grid5, report: report2, source, base, patches, stale };
 }
 function contextFor(a, g) {
   if (a.brief.review?.iso) return iso_exports.isoFloor(g.w, g.h);
@@ -27028,8 +27028,8 @@ async function reviewVersion(a, version, o = {}) {
   const best = [...scores].filter(([k]) => parseVersion(k)?.kind === "base" && k !== prev && k !== version).sort((x, y) => y[1] - x[1])[0]?.[0];
   const big = cur.render.cells.length > 8 || low;
   for (const other of low ? [prev] : [best, prev]) if (other) {
-    const r = await renderVersion(a, other), grid4 = big ? firstFacing(r.render) : r.grid;
-    rows2.push({ label: rowLabel(r, scores.get(other)) + (big ? " | first facing" : ""), grid: grid4, scale: sc, bg: R3.bg ?? a.dir.background, context: ctx(grid4), silhouette: sil });
+    const r = await renderVersion(a, other), grid5 = big ? firstFacing(r.render) : r.grid;
+    rows2.push({ label: rowLabel(r, scores.get(other)) + (big ? " | first facing" : ""), grid: grid5, scale: sc, bg: R3.bg ?? a.dir.background, context: ctx(grid5), silhouette: sil });
   }
   const curGrid = low && multi ? firstFacing(cur.render) : cur.grid;
   rows2.push({ label: `>> ${rowLabel(cur)}${low && multi ? " | first facing (low detail)" : ""}`, grid: curGrid, scale: sc, bg: R3.bg ?? a.dir.background, context: ctx(curGrid), silhouette: sil }, ...scene);
@@ -27997,8 +27997,8 @@ async function importEdit(p2, id2, png, o = {}) {
   else throw new Error(`${png} is ${edited.w}x${edited.h}; expected the ${r.strip.w}x${r.strip.h} strip (out/${row.final}.png) or --cell state/facing/frame`);
   const edits = {};
   let pixels = 0, snapped = 0, conflicts = 0;
-  for (const { idx, grid: grid4 } of pieces2) {
-    const c = cells[idx], e = editOps(c.grid, grid4, dir);
+  for (const { idx, grid: grid5 } of pieces2) {
+    const c = cells[idx], e = editOps(c.grid, grid5, dir);
     if (!e.ops.length) continue;
     snapped += e.snapped;
     const key2 = c.mirrored ? `${c.state}/${mirrorFacing(c.facing)}/${c.frame}` : `${c.state}/${c.facing}/${c.frame}`;
@@ -29068,10 +29068,869 @@ var init_ui_server = __esm({
   }
 });
 
+// ../artgen-imagekit/src/mask.ts
+function grayscale(img) {
+  const out = new Uint8Array(img.w * img.h), d = img.d;
+  for (let i = 0, j = 0; i < out.length; i++, j += 4) out[i] = d[j] * 9798 + d[j + 1] * 19235 + d[j + 2] * 3735 + 16384 >> 15;
+  return out;
+}
+function gaussianKernel(size2) {
+  const table = { 1: [256], 3: [64, 128, 64], 5: [16, 64, 96, 64, 16], 7: [8, 28, 56, 72, 56, 28, 8] };
+  if (table[size2]) return Int32Array.from(table[size2]);
+  const sigma = 0.3 * ((size2 - 1) * 0.5 - 1) + 0.8, half = size2 >> 1, v = [];
+  let sum2 = 0;
+  for (let i = 0; i < size2; i++) {
+    const x = i - half;
+    v.push(Math.exp(-0.5 * x * x / (sigma * sigma)));
+    sum2 += v[i];
+  }
+  const k = new Int32Array(size2);
+  let run2 = 0, prev = 0;
+  for (let i = 0; i < size2; i++) {
+    run2 += v[i] / sum2;
+    const r = Math.round(run2 * 256);
+    k[i] = r - prev;
+    prev = r;
+  }
+  return k;
+}
+function gaussianBlur(src, w, h, size2) {
+  const k = gaussianKernel(size2), half = size2 >> 1, tmp = new Int32Array(w * h), out = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    let s2 = 0;
+    for (let i = 0; i < size2; i++) s2 += k[i] * src[y * w + reflect101(x + i - half, w)];
+    tmp[y * w + x] = s2;
+  }
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    let s2 = 0;
+    for (let i = 0; i < size2; i++) s2 += k[i] * tmp[reflect101(y + i - half, h) * w + x];
+    out[y * w + x] = s2 + 32768 >> 16;
+  }
+  return out;
+}
+function otsu(gray) {
+  const hist = new Float64Array(256), n = gray.length;
+  for (let i = 0; i < n; i++) hist[gray[i]]++;
+  const scale2 = 1 / n;
+  let mu = 0;
+  for (let i = 0; i < 256; i++) mu += i * hist[i];
+  mu *= scale2;
+  let mu1 = 0, q1 = 0, best = 0, bestLevel = 0;
+  const eps = 11920929e-14;
+  for (let i = 0; i < 256; i++) {
+    const p2 = hist[i] * scale2;
+    mu1 *= q1;
+    q1 += p2;
+    const q2 = 1 - q1;
+    if (Math.min(q1, q2) < eps || Math.max(q1, q2) > 1 - eps) continue;
+    mu1 = (mu1 + i * p2) / q1;
+    const mu2 = (mu - q1 * mu1) / q2, sigma = q1 * q2 * (mu1 - mu2) * (mu1 - mu2);
+    if (sigma > best) {
+      best = sigma;
+      bestLevel = i;
+    }
+  }
+  return bestLevel;
+}
+function thresholdPlane(gray, w, h, level2, light) {
+  const out = newMask(w, h), t = Math.floor(level2);
+  for (let i = 0; i < gray.length; i++) out.d[i] = gray[i] > t === light ? 255 : 0;
+  return out;
+}
+function ellipseKernel(size2) {
+  const r = size2 >> 1, c = size2 >> 1, inv = r ? 1 / (r * r) : 0, half = [];
+  for (let i = 0; i < size2; i++) {
+    const dy = i - r;
+    half.push(Math.abs(dy) <= r ? Math.round(c * Math.sqrt((r * r - dy * dy) * inv)) : -1);
+  }
+  return half;
+}
+function dilate(m, size2) {
+  const { w, h } = m, half = ellipseKernel(size2), r = size2 >> 1, out = newMask(w, h);
+  const rowsOf = /* @__PURE__ */ new Map();
+  half.forEach((hw, i) => {
+    if (hw >= 0) rowsOf.set(hw, [...rowsOf.get(hw) ?? [], i - r]);
+  });
+  const wide = new Uint8Array(w * h), pre = new Int32Array(w + 1);
+  for (const [hw, dys] of rowsOf) {
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) pre[x + 1] = pre[x] + (m.d[y * w + x] ? 1 : 0);
+      for (let x = 0; x < w; x++) wide[y * w + x] = pre[Math.min(w, x + hw + 1)] - pre[Math.max(0, x - hw)] > 0 ? 255 : 0;
+    }
+    for (const dy of dys) for (let y = 0; y < h; y++) {
+      const sy = y + dy;
+      if (sy < 0 || sy >= h) continue;
+      for (let x = 0; x < w; x++) if (wide[sy * w + x]) out.d[y * w + x] = 255;
+    }
+  }
+  return out;
+}
+function erode(m, size2) {
+  const inv = newMask(m.w, m.h);
+  for (let i = 0; i < m.d.length; i++) inv.d[i] = m.d[i] ? 0 : 255;
+  const d = dilate(inv, size2);
+  for (let i = 0; i < d.d.length; i++) d.d[i] = d.d[i] ? 0 : 255;
+  return d;
+}
+function binarize(img, o) {
+  const { w, h } = img;
+  let gray = grayscale(img);
+  if (o.blur > 0) gray = gaussianBlur(gray, w, h, Math.max(3, o.blur | 1));
+  const level2 = o.threshold === "otsu" ? otsu(gray) : Math.floor(o.threshold);
+  let binary = thresholdPlane(gray, w, h, level2, o.invert);
+  if (o.smoothing > 0) binary = close(binary, Math.max(3, o.smoothing | 1));
+  if (o.respectAlpha) {
+    for (let i = 0; i < binary.d.length; i++) if (img.d[i * 4 + 3] === 0) binary.d[i] = 0;
+  }
+  return { binary, thresholdUsed: level2 };
+}
+var newMask, reflect101, close;
+var init_mask = __esm({
+  "../artgen-imagekit/src/mask.ts"() {
+    "use strict";
+    newMask = (w, h) => ({ w, h, d: new Uint8Array(w * h) });
+    reflect101 = (i, n) => {
+      if (n === 1) return 0;
+      while (i < 0 || i >= n) i = i < 0 ? -i : 2 * (n - 1) - i;
+      return i;
+    };
+    close = (m, size2) => erode(dilate(m, size2), size2);
+  }
+});
+
+// ../artgen-imagekit/src/contours.ts
+function findContours(mask) {
+  const { w, h } = mask, W3 = w + 2, lab = new Int32Array(W3 * (h + 2)), out = [];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (mask.d[y * w + x]) lab[(y + 1) * W3 + x + 1] = 1;
+  const step = DX2.map((dx, d) => dx + DY2[d] * W3);
+  const hole = [false, true], parent = [-1, -1], index = [-1, -1];
+  let nbd = 1;
+  for (let y = 1; y <= h; y++) {
+    let lnbd = 1;
+    for (let x = 1; x <= w; x++) {
+      const at4 = y * W3 + x, f = lab[at4];
+      if (f === 0) continue;
+      let isHole;
+      if (f === 1 && lab[at4 - 1] === 0) isHole = false;
+      else if (f >= 1 && lab[at4 + 1] === 0) {
+        isHole = true;
+        if (f > 1) lnbd = f;
+      } else {
+        if (f !== 1) lnbd = Math.abs(f);
+        continue;
+      }
+      nbd++;
+      hole[nbd] = isHole;
+      parent[nbd] = isHole === hole[lnbd] ? parent[lnbd] : lnbd;
+      index[nbd] = out.length;
+      out.push(follow(lab, W3, step, at4, isHole, nbd));
+      if (lab[at4] !== 1) lnbd = Math.abs(lab[at4]);
+    }
+  }
+  let n = 2;
+  for (const c of out) {
+    c.parent = parent[n] < 2 ? -1 : index[parent[n]];
+    n++;
+  }
+  return out;
+}
+function follow(lab, W3, step, start, isHole, nbd) {
+  const chain = [];
+  const xy = (i) => {
+    chain.push(i % W3 - 1, Math.floor(i / W3) - 1);
+  };
+  let first = -1;
+  for (let k = 0, d = isHole ? 0 : 4; k < 8; k++, d = d + 7 & 7) if (lab[start + step[d]] !== 0) {
+    first = d;
+    break;
+  }
+  if (first < 0) {
+    lab[start] = -nbd;
+    xy(start);
+    return { points: Int32Array.from(chain), hole: isHole, parent: -1, chain: Int32Array.from(chain) };
+  }
+  const i1 = start + step[first];
+  let i3 = start, toI2 = first;
+  for (; ; ) {
+    let d = toI2, eastEmpty = false;
+    for (let k = 0; k < 8; k++) {
+      d = d + 1 & 7;
+      if (lab[i3 + step[d]] !== 0) break;
+      if (d === 0) eastEmpty = true;
+    }
+    const i4 = i3 + step[d];
+    if (eastEmpty) lab[i3] = -nbd;
+    else if (lab[i3] === 1) lab[i3] = nbd;
+    xy(i3);
+    if (i4 === start && i3 === i1) break;
+    toI2 = d + 4 & 7;
+    i3 = i4;
+  }
+  const all = Int32Array.from(chain), n = all.length / 2, pts2 = [];
+  const dir = (a, b) => Math.sign(all[b * 2] - all[a * 2]) * 3 + Math.sign(all[b * 2 + 1] - all[a * 2 + 1]);
+  for (let i = 0; i < n; i++) {
+    const prev = (i + n - 1) % n, next4 = (i + 1) % n;
+    if (n === 1 || dir(prev, i) !== dir(i, next4)) pts2.push(all[i * 2], all[i * 2 + 1]);
+  }
+  return { points: Int32Array.from(pts2), hole: isHole, parent: -1, chain: all };
+}
+function ringArea(p2) {
+  const n = p2.length / 2;
+  let s2 = 0;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    s2 += p2[i * 2] * p2[j * 2 + 1] - p2[j * 2] * p2[i * 2 + 1];
+  }
+  return Math.abs(s2) / 2;
+}
+function simplifyRing(p2, epsilon) {
+  const count = p2.length / 2;
+  if (count === 0) return [];
+  const px = (i) => p2[i % count * 2], py = (i) => p2[i % count * 2 + 1], eps = epsilon * epsilon;
+  let pos = 0, far = 0, closed = true;
+  for (let it = 0; it < 3; it++) {
+    pos = (pos + far) % count;
+    let max2 = 0;
+    for (let j = 1; j < count; j++) {
+      const dx = px(j + pos) - px(pos), dy = py(j + pos) - py(pos), dist = dx * dx + dy * dy;
+      if (dist > max2) {
+        max2 = dist;
+        far = j;
+      }
+    }
+    closed = max2 > eps;
+  }
+  if (!closed) return [px(pos), py(pos)];
+  const stack = [], dst = [];
+  const mid = pos + far;
+  stack.push([mid, pos + count]);
+  stack.push([pos, mid]);
+  while (stack.length) {
+    const [a, b] = stack.pop(), ax = px(a), ay = py(a), bx = px(b), by = py(b);
+    let split = -1, ok;
+    if (ax !== bx || ay !== by) {
+      const dx = bx - ax, dy = by - ay;
+      let max2 = 0;
+      for (let i = a + 1; i < b; i++) {
+        const dist = Math.abs((py(i) - ay) * dx - (px(i) - ax) * dy);
+        if (dist > max2) {
+          max2 = dist;
+          split = i;
+        }
+      }
+      ok = max2 * max2 <= eps * (dx * dx + dy * dy);
+    } else {
+      ok = true;
+      for (let i = a + 1; i < b; i++) {
+        const dx = px(i) - ax, dy = py(i) - ay;
+        if (dx * dx + dy * dy > eps) {
+          ok = false;
+          split = i;
+        }
+      }
+    }
+    if (ok || split < 0) dst.push(ax, ay);
+    else {
+      stack.push([split, b]);
+      stack.push([a, split]);
+    }
+  }
+  const n = dst.length / 2;
+  let newCount = n, at4 = n - 1;
+  const read = () => {
+    const q = [dst[at4 * 2], dst[at4 * 2 + 1]];
+    at4 = (at4 + 1) % n;
+    return q;
+  };
+  let start = read(), wpos = at4, pt3 = read();
+  for (let i = 0; i < n && newCount > 2; i++) {
+    const end = read(), dx = end[0] - start[0], dy = end[1] - start[1];
+    const dist = Math.abs((pt3[0] - start[0]) * dy - (pt3[1] - start[1]) * dx);
+    const inner = (pt3[0] - start[0]) * (end[0] - pt3[0]) + (pt3[1] - start[1]) * (end[1] - pt3[1]);
+    if (dist * dist <= 0.5 * eps * (dx * dx + dy * dy) && dx !== 0 && dy !== 0 && inner >= 0) {
+      newCount--;
+      dst[wpos * 2] = end[0];
+      dst[wpos * 2 + 1] = end[1];
+      start = end;
+      wpos = (wpos + 1) % n;
+      pt3 = read();
+      i++;
+      continue;
+    }
+    dst[wpos * 2] = pt3[0];
+    dst[wpos * 2 + 1] = pt3[1];
+    start = pt3;
+    wpos = (wpos + 1) % n;
+    pt3 = end;
+  }
+  return dst.slice(0, newCount * 2);
+}
+function enclosed(wall2, w, h) {
+  const out = newMask(w, h), W3 = w + 2, seen = new Uint8Array(W3 * (h + 2)), stack = [0];
+  seen[0] = 1;
+  while (stack.length) {
+    const i = stack.pop(), x = i % W3, y = (i - x) / W3;
+    for (let k = 0; k < 4; k++) {
+      const nx = x + FOUR_DX[k], ny = y + FOUR_DY[k];
+      if (nx < 0 || ny < 0 || nx >= W3 || ny >= h + 2) continue;
+      const j = ny * W3 + nx;
+      if (seen[j] || wall2[j]) continue;
+      seen[j] = 1;
+      stack.push(j);
+    }
+  }
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (!seen[(y + 1) * W3 + x + 1]) out.d[y * w + x] = 255;
+  return out;
+}
+function fillChain(chain, w, h) {
+  const wall2 = new Uint8Array((w + 2) * (h + 2));
+  for (let i = 0; i < chain.length / 2; i++) wall2[(chain[i * 2 + 1] + 1) * (w + 2) + chain[i * 2] + 1] = 1;
+  return enclosed(wall2, w, h);
+}
+function fillHoles(m) {
+  const wall2 = new Uint8Array((m.w + 2) * (m.h + 2));
+  for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) if (m.d[y * m.w + x]) wall2[(y + 1) * (m.w + 2) + x + 1] = 1;
+  return enclosed(wall2, m.w, m.h);
+}
+function fillPolygon(poly, w, h) {
+  const out = newMask(w, h);
+  if (poly.length < 3) {
+    out.d.fill(255);
+    return out;
+  }
+  const pts2 = poly.map((q) => ({ x: Math.round(q.x), y: Math.round(q.y) })), n = pts2.length;
+  const put = (x, y) => {
+    if (x >= 0 && y >= 0 && x < w && y < h) out.d[y * w + x] = 255;
+  };
+  for (let i = 0; i < n; i++) {
+    let { x: x0, y: y0 } = pts2[i];
+    const { x: x1, y: y1 } = pts2[(i + 1) % n], dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+    let err2 = dx + dy;
+    for (; ; ) {
+      put(x0, y0);
+      if (x0 === x1 && y0 === y1) break;
+      const e2 = 2 * err2;
+      if (e2 >= dy) {
+        err2 += dy;
+        x0 += sx;
+      }
+      if (e2 <= dx) {
+        err2 += dx;
+        y0 += sy;
+      }
+    }
+  }
+  let top = Infinity, bottom = -Infinity;
+  for (const q of pts2) {
+    top = Math.min(top, q.y);
+    bottom = Math.max(bottom, q.y);
+  }
+  for (let y = Math.max(0, top); y <= Math.min(h - 1, bottom); y++) {
+    const xs = [];
+    for (let i = 0; i < n; i++) {
+      const a = pts2[i], b = pts2[(i + 1) % n];
+      if (a.y === b.y || y < Math.min(a.y, b.y) || y >= Math.max(a.y, b.y)) continue;
+      xs.push(a.x + (y - a.y) * (b.x - a.x) / (b.y - a.y));
+    }
+    xs.sort((p2, q) => p2 - q);
+    for (let i = 0; i + 1 < xs.length; i += 2) for (let x = Math.max(0, Math.ceil(xs[i])); x <= Math.min(w - 1, Math.floor(xs[i + 1])); x++) put(x, y);
+  }
+  return out;
+}
+var DX2, DY2, FOUR_DX, FOUR_DY;
+var init_contours = __esm({
+  "../artgen-imagekit/src/contours.ts"() {
+    "use strict";
+    init_mask();
+    DX2 = [1, 1, 0, -1, -1, -1, 0, 1];
+    DY2 = [0, -1, -1, -1, 0, 1, 1, 1];
+    FOUR_DX = [1, -1, 0, 0];
+    FOUR_DY = [0, 0, 1, -1];
+  }
+});
+
+// ../artgen-imagekit/src/trace.ts
+function contourShapes(mask, holes = true) {
+  const all = findContours(mask), out = [], slot = /* @__PURE__ */ new Map();
+  for (let i = all.length - 1; i >= 0; i--) {
+    const c = all[i];
+    if (c.hole || !holes && c.parent >= 0) continue;
+    const s2 = { outer: c, holes: [] };
+    slot.set(i, s2);
+    out.push(s2);
+  }
+  if (holes) {
+    for (let i = all.length - 1; i >= 0; i--) if (all[i].hole) slot.get(all[i].parent)?.holes.push(all[i]);
+  }
+  return out;
+}
+function traceMask(mask, o = {}, thresholdUsed = 0) {
+  const s2 = { ...defaultTraceOptions, ...o };
+  let dropped = 0;
+  const ring2 = (c) => {
+    const area3 = ringArea(c.points);
+    if (area3 < s2.minArea) return null;
+    let pts2 = c.points;
+    if (s2.simplifyTolerance > 0) {
+      const simple = simplifyRing(c.points, s2.simplifyTolerance);
+      if (simple.length >= 6) pts2 = simple;
+    }
+    return pts2.length < 6 ? null : { points: Float32Array.from(pts2), area: area3 };
+  };
+  const shapes = [];
+  for (const sh of contourShapes(mask, s2.keepHoles)) {
+    const outer = ring2(sh.outer);
+    if (!outer) {
+      dropped++;
+      continue;
+    }
+    const holes = [];
+    for (const h of sh.holes) {
+      const r = ring2(h);
+      if (r) holes.push(r);
+      else dropped++;
+    }
+    shapes.push({ outer, holes });
+  }
+  shapes.sort((a, b) => b.outer.area - a.outer.area);
+  if (shapes.length > s2.maxPaths) {
+    dropped += shapes.length - s2.maxPaths;
+    shapes.length = s2.maxPaths;
+  }
+  return { width: mask.w, height: mask.h, shapes, droppedCount: dropped, thresholdUsed };
+}
+function traceImage(img, o = {}) {
+  const s2 = { ...defaultTraceOptions, ...o };
+  const { binary, thresholdUsed } = binarize(img, s2);
+  return traceMask(binary, s2, thresholdUsed);
+}
+var defaultTraceOptions;
+var init_trace2 = __esm({
+  "../artgen-imagekit/src/trace.ts"() {
+    "use strict";
+    init_contours();
+    init_mask();
+    defaultTraceOptions = {
+      threshold: "otsu",
+      invert: false,
+      blur: 3,
+      smoothing: 3,
+      respectAlpha: true,
+      simplifyTolerance: 1.5,
+      minArea: 24,
+      keepHoles: true,
+      maxPaths: 120
+    };
+  }
+});
+
+// ../artgen-imagekit/src/cut.ts
+function hexToRgb(hex) {
+  const s2 = hex.replace("#", "").trim(), full = s2.length === 3 ? s2.split("").map((c) => c + c).join("") : s2;
+  if (!/^[0-9a-fA-F]{6}$/.test(full)) throw new Error(`"${hex}" is not a valid hex colour`);
+  return { r: parseInt(full.slice(0, 2), 16), g: parseInt(full.slice(2, 4), 16), b: parseInt(full.slice(4, 6), 16) };
+}
+function keepLargestFilledBlob(m) {
+  let best = -1, bestArea = 0;
+  const shapes = contourShapes(m, false);
+  shapes.forEach((s2, i) => {
+    const a = ringArea(s2.outer.points);
+    if (a > bestArea) {
+      bestArea = a;
+      best = i;
+    }
+  });
+  return best < 0 ? m : fillChain(shapes[best].outer.chain, m.w, m.h);
+}
+function intersect2(a, b) {
+  for (let i = 0; i < a.d.length; i++) if (!b.d[i]) a.d[i] = 0;
+}
+function silhouetteMask(img, polygon = [], o = {}) {
+  const s2 = { ...defaultCutOptions, ...o }, lasso = fillPolygon(polygon, img.w, img.h);
+  let { binary } = binarize(img, { threshold: s2.threshold, invert: s2.invert, blur: 3, smoothing: s2.smoothing, respectAlpha: true });
+  intersect2(binary, lasso);
+  if (s2.keepLargestBlob) {
+    binary = keepLargestFilledBlob(binary);
+    intersect2(binary, lasso);
+  }
+  return binary;
+}
+function silhouetteImage(m, color) {
+  const { r, g, b } = hexToRgb(color), d = new Uint8ClampedArray(m.w * m.h * 4);
+  for (let i = 0; i < m.d.length; i++) if (m.d[i]) {
+    d[i * 4] = r;
+    d[i * 4 + 1] = g;
+    d[i * 4 + 2] = b;
+    d[i * 4 + 3] = 255;
+  }
+  return { w: m.w, h: m.h, d };
+}
+function alphaBounds(img, padding = 0, min = 0) {
+  let x0 = img.w, y0 = img.h, x1 = -1, y1 = -1;
+  for (let y = 0; y < img.h; y++) for (let x = 0; x < img.w; x++) if (img.d[(y * img.w + x) * 4 + 3] > min) {
+    if (x < x0) x0 = x;
+    if (x > x1) x1 = x;
+    if (y < y0) y0 = y;
+    if (y > y1) y1 = y;
+  }
+  if (x1 < 0) return null;
+  const px0 = Math.max(0, x0 - padding), py0 = Math.max(0, y0 - padding), px1 = Math.min(img.w - 1, x1 + padding), py1 = Math.min(img.h - 1, y1 + padding);
+  return { x: px0, y: py0, w: px1 - px0 + 1, h: py1 - py0 + 1 };
+}
+function cropToken(img, o = {}) {
+  const s2 = { ...defaultTokenOptions, ...o }, box2 = alphaBounds(img, s2.padding);
+  if (!box2) throw new Error("nothing to cut: the picture is empty (no opaque pixel)");
+  const k = Math.max(1, Math.round(s2.scale)), cw = box2.w * k, ch = box2.h * k, size2 = s2.square ? Math.max(cw, ch) : 0;
+  const w = s2.square ? size2 : cw, h = s2.square ? size2 : ch, ox = s2.square ? Math.round((size2 - cw) / 2) : 0, oy = s2.square ? Math.round((size2 - ch) / 2) : 0;
+  const d = new Uint8ClampedArray(w * h * 4);
+  for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) {
+    const from = ((box2.y + Math.floor(y / k)) * img.w + box2.x + Math.floor(x / k)) * 4, to = ((y + oy) * w + x + ox) * 4;
+    for (let c = 0; c < 4; c++) d[to + c] = img.d[from + c];
+  }
+  return { w, h, d };
+}
+function applyMask(img, m) {
+  const d = new Uint8ClampedArray(img.w * img.h * 4);
+  for (let i = 0; i < m.d.length; i++) if (m.d[i]) for (let c = 0; c < 4; c++) d[i * 4 + c] = img.d[i * 4 + c];
+  return { w: img.w, h: img.h, d };
+}
+function alphaMask(img, min = 128, fill2 = true) {
+  const m = newMask(img.w, img.h);
+  for (let i = 0; i < m.d.length; i++) if (img.d[i * 4 + 3] >= min) m.d[i] = 255;
+  return fill2 ? fillHoles(m) : m;
+}
+var defaultCutOptions, defaultTokenOptions;
+var init_cut = __esm({
+  "../artgen-imagekit/src/cut.ts"() {
+    "use strict";
+    init_contours();
+    init_mask();
+    init_trace2();
+    defaultCutOptions = { threshold: "otsu", invert: false, keepLargestBlob: true, smoothing: 5 };
+    defaultTokenOptions = { padding: 8, square: false, scale: 1 };
+  }
+});
+
+// ../artgen-imagekit/src/palette.ts
+function paletteOf(img, n = 16) {
+  return extractPalette(grid(img), n);
+}
+function snapToPalette(img, colors, o = {}) {
+  if (!colors.length) throw new Error("snapToPalette: the palette has no colours");
+  const g = quantize(grid(img), colors.map(normHex), o);
+  return { w: g.w, h: g.h, d: g.d };
+}
+function formatGpl(colors, name = "artgen") {
+  const rows2 = colors.map((c, i) => {
+    const h = normHex(c), v = [1, 3, 5].map((k) => parseInt(h.slice(k, k + 2), 16));
+    return `${String(v[0]).padStart(3)} ${String(v[1]).padStart(3)} ${String(v[2]).padStart(3)} ${h} (${i + 1})`;
+  });
+  return `GIMP Palette
+Name: ${name}
+Columns: 8
+#
+${rows2.join("\n")}
+`;
+}
+var grid, formatHex, parsePaletteText;
+var init_palette2 = __esm({
+  "../artgen-imagekit/src/palette.ts"() {
+    "use strict";
+    init_grid();
+    init_palette();
+    init_post();
+    init_color();
+    grid = (img) => img instanceof Grid ? img : new Grid(img.w, img.h, Uint8ClampedArray.from(img.d));
+    formatHex = (colors) => colors.map((c) => normHex(c).slice(1)).join("\n") + "\n";
+    parsePaletteText = (text2) => /^GIMP Palette/m.test(text2) ? parseGpl(text2) : parseHexPalette(text2);
+  }
+});
+
+// ../artgen-imagekit/src/slice.ts
+function sliceGrid(img, o) {
+  const margin = o.margin ?? 0, spacing = o.spacing ?? 0, usableW = img.w - 2 * margin, usableH = img.h - 2 * margin;
+  let cols = o.cols, rows2 = o.rows, cw = o.cellW, ch = o.cellH;
+  if (cw && ch) {
+    cols = Math.floor((usableW + spacing) / (cw + spacing));
+    rows2 = Math.floor((usableH + spacing) / (ch + spacing));
+  } else if (cols && rows2) {
+    cw = Math.floor((usableW - spacing * (cols - 1)) / cols);
+    ch = Math.floor((usableH - spacing * (rows2 - 1)) / rows2);
+  } else throw new Error("slice: give the columns and rows (cols, rows) or the cell size (cellW, cellH)");
+  if (!cols || !rows2 || !cw || !ch || cols < 1 || rows2 < 1 || cw < 1 || ch < 1) throw new Error(`slice: no room for a cell in a ${img.w}x${img.h} picture with those numbers`);
+  const out = [];
+  for (let row = 0; row < rows2; row++) for (let col = 0; col < cols; col++) {
+    let box2 = { x: margin + col * (cw + spacing), y: margin + row * (ch + spacing), w: cw, h: ch };
+    if (o.skipEmpty || o.trim) {
+      const b = alphaBounds(crop2(img, box2));
+      if (!b) {
+        if (o.skipEmpty) continue;
+      } else if (o.trim) box2 = { x: box2.x + b.x, y: box2.y + b.y, w: b.w, h: b.h };
+    }
+    out.push({ ...box2, index: out.length, col, row });
+  }
+  return out;
+}
+function sliceSprites(img, o = {}) {
+  const gap = Math.max(0, Math.floor(o.gap ?? 1)), minSize = o.minSize ?? 2, { w, h } = img, W3 = w + 1;
+  const sum2 = new Int32Array(W3 * (h + 1));
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) sum2[(y + 1) * W3 + x + 1] = (img.d[(y * w + x) * 4 + 3] > 0 ? 1 : 0) + sum2[y * W3 + x + 1] + sum2[(y + 1) * W3 + x] - sum2[y * W3 + x];
+  const grown = (x, y) => {
+    const x0 = Math.max(0, x - gap), y0 = Math.max(0, y - gap);
+    return sum2[(y + 1) * W3 + x + 1] - sum2[y0 * W3 + x + 1] - sum2[(y + 1) * W3 + x0] + sum2[y0 * W3 + x0] > 0;
+  };
+  const label4 = new Int32Array(w * h).fill(-1), boxes = [];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (label4[y * w + x] >= 0 || !grown(x, y)) continue;
+    const id2 = boxes.length, stack = [y * w + x];
+    boxes.push({ x0: w, y0: h, x1: -1, y1: -1 });
+    label4[y * w + x] = id2;
+    while (stack.length) {
+      const i = stack.pop(), cx = i % w, cy = (i - cx) / w;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const nx = cx + dx, ny = cy + dy;
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h || label4[ny * w + nx] >= 0 || !grown(nx, ny)) continue;
+        label4[ny * w + nx] = id2;
+        stack.push(ny * w + nx);
+      }
+    }
+  }
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (img.d[(y * w + x) * 4 + 3] === 0) continue;
+    const b = boxes[label4[y * w + x]];
+    if (x < b.x0) b.x0 = x;
+    if (x > b.x1) b.x1 = x;
+    if (y < b.y0) b.y0 = y;
+    if (y > b.y1) b.y1 = y;
+  }
+  const found = boxes.filter((b) => b.x1 >= 0).map((b) => ({ x: b.x0, y: b.y0, w: b.x1 - b.x0 + 1, h: b.y1 - b.y0 + 1 })).filter((b) => b.w >= minSize && b.h >= minSize);
+  const tall = found.length ? found.reduce((n, b) => n + b.h, 0) / found.length : 0;
+  const rowsOf = [];
+  for (const b of [...found].sort((p2, q) => p2.y - q.y)) {
+    const row = rowsOf.find((r) => Math.abs(r[0].y - b.y) < tall / 2);
+    if (row) row.push(b);
+    else rowsOf.push([b]);
+  }
+  const out = [];
+  rowsOf.forEach((r, row) => r.sort((p2, q) => p2.x - q.x).forEach((b, col) => out.push({ ...b, index: out.length, col, row })));
+  return out;
+}
+function crop2(img, box2) {
+  const x0 = Math.max(0, box2.x), y0 = Math.max(0, box2.y), x1 = Math.min(img.w, box2.x + box2.w), y1 = Math.min(img.h, box2.y + box2.h);
+  const w = Math.max(0, x1 - x0), h = Math.max(0, y1 - y0), d = new Uint8ClampedArray(w * h * 4);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) for (let c = 0; c < 4; c++) d[(y * w + x) * 4 + c] = img.d[((y0 + y) * img.w + x0 + x) * 4 + c];
+  return { w, h, d };
+}
+var init_slice = __esm({
+  "../artgen-imagekit/src/slice.ts"() {
+    "use strict";
+    init_cut();
+  }
+});
+
+// ../artgen-imagekit/src/svg.ts
+function ringToD(r, precision = 2, map = PIXEL_CENTRES) {
+  const p2 = r.points, parts = [];
+  for (let i = 0; i < p2.length; i += 2) parts.push(`${i === 0 ? "M" : "L"}${num3(p2[i] * map.sx + map.ox, precision)} ${num3(p2[i + 1] * map.sy + map.oy, precision)}`);
+  return parts.join(" ") + " Z";
+}
+function shapeDs(t, precision = 2, map) {
+  return t.shapes.map((s2) => [s2.outer, ...s2.holes].map((r) => ringToD(r, precision, map)).join(" "));
+}
+function traceToSvg(t, o = {}) {
+  const fill2 = o.fill && HEX2.test(o.fill) ? o.fill.toLowerCase() : "#000000", precision = o.precision ?? 2;
+  const lines2 = [`<svg xmlns="http://www.w3.org/2000/svg" width="${t.width}" height="${t.height}" viewBox="0 0 ${t.width} ${t.height}">`];
+  if (o.background && HEX2.test(o.background)) lines2.push(`  <rect width="${t.width}" height="${t.height}" fill="${o.background.toLowerCase()}"/>`);
+  for (const d of shapeDs(t, precision)) lines2.push(`  <path fill="${fill2}" fill-rule="evenodd" d="${d}"/>`);
+  lines2.push("</svg>", "");
+  return lines2.join("\n");
+}
+var HEX2, num3, PIXEL_CENTRES;
+var init_svg2 = __esm({
+  "../artgen-imagekit/src/svg.ts"() {
+    "use strict";
+    HEX2 = /^#[0-9a-fA-F]{6}$/;
+    num3 = (v, precision) => String(Number(v.toFixed(precision)));
+    PIXEL_CENTRES = { sx: 1, sy: 1, ox: 0.5, oy: 0.5 };
+  }
+});
+
+// ../artgen-imagekit/src/index.ts
+var init_src7 = __esm({
+  "../artgen-imagekit/src/index.ts"() {
+    "use strict";
+    init_mask();
+    init_contours();
+    init_trace2();
+    init_cut();
+    init_palette2();
+    init_slice();
+    init_svg2();
+  }
+});
+
+// ../artgen-cli/src/ops/image.ts
+import { existsSync as existsSync18, mkdirSync as mkdirSync15, readFileSync as readFileSync18, writeFileSync as writeFileSync17 } from "node:fs";
+import { basename as basename7, dirname as dirname16, extname as extname4, join as join18, resolve as resolve13 } from "node:path";
+function readPicture(file) {
+  if (!existsSync18(file)) throw new Error(`${file}: not found`);
+  try {
+    return decodePNG(new Uint8Array(readFileSync18(file)));
+  } catch (e) {
+    throw new Error(`${file}: ${e.message} (artgen reads 8-bit PNG files)`);
+  }
+}
+function writePicture(file, img) {
+  mkdirSync15(dirname16(file), { recursive: true });
+  writeFileSync17(file, encodePNG(img instanceof Grid ? img : new Grid(img.w, img.h, Uint8ClampedArray.from(img.d))));
+}
+function traceOptions(i) {
+  const t = i.threshold;
+  if (t !== void 0 && t !== "otsu" && !(Number.isFinite(+t) && +t >= 0 && +t <= 255)) throw new Error("--threshold: otsu or a grey level from 0 to 255");
+  return {
+    ...t !== void 0 && { threshold: t === "otsu" ? "otsu" : +t },
+    ...i.invert && { invert: true },
+    ...i.blur !== void 0 && { blur: i.blur },
+    ...i.smoothing !== void 0 && { smoothing: i.smoothing },
+    ...i.simplify !== void 0 && { simplifyTolerance: i.simplify },
+    ...i.min_area !== void 0 && { minArea: i.min_area },
+    ...i.holes !== void 0 && { keepHoles: i.holes },
+    ...i.max_paths !== void 0 && { maxPaths: i.max_paths },
+    ...i.alpha !== void 0 && { respectAlpha: i.alpha }
+  };
+}
+function hexFlag(v, flag) {
+  if (v === void 0) return void 0;
+  if (typeof v !== "string" || !/^#[0-9a-f]{6}$/i.test(v)) throw new Error(`${flag}: a colour like #rrggbb`);
+  return v;
+}
+function paletteColors(src, n) {
+  if (existsSync18(src)) return /\.png$/i.test(src) ? paletteOf(readPicture(src), n).colors : parsePaletteText(readFileSync18(src, "utf8"));
+  if (/^#?([0-9a-f]{3}|[0-9a-f]{6})(,#?([0-9a-f]{3}|[0-9a-f]{6}))*$/i.test(src)) return src.split(",").map((c) => normHex("#" + c.replace("#", "")));
+  throw new Error(`${src}: not found (a .hex, .gpl or .png file, or colours like #ff0000,#00aa11)`);
+}
+var stemOf2, traceParams, traceSummary, BY_PATH, trace, slice, quantize2, IMAGE_OPS;
+var init_image = __esm({
+  "../artgen-cli/src/ops/image.ts"() {
+    "use strict";
+    init_src7();
+    init_src();
+    init_registry();
+    stemOf2 = (file) => join18(dirname16(file), basename7(file, extname4(file)));
+    traceParams = () => ({
+      threshold: p.str("grey level 0\u2013255 that splits subject from background, or otsu (default: otsu picks one)"),
+      invert: p.bool("the lighter region is the subject, not the darker one"),
+      blur: p.int("Gaussian blur kernel before the threshold; 0 = none (default 3)"),
+      smoothing: p.int("close kernel that seals speckle; 0 = none (default 3)"),
+      simplify: p.num("Douglas\u2013Peucker tolerance in pixels; 0 keeps every corner (default 1.5)"),
+      min_area: p.num("drop shapes under this area in px\xB2 (default 24)"),
+      holes: p.bool("trace the holes in a shape (off: outlines only; default on)", { style: "onoff" }),
+      max_paths: p.int("keep at most this many shapes, largest first (default 120)"),
+      alpha: p.bool("read only the opaque pixels, so transparent art traces its own shape (default on)", { style: "onoff" })
+    });
+    traceSummary = (t) => ({ width: t.width, height: t.height, shapes: t.shapes.length, holes: t.shapes.reduce((n, s2) => n + s2.holes.length, 0), dropped: t.droppedCount, threshold: t.thresholdUsed });
+    BY_PATH = "reads a file by path outside the art/ sandbox";
+    trace = defineOp({
+      name: "trace",
+      module: "core",
+      effect: "render",
+      summary: "Trace a picture or sketch to an SVG of closed shapes (outlines and their holes).",
+      params: {
+        image: p.str("the picture (PNG)", { positional: true, required: "trace: <image.png> is required" }),
+        out: p.str("the SVG to write (default: beside the picture, .svg)"),
+        fill: p.str("the shapes' colour, #rrggbb (default #000000)"),
+        background: p.str("a background colour, #rrggbb (default none)"),
+        ...traceParams()
+      },
+      run(i) {
+        const fill2 = hexFlag(i.fill, "--fill"), background = hexFlag(i.background, "--background"), file = resolve13(i.image);
+        const t = traceImage(readPicture(file), traceOptions(i)), out = resolve13(i.out ?? `${stemOf2(file)}.svg`);
+        mkdirSync15(dirname16(out), { recursive: true });
+        writeFileSync17(out, traceToSvg(t, { fill: fill2, background }));
+        return { out, ...traceSummary(t) };
+      },
+      cli: {
+        usage: "       artgen trace <image.png> [--out file.svg] [--threshold otsu|0-255] [--invert] [--blur n] [--smoothing n] [--simplify px] [--min-area px\xB2] [--holes off] [--max-paths n] [--fill #rrggbb] [--background #rrggbb]",
+        text: (r) => `${r.out}: ${r.shapes} shapes${r.holes ? `, ${r.holes} holes` : ""} from a ${r.width}x${r.height} picture (level ${r.threshold}${r.dropped ? `, ${r.dropped} dropped` : ""})
+next: artgen trace-base <asset> <image> turns it into an asset's base; artgen map trace <map> <image> into a map's ground`
+      },
+      mcp: { exclude: BY_PATH },
+      python: {}
+    });
+    slice = defineOp({
+      name: "slice",
+      module: "core",
+      effect: "render",
+      summary: "Cut an outside sprite sheet into its sprites (a regular grid, or loose sprites found by their pixels).",
+      params: {
+        image: p.str("the sprite sheet (PNG)", { positional: true, required: "slice: <sheet.png> is required" }),
+        cols: p.int("cells across (with --rows)"),
+        rows: p.int("cells down (with --cols)"),
+        cell: p.size("cell size, WxH, e.g. 32x32 (instead of --cols and --rows)"),
+        auto: p.bool("find loose sprites by their opaque pixels instead of a grid"),
+        gap: p.int("--auto: pixels apart that still count as one sprite (default 1)"),
+        min_size: p.int("--auto: ignore blobs smaller than this either way (default 2)"),
+        margin: p.int("grid: pixels around the sheet that belong to no cell (default 0)"),
+        spacing: p.int("grid: pixels between cells (default 0)"),
+        skip_empty: p.bool("grid: leave out cells with nothing opaque"),
+        trim: p.bool("grid: shrink each cell to its opaque pixels"),
+        out: p.str("the folder to write the cells to (default: <sheet>-slices beside the sheet)")
+      },
+      run(i) {
+        const file = resolve13(i.image), img = readPicture(file), dir = resolve13(i.out ?? `${stemOf2(file)}-slices`);
+        const cell3 = Array.isArray(i.cell) ? i.cell : void 0;
+        if (i.auto && (cell3 || i.cols || i.rows)) throw new Error("slice: --auto finds the sprites itself; drop --cols, --rows and --cell");
+        const cells = i.auto ? sliceSprites(img, { gap: i.gap, minSize: i.min_size }) : sliceGrid(img, { cols: i.cols, rows: i.rows, cellW: cell3?.[0], cellH: cell3?.[1], margin: i.margin, spacing: i.spacing, skipEmpty: i.skip_empty, trim: i.trim });
+        if (!cells.length) throw new Error(`${i.image}: no sprites found${i.auto ? " (raise --gap or lower --min-size?)" : ""}`);
+        const pad = String(cells.length - 1).length, stem = basename7(file, extname4(file));
+        const files = cells.map((c) => ({ ...c, file: `${stem}-${String(c.index).padStart(Math.max(2, pad), "0")}.png` }));
+        for (const c of files) writePicture(join18(dir, c.file), crop2(img, c));
+        writeFileSync17(join18(dir, "slices.json"), JSON.stringify({ sheet: basename7(file), width: img.w, height: img.h, cells: files }, null, 2) + "\n");
+        return { dir, sheet: { width: img.w, height: img.h }, cells: files };
+      },
+      cli: {
+        usage: "       artgen slice <sheet.png> --cols n --rows n | --cell WxH | --auto [--gap px] [--min-size px] [--margin px] [--spacing px] [--skip-empty] [--trim] [--out dir]",
+        text: (r) => `${r.dir}: ${r.cells.length} cells from a ${r.sheet.width}x${r.sheet.height} sheet (${r.cells[0].w}x${r.cells[0].h} first) + slices.json`
+      },
+      mcp: { exclude: BY_PATH },
+      python: {}
+    });
+    quantize2 = defineOp({
+      name: "quantize",
+      module: "core",
+      effect: "render",
+      summary: "Snap a picture to a palette (a .hex, .gpl or .png file, a list of colours, or the picture's own n dominant colours).",
+      params: {
+        image: p.str("the picture (PNG)", { positional: true, required: "quantize: <image.png> is required" }),
+        palette: p.str("the palette: a .hex, .gpl or .png file, or #rrggbb,#rrggbb,\u2026 (default: the picture's own --n colours)"),
+        n: p.int("colours to take from the picture when there is no --palette (default 16)"),
+        dither: p.oneOf(["none", "bayer2", "bayer4", "noise"], "ordered dither between the two nearest colours (default none)"),
+        out: p.str("the PNG to write (default: <image>.quantized.png)"),
+        save: p.str("also write the palette used as a .hex or .gpl file")
+      },
+      run(i) {
+        const file = resolve13(i.image), img = readPicture(file), colors = i.palette ? paletteColors(i.palette, i.n ?? 16) : paletteOf(img, i.n ?? 16).colors;
+        if (!colors.length) throw new Error(`${i.image}: nothing opaque to take colours from`);
+        const out = resolve13(i.out ?? `${stemOf2(file)}.quantized.png`);
+        writePicture(out, snapToPalette(img, colors, { dither: i.dither }));
+        if (i.save) writeFileSync17(resolve13(i.save), i.save.endsWith(".gpl") ? formatGpl(colors, basename7(i.save, ".gpl")) : formatHex(colors));
+        return { out, colors };
+      },
+      cli: {
+        usage: "       artgen quantize <image.png> [--palette file|#hex,#hex,\u2026] [--n 16] [--dither none|bayer2|bayer4|noise] [--out file.png] [--save palette.hex|.gpl]",
+        text: (r) => `${r.out}: ${r.colors.length} colours ${r.colors.join(" ")}`
+      },
+      mcp: { exclude: BY_PATH },
+      python: {}
+    });
+    IMAGE_OPS = [trace, slice, quantize2];
+  }
+});
+
 // ../artgen-cli/src/ops/core.ts
 import { spawn } from "node:child_process";
-import { existsSync as existsSync18, readFileSync as readFileSync18, writeFileSync as writeFileSync17 } from "node:fs";
-import { dirname as dirname16, join as join18 } from "node:path";
+import { existsSync as existsSync19, readFileSync as readFileSync19, writeFileSync as writeFileSync18 } from "node:fs";
+import { dirname as dirname17, join as join19 } from "node:path";
 import { fileURLToPath as fileURLToPath5 } from "node:url";
 function openBrowser(url) {
   const [cmd, args] = process.platform === "darwin" ? ["open", [url]] : process.platform === "win32" ? ["cmd", ["/c", "start", "", url]] : ["xdg-open", [url]];
@@ -29083,7 +29942,7 @@ function openBrowser(url) {
 }
 function installedModules(root) {
   try {
-    return Object.keys(JSON.parse(readFileSync18(join18(root, "tools", "artgen", "MANIFEST.json"), "utf8")).modules ?? {});
+    return Object.keys(JSON.parse(readFileSync19(join19(root, "tools", "artgen", "MANIFEST.json"), "utf8")).modules ?? {});
   } catch {
     return [];
   }
@@ -29096,6 +29955,7 @@ var init_core = __esm({
     init_metrics3();
     init_upstream();
     init_ui_server();
+    init_image();
     init_registry();
     uiOp = defineOp({
       name: "ui",
@@ -29108,8 +29968,8 @@ var init_core = __esm({
         open: p.bool("open the link in the default browser", { mcp: false })
       },
       async run(i, ctx) {
-        const project2 = ctx.project(), here = dirname16(fileURLToPath5(import.meta.url)), uiDir = i.dir ?? join18(here, "ui");
-        if (!existsSync18(join18(uiDir, "index.html"))) throw new Error(`ui: no web tools in ${uiDir} \u2014 install the ui module: npx -y github:rstevenson1237/image_tools#artgen-dist add ui`);
+        const project2 = ctx.project(), here = dirname17(fileURLToPath5(import.meta.url)), uiDir = i.dir ?? join19(here, "ui");
+        if (!existsSync19(join19(uiDir, "index.html"))) throw new Error(`ui: no web tools in ${uiDir} \u2014 install the ui module: npx -y github:rstevenson1237/image_tools#artgen-dist add ui`);
         const modules = installedModules(project2.root), s2 = await startUiServer({ root: project2.root, uiDir, shared: here, port: i.port, info: { modules } });
         console.log(`artgen ui: ${s2.url}
 serving ${project2.art} \u2014 Ctrl-C to stop`);
@@ -29225,19 +30085,19 @@ read it before you share it: it holds counts and ratios only`;
       params: { paths: p.str("export files or folders of them", { positional: "rest", required: "metrics pool: name the export files or folders to pool", schema: { type: "array", items: { type: "string" } }, mcp: false }), out: p.str("also write the markdown here", { mcp: false }) },
       run(i) {
         const r = pool(i.paths), markdown = poolMarkdown(r);
-        if (i.out) writeFileSync17(i.out, markdown);
+        if (i.out) writeFileSync18(i.out, markdown);
         return { markdown, pool: r };
       },
       cli: { usage: "       artgen metrics pool <file|folder>\u2026 [--out pool.md]   exports from several repos, per artgen version", text: (r) => r.markdown, json: (r) => r.pool },
       mcp: { exclude: "reads export files by path outside art/" },
       python: {}
     });
-    CORE_OPS = [uiOp, reportOp, upstreamOp, metricsExport, metricsPool];
+    CORE_OPS = [uiOp, reportOp, upstreamOp, metricsExport, metricsPool, ...IMAGE_OPS];
   }
 });
 
 // ../artgen-cli/src/ops/maps-shared.ts
-import { readFileSync as readFileSync19 } from "node:fs";
+import { readFileSync as readFileSync20 } from "node:fs";
 function viewOf(i, cell3) {
   return { ...i.crop !== void 0 && { crop: parseCrop(i.crop, cell3()) }, ...i.fit !== void 0 && { fit: parseFit(i.fit) } };
 }
@@ -29286,7 +30146,7 @@ var init_maps_shared = __esm({
     init_map2();
     init_registry();
     text = (v) => ({ type: "text", text: typeof v === "string" ? v : JSON.stringify(v, null, 2) });
-    pngFile = (f) => ({ type: "image", data: readFileSync19(f).toString("base64"), mimeType: "image/png" });
+    pngFile = (f) => ({ type: "image", data: readFileSync20(f).toString("base64"), mimeType: "image/png" });
     withVersion = (data, version) => data && typeof data === "object" && !Array.isArray(data) ? { version, ...data } : { version, items: data };
     projectOf = (i, ctx) => i.path ? null : ctx.project();
     refOf = (i) => i.path ? { file: i.path } : i.id;
@@ -29327,7 +30187,7 @@ var init_maps_shared = __esm({
 });
 
 // ../artgen-cli/src/ops/maps-dungeon.ts
-import { join as join19 } from "node:path";
+import { join as join20 } from "node:path";
 function applyGenFlags(m, i) {
   if (typeof i.seed === "number") m.seed = i.seed;
   if (i.size) [m.cols, m.rows] = i.size;
@@ -29342,10 +30202,10 @@ function applyGenFlags(m, i) {
 async function renderPreview(r, i, ctx) {
   const P2 = ctx.project(), layers = layersOf(i.layers, (v) => parseLayers(v, dungeon_exports.DUNGEON_LAYERS));
   const files = r.files.map((f) => ctx.rel(f));
-  const look = typeof i.ppu === "number" ? files.filter((f) => f.endsWith(".png")) : (await renderDungeonFiles(P2, i.id, { ppu: 24, layers, formats: ["png"], out: join19(P2.art, "dungeons", i.id, "out", "preview") })).files.map((f) => ctx.rel(f));
-  return [text({ ...r, files }), ...look.map((f) => pngFile(join19(P2.root, f)))];
+  const look = typeof i.ppu === "number" ? files.filter((f) => f.endsWith(".png")) : (await renderDungeonFiles(P2, i.id, { ppu: 24, layers, formats: ["png"], out: join20(P2.art, "dungeons", i.id, "out", "preview") })).files.map((f) => ctx.rel(f));
+  return [text({ ...r, files }), ...look.map((f) => pngFile(join20(P2.root, f)))];
 }
-var V, next, CELLS, numberOf, findRoom2, GEN_PARAMS, GEN_KEYS, list3, symbols, show3, create, update, grid, style, gen, OPS_DOC, edit, roomCmd, link, corridorOf, unlink, door, block, connect, disconnect, fit, label, symbol, check, overlay, render7, facts, sync, DUNGEON_OPS_LIST;
+var V, next, CELLS, numberOf, findRoom2, GEN_PARAMS, GEN_KEYS, list3, symbols, show3, create, update, grid2, style, gen, OPS_DOC, edit, roomCmd, link, corridorOf, unlink, door, block, connect, disconnect, fit, label, symbol, check, overlay, render7, facts, sync, DUNGEON_OPS_LIST;
 var init_maps_dungeon = __esm({
   "../artgen-cli/src/ops/maps-dungeon.ts"() {
     "use strict";
@@ -29534,7 +30394,7 @@ ${next(i, m.id)}`,
       mcp: { content: (m) => [text(describeDungeon(m))] },
       python: {}
     });
-    grid = defineOp({
+    grid2 = defineOp({
       name: "dungeon.grid",
       module: "maps",
       effect: "write",
@@ -30194,19 +31054,19 @@ ${next(i, m.id)}`, json: (m) => V({ cols: m.cols, rows: m.rows }) },
       mcp: { exclude: "reads --from by path (consumer tooling)" },
       python: {}
     });
-    DUNGEON_OPS_LIST = [list3, symbols, show3, create, update, grid, style, gen, edit, roomCmd, block, link, unlink, door, connect, disconnect, fit, label, symbol, check, overlay, render7, facts, sync];
+    DUNGEON_OPS_LIST = [list3, symbols, show3, create, update, grid2, style, gen, edit, roomCmd, block, link, unlink, door, connect, disconnect, fit, label, symbol, check, overlay, render7, facts, sync];
   }
 });
 
 // ../artgen-cli/src/ops/maps-map.ts
-import { join as join20 } from "node:path";
+import { join as join21 } from "node:path";
 async function renderPreview2(r, i, ctx) {
   const P2 = ctx.project(), theme = i.theme ?? "color", themes = theme === "both" ? ["color", "bw"] : [theme === "bw" ? "bw" : "color"], layers = layersOf(i.layers, (v) => parseLayers(v));
   const files = r.files.map((f) => ctx.rel(f));
-  const look = typeof i.ppu === "number" ? files.filter((f) => f.endsWith(".png")) : (await renderMapFiles(P2, i.id, { themes, ppu: 24, layers, formats: ["png"], out: join20(P2.art, "maps", i.id, "out", "preview") })).files.map((f) => ctx.rel(f));
-  return [text({ ...r, files }), ...look.map((f) => pngFile(join20(P2.root, f)))];
+  const look = typeof i.ppu === "number" ? files.filter((f) => f.endsWith(".png")) : (await renderMapFiles(P2, i.id, { themes, ppu: 24, layers, formats: ["png"], out: join21(P2.art, "maps", i.id, "out", "preview") })).files.map((f) => ctx.rel(f));
+  return [text({ ...r, files }), ...look.map((f) => pngFile(join21(P2.root, f)))];
 }
-var V2, next2, LAYER_DOC, list4, symbols2, show4, create2, gen2, update2, edit2, grid2, label2, symbol2, overlay2, set, render8, facts2, check2, sync2, MAP_MAP_OPS;
+var V2, next2, LAYER_DOC, list4, symbols2, show4, create2, gen2, update2, edit2, grid3, label2, symbol2, overlay2, set, render8, facts2, check2, sync2, MAP_MAP_OPS;
 var init_maps_map = __esm({
   "../artgen-cli/src/ops/maps-map.ts"() {
     "use strict";
@@ -30444,7 +31304,7 @@ ${next2(i, r.m.id)}`,
       mcp: { content: (r) => [text({ edits: r.m.edits.length, last: r.m.edits.slice(-3) })] },
       python: {}
     });
-    grid2 = defineOp({
+    grid3 = defineOp({
       name: "map.grid",
       module: "maps",
       effect: "write",
@@ -30714,7 +31574,75 @@ ${next2(i, m.id)}`, json: (m) => V2(m) },
       mcp: { exclude: "reads --from by path (consumer tooling)" },
       python: {}
     });
-    MAP_MAP_OPS = [list4, symbols2, show4, create2, gen2, update2, edit2, grid2, label2, symbol2, overlay2, set, render8, facts2, check2, sync2];
+    MAP_MAP_OPS = [list4, symbols2, show4, create2, gen2, update2, edit2, grid3, label2, symbol2, overlay2, set, render8, facts2, check2, sync2];
+  }
+});
+
+// ../artgen-cli/src/ops/maps-trace.ts
+import { resolve as resolve14 } from "node:path";
+function toCells(r, scale2, ox, oy) {
+  const out = [];
+  for (let k = 0; k < r.points.length; k += 2) out.push(Math.round(((r.points[k] + 0.5) * scale2 + ox) * 100) / 100, Math.round(((r.points[k + 1] + 0.5) * scale2 + oy) * 100) / 100);
+  return out;
+}
+var mapTrace, MAP_TRACE_OPS;
+var init_maps_trace = __esm({
+  "../artgen-cli/src/ops/maps-trace.ts"() {
+    "use strict";
+    init_src7();
+    init_maps();
+    init_map2();
+    init_image();
+    init_maps_shared();
+    init_registry();
+    mapTrace = defineOp({
+      name: "map.trace",
+      module: "maps",
+      effect: "write",
+      summary: "Trace a picture's outline onto a terrain map as paint edits (the dark shapes become land, their holes water).",
+      params: {
+        id: idParam("the map id", "map trace: <id> <image.png>"),
+        path: pathParam("map"),
+        image: p.str("the sketch or map picture (PNG)", { positional: true, required: "map trace: <id> <image.png>", mcp: false }),
+        terrain: p.oneOf(map_exports.TERRAINS, "what the traced shapes are (default grass)", { mcp: false }),
+        hole_terrain: p.oneOf(map_exports.TERRAINS, "what the holes in a shape are (default water)", { mcp: false }),
+        origin: p.str("who wrote these edits (default trace); --replace swaps its earlier ones", { mcp: false }),
+        replace: p.bool("first remove this origin's earlier edits", { mcp: false }),
+        ...traceParams()
+      },
+      run(i, ctx) {
+        const terrain = i.terrain ?? "grass", holeTerrain = i.hole_terrain ?? "water", origin = i.origin ?? "trace";
+        if (!map_exports.TERRAINS.includes(terrain) || !map_exports.TERRAINS.includes(holeTerrain)) throw new Error(`--terrain, --hole-terrain: one of ${map_exports.TERRAINS.join(", ")}`);
+        const t = traceImage(readPicture(resolve14(i.image)), traceOptions(i));
+        let added = 0, removed = 0;
+        const m = updateMap(projectOf(i, ctx), refOf(i), (m2) => {
+          const scale2 = Math.min(m2.cols / t.width, m2.rows / t.height), ox = (m2.cols - t.width * scale2) / 2, oy = (m2.rows - t.height * scale2) / 2;
+          if (i.replace) {
+            const keep = m2.edits.filter((e) => e.origin !== origin);
+            removed = m2.edits.length - keep.length;
+            m2.edits = keep;
+          }
+          for (const s2 of t.shapes) {
+            m2.edits.push({ op: "paint", terrain, shape: { poly: toCells(s2.outer, scale2, ox, oy) }, origin });
+            added++;
+            for (const h of s2.holes) {
+              m2.edits.push({ op: "paint", terrain: holeTerrain, shape: { poly: toCells(h, scale2, ox, oy) }, origin });
+              added++;
+            }
+          }
+        });
+        return { m, added, removed, trace: traceSummary(t), origin };
+      },
+      cli: {
+        usage: "       artgen map trace <id> <image.png> [--terrain grass] [--hole-terrain water] [--origin trace] [--replace]   (+ the artgen trace flags: --threshold --invert --blur --smoothing --simplify --min-area --holes --max-paths)",
+        text: (r, i) => `${r.m.id}: ${r.added} paint edits from ${r.trace.shapes} shapes${r.removed ? ` (replaced ${r.removed} of origin ${r.origin})` : ""} (${r.m.edits.length} edits)
+${i.path ? `next: artgen map render --file ${i.path}` : `next: artgen map render ${r.m.id}`}`,
+        json: (r) => ({ id: r.m.id, added: r.added, removed: r.removed, edits: r.m.edits.length, trace: r.trace })
+      },
+      mcp: { exclude: "reads a picture by path outside the art/ sandbox" },
+      python: {}
+    });
+    MAP_TRACE_OPS = [mapTrace];
   }
 });
 
@@ -30926,7 +31854,7 @@ reviews use ${Object.entries(direction_exports.DEFAULT_THEME).map(([k, t]) => `$
 });
 
 // ../artgen-cli/src/ops/maps-settlement.ts
-import { join as join21 } from "node:path";
+import { join as join22 } from "node:path";
 function applyGenFlags2(m, i) {
   if (typeof i.seed === "number") m.seed = i.seed;
   if (i.size) [m.cols, m.rows] = i.size;
@@ -30995,10 +31923,10 @@ async function renderPreview3(rs, i, ctx) {
   const P2 = ctx.project(), o = renderOptions(i, ctx), files = rs.flatMap((r) => r.files.map((f) => ctx.rel(f)));
   if (i.plans === true) return [text({ renders: rs.length, files })];
   const spec = readSettlement(P2, i.id);
-  const look = typeof i.ppu === "number" ? files.filter((f) => f.endsWith(".png")) : (await renderSettlementFiles(P2, i.id, { ...o, ppu: o.view === "plan" ? 28 : Math.max(4, Math.min(16, Math.round(1100 / Math.max(spec.cols, spec.rows)))), formats: ["png"], out: join21(P2.art, "settlements", i.id, "out", "preview") })).flatMap((r) => r.files.map((f) => ctx.rel(f)));
-  return [text({ ...rs[0], files }), ...look.map((f) => pngFile(join21(P2.root, f)))];
+  const look = typeof i.ppu === "number" ? files.filter((f) => f.endsWith(".png")) : (await renderSettlementFiles(P2, i.id, { ...o, ppu: o.view === "plan" ? 28 : Math.max(4, Math.min(16, Math.round(1100 / Math.max(spec.cols, spec.rows)))), formats: ["png"], out: join22(P2.art, "settlements", i.id, "out", "preview") })).flatMap((r) => r.files.map((f) => ctx.rel(f)));
+  return [text({ ...rs[0], files }), ...look.map((f) => pngFile(join22(P2.root, f)))];
 }
-var V3, next3, CELLS2, numberOf2, pointOf, OBJ, GEN_PARAMS2, list5, symbols3, fixtures, show5, create3, gen3, update3, edit3, editText, editJson, id, level, LEVEL, AT, SIZE, BUILDING_PARAMS, building2, interior, floor2, room2, KINDS_DOOR, connect2, disconnect2, openingParams, door2, windowOp, fixture, prop, LINE_PARAMS, road, water, wall, area, tree, grid3, style2, label3, symbol3, overlay3, check3, facts3, renderOptions, render9, SETTLEMENT_OPS_LIST;
+var V3, next3, CELLS2, numberOf2, pointOf, OBJ, GEN_PARAMS2, list5, symbols3, fixtures, show5, create3, gen3, update3, edit3, editText, editJson, id, level, LEVEL, AT, SIZE, BUILDING_PARAMS, building2, interior, floor2, room2, KINDS_DOOR, connect2, disconnect2, openingParams, door2, windowOp, fixture, prop, LINE_PARAMS, road, water, wall, area, tree, grid4, style2, label3, symbol3, overlay3, check3, facts3, renderOptions, render9, SETTLEMENT_OPS_LIST;
 var init_maps_settlement = __esm({
   "../artgen-cli/src/ops/maps-settlement.ts"() {
     "use strict";
@@ -31460,7 +32388,7 @@ ${next3(i, m.id)}`,
         return [{ op: "tree.add", kind: what ?? "tree", x: at4[0], y: at4[1], ...i.size !== void 0 && { size: i.size } }];
       }
     );
-    grid3 = defineOp({
+    grid4 = defineOp({
       name: "settlement.grid",
       module: "maps",
       effect: "write",
@@ -31647,7 +32575,7 @@ ${next3(i, m.id)}`,
       create3,
       update3,
       style2,
-      grid3,
+      grid4,
       gen3,
       edit3,
       building2,
@@ -31683,6 +32611,7 @@ var init_maps2 = __esm({
     init_maps();
     init_maps_dungeon();
     init_maps_map();
+    init_maps_trace();
     init_maps_workflow();
     init_maps_settlement();
     init_registry();
@@ -31698,7 +32627,7 @@ var init_maps2 = __esm({
       mcp: {},
       python: {}
     });
-    MAP_OPS = [...MAP_MAP_OPS, ...DUNGEON_OPS_LIST, ...SETTLEMENT_OPS_LIST, formats, ...WORKFLOW_OPS];
+    MAP_OPS = [...MAP_MAP_OPS, ...MAP_TRACE_OPS, ...DUNGEON_OPS_LIST, ...SETTLEMENT_OPS_LIST, formats, ...WORKFLOW_OPS];
     MAP_NOTE = "       (map, dungeon and settlement commands take --file <path> in place of <id>: no project needed; renders go beside the file or to --out)";
     MAP_USAGE = `${MAP_OPS.flatMap(usageLines).join("\n")}
 ${MAP_NOTE}`;
@@ -31726,8 +32655,8 @@ ${CORE_OPS.flatMap(usageLines).join("\n")}`;
 });
 
 // ../artgen-cli/src/p6.ts
-import { mkdirSync as mkdirSync15, writeFileSync as writeFileSync18 } from "node:fs";
-import { join as join22, relative as relative10 } from "node:path";
+import { mkdirSync as mkdirSync16, writeFileSync as writeFileSync19 } from "node:fs";
+import { join as join23, relative as relative10 } from "node:path";
 async function voxelExport(a, o = {}) {
   const version = o.version ?? versionsIn(a).filter((v) => v.startsWith("base.")).pop();
   if (!version) throw new Error(`${a.brief.id}: no base version`);
@@ -31737,11 +32666,11 @@ async function voxelExport(a, o = {}) {
   } });
   const first = r.render.cells[0], cell3 = o.cell ?? `${first.state}/${first.facing}/${first.frame}`, scene = scenes.get(cell3);
   if (!scene) throw new Error(`${a.brief.id} ${version}: ${scenes.size ? `no 3D scene for cell ${cell3} (have ${[...scenes.keys()].join(", ")})` : "renders no 3D-mode scene (ctx.lib.t2.scene3d)"}`);
-  const set2 = scene.voxelSet(), vox = voxFromSet(set2), out = o.out ?? join22(a.path, "out");
-  mkdirSync15(out, { recursive: true });
-  const id2 = a.brief.id, voxFile = join22(out, `${id2}.vox`), glbFile = join22(out, `${id2}.glb`);
-  writeFileSync18(voxFile, encodeVox(vox));
-  writeFileSync18(glbFile, voxelGlb(set2, { scale: o.scale ?? 0.1, name: id2 }));
+  const set2 = scene.voxelSet(), vox = voxFromSet(set2), out = o.out ?? join23(a.path, "out");
+  mkdirSync16(out, { recursive: true });
+  const id2 = a.brief.id, voxFile = join23(out, `${id2}.vox`), glbFile = join23(out, `${id2}.glb`);
+  writeFileSync19(voxFile, encodeVox(vox));
+  writeFileSync19(glbFile, voxelGlb(set2, { scale: o.scale ?? 0.1, name: id2 }));
   return { vox: relative10(process.cwd(), voxFile), glb: relative10(process.cwd(), glbFile), voxels: set2.cells.length, materials: set2.mats.length, size: vox.size, cell: cell3 };
 }
 function textureRun(dir, name, o) {
@@ -31749,7 +32678,7 @@ function textureRun(dir, name, o) {
   const [w, h] = o.size, t = material(name, dirContext(dir), { w, h, seed: o.seed, ramps: o.ramps, scale: o.scale });
   const pre = new Grid(w * 3, h * 3);
   for (let j = 0; j < 3; j++) for (let i = 0; i < 3; i++) pre.blit(t.grid, i * w, j * h);
-  const files = [join22(o.out, `${name}.png`), join22(o.out, `${name}.n.png`), join22(o.out, `${name}-3x3@4x.png`)];
+  const files = [join23(o.out, `${name}.png`), join23(o.out, `${name}.n.png`), join23(o.out, `${name}-3x3@4x.png`)];
   writeGrid(files[0], t.grid);
   writeGrid(files[1], t.normal);
   writeGrid(files[2], pre.scale(4));
@@ -31759,18 +32688,18 @@ function textureRun(dir, name, o) {
 async function animPreview(a, o = {}) {
   const version = o.version ?? versionsIn(a).pop();
   if (!version) throw new Error(`${a.brief.id}: no versions yet`);
-  const { render: r } = await renderVersion(a, version), out = o.out ?? join22(a.path, "out"), sc = o.scale ?? a.brief.review?.scale ?? 4;
+  const { render: r } = await renderVersion(a, version), out = o.out ?? join23(a.path, "out"), sc = o.scale ?? a.brief.review?.scale ?? 4;
   const defs = stateDefs(a.brief, a.dir, Object.fromEntries(r.states.map((s2) => [s2, r.frames[s2] / Math.max(1, Math.floor(a.brief.anims?.[s2]?.sub ?? 1))])));
   const states2 = o.state ? [o.state] : r.states, facings = o.facing ? [o.facing] : [r.facings[0]];
   for (const s2 of states2) if (!r.states.includes(s2)) throw new Error(`${a.brief.id}: no state ${s2} (has ${r.states.join(", ")})`);
   for (const f of facings) if (!r.facings.includes(f)) throw new Error(`${a.brief.id}: no facing ${f} (has ${r.facings.join(", ")})`);
-  mkdirSync15(out, { recursive: true });
+  mkdirSync16(out, { recursive: true });
   const res = { files: [], states: [] };
   for (const s2 of states2) for (const f of facings) {
     const frames = r.cells.filter((c) => c.state === s2 && c.facing === f).sort((x, y) => x.frame - y.frame).map((c) => c.grid.scale(sc)), d = displayDurations(defs[s2]);
-    const base = join22(out, `${a.brief.id}-${version}-${s2}-${f}`);
-    writeFileSync18(`${base}.gif`, encodeGIF(frames, d));
-    writeFileSync18(`${base}.apng`, encodeAPNG(frames, d));
+    const base = join23(out, `${a.brief.id}-${version}-${s2}-${f}`);
+    writeFileSync19(`${base}.gif`, encodeGIF(frames, d));
+    writeFileSync19(`${base}.apng`, encodeAPNG(frames, d));
     res.files.push(relative10(process.cwd(), `${base}.gif`), relative10(process.cwd(), `${base}.apng`));
     res.states.push({ state: s2, facing: f, frames: frames.length, ms: d.reduce((x, y) => x + y, 0) });
   }
@@ -31781,15 +32710,15 @@ function fxRun(dir, name, o) {
   const line2 = dir.line.outer === "none" ? false : (g) => dir.line.outer === "selout" ? post_exports.selout(g, Object.values(dc.pal), dc.outline) : post_exports.outline(g, dc.outline);
   const layers = preset(name, { w, h, duration });
   const frames = Array.from({ length: o.frames }, (_, i) => particles(dc, { w, h, t: i / o.frames, duration, layers, seed: o.seed ?? 1, line: line2 }));
-  mkdirSync15(o.out, { recursive: true });
+  mkdirSync16(o.out, { recursive: true });
   const strip2 = new Grid(o.frames * (w + 1) - 1, h);
   frames.forEach((f, i) => strip2.blit(f, i * (w + 1), 0));
-  const files = [join22(o.out, `${name}.png`), join22(o.out, `${name}-onion@${sc}x.png`), join22(o.out, `${name}.gif`), join22(o.out, `${name}.apng`)];
+  const files = [join23(o.out, `${name}.png`), join23(o.out, `${name}-onion@${sc}x.png`), join23(o.out, `${name}.gif`), join23(o.out, `${name}.apng`)];
   writeGrid(files[0], strip2);
   writeGrid(files[1], onionSkin(frames).scale(sc));
   const big = frames.map((f) => f.scale(sc)), d = frames.map(() => Math.round(1e3 / fps));
-  writeFileSync18(files[2], encodeGIF(big, d));
-  writeFileSync18(files[3], encodeAPNG(big, d));
+  writeFileSync19(files[2], encodeGIF(big, d));
+  writeFileSync19(files[3], encodeAPNG(big, d));
   return { files: files.map((f) => relative10(process.cwd(), f)), fill: fillQA(frames, dir), frames: o.frames };
 }
 var init_p6 = __esm({
@@ -31802,10 +32731,10 @@ var init_p6 = __esm({
 });
 
 // ../artgen-cli/src/report.ts
-import { existsSync as existsSync19, readdirSync as readdirSync12, writeFileSync as writeFileSync19 } from "node:fs";
-import { join as join23, resolve as resolve13 } from "node:path";
+import { existsSync as existsSync20, readdirSync as readdirSync12, writeFileSync as writeFileSync20 } from "node:fs";
+import { join as join24, resolve as resolve15 } from "node:path";
 function assetDirs(root) {
-  return readdirSync12(root, { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync19(join23(root, d.name, "brief.json"))).map((d) => join23(root, d.name));
+  return readdirSync12(root, { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync20(join24(root, d.name, "brief.json"))).map((d) => join24(root, d.name));
 }
 async function report(root, opts = {}) {
   const assets = assetDirs(root).map((p2) => openAsset(p2));
@@ -31860,8 +32789,8 @@ Price basis (same as artlab): $${PRICE2.inPerM}/M input (review images), $${PRIC
 Totals: ${tot.out} output tok, ${tot.inp} review tok, est. $${cost(tot.out, tot.inp).toFixed(3)}. Average gain from revisions ${avg((s2) => s2.revisionGain)}, from the finishing pass ${avg((s2) => s2.finishGain)}. ${summaries.filter((s2) => s2.met).length}/${summaries.length} assets at or above target.
 `;
   if (opts.out) {
-    writeFileSync19(opts.out, md);
-    await finalComparison(assets, summaries, resolve13(opts.out, "..", "final-comparison.png"));
+    writeFileSync20(opts.out, md);
+    await finalComparison(assets, summaries, resolve15(opts.out, "..", "final-comparison.png"));
   }
   return { markdown: md, summaries };
 }
@@ -31873,7 +32802,7 @@ async function finalComparison(assets, summaries, path) {
     const fin = (await renderVersion(a, s2.final)).strip, R3 = a.brief.review ?? {};
     const ctx = (g) => R3.iso ? iso_exports.isoFloor(g.w, g.h) : void 0;
     if (a.brief.reference) {
-      const ref = readGrid(resolve13(a.path, a.brief.reference));
+      const ref = readGrid(resolve15(a.path, a.brief.reference));
       items.push({ label: `${a.brief.id} ref ${s2.target ?? ""}`, grid: ref, bg: R3.bg, context: ctx(ref) });
     }
     items.push({ label: `${a.brief.id} ${s2.final} ${s2.finish ?? s2.bestRevision?.score ?? ""}`, grid: fin, bg: R3.bg, context: ctx(fin) });
@@ -31893,8 +32822,8 @@ var init_report = __esm({
 });
 
 // ../artgen-cli/src/ops/art-shared.ts
-import { existsSync as existsSync20 } from "node:fs";
-import { join as join24 } from "node:path";
+import { existsSync as existsSync21 } from "node:fs";
+import { join as join25 } from "node:path";
 function versionOf(ctx, a, i, mcpEmpty) {
   if (typeof i.version === "string") return i.version;
   const vs = versionsIn(a);
@@ -31903,17 +32832,17 @@ function versionOf(ctx, a, i, mcpEmpty) {
   return vs[vs.length - 1];
 }
 function toolDirection(cmd, project2, override) {
-  const file = override ?? (project2 ? join24(project2.art, "direction.json") : void 0);
+  const file = override ?? (project2 ? join25(project2.art, "direction.json") : void 0);
   const fix = "lock one first (artgen direction candidates \u2192 tile \u2192 lock, or /artgen-direction in Claude Code), or pass --direction <file|benchmark>";
-  if (override && !existsSync20(override) && ["benchmark", "alt"].includes(override)) return { p: project2, dir: resolveDirection(override) };
-  if (override && !existsSync20(override)) throw new Error(`${cmd}: --direction ${override}: no such file (or bench direction: benchmark, alt)`);
-  if (!file || !existsSync20(file)) throw new Error(`${cmd}: no art direction found \u2014 ${fix}`);
+  if (override && !existsSync21(override) && ["benchmark", "alt"].includes(override)) return { p: project2, dir: resolveDirection(override) };
+  if (override && !existsSync21(override)) throw new Error(`${cmd}: --direction ${override}: no such file (or bench direction: benchmark, alt)`);
+  if (!file || !existsSync21(file)) throw new Error(`${cmd}: no art direction found \u2014 ${fix}`);
   const raw = readJson(file), v = validateDirection(raw);
   if (!v.ok) throw new Error(raw?.status === "draft" && !override ? `${cmd}: the art direction is still a draft \u2014 ${fix}` : `${cmd}: ${file} is not a valid direction:
   ${v.errors.join("\n  ")}`);
   return { p: project2, dir: parseDirection(raw) };
 }
-var image, W1, BY_PATH, STR_LIST2, assetParam, directionParam, ledgerParam, idsParam, versionParam, assetOpts, assetOf, sizeOf2, sizeKey, statusTable, packetLine, projectPng;
+var image, W1, BY_PATH2, STR_LIST2, assetParam, directionParam, ledgerParam, idsParam, versionParam, assetOpts, assetOf, sizeOf2, sizeKey, statusTable, packetLine, projectPng;
 var init_art_shared = __esm({
   "../artgen-cli/src/ops/art-shared.ts"() {
     "use strict";
@@ -31925,7 +32854,7 @@ var init_art_shared = __esm({
     init_maps_shared();
     image = (g) => ({ type: "image", data: Buffer.from(encodePNG(g)).toString("base64"), mimeType: "image/png" });
     W1 = "W1 runs through the art-direction skill and the CLI";
-    BY_PATH = "reads a file by path outside the art/ sandbox";
+    BY_PATH2 = "reads a file by path outside the art/ sandbox";
     STR_LIST2 = { type: "array", items: { type: "string" } };
     assetParam = (doc2 = "the asset: a brief id (art/briefs.yaml) or an asset directory, e.g. art/probes/character") => p.str(doc2, { positional: true, required: true });
     directionParam = () => p.str("a direction file (or a bench direction: benchmark, alt) in place of the locked one");
@@ -31946,12 +32875,12 @@ var init_art_shared = __esm({
     statusTable = (rows2) => rows2.map((r) => `  ${r.id.padEnd(16)} ${r.status.padEnd(11)} ${r.final ? `${r.final} ${r.score ?? "-"}${r.blind !== void 0 ? ` b${r.blind}` : ""}${r.gate === false ? " GATE FAIL" : ""}${r.belowBar ? " BELOW BAR" : ""}${r.top ? ` final\u2260best (${r.top.version} ${r.top.score})` : ""}` : r.next ? `${r.next.action} ${"version" in r.next ? r.next.version : ""}` : ""}${r.issues.length ? `
 ${r.issues.map((i) => `      issue: ${i}`).join("\n")}` : ""}`).join("\n");
     packetLine = (x) => `  ${x.id.padEnd(16)} ${x.step.action} ${"version" in x.step ? x.step.version : ""}${x.writes.length ? ` \u2192 writes ${x.writes.join(", ")}` : ""}${x.resume ? " (resume: written, never reviewed \u2014 check it, complete it, review it)" : ""}`;
-    projectPng = (ctx, f) => pngFile(join24(ctx.project().root, f));
+    projectPng = (ctx, f) => pngFile(join25(ctx.project().root, f));
   }
 });
 
 // ../artgen-cli/src/ops/art-asset.ts
-import { join as join25 } from "node:path";
+import { join as join26 } from "node:path";
 var PASS_NEXT, passRows, nextLine, passStatus, passNext, render10, review, conformance2, score, variants, reportOp2, voxel, anim, texture, fx, bench;
 var init_art_asset = __esm({
   "../artgen-cli/src/ops/art-asset.ts"() {
@@ -32015,8 +32944,8 @@ var init_art_asset = __esm({
         const r = await renderVersion(a, version, { variant, stages });
         let files = [];
         if (ctx.surface === "cli") {
-          files = writeRender(a, r, variant ? join25(a.path, "out", `variant-${variant}`) : void 0);
-          if (stages) for (const [k, g] of stages) writeGrid(join25(a.path, "out", "stages", version, `${k.replace(/\//g, "_")}.png`), g);
+          files = writeRender(a, r, variant ? join26(a.path, "out", `variant-${variant}`) : void 0);
+          if (stages) for (const [k, g] of stages) writeGrid(join26(a.path, "out", "stages", version, `${k.replace(/\//g, "_")}.png`), g);
         }
         return { id: a.brief.id, version, r, files };
       },
@@ -32215,7 +33144,7 @@ var init_art_asset = __esm({
           m[k] = v;
           return m;
         }, {}) : i.ramps;
-        const out = mcp ? join25(pr.art, "sheets", "textures") : i.out ?? (pr ? join25(pr.art, "sheets", "textures") : "artgen-out");
+        const out = mcp ? join26(pr.art, "sheets", "textures") : i.out ?? (pr ? join26(pr.art, "sheets", "textures") : "artgen-out");
         return { material: i.material, size: size2, r: textureRun(dir, i.material, { size: size2, seed: typeof i.seed === "number" ? i.seed : void 0, ramps, scale: typeof i.scale === "number" ? i.scale : void 0, out }) };
       },
       cli: {
@@ -32257,7 +33186,7 @@ var init_art_asset = __esm({
         if (i.list === true || mcp && !i.preset) return { list: PRESET_NAMES };
         if (!i.preset) throw new Error("fx: name a preset (artgen fx --list)");
         const { p: pr, dir } = mcp ? { p: ctx.project(), dir: typeof i.direction === "string" ? resolveDirection(ctx.direction(i.direction)) : requireLocked(ctx.project()) } : toolDirection("fx", ctx.findProject(), i.direction);
-        const size2 = sizeOf2(i.size), out = mcp ? join25(pr.art, "sheets", "fx") : i.out ?? (pr ? join25(pr.art, "sheets", "fx") : "artgen-out");
+        const size2 = sizeOf2(i.size), out = mcp ? join26(pr.art, "sheets", "fx") : i.out ?? (pr ? join26(pr.art, "sheets", "fx") : "artgen-out");
         return { preset: i.preset, size: size2, r: fxRun(dir, i.preset, { size: size2, frames: typeof i.frames === "number" ? i.frames : 8, seed: typeof i.seed === "number" ? i.seed : void 0, scale: typeof i.scale === "number" ? i.scale : void 0, out }) };
       },
       cli: {
@@ -32306,13 +33235,13 @@ var init_art_asset = __esm({
 });
 
 // ../artgen-cli/src/ops/art-direction.ts
-import { existsSync as existsSync21, readFileSync as readFileSync20 } from "node:fs";
-import { join as join26 } from "node:path";
+import { existsSync as existsSync22, readFileSync as readFileSync21 } from "node:fs";
+import { join as join27 } from "node:path";
 function readColors(src, n = 16) {
   if (/^#?[0-9a-f]{6}(,#?[0-9a-f]{6})*$/i.test(src)) return src.split(",").map((c) => "#" + c.replace("#", "").toLowerCase());
-  if (!existsSync21(src)) throw new Error(`${src}: not found`);
+  if (!existsSync22(src)) throw new Error(`${src}: not found`);
   if (src.endsWith(".png")) return extractPalette(readGrid(src), n).colors;
-  const t = readFileSync20(src, "utf8");
+  const t = readFileSync21(src, "utf8");
   return src.endsWith(".gpl") ? parseGpl(t) : parseHexPalette(t);
 }
 var init, candidates2, directionShow, tile, mix, lockOp, anchors, draft, validate, swatch, paletteFile, paletteImport, paletteExtract, ramp, newOp, finish2;
@@ -32362,7 +33291,7 @@ var init_art_direction = __esm({
         from: p.str("an interview file (default art/interview.json)")
       },
       run(i, ctx) {
-        const pr = ctx.project(), base = i.from ? readInterview(i.from) : existsSync21(join26(pr.art, "interview.json")) ? readJson(join26(pr.art, "interview.json")) : {};
+        const pr = ctx.project(), base = i.from ? readInterview(i.from) : existsSync22(join27(pr.art, "interview.json")) ? readJson(join27(pr.art, "interview.json")) : {};
         const iv = {
           ...base,
           pitch: i.pitch ?? base.pitch ?? "",
@@ -32507,7 +33436,7 @@ style sheet: ${r.sheet}`
       effect: "read",
       summary: "Check a direction file against the direction format.",
       params: { file: p.str("the direction file", { positional: true, required: true }) },
-      run: (i) => validateDirection(JSON.parse(readFileSync20(i.file, "utf8"))),
+      run: (i) => validateDirection(JSON.parse(readFileSync21(i.file, "utf8"))),
       cli: {
         usage: "       artgen direction validate <file>",
         // prints the same lines with --json
@@ -32536,7 +33465,7 @@ style sheet: ${r.sheet}`
       run(i, ctx) {
         const colors = readColors(i.file, i.n ?? 16), ramps = rampsFromColors(colors);
         if (i.interview) {
-          const f = join26(ctx.project().art, "interview.json"), iv = existsSync21(f) ? readJson(f) : { pitch: "" };
+          const f = join27(ctx.project().art, "interview.json"), iv = existsSync22(f) ? readJson(f) : { pitch: "" };
           writeJson(f, { ...iv, colors });
         }
         if (i.swatch) swatch(colors, i.swatch);
@@ -32548,7 +33477,7 @@ style sheet: ${r.sheet}`
 ${Object.entries(r.ramps).map(([k, x]) => `  ${k}: ${x.join(" ")}`).join("\n")}${r.interview ? "\nadded to art/interview.json (candidate A builds its ramps from them)" : ""}`,
         json: (r) => ({ colors: r.colors, ramps: r.ramps })
       },
-      mcp: { exclude: BY_PATH },
+      mcp: { exclude: BY_PATH2 },
       python: {}
     });
     paletteImport = paletteFile("import", "Read a palette file");
@@ -32582,12 +33511,12 @@ ${Object.entries(r.ramps).map(([k, x]) => `  ${k}: ${x.join(" ")}`).join("\n")}$
       run(i, ctx) {
         const pr = ctx.findProject(), view = i.view ?? (pr && (() => {
           try {
-            return readJson(join26(pr.art, "direction.json")).camera?.view;
+            return readJson(join27(pr.art, "direction.json")).camera?.view;
           } catch {
             return void 0;
           }
         })()) ?? "topdown";
-        const path = i.dir ?? (pr ? join26(pr.art, "assets", i.kind, i.id) : i.id);
+        const path = i.dir ?? (pr ? join27(pr.art, "assets", i.kind, i.id) : i.id);
         return { id: i.id, path, ...newAsset(path, { id: i.id, kind: i.kind, view, size: sizeKey(i.size), states: i.states, directions: i.directions, notes: i.notes }) };
       },
       cli: {
@@ -32615,7 +33544,7 @@ next: edit base.v1.js for the brief, then artgen review ${r.path}`,
 });
 
 // ../artgen-cli/src/ops/art-production.ts
-import { writeFileSync as writeFileSync20 } from "node:fs";
+import { writeFileSync as writeFileSync21 } from "node:fs";
 var ROSTER_SKILL, briefAdd, briefList, briefRm, briefLint, makeOp, status, galleryOp, sheetOp, feedbackOp, approveOp, roster2, rosterRecordOp, exportOp, restyleOp, importEditOp, analytics2;
 var init_art_production = __esm({
   "../artgen-cli/src/ops/art-production.ts"() {
@@ -33027,12 +33956,12 @@ next: artgen review ${id2}`,
         if (across2) {
           if (!across2.length) throw new Error("analytics --across <project root>[,<root>\u2026]: the projects (or bench folders with a ledger.jsonl) to pool");
           const r4 = pooledAnalytics(across2, { apply: i.apply ? ctx.project() : void 0, minAssets: i.min_assets });
-          if (i.out) writeFileSync20(i.out, r4.markdown);
+          if (i.out) writeFileSync21(i.out, r4.markdown);
           return { markdown: r4.markdown + (r4.applied ? `
 applied to ${r4.applied}` : ""), data: { ...r4.report, ...r4.applied && { applied: r4.applied } } };
         }
         const r = projectAnalytics(ctx.project());
-        if (i.out) writeFileSync20(i.out, r.markdown);
+        if (i.out) writeFileSync21(i.out, r.markdown);
         return { markdown: r.markdown, data: r.report };
       },
       cli: {
@@ -33046,37 +33975,216 @@ applied to ${r4.applied}` : ""), data: { ...r4.report, ...r4.applied && { applie
   }
 });
 
+// ../artgen-cli/src/ops/art-image.ts
+import { existsSync as existsSync23, writeFileSync as writeFileSync22 } from "node:fs";
+import { join as join28, resolve as resolve16 } from "node:path";
+function nearestRole(ramps, roles, rgb) {
+  let best = "", bd = Infinity;
+  for (const role of roles) {
+    const ramp2 = ramps[role];
+    const [r, g, b] = parseColor(ramp2[Math.floor(ramp2.length / 2)]), d = (r - rgb[0]) ** 2 + (g - rgb[1]) ** 2 + (b - rgb[2]) ** 2;
+    if (d < bd) {
+      bd = d;
+      best = role;
+    }
+  }
+  return best;
+}
+function meanColor(img, m) {
+  let r = 0, g = 0, b = 0, n = 0;
+  for (let i = 0; i < m.d.length; i++) if (m.d[i] && img.d[i * 4 + 3] > 0) {
+    r += img.d[i * 4];
+    g += img.d[i * 4 + 1];
+    b += img.d[i * 4 + 2];
+    n++;
+  }
+  return n ? [r / n, g / n, b / n] : [128, 128, 128];
+}
+var PLACE, rolesFor, num4, traceBase, isPicture, cut, IMAGE_ART_OPS;
+var init_art_image = __esm({
+  "../artgen-cli/src/ops/art-image.ts"() {
+    "use strict";
+    init_src7();
+    init_src();
+    init_src5();
+    init_asset();
+    init_w2();
+    init_art_shared();
+    init_image();
+    init_registry();
+    PLACE = "writes a file from a picture by path outside the art/ sandbox";
+    rolesFor = (dir, kind) => (kind && dir.palette.perKind[kind] || Object.keys(dir.palette.ramps)).filter((r) => dir.palette.ramps[r]);
+    num4 = (v) => String(Math.round(v * 1e4) / 1e4);
+    traceBase = defineOp({
+      name: "trace-base",
+      module: "art",
+      effect: "write",
+      summary: "Write an asset's next base.vN.js from a traced sketch or reference picture: its shapes as path primitives, fitted to the asset's frame.",
+      params: {
+        asset: assetParam("the asset: a brief id or an asset directory"),
+        image: p.str("the sketch or reference picture (PNG)", { positional: true, required: "trace-base: <asset> <image.png>" }),
+        mat: p.str("the direction's material (ramp) for the shapes (default: the one nearest the picture's colour)"),
+        margin: p.num("pixels to keep free round the shapes in the frame (default 2)"),
+        anchor: p.oneOf(["center", "bottom"], "put the shapes in the middle of the frame, or on its bottom edge like a figure on the ground (default center)"),
+        ...traceParams(),
+        direction: directionParam(),
+        ledger: ledgerParam()
+      },
+      async run(i, ctx) {
+        const a = assetOf(ctx, i), img = readPicture(resolve16(i.image)), opts = { ...defaultTraceOptions, ...traceOptions(i) }, t = traceImage(img, opts);
+        if (!t.shapes.length) throw new Error(`${i.image}: nothing to trace (try --invert, a different --threshold, or a lower --min-area)`);
+        const roles = rolesFor(a.dir, a.brief.kind), role = i.mat ?? nearestRole(a.dir.palette.ramps, roles, meanColor(img, binarize(img, opts).binary));
+        if (!roles.includes(role)) throw new Error(`--mat ${role}: one of ${roles.join(", ")}`);
+        const [W3, H] = resolveSize(a.dir, a.brief.size, a.brief.kind), margin = i.margin ?? 2;
+        let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+        for (const s2 of t.shapes) for (let k = 0; k < s2.outer.points.length; k += 2) {
+          x0 = Math.min(x0, s2.outer.points[k]);
+          x1 = Math.max(x1, s2.outer.points[k]);
+          y0 = Math.min(y0, s2.outer.points[k + 1]);
+          y1 = Math.max(y1, s2.outer.points[k + 1]);
+        }
+        const bw = Math.max(1, x1 - x0), bh = Math.max(1, y1 - y0), scale2 = Math.min((W3 - 2 * margin) / bw, (H - 2 * margin) / bh);
+        if (!(scale2 > 0)) throw new Error(`--margin ${margin} leaves no room in a ${W3}x${H} frame`);
+        const ox = (W3 - bw * scale2) / 2 - x0 * scale2, oy = (i.anchor === "bottom" ? H - margin - bh * scale2 : (H - bh * scale2) / 2) - y0 * scale2;
+        const ring2 = (r) => `[${Array.from(r.points, (v, k) => num4(k % 2 ? (v * scale2 + oy) / H : (v * scale2 + ox) / W3)).join(",")}]`;
+        const n = Math.max(0, ...versionsIn(a).map((v) => parseVersion(v)).filter((v) => v?.kind === "base").map((v) => v.n)) + 1, version = `base.v${n}`;
+        const file = join28(a.path, `${version}.js`), holes = t.shapes.reduce((c, s2) => c + s2.holes.length, 0), from = String(i.image).split(/[\\/]/).pop().replace(/[^\w.\- ]/g, "_");
+        const source = [
+          `// ${a.brief.id} ${version} (${passOf(a, version)}) \u2014 traced from ${from} by \`artgen trace-base\`: ${t.shapes.length} shape${t.shapes.length === 1 ? "" : "s"}${holes ? `, ${holes} hole${holes === 1 ? "" : "s"}` : ""}, fitted to the ${W3}x${H} frame.`,
+          "// This is the silhouette and nothing more. Shape it (split it into parts, set the materials, add the details and the face) in the next pass.",
+          `export const meta = { brief: ${JSON.stringify(a.brief.id)}, pass: ${JSON.stringify(passOf(a, version))}, notes: ${JSON.stringify(`traced silhouette of ${from}`)} };`,
+          "",
+          "// each shape: its outline, then its holes, as [x, y, \u2026] in fractions of the frame",
+          "const SHAPES = [",
+          ...t.shapes.map((s2) => `  [${[s2.outer, ...s2.holes].map(ring2).join(", ")}],`),
+          "];",
+          "",
+          "export function render(ctx) {",
+          "  const { pal } = ctx.dir, [w, h] = ctx.size, s = ctx.lib.t2.scene(w, h);",
+          "  const d = r => r.map((v, i) => (i === 0 ? 'M' : i % 2 ? ' ' : ' L') + (v * (i % 2 ? h : w)).toFixed(2)).join('') + ' Z';",
+          `  SHAPES.forEach((rings, i) => s.add({ type: 'path', name: 'shape' + i, d: rings.map(d).join(' '), fillRule: 'evenodd', mat: pal.${role}, shade: 'normal', underlay: true }));`,
+          "  return ctx.lib.proc(s).render();",
+          "}",
+          ""
+        ].join("\n");
+        writeFileSync22(file, source);
+        return { asset: a.brief.id, file, version, mat: role, trace: traceSummary(t), size: [W3, H] };
+      },
+      cli: {
+        usage: "       artgen trace-base <asset> <image.png> [--mat ramp] [--margin px] [--anchor center|bottom] [--threshold otsu|0-255] [--invert] [--blur n] [--smoothing n] [--simplify px] [--min-area px\xB2] [--holes off] [--max-paths n]",
+        text: (r) => `${r.asset}: ${r.version} (${r.trace.shapes} shapes${r.trace.holes ? `, ${r.trace.holes} holes` : ""}, material ${r.mat}) \u2192 ${r.file}
+next: artgen render ${r.asset} --version ${r.version}, then review it`,
+        json: (r) => ({ asset: r.asset, version: r.version, file: r.file, mat: r.mat, trace: r.trace })
+      },
+      mcp: { exclude: PLACE },
+      python: {}
+    });
+    isPicture = (s2) => typeof s2 === "string" && /\.png$/i.test(s2) && existsSync23(s2);
+    cut = defineOp({
+      name: "cut",
+      module: "art",
+      effect: "write",
+      summary: "Cut a token (or the flat silhouette the Shape gate reads) from an approved asset's render, or from a picture.",
+      params: {
+        target: p.str("an asset (a brief id or directory; it must be approved) or a picture (PNG)", { positional: true, required: "cut: <asset|image.png>" }),
+        out: p.str("the PNG to write (default: art/tokens/<id>.png for an asset, <image>-token.png for a picture)"),
+        fill: p.oneOf(["art", "flat"], "keep the picture's pixels inside the cut, or fill it with --color (default art)"),
+        color: p.str("--fill flat: the colour, #rrggbb (default #000000)"),
+        padding: p.int("transparent margin round the subject in pixels (default 8)"),
+        square: p.bool("pad the result to a square"),
+        scale: p.int("enlarge by this whole number, nearest neighbour (default 1)"),
+        version: p.str("asset: the version to cut (default: the final)"),
+        draft: p.bool("asset: cut a final that is not approved yet"),
+        state: p.str("asset: the state to cut (default: the first)"),
+        facing: p.str("asset: the facing to cut (default: the first)"),
+        frame: p.int("asset: the frame to cut (default 0)"),
+        threshold: p.str("picture: grey level 0\u2013255 that splits subject from background, or otsu (default)"),
+        invert: p.bool("picture: the lighter region is the subject"),
+        smoothing: p.int("picture: close kernel that seals speckle (default 5)"),
+        keep_all: p.bool("picture: keep every blob, not only the largest"),
+        direction: directionParam(),
+        ledger: ledgerParam()
+      },
+      async run(i, ctx) {
+        if (i.threshold !== void 0 && i.threshold !== "otsu" && !(Number.isFinite(+i.threshold) && +i.threshold >= 0 && +i.threshold <= 255)) throw new Error("--threshold: otsu or a grey level from 0 to 255");
+        if (i.scale !== void 0 && !(i.scale >= 1 && i.scale <= 32)) throw new Error("--scale: a whole number from 1 to 32");
+        let img, mask, out, id2, source;
+        if (/\.png$/i.test(i.target) && !existsSync23(i.target)) throw new Error(`${i.target}: not found`);
+        if (isPicture(i.target)) {
+          const file = resolve16(i.target);
+          img = readPicture(file);
+          mask = silhouetteMask(img, [], { threshold: i.threshold === void 0 || i.threshold === "otsu" ? "otsu" : +i.threshold, invert: i.invert === true, smoothing: i.smoothing ?? 5, keepLargestBlob: !i.keep_all });
+          out = resolve16(i.out ?? `${stemOf2(file)}-token.png`);
+          id2 = stemOf2(file).split(/[\\/]/).pop();
+          source = file;
+        } else {
+          const a = assetOf(ctx, { ...i, asset: i.target });
+          let version = i.version;
+          if (a.project && !version) {
+            const row = (await projectStatus(a.project, [a.brief.id]))[0];
+            const ok = row && (row.status === "approved" || row.status === "exported" || i.draft === true && row.status === "final");
+            if (!ok) throw new Error(`${a.brief.id} is ${row?.status ?? "unknown"}${row?.final ? ` (final ${row.final})` : ""}: cut tokens from approved assets, or pass --draft for a final that is not approved yet (or --version for a version you pick)`);
+            version = row.final;
+          }
+          version ??= versionsIn(a).at(-1);
+          if (!version) throw new Error(`${a.brief.id}: no base.vN.js yet`);
+          const r = (await renderVersion(a, version)).render;
+          const cell3 = r.cells.find((c) => c.state === (i.state ?? r.states[0]) && c.facing === (i.facing ?? r.facings[0]) && c.frame === (i.frame ?? 0));
+          if (!cell3) throw new Error(`${a.brief.id} ${version}: no cell ${i.state ?? r.states[0]}/${i.facing ?? r.facings[0]}/${i.frame ?? 0} (states ${r.states.join(", ")}; facings ${r.facings.join(", ")}; frames 0\u2013${Math.max(...Object.values(r.frames)) - 1})`);
+          img = cell3.grid;
+          mask = alphaMask(img);
+          out = resolve16(i.out ?? join28(a.project?.art ?? a.path, a.project ? "tokens" : "", `${a.brief.id}.png`));
+          id2 = a.brief.id;
+          source = `${a.brief.id} ${version}`;
+        }
+        const flat2 = i.fill === "flat", colored = flat2 ? silhouetteImage(mask, normHex(i.color ?? "#000000")) : applyMask(img, mask);
+        const token = cropToken(colored, { padding: i.padding ?? 8, square: i.square === true, scale: i.scale ?? 1 });
+        writePicture(out, token);
+        return { id: id2, source, out, width: token.w, height: token.h, fill: flat2 ? "flat" : "art" };
+      },
+      cli: {
+        usage: "       artgen cut <asset|image.png> [--out file.png] [--fill art|flat] [--color #rrggbb] [--padding px] [--square] [--scale n]   (asset: [--version v] [--draft] [--state s] [--facing f] [--frame n]; picture: [--threshold otsu|0-255] [--invert] [--smoothing n] [--keep-all])",
+        text: (r) => `${r.out}: ${r.width}x${r.height} ${r.fill === "flat" ? "silhouette" : "token"} of ${r.source}`,
+        json: (r) => ({ id: r.id, source: r.source, out: r.out, width: r.width, height: r.height, fill: r.fill })
+      },
+      mcp: { exclude: PLACE },
+      python: {}
+    });
+    IMAGE_ART_OPS = [traceBase, cut];
+  }
+});
+
 // ../artgen-cli/src/loop/pr-review.ts
-import { copyFileSync as copyFileSync4, existsSync as existsSync22, mkdirSync as mkdirSync16, readdirSync as readdirSync13, rmSync as rmSync2, writeFileSync as writeFileSync21 } from "node:fs";
-import { join as join27, resolve as resolve14 } from "node:path";
+import { copyFileSync as copyFileSync4, existsSync as existsSync24, mkdirSync as mkdirSync17, readdirSync as readdirSync13, rmSync as rmSync2, writeFileSync as writeFileSync23 } from "node:fs";
+import { join as join29, resolve as resolve17 } from "node:path";
 function sheetFor(p2, row, version) {
-  const a = openAsset(join27(p2.root, row.path)), s2 = [...ledgerFor(a)].reverse().find((e) => e.type === "review" && e.version === version && typeof e.sheet === "string")?.sheet;
+  const a = openAsset(join29(p2.root, row.path)), s2 = [...ledgerFor(a)].reverse().find((e) => e.type === "review" && e.version === version && typeof e.sheet === "string")?.sheet;
   if (!s2) return void 0;
-  const f = resolve14(p2.art, String(s2).split(",")[0]);
-  return existsSync22(f) ? f : void 0;
+  const f = resolve17(p2.art, String(s2).split(",")[0]);
+  return existsSync24(f) ? f : void 0;
 }
 async function prepareReview(p2, o = {}) {
   const rows2 = (await projectStatus(p2, o.ids)).filter((r) => r.final && (o.ids?.length || r.status === "final"));
-  const dir = join27(p2.art, "review");
-  if (existsSync22(dir)) {
-    for (const f of readdirSync13(dir)) if (/^[\w-]+-(base|finish)\.v\d+\.png$|^REVIEW\.md$/.test(f)) rmSync2(join27(dir, f));
+  const dir = join29(p2.art, "review");
+  if (existsSync24(dir)) {
+    for (const f of readdirSync13(dir)) if (/^[\w-]+-(base|finish)\.v\d+\.png$|^REVIEW\.md$/.test(f)) rmSync2(join29(dir, f));
   }
-  mkdirSync16(dir, { recursive: true });
+  mkdirSync17(dir, { recursive: true });
   const items = [], missing = [];
   for (const r of rows2) {
     const item = { id: r.id, version: r.final, score: r.score, blind: r.blind, issues: r.issues, ...r.belowBar && { belowBar: true } };
     const sheet = sheetFor(p2, r, r.final);
     if (sheet) {
       const name = `${r.id}-${r.final}.png`;
-      copyFileSync4(sheet, join27(dir, name));
+      copyFileSync4(sheet, join29(dir, name));
       item.sheet = name;
     } else missing.push(r.id);
-    const fb = [...ledgerFor(openAsset(join27(p2.root, r.path)))].reverse().find((e) => e.type === "feedback" && typeof e.on === "string" && e.on !== r.final);
+    const fb = [...ledgerFor(openAsset(join29(p2.root, r.path)))].reverse().find((e) => e.type === "feedback" && typeof e.on === "string" && e.on !== r.final);
     if (fb) {
       const prev = sheetFor(p2, r, fb.on);
       if (prev) {
         const name = `${r.id}-${fb.on}.png`;
-        copyFileSync4(prev, join27(dir, name));
+        copyFileSync4(prev, join29(dir, name));
         item.before = name;
         item.beforeVersion = fb.on;
       }
@@ -33101,7 +34209,7 @@ async function prepareReview(p2, o = {}) {
     ...missing.length ? ["", `No review sheet yet for ${missing.join(", ")}: run \`artgen review <id>\` first.`] : [],
     ""
   ].join("\n");
-  writeFileSync21(join27(dir, "REVIEW.md"), table);
+  writeFileSync23(join29(dir, "REVIEW.md"), table);
   return { dir, table, items, missing };
 }
 function parseReviewComment(text2, ids) {
@@ -33146,7 +34254,7 @@ var init_pr_review = __esm({
 });
 
 // ../artgen-cli/src/ops/art-loop.ts
-import { readFileSync as readFileSync21 } from "node:fs";
+import { readFileSync as readFileSync22 } from "node:fs";
 var prPrepare, prParse, LOOP_ART_OPS;
 var init_art_loop = __esm({
   "../artgen-cli/src/ops/art-loop.ts"() {
@@ -33183,7 +34291,7 @@ commit art/review/ to the pull request, then ask the user to reply there: approv
       description: `Read the user's pull request comment ("approve goblin", "goblin: arms too long", "goblin: finish: eyes too dark") into actions: approve and feedback calls, with lines naming no brief listed apart. Parse only: the session makes the calls with via: pr, after checking the comment is the user's.`,
       params: { comment: p.str("the comment text; or a file with --file", { positional: true }), file: p.str("read the comment from this file (- for standard input)", { mcp: false }), ids: idsParam("brief ids that count; default every brief") },
       run(i, ctx) {
-        const body3 = typeof i.file === "string" ? readFileSync21(i.file === "-" ? 0 : i.file, "utf8") : typeof i.comment === "string" ? i.comment : void 0;
+        const body3 = typeof i.file === "string" ? readFileSync22(i.file === "-" ? 0 : i.file, "utf8") : typeof i.comment === "string" ? i.comment : void 0;
         if (body3 === void 0) throw new Error("pr parse: give the comment text, or --file <path>");
         const ids = Array.isArray(i.ids) && i.ids.length ? i.ids : readBriefs(ctx.project()).map((b) => b.id);
         return parseReviewComment(body3, ids);
@@ -33211,6 +34319,7 @@ var init_art = __esm({
     init_art_asset();
     init_art_direction();
     init_art_production();
+    init_art_image();
     init_art_loop();
     init_registry();
     ART_OPS = [
@@ -33250,6 +34359,7 @@ var init_art = __esm({
       rosterRecordOp,
       texture,
       fx,
+      ...IMAGE_ART_OPS,
       exportOp,
       restyleOp,
       analytics2,
@@ -33282,7 +34392,7 @@ __export(cli_exports, {
   VERSION: () => VERSION,
   main: () => main
 });
-import { readFileSync as readFileSync22 } from "node:fs";
+import { readFileSync as readFileSync23 } from "node:fs";
 async function main(argv) {
   const [cmd] = argv;
   if (cmd === "--version" || cmd === "version") {
@@ -33298,7 +34408,7 @@ async function main(argv) {
     console.error(`artgen: unknown command '${argv.slice(0, 2).join(" ")}' \u2014 run artgen --help for the list`);
     return 1;
   }
-  return runCli(OPS, argv, { log: (s2) => console.log(s2), ctx: cliCtx, readFile: (f) => readFileSync22(f, "utf8") });
+  return runCli(OPS, argv, { log: (s2) => console.log(s2), ctx: cliCtx, readFile: (f) => readFileSync23(f, "utf8") });
 }
 var HEADER2, FOOTER, USAGE, cliCtx;
 var init_cli2 = __esm({

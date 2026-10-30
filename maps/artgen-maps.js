@@ -7,7 +7,7 @@ var __export = (target, all) => {
 };
 
 // ../artgen-cli/src/maps-cli.ts
-import { readFileSync as readFileSync13 } from "node:fs";
+import { readFileSync as readFileSync14 } from "node:fs";
 
 // ../artgen-cli/src/projectfs.ts
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -37,15 +37,15 @@ var defineOp = (op) => op;
 var isExcluded = (x) => "exclude" in x;
 var cliOf = (op) => isExcluded(op.cli) ? null : op.cli;
 var p = {
-  str: (doc, o = {}) => ({ kind: "string", doc, ...o }),
-  num: (doc, o = {}) => ({ kind: "number", doc, ...o }),
-  int: (doc, o = {}) => ({ kind: "integer", doc, ...o }),
-  bool: (doc, o = {}) => ({ kind: "boolean", doc, style: "switch", ...o }),
-  oneOf: (values, doc, o = {}) => ({ kind: "enum", values, doc, ...o }),
-  list: (item, doc, o = {}) => ({ kind: "list", item, doc, ...o }),
-  points: (doc, o = {}) => ({ kind: "points", doc, ...o }),
-  size: (doc, o = {}) => ({ kind: "size", doc, ...o }),
-  json: (schema, doc, o = {}) => ({ kind: "json", schema, doc, ...o })
+  str: (doc2, o = {}) => ({ kind: "string", doc: doc2, ...o }),
+  num: (doc2, o = {}) => ({ kind: "number", doc: doc2, ...o }),
+  int: (doc2, o = {}) => ({ kind: "integer", doc: doc2, ...o }),
+  bool: (doc2, o = {}) => ({ kind: "boolean", doc: doc2, style: "switch", ...o }),
+  oneOf: (values, doc2, o = {}) => ({ kind: "enum", values, doc: doc2, ...o }),
+  list: (item, doc2, o = {}) => ({ kind: "list", item, doc: doc2, ...o }),
+  points: (doc2, o = {}) => ({ kind: "points", doc: doc2, ...o }),
+  size: (doc2, o = {}) => ({ kind: "size", doc: doc2, ...o }),
+  json: (schema, doc2, o = {}) => ({ kind: "json", schema, doc: doc2, ...o })
 };
 var onOff = (v) => /^(on|true|yes|1)$/i.test(v);
 var flagOf = (key, par) => par.flag ?? `--${key.replace(/_/g, "-")}`;
@@ -205,8 +205,8 @@ async function runCli(ops, argv, io) {
 
 // ../artgen-cli/src/ops/core.ts
 import { spawn } from "node:child_process";
-import { existsSync as existsSync11, readFileSync as readFileSync11, writeFileSync as writeFileSync10 } from "node:fs";
-import { dirname as dirname10, join as join11 } from "node:path";
+import { existsSync as existsSync12, readFileSync as readFileSync12, writeFileSync as writeFileSync11 } from "node:fs";
+import { dirname as dirname11, join as join12 } from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
 
 // ../artgen-cli/src/loop/feedback-bundle.ts
@@ -1519,8 +1519,8 @@ function clampCrop(c, cols, rows2) {
   if (!(x1 > x0 && y1 > y0)) throw new Error(`crop ${c.join(",")} is outside the sheet (0,0,${cols},${rows2})`);
   return [r3(x0), r3(y0), r3(x1 - x0), r3(y1 - y0)];
 }
-function frameOf(crop, cols, rows2, k) {
-  const [x, y, w, h] = crop ? clampCrop(crop, cols, rows2) : [0, 0, cols, rows2];
+function frameOf(crop2, cols, rows2, k) {
+  const [x, y, w, h] = crop2 ? clampCrop(crop2, cols, rows2) : [0, 0, cols, rows2];
   return { x: x * k, y: y * k, w: w * k, h: h * k, r: (x + w) * k, b: (y + h) * k };
 }
 function parseCrop(v, perCell = 1) {
@@ -4951,7 +4951,7 @@ var DEFAULTS2 = {
 };
 function newSettlement(id2, kind = "village", over = {}) {
   const d = structuredClone(DEFAULTS2), k = KIND_DEFAULTS[kind];
-  const grid4 = { ...d.grid, size: k.perCell === 10 ? 1 : 2 };
+  const grid5 = { ...d.grid, size: k.perCell === 10 ? 1 : 2 };
   return parseSettlement({
     ...d,
     cols: k.cols,
@@ -4962,7 +4962,7 @@ function newSettlement(id2, kind = "village", over = {}) {
     version: SETTLEMENT_FORMAT,
     seed: over.seed ?? 1,
     gen: { ...d.gen, buildings: k.buildings, wall: k.wall, castle: k.castle, market: k.market, ...kind === "castle" && { water: "moat", fields: 0.2 }, ...over.gen },
-    grid: { ...grid4, ...over.grid },
+    grid: { ...grid5, ...over.grid },
     scale: { ...d.scale, perCell: k.perCell, ...over.scale },
     interior: { ...d.interior, ...over.interior },
     roads: over.roads ?? [],
@@ -8115,6 +8115,28 @@ function parseColor(c) {
 }
 var h2 = (v) => v.toString(16).padStart(2, "0");
 var toHex = (r, g, b) => "#" + h2(r) + h2(g) + h2(b);
+function normHex(c) {
+  const [r, g, b] = parseColor(c);
+  return toHex(r, g, b);
+}
+var luma = (r, g, b) => 0.299 * r + 0.587 * g + 0.114 * b;
+var lumaOf = (c) => {
+  const [r, g, b] = parseColor(c);
+  return luma(r, g, b);
+};
+var dist2 = (a, r, g, b) => {
+  const dr = r - a[0], dg = g - a[1], db = b - a[2];
+  return 0.3 * dr * dr + 0.59 * dg * dg + 0.11 * db * db;
+};
+function toHsl(c) {
+  const [R2, G, B] = parseColor(c).map((v) => v / 255);
+  const max2 = Math.max(R2, G, B), min = Math.min(R2, G, B), l = (max2 + min) / 2;
+  if (max2 === min) return { h: 0, s: 0, l };
+  const d = max2 - min, s = l > 0.5 ? d / (2 - max2 - min) : d / (max2 + min);
+  let h = max2 === R2 ? (G - B) / d + (G < B ? 6 : 0) : max2 === G ? (B - R2) / d + 2 : (R2 - G) / d + 4;
+  h *= 60;
+  return { h, s, l };
+}
 
 // ../artgen-primitives/src/lib/grid.ts
 var Grid2 = class _Grid {
@@ -8972,6 +8994,34 @@ var BAYER = {
   bayer2: [[0, 2], [3, 1]].map((r) => r.map((v) => (v + 0.5) / 4)),
   bayer4: [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]].map((r) => r.map((v) => (v + 0.5) / 16))
 };
+function quantize(g, pal, { alphaCut = 128, dither = "none" } = {}) {
+  const P = pal.map(parseColor), out = new Grid2(g.w, g.h), m = BAYER[dither];
+  for (let i = 0; i < g.w * g.h; i++) {
+    const a = g.d[i * 4 + 3];
+    if (a < alphaCut) continue;
+    const r = g.d[i * 4], gg = g.d[i * 4 + 1], b = g.d[i * 4 + 2];
+    let best = 0, bd = 1e9, second = 0, sd = 1e9;
+    for (let k2 = 0; k2 < P.length; k2++) {
+      const d = dist2(P[k2], r, gg, b);
+      if (d < bd) {
+        second = best;
+        sd = bd;
+        bd = d;
+        best = k2;
+      } else if (d < sd) {
+        sd = d;
+        second = k2;
+      }
+    }
+    let k = best;
+    if (m && P.length > 1) {
+      const x = i % g.w, y = i / g.w | 0, t = Math.sqrt(bd) / (Math.sqrt(bd) + Math.sqrt(sd) || 1);
+      if (t > m[y % m.length][x % m.length]) k = second;
+    }
+    out.d.set([P[k][0], P[k][1], P[k][2], 255], i * 4);
+  }
+  return out;
+}
 
 // ../artgen-primitives/src/lib/svg.ts
 var ready = null;
@@ -9828,13 +9878,13 @@ async function renderMapFiles(p2, ref, o = {}) {
   const out = o.out ?? (typeof ref === "string" ? join3(mapsDir(p2), id2, "out") : dirname2(mapFile(p2, ref)));
   const formats2 = o.formats ?? ["svg", "png"], files = [];
   if (o.fit && o.ppu !== void 0) throw new Error("--fit and --ppu both set the scale: use one");
-  const crop = clampCrop(o.crop ?? [0, 0, m.cols, m.rows], m.cols, m.rows), ppu = o.fit ? fitPpu(crop[2], crop[3], o.fit) : o.ppu ?? 40;
-  const size2 = [Math.round(crop[2] * ppu), Math.round(crop[3] * ppu)], unit = o.fit?.unit ?? "px";
+  const crop2 = clampCrop(o.crop ?? [0, 0, m.cols, m.rows], m.cols, m.rows), ppu = o.fit ? fitPpu(crop2[2], crop2[3], o.fit) : o.ppu ?? 40;
+  const size2 = [Math.round(crop2[2] * ppu), Math.round(crop2[3] * ppu)], unit = o.fit?.unit ?? "px";
   const pageScale = o.pageScale ?? (o.fit ? PX_PER_MM : void 0);
   if (formats2.includes("png")) await initNodeMapSvg();
   mkdirSync2(out, { recursive: true });
   for (const theme of o.themes ?? ["color"]) {
-    const svg = map_exports.renderMapSvg(m, { theme, ppu, layers: o.layers, field, ...o.crop && { crop }, unit, pageScale }), base = join3(out, `${id2}.${theme}`);
+    const svg = map_exports.renderMapSvg(m, { theme, ppu, layers: o.layers, field, ...o.crop && { crop: crop2 }, unit, pageScale }), base = join3(out, `${id2}.${theme}`);
     if (formats2.includes("svg")) {
       writeFileSync2(`${base}.svg`, svg);
       files.push(`${base}.svg`);
@@ -9844,11 +9894,11 @@ async function renderMapFiles(p2, ref, o = {}) {
       files.push(`${base}.png`);
     }
   }
-  return { files: files.map((f) => relative(process.cwd(), f)), terrains: map_exports.terrainsUsed(field), rivers: field.rivers.length, size: size2, crop, ppu, svg: svgSize(crop, ppu, unit), pageScale: pageScale ?? null, unplaced: map_exports.mapLabelLayout(m, ppu, pageScale).unplaced };
+  return { files: files.map((f) => relative(process.cwd(), f)), terrains: map_exports.terrainsUsed(field), rivers: field.rivers.length, size: size2, crop: crop2, ppu, svg: svgSize(crop2, ppu, unit), pageScale: pageScale ?? null, unplaced: map_exports.mapLabelLayout(m, ppu, pageScale).unplaced };
 }
-function svgSize(crop, ppu, unit) {
+function svgSize(crop2, ppu, unit) {
   const f = unit === "mm" ? 96 / 25.4 : 1, r = (v) => Math.round(v * ppu / f * 100) / 100;
-  return { width: r(crop[2]), height: r(crop[3]), unit };
+  return { width: r(crop2[2]), height: r(crop2[3]), unit };
 }
 function numbers2(v, what, pairs2 = true) {
   const xs = (v ?? "").split(",").map((s) => s.trim()).filter(Boolean).map(Number);
@@ -9983,10 +10033,10 @@ async function renderDungeonFiles(p2, ref, o = {}) {
   if (o.crop && o.rooms?.length) throw new Error("--crop and --room both set the window: use one");
   if (o.margin !== void 0 && !o.rooms?.length) throw new Error("--margin goes with --room");
   const window = o.rooms?.length ? dungeon_exports.roomCrop(m, o.rooms, o.margin, layout) : o.crop;
-  const crop = clampCrop(window ?? [0, 0, m.cols, m.rows], m.cols, m.rows), unit = o.fit?.unit ?? "px";
+  const crop2 = clampCrop(window ?? [0, 0, m.cols, m.rows], m.cols, m.rows), unit = o.fit?.unit ?? "px";
   const pageScale = o.pageScale ?? (o.fit ? PX_PER_MM : void 0), underlay = readUnderlay(p2, ref, m);
-  const view = { layers: o.layers, layout, ...window && { crop }, pageScale };
-  let ppu = o.fit ? fitPpu(crop[2], crop[3], o.fit) : o.ppu ?? 40;
+  const view = { layers: o.layers, layout, ...window && { crop: crop2 }, pageScale };
+  let ppu = o.fit ? fitPpu(crop2[2], crop2[3], o.fit) : o.ppu ?? 40;
   const fits = (k) => {
     const r = dungeon_exports.dungeonRenderSize(m, { ...view, ppu: k }), f = o.fit.unit === "mm" ? PX_PER_MM : 1;
     return r.width <= o.fit.w * f + 1e-6 && r.height <= o.fit.h * f + 1e-6;
@@ -10012,7 +10062,7 @@ async function renderDungeonFiles(p2, ref, o = {}) {
     writeFileSync3(`${base}.png`, encodePNG(rasterizeSvg(svg, size2[0], size2[1])));
     files.push(`${base}.png`);
   }
-  return { files: files.map((f) => relative2(process.cwd(), f)), rooms: m.rooms.length, corridors: m.corridors.length, doors: layout.doors.length, size: size2, crop, ppu, svg: svgSize([0, 0, px.width, px.height], 1, unit), pageScale: pageScale ?? null, unplaced: dungeon_exports.dungeonLabelLayout(m, ppu, pageScale, layout).unplaced };
+  return { files: files.map((f) => relative2(process.cwd(), f)), rooms: m.rooms.length, corridors: m.corridors.length, doors: layout.doors.length, size: size2, crop: crop2, ppu, svg: svgSize([0, 0, px.width, px.height], 1, unit), pageScale: pageScale ?? null, unplaced: dungeon_exports.dungeonLabelLayout(m, ppu, pageScale, layout).unplaced };
 }
 var { cornerPoint: cornerPoint2, corridorEnd: corridorEnd2, doorPair: doorPair2, gridMode: gridMode2 } = dungeon_exports;
 var endText = (e) => "room" in e ? `${e.room}${e.side ? `.${e.side}${e.offset !== void 0 ? `+${e.offset}` : ""}` : ""}` : "at" in e ? `(${e.at.join(",")})${e.exit ? ` "${e.exit.text}"` : ""}` : `corridor ${e.corridor}`;
@@ -10164,9 +10214,9 @@ async function renderSettlementFiles(p2, ref, o = {}) {
   const results = [];
   for (const job of jobs) {
     const sheet = job.view === "plan" ? settlement_exports.planSheet(m, m.buildings.find((b) => b.id === job.building)) : { cols: m.cols, rows: m.rows };
-    const crop = clampCrop(o.crop ?? [0, 0, sheet.cols, sheet.rows], sheet.cols, sheet.rows), unit = o.fit?.unit ?? "px", pageScale = o.pageScale ?? (o.fit ? PX_PER_MM : void 0);
-    const view = { view: job.view, ...job.building && { building: job.building }, ...job.floor !== void 0 && { floor: job.floor }, buildings: o.buildings, layers: o.layers, ...job.view === "site" && { layout }, ...o.crop && { crop }, pageScale };
-    let ppu = o.fit ? fitPpu(crop[2], crop[3], o.fit) : o.ppu ?? (job.view === "plan" ? 40 : 24);
+    const crop2 = clampCrop(o.crop ?? [0, 0, sheet.cols, sheet.rows], sheet.cols, sheet.rows), unit = o.fit?.unit ?? "px", pageScale = o.pageScale ?? (o.fit ? PX_PER_MM : void 0);
+    const view = { view: job.view, ...job.building && { building: job.building }, ...job.floor !== void 0 && { floor: job.floor }, buildings: o.buildings, layers: o.layers, ...job.view === "site" && { layout }, ...o.crop && { crop: crop2 }, pageScale };
+    let ppu = o.fit ? fitPpu(crop2[2], crop2[3], o.fit) : o.ppu ?? (job.view === "plan" ? 40 : 24);
     if (o.fit) {
       const f = o.fit.unit === "mm" ? PX_PER_MM : 1, fits = (k) => {
         const r = settlement_exports.settlementRenderSize(m, { ...view, ppu: k });
@@ -10195,7 +10245,7 @@ async function renderSettlementFiles(p2, ref, o = {}) {
         files.push(`${base}.png`);
       }
     }
-    results.push({ files: files.map((f) => relative3(process.cwd(), f)), view: job.view, ...job.building && { building: job.building }, ...job.floor !== void 0 && { floor: job.floor }, size: size2, crop, ppu, svg: svgSize([0, 0, px.width, px.height], 1, unit) });
+    results.push({ files: files.map((f) => relative3(process.cwd(), f)), view: job.view, ...job.building && { building: job.building }, ...job.floor !== void 0 && { floor: job.floor }, size: size2, crop: crop2, ppu, svg: svgSize([0, 0, px.width, px.height], 1, unit) });
   }
   return results;
 }
@@ -10610,10 +10660,10 @@ async function reviewSubject(p2, kind, id2, o = {}) {
   if (o.score !== void 0 && !(o.score >= 0 && o.score <= 10)) throw new Error("--score: a number from 0 to 10");
   const vfile = st.paths.version(version), text2 = readFileSync7(vfile, "utf8"), checks = checksOf(p2, kind, id2, text2), theme = direction_exports.themeFor(st.direction, kind);
   const png = await renderPng(kind, vfile, theme, st.paths.out, text2), { sheet, refs, warnings } = sheetOf(p2, st, text2, checks, version);
-  const grid4 = subjectReviewSheet({ title: `${id2} - ${version}`, render: decodePNG(new Uint8Array(readFileSync7(png))), sheet, refs }), sheetFile = join7(st.paths.out, `review-${version}.png`);
+  const grid5 = subjectReviewSheet({ title: `${id2} - ${version}`, render: decodePNG(new Uint8Array(readFileSync7(png))), sheet, refs }), sheetFile = join7(st.paths.out, `review-${version}.png`);
   mkdirSync6(st.paths.out, { recursive: true });
-  writeFileSync6(sheetFile, encodePNG(grid4));
-  const tokens = imageTokens(grid4.w, grid4.h), conformance = { pass: !fails(checks).length, checks };
+  writeFileSync6(sheetFile, encodePNG(grid5));
+  const tokens = imageTokens(grid5.w, grid5.h), conformance = { pass: !fails(checks).length, checks };
   appendLedger(ledgerPath(p2), { type: "review", asset: st.paths.key, version, sheet: relArt(p2, sheetFile), imageTokens: tokens, conformance, by: "agent" });
   if (o.score !== void 0) appendLedger(ledgerPath(p2), { type: "score", asset: st.paths.key, version, score: o.score, ...o.note && { note: o.note }, reviewer: o.reviewer ?? "self", conformance, by: "agent" });
   return { version, sheet: relRoot(p2, sheetFile), sheetFile, imageTokens: tokens, pass: conformance.pass, checks, warnings, ...o.score !== void 0 && { score: o.score } };
@@ -11117,6 +11167,734 @@ async function startUiServer(o) {
   });
 }
 
+// ../artgen-cli/src/ops/image.ts
+import { existsSync as existsSync11, mkdirSync as mkdirSync10, readFileSync as readFileSync11, writeFileSync as writeFileSync10 } from "node:fs";
+import { basename as basename5, dirname as dirname10, extname as extname4, join as join11, resolve as resolve10 } from "node:path";
+
+// ../artgen-imagekit/src/mask.ts
+var newMask = (w, h) => ({ w, h, d: new Uint8Array(w * h) });
+function grayscale(img) {
+  const out = new Uint8Array(img.w * img.h), d = img.d;
+  for (let i = 0, j = 0; i < out.length; i++, j += 4) out[i] = d[j] * 9798 + d[j + 1] * 19235 + d[j + 2] * 3735 + 16384 >> 15;
+  return out;
+}
+function gaussianKernel(size2) {
+  const table = { 1: [256], 3: [64, 128, 64], 5: [16, 64, 96, 64, 16], 7: [8, 28, 56, 72, 56, 28, 8] };
+  if (table[size2]) return Int32Array.from(table[size2]);
+  const sigma = 0.3 * ((size2 - 1) * 0.5 - 1) + 0.8, half = size2 >> 1, v = [];
+  let sum = 0;
+  for (let i = 0; i < size2; i++) {
+    const x = i - half;
+    v.push(Math.exp(-0.5 * x * x / (sigma * sigma)));
+    sum += v[i];
+  }
+  const k = new Int32Array(size2);
+  let run2 = 0, prev = 0;
+  for (let i = 0; i < size2; i++) {
+    run2 += v[i] / sum;
+    const r = Math.round(run2 * 256);
+    k[i] = r - prev;
+    prev = r;
+  }
+  return k;
+}
+var reflect101 = (i, n) => {
+  if (n === 1) return 0;
+  while (i < 0 || i >= n) i = i < 0 ? -i : 2 * (n - 1) - i;
+  return i;
+};
+function gaussianBlur(src, w, h, size2) {
+  const k = gaussianKernel(size2), half = size2 >> 1, tmp = new Int32Array(w * h), out = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    let s = 0;
+    for (let i = 0; i < size2; i++) s += k[i] * src[y * w + reflect101(x + i - half, w)];
+    tmp[y * w + x] = s;
+  }
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    let s = 0;
+    for (let i = 0; i < size2; i++) s += k[i] * tmp[reflect101(y + i - half, h) * w + x];
+    out[y * w + x] = s + 32768 >> 16;
+  }
+  return out;
+}
+function otsu(gray) {
+  const hist = new Float64Array(256), n = gray.length;
+  for (let i = 0; i < n; i++) hist[gray[i]]++;
+  const scale = 1 / n;
+  let mu = 0;
+  for (let i = 0; i < 256; i++) mu += i * hist[i];
+  mu *= scale;
+  let mu1 = 0, q1 = 0, best = 0, bestLevel = 0;
+  const eps = 11920929e-14;
+  for (let i = 0; i < 256; i++) {
+    const p2 = hist[i] * scale;
+    mu1 *= q1;
+    q1 += p2;
+    const q2 = 1 - q1;
+    if (Math.min(q1, q2) < eps || Math.max(q1, q2) > 1 - eps) continue;
+    mu1 = (mu1 + i * p2) / q1;
+    const mu2 = (mu - q1 * mu1) / q2, sigma = q1 * q2 * (mu1 - mu2) * (mu1 - mu2);
+    if (sigma > best) {
+      best = sigma;
+      bestLevel = i;
+    }
+  }
+  return bestLevel;
+}
+function thresholdPlane(gray, w, h, level2, light) {
+  const out = newMask(w, h), t = Math.floor(level2);
+  for (let i = 0; i < gray.length; i++) out.d[i] = gray[i] > t === light ? 255 : 0;
+  return out;
+}
+function ellipseKernel(size2) {
+  const r = size2 >> 1, c = size2 >> 1, inv = r ? 1 / (r * r) : 0, half = [];
+  for (let i = 0; i < size2; i++) {
+    const dy = i - r;
+    half.push(Math.abs(dy) <= r ? Math.round(c * Math.sqrt((r * r - dy * dy) * inv)) : -1);
+  }
+  return half;
+}
+function dilate(m, size2) {
+  const { w, h } = m, half = ellipseKernel(size2), r = size2 >> 1, out = newMask(w, h);
+  const rowsOf = /* @__PURE__ */ new Map();
+  half.forEach((hw, i) => {
+    if (hw >= 0) rowsOf.set(hw, [...rowsOf.get(hw) ?? [], i - r]);
+  });
+  const wide = new Uint8Array(w * h), pre = new Int32Array(w + 1);
+  for (const [hw, dys] of rowsOf) {
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) pre[x + 1] = pre[x] + (m.d[y * w + x] ? 1 : 0);
+      for (let x = 0; x < w; x++) wide[y * w + x] = pre[Math.min(w, x + hw + 1)] - pre[Math.max(0, x - hw)] > 0 ? 255 : 0;
+    }
+    for (const dy of dys) for (let y = 0; y < h; y++) {
+      const sy = y + dy;
+      if (sy < 0 || sy >= h) continue;
+      for (let x = 0; x < w; x++) if (wide[sy * w + x]) out.d[y * w + x] = 255;
+    }
+  }
+  return out;
+}
+function erode(m, size2) {
+  const inv = newMask(m.w, m.h);
+  for (let i = 0; i < m.d.length; i++) inv.d[i] = m.d[i] ? 0 : 255;
+  const d = dilate(inv, size2);
+  for (let i = 0; i < d.d.length; i++) d.d[i] = d.d[i] ? 0 : 255;
+  return d;
+}
+var close = (m, size2) => erode(dilate(m, size2), size2);
+function binarize(img, o) {
+  const { w, h } = img;
+  let gray = grayscale(img);
+  if (o.blur > 0) gray = gaussianBlur(gray, w, h, Math.max(3, o.blur | 1));
+  const level2 = o.threshold === "otsu" ? otsu(gray) : Math.floor(o.threshold);
+  let binary = thresholdPlane(gray, w, h, level2, o.invert);
+  if (o.smoothing > 0) binary = close(binary, Math.max(3, o.smoothing | 1));
+  if (o.respectAlpha) {
+    for (let i = 0; i < binary.d.length; i++) if (img.d[i * 4 + 3] === 0) binary.d[i] = 0;
+  }
+  return { binary, thresholdUsed: level2 };
+}
+
+// ../artgen-imagekit/src/contours.ts
+var DX = [1, 1, 0, -1, -1, -1, 0, 1];
+var DY = [0, -1, -1, -1, 0, 1, 1, 1];
+function findContours(mask) {
+  const { w, h } = mask, W = w + 2, lab = new Int32Array(W * (h + 2)), out = [];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (mask.d[y * w + x]) lab[(y + 1) * W + x + 1] = 1;
+  const step = DX.map((dx, d) => dx + DY[d] * W);
+  const hole = [false, true], parent = [-1, -1], index = [-1, -1];
+  let nbd = 1;
+  for (let y = 1; y <= h; y++) {
+    let lnbd = 1;
+    for (let x = 1; x <= w; x++) {
+      const at4 = y * W + x, f = lab[at4];
+      if (f === 0) continue;
+      let isHole;
+      if (f === 1 && lab[at4 - 1] === 0) isHole = false;
+      else if (f >= 1 && lab[at4 + 1] === 0) {
+        isHole = true;
+        if (f > 1) lnbd = f;
+      } else {
+        if (f !== 1) lnbd = Math.abs(f);
+        continue;
+      }
+      nbd++;
+      hole[nbd] = isHole;
+      parent[nbd] = isHole === hole[lnbd] ? parent[lnbd] : lnbd;
+      index[nbd] = out.length;
+      out.push(follow(lab, W, step, at4, isHole, nbd));
+      if (lab[at4] !== 1) lnbd = Math.abs(lab[at4]);
+    }
+  }
+  let n = 2;
+  for (const c of out) {
+    c.parent = parent[n] < 2 ? -1 : index[parent[n]];
+    n++;
+  }
+  return out;
+}
+function follow(lab, W, step, start, isHole, nbd) {
+  const chain = [];
+  const xy = (i) => {
+    chain.push(i % W - 1, Math.floor(i / W) - 1);
+  };
+  let first = -1;
+  for (let k = 0, d = isHole ? 0 : 4; k < 8; k++, d = d + 7 & 7) if (lab[start + step[d]] !== 0) {
+    first = d;
+    break;
+  }
+  if (first < 0) {
+    lab[start] = -nbd;
+    xy(start);
+    return { points: Int32Array.from(chain), hole: isHole, parent: -1, chain: Int32Array.from(chain) };
+  }
+  const i1 = start + step[first];
+  let i3 = start, toI2 = first;
+  for (; ; ) {
+    let d = toI2, eastEmpty = false;
+    for (let k = 0; k < 8; k++) {
+      d = d + 1 & 7;
+      if (lab[i3 + step[d]] !== 0) break;
+      if (d === 0) eastEmpty = true;
+    }
+    const i4 = i3 + step[d];
+    if (eastEmpty) lab[i3] = -nbd;
+    else if (lab[i3] === 1) lab[i3] = nbd;
+    xy(i3);
+    if (i4 === start && i3 === i1) break;
+    toI2 = d + 4 & 7;
+    i3 = i4;
+  }
+  const all = Int32Array.from(chain), n = all.length / 2, pts2 = [];
+  const dir = (a, b) => Math.sign(all[b * 2] - all[a * 2]) * 3 + Math.sign(all[b * 2 + 1] - all[a * 2 + 1]);
+  for (let i = 0; i < n; i++) {
+    const prev = (i + n - 1) % n, next4 = (i + 1) % n;
+    if (n === 1 || dir(prev, i) !== dir(i, next4)) pts2.push(all[i * 2], all[i * 2 + 1]);
+  }
+  return { points: Int32Array.from(pts2), hole: isHole, parent: -1, chain: all };
+}
+function ringArea(p2) {
+  const n = p2.length / 2;
+  let s = 0;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    s += p2[i * 2] * p2[j * 2 + 1] - p2[j * 2] * p2[i * 2 + 1];
+  }
+  return Math.abs(s) / 2;
+}
+function simplifyRing(p2, epsilon) {
+  const count = p2.length / 2;
+  if (count === 0) return [];
+  const px = (i) => p2[i % count * 2], py = (i) => p2[i % count * 2 + 1], eps = epsilon * epsilon;
+  let pos = 0, far = 0, closed = true;
+  for (let it = 0; it < 3; it++) {
+    pos = (pos + far) % count;
+    let max2 = 0;
+    for (let j = 1; j < count; j++) {
+      const dx = px(j + pos) - px(pos), dy = py(j + pos) - py(pos), dist = dx * dx + dy * dy;
+      if (dist > max2) {
+        max2 = dist;
+        far = j;
+      }
+    }
+    closed = max2 > eps;
+  }
+  if (!closed) return [px(pos), py(pos)];
+  const stack = [], dst = [];
+  const mid = pos + far;
+  stack.push([mid, pos + count]);
+  stack.push([pos, mid]);
+  while (stack.length) {
+    const [a, b] = stack.pop(), ax = px(a), ay = py(a), bx = px(b), by = py(b);
+    let split = -1, ok;
+    if (ax !== bx || ay !== by) {
+      const dx = bx - ax, dy = by - ay;
+      let max2 = 0;
+      for (let i = a + 1; i < b; i++) {
+        const dist = Math.abs((py(i) - ay) * dx - (px(i) - ax) * dy);
+        if (dist > max2) {
+          max2 = dist;
+          split = i;
+        }
+      }
+      ok = max2 * max2 <= eps * (dx * dx + dy * dy);
+    } else {
+      ok = true;
+      for (let i = a + 1; i < b; i++) {
+        const dx = px(i) - ax, dy = py(i) - ay;
+        if (dx * dx + dy * dy > eps) {
+          ok = false;
+          split = i;
+        }
+      }
+    }
+    if (ok || split < 0) dst.push(ax, ay);
+    else {
+      stack.push([split, b]);
+      stack.push([a, split]);
+    }
+  }
+  const n = dst.length / 2;
+  let newCount = n, at4 = n - 1;
+  const read = () => {
+    const q = [dst[at4 * 2], dst[at4 * 2 + 1]];
+    at4 = (at4 + 1) % n;
+    return q;
+  };
+  let start = read(), wpos = at4, pt3 = read();
+  for (let i = 0; i < n && newCount > 2; i++) {
+    const end = read(), dx = end[0] - start[0], dy = end[1] - start[1];
+    const dist = Math.abs((pt3[0] - start[0]) * dy - (pt3[1] - start[1]) * dx);
+    const inner = (pt3[0] - start[0]) * (end[0] - pt3[0]) + (pt3[1] - start[1]) * (end[1] - pt3[1]);
+    if (dist * dist <= 0.5 * eps * (dx * dx + dy * dy) && dx !== 0 && dy !== 0 && inner >= 0) {
+      newCount--;
+      dst[wpos * 2] = end[0];
+      dst[wpos * 2 + 1] = end[1];
+      start = end;
+      wpos = (wpos + 1) % n;
+      pt3 = read();
+      i++;
+      continue;
+    }
+    dst[wpos * 2] = pt3[0];
+    dst[wpos * 2 + 1] = pt3[1];
+    start = pt3;
+    wpos = (wpos + 1) % n;
+    pt3 = end;
+  }
+  return dst.slice(0, newCount * 2);
+}
+
+// ../artgen-imagekit/src/trace.ts
+var defaultTraceOptions = {
+  threshold: "otsu",
+  invert: false,
+  blur: 3,
+  smoothing: 3,
+  respectAlpha: true,
+  simplifyTolerance: 1.5,
+  minArea: 24,
+  keepHoles: true,
+  maxPaths: 120
+};
+function contourShapes(mask, holes = true) {
+  const all = findContours(mask), out = [], slot = /* @__PURE__ */ new Map();
+  for (let i = all.length - 1; i >= 0; i--) {
+    const c = all[i];
+    if (c.hole || !holes && c.parent >= 0) continue;
+    const s = { outer: c, holes: [] };
+    slot.set(i, s);
+    out.push(s);
+  }
+  if (holes) {
+    for (let i = all.length - 1; i >= 0; i--) if (all[i].hole) slot.get(all[i].parent)?.holes.push(all[i]);
+  }
+  return out;
+}
+function traceMask(mask, o = {}, thresholdUsed = 0) {
+  const s = { ...defaultTraceOptions, ...o };
+  let dropped = 0;
+  const ring2 = (c) => {
+    const area3 = ringArea(c.points);
+    if (area3 < s.minArea) return null;
+    let pts2 = c.points;
+    if (s.simplifyTolerance > 0) {
+      const simple = simplifyRing(c.points, s.simplifyTolerance);
+      if (simple.length >= 6) pts2 = simple;
+    }
+    return pts2.length < 6 ? null : { points: Float32Array.from(pts2), area: area3 };
+  };
+  const shapes = [];
+  for (const sh of contourShapes(mask, s.keepHoles)) {
+    const outer = ring2(sh.outer);
+    if (!outer) {
+      dropped++;
+      continue;
+    }
+    const holes = [];
+    for (const h of sh.holes) {
+      const r = ring2(h);
+      if (r) holes.push(r);
+      else dropped++;
+    }
+    shapes.push({ outer, holes });
+  }
+  shapes.sort((a, b) => b.outer.area - a.outer.area);
+  if (shapes.length > s.maxPaths) {
+    dropped += shapes.length - s.maxPaths;
+    shapes.length = s.maxPaths;
+  }
+  return { width: mask.w, height: mask.h, shapes, droppedCount: dropped, thresholdUsed };
+}
+function traceImage(img, o = {}) {
+  const s = { ...defaultTraceOptions, ...o };
+  const { binary, thresholdUsed } = binarize(img, s);
+  return traceMask(binary, s, thresholdUsed);
+}
+
+// ../artgen-imagekit/src/cut.ts
+function alphaBounds(img, padding = 0, min = 0) {
+  let x0 = img.w, y0 = img.h, x1 = -1, y1 = -1;
+  for (let y = 0; y < img.h; y++) for (let x = 0; x < img.w; x++) if (img.d[(y * img.w + x) * 4 + 3] > min) {
+    if (x < x0) x0 = x;
+    if (x > x1) x1 = x;
+    if (y < y0) y0 = y;
+    if (y > y1) y1 = y;
+  }
+  if (x1 < 0) return null;
+  const px0 = Math.max(0, x0 - padding), py0 = Math.max(0, y0 - padding), px1 = Math.min(img.w - 1, x1 + padding), py1 = Math.min(img.h - 1, y1 + padding);
+  return { x: px0, y: py0, w: px1 - px0 + 1, h: py1 - py0 + 1 };
+}
+
+// ../artgen-primitives/src/lib/palette.ts
+function parseHexPalette(text2) {
+  const out = [];
+  for (const line2 of text2.split(/\r?\n/)) {
+    const m = line2.trim().match(/^#?([0-9a-fA-F]{6})$/);
+    if (m) out.push("#" + m[1].toLowerCase());
+  }
+  return out;
+}
+function parseGpl(text2) {
+  const out = [];
+  for (const line2 of text2.split(/\r?\n/)) {
+    const m = line2.trim().match(/^(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})(\s|$)/);
+    if (m) out.push(toHex(+m[1], +m[2], +m[3]));
+  }
+  return out;
+}
+function medianCut(g, n) {
+  const px = [];
+  for (let i = 0; i < g.w * g.h; i++) if (g.d[i * 4 + 3] >= 128) px.push([g.d[i * 4], g.d[i * 4 + 1], g.d[i * 4 + 2]]);
+  if (!px.length) return [];
+  const boxes = [px];
+  const range = (b, c) => {
+    let lo = 255, hi = 0;
+    for (const p2 of b) {
+      if (p2[c] < lo) lo = p2[c];
+      if (p2[c] > hi) hi = p2[c];
+    }
+    return hi - lo;
+  };
+  while (boxes.length < n) {
+    let bi = -1, bc = 0, br = 0;
+    boxes.forEach((b2, i) => {
+      for (let c = 0; c < 3; c++) {
+        const r = range(b2, c);
+        if (b2.length > 1 && r > br) {
+          br = r;
+          bi = i;
+          bc = c;
+        }
+      }
+    });
+    if (bi < 0) break;
+    const b = boxes[bi].sort((p2, q) => p2[bc] - q[bc]), mid = b.length >> 1;
+    boxes.splice(bi, 1, b.slice(0, mid), b.slice(mid));
+  }
+  const out = boxes.map((b) => {
+    const s = b.reduce((a, p2) => [a[0] + p2[0], a[1] + p2[1], a[2] + p2[2]], [0, 0, 0]);
+    return toHex(Math.round(s[0] / b.length), Math.round(s[1] / b.length), Math.round(s[2] / b.length));
+  });
+  return [...new Set(out)];
+}
+function rampsFromColors(colors, { hueGap = 30, greySat = 0.12 } = {}) {
+  const hs = colors.map((c) => ({ c, ...toHsl(c) }));
+  const greys = hs.filter((x) => x.s < greySat), chroma = hs.filter((x) => x.s >= greySat).sort((a, b) => a.h - b.h);
+  const groups = [];
+  for (const x of chroma) {
+    const last = groups[groups.length - 1];
+    if (last && x.h - last[last.length - 1].h <= hueGap) last.push(x);
+    else groups.push([x]);
+  }
+  if (groups.length > 1) {
+    const first = groups[0], last = groups[groups.length - 1];
+    if (first[0].h + 360 - last[last.length - 1].h <= hueGap) {
+      first.unshift(...last);
+      groups.pop();
+    }
+  }
+  if (greys.length) groups.push(greys);
+  const ramps = {};
+  groups.forEach((g, i) => {
+    ramps[`r${i}`] = g.map((x) => x.c).sort((a, b) => lumaOf(b) - lumaOf(a));
+  });
+  return ramps;
+}
+function extractPalette(g, n = 16) {
+  const colors = medianCut(g, n);
+  return { colors, ramps: rampsFromColors(colors) };
+}
+
+// ../artgen-imagekit/src/palette.ts
+var grid = (img) => img instanceof Grid2 ? img : new Grid2(img.w, img.h, Uint8ClampedArray.from(img.d));
+function paletteOf(img, n = 16) {
+  return extractPalette(grid(img), n);
+}
+function snapToPalette(img, colors, o = {}) {
+  if (!colors.length) throw new Error("snapToPalette: the palette has no colours");
+  const g = quantize(grid(img), colors.map(normHex), o);
+  return { w: g.w, h: g.h, d: g.d };
+}
+var formatHex = (colors) => colors.map((c) => normHex(c).slice(1)).join("\n") + "\n";
+function formatGpl(colors, name = "artgen") {
+  const rows2 = colors.map((c, i) => {
+    const h = normHex(c), v = [1, 3, 5].map((k) => parseInt(h.slice(k, k + 2), 16));
+    return `${String(v[0]).padStart(3)} ${String(v[1]).padStart(3)} ${String(v[2]).padStart(3)} ${h} (${i + 1})`;
+  });
+  return `GIMP Palette
+Name: ${name}
+Columns: 8
+#
+${rows2.join("\n")}
+`;
+}
+var parsePaletteText = (text2) => /^GIMP Palette/m.test(text2) ? parseGpl(text2) : parseHexPalette(text2);
+
+// ../artgen-imagekit/src/slice.ts
+function sliceGrid(img, o) {
+  const margin = o.margin ?? 0, spacing = o.spacing ?? 0, usableW = img.w - 2 * margin, usableH = img.h - 2 * margin;
+  let cols = o.cols, rows2 = o.rows, cw = o.cellW, ch = o.cellH;
+  if (cw && ch) {
+    cols = Math.floor((usableW + spacing) / (cw + spacing));
+    rows2 = Math.floor((usableH + spacing) / (ch + spacing));
+  } else if (cols && rows2) {
+    cw = Math.floor((usableW - spacing * (cols - 1)) / cols);
+    ch = Math.floor((usableH - spacing * (rows2 - 1)) / rows2);
+  } else throw new Error("slice: give the columns and rows (cols, rows) or the cell size (cellW, cellH)");
+  if (!cols || !rows2 || !cw || !ch || cols < 1 || rows2 < 1 || cw < 1 || ch < 1) throw new Error(`slice: no room for a cell in a ${img.w}x${img.h} picture with those numbers`);
+  const out = [];
+  for (let row = 0; row < rows2; row++) for (let col = 0; col < cols; col++) {
+    let box2 = { x: margin + col * (cw + spacing), y: margin + row * (ch + spacing), w: cw, h: ch };
+    if (o.skipEmpty || o.trim) {
+      const b = alphaBounds(crop(img, box2));
+      if (!b) {
+        if (o.skipEmpty) continue;
+      } else if (o.trim) box2 = { x: box2.x + b.x, y: box2.y + b.y, w: b.w, h: b.h };
+    }
+    out.push({ ...box2, index: out.length, col, row });
+  }
+  return out;
+}
+function sliceSprites(img, o = {}) {
+  const gap = Math.max(0, Math.floor(o.gap ?? 1)), minSize = o.minSize ?? 2, { w, h } = img, W = w + 1;
+  const sum = new Int32Array(W * (h + 1));
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) sum[(y + 1) * W + x + 1] = (img.d[(y * w + x) * 4 + 3] > 0 ? 1 : 0) + sum[y * W + x + 1] + sum[(y + 1) * W + x] - sum[y * W + x];
+  const grown = (x, y) => {
+    const x0 = Math.max(0, x - gap), y0 = Math.max(0, y - gap);
+    return sum[(y + 1) * W + x + 1] - sum[y0 * W + x + 1] - sum[(y + 1) * W + x0] + sum[y0 * W + x0] > 0;
+  };
+  const label4 = new Int32Array(w * h).fill(-1), boxes = [];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (label4[y * w + x] >= 0 || !grown(x, y)) continue;
+    const id2 = boxes.length, stack = [y * w + x];
+    boxes.push({ x0: w, y0: h, x1: -1, y1: -1 });
+    label4[y * w + x] = id2;
+    while (stack.length) {
+      const i = stack.pop(), cx = i % w, cy = (i - cx) / w;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const nx = cx + dx, ny = cy + dy;
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h || label4[ny * w + nx] >= 0 || !grown(nx, ny)) continue;
+        label4[ny * w + nx] = id2;
+        stack.push(ny * w + nx);
+      }
+    }
+  }
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (img.d[(y * w + x) * 4 + 3] === 0) continue;
+    const b = boxes[label4[y * w + x]];
+    if (x < b.x0) b.x0 = x;
+    if (x > b.x1) b.x1 = x;
+    if (y < b.y0) b.y0 = y;
+    if (y > b.y1) b.y1 = y;
+  }
+  const found = boxes.filter((b) => b.x1 >= 0).map((b) => ({ x: b.x0, y: b.y0, w: b.x1 - b.x0 + 1, h: b.y1 - b.y0 + 1 })).filter((b) => b.w >= minSize && b.h >= minSize);
+  const tall = found.length ? found.reduce((n, b) => n + b.h, 0) / found.length : 0;
+  const rowsOf = [];
+  for (const b of [...found].sort((p2, q) => p2.y - q.y)) {
+    const row = rowsOf.find((r) => Math.abs(r[0].y - b.y) < tall / 2);
+    if (row) row.push(b);
+    else rowsOf.push([b]);
+  }
+  const out = [];
+  rowsOf.forEach((r, row) => r.sort((p2, q) => p2.x - q.x).forEach((b, col) => out.push({ ...b, index: out.length, col, row })));
+  return out;
+}
+function crop(img, box2) {
+  const x0 = Math.max(0, box2.x), y0 = Math.max(0, box2.y), x1 = Math.min(img.w, box2.x + box2.w), y1 = Math.min(img.h, box2.y + box2.h);
+  const w = Math.max(0, x1 - x0), h = Math.max(0, y1 - y0), d = new Uint8ClampedArray(w * h * 4);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) for (let c = 0; c < 4; c++) d[(y * w + x) * 4 + c] = img.d[((y0 + y) * img.w + x0 + x) * 4 + c];
+  return { w, h, d };
+}
+
+// ../artgen-imagekit/src/svg.ts
+var HEX = /^#[0-9a-fA-F]{6}$/;
+var num3 = (v, precision) => String(Number(v.toFixed(precision)));
+var PIXEL_CENTRES = { sx: 1, sy: 1, ox: 0.5, oy: 0.5 };
+function ringToD(r, precision = 2, map = PIXEL_CENTRES) {
+  const p2 = r.points, parts = [];
+  for (let i = 0; i < p2.length; i += 2) parts.push(`${i === 0 ? "M" : "L"}${num3(p2[i] * map.sx + map.ox, precision)} ${num3(p2[i + 1] * map.sy + map.oy, precision)}`);
+  return parts.join(" ") + " Z";
+}
+function shapeDs(t, precision = 2, map) {
+  return t.shapes.map((s) => [s.outer, ...s.holes].map((r) => ringToD(r, precision, map)).join(" "));
+}
+function traceToSvg(t, o = {}) {
+  const fill = o.fill && HEX.test(o.fill) ? o.fill.toLowerCase() : "#000000", precision = o.precision ?? 2;
+  const lines2 = [`<svg xmlns="http://www.w3.org/2000/svg" width="${t.width}" height="${t.height}" viewBox="0 0 ${t.width} ${t.height}">`];
+  if (o.background && HEX.test(o.background)) lines2.push(`  <rect width="${t.width}" height="${t.height}" fill="${o.background.toLowerCase()}"/>`);
+  for (const d of shapeDs(t, precision)) lines2.push(`  <path fill="${fill}" fill-rule="evenodd" d="${d}"/>`);
+  lines2.push("</svg>", "");
+  return lines2.join("\n");
+}
+
+// ../artgen-cli/src/ops/image.ts
+function readPicture(file) {
+  if (!existsSync11(file)) throw new Error(`${file}: not found`);
+  try {
+    return decodePNG(new Uint8Array(readFileSync11(file)));
+  } catch (e) {
+    throw new Error(`${file}: ${e.message} (artgen reads 8-bit PNG files)`);
+  }
+}
+function writePicture(file, img) {
+  mkdirSync10(dirname10(file), { recursive: true });
+  writeFileSync10(file, encodePNG(img instanceof Grid2 ? img : new Grid2(img.w, img.h, Uint8ClampedArray.from(img.d))));
+}
+var stemOf2 = (file) => join11(dirname10(file), basename5(file, extname4(file)));
+var traceParams = () => ({
+  threshold: p.str("grey level 0\u2013255 that splits subject from background, or otsu (default: otsu picks one)"),
+  invert: p.bool("the lighter region is the subject, not the darker one"),
+  blur: p.int("Gaussian blur kernel before the threshold; 0 = none (default 3)"),
+  smoothing: p.int("close kernel that seals speckle; 0 = none (default 3)"),
+  simplify: p.num("Douglas\u2013Peucker tolerance in pixels; 0 keeps every corner (default 1.5)"),
+  min_area: p.num("drop shapes under this area in px\xB2 (default 24)"),
+  holes: p.bool("trace the holes in a shape (off: outlines only; default on)", { style: "onoff" }),
+  max_paths: p.int("keep at most this many shapes, largest first (default 120)"),
+  alpha: p.bool("read only the opaque pixels, so transparent art traces its own shape (default on)", { style: "onoff" })
+});
+function traceOptions(i) {
+  const t = i.threshold;
+  if (t !== void 0 && t !== "otsu" && !(Number.isFinite(+t) && +t >= 0 && +t <= 255)) throw new Error("--threshold: otsu or a grey level from 0 to 255");
+  return {
+    ...t !== void 0 && { threshold: t === "otsu" ? "otsu" : +t },
+    ...i.invert && { invert: true },
+    ...i.blur !== void 0 && { blur: i.blur },
+    ...i.smoothing !== void 0 && { smoothing: i.smoothing },
+    ...i.simplify !== void 0 && { simplifyTolerance: i.simplify },
+    ...i.min_area !== void 0 && { minArea: i.min_area },
+    ...i.holes !== void 0 && { keepHoles: i.holes },
+    ...i.max_paths !== void 0 && { maxPaths: i.max_paths },
+    ...i.alpha !== void 0 && { respectAlpha: i.alpha }
+  };
+}
+var traceSummary = (t) => ({ width: t.width, height: t.height, shapes: t.shapes.length, holes: t.shapes.reduce((n, s) => n + s.holes.length, 0), dropped: t.droppedCount, threshold: t.thresholdUsed });
+var BY_PATH = "reads a file by path outside the art/ sandbox";
+function hexFlag(v, flag) {
+  if (v === void 0) return void 0;
+  if (typeof v !== "string" || !/^#[0-9a-f]{6}$/i.test(v)) throw new Error(`${flag}: a colour like #rrggbb`);
+  return v;
+}
+var trace = defineOp({
+  name: "trace",
+  module: "core",
+  effect: "render",
+  summary: "Trace a picture or sketch to an SVG of closed shapes (outlines and their holes).",
+  params: {
+    image: p.str("the picture (PNG)", { positional: true, required: "trace: <image.png> is required" }),
+    out: p.str("the SVG to write (default: beside the picture, .svg)"),
+    fill: p.str("the shapes' colour, #rrggbb (default #000000)"),
+    background: p.str("a background colour, #rrggbb (default none)"),
+    ...traceParams()
+  },
+  run(i) {
+    const fill = hexFlag(i.fill, "--fill"), background = hexFlag(i.background, "--background"), file = resolve10(i.image);
+    const t = traceImage(readPicture(file), traceOptions(i)), out = resolve10(i.out ?? `${stemOf2(file)}.svg`);
+    mkdirSync10(dirname10(out), { recursive: true });
+    writeFileSync10(out, traceToSvg(t, { fill, background }));
+    return { out, ...traceSummary(t) };
+  },
+  cli: {
+    usage: "       artgen trace <image.png> [--out file.svg] [--threshold otsu|0-255] [--invert] [--blur n] [--smoothing n] [--simplify px] [--min-area px\xB2] [--holes off] [--max-paths n] [--fill #rrggbb] [--background #rrggbb]",
+    text: (r) => `${r.out}: ${r.shapes} shapes${r.holes ? `, ${r.holes} holes` : ""} from a ${r.width}x${r.height} picture (level ${r.threshold}${r.dropped ? `, ${r.dropped} dropped` : ""})
+next: artgen trace-base <asset> <image> turns it into an asset's base; artgen map trace <map> <image> into a map's ground`
+  },
+  mcp: { exclude: BY_PATH },
+  python: {}
+});
+var slice = defineOp({
+  name: "slice",
+  module: "core",
+  effect: "render",
+  summary: "Cut an outside sprite sheet into its sprites (a regular grid, or loose sprites found by their pixels).",
+  params: {
+    image: p.str("the sprite sheet (PNG)", { positional: true, required: "slice: <sheet.png> is required" }),
+    cols: p.int("cells across (with --rows)"),
+    rows: p.int("cells down (with --cols)"),
+    cell: p.size("cell size, WxH, e.g. 32x32 (instead of --cols and --rows)"),
+    auto: p.bool("find loose sprites by their opaque pixels instead of a grid"),
+    gap: p.int("--auto: pixels apart that still count as one sprite (default 1)"),
+    min_size: p.int("--auto: ignore blobs smaller than this either way (default 2)"),
+    margin: p.int("grid: pixels around the sheet that belong to no cell (default 0)"),
+    spacing: p.int("grid: pixels between cells (default 0)"),
+    skip_empty: p.bool("grid: leave out cells with nothing opaque"),
+    trim: p.bool("grid: shrink each cell to its opaque pixels"),
+    out: p.str("the folder to write the cells to (default: <sheet>-slices beside the sheet)")
+  },
+  run(i) {
+    const file = resolve10(i.image), img = readPicture(file), dir = resolve10(i.out ?? `${stemOf2(file)}-slices`);
+    const cell2 = Array.isArray(i.cell) ? i.cell : void 0;
+    if (i.auto && (cell2 || i.cols || i.rows)) throw new Error("slice: --auto finds the sprites itself; drop --cols, --rows and --cell");
+    const cells = i.auto ? sliceSprites(img, { gap: i.gap, minSize: i.min_size }) : sliceGrid(img, { cols: i.cols, rows: i.rows, cellW: cell2?.[0], cellH: cell2?.[1], margin: i.margin, spacing: i.spacing, skipEmpty: i.skip_empty, trim: i.trim });
+    if (!cells.length) throw new Error(`${i.image}: no sprites found${i.auto ? " (raise --gap or lower --min-size?)" : ""}`);
+    const pad = String(cells.length - 1).length, stem = basename5(file, extname4(file));
+    const files = cells.map((c) => ({ ...c, file: `${stem}-${String(c.index).padStart(Math.max(2, pad), "0")}.png` }));
+    for (const c of files) writePicture(join11(dir, c.file), crop(img, c));
+    writeFileSync10(join11(dir, "slices.json"), JSON.stringify({ sheet: basename5(file), width: img.w, height: img.h, cells: files }, null, 2) + "\n");
+    return { dir, sheet: { width: img.w, height: img.h }, cells: files };
+  },
+  cli: {
+    usage: "       artgen slice <sheet.png> --cols n --rows n | --cell WxH | --auto [--gap px] [--min-size px] [--margin px] [--spacing px] [--skip-empty] [--trim] [--out dir]",
+    text: (r) => `${r.dir}: ${r.cells.length} cells from a ${r.sheet.width}x${r.sheet.height} sheet (${r.cells[0].w}x${r.cells[0].h} first) + slices.json`
+  },
+  mcp: { exclude: BY_PATH },
+  python: {}
+});
+function paletteColors(src, n) {
+  if (existsSync11(src)) return /\.png$/i.test(src) ? paletteOf(readPicture(src), n).colors : parsePaletteText(readFileSync11(src, "utf8"));
+  if (/^#?([0-9a-f]{3}|[0-9a-f]{6})(,#?([0-9a-f]{3}|[0-9a-f]{6}))*$/i.test(src)) return src.split(",").map((c) => normHex("#" + c.replace("#", "")));
+  throw new Error(`${src}: not found (a .hex, .gpl or .png file, or colours like #ff0000,#00aa11)`);
+}
+var quantize2 = defineOp({
+  name: "quantize",
+  module: "core",
+  effect: "render",
+  summary: "Snap a picture to a palette (a .hex, .gpl or .png file, a list of colours, or the picture's own n dominant colours).",
+  params: {
+    image: p.str("the picture (PNG)", { positional: true, required: "quantize: <image.png> is required" }),
+    palette: p.str("the palette: a .hex, .gpl or .png file, or #rrggbb,#rrggbb,\u2026 (default: the picture's own --n colours)"),
+    n: p.int("colours to take from the picture when there is no --palette (default 16)"),
+    dither: p.oneOf(["none", "bayer2", "bayer4", "noise"], "ordered dither between the two nearest colours (default none)"),
+    out: p.str("the PNG to write (default: <image>.quantized.png)"),
+    save: p.str("also write the palette used as a .hex or .gpl file")
+  },
+  run(i) {
+    const file = resolve10(i.image), img = readPicture(file), colors = i.palette ? paletteColors(i.palette, i.n ?? 16) : paletteOf(img, i.n ?? 16).colors;
+    if (!colors.length) throw new Error(`${i.image}: nothing opaque to take colours from`);
+    const out = resolve10(i.out ?? `${stemOf2(file)}.quantized.png`);
+    writePicture(out, snapToPalette(img, colors, { dither: i.dither }));
+    if (i.save) writeFileSync10(resolve10(i.save), i.save.endsWith(".gpl") ? formatGpl(colors, basename5(i.save, ".gpl")) : formatHex(colors));
+    return { out, colors };
+  },
+  cli: {
+    usage: "       artgen quantize <image.png> [--palette file|#hex,#hex,\u2026] [--n 16] [--dither none|bayer2|bayer4|noise] [--out file.png] [--save palette.hex|.gpl]",
+    text: (r) => `${r.out}: ${r.colors.length} colours ${r.colors.join(" ")}`
+  },
+  mcp: { exclude: BY_PATH },
+  python: {}
+});
+var IMAGE_OPS = [trace, slice, quantize2];
+
 // ../artgen-cli/src/ops/core.ts
 function openBrowser(url) {
   const [cmd, args] = process.platform === "darwin" ? ["open", [url]] : process.platform === "win32" ? ["cmd", ["/c", "start", "", url]] : ["xdg-open", [url]];
@@ -11128,7 +11906,7 @@ function openBrowser(url) {
 }
 function installedModules(root) {
   try {
-    return Object.keys(JSON.parse(readFileSync11(join11(root, "tools", "artgen", "MANIFEST.json"), "utf8")).modules ?? {});
+    return Object.keys(JSON.parse(readFileSync12(join12(root, "tools", "artgen", "MANIFEST.json"), "utf8")).modules ?? {});
   } catch {
     return [];
   }
@@ -11144,8 +11922,8 @@ var uiOp = defineOp({
     open: p.bool("open the link in the default browser", { mcp: false })
   },
   async run(i, ctx) {
-    const project = ctx.project(), here = dirname10(fileURLToPath2(import.meta.url)), uiDir = i.dir ?? join11(here, "ui");
-    if (!existsSync11(join11(uiDir, "index.html"))) throw new Error(`ui: no web tools in ${uiDir} \u2014 install the ui module: npx -y github:rstevenson1237/image_tools#artgen-dist add ui`);
+    const project = ctx.project(), here = dirname11(fileURLToPath2(import.meta.url)), uiDir = i.dir ?? join12(here, "ui");
+    if (!existsSync12(join12(uiDir, "index.html"))) throw new Error(`ui: no web tools in ${uiDir} \u2014 install the ui module: npx -y github:rstevenson1237/image_tools#artgen-dist add ui`);
     const modules = installedModules(project.root), s = await startUiServer({ root: project.root, uiDir, shared: here, port: i.port, info: { modules } });
     console.log(`artgen ui: ${s.url}
 serving ${project.art} \u2014 Ctrl-C to stop`);
@@ -11261,22 +12039,22 @@ var metricsPool = defineOp({
   params: { paths: p.str("export files or folders of them", { positional: "rest", required: "metrics pool: name the export files or folders to pool", schema: { type: "array", items: { type: "string" } }, mcp: false }), out: p.str("also write the markdown here", { mcp: false }) },
   run(i) {
     const r = pool(i.paths), markdown = poolMarkdown(r);
-    if (i.out) writeFileSync10(i.out, markdown);
+    if (i.out) writeFileSync11(i.out, markdown);
     return { markdown, pool: r };
   },
   cli: { usage: "       artgen metrics pool <file|folder>\u2026 [--out pool.md]   exports from several repos, per artgen version", text: (r) => r.markdown, json: (r) => r.pool },
   mcp: { exclude: "reads export files by path outside art/" },
   python: {}
 });
-var CORE_OPS = [uiOp, reportOp, upstreamOp, metricsExport, metricsPool];
+var CORE_OPS = [uiOp, reportOp, upstreamOp, metricsExport, metricsPool, ...IMAGE_OPS];
 
 // ../artgen-cli/src/ops/maps-dungeon.ts
-import { join as join12 } from "node:path";
+import { join as join13 } from "node:path";
 
 // ../artgen-cli/src/ops/maps-shared.ts
-import { readFileSync as readFileSync12 } from "node:fs";
+import { readFileSync as readFileSync13 } from "node:fs";
 var text = (v) => ({ type: "text", text: typeof v === "string" ? v : JSON.stringify(v, null, 2) });
-var pngFile = (f) => ({ type: "image", data: readFileSync12(f).toString("base64"), mimeType: "image/png" });
+var pngFile = (f) => ({ type: "image", data: readFileSync13(f).toString("base64"), mimeType: "image/png" });
 var withVersion = (data, version) => data && typeof data === "object" && !Array.isArray(data) ? { version, ...data } : { version, items: data };
 var projectOf = (i, ctx) => i.path ? null : ctx.project();
 var refOf = (i) => i.path ? { file: i.path } : i.id;
@@ -11545,7 +12323,7 @@ ${next(i, m.id)}`,
   mcp: { content: (m) => [text(describeDungeon(m))] },
   python: {}
 });
-var grid = defineOp({
+var grid2 = defineOp({
   name: "dungeon.grid",
   module: "maps",
   effect: "write",
@@ -12129,8 +12907,8 @@ var overlay = defineOp({
 async function renderPreview(r, i, ctx) {
   const P = ctx.project(), layers = layersOf(i.layers, (v) => parseLayers(v, dungeon_exports.DUNGEON_LAYERS));
   const files = r.files.map((f) => ctx.rel(f));
-  const look = typeof i.ppu === "number" ? files.filter((f) => f.endsWith(".png")) : (await renderDungeonFiles(P, i.id, { ppu: 24, layers, formats: ["png"], out: join12(P.art, "dungeons", i.id, "out", "preview") })).files.map((f) => ctx.rel(f));
-  return [text({ ...r, files }), ...look.map((f) => pngFile(join12(P.root, f)))];
+  const look = typeof i.ppu === "number" ? files.filter((f) => f.endsWith(".png")) : (await renderDungeonFiles(P, i.id, { ppu: 24, layers, formats: ["png"], out: join13(P.art, "dungeons", i.id, "out", "preview") })).files.map((f) => ctx.rel(f));
+  return [text({ ...r, files }), ...look.map((f) => pngFile(join13(P.root, f)))];
 }
 var render = defineOp({
   name: "dungeon.render",
@@ -12211,10 +12989,10 @@ var sync = defineOp({
   mcp: { exclude: "reads --from by path (consumer tooling)" },
   python: {}
 });
-var DUNGEON_OPS_LIST = [list3, symbols, show2, create, update, grid, style, gen, edit, roomCmd, block, link, unlink, door, connect, disconnect, fit, label, symbol, check, overlay, render, facts, sync];
+var DUNGEON_OPS_LIST = [list3, symbols, show2, create, update, grid2, style, gen, edit, roomCmd, block, link, unlink, door, connect, disconnect, fit, label, symbol, check, overlay, render, facts, sync];
 
 // ../artgen-cli/src/ops/maps-map.ts
-import { join as join13 } from "node:path";
+import { join as join14 } from "node:path";
 var V2 = (data) => withVersion(data, map_exports.MAP_FORMAT);
 var next2 = (i, id2) => i.path ? `next: artgen map render --file ${i.path}` : `next: artgen map render ${id2 ?? i.id}`;
 var LAYER_DOC = "layers to turn off/on, e.g. grid=off,labels=off";
@@ -12444,7 +13222,7 @@ ${next2(i, r.m.id)}`,
   mcp: { content: (r) => [text({ edits: r.m.edits.length, last: r.m.edits.slice(-3) })] },
   python: {}
 });
-var grid2 = defineOp({
+var grid3 = defineOp({
   name: "map.grid",
   module: "maps",
   effect: "write",
@@ -12599,8 +13377,8 @@ ${next2(i, m.id)}`, json: (m) => V2(m) },
 async function renderPreview2(r, i, ctx) {
   const P = ctx.project(), theme = i.theme ?? "color", themes = theme === "both" ? ["color", "bw"] : [theme === "bw" ? "bw" : "color"], layers = layersOf(i.layers, (v) => parseLayers(v));
   const files = r.files.map((f) => ctx.rel(f));
-  const look = typeof i.ppu === "number" ? files.filter((f) => f.endsWith(".png")) : (await renderMapFiles(P, i.id, { themes, ppu: 24, layers, formats: ["png"], out: join13(P.art, "maps", i.id, "out", "preview") })).files.map((f) => ctx.rel(f));
-  return [text({ ...r, files }), ...look.map((f) => pngFile(join13(P.root, f)))];
+  const look = typeof i.ppu === "number" ? files.filter((f) => f.endsWith(".png")) : (await renderMapFiles(P, i.id, { themes, ppu: 24, layers, formats: ["png"], out: join14(P.art, "maps", i.id, "out", "preview") })).files.map((f) => ctx.rel(f));
+  return [text({ ...r, files }), ...look.map((f) => pngFile(join14(P.root, f)))];
 }
 var render2 = defineOp({
   name: "map.render",
@@ -12720,7 +13498,63 @@ var sync2 = defineOp({
   mcp: { exclude: "reads --from by path (consumer tooling)" },
   python: {}
 });
-var MAP_MAP_OPS = [list4, symbols2, show3, create2, gen2, update2, edit2, grid2, label2, symbol2, overlay2, set, render2, facts2, check2, sync2];
+var MAP_MAP_OPS = [list4, symbols2, show3, create2, gen2, update2, edit2, grid3, label2, symbol2, overlay2, set, render2, facts2, check2, sync2];
+
+// ../artgen-cli/src/ops/maps-trace.ts
+import { resolve as resolve11 } from "node:path";
+function toCells(r, scale, ox, oy) {
+  const out = [];
+  for (let k = 0; k < r.points.length; k += 2) out.push(Math.round(((r.points[k] + 0.5) * scale + ox) * 100) / 100, Math.round(((r.points[k + 1] + 0.5) * scale + oy) * 100) / 100);
+  return out;
+}
+var mapTrace = defineOp({
+  name: "map.trace",
+  module: "maps",
+  effect: "write",
+  summary: "Trace a picture's outline onto a terrain map as paint edits (the dark shapes become land, their holes water).",
+  params: {
+    id: idParam("the map id", "map trace: <id> <image.png>"),
+    path: pathParam("map"),
+    image: p.str("the sketch or map picture (PNG)", { positional: true, required: "map trace: <id> <image.png>", mcp: false }),
+    terrain: p.oneOf(map_exports.TERRAINS, "what the traced shapes are (default grass)", { mcp: false }),
+    hole_terrain: p.oneOf(map_exports.TERRAINS, "what the holes in a shape are (default water)", { mcp: false }),
+    origin: p.str("who wrote these edits (default trace); --replace swaps its earlier ones", { mcp: false }),
+    replace: p.bool("first remove this origin's earlier edits", { mcp: false }),
+    ...traceParams()
+  },
+  run(i, ctx) {
+    const terrain = i.terrain ?? "grass", holeTerrain = i.hole_terrain ?? "water", origin = i.origin ?? "trace";
+    if (!map_exports.TERRAINS.includes(terrain) || !map_exports.TERRAINS.includes(holeTerrain)) throw new Error(`--terrain, --hole-terrain: one of ${map_exports.TERRAINS.join(", ")}`);
+    const t = traceImage(readPicture(resolve11(i.image)), traceOptions(i));
+    let added = 0, removed = 0;
+    const m = updateMap(projectOf(i, ctx), refOf(i), (m2) => {
+      const scale = Math.min(m2.cols / t.width, m2.rows / t.height), ox = (m2.cols - t.width * scale) / 2, oy = (m2.rows - t.height * scale) / 2;
+      if (i.replace) {
+        const keep = m2.edits.filter((e) => e.origin !== origin);
+        removed = m2.edits.length - keep.length;
+        m2.edits = keep;
+      }
+      for (const s of t.shapes) {
+        m2.edits.push({ op: "paint", terrain, shape: { poly: toCells(s.outer, scale, ox, oy) }, origin });
+        added++;
+        for (const h of s.holes) {
+          m2.edits.push({ op: "paint", terrain: holeTerrain, shape: { poly: toCells(h, scale, ox, oy) }, origin });
+          added++;
+        }
+      }
+    });
+    return { m, added, removed, trace: traceSummary(t), origin };
+  },
+  cli: {
+    usage: "       artgen map trace <id> <image.png> [--terrain grass] [--hole-terrain water] [--origin trace] [--replace]   (+ the artgen trace flags: --threshold --invert --blur --smoothing --simplify --min-area --holes --max-paths)",
+    text: (r, i) => `${r.m.id}: ${r.added} paint edits from ${r.trace.shapes} shapes${r.removed ? ` (replaced ${r.removed} of origin ${r.origin})` : ""} (${r.m.edits.length} edits)
+${i.path ? `next: artgen map render --file ${i.path}` : `next: artgen map render ${r.m.id}`}`,
+    json: (r) => ({ id: r.m.id, added: r.added, removed: r.removed, edits: r.m.edits.length, trace: r.trace })
+  },
+  mcp: { exclude: "reads a picture by path outside the art/ sandbox" },
+  python: {}
+});
+var MAP_TRACE_OPS = [mapTrace];
 
 // ../artgen-cli/src/ops/maps-workflow.ts
 var noun = (k) => KIND_NOUN[k];
@@ -12920,7 +13754,7 @@ reviews use ${Object.entries(direction_exports.DEFAULT_THEME).map(([k, t]) => `$
 var WORKFLOW_OPS = [...opsFor("map"), direction, ...opsFor("dungeon"), ...opsFor("settlement")];
 
 // ../artgen-cli/src/ops/maps-settlement.ts
-import { join as join14 } from "node:path";
+import { join as join15 } from "node:path";
 var V3 = (data) => withVersion(data, settlement_exports.SETTLEMENT_FORMAT);
 var next3 = (i, id2) => i.path ? `next: artgen settlement render --file ${i.path}` : `next: artgen settlement render ${id2 ?? i.id}`;
 var CELLS2 = "WIDTHxHEIGHT in cells, e.g. 8x6";
@@ -13437,7 +14271,7 @@ var tree = sugar(
     return [{ op: "tree.add", kind: what ?? "tree", x: at4[0], y: at4[1], ...i.size !== void 0 && { size: i.size } }];
   }
 );
-var grid3 = defineOp({
+var grid4 = defineOp({
   name: "settlement.grid",
   module: "maps",
   effect: "write",
@@ -13574,8 +14408,8 @@ async function renderPreview3(rs, i, ctx) {
   const P = ctx.project(), o = renderOptions(i, ctx), files = rs.flatMap((r) => r.files.map((f) => ctx.rel(f)));
   if (i.plans === true) return [text({ renders: rs.length, files })];
   const spec = readSettlement(P, i.id);
-  const look = typeof i.ppu === "number" ? files.filter((f) => f.endsWith(".png")) : (await renderSettlementFiles(P, i.id, { ...o, ppu: o.view === "plan" ? 28 : Math.max(4, Math.min(16, Math.round(1100 / Math.max(spec.cols, spec.rows)))), formats: ["png"], out: join14(P.art, "settlements", i.id, "out", "preview") })).flatMap((r) => r.files.map((f) => ctx.rel(f)));
-  return [text({ ...rs[0], files }), ...look.map((f) => pngFile(join14(P.root, f)))];
+  const look = typeof i.ppu === "number" ? files.filter((f) => f.endsWith(".png")) : (await renderSettlementFiles(P, i.id, { ...o, ppu: o.view === "plan" ? 28 : Math.max(4, Math.min(16, Math.round(1100 / Math.max(spec.cols, spec.rows)))), formats: ["png"], out: join15(P.art, "settlements", i.id, "out", "preview") })).flatMap((r) => r.files.map((f) => ctx.rel(f)));
+  return [text({ ...rs[0], files }), ...look.map((f) => pngFile(join15(P.root, f)))];
 }
 var render3 = defineOp({
   name: "settlement.render",
@@ -13631,7 +14465,7 @@ var SETTLEMENT_OPS_LIST = [
   create3,
   update3,
   style2,
-  grid3,
+  grid4,
   gen3,
   edit3,
   building2,
@@ -13670,7 +14504,7 @@ var formats = defineOp({
   mcp: {},
   python: {}
 });
-var MAP_OPS = [...MAP_MAP_OPS, ...DUNGEON_OPS_LIST, ...SETTLEMENT_OPS_LIST, formats, ...WORKFLOW_OPS];
+var MAP_OPS = [...MAP_MAP_OPS, ...MAP_TRACE_OPS, ...DUNGEON_OPS_LIST, ...SETTLEMENT_OPS_LIST, formats, ...WORKFLOW_OPS];
 var MAP_NOTE = "       (map, dungeon and settlement commands take --file <path> in place of <id>: no project needed; renders go beside the file or to --out)";
 var MAP_USAGE = `${MAP_OPS.flatMap(usageLines).join("\n")}
 ${MAP_NOTE}`;
@@ -13685,7 +14519,7 @@ var GROUP_HELP = {
 var dispatch = (argv) => runCli([...MAP_OPS, ...CORE_OPS], argv, {
   log: (s) => console.log(s),
   ctx: cliCtx,
-  readFile: (f) => readFileSync13(f, "utf8"),
+  readFile: (f) => readFileSync14(f, "utf8"),
   unknown: (a) => {
     throw new Error(GROUP_HELP[a[0]] ?? `artgen: unknown command '${a.slice(0, 2).join(" ")}' \u2014 run artgen --help for the list`);
   }
@@ -13710,7 +14544,7 @@ ${MAPS_BUNDLE_USAGE}
   if (cmd === "formats" || cmd === "map" || cmd === "dungeon" || cmd === "settlement" || core2.includes(cmd)) return dispatch([cmd, ...args]);
   throw new Error(`artgen-maps: ${cmd}: not a command here; this bundle has map, dungeon, settlement, formats, ${core2.join(", ")} (--help)`);
 }
-var MAPS_VERSION = `${true ? "0.11.0" : "dev"} (${true ? "5dabfff" : "unknown"})`;
+var MAPS_VERSION = `${true ? "0.11.0" : "dev"} (${true ? "64dec09" : "unknown"})`;
 
 // ../artgen-cli/src/maps-bin.ts
 mapsMain(process.argv.slice(2)).then((code) => process.exit(code), (e) => {
