@@ -42,6 +42,8 @@ export interface PackAsset {
   /** Additive blending (effects): sprites call the adapter's `setBlend(node, 'add')`. */
   blend?: 'add';
   draft?: true;
+  /** A stand-in exported before the asset has art (`artgen export --placeholders`). */
+  placeholder?: true;
 }
 
 export interface PackManifest {
@@ -56,6 +58,8 @@ export interface PackManifest {
   normals?: string[];
   assets: Record<string, PackAsset>;
   drafts?: string[];
+  /** Ids of the assets exported from their placeholder, sorted. */
+  placeholders?: string[];
 }
 
 /** Decoded atlas pixels (straight-alpha RGBA, rows top to bottom). `swap` names the palette swap it was recoloured with. */
