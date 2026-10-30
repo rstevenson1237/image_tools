@@ -105,8 +105,11 @@ describe('shape checks (synthetic shapes)', () => {
   test('an empty cell fails shape-empty', () => {
     expect(status(res([cell(person), cell(() => {}, 'n')]))['shape-empty']).toBe('fail');
   });
-  test('feet far above the pivot fail shape-pivot, a 2 px gap flags', () => {
-    expect(status(res([cell(g => g.fill(10, 2, 12, 20, '#c08080'))]))['shape-pivot']).toBe('fail');
+  test('feet far above a placeholder pivot fail shape-pivot; above the default pivot, and a 2 px gap, only flag', () => {
+    const floating = res([cell(g => g.fill(10, 2, 12, 20, '#c08080'))]), b = brief({ size: [32, 32] });
+    const withFile = Object.fromEntries(shapeChecks(floating, dir, { brief: b, placeholder: defaultPlaceholder(b, dir) }).map(c => [c.id, c.status]));
+    expect(withFile['shape-pivot']).toBe('fail');
+    expect(status(floating)['shape-pivot']).toBe('flag');
     expect(status(res([cell(g => g.fill(10, 4, 12, 26, '#c08080'))]))['shape-pivot']).toBe('flag');
   });
   test('a shape much shorter than the placeholder body fails shape-box, a little shorter flags', () => {

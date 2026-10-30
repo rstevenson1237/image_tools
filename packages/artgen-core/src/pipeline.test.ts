@@ -228,6 +228,13 @@ describe('stage gates (docs/STAGES.md §5.4)', () => {
     const l2 = [stage('shape', 'approve', 's0', { version: 'base.v0' }), sc('base.v1', 5), stage('shape', 'reject', 's1'), sc('base.v2', 6)];
     const g2 = gated(['base.v1', 'base.v2'], l2, { stageKeys: { 'base.v1': { shape: 's1' }, 'base.v2': { shape: 's2' } } }) as { action: string; version: string; why: string };
     expect(g2).toMatchObject({ action: 'stage-gate', version: 'base.v2' }); expect(g2.why).toContain('the silhouette changed since the approved one (base.v0)');
+    // the redraw scores lower than the rejected v1: the gate still asks about v2, never builds on v1 again
+    const l3 = [sc('base.v1', 7), stage('shape', 'reject', 's1'), sc('base.v2', 5)], k3 = { stageKeys: { 'base.v1': { shape: 's1' }, 'base.v2': { shape: 's2' } } };
+    expect(gated(['base.v1', 'base.v2'], l3, k3)).toMatchObject({ action: 'stage-gate', version: 'base.v2' });
+    expect(gated(['base.v1', 'base.v2'], [...l3, stage('shape', 'approve', 's2')], k3)).toMatchObject({ action: 'write-base', version: 'base.v3', from: 'base.v2' });
+    // nor is the rejected silhouette chosen as the final, whatever it scored
+    const l4 = [...l3, stage('shape', 'approve', 's2'), sc('base.v3', 5.5)], k4 = { stageKeys: { ...k3.stageKeys, 'base.v3': { shape: 's2' } }, finishPass: false };
+    expect(gated(bases, l4, k4)).toMatchObject({ action: 'ready', final: 'base.v3' });
   });
 
   test('a revision that keeps the silhouette passes the gate by key; the gate guards the finish and ready steps too', () => {

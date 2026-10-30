@@ -1,6 +1,6 @@
 # Stage graph (R6)
 
-Status: design, 2026-10-30. This is phase R6 of [`TOOLING-PLAN.md`](TOOLING-PLAN.md) (§8, §10). It builds on the
+Status: built, 2026-10-30 (§13 has what was built, where it differs from this design, and the review's fixes). This is phase R6 of [`TOOLING-PLAN.md`](TOOLING-PLAN.md) (§8, §10). It builds on the
 operation registry ([`OPERATION-REGISTRY.md`](OPERATION-REGISTRY.md)), the workflow package ([`WORKFLOW.md`](WORKFLOW.md))
 and the image tools (R5b). §13 records what was built and where the build differs from this design.
 
@@ -249,7 +249,7 @@ from conformance: the first state of the first facing) unless said otherwise:
 | Check | Rule | Status |
 |---|---|---|
 | `shape-empty` | a cell with an empty shape mask | fail |
-| `shape-pivot` | standing kinds: the lowest row of the stand frames' shape (ignoring flyers) is within 1 px of the pivot's y (`placeholder` when there is one, else the default anchor) | fail beyond 2 px, flag at 2 px |
+| `shape-pivot` | standing kinds: the lowest row of the stand frames' shape (ignoring flyers) is within 1 px of the pivot's y (`placeholder` when there is one, else the default anchor) | against a placeholder file: fail beyond 2 px; else (and at 2 px) flag (§13, review) |
 | `shape-box` | standing kinds: the shape's height against the placeholder body's height | flag over 15 %, fail over 30 % |
 | `shape-read` | readability at 1×: compactness `4π·area / perimeter²` (perimeter = shape pixels' edges that touch a non-shape pixel) of the stand frame. 1 is a disc: a high value reads as a blob | flag above the threshold; calibrate it on the approved example finals so that none of them flags, and write the measured range in the code's comment |
 | `shape-facings` | assets with more than one facing: two facings that are not mirrors of each other whose masks overlap with IoU ≥ 0.97 | flag (they read the same) |
@@ -826,3 +826,21 @@ expectations, and what is not done.)
 - **Bundles, before → after** (`node packages/artgen-dist/build.mjs`): `artgen.js` 1,735,456 → 1,748,450 bytes, `artgen-mcp.js` 1,733,677 → 1,746,671, `artgen-maps.js` 770,468 → 774,941 (the primitive and the op are in core; the maps bundle has core's operations). Runtime core unchanged (5,209 bytes min+gz).
 - **Not done.** No pivot or sub-pixel offset on the brief; no RotSprite for 3D or voxel assets (they turn with the camera); no angle other than the facings' (a game that wants 5° steps exports 16 facings or rotates in the engine); the `rotate` op does not read Aseprite sheets or tags;
   a rotation gate (stages 6 has checks, not an approval); production runs as in R6a.
+
+### Review of R6a–R6d (2026-10-30)
+
+A review of the whole change found and fixed:
+
+- **A rejected silhouette could stay the best base.** After `stage reject <id> shape`, the redraw (v2) was compared with
+  the rejected v1 on score alone; when v1 scored higher it stayed the base the next revision built on, the gate asked
+  the user about the silhouette they had just rejected, and past the revision budget every step wrote one more base from
+  it. It could also be chosen as the final. Now a version whose shape key the user rejected (and has not approved
+  since) never counts as the best base or as a final candidate while another version remains (`planPasses`; tests in
+  `pipeline.test.ts`).
+- **`shape-pivot` blocked approved art.** Against the default pivot (the export anchor, a guess nobody saw) it failed 5
+  of the approved example finals and bench assets, so their shape gate could only be passed with `--force`. It now fails
+  only against a placeholder file (a pivot the user saw); against the default it flags and says how to make it firm.
+
+Left as found: the rebuilt templates are 3 % more code in total than the ones they replace (§13 R6b), so R6b's expected
+saving is in what a revision changes (bone angles and proportions instead of geometry), not yet in tokens per template.
+

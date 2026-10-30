@@ -7,7 +7,7 @@
  * does the I/O.
  */
 import type { LedgerEntry } from './qa/ledger.ts';
-import { stageState, type GateStage, type StageKeys } from 'artgen-workflow/stages.ts';
+import { stageState, stageVerdicts, type GateStage, type StageKeys } from 'artgen-workflow/stages.ts';
 
 export interface Version { name: string; kind: 'base' | 'finish'; n: number }
 
@@ -172,10 +172,16 @@ export function planPasses(input: PlanInput): PassState {
     version: v.name, pass: pid(v.name), score: scores.get(v.name)?.score, gate: scores.get(v.name)?.gate,
     ...(v.kind === 'finish' && input.finishBase?.[v.name] && { base: input.finishBase[v.name] }),
   }));
+  // a silhouette the user rejected (and has not approved since) never counts as the best base or the final while another remains
+  const sh = gates.includes('shape') ? stageState(input.ledger, 'shape') : undefined;
+  const rejectedShapes = new Set(sh ? stageVerdicts(input.ledger, 'shape').filter(v => v.verdict === 'reject' && v.key !== sh.approvedKey).map(v => v.key) : []);
+  const shapeRejected = (v: string) => { const k = input.stageKeys?.[v]?.shape; return k !== undefined && rejectedShapes.has(k); };
   const bestOf = (upTo: number) => {
     let best: { version: string; score: number } | undefined;
+    const skip = bases.some(b => b.n <= upTo && scores.has(b.name) && !shapeRejected(b.name));
     for (const b of bases) {
       if (b.n > upTo) break;
+      if (skip && shapeRejected(b.name)) continue;
       const s = scores.get(b.name)?.score;
       if (s !== undefined && (!best || s >= best.score)) best = { version: b.name, score: s }; // ties → the later, more refined version
     }
@@ -257,6 +263,7 @@ export function planPasses(input: PlanInput): PassState {
   if (lastUser && parseVersion(lastUser)!.kind === 'base') cands = [lastUser, ...finishes.filter(f => input.finishBase?.[f.name] === lastUser).map(f => f.name)];
   else if (lastUser) cands = finishes.filter(f => f.n >= parseVersion(lastUser)!.n && input.finishBase?.[f.name] === input.finishBase?.[lastUser]).map(f => f.name);
   else cands = [...bases, ...finishes].map(v => v.name);
+  if (cands.some(v => !shapeRejected(v))) cands = cands.filter(v => !shapeRejected(v));
   const passing = cands.filter(v => scores.get(v)!.gate !== false), pool = passing.length ? passing : cands;
   // ties: a finish over a base, a later version over an earlier one
   const order = (v: string) => { const p = parseVersion(v)!; return (p.kind === 'finish' ? 1000 : 0) + p.n; };

@@ -299,7 +299,8 @@ export function shapeChecks(r: RenderResult, dir: Direction, o: { brief: BriefEn
     else {
       const low = Math.max(...spans.map(s => s[1])), d = Math.abs(low - ground);
       out.push(flyer ? c('shape-pivot', 'skip', 'flyers hover above the pivot')
-        : c('shape-pivot', d > 2 ? 'fail' : d === 2 ? 'flag' : 'pass', `lowest shape row ${low}, pivot row ${ground}`));
+        // fails only against a placeholder file (a pivot the user saw): 5 approved example finals stand 3+ px above the default anchor row
+        : c('shape-pivot', d > 2 && o.placeholder ? 'fail' : d >= 2 ? 'flag' : 'pass', `lowest shape row ${low}, pivot row ${ground}${d > 2 && !o.placeholder ? ' (default pivot: write placeholder.json to make this firm)' : ''}`));
       const hs = Math.max(...spans.map(s => s[1] - s[0] + 1)), hb = ph!.body.h, dev = Math.abs(hs - hb) / hb;
       // against the brief's height or a placeholder the user saw the shape may fail; against the default guess (0.88 of the frame) it only flags
       out.push(c('shape-box', dev > 0.3 ? (firm ? 'fail' : 'flag') : dev > 0.15 ? 'flag' : 'pass', `shape ${hs} px tall, placeholder body ${hb} px (${dev >= 0.005 ? `${hs >= hb ? '+' : '-'}${Math.round(dev * 100)}%` : 'same'})`));
