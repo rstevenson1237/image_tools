@@ -14,6 +14,10 @@
       "version": "0.11.0",
       "file": "artgen-scene-0.11.0.tgz"
     },
+    "artgen-workflow": {
+      "version": "0.11.0",
+      "file": "artgen-workflow-0.11.0.tgz"
+    },
     "artgen-mapgen": {
       "version": "0.11.0",
       "file": "artgen-mapgen-0.11.0.tgz"

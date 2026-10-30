@@ -97,6 +97,22 @@ node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" settlement facts <id>       
 water or across a road, a gate far from its wall, furniture outside its building or on other furniture, stairs that
 meet nothing) is most likely a mistake.
 
+## 6. Brief, versions, review, and the user's approval
+A settlement goes through the same steps as a pixel asset: write what it is for, record each round as a version, review it, show it to the user, and let them decide. **Only the user approves**: never run `approve` yourself (over MCP it needs `user_approved`, and only after they said so in this conversation).
+```
+node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" settlement brief <id> --text "what it is for, in the user's words" --refs refs/coast.png   # before you generate; references are PNGs under art/
+node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" settlement version <id> --note "what this round changes"   # a frozen copy (settlement.v1.json, v2, …); refused when nothing changed
+node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" settlement review <id>        # the render, the one-page data sheet and the references on one sheet
+node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" settlement review <id> --score 7 --note "labels read" --reviewer art-reviewer   # the same, and logs a score for the version
+node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" settlement diff <id> v1 v2   # what changed between two versions (no versions named: the latest one against the file now)
+node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" settlement status             # in-pipeline, revision, final (waiting for the user), approved, stale; with one id also its history
+node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" settlement approve <id> --note "the user's words"    # only after the user said so
+node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" settlement feedback <id> --note "the user's words"   # they want changes: rework, version again, review again
+```
+Look at the review sheet before you show it: labels can be read, symbols don't overlap, the legend matches what is drawn, buildings stand clear of roads and water, and each floor plan's doors and stairs line up. The checks it lists must not fail (an approval is refused while one does); warnings are the user's to weigh. A fresh reviewer subagent scores better than the maker (`--reviewer`). Then show the user the sheet (or point them to **Asset Review** in `node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" ui`, where the versions sit side by side) and ask: approve, or what to change. A map edited after its approval is `stale` until a new version is recorded and approved.
+
+The **map direction** (`art/map-direction.json`) fixes the theme of each kind of map and the symbols a kind may use, for review sheets and checks: `node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" map direction --theme map=bw,settlement=color --symbols dungeon=altar,statue`, then `--lock` once the user agrees (locking moves its version up, so maps approved under the old one are `stale`). It never changes what `settlement render` draws.
+
 ## Readability rules (check every render)
 - **Read at a glance.** Clear streets, buildings squared to them, open space round the important places.
 - **Number what matters** (the inn, the temple, the smith, the keep); a long list of houses can go unnumbered.

@@ -1,0 +1,1 @@
+import{t as l,w as n,o,n as r,j as f,m as i,l as m}from"./index-D8e00GbE.js";var d=m("<span> </span>");function _(s,a){var t=d(),e=i(t);l(()=>{n(t,1,`badge ${a.status??""}`,"svelte-1o4fd4h"),o(t,"title",a.title),r(e,a.status)}),f(s,t)}export{_ as S};

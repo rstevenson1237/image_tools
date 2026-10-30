@@ -1819,10 +1819,10 @@ var init_png = __esm({
 // ../artgen-primitives/src/lib/gif.ts
 function lzw(indices, minCode) {
   const clear = 1 << minCode, eoi = clear + 1, out = [];
-  let size = minCode + 1, next4 = eoi + 1, dict = /* @__PURE__ */ new Map(), bits2 = 0, acc = 0;
+  let size2 = minCode + 1, next4 = eoi + 1, dict = /* @__PURE__ */ new Map(), bits2 = 0, acc = 0;
   const emit = (code) => {
     acc |= code << bits2;
-    bits2 += size;
+    bits2 += size2;
     while (bits2 >= 8) {
       out.push(acc & 255);
       acc >>>= 8;
@@ -1840,11 +1840,11 @@ function lzw(indices, minCode) {
     emit(cur.includes(",") ? dict.get(cur) : +cur);
     if (next4 < 4096) {
       dict.set(key2, next4++);
-      if (next4 > 1 << size && size < 12) size++;
+      if (next4 > 1 << size2 && size2 < 12) size2++;
     } else {
       emit(clear);
       dict = /* @__PURE__ */ new Map();
-      size = minCode + 1;
+      size2 = minCode + 1;
       next4 = eoi + 1;
     }
     cur = String(k);
@@ -3345,8 +3345,8 @@ function pValue(x, y, o) {
   let sum2 = 0, amp = 1, norm2 = 0, cx = o.cells ?? 4, cy = o.cellsY ?? cx;
   for (let k = 0; k < oct; k++) {
     const fx2 = x / o.w * cx, fy = y / o.h * cy, i = Math.floor(fx2), j = Math.floor(fy), u = smooth(fx2 - i), v = smooth(fy - j);
-    const at3 = (a2, b2) => hash2(mod(a2, cx), mod(b2, cy), seed + k * 1013);
-    const a = at3(i, j), b = at3(i + 1, j), c = at3(i, j + 1), d = at3(i + 1, j + 1);
+    const at4 = (a2, b2) => hash2(mod(a2, cx), mod(b2, cy), seed + k * 1013);
+    const a = at4(i, j), b = at4(i + 1, j), c = at4(i, j + 1), d = at4(i + 1, j + 1);
     sum2 += amp * (a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v);
     norm2 += amp;
     amp *= g;
@@ -3450,13 +3450,13 @@ function parsePath(d, tol = 0.5) {
   const toks = d.match(/[MmLlHhVvCcSsQqTtAaZz]|-?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?/g) ?? [];
   const out = [];
   let i = 0, cmd = "", cur = [0, 0], start = [0, 0], sub2 = null, lastCtrl = null, lastCmd = "";
-  const num2 = () => {
+  const num3 = () => {
     const t = toks[i++];
     if (t === void 0 || /^[a-zA-Z]$/.test(t)) throw new Error(`path: expected a number near token ${i} in "${d.slice(0, 40)}"`);
     return +t;
   };
   const pt3 = (rel3) => {
-    const x = num2(), y = num2();
+    const x = num3(), y = num3();
     return rel3 ? [cur[0] + x, cur[1] + y] : [x, y];
   };
   const lineTo = (p2) => {
@@ -3493,10 +3493,10 @@ function parsePath(d, tol = 0.5) {
     }
     if (C3 === "L") lineTo(pt3(rel3));
     else if (C3 === "H") {
-      const x = num2();
+      const x = num3();
       lineTo([rel3 ? cur[0] + x : x, cur[1]]);
     } else if (C3 === "V") {
-      const y = num2();
+      const y = num3();
       lineTo([cur[0], rel3 ? cur[1] + y : y]);
     } else if (C3 === "C" || C3 === "S") {
       const p0 = cur;
@@ -3521,7 +3521,7 @@ function parsePath(d, tol = 0.5) {
       }
       lastCtrl = c;
     } else if (C3 === "A") {
-      const rx0 = num2(), ry0 = num2(), rotDeg = num2(), large = num2(), sweep2 = num2(), p2 = pt3(rel3);
+      const rx0 = num3(), ry0 = num3(), rotDeg = num3(), large = num3(), sweep2 = num3(), p2 = pt3(rel3);
       arcTo(cur, p2, rx0, ry0, rotDeg, !!large, !!sweep2, tol).forEach(lineTo);
       lastCtrl = null;
     } else throw new Error(`path: unsupported command ${cmd}`);
@@ -3540,8 +3540,8 @@ function arcTo(p0, p1, rx, ry, rotDeg, large, sweep2, tol) {
     rx *= Math.sqrt(lam);
     ry *= Math.sqrt(lam);
   }
-  const num2 = rx * rx * ry * ry - rx * rx * y1 * y1 - ry * ry * x1 * x1, den = rx * rx * y1 * y1 + ry * ry * x1 * x1;
-  const co = (large === sweep2 ? -1 : 1) * Math.sqrt(Math.max(0, num2 / den));
+  const num3 = rx * rx * ry * ry - rx * rx * y1 * y1 - ry * ry * x1 * x1, den = rx * rx * y1 * y1 + ry * ry * x1 * x1;
+  const co = (large === sweep2 ? -1 : 1) * Math.sqrt(Math.max(0, num3 / den));
   const cx1 = co * rx * y1 / ry, cy1 = -co * ry * x1 / rx;
   const cx = cp * cx1 - sp * cy1 + (p0[0] + p1[0]) / 2, cy = sp * cx1 + cp * cy1 + (p0[1] + p1[1]) / 2;
   const ang = (ux, uy, vx, vy) => Math.atan2(ux * vy - uy * vx, ux * vx + uy * vy);
@@ -3959,34 +3959,34 @@ function validateDirection(input) {
   const oneOf2 = (path, v, opts) => {
     if (!opts.includes(v)) err2(path, `must be one of ${opts.join(" | ")} (got ${JSON.stringify(v)})`);
   };
-  const num2 = (path, v, min = -Infinity, max2 = Infinity, int = false) => {
+  const num3 = (path, v, min = -Infinity, max2 = Infinity, int = false) => {
     if (typeof v !== "number" || !Number.isFinite(v) || v < min || v > max2 || int && !Number.isInteger(v)) err2(path, `must be ${int ? "an integer" : "a number"} in [${min}, ${max2}]`);
   };
   const strs = (path, v) => {
     if (!Array.isArray(v) || v.some((s2) => typeof s2 !== "string")) err2(path, "must be an array of strings");
   };
-  const size = (path, v) => {
-    if (typeof v === "number") num2(path, v, 1, 4096, true);
-    else if (Array.isArray(v) && v.length === 2) v.forEach((n, i) => num2(`${path}[${i}]`, n, 1, 4096, true));
+  const size2 = (path, v) => {
+    if (typeof v === "number") num3(path, v, 1, 4096, true);
+    else if (Array.isArray(v) && v.length === 2) v.forEach((n, i) => num3(`${path}[${i}]`, n, 1, 4096, true));
     else err2(path, "must be a positive integer or [w, h]");
   };
   if (typeof d.id !== "string" || !d.id) err2("id", "required string");
-  num2("version", d.version, 1, Infinity, true);
+  num3("version", d.version, 1, Infinity, true);
   oneOf2("status", d.status, ["draft", "candidate", "locked"]);
   const cam = d.camera;
   if (!isObj(cam)) err2("camera", "required object");
   else {
     oneOf2("camera.view", d.camera.view, VIEWS);
     if (!Array.isArray(d.camera.light) || d.camera.light.length !== 3) err2("camera.light", "must be [x, y, z]");
-    else d.camera.light.forEach((n, i) => num2(`camera.light[${i}]`, n));
+    else d.camera.light.forEach((n, i) => num3(`camera.light[${i}]`, n));
     oneOf2("camera.directions", d.camera.directions, [1, 4, 8, 16]);
-    num2("camera.pixelScale", d.camera.pixelScale, 1, 16, true);
-    if (d.camera.iso !== void 0) size("camera.iso.tile", d.camera.iso.tile);
-    if (d.camera.oblique !== void 0) num2("camera.oblique.frontRatio", d.camera.oblique.frontRatio, 0, 1);
+    num3("camera.pixelScale", d.camera.pixelScale, 1, 16, true);
+    if (d.camera.iso !== void 0) size2("camera.iso.tile", d.camera.iso.tile);
+    if (d.camera.oblique !== void 0) num3("camera.oblique.frontRatio", d.camera.oblique.frontRatio, 0, 1);
   }
   if (!isObj(d.scale)) err2("scale", "must be an object");
-  else for (const [k, v] of Object.entries(d.scale)) if (k === "metre") num2("scale.metre", v, 0.1, 1e3);
-  else if (k !== "proportions") size(`scale.${k}`, v);
+  else for (const [k, v] of Object.entries(d.scale)) if (k === "metre") num3("scale.metre", v, 0.1, 1e3);
+  else if (k !== "proportions") size2(`scale.${k}`, v);
   const p2 = d.palette;
   if (!isObj(d.palette)) err2("palette", "required object");
   else {
@@ -4000,7 +4000,7 @@ function validateDirection(input) {
     }
     if (typeof p2.outline !== "string" || !HEX.test(p2.outline)) err2("palette.outline", "required #rrggbb");
     if (!isObj(p2.shadow) || typeof p2.shadow.color !== "string" || !HEX.test(p2.shadow.color)) err2("palette.shadow.color", "must be #rrggbb");
-    else num2("palette.shadow.alpha", p2.shadow.alpha, 0, 1);
+    else num3("palette.shadow.alpha", p2.shadow.alpha, 0, 1);
     const ramps = isObj(p2.ramps) ? p2.ramps : {};
     const known = (path, name) => {
       if (typeof name !== "string" || !(name in ramps)) err2(path, `unknown ramp ${JSON.stringify(name)}`);
@@ -4012,10 +4012,10 @@ function validateDirection(input) {
       else v.forEach((n, i) => known(`palette.perKind.${k}[${i}]`, n));
     }
     else err2("palette.perKind", "must be an object");
-    if (isObj(p2.perKindMax)) for (const [k, v] of Object.entries(p2.perKindMax)) num2(`palette.perKindMax.${k}`, v, 1, 256, true);
+    if (isObj(p2.perKindMax)) for (const [k, v] of Object.entries(p2.perKindMax)) num3(`palette.perKindMax.${k}`, v, 1, 256, true);
     else err2("palette.perKindMax", "must be an object");
     if (p2.maxColors !== void 0) {
-      num2("palette.maxColors", p2.maxColors, 1, 256, true);
+      num3("palette.maxColors", p2.maxColors, 1, 256, true);
       if (isObj(p2.ramps) && !errors.some((e) => e.startsWith("palette.ramps"))) {
         const n = new Set(Object.values(p2.ramps).flat().map((c) => c.toLowerCase())).size;
         if (n > p2.maxColors) err2("palette.maxColors", `ramps hold ${n} colours, more than ${p2.maxColors}`);
@@ -4028,22 +4028,22 @@ function validateDirection(input) {
   }
   oneOf2("line.outer", d.line?.outer, ["dark", "selout", "none"]);
   oneOf2("line.inner", d.line?.inner, ["none", "selective", "all"]);
-  num2("line.weight", d.line?.weight, 1, 4, true);
-  num2("shading.bands", d.shading?.bands, 1, 16, true);
-  num2("shading.hueShift", d.shading?.hueShift, 0, 180);
+  num3("line.weight", d.line?.weight, 1, 4, true);
+  num3("shading.bands", d.shading?.bands, 1, 16, true);
+  num3("shading.hueShift", d.shading?.hueShift, 0, 180);
   oneOf2("shading.dither", d.shading?.dither, ["none", "bayer2", "bayer4", "noise"]);
   oneOf2("shading.highlight", d.shading?.highlight, ["none", "sparing", "rich"]);
   if (typeof d.shading?.aa !== "boolean") err2("shading.aa", "must be a boolean");
   oneOf2("detail.density", d.detail?.density, ["low", "medium", "high"]);
-  num2("detail.minFeaturePx", d.detail?.minFeaturePx, 1, 64, true);
-  num2("pipeline.revisionPasses", d.pipeline?.revisionPasses, 1, 10, true);
+  num3("detail.minFeaturePx", d.detail?.minFeaturePx, 1, 64, true);
+  num3("pipeline.revisionPasses", d.pipeline?.revisionPasses, 1, 10, true);
   if (typeof d.pipeline?.finishPass !== "boolean") err2("pipeline.finishPass", "must be a boolean");
-  num2("pipeline.raster.directMaxPx", d.pipeline?.raster?.directMaxPx, 1, 4096, true);
-  num2("pipeline.raster.ss", d.pipeline?.raster?.ss, 1, 16, true);
+  num3("pipeline.raster.directMaxPx", d.pipeline?.raster?.directMaxPx, 1, 4096, true);
+  num3("pipeline.raster.ss", d.pipeline?.raster?.ss, 1, 16, true);
   strs("pipeline.procedural", d.pipeline?.procedural);
   strs("pipeline.finish.allow", d.pipeline?.finish?.allow);
-  num2("effects.fps", d.effects?.fps, 1, 120, true);
-  num2("effects.maxFrames", d.effects?.maxFrames, 1, 256, true);
+  num3("effects.fps", d.effects?.fps, 1, 120, true);
+  num3("effects.maxFrames", d.effects?.maxFrames, 1, 256, true);
   if (d.background !== void 0 && (typeof d.background !== "string" || !HEX.test(d.background))) err2("background", "must be #rrggbb");
   strs("anchors", d.anchors);
   strs("rules.do", d.rules?.do);
@@ -4072,14 +4072,14 @@ function pxPerMetre(dir) {
   const m = dir.scale.metre;
   return typeof m === "number" ? m : resolveSize(dir, "character", "character")[1] / 1.8;
 }
-function resolveSize(dir, size, kind) {
-  if (Array.isArray(size)) return size;
-  const key2 = size ?? kind;
+function resolveSize(dir, size2, kind) {
+  if (Array.isArray(size2)) return size2;
+  const key2 = size2 ?? kind;
   const ALIAS = { creature: "character", tileset: "tile", texture: "tile", viewmodel: "large", "ui-icon": "prop" };
   const v = key2 ? dir.scale[key2] ?? dir.scale[ALIAS[key2]] : void 0;
   if (typeof v === "number") return [v, v];
   if (Array.isArray(v)) return v;
-  throw new Error(`no size for ${JSON.stringify(size ?? kind)} in direction.scale`);
+  throw new Error(`no size for ${JSON.stringify(size2 ?? kind)} in direction.scale`);
 }
 var VIEWS, DEFAULTS, isObj, HEX, RAMP_NAME, RESERVED, clone;
 var init_direction = __esm({
@@ -4338,7 +4338,7 @@ var init_materials = __esm({
       return t * t * (3 - 2 * t);
     };
     mod2 = (a, b) => (a % b + b) % b;
-    across = (size, px) => Math.max(1, Math.round(size / px));
+    across = (size2, px) => Math.max(1, Math.round(size2 / px));
     RECIPES = {
       stone(x, y, c) {
         const o = { w: c.w, h: c.h, seed: c.seed }, n = pGradient(x, y, { ...o, cells: across(c.w, 7 * c.s), octaves: 3 });
@@ -4425,9 +4425,9 @@ var init_materials = __esm({
       tech(x, y, c) {
         const P2 = across(c.w, 16 * c.s), pw = c.w / P2, ph = c.h / across(c.h, 16 * c.s), u = mod2(x, pw), v = mod2(y, ph);
         const edge = u < 1 || v < 1 ? "seam" : u < 2 || v < 2 ? "lit" : u > pw - 2 || v > ph - 2 ? "dark" : "";
-        const cell2 = Math.floor(x / pw) + Math.floor(y / ph) * 31, strip2 = c.rnd(cell2, 3) > 0.6 && Math.abs(v - ph / 2) < 0.6 && u > 3 && u < pw - 3;
+        const cell3 = Math.floor(x / pw) + Math.floor(y / ph) * 31, strip2 = c.rnd(cell3, 3) > 0.6 && Math.abs(v - ph / 2) < 0.6 && u > 3 && u < pw - 3;
         if (strip2) return { role: "light", tone: 0.1, height: 0.6 };
-        const vent = c.rnd(cell2, 4) > 0.65 && u > 4 && u < pw - 4 && v > 4 && v < ph - 4 && Math.floor(v) % 2 === 0;
+        const vent = c.rnd(cell3, 4) > 0.65 && u > 4 && u < pw - 4 && v > 4 && v < ph - 4 && Math.floor(v) % 2 === 0;
         const scuff = pValue(x, y, { w: c.w, h: c.h, cells: across(c.w, 4), seed: c.seed }) > 0.8 ? 0.15 : 0;
         return { role: "base", tone: edge === "seam" ? 1 : edge === "lit" ? 0.05 : edge === "dark" ? 0.75 : vent ? 0.85 : 0.35 + scuff, height: edge === "seam" ? 0 : vent ? 0.2 : 0.5 };
       },
@@ -4608,12 +4608,12 @@ var init_fp = __esm({
 
 // ../artgen-scene/src/tex/iso.ts
 function stepper(dir) {
-  const at3 = /* @__PURE__ */ new Map();
+  const at4 = /* @__PURE__ */ new Map();
   for (const [name, r] of Object.entries(dir.pal)) r.forEach((c, i) => {
-    if (!at3.has(c)) at3.set(c, [name, i]);
+    if (!at4.has(c)) at4.set(c, [name, i]);
   });
   return (c, k) => {
-    const hit = at3.get(c);
+    const hit = at4.get(c);
     if (!hit) return c;
     const r = dir.pal[hit[0]];
     return r[Math.max(0, Math.min(r.length - 1, hit[1] + k))];
@@ -4882,7 +4882,7 @@ function autotile(dir, layout2, index, o) {
   if (o.base.w !== s2 || o.over.h !== s2 || o.base.h !== s2) throw new Error("autotile: over and base must be square textures of the same size");
   const cov = new Uint8Array(s2 * s2);
   for (let y = 0; y < s2; y++) for (let x = 0; x < s2; x++) cov[y * s2 + x] = autotileCovers(m, x, y, s2, opts) ? 1 : 0;
-  const at3 = (x, y) => {
+  const at4 = (x, y) => {
     if (x >= 0 && y >= 0 && x < s2 && y < s2) return cov[y * s2 + x];
     const bx = x < 0 ? W : x >= s2 ? E : 0, by = y < 0 ? N : y >= s2 ? S : 0;
     const bit = bx && by ? bx === W ? by === N ? NW : SW : by === N ? NE : SE : bx || by;
@@ -4891,11 +4891,11 @@ function autotile(dir, layout2, index, o) {
   const step = stepper2(dir), g = new Grid(s2, s2), [lx, ly] = dir.camera.light.map(Math.sign);
   for (let y = 0; y < s2; y++) for (let x = 0; x < s2; x++) {
     if (cov[y * s2 + x]) {
-      const c = o.over.get(x, y), lit = o.rim !== false && (lx && !at3(x + lx, y) || ly && !at3(x, y + ly));
-      const far = o.rim !== false && (lx && !at3(x - lx, y) || ly && !at3(x, y - ly));
+      const c = o.over.get(x, y), lit = o.rim !== false && (lx && !at4(x + lx, y) || ly && !at4(x, y + ly));
+      const far = o.rim !== false && (lx && !at4(x - lx, y) || ly && !at4(x, y - ly));
       g.set(x, y, lit && !far ? step(c, -1) : far ? step(c, 1) : c);
     } else {
-      const c = o.base.get(x, y), shadowed = o.rim !== false && (at3(x + lx, y + ly) || at3(x + lx, y) || at3(x, y + ly));
+      const c = o.base.get(x, y), shadowed = o.rim !== false && (at4(x + lx, y + ly) || at4(x + lx, y) || at4(x, y + ly));
       g.set(x, y, shadowed ? step(c, 1) : c);
     }
   }
@@ -4910,12 +4910,12 @@ function autotile(dir, layout2, index, o) {
   return g;
 }
 function stepper2(dir) {
-  const at3 = /* @__PURE__ */ new Map();
+  const at4 = /* @__PURE__ */ new Map();
   for (const [name, r] of Object.entries(dir.pal)) r.forEach((c, i) => {
-    if (!at3.has(c)) at3.set(c, [name, i]);
+    if (!at4.has(c)) at4.set(c, [name, i]);
   });
   return (c, k) => {
-    const hit = at3.get(c);
+    const hit = at4.get(c);
     if (!hit) return c;
     const r = dir.pal[hit[0]];
     return r[Math.max(0, Math.min(r.length - 1, hit[1] + k))];
@@ -4990,9 +4990,9 @@ function smoothNormal(g, v, r) {
   const l = Math.hypot(x, y, z);
   return l < 1e-6 ? null : [x / l, y / l, z / l];
 }
-function project(cam, yaw, pivot, at3, p2) {
+function project(cam, yaw, pivot, at4, p2) {
   const q = rotZ([p2[0] - pivot[0], p2[1] - pivot[1], p2[2] - pivot[2]], yaw);
-  return [at3[0] + dot3(cam.M[0], q), at3[1] + dot3(cam.M[1], q)];
+  return [at4[0] + dot3(cam.M[0], q), at4[1] + dot3(cam.M[1], q)];
 }
 function bandFor(ns, Ls, lv, gain = 1.4, ref = Ls[2]) {
   const nl = lv.length, mid = nl - 1 >> 1, pos = Math.round(mid - (dot3(ns, Ls) - ref) * gain * (nl - 1));
@@ -5000,14 +5000,14 @@ function bandFor(ns, Ls, lv, gain = 1.4, ref = Ls[2]) {
 }
 function rasterVoxels(set2, o) {
   const { w, h, camera: cam } = o, ss = o.ss ?? 4, yaw = o.yaw ?? 0, g = new VoxelGrid(set2);
-  const pivot = o.pivot ?? g.pivot(), at3 = o.at ?? [w / 2, Math.round(h * 0.8)];
+  const pivot = o.pivot ?? g.pivot(), at4 = o.at ?? [w / 2, Math.round(h * 0.8)];
   const caster = new VoxelCaster(g, cam, yaw, pivot), L2 = lightIn(cam, o.light), Ls = toScreen(cam, L2), ref = cam.ref ? dot3(toScreen(cam, cam.ref), Ls) : Ls[2];
   const gain = o.gain ?? 1.4, smoothR = o.smooth ?? 2, levels = set2.mats.map((m) => bandIndices(m.length, o.bands));
   const normals = /* @__PURE__ */ new Map();
   const W3 = w * ss, H = h * ss, N3 = W3 * H;
   const sKey = new Int32Array(N3).fill(-1), sDepth = new Float32Array(N3), sNorm = new Float32Array(N3 * 3);
   for (let sy = 0; sy < H; sy++) for (let sx = 0; sx < W3; sx++) {
-    const hit = caster.cast((sx + 0.5) / ss - at3[0], (sy + 0.5) / ss - at3[1]);
+    const hit = caster.cast((sx + 0.5) / ss - at4[0], (sy + 0.5) / ss - at4[1]);
     if (!hit) continue;
     const c = set2.cells[hit.cell];
     let n = hit.face;
@@ -5096,10 +5096,10 @@ function rasterVoxels(set2, o) {
     if (o.shadowShape === "footprint") {
       const cols = /* @__PURE__ */ new Set();
       for (const c of set2.cells) cols.add(c.v[0] * 65536 + c.v[1]);
-      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (caster.groundHit(x + 0.5 - at3[0], y + 0.5 - at3[1], cols)) sh.set(x, y, o.shadow);
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (caster.groundHit(x + 0.5 - at4[0], y + 0.5 - at4[1], cols)) sh.set(x, y, o.shadow);
     } else {
       const zTop = g.z0 + Math.max(1, Math.ceil(g.nz / 4)), pts2 = [];
-      for (const c of set2.cells) if (c.v[2] < zTop) pts2.push(project(cam, yaw, pivot, at3, [c.v[0] + 0.5, c.v[1] + 0.5, 0]));
+      for (const c of set2.cells) if (c.v[2] < zTop) pts2.push(project(cam, yaw, pivot, at4, [c.v[0] + 0.5, c.v[1] + 0.5, 0]));
       const sees = Math.abs(cam.M[1][0]) + Math.abs(cam.M[1][1]) > 1e-6;
       if (pts2.length && sees) {
         const xs = pts2.map((p2) => p2[0]), ys = pts2.map((p2) => p2[1]), cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
@@ -5262,7 +5262,7 @@ function chunk2(id2, content, children = new Uint8Array(0)) {
 }
 function encodeVox(m) {
   for (const [i, n] of m.size.entries()) if (n < 1 || n > 256) throw new Error(`vox: size[${i}] ${n} outside 1\u2013256`);
-  const size = new Uint8Array(12), sv = new DataView(size.buffer);
+  const size2 = new Uint8Array(12), sv = new DataView(size2.buffer);
   m.size.forEach((n, i) => sv.setInt32(i * 4, n, true));
   const xyzi = new Uint8Array(4 + m.voxels.length * 4);
   new DataView(xyzi.buffer).setInt32(0, m.voxels.length, true);
@@ -5272,7 +5272,7 @@ function encodeVox(m) {
     const [r, g, b] = parseColor(m.palette[i] ?? "#000000");
     rgba.set([r, g, b, 255], i * 4);
   }
-  const body3 = concat([chunk2("SIZE", size), chunk2("XYZI", xyzi), chunk2("RGBA", rgba)]);
+  const body3 = concat([chunk2("SIZE", size2), chunk2("XYZI", xyzi), chunk2("RGBA", rgba)]);
   const head = new Uint8Array(8);
   head.set(ascii("VOX "), 0);
   new DataView(head.buffer).setInt32(4, 150, true);
@@ -5282,9 +5282,9 @@ function voxFromSet(set2) {
   if (set2.mats.length > 255) throw new Error("vox: more than 255 materials");
   const xs = set2.cells.map((c) => c.v[0]), ys = set2.cells.map((c) => c.v[1]), zs = set2.cells.map((c) => c.v[2]);
   const x0 = Math.min(...xs), y0 = Math.min(...ys), z0 = Math.min(...zs);
-  const size = [Math.max(...xs) - x0 + 1, Math.max(...ys) - y0 + 1, Math.max(...zs) - z0 + 1];
+  const size2 = [Math.max(...xs) - x0 + 1, Math.max(...ys) - y0 + 1, Math.max(...zs) - z0 + 1];
   const palette = Array.from({ length: 256 }, (_, i) => i < set2.mats.length ? set2.mats[i][set2.mats[i].length >> 1] : "#000000");
-  return { size, palette, voxels: set2.cells.map((c) => [c.v[0] - x0, c.v[1] - y0, c.v[2] - z0, c.mat + 1]) };
+  return { size: size2, palette, voxels: set2.cells.map((c) => [c.v[0] - x0, c.v[1] - y0, c.v[2] - z0, c.mat + 1]) };
 }
 function voxCells(m) {
   const by = /* @__PURE__ */ new Map();
@@ -5411,8 +5411,8 @@ function voxelGlb(set2, o = {}) {
       idx.set([k * 4, k * 4 + 1, k * 4 + 2, k * 4, k * 4 + 2, k * 4 + 3], k * 6);
     });
     const pv = view(new Uint8Array(pos.buffer), 34962), nv = view(new Uint8Array(nor.buffer), 34962), iv = view(new Uint8Array(idx.buffer), 34963);
-    const acc = (bufferView, componentType, count2, type, extra = {}) => {
-      json.accessors.push({ bufferView, componentType, count: count2, type, ...extra });
+    const acc = (bufferView, componentType, count, type, extra = {}) => {
+      json.accessors.push({ bufferView, componentType, count, type, ...extra });
       return json.accessors.length - 1;
     };
     const [r, gg, b] = parseColor(ramp2[ramp2.length >> 1]);
@@ -5499,13 +5499,13 @@ var init_scene = __esm({
       lint() {
         const out = [], pal = new Set(this.env.palette.map(normHex));
         const walk = (s2, path) => {
-          const at3 = s2.name ? `${path}(${s2.name})` : path;
-          if (!GEOM_TYPES.has(s2.type) && s2.type !== "group") out.push(`${at3}: unknown type ${JSON.stringify(s2.type)}`);
-          for (const k of ["stroke", "strokeWidth", "stroke-width"]) if (k in s2) out.push(`${at3}: strokes are not allowed (R4); use a tube/capsule shape, ink or an underlay`);
+          const at4 = s2.name ? `${path}(${s2.name})` : path;
+          if (!GEOM_TYPES.has(s2.type) && s2.type !== "group") out.push(`${at4}: unknown type ${JSON.stringify(s2.type)}`);
+          for (const k of ["stroke", "strokeWidth", "stroke-width"]) if (k in s2) out.push(`${at4}: strokes are not allowed (R4); use a tube/capsule shape, ink or an underlay`);
           const colours = [...Array.isArray(s2.mat) ? s2.mat : [], ...typeof s2.color === "string" && s2.color.startsWith("#") ? [s2.color] : []];
-          for (const c of colours) if (!pal.has(normHex(c))) out.push(`${at3}: colour ${c} is not in the direction palette for this asset (R11)`);
-          s2.children?.forEach((c, i) => walk(c, `${at3}.children[${i}]`));
-          s2.shapes?.forEach((c, i) => walk(c, `${at3}.shapes[${i}]`));
+          for (const c of colours) if (!pal.has(normHex(c))) out.push(`${at4}: colour ${c} is not in the direction palette for this asset (R11)`);
+          s2.children?.forEach((c, i) => walk(c, `${at4}.children[${i}]`));
+          s2.shapes?.forEach((c, i) => walk(c, `${at4}.shapes[${i}]`));
         };
         this.specs.forEach((s2, i) => walk(s2, `[${i}]`));
         return [...out, ...this.warnings];
@@ -5533,33 +5533,33 @@ var init_scene = __esm({
         const W3 = this.w * S3, H = this.h * S3, m = new Mask(W3, H, S3), tol = 0.5 / (S3 * matScale(M));
         const poly = (pts2) => pts2.map((p2) => apply(M, p2));
         const fill2 = (rings, rule = "nonzero") => fillPolygons(m, rings.map(poly), rule);
-        const num2 = (v, name) => {
+        const num3 = (v, name) => {
           if (typeof v !== "number" || !Number.isFinite(v)) throw new Error(`${s2.type}${s2.name ? ` ${s2.name}` : ""}: ${name} must be a number`);
           return v;
         };
         switch (s2.type) {
           case "rect":
-            return fill2([rectPts(num2(s2.x ?? 0, "x"), num2(s2.y ?? 0, "y"), num2(s2.w, "w"), num2(s2.h, "h"), s2.r ?? 0, tol)]);
+            return fill2([rectPts(num3(s2.x ?? 0, "x"), num3(s2.y ?? 0, "y"), num3(s2.w, "w"), num3(s2.h, "h"), s2.r ?? 0, tol)]);
           case "ellipse":
-            return fill2([ellipsePts(num2(s2.cx, "cx"), num2(s2.cy, "cy"), num2(s2.rx, "rx"), num2(s2.ry ?? s2.rx, "ry"), tol)]);
+            return fill2([ellipsePts(num3(s2.cx, "cx"), num3(s2.cy, "cy"), num3(s2.rx, "rx"), num3(s2.ry ?? s2.rx, "ry"), tol)]);
           case "circle":
-            return fill2([ellipsePts(num2(s2.cx, "cx"), num2(s2.cy, "cy"), num2(s2.r, "r"), s2.r, tol)]);
+            return fill2([ellipsePts(num3(s2.cx, "cx"), num3(s2.cy, "cy"), num3(s2.r, "r"), s2.r, tol)]);
           case "poly":
             return fill2([s2.pts ?? []], s2.fillRule);
           case "path":
             return fill2(parsePath(s2.d ?? "", tol), s2.fillRule);
           case "star":
-            return fill2([starPts(num2(s2.cx, "cx"), num2(s2.cy, "cy"), num2(s2.r, "r"), num2(s2.r2, "r2"), num2(s2.n, "n"), s2.rot ?? -90)]);
+            return fill2([starPts(num3(s2.cx, "cx"), num3(s2.cy, "cy"), num3(s2.r, "r"), num3(s2.r2, "r2"), num3(s2.n, "n"), s2.rot ?? -90)]);
           case "ring": {
-            const cx = num2(s2.cx, "cx"), cy = num2(s2.cy, "cy"), r = num2(s2.r, "r"), w = num2(s2.w, "w");
+            const cx = num3(s2.cx, "cx"), cy = num3(s2.cy, "cy"), r = num3(s2.r, "r"), w = num3(s2.w, "w");
             return fill2([ellipsePts(cx, cy, r, r, tol), ellipsePts(cx, cy, r - w, r - w, tol).reverse()], "evenodd");
           }
           case "arc": {
-            const cx = num2(s2.cx, "cx"), cy = num2(s2.cy, "cy"), r = num2(s2.r, "r"), w = num2(s2.w, "w"), a0 = num2(s2.a0, "a0"), a1 = num2(s2.a1, "a1");
+            const cx = num3(s2.cx, "cx"), cy = num3(s2.cy, "cy"), r = num3(s2.r, "r"), w = num3(s2.w, "w"), a0 = num3(s2.a0, "a0"), a1 = num3(s2.a1, "a1");
             return fill2([[...ellipsePts(cx, cy, r, r, tol, a0, a1), ...ellipsePts(cx, cy, r - w, r - w, tol, a0, a1).reverse()]]);
           }
           case "line": {
-            const a = [num2(s2.x0, "x0") + 0.5, num2(s2.y0, "y0") + 0.5], b = [num2(s2.x1, "x1") + 0.5, num2(s2.y1, "y1") + 0.5], hw = (s2.w ?? 1) / 2;
+            const a = [num3(s2.x0, "x0") + 0.5, num3(s2.y0, "y0") + 0.5], b = [num3(s2.x1, "x1") + 0.5, num3(s2.y1, "y1") + 0.5], hw = (s2.w ?? 1) / 2;
             const dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len;
             return fill2([[
               [a[0] - ux * hw - uy * hw, a[1] - uy * hw + ux * hw],
@@ -5569,12 +5569,12 @@ var init_scene = __esm({
             ]]);
           }
           case "capsule": {
-            const a = s2.a ?? [num2(s2.x0, "x0"), num2(s2.y0, "y0")], b = s2.b ?? [num2(s2.x1, "x1"), num2(s2.y1, "y1")];
-            return fill2([capsulePts(a, b, num2(s2.r, "r"), s2.r1 ?? s2.r, tol)]);
+            const a = s2.a ?? [num3(s2.x0, "x0"), num3(s2.y0, "y0")], b = s2.b ?? [num3(s2.x1, "x1"), num3(s2.y1, "y1")];
+            return fill2([capsulePts(a, b, num3(s2.r, "r"), s2.r1 ?? s2.r, tol)]);
           }
           case "tube": {
             const pts2 = s2.d ? parsePath(s2.d, tol)[0] ?? [] : s2.pts ?? [];
-            const w0 = num2(s2.w, "w"), w1 = s2.w1 ?? w0;
+            const w0 = num3(s2.w, "w"), w1 = s2.w1 ?? w0;
             const lens = pts2.map((p2, i) => i ? Math.hypot(p2[0] - pts2[i - 1][0], p2[1] - pts2[i - 1][1]) : 0);
             const total = lens.reduce((a, b) => a + b, 0) || 1;
             let acc = 0;
@@ -5740,9 +5740,9 @@ var init_scene = __esm({
           }
           nz = Math.sqrt(Math.max(0, 1 - nx * nx - ny * ny));
         } else {
-          const dist = m.insideDistance(), W3 = m.w, at3 = (x, y) => x < 0 || y < 0 || x >= W3 || y >= m.h ? 0 : dist[y * W3 + x];
-          const R3 = Math.max(1e-3, it.round !== void 0 ? it.round * S3 : geo.R), d = at3(sx, sy), u = Math.min(1, d / R3);
-          const gx = (at3(sx + 1, sy) - at3(sx - 1, sy)) / 2, gy = (at3(sx, sy + 1) - at3(sx, sy - 1)) / 2, gl = Math.hypot(gx, gy);
+          const dist = m.insideDistance(), W3 = m.w, at4 = (x, y) => x < 0 || y < 0 || x >= W3 || y >= m.h ? 0 : dist[y * W3 + x];
+          const R3 = Math.max(1e-3, it.round !== void 0 ? it.round * S3 : geo.R), d = at4(sx, sy), u = Math.min(1, d / R3);
+          const gx = (at4(sx + 1, sy) - at4(sx - 1, sy)) / 2, gy = (at4(sx, sy + 1) - at4(sx, sy - 1)) / 2, gl = Math.hypot(gx, gy);
           if (gl > 1e-6 && u < 1) {
             const slope = Math.min(4, (1 - u) / Math.sqrt(Math.max(1e-4, 1 - (1 - u) * (1 - u))));
             const tx = -gx / gl, ty = -gy / gl, k = 1 / Math.sqrt(1 + slope * slope);
@@ -6072,10 +6072,10 @@ var init_scene3d = __esm({
        * index (or hex) to, else the direction ramp nearest that colour. `at` offsets it in fine voxels.
        */
       addVox(model, o = {}) {
-        const at3 = o.at ?? [0, 0, 0];
+        const at4 = o.at ?? [0, 0, 0];
         for (const g of voxCells(model)) {
           const mat = o.mats?.[g.index] ?? o.mats?.[g.color] ?? nearestRamp(this.dir.pal, g.color);
-          this.add({ type: "cells", name: o.name ?? `vox${g.index}`, mat, shade: o.shade, cells: g.cells.map((c) => [c[0] + at3[0], c[1] + at3[1], c[2] + at3[2]]) });
+          this.add({ type: "cells", name: o.name ?? `vox${g.index}`, mat, shade: o.shade, cells: g.cells.map((c) => [c[0] + at4[0], c[1] + at4[1], c[2] + at4[2]]) });
         }
         return this;
       }
@@ -6131,8 +6131,8 @@ var init_scene3d = __esm({
         const view = o.view ?? this.dir.camera.view, k = this.k;
         const cam = camera(view === "fp" ? "billboard" : view, { scale: (o.scale ?? 1) / k, frontRatio: this.dir.camera.oblique?.frontRatio, elevation: o.elevation });
         const pivot = o.pivot ? [o.pivot[0] * k, o.pivot[1] * k, o.pivot[2] * k] : new VoxelGrid(this.voxelSet()).pivot();
-        const at3 = o.at ?? (o.ox !== void 0 && o.oy !== void 0 ? [o.ox, o.oy] : [w / 2, Math.round(h * 0.8)]);
-        const [x, y] = project(cam, facingYaw(o.facing ?? "s") + (view === "iso" ? -45 : 0) + (o.yaw ?? 0), pivot, at3, [p2[0] * k, p2[1] * k, p2[2] * k]);
+        const at4 = o.at ?? (o.ox !== void 0 && o.oy !== void 0 ? [o.ox, o.oy] : [w / 2, Math.round(h * 0.8)]);
+        const [x, y] = project(cam, facingYaw(o.facing ?? "s") + (view === "iso" ? -45 : 0) + (o.yaw ?? 0), pivot, at4, [p2[0] * k, p2[1] * k, p2[2] * k]);
         const px = [Math.floor(x), Math.floor(y)];
         return px[0] >= 0 && px[1] >= 0 && px[0] < w && px[1] < h ? px : void 0;
       }
@@ -6315,12 +6315,12 @@ var init_proc = __esm({
           y1 = Math.max(y1, y);
         }
         if (x1 < 0) return;
-        const at3 = o.at ?? [Math.round((x0 + x1 + 1 - mw) / 2), Math.round((y0 + y1 + 1 - mh) / 2)];
+        const at4 = o.at ?? [Math.round((x0 + x1 + 1 - mw) / 2), Math.round((y0 + y1 + 1 - mh) / 2)];
         const moves = [];
         for (let p2 = 0; p2 < r.id.length; p2++) {
           if (!hit(p2)) continue;
           const x = p2 % r.w, y = p2 / r.w | 0;
-          let mx = x - at3[0], my = y - at3[1];
+          let mx = x - at4[0], my = y - at4[1];
           if (o.tile) {
             mx = (mx % mw + mw) % mw;
             my = (my % mh + mh) % mh;
@@ -6827,12 +6827,12 @@ function preset(name, o, override = {}) {
   return p2(o).map((l) => ({ ...l, ...override }));
 }
 function paletteCycle(dir, g, colors, shift) {
-  const run2 = colorRun(dir, colors), n = run2.length, at3 = new Map(run2.map((c, i) => [c, i]));
+  const run2 = colorRun(dir, colors), n = run2.length, at4 = new Map(run2.map((c, i) => [c, i]));
   const out = g.clone(), s2 = (Math.round(shift) % n + n) % n;
   if (!s2) return out;
   for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) {
     if (g.alpha(x, y) !== 255) continue;
-    const i = at3.get(g.get(x, y));
+    const i = at4.get(g.get(x, y));
     if (i !== void 0) out.set(x, y, run2[(i + s2) % n]);
   }
   if (g.normal) out.normal = g.normal;
@@ -6973,22 +6973,803 @@ var init_src2 = __esm({
   }
 });
 
+// ../artgen-workflow/src/check.ts
+var init_check = __esm({
+  "../artgen-workflow/src/check.ts"() {
+    "use strict";
+  }
+});
+
+// ../artgen-workflow/src/ledger.ts
+function imageTokens(w, h) {
+  const s2 = Math.min(1, 1568 / Math.max(w, h));
+  return Math.ceil(w * s2 * (h * s2) / 750);
+}
+function formatLedgerLine(e) {
+  if (!e.ts || !e.type || !e.asset) throw new Error("ledger entry needs ts, type and asset");
+  return JSON.stringify(e);
+}
+function parseLedger(text3) {
+  const out = [];
+  text3.split("\n").forEach((l, i) => {
+    if (!l.trim()) return;
+    try {
+      out.push(JSON.parse(l));
+    } catch {
+      throw new Error(`ledger line ${i + 1}: invalid JSON`);
+    }
+  });
+  return out;
+}
+var sourceHash;
+var init_ledger = __esm({
+  "../artgen-workflow/src/ledger.ts"() {
+    "use strict";
+    init_rng();
+    sourceHash = (src) => hashString(src.replace(/\r\n/g, "\n"));
+  }
+});
+
+// ../artgen-workflow/src/versions.ts
+function versionOfFile(stem, file) {
+  const m = new RegExp(`^${stem.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\.(v\\d+)\\.json$`).exec(file);
+  return m && versionNumber(m[1]) !== null ? m[1] : null;
+}
+function diffJson(a, b) {
+  const out = [];
+  const walk = (x, y, path) => {
+    if (isObj2(x) && isObj2(y)) {
+      for (const k of /* @__PURE__ */ new Set([...Object.keys(x), ...Object.keys(y)])) {
+        const p2 = path ? `${path}.${k}` : k;
+        if (!(k in y)) out.push({ path: p2, op: "removed", from: x[k] });
+        else if (!(k in x)) out.push({ path: p2, op: "added", to: y[k] });
+        else walk(x[k], y[k], p2);
+      }
+    } else if (Array.isArray(x) && Array.isArray(y)) {
+      if (byId(x, y)) {
+        const ix = new Map(x.map((v) => [v.id, v])), iy = new Map(y.map((v) => [v.id, v]));
+        for (const id2 of /* @__PURE__ */ new Set([...ix.keys(), ...iy.keys()])) {
+          const p2 = `${path}[id=${id2}]`;
+          if (!iy.has(id2)) out.push({ path: p2, op: "removed", from: ix.get(id2) });
+          else if (!ix.has(id2)) out.push({ path: p2, op: "added", to: iy.get(id2) });
+          else walk(ix.get(id2), iy.get(id2), p2);
+        }
+      } else for (let i = 0; i < Math.max(x.length, y.length); i++) {
+        const p2 = `${path}[${i}]`;
+        if (i >= y.length) out.push({ path: p2, op: "removed", from: x[i] });
+        else if (i >= x.length) out.push({ path: p2, op: "added", to: y[i] });
+        else walk(x[i], y[i], p2);
+      }
+    } else if (JSON.stringify(x) !== JSON.stringify(y)) out.push({ path, op: "changed", from: x, to: y });
+  };
+  walk(a, b, "");
+  return out.sort((p2, q) => p2.path < q.path ? -1 : p2.path > q.path ? 1 : 0);
+}
+function diffLines(changes, max2 = 60) {
+  const show6 = (v) => {
+    const s2 = JSON.stringify(v) ?? "undefined";
+    return s2.length > max2 ? `${s2.slice(0, max2 - 3)}...` : s2;
+  };
+  return changes.map((c) => c.op === "added" ? `+ ${c.path || "(file)"}: ${show6(c.to)}` : c.op === "removed" ? `- ${c.path || "(file)"}: ${show6(c.from)}` : `~ ${c.path || "(file)"}: ${show6(c.from)} -> ${show6(c.to)}`);
+}
+var versionNumber, sortVersions, nextVersion, versionFile, isObj2, byId;
+var init_versions = __esm({
+  "../artgen-workflow/src/versions.ts"() {
+    "use strict";
+    versionNumber = (name) => {
+      const m = /^v(\d+)$/.exec(name);
+      return m && +m[1] > 0 ? +m[1] : null;
+    };
+    sortVersions = (names) => names.filter((n) => versionNumber(n) !== null).sort((a, b) => versionNumber(a) - versionNumber(b));
+    nextVersion = (names) => `v${Math.max(0, ...names.map(versionNumber).filter((n) => n !== null)) + 1}`;
+    versionFile = (stem, version) => `${stem}.${version}.json`;
+    isObj2 = (v) => !!v && typeof v === "object" && !Array.isArray(v);
+    byId = (a, b) => [a, b].every((xs) => {
+      const ids = xs.map((x) => isObj2(x) && typeof x.id === "string" ? x.id : null);
+      return ids.every((id2) => id2 !== null) && new Set(ids).size === ids.length;
+    });
+  }
+});
+
+// ../artgen-workflow/src/subject.ts
+function parseSubjectKey(key2) {
+  const m = /^(map|dungeon|settlement):([\w-]+)$/.exec(key2);
+  return m ? { kind: m[1], id: m[2] } : null;
+}
+var SUBJECT_KINDS, subjectKey, isSubjectKey, stemOf;
+var init_subject = __esm({
+  "../artgen-workflow/src/subject.ts"() {
+    "use strict";
+    SUBJECT_KINDS = ["map", "dungeon", "settlement"];
+    subjectKey = (kind, id2) => `${kind}:${id2}`;
+    isSubjectKey = (asset) => parseSubjectKey(asset) !== null;
+    stemOf = (s2) => s2.file.replace(/\.json$/, "");
+  }
+});
+
+// ../artgen-workflow/src/status.ts
+function assetStatus({ ledger, next: next4, direction: direction2, finalHash: finalHash2 }) {
+  if (!next4) return { status: "brief", issues: [], why: "no versions yet" };
+  const iFeedback = lastIndex(ledger, (e) => e.type === "feedback" && e.by === "user");
+  const iApprove = lastIndex(ledger, (e) => e.type === "approve" && e.by === "user");
+  if (next4.action !== "ready") {
+    const revising = iFeedback >= 0 && iFeedback > iApprove;
+    return { status: revising ? "revision" : "in-pipeline", issues: [], why: `${next4.action} ${next4.version ?? ""}`.trim() };
+  }
+  const final = next4.final, issues = next4.issues ?? [];
+  const approval = iApprove >= 0 ? ledger[iApprove] : void 0;
+  if (!approval || iFeedback > iApprove || approval.version !== final || finalHash2 && approval.sourceHash !== finalHash2) {
+    return { status: "final", final, issues, why: approval && iFeedback < iApprove ? `approved ${approval.version} changed since (re-review)` : "finished; waiting for the user to approve or give feedback" };
+  }
+  const iExport = lastIndex(ledger, (e) => e.type === "export" && e.version === final);
+  const exp = iExport > iApprove ? ledger[iExport] : void 0;
+  if (approval.direction?.version !== direction2.version || approval.direction?.id !== direction2.id) {
+    const iRestyle = lastIndex(ledger, (e) => e.type === "restyle" && e.direction?.version === direction2.version);
+    const restyled = iRestyle > iApprove;
+    if (restyled && ledger[iRestyle].changedPct === 0) {
+      const iExp2 = lastIndex(ledger, (e) => e.type === "export" && e.version === final && e.direction?.version === direction2.version);
+      if (iExp2 > iRestyle) return { status: "exported", final, issues, approval, export: ledger[iExp2], why: `in pack ${String(ledger[iExp2].pack ?? "")} (approval carried over a no-change restyle)` };
+      return { status: "approved", final, issues, approval, why: `restyled to direction v${direction2.version} with no pixel change; approval carried over` };
+    }
+    return restyled ? { status: "final", final, issues, approval, why: `restyled to direction v${direction2.version}; re-approve` } : { status: "stale", final, issues, approval, export: exp, why: `approved under direction v${approval.direction?.version}, now v${direction2.version}: run restyle` };
+  }
+  if (exp) {
+    if (exp.sourceHash && finalHash2 && exp.sourceHash !== finalHash2) return { status: "stale", final, issues, approval, export: exp, why: "sources changed since export" };
+    return { status: "exported", final, issues, approval, export: exp, why: `in pack ${String(exp.pack ?? "")}`.trim() };
+  }
+  return { status: "approved", final, issues, approval, why: "approved; ready to export" };
+}
+function subjectStatus({ entries, key: key2, workingHash, direction: direction2 }) {
+  const iV = lastIndex(entries, (e) => e.type === "version");
+  if (iV < 0) {
+    const k = parseSubjectKey(key2 ?? entries[0]?.asset ?? "");
+    return { status: "in-pipeline", why: `no version recorded yet${k ? `: artgen ${k.kind} version ${k.id}` : ""}` };
+  }
+  const V4 = entries[iV], v = String(V4.version);
+  const iApprove = lastIndex(entries, (e) => e.type === "approve" && e.by === "user" && e.version === v);
+  const iFeedback = lastIndex(entries, (e) => e.type === "feedback" && e.by === "user");
+  const approval = iApprove >= 0 ? entries[iApprove] : void 0, was = V4.sourceHash ?? approval?.sourceHash;
+  if (iFeedback > iV && iFeedback > iApprove) return { status: "revision", version: v, approval, why: `feedback on ${String(entries[iFeedback].on ?? v)}: rework, then record ${nextVersion([v])}` };
+  const edited = workingHash !== void 0 && was !== void 0 && workingHash !== was;
+  if (approval) {
+    if (edited) return { status: "stale", version: v, approval, why: `edited since approved ${v}: record a version` };
+    const d = approval.direction;
+    if (direction2 && (d?.id !== direction2.id || d?.version !== direction2.version)) return { status: "stale", version: v, approval, why: `${d ? `approved under map direction v${d.version}` : "approved with no map direction"}, now v${direction2.version}: review and approve again` };
+    return { status: "approved", version: v, approval, why: `approved ${v}` };
+  }
+  if (edited) return { status: "in-pipeline", version: v, why: `edited since ${v}: record a version` };
+  return { status: "final", version: v, why: `${v} waiting for the user` };
+}
+var lastIndex;
+var init_status = __esm({
+  "../artgen-workflow/src/status.ts"() {
+    "use strict";
+    init_versions();
+    init_subject();
+    lastIndex = (xs, f) => {
+      for (let i = xs.length - 1; i >= 0; i--) if (f(xs[i])) return i;
+      return -1;
+    };
+  }
+});
+
+// ../artgen-workflow/src/analytics.ts
+function passRecords(ledger) {
+  const latest = /* @__PURE__ */ new Map();
+  for (const e of ledger) if (e.type === "score" && !e.blind && e.version && typeof e.score === "number" && e.asset !== "direction" && !isSubjectKey(e.asset)) latest.set(`${e.asset}\0${e.version}`, e);
+  const out = [], lastBase = /* @__PURE__ */ new Map(), baseScore = /* @__PURE__ */ new Map();
+  for (const e of latest.values()) {
+    const tk = e.tokens ?? {};
+    const pass = e.pass ?? (e.version.startsWith("finish") ? "f" : "r?"), stage = stageOf(pass), key2 = (v) => `${e.asset}\0${v}`;
+    let delta;
+    if (e.version.startsWith("base")) {
+      const prev = lastBase.get(e.asset);
+      if (prev !== void 0) delta = round(e.score - prev);
+      lastBase.set(e.asset, e.score);
+      baseScore.set(key2(e.version), e.score);
+    } else if (typeof e.base === "string" && baseScore.has(key2(e.base))) delta = round(e.score - baseScore.get(key2(e.base)));
+    out.push({
+      asset: e.asset,
+      version: e.version,
+      pass,
+      stage,
+      score: e.score,
+      delta,
+      gate: e.conformance?.pass,
+      outTokens: tk.out ?? tk.edit ?? 0,
+      inTokens: tk.in ?? 0,
+      imageTokens: e.imageTokens ?? 0,
+      agentIn: tk.agentIn ?? 0,
+      wallMs: typeof e.wallMs === "number" ? e.wallMs : void 0,
+      model: e.model,
+      effort: e.effort,
+      reviewModel: typeof e.reviewModel === "string" ? e.reviewModel : void 0
+    });
+  }
+  return out;
+}
+function analytics(ledger, metas) {
+  const recs = passRecords(ledger), ids = [...new Set(recs.map((r) => r.asset))], meta7 = new Map(metas.map((m) => [m.id, m]));
+  const passKey = (p2) => /^f\d*$/.test(p2) ? p2 === "f" ? "f" : "f2+" : /^[xu]\d+$/.test(p2) ? p2[0] : p2;
+  const ORDER = ["r1", "r2", "r3", "r4", "r5", "x", "f", "u", "f2+"];
+  const passes = [...new Set(recs.map((r) => passKey(r.pass)))].sort((a, b) => (ORDER.indexOf(a) + 1 || 99) - (ORDER.indexOf(b) + 1 || 99)).map((pass) => {
+    const rs = recs.filter((r) => passKey(r.pass) === pass), walls = rs.map((r) => r.wallMs).filter((w) => w !== void 0);
+    return {
+      pass,
+      n: rs.length,
+      meanScore: mean(rs.map((r) => r.score)),
+      meanDelta: mean(rs.map((r) => r.delta).filter((d) => d !== void 0)),
+      regressed: rs.filter((r) => (r.delta ?? 0) < 0).length,
+      gatePass: rs.filter((r) => r.gate).length,
+      outTokens: sum(rs.map((r) => r.outTokens)),
+      imageTokens: sum(rs.map((r) => r.imageTokens)),
+      meanWallS: walls.length ? round(mean(walls) / 1e3, 0) : void 0
+    };
+  });
+  const perAsset = ids.map((id2) => {
+    const rs = recs.filter((r) => r.asset === id2), bases = rs.filter((r) => r.version.startsWith("base")), fins = rs.filter((r) => r.stage === "finish");
+    const r13 = rs.find((r) => r.pass === "r1")?.score, best = bases.length ? Math.max(...bases.filter((b) => b.stage !== "user").map((b) => b.score)) : void 0;
+    const fin = fins[fins.length - 1], finBase = fin && rs.find((r) => r.version === ledger.find((e) => e.type === "score" && e.asset === id2 && e.version === fin.version)?.base);
+    const out = sum(rs.map((r) => r.outTokens + r.inTokens)), img = sum(rs.map((r) => r.imageTokens)), agent = sum(rs.map((r) => r.agentIn));
+    return {
+      id: id2,
+      kind: meta7.get(id2)?.kind ?? "?",
+      r1: r13,
+      best: Number.isFinite(best) ? best : void 0,
+      final: fin?.score ?? best,
+      fromRevisions: r13 !== void 0 && best !== void 0 && Number.isFinite(best) ? round(best - r13) : void 0,
+      fromFinish: fin && finBase ? round(fin.score - finBase.score) : void 0,
+      passes: rs.length,
+      outTokens: out,
+      imageTokens: img,
+      cost: round(tokenCost(sum(rs.map((r) => r.outTokens)), img + agent + sum(rs.map((r) => r.inTokens))), 4)
+    };
+  });
+  const group = (f) => {
+    const g = /* @__PURE__ */ new Map();
+    for (const a of perAsset) {
+      const k = f(meta7.get(a.id)) ?? "-";
+      g.set(k, [...g.get(k) ?? [], a]);
+    }
+    return [...g].map(([key2, as]) => ({ key: key2, n: as.length, meanFinal: mean(as.map((a) => a.final).filter((x) => x !== void 0)), meanCost: as.length ? round(mean(as.map((a) => a.cost)) ?? 0, 4) : void 0, meanPasses: mean(as.map((a) => a.passes)) }));
+  };
+  const tmpl = /* @__PURE__ */ new Map();
+  for (const a of perAsset) if (a.r1 !== void 0) {
+    const t = meta7.get(a.id)?.template ?? "-";
+    tmpl.set(t, [...tmpl.get(t) ?? [], a.r1]);
+  }
+  const fb = ledger.filter((e) => e.type === "feedback" && e.by === "user" && e.asset !== "direction" && !isSubjectKey(e.asset));
+  const finals = new Set(ledger.filter((e) => e.type === "status" && e.status === "final" && !isSubjectKey(e.asset)).map((e) => e.asset)).size || perAsset.filter((a) => a.final !== void 0).length;
+  const byRoute = {};
+  for (const e of fb) byRoute[String(e.route ?? "?")] = (byRoute[String(e.route ?? "?")] ?? 0) + 1;
+  const mg = /* @__PURE__ */ new Map();
+  for (const r of recs) {
+    const k = `${r.model ?? "unrecorded"}\0${r.effort ?? "-"}`;
+    mg.set(k, [...mg.get(k) ?? [], r]);
+  }
+  const models = [...mg].map(([k, rs]) => {
+    const [model, effort] = k.split("\0"), ds = rs.map((r) => r.delta).filter((d) => d !== void 0), tok2 = sum(rs.map((r) => r.outTokens + r.inTokens + r.imageTokens + r.agentIn));
+    return { model, effort, n: rs.length, meanDelta: mean(ds), deltaPerKTok: tok2 ? round(sum(ds) / tok2 * 1e3, 3) : void 0 };
+  });
+  const rg = /* @__PURE__ */ new Map();
+  for (const r of recs) {
+    const k = r.reviewModel ?? "unrecorded";
+    rg.set(k, [...rg.get(k) ?? [], r]);
+  }
+  const reviewers = [...rg].map(([model, rs]) => {
+    const ds = rs.map((r) => r.delta).filter((d) => d !== void 0), tok2 = sum(rs.map((r) => r.outTokens + r.inTokens + r.imageTokens + r.agentIn));
+    return { model, passes: [...new Set(rs.map((r) => r.pass.replace(/\d+$/, "")))].sort(), n: rs.length, meanDelta: mean(ds), deltaPerKTok: tok2 && ds.length ? round(sum(ds) / tok2 * 1e3, 3) : void 0 };
+  });
+  const suggestions = [];
+  const kinds = [...new Set(perAsset.map((a) => a.kind))];
+  const gainRules = (label4, d3, d2, key2) => {
+    if (d3.length >= 3 && mean(d3) <= 0.1) suggestions.push(`${label4}: v3 adds ${mean(d3)} on average over ${d3.length} assets \u2014 try ${key2}.revisionPasses = 2`);
+    else if (d3.length >= 3 && mean(d3) >= 0.75) suggestions.push(`${label4}: v3 still adds ${mean(d3)} on average \u2014 a fourth revision may pay off (${key2}.revisionPasses = 4)`);
+    if (d2.length >= 3 && mean(d2) <= 0) suggestions.push(`${label4}: v2 does not improve on v1 (${mean(d2)}) \u2014 look at the template or the review notes`);
+  };
+  const deltas = (p2, kind) => recs.filter((r) => r.pass === p2 && (!kind || meta7.get(r.asset)?.kind === kind) && r.delta !== void 0).map((r) => r.delta);
+  for (const kind of kinds) gainRules(kind, deltas("r3", kind), deltas("r2", kind), `budget.perKind.${kind}`);
+  if (kinds.length > 1 && kinds.every((k) => deltas("r3", k).length < 3 && deltas("r2", k).length < 3)) gainRules("all kinds together", deltas("r3"), deltas("r2"), "budget");
+  const fRecs = recs.filter((r) => r.pass === "f" && r.delta !== void 0), allTok = sum(recs.map((r) => r.outTokens + r.inTokens + r.imageTokens + r.agentIn));
+  if (fRecs.length >= 3) {
+    const fMean = mean(fRecs.map((r) => r.delta)), fReg = fRecs.filter((r) => r.delta < 0).length / fRecs.length;
+    const fTok = sum(recs.filter((r) => r.stage === "finish").map((r) => r.outTokens + r.inTokens + r.imageTokens + r.agentIn)), share2 = allTok ? Math.round(100 * fTok / allTok) : 0;
+    if (fMean <= 0 || fReg >= 0.3)
+      suggestions.push(`the finishing pass adds ${fMean} on average and regressed ${Math.round(fReg * 100)}% of ${fRecs.length} assets, for ${share2}% of the tokens \u2014 set review.finish = "auto" (finish only on a finish-level note or a base over approveMin), or check it fixes what the review sheets show`);
+  }
+  const revs = recs.filter((r) => r.stage === "revision" && r.delta !== void 0), regRate = revs.filter((r) => r.delta < 0).length / Math.max(1, revs.length);
+  if (recs.length >= 10 && regRate >= 0.3) suggestions.push(`${Math.round(regRate * 100)}% of revisions regressed \u2014 change one thing per revision (R12 keeps the best, but each regression costs a pass)`);
+  const byReviewer = {}, own = /* @__PURE__ */ new Map();
+  for (const e of ledger) if (e.type === "score" && !e.blind && e.asset !== "direction" && !isSubjectKey(e.asset) && typeof e.score === "number") {
+    const k = typeof e.reviewer === "string" ? e.reviewer : "unrecorded";
+    byReviewer[k] = (byReviewer[k] ?? 0) + 1;
+    own.set(`${e.asset}\0${e.version}`, e.score);
+  }
+  const blindLatest = /* @__PURE__ */ new Map();
+  for (const e of ledger) if (e.type === "score" && e.blind && typeof e.score === "number" && !isSubjectKey(e.asset)) blindLatest.set(`${e.asset}\0${e.version}`, e);
+  const blindRows = [...blindLatest].filter(([k]) => own.has(k)).map(([k, e]) => ({ asset: e.asset, version: e.version, own: own.get(k), blind: e.score, gap: round(own.get(k) - e.score) }));
+  const meanGap = mean(blindRows.map((b) => b.gap));
+  if (blindRows.length >= 3 && meanGap >= 0.5) suggestions.push(`blind re-scores average ${meanGap} below the pipeline's own scores over ${blindRows.length} finals \u2014 run every review through the art-reviewer subagent, not the authoring agent`);
+  const ff = perAsset.map((a) => a.fromFinish).filter((x) => x !== void 0);
+  const totOut = sum(recs.map((r) => r.outTokens)), totIn = sum(recs.map((r) => r.inTokens)), totImg = sum(recs.map((r) => r.imageTokens)), totAgent = sum(recs.map((r) => r.agentIn));
+  return {
+    assets: ids.length,
+    passes,
+    perAsset,
+    byGroup: { kind: group((m) => m?.kind), size: group((m) => m?.size), view: group((m) => m?.view), importance: group((m) => m?.importance) },
+    firstPassByTemplate: [...tmpl].map(([template, xs]) => ({ template, n: xs.length, meanR1: mean(xs) })),
+    regressions: recs.filter((r) => r.delta !== void 0 && r.delta < 0).map((r) => ({ asset: r.asset, version: r.version, pass: r.pass, delta: r.delta })),
+    userRevisionRate: { feedback: fb.length, finals, rate: finals ? round(new Set(fb.map((e) => e.asset)).size / finals) : void 0, byRoute },
+    models,
+    reviewers,
+    review: { byReviewer, blind: { n: blindRows.length, meanGap, over1: blindRows.filter((b) => b.gap > 1).length, assets: blindRows } },
+    suggestions,
+    totals: {
+      outTokens: totOut,
+      inTokens: totIn,
+      imageTokens: totImg,
+      cost: round(tokenCost(totOut, totIn + totImg + totAgent), 4),
+      meanFromRevisions: mean(perAsset.map((a) => a.fromRevisions).filter((x) => x !== void 0)),
+      meanFromFinish: mean(ff),
+      agentIn: totAgent,
+      agentInRecords: recs.filter((r) => r.agentIn > 0).length,
+      records: recs.length
+    }
+  };
+}
+function analyticsMarkdown(r, title = "artgen pipeline analytics") {
+  let md = `# ${title}
+
+${r.assets} assets. Price basis: $${PRICE.inPerM}/M input (review images, measured input), $${PRICE.outPerM}/M output (code; estimated at 3.5 chars/token unless measured).
+
+`;
+  md += `Totals: ${r.totals.outTokens} output tok, ${r.totals.imageTokens} review-image tok${r.totals.inTokens ? `, ${r.totals.inTokens} measured input tok` : ""}, est. $${r.totals.cost.toFixed(3)}. Average gain from revisions ${s(r.totals.meanFromRevisions, true)}, from the finishing pass ${s(r.totals.meanFromFinish, true)}.
+
+` + (r.totals.agentInRecords ? `Agent input (the context each maker and reviewer read) is in the cost for ${r.totals.agentInRecords} of ${r.totals.records} score records: ${r.totals.agentIn} tok.
+
+` : "The cost leaves out what the agents read (skills, direction, rigs): pass `score --agent-tokens-in <n>` to count it.\n\n");
+  md += "## Per pass\n\n| Pass | n | Mean score | Mean \u0394 | Regressed | Gate pass | Output tok | Review tok | Mean wall s |\n|---|---|---|---|---|---|---|---|---|\n";
+  for (const p2 of r.passes) md += `| ${p2.pass} | ${p2.n} | ${s(p2.meanScore)} | ${s(p2.meanDelta, true)} | ${p2.regressed} | ${p2.gatePass}/${p2.n} | ${p2.outTokens} | ${p2.imageTokens} | ${s(p2.meanWallS)} |
+`;
+  md += "\n## Per asset\n\n| Asset | Kind | r1 | Best revision | Final | From revisions | From finish | Passes | Output tok | Review tok | Est. cost |\n|---|---|---|---|---|---|---|---|---|---|---|\n";
+  for (const a of r.perAsset) md += `| ${a.id} | ${a.kind} | ${s(a.r1)} | ${s(a.best)} | ${s(a.final)} | ${s(a.fromRevisions, true)} | ${s(a.fromFinish, true)} | ${a.passes} | ${a.outTokens} | ${a.imageTokens} | $${a.cost.toFixed(4)} |
+`;
+  for (const [k, rows2] of Object.entries(r.byGroup)) {
+    if (rows2.length < 2 && rows2[0]?.key === "-") continue;
+    md += `
+## Cost by ${k}
+
+| ${k} | n | Mean final | Mean cost | Mean passes |
+|---|---|---|---|---|
+`;
+    for (const g of rows2) md += `| ${g.key} | ${g.n} | ${s(g.meanFinal)} | ${g.meanCost === void 0 ? "-" : `$${g.meanCost.toFixed(4)}`} | ${s(g.meanPasses)} |
+`;
+  }
+  md += "\n## First-pass quality by template\n\n| Template | n | Mean r1 |\n|---|---|---|\n";
+  for (const t of r.firstPassByTemplate) md += `| ${t.template} | ${t.n} | ${s(t.meanR1)} |
+`;
+  md += `
+## Regressions
+
+${r.regressions.length ? r.regressions.map((x) => `- ${x.asset} ${x.version} (${x.pass}) ${x.delta}`).join("\n") : "none"}
+`;
+  const u = r.userRevisionRate;
+  md += `
+## User revisions
+
+${u.feedback} feedback rounds over ${u.finals} finished assets (rate ${s(u.rate)})${Object.keys(u.byRoute).length ? `; by route: ${Object.entries(u.byRoute).map(([k, v]) => `${k} ${v}`).join(", ")}` : ""}.
+`;
+  md += "\n## Model / effort per stage\n\n| Model | Effort | Passes | Mean \u0394 | \u0394 per 1k tok |\n|---|---|---|---|---|\n";
+  for (const m of r.models) md += `| ${m.model} | ${m.effort} | ${m.n} | ${s(m.meanDelta, true)} | ${s(m.deltaPerKTok)} |
+`;
+  md += "\n## Review tiers\n\nPasses by the model that scored them (`models.reviewEarly` for r1/r2, `models.review` for the rest).\n\n| Reviewer model | Passes | n | Mean \u0394 | \u0394 per 1k tok |\n|---|---|---|---|---|\n";
+  for (const m of r.reviewers) md += `| ${m.model} | ${m.passes.join(", ")} | ${m.n} | ${s(m.meanDelta, true)} | ${s(m.deltaPerKTok)} |
+`;
+  const rv = r.review;
+  md += `
+## Review independence
+
+Scores by reviewer: ${Object.entries(rv.byReviewer).map(([k, v]) => `${k} ${v}`).join(", ") || "none"}. Blind re-scores: ${rv.blind.n}${rv.blind.n ? `, mean gap ${s(rv.blind.meanGap, true)} (own \u2212 blind), ${rv.blind.over1} more than 1 point apart` : ""}.
+`;
+  if (rv.blind.n) {
+    md += "\n| Asset | Final | Own | Blind | Gap |\n|---|---|---|---|---|\n";
+    for (const b of rv.blind.assets) md += `| ${b.asset} | ${b.version} | ${b.own} | ${b.blind} | ${s(b.gap, true)} |
+`;
+  }
+  md += `
+## Budget suggestions
+
+${r.suggestions.length ? r.suggestions.map((x) => `- ${x}`).join("\n") : "- none: nothing crosses a threshold (v3 adding \u2264 0.1 or \u2265 0.75 over \u2265 3 assets of a kind, or of the batch when every kind is smaller; v2 not improving; the first finish adding \u2264 0 or regressing \u2265 30% of \u2265 3 assets; \u2265 30% of revisions regressing)"}
+`;
+  return md;
+}
+var PRICE, tokenCost, stageOf, round, mean, sum, s;
+var init_analytics = __esm({
+  "../artgen-workflow/src/analytics.ts"() {
+    "use strict";
+    init_subject();
+    PRICE = { inPerM: 4, outPerM: 20 };
+    tokenCost = (out, inp) => (out * PRICE.outPerM + inp * PRICE.inPerM) / 1e6;
+    stageOf = (pass) => pass.startsWith("f") ? "finish" : pass.startsWith("x") ? "extra" : pass.startsWith("u") ? "user" : "revision";
+    round = (v, d = 2) => Math.round(v * 10 ** d) / 10 ** d;
+    mean = (xs) => xs.length ? round(xs.reduce((a, b) => a + b, 0) / xs.length) : void 0;
+    sum = (xs) => xs.reduce((a, b) => a + b, 0);
+    s = (v, sign = false) => v === void 0 ? "-" : `${sign && v >= 0 ? "+" : ""}${v}`;
+  }
+});
+
+// ../artgen-workflow/src/metrics.ts
+function latestScores(entries) {
+  const latest = /* @__PURE__ */ new Map();
+  for (const e of entries) if (e.type === "score" && !e.blind && e.version) latest.set(e.version, e);
+  return [...latest.values()];
+}
+function metricsFor(generator, keys, byKey) {
+  const art = generator === "art";
+  let started = 0, final = 0, approved = 0, untouched = 0, feedback2 = 0, imageTokens2 = 0, outTokens = 0, wallMs = 0, passes = 0;
+  const checkFailures = {};
+  for (const key2 of keys) {
+    const es = byKey.get(key2) ?? [], scores = latestScores(es);
+    const approves = es.some((e) => e.type === "approve"), fb = es.filter((e) => e.type === "feedback" && e.by !== "agent").length;
+    if (art ? scores.length : es.some((e) => e.type === "version")) started++;
+    if (approves || (art ? es.some((e) => e.type === "status" && e.status === "final") : subjectStatus({ entries: es }).status === "final")) final++;
+    feedback2 += fb;
+    if (approves) {
+      approved++;
+      if (!fb) untouched++;
+      passes += art ? scores.length : es.filter((e) => e.type === "version").length;
+    }
+    for (const e of es) {
+      if (e.type === "review") imageTokens2 += num(e.imageTokens);
+      if (e.type === "review" || e.type === "score" || e.type === "render") {
+        for (const c of e.conformance?.checks ?? []) if (c.status === "fail") checkFailures[c.id] = (checkFailures[c.id] ?? 0) + 1;
+      }
+      if (e.type !== "score") wallMs += num(e.wallMs);
+    }
+    for (const e of scores) {
+      const tk = e.tokens ?? {};
+      outTokens += num(tk.out ?? tk.edit);
+      wallMs += num(e.wallMs);
+    }
+  }
+  return {
+    subjects: keys.length,
+    started,
+    final,
+    approved,
+    ...approved && { passesPerApproved: round2(passes / approved) },
+    firstPassApproval: { approved, untouched, ...approved && { rate: round2(untouched / approved) } },
+    feedback: feedback2,
+    imageTokens: imageTokens2,
+    outTokens,
+    wallMinutes: round2(wallMs / 6e4, 1),
+    checkFailures
+  };
+}
+function generatorMetrics(ledger, subjects) {
+  const byKey = /* @__PURE__ */ new Map();
+  for (const e of ledger) {
+    const es = byKey.get(e.asset);
+    if (es) es.push(e);
+    else byKey.set(e.asset, [e]);
+  }
+  const gens = /* @__PURE__ */ new Map();
+  for (const s2 of subjects) {
+    const ks = gens.get(s2.generator);
+    if (ks) ks.push(s2.key);
+    else gens.set(s2.generator, [s2.key]);
+  }
+  return Object.fromEntries([...gens].map(([g, keys]) => [g, metricsFor(g, keys, byKey)]));
+}
+function generatorsMarkdown(g) {
+  const cell3 = (v) => v === void 0 ? "-" : String(v);
+  let md = "\n## Generators\n\nThe same numbers for every generator: pixel art (`art`) and each kind of map, from the ledger.\n\n| Generator | Subjects | Started | Final | Approved | Passes per approved | First-pass approval | Feedback | Review tok | Minutes |\n|---|---|---|---|---|---|---|---|---|---|\n";
+  for (const [name, m] of Object.entries(g)) md += `| ${name} | ${m.subjects} | ${m.started} | ${m.final} | ${m.approved} | ${cell3(m.passesPerApproved)} | ${cell3(m.firstPassApproval.rate)} | ${m.feedback} | ${m.imageTokens} | ${m.wallMinutes} |
+`;
+  const fails2 = Object.entries(g).flatMap(([name, m]) => Object.entries(m.checkFailures).map(([id2, n]) => ({ name, id: id2, n }))).sort((a, b) => b.n - a.n || a.id.localeCompare(b.id)).slice(0, 5);
+  return fails2.length ? `${md}
+Checks failing most: ${fails2.map((f) => `${f.name} ${f.id} x${f.n}`).join(", ")}.
+` : md;
+}
+var round2, num;
+var init_metrics = __esm({
+  "../artgen-workflow/src/metrics.ts"() {
+    "use strict";
+    init_status();
+    round2 = (v, d = 2) => Math.round(v * 10 ** d) / 10 ** d;
+    num = (v) => typeof v === "number" && Number.isFinite(v) ? v : 0;
+  }
+});
+
+// ../artgen-workflow/src/sheet.ts
+function dataSheetMarkdown(s2) {
+  const out = [`# ${s2.title}`, "", `Subject: \`${s2.subject}\``, ""];
+  if (s2.rows.length) out.push("| | |", "|---|---|", ...s2.rows.map((r) => `| ${r.label} | ${r.value.replace(/\|/g, "\\|")} |`), "");
+  if (s2.must?.length) out.push("## Must hold", "", ...s2.must.map((m) => `- ${m.met === void 0 ? "" : m.met ? "[x] " : "[ ] "}${m.text}`), "");
+  if (s2.swatches?.length) out.push("## Palette", "", s2.swatches.map((c) => `\`${c}\``).join(" "), "");
+  if (s2.refs?.length) out.push("## References", "", ...s2.refs.map((r) => `- ${r}`), "");
+  if (s2.notes?.trim()) out.push("## Notes", "", s2.notes.trim(), "");
+  return out.join("\n").replace(/\n+$/, "\n");
+}
+function wrap(text3, n) {
+  const out = [];
+  for (const para of plain(text3).split("\n")) {
+    let line2 = "";
+    for (let w of para.split(/\s+/).filter(Boolean)) {
+      while (w.length > n) {
+        if (line2) {
+          out.push(line2);
+          line2 = "";
+        }
+        out.push(w.slice(0, n));
+        w = w.slice(n);
+      }
+      if (!line2) line2 = w;
+      else if (line2.length + 1 + w.length <= n) line2 += ` ${w}`;
+      else {
+        out.push(line2);
+        line2 = w;
+      }
+    }
+    out.push(line2);
+  }
+  return out;
+}
+function fitGrid(g, maxW, maxH) {
+  const k = Math.min(1, maxW / g.w, maxH / g.h);
+  if (k >= 1) return g;
+  const w = Math.max(1, Math.floor(g.w * k)), h = Math.max(1, Math.floor(g.h * k)), out = new Grid(w, h);
+  for (let y = 0; y < h; y++) {
+    const y0 = Math.floor(y * g.h / h), y1 = Math.max(y0 + 1, Math.floor((y + 1) * g.h / h));
+    for (let x = 0; x < w; x++) {
+      const x0 = Math.floor(x * g.w / w), x1 = Math.max(x0 + 1, Math.floor((x + 1) * g.w / w));
+      let r = 0, gr = 0, b = 0, a = 0, n = 0;
+      for (let j = y0; j < y1; j++) for (let i = x0; i < x1; i++) {
+        const s2 = (j * g.w + i) * 4, al = g.d[s2 + 3];
+        r += g.d[s2] * al;
+        gr += g.d[s2 + 1] * al;
+        b += g.d[s2 + 2] * al;
+        a += al;
+        n++;
+      }
+      const o = (y * w + x) * 4;
+      if (a) {
+        out.d[o] = r / a;
+        out.d[o + 1] = gr / a;
+        out.d[o + 2] = b / a;
+        out.d[o + 3] = a / n;
+      }
+    }
+  }
+  return out;
+}
+function blocks(s2, width, maxH, o) {
+  const cols = Math.floor((width - PAD * 2) / CH), all = [];
+  const text3 = (t, color, indent = 0) => ({ h: LINE, draw: (g, x, y) => drawText(g, x + indent * CH, y, t, color, TXT) });
+  const head = (t) => ({ h: LINE + 4, draw: (g, x, y) => drawText(g, x, y + 4, t, DIM, TXT) });
+  if (o.title) for (const l of wrap(s2.title, cols)) all.push(text3(l, TITLE));
+  if (o.title) all.push(text3(plain(s2.subject), DIM));
+  const lw = Math.min(14, Math.max(0, ...s2.rows.map((r) => r.label.length)) + 1);
+  for (const r of s2.rows) wrap(r.value, Math.max(8, cols - lw)).forEach((l, i) => all.push({ h: LINE, draw: (g, x, y) => {
+    if (!i) drawText(g, x, y, plain(r.label).slice(0, lw - 1), DIM, TXT);
+    drawText(g, x + lw * CH, y, l, FG, TXT);
+  } }));
+  if (s2.must?.length) {
+    all.push(head("MUST HOLD"));
+    for (const m of s2.must) wrap(m.text, cols - 4).forEach((l, i) => all.push({ h: LINE, draw: (g, x, y) => {
+      if (!i) drawText(g, x, y, m.met === void 0 ? " - " : m.met ? "[X]" : "[ ]", m.met === false ? BAD : m.met ? OK : DIM, TXT);
+      drawText(g, x + 4 * CH, y, l, m.met === false ? BAD : FG, TXT);
+    } }));
+  }
+  if (s2.swatches?.length) {
+    const per = Math.max(1, Math.floor((width - PAD * 2) / 24)), n = Math.ceil(s2.swatches.length / per);
+    all.push(head("PALETTE"), { h: n * 24, draw: (g, x, y) => s2.swatches.forEach((c, i) => g.fill(x + i % per * 24, y + Math.floor(i / per) * 24, 22, 22, c)) });
+  }
+  if (s2.refs?.length) {
+    all.push(head("REFERENCES"));
+    for (const r of s2.refs) for (const l of wrap(r, cols)) all.push(text3(l, FG));
+  }
+  if (o.refs?.length) {
+    if (!s2.refs?.length) all.push(head("REFERENCES"));
+    const thumbs = o.refs.map((r) => ({ label: r.label, grid: fitGrid(r.grid, THUMB, THUMB) })), per = Math.max(1, Math.floor((width - PAD * 2 + 8) / (THUMB + 8)));
+    for (let i = 0; i < thumbs.length; i += per) {
+      const row = thumbs.slice(i, i + per);
+      all.push({ h: THUMB + LINE, draw: (g, x, y) => row.forEach((t, k) => {
+        const tx = x + k * (THUMB + 8);
+        g.fill(tx, y, THUMB, THUMB, "#2a2a33");
+        g.over(t.grid, tx + (THUMB - t.grid.w >> 1), y + (THUMB - t.grid.h >> 1));
+        drawText(g, tx, y + THUMB + 3, plain(t.label).slice(0, Math.floor(THUMB / CH)), FG, TXT);
+      }) });
+    }
+  }
+  if (s2.notes?.trim()) {
+    all.push(head("NOTES"));
+    const ls = wrap(s2.notes.trim(), cols);
+    for (const l of ls.slice(0, 8)) all.push(text3(l, FG));
+    if (ls.length > 8) all.push(text3("...", DIM));
+  }
+  let used = PAD * 2, keep = 0;
+  while (keep < all.length && used + all[keep].h <= maxH - LINE) used += all[keep++].h;
+  return keep === all.length ? all : [...all.slice(0, keep), text3("...", DIM)];
+}
+function renderDataSheet(s2, o = {}) {
+  const max2 = Math.min(o.maxEdge ?? MAX_EDGE, MAX_EDGE), w = Math.min(SHEET_W, max2), bs = blocks(s2, w, max2, { title: true, refs: o.refs }), h = sumH(bs) + PAD * 2;
+  const g = new Grid(w, h).fill(0, 0, w, h, BG);
+  let y = PAD;
+  for (const b of bs) {
+    b.draw(g, PAD, y);
+    y += b.h;
+  }
+  return g;
+}
+function subjectReviewSheet(o) {
+  const max2 = Math.min(o.maxEdge ?? MAX_EDGE, MAX_EDGE), top = PAD + LINE + PAD / 2;
+  const refRow = o.refs?.length ? blocks({ title: "", subject: "", rows: [] }, max2, max2 / 3, { title: false, refs: o.refs }) : [];
+  const refsH = sumH(refRow), sw = Math.min(SHEET_W, Math.floor(max2 / 3)), room3 = max2 - top - (refsH ? refsH + PAD : 0) - PAD;
+  const side = blocks(o.sheet, sw, room3 + PAD * 2, { title: false });
+  const render11 = fitGrid(o.render, max2 - sw - PAD * 3, room3);
+  const W3 = PAD * 3 + render11.w + sw, bodyH = Math.max(render11.h, sumH(side)), H = top + bodyH + (refsH ? refsH + PAD : 0) + PAD;
+  const g = new Grid(W3, H).fill(0, 0, W3, H, BG);
+  drawText(g, PAD, PAD, plain(o.title).slice(0, Math.floor((W3 - PAD * 2) / CH)), TITLE, TXT);
+  g.fill(PAD, top, render11.w, render11.h, "#ffffff");
+  g.over(render11, PAD, top);
+  let y = top;
+  for (const b of side) {
+    b.draw(g, PAD * 2 + render11.w, y);
+    y += b.h;
+  }
+  y = top + bodyH + PAD;
+  for (const b of refRow) {
+    b.draw(g, PAD, y);
+    y += b.h;
+  }
+  return g;
+}
+var PAD, TXT, CH, LINE, BG, FG, DIM, TITLE, OK, BAD, MAX_EDGE, SHEET_W, THUMB, plain, sumH;
+var init_sheet = __esm({
+  "../artgen-workflow/src/sheet.ts"() {
+    "use strict";
+    init_font();
+    init_grid();
+    PAD = 12;
+    TXT = 2;
+    CH = (3 + 1) * TXT;
+    LINE = GLYPH_H * TXT + 6;
+    BG = "#16161c";
+    FG = "#dddddd";
+    DIM = "#8c8ca0";
+    TITLE = "#ffffff";
+    OK = "#7ad08a";
+    BAD = "#e07a7a";
+    MAX_EDGE = 1568;
+    SHEET_W = 560;
+    THUMB = 112;
+    plain = (s2) => s2.replace(/×/g, "x").replace(/[–—−]/g, "-").replace(/…/g, "...").replace(/→/g, "->").replace(/[^\x20-\x7e]/g, "?");
+    sumH = (bs) => bs.reduce((n, b) => n + b.h, 0);
+  }
+});
+
+// ../artgen-workflow/src/brief.ts
+function parseSubjectBrief(text3) {
+  const t = text3.replace(/\r\n/g, "\n"), m = /^---\n([\s\S]*?)\n---[ \t]*(?:\n|$)/.exec(t);
+  const out = { refs: [], body: (m ? t.slice(m[0].length) : t).trim() };
+  if (!m) return out;
+  for (const line2 of m[1].split("\n")) {
+    const kv = /^([A-Za-z][\w-]*)\s*:\s*(.*)$/.exec(line2.trim());
+    if (!kv) continue;
+    const v = kv[2].trim().replace(/^(["'])(.*)\1$/, "$2");
+    if (kv[1] === "title" && v) out.title = v;
+    if (kv[1] === "refs") out.refs = v.replace(/^\[|\]$/g, "").split(",").map((s2) => s2.trim()).filter(Boolean);
+  }
+  return out;
+}
+function formatSubjectBrief(b) {
+  const head = [...b.title ? [`title: ${b.title}`] : [], ...b.refs?.length ? [`refs: ${b.refs.join(", ")}`] : []];
+  return `${head.length ? `---
+${head.join("\n")}
+---
+` : ""}${b.body.trim()}
+`;
+}
+function briefNotes(body3, n = 6, width = 60) {
+  const lines2 = [];
+  for (const para of body3.split("\n")) {
+    let line2 = "";
+    for (const w of para.split(/\s+/).filter(Boolean)) {
+      if (line2 && line2.length + 1 + w.length > width) {
+        lines2.push(line2);
+        line2 = w;
+      } else line2 = line2 ? `${line2} ${w}` : w;
+    }
+    lines2.push(line2);
+  }
+  const kept = lines2.filter((l, i) => l || i > 0 && lines2[i - 1]);
+  return kept.length > n ? `${kept.slice(0, n).join("\n").trimEnd()} ...` : kept.join("\n").trim();
+}
+function subjectDataSheet(base, o) {
+  const head = [...o.version ? [{ label: "Version", value: o.version }] : [], { label: "Theme", value: `${o.theme}${o.directionVersion !== void 0 ? ` (map direction v${o.directionVersion})` : ""}` }];
+  return {
+    ...base,
+    title: o.brief?.title ? `${base.title} - ${o.brief.title}` : base.title,
+    rows: [...head, ...base.rows],
+    ...o.brief?.refs.length && { refs: o.brief.refs },
+    ...o.brief?.body && { notes: briefNotes(o.brief.body) }
+  };
+}
+var refOk;
+var init_brief = __esm({
+  "../artgen-workflow/src/brief.ts"() {
+    "use strict";
+    refOk = (r) => !!r && !r.startsWith("/") && !/^[A-Za-z]:/.test(r) && !r.split(/[\\/]/).includes("..");
+  }
+});
+
+// ../artgen-workflow/src/decide.ts
+function approvalEntry(s2, o = {}) {
+  const { status: status2, version } = s2.status;
+  if (!isApprovable(s2.status, s2.workingHash) || !version) throw new Error(`${s2.id} is ${status2} (${s2.status.why}): only a final ${s2.kind} can be approved${status2 === "in-pipeline" && version ? ` \u2014 artgen ${s2.kind} version ${s2.id} first` : ""}`);
+  const bad = s2.checks.filter((c) => c.status === "fail");
+  if (bad.length) throw new Error(`${s2.id} ${version}: ${bad.length} check${bad.length === 1 ? "" : "s"} fail (${[...new Set(bad.map((c) => c.id))].join(", ")}) \u2014 fix them and record a new version, or give feedback instead`);
+  const warnings = s2.checks.filter((c) => c.status === "flag").map((c) => `${c.id}: ${c.detail}`);
+  return {
+    type: "approve",
+    asset: s2.key,
+    version,
+    sourceHash: s2.workingHash,
+    ...s2.direction && { direction: s2.direction },
+    note: o.note ?? "",
+    ...warnings.length && { warnings },
+    by: "user",
+    ...o.via && { via: o.via }
+  };
+}
+function feedbackEntry(s2, o) {
+  if (!s2.latest) throw new Error(`${s2.id}: no version yet \u2014 feedback is on a version (artgen ${s2.kind} version ${s2.id})`);
+  if (!o.note?.trim()) throw new Error('feedback: --note "<what the user asked for>" is required');
+  if (o.region && o.region.length !== 4) throw new Error("--region: x,y,w,h");
+  return { type: "feedback", asset: s2.key, on: s2.latest, note: o.note.trim(), ...o.region && { region: o.region }, by: "user", ...o.via && { via: o.via } };
+}
+var isApprovable;
+var init_decide = __esm({
+  "../artgen-workflow/src/decide.ts"() {
+    "use strict";
+    isApprovable = (s2, workingHash) => !!s2.version && (s2.status === "final" || s2.status === "stale" && s2.approval?.sourceHash === workingHash);
+  }
+});
+
+// ../artgen-workflow/src/index.ts
+var init_src3 = __esm({
+  "../artgen-workflow/src/index.ts"() {
+    "use strict";
+    init_check();
+    init_ledger();
+    init_status();
+    init_analytics();
+    init_subject();
+    init_versions();
+    init_metrics();
+    init_sheet();
+    init_brief();
+    init_decide();
+  }
+});
+
 // ../artgen-mapgen/src/map/spec.ts
 function newMap(id2, preset2 = "regional", over = {}) {
   const d = structuredClone(PRESET_DEFAULTS[preset2]);
   return parseMap({ ...d, ...over, id: id2, version: MAP_FORMAT, preset: preset2, seed: over.seed ?? 1, gen: { ...d.gen, ...over.gen }, topo: { ...d.topo, ...over.topo }, grid: { ...d.grid, ...over.grid }, scale: { ...d.scale, ...over.scale }, edits: over.edits ?? [], overlay: over.overlay ?? { labels: [], symbols: [] } });
 }
-function originError(entry, at3, e) {
+function originError(entry, at4, e) {
   const v = entry?.origin;
-  if (v !== void 0 && (typeof v !== "string" || !v)) e.push(`${at3}.origin: a non-empty string`);
+  if (v !== void 0 && (typeof v !== "string" || !v)) e.push(`${at4}.origin: a non-empty string`);
 }
-function shapeErrors(s2, at3) {
-  if (!s2 || typeof s2 !== "object") return [`${at3}: shape required ({circle:[x,y,r]}, {poly:[x,y,\u2026]} or {stroke:[x,y,\u2026], width})`];
+function shapeErrors(s2, at4) {
+  if (!s2 || typeof s2 !== "object") return [`${at4}: shape required ({circle:[x,y,r]}, {poly:[x,y,\u2026]} or {stroke:[x,y,\u2026], width})`];
   const o = s2;
-  if ("circle" in o) return nums(o.circle) && o.circle.length === 3 && o.circle[2] > 0 ? [] : [`${at3}.circle: [x, y, r] with r > 0`];
-  if ("poly" in o) return nums(o.poly) && o.poly.length >= 6 && o.poly.length % 2 === 0 ? [] : [`${at3}.poly: at least 3 x,y pairs`];
-  if ("stroke" in o) return nums(o.stroke) && o.stroke.length >= 2 && o.stroke.length % 2 === 0 && isNum(o.width) && o.width > 0 ? [] : [`${at3}.stroke: x,y pairs and width > 0`];
-  return [`${at3}: unknown shape (circle, poly or stroke)`];
+  if ("circle" in o) return nums(o.circle) && o.circle.length === 3 && o.circle[2] > 0 ? [] : [`${at4}.circle: [x, y, r] with r > 0`];
+  if ("poly" in o) return nums(o.poly) && o.poly.length >= 6 && o.poly.length % 2 === 0 ? [] : [`${at4}.poly: at least 3 x,y pairs`];
+  if ("stroke" in o) return nums(o.stroke) && o.stroke.length >= 2 && o.stroke.length % 2 === 0 && isNum(o.width) && o.width > 0 ? [] : [`${at4}.stroke: x,y pairs and width > 0`];
+  return [`${at4}: unknown shape (circle, poly or stroke)`];
 }
 function requirementErrors(m) {
   const e = [], list6 = m.require;
@@ -6996,34 +7777,34 @@ function requirementErrors(m) {
   if (!Array.isArray(list6)) return ["require: an array"];
   const seen = /* @__PURE__ */ new Set(), top = isNum(m.topo?.maxElevation) ? m.topo.maxElevation : Infinity;
   list6.forEach((r, i) => {
-    const at3 = `require[${i}]`;
+    const at4 = `require[${i}]`;
     if (!r || typeof r !== "object") {
-      e.push(`${at3}: an object`);
+      e.push(`${at4}: an object`);
       return;
     }
-    if (typeof r.id !== "string" || !/^[\w.-]+$/.test(r.id)) e.push(`${at3}.id: letters, digits, - . and _ only`);
-    else if (seen.has(r.id)) e.push(`${at3}.id: ${r.id} is used twice`);
+    if (typeof r.id !== "string" || !/^[\w.-]+$/.test(r.id)) e.push(`${at4}.id: letters, digits, - . and _ only`);
+    else if (seen.has(r.id)) e.push(`${at4}.id: ${r.id} is used twice`);
     else seen.add(r.id);
-    if (r.blend !== void 0 && !(isNum(r.blend) && r.blend >= 0)) e.push(`${at3}.blend: map units, 0 or more`);
-    originError(r, at3, e);
+    if (r.blend !== void 0 && !(isNum(r.blend) && r.blend >= 0)) e.push(`${at4}.blend: map units, 0 or more`);
+    originError(r, at4, e);
     if (r.kind === "terrain") {
-      e.push(...shapeErrors(r.area, `${at3}.area`));
-      if (!TERRAINS.includes(r.terrain)) e.push(`${at3}.terrain: one of ${TERRAINS.join(", ")}`);
-      else if (r.terrain === "snow" && m.preset === "local") e.push(`${at3}.terrain: snow does not appear on a local map`);
-      if (!isNum(r.share) || r.share <= 0 || r.share > 1) e.push(`${at3}.share: above 0 and at most 1`);
+      e.push(...shapeErrors(r.area, `${at4}.area`));
+      if (!TERRAINS.includes(r.terrain)) e.push(`${at4}.terrain: one of ${TERRAINS.join(", ")}`);
+      else if (r.terrain === "snow" && m.preset === "local") e.push(`${at4}.terrain: snow does not appear on a local map`);
+      if (!isNum(r.share) || r.share <= 0 || r.share > 1) e.push(`${at4}.share: above 0 and at most 1`);
     } else if (r.kind === "height") {
-      e.push(...shapeErrors(r.area, `${at3}.area`));
-      if (!isNum(r.low) || !isNum(r.high) || r.low < 0 || r.high <= r.low) e.push(`${at3}: low and high, 0 \u2264 low < high`);
-      else if (r.high > top) e.push(`${at3}.high: at most topo.maxElevation (${top})`);
-      if (r.share !== void 0 && !(isNum(r.share) && r.share > 0 && r.share <= 1)) e.push(`${at3}.share: above 0 and at most 1`);
+      e.push(...shapeErrors(r.area, `${at4}.area`));
+      if (!isNum(r.low) || !isNum(r.high) || r.low < 0 || r.high <= r.low) e.push(`${at4}: low and high, 0 \u2264 low < high`);
+      else if (r.high > top) e.push(`${at4}.high: at most topo.maxElevation (${top})`);
+      if (r.share !== void 0 && !(isNum(r.share) && r.share > 0 && r.share <= 1)) e.push(`${at4}.share: above 0 and at most 1`);
     } else if (r.kind === "path") {
-      if (r.path !== "stream" && r.path !== "road") e.push(`${at3}.path: stream or road`);
-      if (!nums(r.points) || r.points.length < 4 || r.points.length % 2) e.push(`${at3}.points: at least 2 x,y pairs`);
-      if (r.tolerance !== void 0 && !(isNum(r.tolerance) && r.tolerance > 0)) e.push(`${at3}.tolerance: map units, above 0`);
-      if (r.width !== void 0 && !(isNum(r.width) && r.width > 0)) e.push(`${at3}.width: > 0`);
-      if (r.delta !== void 0 && typeof r.delta !== "boolean") e.push(`${at3}.delta: true or false`);
-    } else if (r.kind === "clear") e.push(...shapeErrors(r.area, `${at3}.area`));
-    else e.push(`${at3}.kind: ${REQUIREMENT_KINDS.join(", ")}`);
+      if (r.path !== "stream" && r.path !== "road") e.push(`${at4}.path: stream or road`);
+      if (!nums(r.points) || r.points.length < 4 || r.points.length % 2) e.push(`${at4}.points: at least 2 x,y pairs`);
+      if (r.tolerance !== void 0 && !(isNum(r.tolerance) && r.tolerance > 0)) e.push(`${at4}.tolerance: map units, above 0`);
+      if (r.width !== void 0 && !(isNum(r.width) && r.width > 0)) e.push(`${at4}.width: > 0`);
+      if (r.delta !== void 0 && typeof r.delta !== "boolean") e.push(`${at4}.delta: true or false`);
+    } else if (r.kind === "clear") e.push(...shapeErrors(r.area, `${at4}.area`));
+    else e.push(`${at4}.kind: ${REQUIREMENT_KINDS.join(", ")}`);
   });
   return e;
 }
@@ -7049,19 +7830,19 @@ function validateMap(raw) {
   if (!m.grid || !GRID_TYPES.includes(m.grid.type) || !isNum(m.grid.size) || m.grid.size < 0.25) e.push(`grid: type ${GRID_TYPES.join("|")}, size \u2265 0.25`);
   if (!m.scale || !isNum(m.scale.perCell) || typeof m.scale.unit !== "string") e.push("scale: perCell (number) and unit");
   (Array.isArray(m.edits) ? m.edits : (e.push("edits: an array"), [])).forEach((ed, i) => {
-    const at3 = `edits[${i}]`;
+    const at4 = `edits[${i}]`;
     if (ed?.op === "paint") {
-      if (!TERRAINS.includes(ed.terrain)) e.push(`${at3}.terrain: one of ${TERRAINS.join(", ")}`);
-      e.push(...shapeErrors(ed.shape, `${at3}.shape`));
+      if (!TERRAINS.includes(ed.terrain)) e.push(`${at4}.terrain: one of ${TERRAINS.join(", ")}`);
+      e.push(...shapeErrors(ed.shape, `${at4}.shape`));
     } else if (ed?.op === "elevate") {
-      if (!isNum(ed.amount) || Math.abs(ed.amount) > 1) e.push(`${at3}.amount: -1..1`);
-      e.push(...shapeErrors(ed.shape, `${at3}.shape`));
+      if (!isNum(ed.amount) || Math.abs(ed.amount) > 1) e.push(`${at4}.amount: -1..1`);
+      e.push(...shapeErrors(ed.shape, `${at4}.shape`));
     } else if (ed?.op === "river" || ed?.op === "road") {
-      if (!nums(ed.points) || ed.points.length < 4 || ed.points.length % 2) e.push(`${at3}.points: at least 2 x,y pairs`);
-      if (ed.op === "river" && ed.width !== void 0 && !(isNum(ed.width) && ed.width > 0)) e.push(`${at3}.width: > 0`);
-      if (ed.op === "river" && ed.delta !== void 0 && typeof ed.delta !== "boolean") e.push(`${at3}.delta: true or false`);
-    } else e.push(`${at3}.op: paint, elevate, river or road`);
-    originError(ed, at3, e);
+      if (!nums(ed.points) || ed.points.length < 4 || ed.points.length % 2) e.push(`${at4}.points: at least 2 x,y pairs`);
+      if (ed.op === "river" && ed.width !== void 0 && !(isNum(ed.width) && ed.width > 0)) e.push(`${at4}.width: > 0`);
+      if (ed.op === "river" && ed.delta !== void 0 && typeof ed.delta !== "boolean") e.push(`${at4}.delta: true or false`);
+    } else e.push(`${at4}.op: paint, elevate, river or road`);
+    originError(ed, at4, e);
   });
   e.push(...requirementErrors(m));
   const o = m.overlay;
@@ -7129,10 +7910,10 @@ function cellCenter(spec, ref) {
   }
   throw new Error(`${ref}: expected hex coordinates (0304) or a square cell (C4)`);
 }
-function parsePoint(spec, at3) {
-  const xy = at3.match(/^\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*$/);
+function parsePoint(spec, at4) {
+  const xy = at4.match(/^\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*$/);
   if (xy) return [+xy[1], +xy[2]];
-  return cellCenter(spec, at3.replace(/^(hex|cell):/i, ""));
+  return cellCenter(spec, at4.replace(/^(hex|cell):/i, ""));
 }
 var TERRAINS, TERRAIN_NAMES, PRESETS2, LAND_MODES, GRID_TYPES, LABEL_KINDS, REQUIREMENT_KINDS, RESOLUTION, PRESET_DEFAULTS, MAP_FORMAT, MIGRATIONS, MAX_SIDE, isNum, nums;
 var init_spec = __esm({
@@ -7352,8 +8133,8 @@ function shapeGround(spec, f, raw, seaLevel, margin) {
       for (let s2 = 0; s2 < k; s2++) steps.push([p2[i] + (p2[i + 2] - p2[i]) * s2 / k, p2[i + 1] + (p2[i + 3] - p2[i + 1]) * s2 / k]);
     }
     steps.push([p2[p2.length - 2], p2[p2.length - 1]]);
-    const at3 = (x, y) => raw[Math.min(f.h - 1, Math.max(0, Math.floor(y * f.res))) * f.w + Math.min(f.w - 1, Math.max(0, Math.floor(x * f.res)))];
-    const bed = steps.map(([x, y]) => at3(x, y)), floor3 = Math.max(seaLevel + 4e-3, 0);
+    const at4 = (x, y) => raw[Math.min(f.h - 1, Math.max(0, Math.floor(y * f.res))) * f.w + Math.min(f.w - 1, Math.max(0, Math.floor(x * f.res)))];
+    const bed = steps.map(([x, y]) => at4(x, y)), floor3 = Math.max(seaLevel + 4e-3, 0);
     for (let i = 1; i < bed.length; i++) bed[i] = Math.min(bed[i], bed[i - 1]);
     const win = Math.max(1, Math.round(f.res)), smooth3 = bed.map((_, i) => {
       let s2 = 0, c = 0;
@@ -7447,11 +8228,11 @@ function streamsOf(spec) {
 }
 function routeRoad(points, f, elev, wet) {
   const step = Math.max(1, Math.round(f.res / 2)), W3 = Math.ceil(f.w / step), H = Math.ceil(f.h / step), unit = step / f.res;
-  const at3 = (i, j) => Math.min(f.h - 1, j * step + (step >> 1)) * f.w + Math.min(f.w - 1, i * step + (step >> 1));
-  const cell2 = (x, y) => [Math.max(0, Math.min(W3 - 1, Math.floor(x * f.res / step))), Math.max(0, Math.min(H - 1, Math.floor(y * f.res / step)))];
+  const at4 = (i, j) => Math.min(f.h - 1, j * step + (step >> 1)) * f.w + Math.min(f.w - 1, i * step + (step >> 1));
+  const cell3 = (x, y) => [Math.max(0, Math.min(W3 - 1, Math.floor(x * f.res / step))), Math.max(0, Math.min(H - 1, Math.floor(y * f.res / step)))];
   const out = [points[0], points[1]];
   for (let p2 = 2; p2 < points.length; p2 += 2) {
-    const [si, sj] = cell2(points[p2 - 2], points[p2 - 1]), [ti, tj] = cell2(points[p2], points[p2 + 1]);
+    const [si, sj] = cell3(points[p2 - 2], points[p2 - 1]), [ti, tj] = cell3(points[p2], points[p2 + 1]);
     const dist = new Float32Array(W3 * H).fill(Infinity), from = new Int32Array(W3 * H).fill(-1), done = new Uint8Array(W3 * H), heap2 = [], key2 = new Float32Array(W3 * H);
     const less = (a, b) => key2[a] < key2[b];
     const push = (n) => {
@@ -7494,8 +8275,8 @@ function routeRoad(points, f, elev, wet) {
       for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
         const x = i + di, y = j + dj, m = y * W3 + x;
         if (!di && !dj || x < 0 || y < 0 || x >= W3 || y >= H || done[m]) continue;
-        const len = Math.hypot(di, dj) * unit, rise = Math.abs(elev[at3(x, y)] - elev[at3(i, j)]);
-        const c = dist[n] + len + rise * 40 + (wet[at3(x, y)] ? len * 3 : 0);
+        const len = Math.hypot(di, dj) * unit, rise = Math.abs(elev[at4(x, y)] - elev[at4(i, j)]);
+        const c = dist[n] + len + rise * 40 + (wet[at4(x, y)] ? len * 3 : 0);
         if (c < dist[m]) {
           dist[m] = c;
           from[m] = n;
@@ -7588,18 +8369,18 @@ function isolines(f, w, h, t) {
         break;
     }
   }
-  const at3 = /* @__PURE__ */ new Map();
+  const at4 = /* @__PURE__ */ new Map();
   segs2.forEach((s2, n) => {
     for (const key2 of [s2[0], s2[3]]) {
-      const l = at3.get(key2);
+      const l = at4.get(key2);
       if (l) l.push(n);
-      else at3.set(key2, [n]);
+      else at4.set(key2, [n]);
     }
   });
   const used = new Uint8Array(segs2.length), lines2 = [];
   const walk = (key2, from, out) => {
     for (let cur = from, k = key2; ; ) {
-      const next4 = (at3.get(k) ?? []).find((n) => n !== cur && !used[n]);
+      const next4 = (at4.get(k) ?? []).find((n) => n !== cur && !used[n]);
       if (next4 === void 0) return k;
       used[next4] = 1;
       const s2 = segs2[next4], far = s2[0] === k ? 3 : 0;
@@ -7904,14 +8685,14 @@ function markLine(pts2, width, w, h, res, wet) {
 function simplifyTerrain(t, w, h, passes, minArea) {
   let a = t;
   for (let p2 = 0; p2 < passes; p2++) {
-    const out = new Uint8Array(a.length), count2 = new Uint16Array(TERRAINS.length);
+    const out = new Uint8Array(a.length), count = new Uint16Array(TERRAINS.length);
     for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
-      count2.fill(0);
-      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) count2[a[Math.min(h - 1, Math.max(0, j + dj)) * w + Math.min(w - 1, Math.max(0, i + di))]]++;
+      count.fill(0);
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) count[a[Math.min(h - 1, Math.max(0, j + dj)) * w + Math.min(w - 1, Math.max(0, i + di))]]++;
       const own = a[j * w + i];
       let best = own;
-      for (let c = 0; c < count2.length; c++) if (count2[c] > count2[best]) best = c;
-      out[j * w + i] = count2[best] >= 5 ? best : own;
+      for (let c = 0; c < count.length; c++) if (count[c] > count[best]) best = c;
+      out[j * w + i] = count[best] >= 5 ? best : own;
     }
     a = out;
   }
@@ -8026,9 +8807,9 @@ function touches(pts2, shapes) {
   return false;
 }
 function terrainsUsed(f) {
-  const count2 = new Array(TERRAINS.length).fill(0);
-  for (const t of f.terrain) count2[t]++;
-  return TERRAINS.map((t, i) => [t, count2[i]]).filter(([, c]) => c > 0).sort((a, b) => b[1] - a[1]).map(([t]) => t);
+  const count = new Array(TERRAINS.length).fill(0);
+  for (const t of f.terrain) count[t]++;
+  return TERRAINS.map((t, i) => [t, count[i]]).filter(([, c]) => c > 0).sort((a, b) => b[1] - a[1]).map(([t]) => t);
 }
 var T, isWater, riverWidth, SOURCE, FLARE, FLARE_LAND, FLARE_WATER, smoothstep;
 var init_generate = __esm({
@@ -8246,16 +9027,16 @@ var init_view = __esm({
 });
 
 // ../artgen-primitives/src/lib/page.ts
-function textBox(text3, cx, baseline, size, o = {}) {
-  const w = text3.length * (size * (o.bold ? 0.62 : 0.56) + (o.spacing ?? 0)), h = size * 1.15;
-  return { x: cx - w / 2, y: baseline - size * 0.82, w, h };
+function textBox(text3, cx, baseline, size2, o = {}) {
+  const w = text3.length * (size2 * (o.bold ? 0.62 : 0.56) + (o.spacing ?? 0)), h = size2 * 1.15;
+  return { x: cx - w / 2, y: baseline - size2 * 0.82, w, h };
 }
 function placeLabels(labels, obstacles, bounds, gap = 0) {
   const taken = obstacles.slice(), out = [];
   const inside = (b) => !bounds || b.x >= bounds.x - 1e-6 && b.y >= bounds.y - 1e-6 && b.x + b.w <= bounds.x + bounds.w + 1e-6 && b.y + b.h <= bounds.y + bounds.h + 1e-6;
   const free = (b) => inside(b) && !taken.some((t) => overlaps(b, t, gap));
   for (const l of labels) {
-    const at3 = (dx, dy) => ({ ...l.box, x: l.box.x + dx, y: l.box.y + dy });
+    const at4 = (dx, dy) => ({ ...l.box, x: l.box.x + dx, y: l.box.y + dy });
     if (free(l.box)) {
       taken.push(l.box);
       out.push({ x: l.x, y: l.y, moved: false, placed: true });
@@ -8265,11 +9046,11 @@ function placeLabels(labels, obstacles, bounds, gap = 0) {
     let found = null;
     for (const f of [1, 1.6, 2.4]) {
       const sides = [[rx * f, 0], [-rx * f, 0], [0, -ry * f], [0, ry * f], [rx * f, -ry * f], [rx * f, ry * f], [-rx * f, -ry * f], [-rx * f, ry * f]];
-      found = sides.find(([dx, dy]) => free(at3(dx, dy))) ?? null;
+      found = sides.find(([dx, dy]) => free(at4(dx, dy))) ?? null;
       if (found) break;
     }
     if (found) {
-      taken.push(at3(found[0], found[1]));
+      taken.push(at4(found[0], found[1]));
       out.push({ x: l.x + found[0], y: l.y + found[1], moved: true, placed: true });
     } else {
       taken.push(l.box);
@@ -8295,9 +9076,9 @@ var init_page = __esm({
 });
 
 // ../artgen-primitives/src/lib/svgdraw.ts
-function haloText(text3, x, y, size, color, th, attrs = "") {
-  const a = `x="${n1(x)}" y="${n1(y)}" font-size="${n1(size)}" text-anchor="middle" ${attrs}`;
-  return `<text ${a} fill="none" stroke="${th.halo}" stroke-width="${n1(size * 0.22)}" stroke-linejoin="round" stroke-opacity="0.9">${esc(text3)}</text><text ${a} fill="${color}">${esc(text3)}</text>`;
+function haloText(text3, x, y, size2, color, th, attrs = "") {
+  const a = `x="${n1(x)}" y="${n1(y)}" font-size="${n1(size2)}" text-anchor="middle" ${attrs}`;
+  return `<text ${a} fill="none" stroke="${th.halo}" stroke-width="${n1(size2 * 0.22)}" stroke-linejoin="round" stroke-opacity="0.9">${esc(text3)}</text><text ${a} fill="${color}">${esc(text3)}</text>`;
 }
 function compassSvg(cx, cy, r, u, th) {
   return `<g id="compass" stroke="${th.ink}" stroke-width="${n1(u)}" stroke-linejoin="round"><circle cx="${n1(cx)}" cy="${n1(cy)}" r="${n1(r)}" fill="${th.paper}" fill-opacity="0.85"/><path d="M${n1(cx)} ${n1(cy - r * 0.9)}L${n1(cx + r * 0.3)} ${n1(cy)}L${n1(cx)} ${n1(cy + r * 0.9)}L${n1(cx - r * 0.3)} ${n1(cy)}Z" fill="${th.paper}"/><path d="M${n1(cx)} ${n1(cy - r * 0.9)}L${n1(cx + r * 0.3)} ${n1(cy)}L${n1(cx - r * 0.3)} ${n1(cy)}Z" fill="${th.ink}"/><text x="${n1(cx)}" y="${n1(cy - r - 4 * u)}" font-size="${n1(13 * u)}" font-weight="700" text-anchor="middle" fill="${th.ink}" stroke="none">N</text></g>`;
@@ -8322,8 +9103,8 @@ function mapLabelLayout(spec, k, pageScale) {
     return { x: s2.x * k - z / 2, y: s2.y * k - z / 2, w: z, h: z };
   };
   const items = spec.overlay.labels.map((l) => {
-    const size = labelSize(l, 1, pageScale), base = size * 1;
-    const box2 = textBox(l.kind === "region" ? l.text.toUpperCase() : l.text, l.x * k, l.y * k + base * 0.35, size, { bold: l.kind === "region" || l.kind === "place", spacing: l.kind === "region" ? size * 0.18 : 0 });
+    const size2 = labelSize(l, 1, pageScale), base = size2 * 1;
+    const box2 = textBox(l.kind === "region" ? l.text.toUpperCase() : l.text, l.x * k, l.y * k + base * 0.35, size2, { bold: l.kind === "region" || l.kind === "place", spacing: l.kind === "region" ? size2 * 0.18 : 0 });
     return { x: l.x * k, y: l.y * k, box: box2, clear: 0 };
   });
   const placed = placeLabels(items, spec.overlay.symbols.map(symBox), { x: 0, y: 0, w: spec.cols * k, h: spec.rows * k }, pageScale * 0.3);
@@ -8393,9 +9174,9 @@ function patternDefs(th, tile2) {
     return `<pattern id="pat-${t}" patternUnits="userSpaceOnUse" width="${n1(tile2)}" height="${n1(tile2)}"><g transform="scale(${n1(tile2 / 10)})">${PATTERNS[st.pattern].replaceAll("{ink}", st.ink ?? th.ink)}</g></pattern>`;
   }).join("");
 }
-function symbolSvg(kind, x, y, size, th, angle = 0) {
+function symbolSvg(kind, x, y, size2, th, angle = 0) {
   const s2 = SYMBOLS[kind] ?? SYMBOLS.poi;
-  return `<g transform="translate(${n1(x)} ${n1(y)})${angle ? ` rotate(${n1(angle)})` : ""} scale(${(size / 20).toFixed(3)})">${s2.svg.replaceAll("{ink}", th.ink).replaceAll("{fill}", th.symbolFill)}</g>`;
+  return `<g transform="translate(${n1(x)} ${n1(y)})${angle ? ` rotate(${n1(angle)})` : ""} scale(${(size2 / 20).toFixed(3)})">${s2.svg.replaceAll("{ink}", th.ink).replaceAll("{fill}", th.symbolFill)}</g>`;
 }
 function scaleCells(width) {
   const target = width / 5;
@@ -8457,9 +9238,9 @@ function renderMapSvg(spec, o = {}) {
   if (on.symbols && spec.overlay.symbols.length)
     parts.push(`<g id="symbols">${spec.overlay.symbols.map((s2) => symbolSvg(s2.kind, s2.x * k, s2.y * k, (o.pageScale ? PAGE_SYMBOL_MM * o.pageScale : 22 * u) * (s2.scale ?? 1), th, s2.angle)).join("")}</g>`);
   if (on.labels && spec.overlay.labels.length) {
-    const at3 = mapLabelLayout(spec, k, o.pageScale).at;
+    const at4 = mapLabelLayout(spec, k, o.pageScale).at;
     const g = spec.overlay.labels.map((l, i) => {
-      const base = labelSize(l, u, o.pageScale), lx = at3[i].x / k, ly = at3[i].y / k;
+      const base = labelSize(l, u, o.pageScale), lx = at4[i].x / k, ly = at4[i].y / k;
       const attrs = l.kind === "region" ? `font-weight="700" letter-spacing="${n1(base * 0.18)}"` : l.kind === "water" ? 'font-style="italic"' : l.kind === "place" ? 'font-weight="700"' : "";
       const text3 = l.kind === "region" ? l.text.toUpperCase() : l.text;
       const t = haloText(text3, lx * k, ly * k + base * 0.35, base, th.label[l.kind], th, attrs);
@@ -8606,10 +9387,10 @@ function ground(spec, f) {
   return { res, w, h, rnd, length, pt: pt3, shown: shown4, height, terrainAt, centre, slope, lines: lines2, near: near3 };
 }
 function shares(f, ids) {
-  const count2 = new Array(TERRAINS.length).fill(0);
-  if (ids) for (const n of ids) count2[f.terrain[n]]++;
-  else for (const t of f.terrain) count2[t]++;
-  const out = percentShares(TERRAINS.map((t, i) => [t, count2[i]]).filter(([, c]) => c > 0));
+  const count = new Array(TERRAINS.length).fill(0);
+  if (ids) for (const n of ids) count[f.terrain[n]]++;
+  else for (const t of f.terrain) count[t]++;
+  const out = percentShares(TERRAINS.map((t, i) => [t, count[i]]).filter(([, c]) => c > 0));
   return out.map(([terrain, share2]) => ({ terrain, share: share2 })).sort((a, b) => b.share - a.share || TERRAINS.indexOf(a.terrain) - TERRAINS.indexOf(b.terrain));
 }
 function samplesIn(f, poly) {
@@ -8639,8 +9420,8 @@ function extremes(g, f, spec, ids) {
     if (lo < 0 || f.elevation[s2] < f.elevation[lo]) lo = s2;
     if (hi < 0 || f.elevation[s2] > f.elevation[hi]) hi = s2;
   }
-  const at3 = (s2) => ({ height: g.shown(f.elevation[s2] * spec.topo.maxElevation), at: g.pt(...g.centre(s2)) });
-  return { lowest: at3(lo), highest: at3(hi) };
+  const at4 = (s2) => ({ height: g.shown(f.elevation[s2] * spec.topo.maxElevation), at: g.pt(...g.centre(s2)) });
+  return { lowest: at4(lo), highest: at4(hi) };
 }
 function crossings(pts2, poly) {
   const inside = (x, y) => coverage({ poly }, x, y) > 0;
@@ -8705,15 +9486,15 @@ function prominences(v, cols) {
 }
 function summits(g, f, spec) {
   const { cols, rows: rows2 } = spec, N3 = cols * rows2, r = g.res, step = spec.topo.interval, need2 = RULES.prominence * step;
-  const cell2 = new Float64Array(N3), flip = new Float64Array(N3);
+  const cell3 = new Float64Array(N3), flip = new Float64Array(N3);
   for (let cj = 0; cj < rows2; cj++) for (let ci = 0; ci < cols; ci++) {
     let s2 = 0;
     for (let j = cj * r; j < (cj + 1) * r; j++) for (let i = ci * r; i < (ci + 1) * r; i++) s2 += f.elevation[j * f.w + i];
-    cell2[cj * cols + ci] = s2 / (r * r) * spec.topo.maxElevation;
-    flip[cj * cols + ci] = -cell2[cj * cols + ci];
+    cell3[cj * cols + ci] = s2 / (r * r) * spec.topo.maxElevation;
+    flip[cj * cols + ci] = -cell3[cj * cols + ci];
   }
-  const out = (list6, dry, order) => list6.filter((c) => c.prominence >= need2 - 1e-9 && (!dry || g.shown(cell2[c.n]) > 0)).sort((a, b) => order(cell2[a.n], cell2[b.n]) || b.prominence - a.prominence || a.n - b.n).map((c) => ({ height: g.shown(cell2[c.n]), at: g.pt(c.n % cols + 0.5, Math.floor(c.n / cols) + 0.5), prominence: roundTo(c.prominence, step) }));
-  return { hilltops: out(prominences(cell2, cols), false, (a, b) => b - a), hollows: out(prominences(flip, cols), true, (a, b) => a - b) };
+  const out = (list6, dry, order) => list6.filter((c) => c.prominence >= need2 - 1e-9 && (!dry || g.shown(cell3[c.n]) > 0)).sort((a, b) => order(cell3[a.n], cell3[b.n]) || b.prominence - a.prominence || a.n - b.n).map((c) => ({ height: g.shown(cell3[c.n]), at: g.pt(c.n % cols + 0.5, Math.floor(c.n / cols) + 0.5), prominence: roundTo(c.prominence, step) }));
+  return { hilltops: out(prominences(cell3, cols), false, (a, b) => b - a), hollows: out(prominences(flip, cols), true, (a, b) => a - b) };
 }
 function areaOutline(v) {
   if (v.length === 4) return [v[0], v[1], v[2], v[1], v[2], v[3], v[0], v[3]];
@@ -9048,39 +9829,39 @@ function newDungeon(id2, over = {}) {
     overlay: over.overlay ?? { labels: [], symbols: [] }
   });
 }
-function endErrors(e, at3, ids, corridorIds) {
-  const shape = `${at3}: {room: id}, {at: [x, y]} or {corridor: id}`;
+function endErrors(e, at4, ids, corridorIds) {
+  const shape = `${at4}: {room: id}, {at: [x, y]} or {corridor: id}`;
   if (!e || typeof e !== "object") return [shape];
   const o = e, out = [];
   if ("room" in o) {
-    if (!ids.has(o.room)) out.push(`${at3}.room: no room ${JSON.stringify(o.room)}`);
-    if (o.side !== void 0 && !SIDES.includes(o.side)) out.push(`${at3}.side: ${SIDES.join(", ")}`);
-    if (o.offset !== void 0 && !(isNum2(o.offset) && o.offset >= 0)) out.push(`${at3}.offset: cells along the wall, 0 or more`);
-    if (o.offset !== void 0 && o.side === void 0) out.push(`${at3}.offset: goes with side`);
+    if (!ids.has(o.room)) out.push(`${at4}.room: no room ${JSON.stringify(o.room)}`);
+    if (o.side !== void 0 && !SIDES.includes(o.side)) out.push(`${at4}.side: ${SIDES.join(", ")}`);
+    if (o.offset !== void 0 && !(isNum2(o.offset) && o.offset >= 0)) out.push(`${at4}.offset: cells along the wall, 0 or more`);
+    if (o.offset !== void 0 && o.side === void 0) out.push(`${at4}.offset: goes with side`);
     return out;
   }
   if ("at" in o) {
-    if (!isPoint(o.at)) out.push(`${at3}.at: [x, y]`);
+    if (!isPoint(o.at)) out.push(`${at4}.at: [x, y]`);
     const x = o.exit;
     if (x !== void 0) {
-      if (!x || typeof x !== "object" || typeof x.text !== "string") out.push(`${at3}.exit: {text, href?, fade?}`);
+      if (!x || typeof x !== "object" || typeof x.text !== "string") out.push(`${at4}.exit: {text, href?, fade?}`);
       else {
-        if (x.href !== void 0 && hrefError(x.href)) out.push(`${at3}.exit.href: ${hrefError(x.href)}`);
-        if (x.fade !== void 0 && !(isNum2(x.fade) && x.fade >= 0 && x.fade <= 20)) out.push(`${at3}.exit.fade: cells, 0..20`);
+        if (x.href !== void 0 && hrefError(x.href)) out.push(`${at4}.exit.href: ${hrefError(x.href)}`);
+        if (x.fade !== void 0 && !(isNum2(x.fade) && x.fade >= 0 && x.fade <= 20)) out.push(`${at4}.exit.fade: cells, 0..20`);
       }
     }
     return out;
   }
   if ("corridor" in o) {
-    if (typeof o.corridor !== "string" || !corridorIds.has(o.corridor)) out.push(`${at3}.corridor: no corridor with id ${JSON.stringify(o.corridor)}`);
-    if (o.near !== void 0 && !isPoint(o.near)) out.push(`${at3}.near: [x, y]`);
+    if (typeof o.corridor !== "string" || !corridorIds.has(o.corridor)) out.push(`${at4}.corridor: no corridor with id ${JSON.stringify(o.corridor)}`);
+    if (o.near !== void 0 && !isPoint(o.near)) out.push(`${at4}.near: [x, y]`);
     return out;
   }
   return [shape];
 }
 function corridorDeps(corridors) {
-  const byId = new Map(corridors.flatMap((c, i) => typeof c?.id === "string" ? [[c.id, i]] : []));
-  return corridors.map((c) => [c?.from, c?.to].flatMap((e) => e && typeof e === "object" && "corridor" in e && byId.has(e.corridor) ? [byId.get(e.corridor)] : []));
+  const byId2 = new Map(corridors.flatMap((c, i) => typeof c?.id === "string" ? [[c.id, i]] : []));
+  return corridors.map((c) => [c?.from, c?.to].flatMap((e) => e && typeof e === "object" && "corridor" in e && byId2.has(e.corridor) ? [byId2.get(e.corridor)] : []));
 }
 function corridorOrder(corridors) {
   const deps = corridorDeps(corridors), state = corridors.map(() => 0), out = [];
@@ -9104,9 +9885,9 @@ function hrefError(v) {
   if (v.startsWith("//")) return "a full http(s):// address, not one starting //";
   return null;
 }
-function originError2(entry, at3, e) {
+function originError2(entry, at4, e) {
   const v = entry?.origin;
-  if (v !== void 0 && (typeof v !== "string" || !v)) e.push(`${at3}.origin: a non-empty string`);
+  if (v !== void 0 && (typeof v !== "string" || !v)) e.push(`${at4}.origin: a non-empty string`);
 }
 function enclosureErrors(m, ids) {
   const e = [];
@@ -9127,33 +9908,33 @@ function enclosureErrors(m, ids) {
   if (walls === void 0) return e;
   if (!Array.isArray(walls)) return [...e, "walls: an array"];
   walls.forEach((w, i) => {
-    const at3 = `walls[${i}]`;
+    const at4 = `walls[${i}]`;
     if (!w || typeof w !== "object") {
-      e.push(`${at3}: an object`);
+      e.push(`${at4}: an object`);
       return;
     }
     if (w.rooms !== void 0) {
-      if (!Array.isArray(w.rooms) || !w.rooms.length) e.push(`${at3}.rooms: room ids`);
-      else for (const r of w.rooms) if (!ids.has(r)) e.push(`${at3}.rooms: no room ${JSON.stringify(r)}`);
+      if (!Array.isArray(w.rooms) || !w.rooms.length) e.push(`${at4}.rooms: room ids`);
+      else for (const r of w.rooms) if (!ids.has(r)) e.push(`${at4}.rooms: no room ${JSON.stringify(r)}`);
     }
-    if (w.poly !== void 0 && !(nums2(w.poly) && w.poly.length >= 6 && w.poly.length % 2 === 0)) e.push(`${at3}.poly: at least 3 x,y pairs`);
-    if (w.rooms === void 0 && w.poly === void 0) e.push(`${at3}: rooms (ids) or poly`);
-    if (w.thickness !== void 0 && !(isNum2(w.thickness) && w.thickness > 0 && w.thickness <= 4)) e.push(`${at3}.thickness: cells, above 0 and at most 4`);
-    if (w.inset !== void 0 && !(isNum2(w.inset) && w.inset >= 0)) e.push(`${at3}.inset: cells, 0 or more`);
+    if (w.poly !== void 0 && !(nums2(w.poly) && w.poly.length >= 6 && w.poly.length % 2 === 0)) e.push(`${at4}.poly: at least 3 x,y pairs`);
+    if (w.rooms === void 0 && w.poly === void 0) e.push(`${at4}: rooms (ids) or poly`);
+    if (w.thickness !== void 0 && !(isNum2(w.thickness) && w.thickness > 0 && w.thickness <= 4)) e.push(`${at4}.thickness: cells, above 0 and at most 4`);
+    if (w.inset !== void 0 && !(isNum2(w.inset) && w.inset >= 0)) e.push(`${at4}.inset: cells, 0 or more`);
     const t = w.towers;
     if (t !== void 0) {
-      if (!t || !WALL_TOWER_SHAPES.includes(t.shape)) e.push(`${at3}.towers.shape: ${WALL_TOWER_SHAPES.join(" or ")}`);
-      if (t?.size !== void 0 && !(isNum2(t.size) && t.size > 0)) e.push(`${at3}.towers.size: cells, above 0`);
-      if (t?.at !== void 0 && t.at !== "corners" && !(nums2(t.at) && t.at.every(Number.isInteger))) e.push(`${at3}.towers.at: "corners" or vertex indices`);
+      if (!t || !WALL_TOWER_SHAPES.includes(t.shape)) e.push(`${at4}.towers.shape: ${WALL_TOWER_SHAPES.join(" or ")}`);
+      if (t?.size !== void 0 && !(isNum2(t.size) && t.size > 0)) e.push(`${at4}.towers.size: cells, above 0`);
+      if (t?.at !== void 0 && t.at !== "corners" && !(nums2(t.at) && t.at.every(Number.isInteger))) e.push(`${at4}.towers.at: "corners" or vertex indices`);
     }
-    (w.gates === void 0 ? [] : Array.isArray(w.gates) ? w.gates : (e.push(`${at3}.gates: an array`), [])).forEach((g, j) => {
-      const ga = `${at3}.gates[${j}]`;
+    (w.gates === void 0 ? [] : Array.isArray(w.gates) ? w.gates : (e.push(`${at4}.gates: an array`), [])).forEach((g, j) => {
+      const ga = `${at4}.gates[${j}]`;
       if (!isPoint(g?.at)) e.push(`${ga}.at: [x, y] in cells`);
       if (!GATE_KINDS.includes(g?.kind)) e.push(`${ga}.kind: ${GATE_KINDS.join(" or ")}`);
       if (g?.room !== void 0 && !ids.has(g.room)) e.push(`${ga}.room: no room ${JSON.stringify(g.room)}`);
       if (g?.width !== void 0 && !(isNum2(g.width) && g.width > 0)) e.push(`${ga}.width: cells, above 0`);
     });
-    originError2(w, at3, e);
+    originError2(w, at4, e);
   });
   return e;
 }
@@ -9182,20 +9963,20 @@ function validateDungeon(raw) {
   if (!m.scale || !isNum2(m.scale.perCell) || typeof m.scale.unit !== "string") e.push("scale: perCell (number) and unit");
   const ids = /* @__PURE__ */ new Set();
   (Array.isArray(m.rooms) ? m.rooms : (e.push("rooms: an array"), [])).forEach((r, i) => {
-    const at3 = `rooms[${i}]`;
-    if (typeof r?.id !== "string" || !/^[\w-]+$/.test(r.id)) e.push(`${at3}.id: letters, digits, - and _ only`);
-    else if (ids.has(r.id)) e.push(`${at3}.id: ${r.id} is used twice`);
+    const at4 = `rooms[${i}]`;
+    if (typeof r?.id !== "string" || !/^[\w-]+$/.test(r.id)) e.push(`${at4}.id: letters, digits, - and _ only`);
+    else if (ids.has(r.id)) e.push(`${at4}.id: ${r.id} is used twice`);
     else ids.add(r.id);
-    if (!ROOM_SHAPES.includes(r?.shape)) e.push(`${at3}.shape: one of ${ROOM_SHAPES.join(", ")}`);
-    for (const k of ["x", "y"]) if (!isNum2(r?.[k])) e.push(`${at3}.${k}: a number (cells)`);
-    for (const k of ["w", "h"]) if (!isNum2(r?.[k]) || r[k] < 1) e.push(`${at3}.${k}: at least 1 cell`);
-    if (r?.shape === "poly" && !(nums2(r.points) && r.points.length >= 6 && r.points.length % 2 === 0)) e.push(`${at3}.points: at least 3 x,y pairs`);
-    if (r?.label !== void 0 && typeof r.label !== "string") e.push(`${at3}.label: text`);
-    if (r?.number !== void 0 && r.number !== false && !isNum2(r.number)) e.push(`${at3}.number: a number or false`);
-    if (r?.fill !== void 0 && !ROOM_FILLS.includes(r.fill)) e.push(`${at3}.fill: one of ${ROOM_FILLS.join(", ")}`);
-    if (r?.href !== void 0 && hrefError(r.href)) e.push(`${at3}.href: ${hrefError(r.href)}`);
-    if (r?.hand !== void 0 && !(Array.isArray(r.hand) && r.hand.every((f) => typeof f === "string"))) e.push(`${at3}.hand: field names`);
-    originError2(r, at3, e);
+    if (!ROOM_SHAPES.includes(r?.shape)) e.push(`${at4}.shape: one of ${ROOM_SHAPES.join(", ")}`);
+    for (const k of ["x", "y"]) if (!isNum2(r?.[k])) e.push(`${at4}.${k}: a number (cells)`);
+    for (const k of ["w", "h"]) if (!isNum2(r?.[k]) || r[k] < 1) e.push(`${at4}.${k}: at least 1 cell`);
+    if (r?.shape === "poly" && !(nums2(r.points) && r.points.length >= 6 && r.points.length % 2 === 0)) e.push(`${at4}.points: at least 3 x,y pairs`);
+    if (r?.label !== void 0 && typeof r.label !== "string") e.push(`${at4}.label: text`);
+    if (r?.number !== void 0 && r.number !== false && !isNum2(r.number)) e.push(`${at4}.number: a number or false`);
+    if (r?.fill !== void 0 && !ROOM_FILLS.includes(r.fill)) e.push(`${at4}.fill: one of ${ROOM_FILLS.join(", ")}`);
+    if (r?.href !== void 0 && hrefError(r.href)) e.push(`${at4}.href: ${hrefError(r.href)}`);
+    if (r?.hand !== void 0 && !(Array.isArray(r.hand) && r.hand.every((f) => typeof f === "string"))) e.push(`${at4}.hand: field names`);
+    originError2(r, at4, e);
   });
   const corridorIds = /* @__PURE__ */ new Set();
   (Array.isArray(m.corridors) ? m.corridors : []).forEach((c, i) => {
@@ -9205,36 +9986,36 @@ function validateDungeon(raw) {
     else corridorIds.add(c.id);
   });
   (Array.isArray(m.corridors) ? m.corridors : (e.push("corridors: an array"), [])).forEach((c, i) => {
-    const at3 = `corridors[${i}]`;
-    e.push(...endErrors(c?.from, `${at3}.from`, ids, corridorIds), ...endErrors(c?.to, `${at3}.to`, ids, corridorIds));
+    const at4 = `corridors[${i}]`;
+    e.push(...endErrors(c?.from, `${at4}.from`, ids, corridorIds), ...endErrors(c?.to, `${at4}.to`, ids, corridorIds));
     for (const side of ["from", "to"]) {
       const x = c?.[side];
-      if (x && x.corridor !== void 0 && x.corridor === c?.id) e.push(`${at3}.${side}.corridor: a corridor cannot join itself`);
+      if (x && x.corridor !== void 0 && x.corridor === c?.id) e.push(`${at4}.${side}.corridor: a corridor cannot join itself`);
     }
-    if (c?.curve !== void 0 && !CURVES.includes(c.curve)) e.push(`${at3}.curve: ${CURVES.join(" or ")}`);
-    if (c?.style !== void 0 && !CORRIDOR_STYLES.includes(c.style)) e.push(`${at3}.style: ${CORRIDOR_STYLES.join(" or ")}`);
-    if (c?.seed !== void 0 && !isNum2(c.seed)) e.push(`${at3}.seed: a number`);
-    if (c?.width !== void 0 && !(isNum2(c.width) && c.width >= 0.5 && c.width <= 6)) e.push(`${at3}.width: 0.5..6`);
-    if (c?.route !== void 0 && !ROUTES.includes(c.route)) e.push(`${at3}.route: one of ${ROUTES.join(", ")}`);
-    if (c?.via !== void 0 && !(nums2(c.via) && c.via.length % 2 === 0)) e.push(`${at3}.via: x,y pairs`);
+    if (c?.curve !== void 0 && !CURVES.includes(c.curve)) e.push(`${at4}.curve: ${CURVES.join(" or ")}`);
+    if (c?.style !== void 0 && !CORRIDOR_STYLES.includes(c.style)) e.push(`${at4}.style: ${CORRIDOR_STYLES.join(" or ")}`);
+    if (c?.seed !== void 0 && !isNum2(c.seed)) e.push(`${at4}.seed: a number`);
+    if (c?.width !== void 0 && !(isNum2(c.width) && c.width >= 0.5 && c.width <= 6)) e.push(`${at4}.width: 0.5..6`);
+    if (c?.route !== void 0 && !ROUTES.includes(c.route)) e.push(`${at4}.route: one of ${ROUTES.join(", ")}`);
+    if (c?.via !== void 0 && !(nums2(c.via) && c.via.length % 2 === 0)) e.push(`${at4}.via: x,y pairs`);
     if (c?.doors !== void 0 && !(Array.isArray(c.doors) && c.doors.length === 2 && c.doors.every((d) => d === null || DOOR_KINDS.includes(d))))
-      e.push(`${at3}.doors: [from, to], each null or one of ${DOOR_KINDS.join(", ")}`);
-    originError2(c, at3, e);
+      e.push(`${at4}.doors: [from, to], each null or one of ${DOOR_KINDS.join(", ")}`);
+    originError2(c, at4, e);
   });
   if (m.connections !== void 0) {
     if (!Array.isArray(m.connections)) e.push("connections: an array");
     else m.connections.forEach((c, i) => {
-      const at3 = `connections[${i}]`;
+      const at4 = `connections[${i}]`;
       if (!c || typeof c !== "object") {
-        e.push(`${at3}: {a, b, at?, kind?, width?}`);
+        e.push(`${at4}: {a, b, at?, kind?, width?}`);
         return;
       }
-      for (const k of ["a", "b"]) if (!ids.has(c[k])) e.push(`${at3}.${k}: no room ${JSON.stringify(c[k])}`);
-      if (c.a === c.b) e.push(`${at3}: a room cannot connect to itself`);
-      if (c.at !== void 0 && !isPoint(c.at)) e.push(`${at3}.at: [x, y]`);
-      if (c.kind !== void 0 && c.kind !== "open" && !DOOR_KINDS.includes(c.kind)) e.push(`${at3}.kind: open or one of ${DOOR_KINDS.join(", ")}`);
-      if (c.width !== void 0 && !(isNum2(c.width) && c.width >= 0.5 && c.width <= 20)) e.push(`${at3}.width: 0.5..20`);
-      originError2(c, at3, e);
+      for (const k of ["a", "b"]) if (!ids.has(c[k])) e.push(`${at4}.${k}: no room ${JSON.stringify(c[k])}`);
+      if (c.a === c.b) e.push(`${at4}: a room cannot connect to itself`);
+      if (c.at !== void 0 && !isPoint(c.at)) e.push(`${at4}.at: [x, y]`);
+      if (c.kind !== void 0 && c.kind !== "open" && !DOOR_KINDS.includes(c.kind)) e.push(`${at4}.kind: open or one of ${DOOR_KINDS.join(", ")}`);
+      if (c.width !== void 0 && !(isNum2(c.width) && c.width >= 0.5 && c.width <= 20)) e.push(`${at4}.width: 0.5..20`);
+      originError2(c, at4, e);
     });
   }
   if (m.blocks !== void 0) {
@@ -9242,28 +10023,28 @@ function validateDungeon(raw) {
     else {
       const seen = /* @__PURE__ */ new Set();
       m.blocks.forEach((b, i) => {
-        const at3 = `blocks[${i}]`;
+        const at4 = `blocks[${i}]`;
         if (!b || typeof b !== "object") {
-          e.push(`${at3}: {id, shape, x, y, w, h, split}`);
+          e.push(`${at4}: {id, shape, x, y, w, h, split}`);
           return;
         }
-        if (typeof b.id !== "string" || !/^[\w-]+$/.test(b.id)) e.push(`${at3}.id: letters, digits, - and _ only`);
-        else if (seen.has(b.id)) e.push(`${at3}.id: ${b.id} is used twice`);
+        if (typeof b.id !== "string" || !/^[\w-]+$/.test(b.id)) e.push(`${at4}.id: letters, digits, - and _ only`);
+        else if (seen.has(b.id)) e.push(`${at4}.id: ${b.id} is used twice`);
         else seen.add(b.id);
-        if (!BLOCK_SHAPES.includes(b.shape)) e.push(`${at3}.shape: one of ${BLOCK_SHAPES.join(", ")}`);
-        for (const k of ["x", "y"]) if (!isNum2(b[k])) e.push(`${at3}.${k}: a number (cells)`);
-        for (const k of ["w", "h"]) if (!isNum2(b[k]) || b[k] < 1) e.push(`${at3}.${k}: at least 1 cell`);
-        if (b.shape === "poly" && !(nums2(b.points) && b.points.length >= 6 && b.points.length % 2 === 0)) e.push(`${at3}.points: at least 3 x,y pairs`);
+        if (!BLOCK_SHAPES.includes(b.shape)) e.push(`${at4}.shape: one of ${BLOCK_SHAPES.join(", ")}`);
+        for (const k of ["x", "y"]) if (!isNum2(b[k])) e.push(`${at4}.${k}: a number (cells)`);
+        for (const k of ["w", "h"]) if (!isNum2(b[k]) || b[k] < 1) e.push(`${at4}.${k}: at least 1 cell`);
+        if (b.shape === "poly" && !(nums2(b.points) && b.points.length >= 6 && b.points.length % 2 === 0)) e.push(`${at4}.points: at least 3 x,y pairs`);
         const sp = b.split;
-        if (!sp || typeof sp !== "object" || !SPLIT_MODES.includes(sp.mode)) e.push(`${at3}.split.mode: one of ${SPLIT_MODES.join(", ")}`);
+        if (!sp || typeof sp !== "object" || !SPLIT_MODES.includes(sp.mode)) e.push(`${at4}.split.mode: one of ${SPLIT_MODES.join(", ")}`);
         else {
-          if (sp.min !== void 0 && !(isNum2(sp.min) && sp.min >= 1 && sp.min <= 40)) e.push(`${at3}.split.min: 1..40 cells`);
-          if (sp.seed !== void 0 && !isNum2(sp.seed)) e.push(`${at3}.split.seed: a number`);
-          if (sp.cuts !== void 0 && !(sp.cuts && typeof sp.cuts === "object" && (sp.cuts.x === void 0 || nums2(sp.cuts.x)) && (sp.cuts.y === void 0 || nums2(sp.cuts.y)))) e.push(`${at3}.split.cuts: {x?: [cells], y?: [cells]}`);
-          if (sp.mode === "cuts" && !(sp.cuts?.x?.length || sp.cuts?.y?.length)) e.push(`${at3}.split.cuts: the x and/or y lines to cut at`);
+          if (sp.min !== void 0 && !(isNum2(sp.min) && sp.min >= 1 && sp.min <= 40)) e.push(`${at4}.split.min: 1..40 cells`);
+          if (sp.seed !== void 0 && !isNum2(sp.seed)) e.push(`${at4}.split.seed: a number`);
+          if (sp.cuts !== void 0 && !(sp.cuts && typeof sp.cuts === "object" && (sp.cuts.x === void 0 || nums2(sp.cuts.x)) && (sp.cuts.y === void 0 || nums2(sp.cuts.y)))) e.push(`${at4}.split.cuts: {x?: [cells], y?: [cells]}`);
+          if (sp.mode === "cuts" && !(sp.cuts?.x?.length || sp.cuts?.y?.length)) e.push(`${at4}.split.cuts: the x and/or y lines to cut at`);
         }
-        if (b.doors !== void 0 && !(isNum2(b.doors) && b.doors >= 0 && b.doors <= 1)) e.push(`${at3}.doors: 0..1`);
-        originError2(b, at3, e);
+        if (b.doors !== void 0 && !(isNum2(b.doors) && b.doors >= 0 && b.doors <= 1)) e.push(`${at4}.doors: 0..1`);
+        originError2(b, at4, e);
       });
     }
   }
@@ -9343,15 +10124,15 @@ function gridInUnits(spec) {
   const per = spec.scale.perCell;
   return { show: spec.grid.show, size: spec.grid.size * per, unit: spec.scale.unit, sub: spec.grid.sub && spec.grid.size > 1, subSize: per };
 }
-function parsePoint2(at3) {
-  const xy = at3.match(/^\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*$/);
+function parsePoint2(at4) {
+  const xy = at4.match(/^\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*$/);
   if (xy) return [+xy[1], +xy[2]];
-  const sq = at3.replace(/^cell:/i, "").toUpperCase().match(/^([A-Z]+)(\d+)$/);
+  const sq = at4.replace(/^cell:/i, "").toUpperCase().match(/^([A-Z]+)(\d+)$/);
   if (sq) {
     const c = [...sq[1]].reduce((n, ch) => n * 26 + ch.charCodeAt(0) - 64, 0) - 1, r = +sq[2] - 1;
     return [c + 0.5, r + 0.5];
   }
-  throw new Error(`${at3}: expected x,y (cells) or a cell name (C4)`);
+  throw new Error(`${at4}: expected x,y (cells) or a cell name (C4)`);
 }
 function withoutDangling(list6) {
   for (; ; ) {
@@ -9473,12 +10254,12 @@ function segmentDistance(x, y, a, b) {
   return Math.hypot(x - a[0] - t * dx, y - a[1] - t * dy);
 }
 function nearestOnLine(pts2, x, y) {
-  let best = { x: pts2[0], y: pts2[1], d: Infinity, along: 0, seg: 0 }, at3 = 0;
+  let best = { x: pts2[0], y: pts2[1], d: Infinity, along: 0, seg: 0 }, at4 = 0;
   for (let i = 0; i + 3 < pts2.length; i += 2) {
     const ax = pts2[i], ay = pts2[i + 1], bx = pts2[i + 2], by = pts2[i + 3], dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy, len = Math.sqrt(L2);
     const t = L2 ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / L2)) : 0, px = ax + t * dx, py = ay + t * dy, d = Math.hypot(x - px, y - py);
-    if (d < best.d) best = { x: px, y: py, d, along: at3 + t * len, seg: i / 2 };
-    at3 += len;
+    if (d < best.d) best = { x: px, y: py, d, along: at4 + t * len, seg: i / 2 };
+    at4 += len;
   }
   return best;
 }
@@ -9686,18 +10467,18 @@ function smoothLine2(pts2, perCell = 3) {
 function naturalOutline(pts2, width, seed) {
   const rand = rng(seed), ph = Array.from({ length: 6 }, () => rand() * Math.PI * 2);
   const s2 = [];
-  let at3 = 0;
+  let at4 = 0;
   for (let i = 0; i + 3 < pts2.length; i += 2) {
     const len = Math.hypot(pts2[i + 2] - pts2[i], pts2[i + 3] - pts2[i + 1]), n = Math.max(1, Math.ceil(len / 0.5));
-    for (let k = i ? 1 : 0; k <= n; k++) s2.push({ x: pts2[i] + (pts2[i + 2] - pts2[i]) * k / n, y: pts2[i + 1] + (pts2[i + 3] - pts2[i + 1]) * k / n, at: at3 + len * k / n });
-    at3 += len;
+    for (let k = i ? 1 : 0; k <= n; k++) s2.push({ x: pts2[i] + (pts2[i + 2] - pts2[i]) * k / n, y: pts2[i + 1] + (pts2[i + 3] - pts2[i + 1]) * k / n, at: at4 + len * k / n });
+    at4 += len;
   }
   if (s2.length < 2) return [];
   const wall2 = (a, p2, q, r) => Math.max(0.3, 0.5 + 0.16 * Math.sin(a * 0.9 + p2) + 0.11 * Math.sin(a * 2.1 + q) + 0.06 * Math.sin(a * 4.3 + r));
   const left = [], right = [];
   s2.forEach((c, i) => {
     const a = s2[Math.max(0, i - 1)], b = s2[Math.min(s2.length - 1, i + 1)], tx = b.x - a.x, ty = b.y - a.y, L2 = Math.hypot(tx, ty) || 1, nx = -ty / L2, ny = tx / L2;
-    const ease2 = Math.min(1, c.at / 1.5, (at3 - c.at) / 1.5), l = width * (0.5 + (wall2(c.at, ph[0], ph[1], ph[2]) - 0.5) * ease2), r = width * (0.5 + (wall2(c.at, ph[3], ph[4], ph[5]) - 0.5) * ease2);
+    const ease2 = Math.min(1, c.at / 1.5, (at4 - c.at) / 1.5), l = width * (0.5 + (wall2(c.at, ph[0], ph[1], ph[2]) - 0.5) * ease2), r = width * (0.5 + (wall2(c.at, ph[3], ph[4], ph[5]) - 0.5) * ease2);
     left.push(c.x + nx * l, c.y + ny * l);
     right.unshift(c.x - nx * r, c.y - ny * r);
   });
@@ -9748,11 +10529,11 @@ function offsetRing(ring2, d) {
     return [p2[0] + (a[0] + b[0]) * k, p2[1] + (a[1] + b[1]) * k];
   });
 }
-function snapToRing(ring2, at3) {
+function snapToRing(ring2, at4) {
   let best = { x: ring2[0][0], y: ring2[0][1], angle: 0 }, bd = Infinity;
   ring2.forEach((a, i) => {
     const b = ring2[(i + 1) % ring2.length], dx = b[0] - a[0], dy = b[1] - a[1], L2 = dx * dx + dy * dy;
-    const t = L2 ? Math.max(0, Math.min(1, ((at3[0] - a[0]) * dx + (at3[1] - a[1]) * dy) / L2)) : 0, x = a[0] + t * dx, y = a[1] + t * dy, d = Math.hypot(at3[0] - x, at3[1] - y);
+    const t = L2 ? Math.max(0, Math.min(1, ((at4[0] - a[0]) * dx + (at4[1] - a[1]) * dy) / L2)) : 0, x = a[0] + t * dx, y = a[1] + t * dy, d = Math.hypot(at4[0] - x, at4[1] - y);
     if (d < bd) {
       bd = d;
       best = { x, y, angle: Math.atan2(dy, dx) * 180 / Math.PI };
@@ -9761,26 +10542,26 @@ function snapToRing(ring2, at3) {
   return best;
 }
 function wallGeom(w, index, l) {
-  const byId = new Map(l.rooms.map((g) => [g.room.id, g]));
+  const byId2 = new Map(l.rooms.map((g) => [g.room.id, g]));
   let ring2;
   if (w.poly) ring2 = Array.from({ length: w.poly.length / 2 }, (_, i) => [w.poly[2 * i], w.poly[2 * i + 1]]);
-  else ring2 = offsetRing(convexHull((w.rooms ?? []).flatMap((id2) => byId.get(id2)?.outline ?? [])), w.inset ?? WALL_DEFAULTS.inset);
-  const thickness = w.thickness ?? WALL_DEFAULTS.thickness, tw = w.towers, size = tw?.size ?? WALL_DEFAULTS.towerSize, shape = tw?.shape ?? "round";
+  else ring2 = offsetRing(convexHull((w.rooms ?? []).flatMap((id2) => byId2.get(id2)?.outline ?? [])), w.inset ?? WALL_DEFAULTS.inset);
+  const thickness = w.thickness ?? WALL_DEFAULTS.thickness, tw = w.towers, size2 = tw?.size ?? WALL_DEFAULTS.towerSize, shape = tw?.shape ?? "round";
   const towers = [];
   if (tw) {
-    const at3 = tw.at ?? "corners", verts = at3 === "corners" ? ring2.map((_, i) => i) : at3.filter((i) => i >= 0 && i < ring2.length);
-    for (const i of verts) towers.push({ x: ring2[i][0], y: ring2[i][1], shape, size, source: "corner", vertex: i });
+    const at4 = tw.at ?? "corners", verts = at4 === "corners" ? ring2.map((_, i) => i) : at4.filter((i) => i >= 0 && i < ring2.length);
+    for (const i of verts) towers.push({ x: ring2[i][0], y: ring2[i][1], shape, size: size2, source: "corner", vertex: i });
   }
   const gates = (w.gates ?? []).map((g) => {
     const s2 = snapToRing(ring2, g.at), width = g.width ?? (g.kind === "postern" ? WALL_DEFAULTS.posternWidth : WALL_DEFAULTS.gateWidth);
-    const dx = Math.cos(s2.angle * Math.PI / 180), dy = Math.sin(s2.angle * Math.PI / 180), off = width / 2 + size / 2;
-    const side = g.kind === "gate" ? [-1, 1].map((sg2) => ({ x: s2.x + sg2 * off * dx, y: s2.y + sg2 * off * dy, shape, size, source: "gate" })) : [];
+    const dx = Math.cos(s2.angle * Math.PI / 180), dy = Math.sin(s2.angle * Math.PI / 180), off = width / 2 + size2 / 2;
+    const side = g.kind === "gate" ? [-1, 1].map((sg2) => ({ x: s2.x + sg2 * off * dx, y: s2.y + sg2 * off * dy, shape, size: size2, source: "gate" })) : [];
     towers.push(...side);
     return { kind: g.kind, x: s2.x, y: s2.y, angle: s2.angle, width, ...g.room !== void 0 && { room: g.room }, towers: side };
   });
   const ids = w.rooms ?? l.rooms.map((g) => g.room.id);
   const enclosed = ids.map((room3) => {
-    const g = byId.get(room3), flat2 = ring2.flat();
+    const g = byId2.get(room3), flat2 = ring2.flat();
     return { room: room3, inside: !!g && g.outline.every((_, i) => i % 2 || inPolygon(flat2, g.outline[i], g.outline[i + 1]) || onRing(ring2, g.outline[i], g.outline[i + 1])) };
   });
   return { index, ...w.id !== void 0 && { id: w.id }, thickness, ring: ring2.flat(), towers, gates, enclosed };
@@ -9918,31 +10699,31 @@ function exitPoint(outline2, pts2) {
   }
   return null;
 }
-function corridorGeom(c, index, rooms, byId, lineOf, spec) {
+function corridorGeom(c, index, rooms, byId2, lineOf, spec) {
   const width = c.width ?? 1, how = c.route ?? "auto";
   const simple = (e) => "at" in e || "room" in e && e.side === void 0;
   let pts2;
   if (simple(c.from) && simple(c.to)) {
-    const end = (e) => "room" in e ? byId.get(e.room) : e.at;
+    const end = (e) => "room" in e ? byId2.get(e.room) : e.at;
     const a = end(c.from), b = end(c.to), pa = Array.isArray(a) ? a : [a.cx, a.cy], pb = Array.isArray(b) ? b : [b.cx, b.cy];
     pts2 = c.via?.length ? [...pa, ...c.via, ...pb] : how === "around" ? around(pa, pb, a, b, width, rooms, spec) ?? route(a, b, width, "auto", rooms) : route(a, b, width, how, rooms);
   } else {
     const port = (e, other) => {
       if ("room" in e) {
-        const g = byId.get(e.room);
+        const g = byId2.get(e.room);
         return e.side ? sidePort(g, e.side, e.offset, width) : { p: [g.cx, g.cy], room: g };
       }
       if ("at" in e) return { p: e.at };
       return junctionPort(lineOf.get(e.corridor) ?? [0, 0, 0, 0], e.near ?? other);
     };
-    const guess = (e) => "room" in e ? [byId.get(e.room).cx, byId.get(e.room).cy] : "at" in e ? e.at : e.near ?? [spec.cols / 2, spec.rows / 2];
+    const guess = (e) => "room" in e ? [byId2.get(e.room).cx, byId2.get(e.room).cy] : "at" in e ? e.at : e.near ?? [spec.cols / 2, spec.rows / 2];
     const b0 = "corridor" in c.to ? null : port(c.to, guess(c.from)), a = port(c.from, b0 ? b0.stub ?? b0.p : guess(c.to)), b = b0 ?? port(c.to, a.stub ?? a.p);
     const A = a.stub ?? a.p, B = b.stub ?? b.p;
     const mid = c.via?.length ? [...A, ...c.via, ...B] : how === "straight" ? [...A, ...B] : how === "around" ? around(A, B, a.room ?? A, b.room ?? B, width, rooms, spec) ?? portRoute(a, b, width) : how === "hv" ? [...A, B[0], A[1], ...B] : how === "vh" ? [...A, A[0], B[1], ...B] : portRoute(a, b, width);
     pts2 = tidy([...a.p, ...mid, ...b.p]);
   }
   if (c.curve === "smooth") pts2 = smoothLine2(pts2);
-  const ends = [[c.from, pts2], [c.to, reversed(pts2)]].map(([e, path]) => "room" in e ? exitPoint(byId.get(e.room).outline, path) : pointEnd(path));
+  const ends = [[c.from, pts2], [c.to, reversed(pts2)]].map(([e, path]) => "room" in e ? exitPoint(byId2.get(e.room).outline, path) : pointEnd(path));
   const outline2 = c.style === "natural" ? naturalOutline(pts2, width, c.seed ?? idSeed(c.id ?? `corridor-${index}`)) : void 0;
   return { index, pts: pts2, width, ends, ...outline2?.length && { outline: outline2 } };
 }
@@ -9958,11 +10739,11 @@ function layoutDungeon(spec) {
     if (typeof room3.number === "number") auto = Math.max(auto, room3.number);
     return { room: room3, index, outline: outline2, cx, cy, number };
   });
-  const byId = new Map(rooms.map((g) => [g.room.id, g]));
+  const byId2 = new Map(rooms.map((g) => [g.room.id, g]));
   const geoms = new Array(spec.corridors.length), lineOf = /* @__PURE__ */ new Map();
   for (const index of corridorOrder(spec.corridors) ?? spec.corridors.map((_, i) => i)) {
     const c = spec.corridors[index];
-    geoms[index] = corridorGeom(c, index, rooms, byId, lineOf, spec);
+    geoms[index] = corridorGeom(c, index, rooms, byId2, lineOf, spec);
     if (c.id) lineOf.set(c.id, geoms[index].pts);
   }
   const corridors = geoms, doors = [];
@@ -9970,13 +10751,13 @@ function layoutDungeon(spec) {
     const kind = spec.corridors[index].doors?.[i];
     if (p2 && kind) doors.push({ kind, x: p2.x, y: p2.y, angle: p2.angle, width: g.width, corridor: index });
   }));
-  const { connections, partitions } = layoutConnections(spec, rooms, byId);
+  const { connections, partitions } = layoutConnections(spec, rooms, byId2);
   for (const c of connections) if (c.kind !== "open" && c.wall) doors.push({ kind: c.kind, x: c.x, y: c.y, angle: c.angle, width: c.width, corridor: -1, connection: c.index, inner: true });
   return { rooms, corridors, doors, connections, partitions };
 }
-function layoutConnections(spec, rooms, byId) {
+function layoutConnections(spec, rooms, byId2) {
   const connections = (spec.connections ?? []).map((c, index) => {
-    const A = byId.get(c.a), B = byId.get(c.b), width = c.width ?? 1, kind = c.kind ?? "door";
+    const A = byId2.get(c.a), B = byId2.get(c.b), width = c.width ?? 1, kind = c.kind ?? "door";
     const segs2 = sharedEdges(A.outline, B.outline);
     if (!segs2.length) {
       const [x2, y2] = c.at ?? [(A.cx + B.cx) / 2, (A.cy + B.cy) / 2];
@@ -10085,14 +10866,14 @@ function fitDungeon(spec, margin = 2) {
 }
 function stretch(path, from, to) {
   const out = [];
-  let at3 = 0;
+  let at4 = 0;
   const point = (i, t) => [path[i] + (path[i + 2] - path[i]) * t, path[i + 1] + (path[i + 3] - path[i + 1]) * t];
   for (let i = 0; i + 3 < path.length; i += 2) {
     const len = Math.hypot(path[i + 2] - path[i], path[i + 3] - path[i + 1]);
-    if (len > 0 && at3 + len > from && at3 < to) {
-      out.push(...point(i, Math.max(0, (from - at3) / len)), ...point(i, Math.min(1, (to - at3) / len)));
+    if (len > 0 && at4 + len > from && at4 < to) {
+      out.push(...point(i, Math.max(0, (from - at4) / len)), ...point(i, Math.min(1, (to - at4) / len)));
     }
-    at3 += len;
+    at4 += len;
   }
   return out;
 }
@@ -10188,8 +10969,8 @@ function pieces(b, rand) {
   const x0 = Math.floor(b.x), y0 = Math.floor(b.y), x1 = Math.ceil(b.x + b.w), y1 = Math.ceil(b.y + b.h);
   const min = Math.max(1, b.split.min ?? 3), mode = b.split.mode;
   const along2 = (lo, hi, cuts, n) => {
-    const at3 = cuts?.length ? cuts.filter((c) => c > lo && c < hi).sort((p2, q) => p2 - q) : Array.from({ length: n - 1 }, (_, i) => Math.round(lo + (hi - lo) * (i + 1) / n));
-    return [lo, ...at3, hi];
+    const at4 = cuts?.length ? cuts.filter((c) => c > lo && c < hi).sort((p2, q) => p2 - q) : Array.from({ length: n - 1 }, (_, i) => Math.round(lo + (hi - lo) * (i + 1) / n));
+    return [lo, ...at4, hi];
   };
   if (mode === "rows" || mode === "cols" || mode === "grid" || mode === "cuts") {
     const xs = mode === "rows" || mode === "cuts" && !b.split.cuts?.x?.length ? [x0, x1] : along2(x0, x1, b.split.cuts?.x, Math.max(1, Math.floor((x1 - x0) / min)));
@@ -10205,13 +10986,13 @@ function pieces(b, rand) {
       return;
     }
     const vertical = w < 2 * min ? false : h < 2 * min ? true : w / h > 1.25 ? true : h / w > 1.25 ? false : rand() < 0.5;
-    const len = vertical ? w : h, at3 = (vertical ? r[0] : r[1]) + min + Math.floor(rand() * (len - 2 * min + 1));
+    const len = vertical ? w : h, at4 = (vertical ? r[0] : r[1]) + min + Math.floor(rand() * (len - 2 * min + 1));
     if (vertical) {
-      cut([r[0], r[1], at3, r[3]], depth + 1);
-      cut([at3, r[1], r[2], r[3]], depth + 1);
+      cut([r[0], r[1], at4, r[3]], depth + 1);
+      cut([at4, r[1], r[2], r[3]], depth + 1);
     } else {
-      cut([r[0], r[1], r[2], at3], depth + 1);
-      cut([r[0], at3, r[2], r[3]], depth + 1);
+      cut([r[0], r[1], r[2], at4], depth + 1);
+      cut([r[0], at4, r[2], r[3]], depth + 1);
     }
   };
   cut([x0, y0, x1, y1], 0);
@@ -10275,8 +11056,8 @@ function applyBlock(spec, id2) {
   if (!b) throw new Error(`no block ${id2} (have: ${(spec.blocks ?? []).map((x) => x.id).join(", ") || "none"})`);
   const origin = `block:${id2}`, made = splitBlock(b), out = structuredClone(spec);
   const replace2 = (list6, fresh) => {
-    const at3 = list6.findIndex((e) => e.origin === origin), rest = list6.filter((e) => e.origin !== origin);
-    const pos = at3 < 0 ? rest.length : list6.slice(0, at3).filter((e) => e.origin !== origin).length;
+    const at4 = list6.findIndex((e) => e.origin === origin), rest = list6.filter((e) => e.origin !== origin);
+    const pos = at4 < 0 ? rest.length : list6.slice(0, at4).filter((e) => e.origin !== origin).length;
     return [...rest.slice(0, pos), ...fresh, ...rest.slice(pos)];
   };
   out.rooms = replace2(out.rooms, made.rooms);
@@ -10333,9 +11114,9 @@ function singleRoom(spec, o) {
   out.corridors = (o.exits ?? []).map((e) => {
     const w = spec.gen.corridorWidth, odd = Math.round(w) % 2 === 1;
     const mid = (len) => e.at !== void 0 ? e.at : odd ? Math.floor(len / 2) + 0.5 : Math.round(len / 2);
-    const at3 = e.side === "n" ? [m + mid(o.w), -1] : e.side === "s" ? [m + mid(o.w), out.rows + 1] : e.side === "w" ? [-1, m + mid(o.h)] : [out.cols + 1, m + mid(o.h)];
-    const via = e.side === "n" || e.side === "s" ? [at3[0], m + o.h / 2] : [m + o.w / 2, at3[1]];
-    return { from: { room: "r1" }, to: { at: at3, ...e.text && { exit: { text: e.text } } }, via, width: w, doors: [e.door === void 0 ? "door" : e.door, null] };
+    const at4 = e.side === "n" ? [m + mid(o.w), -1] : e.side === "s" ? [m + mid(o.w), out.rows + 1] : e.side === "w" ? [-1, m + mid(o.h)] : [out.cols + 1, m + mid(o.h)];
+    const via = e.side === "n" || e.side === "s" ? [at4[0], m + o.h / 2] : [m + o.w / 2, at4[1]];
+    return { from: { room: "r1" }, to: { at: at4, ...e.text && { exit: { text: e.text } } }, via, width: w, doors: [e.door === void 0 ? "door" : e.door, null] };
   });
   return out;
 }
@@ -10412,9 +11193,9 @@ function entrance(spec, p2, door3) {
   const g = spec.gen, cx = p2.x + p2.w / 2, cy = p2.y + p2.h / 2, odd = Math.round(g.corridorWidth) % 2 === 1, s2 = (v) => odd ? Math.floor(v) + 0.5 : Math.round(v);
   const d = [[cy, "n"], [spec.rows - cy, "s"], [cx, "w"], [spec.cols - cx, "e"]];
   const side = d.reduce((a, b) => b[0] < a[0] ? b : a)[1];
-  const at3 = side === "n" ? [s2(cx), -1] : side === "s" ? [s2(cx), spec.rows + 1] : side === "w" ? [-1, s2(cy)] : [spec.cols + 1, s2(cy)];
-  const via = side === "n" || side === "s" ? [at3[0], cy] : [cx, at3[1]];
-  return { from: { room: p2.id }, to: { at: at3 }, via, width: g.corridorWidth, doors: [door3, null] };
+  const at4 = side === "n" ? [s2(cx), -1] : side === "s" ? [s2(cx), spec.rows + 1] : side === "w" ? [-1, s2(cy)] : [spec.cols + 1, s2(cy)];
+  const via = side === "n" || side === "s" ? [at4[0], cy] : [cx, at4[1]];
+  return { from: { room: p2.id }, to: { at: at4 }, via, width: g.corridorWidth, doors: [door3, null] };
 }
 function doorOrOpen(r, doors) {
   if (r() >= doors) return "open";
@@ -10590,30 +11371,30 @@ var init_symbols2 = __esm({
 
 // ../artgen-mapgen/src/dungeon/exits.ts
 function pointAt(path, d) {
-  let at3 = 0;
+  let at4 = 0;
   for (let i = 0; i + 3 < path.length; i += 2) {
     const len = Math.hypot(path[i + 2] - path[i], path[i + 3] - path[i + 1]);
-    if (at3 + len >= d && len > 0) {
-      const t = (d - at3) / len;
+    if (at4 + len >= d && len > 0) {
+      const t = (d - at4) / len;
       return [path[i] + (path[i + 2] - path[i]) * t, path[i + 1] + (path[i + 3] - path[i + 1]) * t];
     }
-    at3 += len;
+    at4 += len;
   }
   return [path[path.length - 2], path[path.length - 1]];
 }
 function onSheet(path, cols, rows2) {
   const inside = (x, y) => x >= 0 && y >= 0 && x <= cols && y <= rows2;
   if (inside(path[0], path[1])) return 0;
-  let at3 = 0;
+  let at4 = 0;
   for (let i = 0; i + 3 < path.length; i += 2) {
     const x0 = path[i], y0 = path[i + 1], x1 = path[i + 2], y1 = path[i + 3], len = Math.hypot(x1 - x0, y1 - y0);
     if (inside(x1, y1)) {
       const dx = x1 - x0, dy = y1 - y0;
       let t = 0;
       for (const [p2, q] of [[-dx, x0], [dx, cols - x0], [-dy, y0], [dy, rows2 - y0]]) if (p2 < 0) t = Math.max(t, q / p2);
-      return at3 + len * t;
+      return at4 + len * t;
     }
-    at3 += len;
+    at4 += len;
   }
   return null;
 }
@@ -10764,8 +11545,8 @@ function dungeonLabelLayout(spec, k, pageScale, l = layoutDungeon(spec), numbers
     if (g.room.label) obstacles.push(textBox(g.room.label, x, y + (badge2 ? fs * 1.6 : fs * 0.3), nameSize(u, pageScale), { bold: true }));
   }
   const items = spec.overlay.labels.map((lb) => {
-    const size = labelSize2(lb, u, pageScale), text3 = lb.kind === "area" ? lb.text.toUpperCase() : lb.text;
-    return { x: lb.x * k, y: lb.y * k, box: textBox(text3, lb.x * k, lb.y * k + size * 0.35, size, { bold: lb.kind !== "note", spacing: lb.kind === "area" ? size * 0.16 : 0 }), clear: 0 };
+    const size2 = labelSize2(lb, u, pageScale), text3 = lb.kind === "area" ? lb.text.toUpperCase() : lb.text;
+    return { x: lb.x * k, y: lb.y * k, box: textBox(text3, lb.x * k, lb.y * k + size2 * 0.35, size2, { bold: lb.kind !== "note", spacing: lb.kind === "area" ? size2 * 0.16 : 0 }), clear: 0 };
   });
   const placed = placeLabels(items, obstacles, { x: 0, y: 0, w: spec.cols * k, h: spec.rows * k }, pageScale * 0.3);
   return { at: placed.map((p2) => ({ x: p2.x, y: p2.y })), unplaced: placed.flatMap((p2, index) => p2.placed ? [] : [{ index, text: spec.overlay.labels[index].text }]) };
@@ -10993,9 +11774,9 @@ function renderDungeonSvg(spec, o = {}) {
     if (names) parts.push(`<g id="room-labels">${names}</g>`);
   }
   if (on.labels && spec.overlay.labels.length) {
-    const at3 = dungeonLabelLayout(spec, k, o.pageScale, l, on.numbers).at;
+    const at4 = dungeonLabelLayout(spec, k, o.pageScale, l, on.numbers).at;
     const g = spec.overlay.labels.map((lb, i) => {
-      const base = labelSize2(lb, u, o.pageScale), lx = at3[i].x / k, ly = at3[i].y / k;
+      const base = labelSize2(lb, u, o.pageScale), lx = at4[i].x / k, ly = at4[i].y / k;
       const attrs = lb.kind === "area" ? `font-weight="700" letter-spacing="${n1(base * 0.16)}"` : lb.kind === "name" ? 'font-weight="700"' : 'font-style="italic"';
       const tx = haloText(lb.kind === "area" ? lb.text.toUpperCase() : lb.text, lx * k, ly * k + base * 0.35, base, INK2, TH, attrs);
       return linked(lb.href, lb.angle ? `<g transform="rotate(${n1(lb.angle)} ${n1(lx * k)} ${n1(ly * k)})">${tx}</g>` : tx);
@@ -11062,7 +11843,7 @@ function dungeonFacts(spec, layout2 = layoutDungeon(spec)) {
     box: box2(g.room),
     doors: []
   }));
-  const byId = new Map(rooms.map((r) => [r.id, r]));
+  const byId2 = new Map(rooms.map((r) => [r.id, r]));
   const corridors = [], exits = [], reached = /* @__PURE__ */ new Set();
   spec.corridors.forEach((c, index) => {
     const geom = layout2.corridors[index], doors = [c.doors?.[0] ?? null, c.doors?.[1] ?? null];
@@ -11080,7 +11861,7 @@ function dungeonFacts(spec, layout2 = layoutDungeon(spec)) {
       const e = c[side], p2 = geom.ends[k], other = roomOf(c[ends[1 - k]]);
       if ("room" in e) {
         reached.add(e.room);
-        if (doors[k]) byId.get(e.room)?.doors.push({ kind: doors[k], at: p2 ? pt3(p2.x, p2.y) : null, corridor: index, to: other });
+        if (doors[k]) byId2.get(e.room)?.doors.push({ kind: doors[k], at: p2 ? pt3(p2.x, p2.y) : null, corridor: index, to: other });
       } else if ("at" in e) {
         const [x, y] = e.at, dist = [["n", y], ["e", spec.cols - x], ["s", spec.rows - y], ["w", x]];
         const [edge, d] = dist.reduce((a, b) => b[1] < a[1] ? b : a);
@@ -11089,7 +11870,7 @@ function dungeonFacts(spec, layout2 = layoutDungeon(spec)) {
     });
   });
   for (const c of layout2.connections) for (const [id2, other] of [[c.a, c.b], [c.b, c.a]]) {
-    const r = byId.get(id2);
+    const r = byId2.get(id2);
     if (!r) continue;
     reached.add(id2);
     (r.connections ??= []).push({ to: other, kind: c.kind, at: c.wall ? pt3(c.x, c.y) : null, connection: c.index });
@@ -11222,27 +12003,27 @@ function lintDungeon(spec, l = layoutDungeon(spec)) {
   const add2 = (severity, path, message) => out.push({ severity, path, message });
   const offSheet = (x, y, pad = 0) => x < -pad || y < -pad || x > spec.cols + pad || y > spec.rows + pad;
   l.rooms.forEach((g, i) => {
-    const at3 = `rooms[${i}]`, p2 = g.outline;
+    const at4 = `rooms[${i}]`, p2 = g.outline;
     let crossed = false;
     if (g.room.shape === "poly") {
       const pts2 = p2.length / 2;
       for (let k = 0; k < pts2; k++) {
         const j = (k + 1) % pts2;
         if (Math.hypot(p2[2 * j] - p2[2 * k], p2[2 * j + 1] - p2[2 * k + 1]) < 1e-9) {
-          add2("warning", `${at3}.points`, `corner ${j} repeats corner ${k} (a zero-length wall)`);
+          add2("warning", `${at4}.points`, `corner ${j} repeats corner ${k} (a zero-length wall)`);
           break;
         }
       }
       const x = selfCrossing(p2);
       if (x) {
-        add2("error", `${at3}.points`, `the outline crosses itself (walls ${x[0]} and ${x[1]}); list the corners in order round the room`);
+        add2("error", `${at4}.points`, `the outline crosses itself (walls ${x[0]} and ${x[1]}); list the corners in order round the room`);
         crossed = true;
       }
     }
-    if (!crossed && Math.abs(area2(p2)) / 2 < MIN_AREA) add2("error", at3, `${g.room.id} has almost no floor (${(Math.abs(area2(p2)) / 2).toFixed(2)} square cells)`);
+    if (!crossed && Math.abs(area2(p2)) / 2 < MIN_AREA) add2("error", at4, `${g.room.id} has almost no floor (${(Math.abs(area2(p2)) / 2).toFixed(2)} square cells)`);
     const r = g.room;
-    if (r.x + r.w <= 0 || r.y + r.h <= 0 || r.x >= spec.cols || r.y >= spec.rows) add2("warning", at3, `${r.id} is off the sheet (0,0 to ${spec.cols},${spec.rows})`);
-    else if (r.x < 0 || r.y < 0 || r.x + r.w > spec.cols || r.y + r.h > spec.rows) add2("warning", at3, `${r.id} runs off the sheet (0,0 to ${spec.cols},${spec.rows}); \`dungeon fit\` makes room`);
+    if (r.x + r.w <= 0 || r.y + r.h <= 0 || r.x >= spec.cols || r.y >= spec.rows) add2("warning", at4, `${r.id} is off the sheet (0,0 to ${spec.cols},${spec.rows})`);
+    else if (r.x < 0 || r.y < 0 || r.x + r.w > spec.cols || r.y + r.h > spec.rows) add2("warning", at4, `${r.id} runs off the sheet (0,0 to ${spec.cols},${spec.rows}); \`dungeon fit\` makes room`);
   });
   for (let a = 0; a < l.rooms.length; a++) for (let b = a + 1; b < l.rooms.length; b++) {
     const A = l.rooms[a], B = l.rooms[b];
@@ -11255,27 +12036,27 @@ function lintDungeon(spec, l = layoutDungeon(spec)) {
   }
   const roomsOf = (i) => new Set([spec.corridors[i].from, spec.corridors[i].to].flatMap((e) => "room" in e ? [e.room] : []));
   l.corridors.forEach((c, i) => {
-    const sc = spec.corridors[i], at3 = `corridors[${i}]`, joins = roomsOf(i);
+    const sc = spec.corridors[i], at4 = `corridors[${i}]`, joins = roomsOf(i);
     const v = sc.via ?? [];
     for (let k = 2; k < v.length; k += 2) if (v[k] === v[k - 2] && v[k + 1] === v[k - 1]) {
-      add2("warning", `${at3}.via`, `bend ${k / 2} repeats bend ${k / 2 - 1}`);
+      add2("warning", `${at4}.via`, `bend ${k / 2} repeats bend ${k / 2 - 1}`);
       break;
     }
     ["from", "to"].forEach((side, k) => {
       const e = sc[side];
-      if ("room" in e && !c.ends[k]) add2("warning", `${at3}.${side}`, `the corridor never leaves ${e.room} (it ends inside it)${sc.doors?.[k] ? `, so its ${sc.doors[k]} is not drawn` : ""}`);
+      if ("room" in e && !c.ends[k]) add2("warning", `${at4}.${side}`, `the corridor never leaves ${e.room} (it ends inside it)${sc.doors?.[k] ? `, so its ${sc.doors[k]} is not drawn` : ""}`);
       if ("at" in e) {
         const inside = l.rooms.find((g) => inPolygon(g.outline, e.at[0], e.at[1]));
-        if (inside) add2("warning", `${at3}.${side}`, `ends at ${e.at.join(",")}, inside ${inside.room.id}; link to the room instead`);
+        if (inside) add2("warning", `${at4}.${side}`, `ends at ${e.at.join(",")}, inside ${inside.room.id}; link to the room instead`);
       }
     });
-    if (lineLength2(c.pts) < 1e-9) add2("warning", at3, "the corridor has no length (both ends at one point), so nothing is drawn");
+    if (lineLength2(c.pts) < 1e-9) add2("warning", at4, "the corridor has no length (both ends at one point), so nothing is drawn");
     const hit = /* @__PURE__ */ new Set();
     for (const [x, y] of samples(c.pts, 0.25)) for (const g of l.rooms) {
       if (joins.has(g.room.id) || passable(g) || hit.has(g.room.id)) continue;
       if (inPolygon(g.outline, x, y)) hit.add(g.room.id);
     }
-    for (const id2 of hit) add2("warning", at3, `runs through ${id2}, which it does not join (set via or route, or link through ${id2})`);
+    for (const id2 of hit) add2("warning", at4, `runs through ${id2}, which it does not join (set via or route, or link through ${id2})`);
   });
   const joined = (a, b) => [spec.corridors[a].from, spec.corridors[a].to].some((e) => "corridor" in e && e.corridor === spec.corridors[b].id) || [spec.corridors[b].from, spec.corridors[b].to].some((e) => "corridor" in e && e.corridor === spec.corridors[a].id);
   for (let a = 0; a < l.corridors.length; a++) for (let b = a + 1; b < l.corridors.length; b++) {
@@ -11289,35 +12070,35 @@ function lintDungeon(spec, l = layoutDungeon(spec)) {
     if (found) add2("warning", `corridors[${b}]`, `crosses corridor ${a} at ${found.map((v) => v.toFixed(1)).join(",")} with no junction (the floors join there)`);
   }
   l.connections.forEach((c, i) => {
-    const at3 = `connections[${i}]`;
+    const at4 = `connections[${i}]`;
     if (!c.wall) {
-      add2("warning", at3, `${c.a} and ${c.b} share no wall, so the ${c.kind === "open" ? "opening" : c.kind} is not drawn; move one room against the other, or link them with a corridor`);
+      add2("warning", at4, `${c.a} and ${c.b} share no wall, so the ${c.kind === "open" ? "opening" : c.kind} is not drawn; move one room against the other, or link them with a corridor`);
       return;
     }
     const len = Math.hypot(c.wall[1][0] - c.wall[0][0], c.wall[1][1] - c.wall[0][1]);
-    if (len < c.width - 1e-6) add2("warning", at3, `the wall ${c.a} and ${c.b} share is ${len.toFixed(1)} cells, narrower than the ${c.width}-cell ${c.kind === "open" ? "opening" : c.kind}`);
+    if (len < c.width - 1e-6) add2("warning", at4, `the wall ${c.a} and ${c.b} share is ${len.toFixed(1)} cells, narrower than the ${c.width}-cell ${c.kind === "open" ? "opening" : c.kind}`);
     const sc = spec.connections[i];
-    if (sc.at && Math.hypot(sc.at[0] - c.x, sc.at[1] - c.y) > 0.75) add2("warning", `${at3}.at`, `${sc.at.join(",")} is not on the wall ${c.a} and ${c.b} share; the ${c.kind === "open" ? "opening" : c.kind} is at ${c.x.toFixed(1)},${c.y.toFixed(1)}`);
+    if (sc.at && Math.hypot(sc.at[0] - c.x, sc.at[1] - c.y) > 0.75) add2("warning", `${at4}.at`, `${sc.at.join(",")} is not on the wall ${c.a} and ${c.b} share; the ${c.kind === "open" ? "opening" : c.kind} is at ${c.x.toFixed(1)},${c.y.toFixed(1)}`);
   });
   const badges = spec.numbers ? l.rooms.flatMap((g) => {
     const b = badgeBox(g);
     return b ? [{ g, b }] : [];
   }) : [];
   spec.overlay.symbols.forEach((s2, i) => {
-    const at3 = `overlay.symbols[${i}]`, z = (s2.scale ?? 1) * 0.9, box2 = { x: s2.x - z / 2, y: s2.y - z / 2, w: z, h: z };
-    if (offSheet(s2.x, s2.y)) add2("warning", at3, `${s2.kind} at ${s2.x},${s2.y} is off the sheet`);
+    const at4 = `overlay.symbols[${i}]`, z = (s2.scale ?? 1) * 0.9, box2 = { x: s2.x - z / 2, y: s2.y - z / 2, w: z, h: z };
+    if (offSheet(s2.x, s2.y)) add2("warning", at4, `${s2.kind} at ${s2.x},${s2.y} is off the sheet`);
     const on = badges.find(({ b }) => overlaps(box2, b));
-    if (on) add2("warning", at3, `${s2.kind} at ${s2.x},${s2.y} is under room ${on.g.room.id}'s number; move the symbol`);
+    if (on) add2("warning", at4, `${s2.kind} at ${s2.x},${s2.y} is under room ${on.g.room.id}'s number; move the symbol`);
   });
   const labelBoxes = spec.overlay.labels.map((lb) => {
-    const size = LABEL_CELLS[lb.kind] * (lb.size ?? 1), text3 = lb.kind === "area" ? lb.text.toUpperCase() : lb.text;
-    return textBox(text3, lb.x, lb.y + size * 0.35, size, { bold: lb.kind !== "note", spacing: lb.kind === "area" ? size * 0.16 : 0 });
+    const size2 = LABEL_CELLS[lb.kind] * (lb.size ?? 1), text3 = lb.kind === "area" ? lb.text.toUpperCase() : lb.text;
+    return textBox(text3, lb.x, lb.y + size2 * 0.35, size2, { bold: lb.kind !== "note", spacing: lb.kind === "area" ? size2 * 0.16 : 0 });
   });
   spec.overlay.labels.forEach((lb, i) => {
-    const at3 = `overlay.labels[${i}]`;
-    if (offSheet(lb.x, lb.y)) add2("warning", at3, `"${lb.text}" at ${lb.x},${lb.y} is off the sheet`);
+    const at4 = `overlay.labels[${i}]`;
+    if (offSheet(lb.x, lb.y)) add2("warning", at4, `"${lb.text}" at ${lb.x},${lb.y} is off the sheet`);
     const other = labelBoxes.findIndex((b, j) => j < i && !lb.angle && !spec.overlay.labels[j].angle && overlaps(labelBoxes[i], b));
-    if (other >= 0) add2("warning", at3, `"${lb.text}" overlaps label ${other} "${spec.overlay.labels[other].text}"`);
+    if (other >= 0) add2("warning", at4, `"${lb.text}" overlaps label ${other} "${spec.overlay.labels[other].text}"`);
   });
   return out;
 }
@@ -11336,9 +12117,9 @@ var init_lint = __esm({
 });
 
 // ../artgen-mapgen/src/dungeon/edit.ts
-function cornerPoint(at3) {
-  const [x, y] = parsePoint2(at3);
-  return /^\s*-?[\d.]+\s*,/.test(at3) ? [x, y] : [Math.floor(x), Math.floor(y)];
+function cornerPoint(at4) {
+  const [x, y] = parsePoint2(at4);
+  return /^\s*-?[\d.]+\s*,/.test(at4) ? [x, y] : [Math.floor(x), Math.floor(y)];
 }
 function corridorEnd(m, ref, side, offset) {
   if (side !== void 0 && !SIDES.includes(side)) throw new Error(`--from-side / --to-side: ${SIDES.join(", ")}`);
@@ -11427,16 +12208,16 @@ function editDungeon(m, o) {
         r.shape = o.shape;
         if (r.shape !== "poly") delete r.points;
       }
-      const size = [];
+      const size2 = [];
       if (typeof o.w === "number") {
         r.w = o.w;
-        size.push("w");
+        size2.push("w");
       }
       if (typeof o.h === "number") {
         r.h = o.h;
-        size.push("h");
+        size2.push("h");
       }
-      if (size.length) handEdit(r, size);
+      if (size2.length) handEdit(r, size2);
       if (typeof o.shape === "string") handEdit(r, ["shape"]);
       if (typeof o.label === "string") {
         if (o.label) r.label = o.label;
@@ -11833,50 +12614,50 @@ function newSettlement(id2, kind = "village", over = {}) {
     overlay: over.overlay ?? { labels: [], symbols: [] }
   });
 }
-function list(v, at3, e) {
+function list(v, at4, e) {
   if (v === void 0) return [];
   if (!Array.isArray(v)) {
-    e.push(`${at3}: an array`);
+    e.push(`${at4}: an array`);
     return [];
   }
   return v;
 }
-function uniqueIds(items, at3, e, required = false) {
+function uniqueIds(items, at4, e, required = false) {
   const seen = /* @__PURE__ */ new Set();
   items.forEach((x, i) => {
     if (x?.id === void 0) {
-      if (required) e.push(`${at3}[${i}].id: letters, digits, - and _ only`);
+      if (required) e.push(`${at4}[${i}].id: letters, digits, - and _ only`);
       return;
     }
-    if (!idOk(x.id)) e.push(`${at3}[${i}].id: letters, digits, - and _ only`);
-    else if (seen.has(x.id)) e.push(`${at3}[${i}].id: ${x.id} is used twice`);
+    if (!idOk(x.id)) e.push(`${at4}[${i}].id: letters, digits, - and _ only`);
+    else if (seen.has(x.id)) e.push(`${at4}[${i}].id: ${x.id} is used twice`);
     else seen.add(x.id);
   });
   return seen;
 }
-function fixtureErrors(f, at3, e) {
+function fixtureErrors(f, at4, e) {
   if (!f || typeof f !== "object") {
-    e.push(`${at3}: {kind, x, y}`);
+    e.push(`${at4}: {kind, x, y}`);
     return;
   }
-  if (typeof f.kind !== "string" || !FIXTURES[f.kind]) e.push(`${at3}.kind: one of the fixture kinds (artgen settlement fixtures)`);
-  for (const k of ["x", "y"]) if (!isNum3(f[k])) e.push(`${at3}.${k}: a number (cells)`);
-  for (const k of ["w", "h"]) if (f[k] !== void 0 && !(isNum3(f[k]) && f[k] > 0)) e.push(`${at3}.${k}: cells, above 0`);
-  if (f.angle !== void 0 && !isNum3(f.angle)) e.push(`${at3}.angle: degrees`);
-  if (f.label !== void 0 && typeof f.label !== "string") e.push(`${at3}.label: text`);
-  originError2(f, at3, e);
+  if (typeof f.kind !== "string" || !FIXTURES[f.kind]) e.push(`${at4}.kind: one of the fixture kinds (artgen settlement fixtures)`);
+  for (const k of ["x", "y"]) if (!isNum3(f[k])) e.push(`${at4}.${k}: a number (cells)`);
+  for (const k of ["w", "h"]) if (f[k] !== void 0 && !(isNum3(f[k]) && f[k] > 0)) e.push(`${at4}.${k}: cells, above 0`);
+  if (f.angle !== void 0 && !isNum3(f.angle)) e.push(`${at4}.angle: degrees`);
+  if (f.label !== void 0 && typeof f.label !== "string") e.push(`${at4}.label: text`);
+  originError2(f, at4, e);
 }
-function floorErrors(fl2, at3, e) {
+function floorErrors(fl2, at4, e) {
   if (!fl2 || typeof fl2 !== "object") {
-    e.push(`${at3}: {level, rooms}`);
+    e.push(`${at4}: {level, rooms}`);
     return;
   }
-  if (!isNum3(fl2.level) || !Number.isInteger(fl2.level)) e.push(`${at3}.level: a whole number (0 ground, 1 above, -1 cellar)`);
-  if (fl2.name !== void 0 && typeof fl2.name !== "string") e.push(`${at3}.name: text`);
-  const rooms = list(fl2.rooms, `${at3}.rooms`, e), ids = uniqueIds(rooms, `${at3}.rooms`, e, true);
-  if (fl2.rooms === void 0) e.push(`${at3}.rooms: an array`);
+  if (!isNum3(fl2.level) || !Number.isInteger(fl2.level)) e.push(`${at4}.level: a whole number (0 ground, 1 above, -1 cellar)`);
+  if (fl2.name !== void 0 && typeof fl2.name !== "string") e.push(`${at4}.name: text`);
+  const rooms = list(fl2.rooms, `${at4}.rooms`, e), ids = uniqueIds(rooms, `${at4}.rooms`, e, true);
+  if (fl2.rooms === void 0) e.push(`${at4}.rooms: an array`);
   rooms.forEach((r, i) => {
-    const ra = `${at3}.rooms[${i}]`;
+    const ra = `${at4}.rooms[${i}]`;
     if (!ROOM_SHAPES.includes(r?.shape)) e.push(`${ra}.shape: one of ${ROOM_SHAPES.join(", ")}`);
     for (const k of ["x", "y"]) if (!isNum3(r?.[k])) e.push(`${ra}.${k}: a number (plan cells)`);
     for (const k of ["w", "h"]) if (!isNum3(r?.[k]) || r[k] < 0.5) e.push(`${ra}.${k}: at least half a cell`);
@@ -11885,8 +12666,8 @@ function floorErrors(fl2, at3, e) {
     if (r?.number !== void 0 && r.number !== false && !isNum3(r.number)) e.push(`${ra}.number: a number or false`);
     originError2(r, ra, e);
   });
-  list(fl2.connections, `${at3}.connections`, e).forEach((c, i) => {
-    const ca = `${at3}.connections[${i}]`;
+  list(fl2.connections, `${at4}.connections`, e).forEach((c, i) => {
+    const ca = `${at4}.connections[${i}]`;
     if (!c || typeof c !== "object") {
       e.push(`${ca}: {a, b, kind?}`);
       return;
@@ -11897,18 +12678,18 @@ function floorErrors(fl2, at3, e) {
     if (c.kind !== void 0 && c.kind !== "open" && !DOOR_KINDS.includes(c.kind)) e.push(`${ca}.kind: open or one of ${DOOR_KINDS.join(", ")}`);
     if (c.width !== void 0 && !(isNum3(c.width) && c.width >= 0.5 && c.width <= 20)) e.push(`${ca}.width: 0.5..20`);
   });
-  list(fl2.doors, `${at3}.doors`, e).forEach((d, i) => {
-    const da = `${at3}.doors[${i}]`;
+  list(fl2.doors, `${at4}.doors`, e).forEach((d, i) => {
+    const da = `${at4}.doors[${i}]`;
     if (!isPoint2(d?.at)) e.push(`${da}.at: [x, y] in plan cells`);
     if (d?.kind !== void 0 && d.kind !== "open" && !DOOR_KINDS.includes(d.kind)) e.push(`${da}.kind: open or one of ${DOOR_KINDS.join(", ")}`);
     if (d?.width !== void 0 && !(isNum3(d.width) && d.width > 0)) e.push(`${da}.width: cells, above 0`);
   });
-  list(fl2.windows, `${at3}.windows`, e).forEach((w, i) => {
-    if (!isPoint2(w?.at)) e.push(`${at3}.windows[${i}].at: [x, y] in plan cells`);
-    if (w?.width !== void 0 && !(isNum3(w.width) && w.width > 0)) e.push(`${at3}.windows[${i}].width: cells, above 0`);
+  list(fl2.windows, `${at4}.windows`, e).forEach((w, i) => {
+    if (!isPoint2(w?.at)) e.push(`${at4}.windows[${i}].at: [x, y] in plan cells`);
+    if (w?.width !== void 0 && !(isNum3(w.width) && w.width > 0)) e.push(`${at4}.windows[${i}].width: cells, above 0`);
   });
-  list(fl2.fixtures, `${at3}.fixtures`, e).forEach((f, i) => fixtureErrors(f, `${at3}.fixtures[${i}]`, e));
-  originError2(fl2, at3, e);
+  list(fl2.fixtures, `${at4}.fixtures`, e).forEach((f, i) => fixtureErrors(f, `${at4}.fixtures[${i}]`, e));
+  originError2(fl2, at4, e);
 }
 function validateSettlement(raw) {
   const e = [];
@@ -11941,98 +12722,98 @@ function validateSettlement(raw) {
   const roads = list(m.roads, "roads", e);
   uniqueIds(roads, "roads", e);
   roads.forEach((r, i) => {
-    const at3 = `roads[${i}]`;
-    if (!ROAD_KINDS.includes(r?.kind)) e.push(`${at3}.kind: one of ${ROAD_KINDS.join(", ")}`);
-    if (!pairs(r?.points, 2)) e.push(`${at3}.points: at least 2 x,y pairs`);
-    if (r?.width !== void 0 && !(isNum3(r.width) && r.width > 0 && r.width <= 20)) e.push(`${at3}.width: cells, above 0 and at most 20`);
-    if (r?.curve !== void 0 && !CURVES2.includes(r.curve)) e.push(`${at3}.curve: ${CURVES2.join(" or ")}`);
-    if (r?.label !== void 0 && typeof r.label !== "string") e.push(`${at3}.label: text`);
-    originError2(r, at3, e);
+    const at4 = `roads[${i}]`;
+    if (!ROAD_KINDS.includes(r?.kind)) e.push(`${at4}.kind: one of ${ROAD_KINDS.join(", ")}`);
+    if (!pairs(r?.points, 2)) e.push(`${at4}.points: at least 2 x,y pairs`);
+    if (r?.width !== void 0 && !(isNum3(r.width) && r.width > 0 && r.width <= 20)) e.push(`${at4}.width: cells, above 0 and at most 20`);
+    if (r?.curve !== void 0 && !CURVES2.includes(r.curve)) e.push(`${at4}.curve: ${CURVES2.join(" or ")}`);
+    if (r?.label !== void 0 && typeof r.label !== "string") e.push(`${at4}.label: text`);
+    originError2(r, at4, e);
   });
   const water2 = list(m.water, "water", e);
   uniqueIds(water2, "water", e);
   water2.forEach((w, i) => {
-    const at3 = `water[${i}]`;
-    if (!WATER_KINDS.includes(w?.kind)) e.push(`${at3}.kind: one of ${WATER_KINDS.join(", ")}`);
-    else if (!pairs(w?.points, WATER_LINES.includes(w.kind) ? 2 : 3)) e.push(`${at3}.points: at least ${WATER_LINES.includes(w.kind) ? 2 : 3} x,y pairs`);
-    if (w?.width !== void 0 && !(isNum3(w.width) && w.width > 0 && w.width <= 60)) e.push(`${at3}.width: cells, above 0 and at most 60`);
-    originError2(w, at3, e);
+    const at4 = `water[${i}]`;
+    if (!WATER_KINDS.includes(w?.kind)) e.push(`${at4}.kind: one of ${WATER_KINDS.join(", ")}`);
+    else if (!pairs(w?.points, WATER_LINES.includes(w.kind) ? 2 : 3)) e.push(`${at4}.points: at least ${WATER_LINES.includes(w.kind) ? 2 : 3} x,y pairs`);
+    if (w?.width !== void 0 && !(isNum3(w.width) && w.width > 0 && w.width <= 60)) e.push(`${at4}.width: cells, above 0 and at most 60`);
+    originError2(w, at4, e);
   });
   const walls = list(m.walls, "walls", e);
   uniqueIds(walls, "walls", e);
   walls.forEach((w, i) => {
-    const at3 = `walls[${i}]`;
+    const at4 = `walls[${i}]`;
     if (!w || typeof w !== "object") {
-      e.push(`${at3}: {kind, points}`);
+      e.push(`${at4}: {kind, points}`);
       return;
     }
-    if (!WALL_KINDS.includes(w.kind)) e.push(`${at3}.kind: one of ${WALL_KINDS.join(", ")}`);
-    if (!pairs(w.points, 2)) e.push(`${at3}.points: at least 2 x,y pairs`);
-    if (w.closed !== void 0 && typeof w.closed !== "boolean") e.push(`${at3}.closed: true or false`);
-    if (w.closed && nums3(w.points) && w.points.length < 6) e.push(`${at3}.closed: a closed wall needs 3 points or more`);
-    if (w.thickness !== void 0 && !(isNum3(w.thickness) && w.thickness > 0 && w.thickness <= 6)) e.push(`${at3}.thickness: cells, above 0 and at most 6`);
+    if (!WALL_KINDS.includes(w.kind)) e.push(`${at4}.kind: one of ${WALL_KINDS.join(", ")}`);
+    if (!pairs(w.points, 2)) e.push(`${at4}.points: at least 2 x,y pairs`);
+    if (w.closed !== void 0 && typeof w.closed !== "boolean") e.push(`${at4}.closed: true or false`);
+    if (w.closed && nums3(w.points) && w.points.length < 6) e.push(`${at4}.closed: a closed wall needs 3 points or more`);
+    if (w.thickness !== void 0 && !(isNum3(w.thickness) && w.thickness > 0 && w.thickness <= 6)) e.push(`${at4}.thickness: cells, above 0 and at most 6`);
     const t = w.towers;
     if (t !== void 0) {
-      if (!t || !TOWER_SHAPES.includes(t.shape)) e.push(`${at3}.towers.shape: ${TOWER_SHAPES.join(" or ")}`);
-      if (t?.size !== void 0 && !(isNum3(t.size) && t.size > 0)) e.push(`${at3}.towers.size: cells, above 0`);
-      if (t?.at !== void 0 && t.at !== "corners" && !(nums3(t.at) && t.at.every(Number.isInteger))) e.push(`${at3}.towers.at: "corners" or vertex indices`);
-      if (t?.every !== void 0 && !(isNum3(t.every) && t.every >= 2)) e.push(`${at3}.towers.every: cells between towers, 2 or more`);
+      if (!t || !TOWER_SHAPES.includes(t.shape)) e.push(`${at4}.towers.shape: ${TOWER_SHAPES.join(" or ")}`);
+      if (t?.size !== void 0 && !(isNum3(t.size) && t.size > 0)) e.push(`${at4}.towers.size: cells, above 0`);
+      if (t?.at !== void 0 && t.at !== "corners" && !(nums3(t.at) && t.at.every(Number.isInteger))) e.push(`${at4}.towers.at: "corners" or vertex indices`);
+      if (t?.every !== void 0 && !(isNum3(t.every) && t.every >= 2)) e.push(`${at4}.towers.every: cells between towers, 2 or more`);
     }
-    list(w.gates, `${at3}.gates`, e).forEach((gt, j) => {
-      const ga = `${at3}.gates[${j}]`;
+    list(w.gates, `${at4}.gates`, e).forEach((gt, j) => {
+      const ga = `${at4}.gates[${j}]`;
       if (!isPoint2(gt?.at)) e.push(`${ga}.at: [x, y] in cells`);
       if (!GATE_KINDS2.includes(gt?.kind)) e.push(`${ga}.kind: one of ${GATE_KINDS2.join(", ")}`);
       if (gt?.width !== void 0 && !(isNum3(gt.width) && gt.width > 0)) e.push(`${ga}.width: cells, above 0`);
       if (gt?.drawbridge !== void 0 && typeof gt.drawbridge !== "boolean") e.push(`${ga}.drawbridge: true or false`);
     });
-    originError2(w, at3, e);
+    originError2(w, at4, e);
   });
   const buildings = list(m.buildings, "buildings", e);
   if (m.buildings === void 0) e.push("buildings: an array");
   uniqueIds(buildings, "buildings", e, true);
   buildings.forEach((b, i) => {
-    const at3 = `buildings[${i}]`;
+    const at4 = `buildings[${i}]`;
     if (!b || typeof b !== "object") {
-      e.push(`${at3}: {id, kind, shape, x, y, w, h}`);
+      e.push(`${at4}: {id, kind, shape, x, y, w, h}`);
       return;
     }
-    if (!BUILDING_KINDS.includes(b.kind)) e.push(`${at3}.kind: one of ${BUILDING_KINDS.join(", ")}`);
-    if (!BUILDING_SHAPES.includes(b.shape)) e.push(`${at3}.shape: one of ${BUILDING_SHAPES.join(", ")}`);
-    for (const k of ["x", "y"]) if (!isNum3(b[k])) e.push(`${at3}.${k}: a number (cells)`);
-    for (const k of ["w", "h"]) if (!isNum3(b[k]) || b[k] < 0.5) e.push(`${at3}.${k}: at least half a cell`);
-    if (b.shape === "poly" && !pairs(b.points, 3)) e.push(`${at3}.points: at least 3 x,y pairs`);
-    if (b.wing !== void 0 && !(isPoint2(b.wing) && b.wing[0] > 0 && b.wing[1] > 0 && b.wing[0] < b.w && b.wing[1] < b.h)) e.push(`${at3}.wing: [w, h], each above 0 and less than the box`);
-    if (b.angle !== void 0 && !isNum3(b.angle)) e.push(`${at3}.angle: degrees`);
-    if (b.roof !== void 0 && !ROOFS.includes(b.roof)) e.push(`${at3}.roof: one of ${ROOFS.join(", ")}`);
-    if (b.stories !== void 0 && !(Number.isInteger(b.stories) && b.stories >= 1 && b.stories <= 12)) e.push(`${at3}.stories: 1..12`);
-    if (b.label !== void 0 && typeof b.label !== "string") e.push(`${at3}.label: text`);
-    if (b.number !== void 0 && b.number !== false && !isNum3(b.number)) e.push(`${at3}.number: a number or false`);
-    if (b.href !== void 0 && hrefError(b.href)) e.push(`${at3}.href: ${hrefError(b.href)}`);
-    const floors = list(b.floors, `${at3}.floors`, e), levels = /* @__PURE__ */ new Set();
+    if (!BUILDING_KINDS.includes(b.kind)) e.push(`${at4}.kind: one of ${BUILDING_KINDS.join(", ")}`);
+    if (!BUILDING_SHAPES.includes(b.shape)) e.push(`${at4}.shape: one of ${BUILDING_SHAPES.join(", ")}`);
+    for (const k of ["x", "y"]) if (!isNum3(b[k])) e.push(`${at4}.${k}: a number (cells)`);
+    for (const k of ["w", "h"]) if (!isNum3(b[k]) || b[k] < 0.5) e.push(`${at4}.${k}: at least half a cell`);
+    if (b.shape === "poly" && !pairs(b.points, 3)) e.push(`${at4}.points: at least 3 x,y pairs`);
+    if (b.wing !== void 0 && !(isPoint2(b.wing) && b.wing[0] > 0 && b.wing[1] > 0 && b.wing[0] < b.w && b.wing[1] < b.h)) e.push(`${at4}.wing: [w, h], each above 0 and less than the box`);
+    if (b.angle !== void 0 && !isNum3(b.angle)) e.push(`${at4}.angle: degrees`);
+    if (b.roof !== void 0 && !ROOFS.includes(b.roof)) e.push(`${at4}.roof: one of ${ROOFS.join(", ")}`);
+    if (b.stories !== void 0 && !(Number.isInteger(b.stories) && b.stories >= 1 && b.stories <= 12)) e.push(`${at4}.stories: 1..12`);
+    if (b.label !== void 0 && typeof b.label !== "string") e.push(`${at4}.label: text`);
+    if (b.number !== void 0 && b.number !== false && !isNum3(b.number)) e.push(`${at4}.number: a number or false`);
+    if (b.href !== void 0 && hrefError(b.href)) e.push(`${at4}.href: ${hrefError(b.href)}`);
+    const floors = list(b.floors, `${at4}.floors`, e), levels = /* @__PURE__ */ new Set();
     floors.forEach((fl2, j) => {
-      floorErrors(fl2, `${at3}.floors[${j}]`, e);
+      floorErrors(fl2, `${at4}.floors[${j}]`, e);
       if (isNum3(fl2?.level)) {
-        if (levels.has(fl2.level)) e.push(`${at3}.floors[${j}].level: level ${fl2.level} is used twice`);
+        if (levels.has(fl2.level)) e.push(`${at4}.floors[${j}].level: level ${fl2.level} is used twice`);
         levels.add(fl2.level);
       }
     });
-    originError2(b, at3, e);
+    originError2(b, at4, e);
   });
   const areas = list(m.areas, "areas", e);
   uniqueIds(areas, "areas", e);
   areas.forEach((a, i) => {
-    const at3 = `areas[${i}]`;
-    if (!AREA_KINDS.includes(a?.kind)) e.push(`${at3}.kind: one of ${AREA_KINDS.join(", ")}`);
-    if (!pairs(a?.points, 3)) e.push(`${at3}.points: at least 3 x,y pairs`);
-    if (a?.label !== void 0 && typeof a.label !== "string") e.push(`${at3}.label: text`);
-    originError2(a, at3, e);
+    const at4 = `areas[${i}]`;
+    if (!AREA_KINDS.includes(a?.kind)) e.push(`${at4}.kind: one of ${AREA_KINDS.join(", ")}`);
+    if (!pairs(a?.points, 3)) e.push(`${at4}.points: at least 3 x,y pairs`);
+    if (a?.label !== void 0 && typeof a.label !== "string") e.push(`${at4}.label: text`);
+    originError2(a, at4, e);
   });
   list(m.trees, "trees", e).forEach((t, i) => {
-    const at3 = `trees[${i}]`;
-    if (!TREE_KINDS.includes(t?.kind)) e.push(`${at3}.kind: one of ${TREE_KINDS.join(", ")}`);
-    for (const k of ["x", "y"]) if (!isNum3(t?.[k])) e.push(`${at3}.${k}: a number (cells)`);
-    if (t?.size !== void 0 && !(isNum3(t.size) && t.size > 0)) e.push(`${at3}.size: cells across, above 0`);
-    originError2(t, at3, e);
+    const at4 = `trees[${i}]`;
+    if (!TREE_KINDS.includes(t?.kind)) e.push(`${at4}.kind: one of ${TREE_KINDS.join(", ")}`);
+    for (const k of ["x", "y"]) if (!isNum3(t?.[k])) e.push(`${at4}.${k}: a number (cells)`);
+    if (t?.size !== void 0 && !(isNum3(t.size) && t.size > 0)) e.push(`${at4}.size: cells across, above 0`);
+    originError2(t, at4, e);
   });
   list(m.props, "props", e).forEach((p2, i) => fixtureErrors(p2, `props[${i}]`, e));
   const u = m.underlay;
@@ -12370,8 +13151,8 @@ function planOutline(spec, b) {
   const f = planFactor(spec);
   return footprint(b).map((v, i) => (v - (i % 2 ? b.y : b.x)) * f);
 }
-function snapToLine(pts2, closed, at3) {
-  const ring2 = closed ? [...pts2, pts2[0], pts2[1]] : pts2, n = nearestOnLine(ring2, at3[0], at3[1]), i = n.seg * 2;
+function snapToLine(pts2, closed, at4) {
+  const ring2 = closed ? [...pts2, pts2[0], pts2[1]] : pts2, n = nearestOnLine(ring2, at4[0], at4[1]), i = n.seg * 2;
   return { x: n.x, y: n.y, angle: Math.atan2(ring2[i + 3] - ring2[i + 1], ring2[i + 2] - ring2[i]) / DEG, along: n.along };
 }
 function along(pts2, step, start = 0) {
@@ -12388,7 +13169,7 @@ function along(pts2, step, start = 0) {
 }
 function wallGeom2(spec, index, water2) {
   const w = spec.walls[index], closed = !!w.closed, pts2 = w.points.slice(), thickness = wallThickness(spec, w);
-  const t = w.towers, size = t?.size ?? Math.max(1, TOWER_FT / spec.scale.perCell), shape = t?.shape ?? "round";
+  const t = w.towers, size2 = t?.size ?? Math.max(1, TOWER_FT / spec.scale.perCell), shape = t?.shape ?? "round";
   const towers = [];
   const nVert = pts2.length / 2, segAngle = (i) => {
     const j = closed ? (i + 1) % nVert : Math.min(i + 1, nVert - 1), k = j === i ? i - 1 : i;
@@ -12397,10 +13178,10 @@ function wallGeom2(spec, index, water2) {
   };
   if (t) {
     const verts = t.at === void 0 || t.at === "corners" ? t.every && t.at === void 0 ? [] : Array.from({ length: nVert }, (_, i) => i) : t.at.filter((i) => i >= 0 && i < nVert);
-    for (const i of verts) towers.push({ x: pts2[2 * i], y: pts2[2 * i + 1], shape, size, angle: segAngle(i) });
+    for (const i of verts) towers.push({ x: pts2[2 * i], y: pts2[2 * i + 1], shape, size: size2, angle: segAngle(i) });
     if (t.every) {
       const ring2 = closed ? [...pts2, pts2[0], pts2[1]] : pts2, total = lineLength2(ring2), n = Math.max(1, Math.round(total / t.every));
-      for (const p2 of along(ring2, total / n, 0)) if (!towers.some((q) => Math.hypot(q.x - p2.x, q.y - p2.y) < size * 1.2)) towers.push({ x: p2.x, y: p2.y, shape, size, angle: p2.angle });
+      for (const p2 of along(ring2, total / n, 0)) if (!towers.some((q) => Math.hypot(q.x - p2.x, q.y - p2.y) < size2 * 1.2)) towers.push({ x: p2.x, y: p2.y, shape, size: size2, angle: p2.angle });
     }
   }
   const [mx, my] = closed ? centroid(pts2) : [NaN, NaN];
@@ -12423,8 +13204,8 @@ function wallGeom2(spec, index, water2) {
   });
   const kept = towers.filter((tw) => !gates.some((g) => g.kind !== "postern" && Math.hypot(tw.x - g.x, tw.y - g.y) < g.width / 2 + tw.size * 0.4));
   for (const g of gates) if (g.kind === "gatehouse") {
-    const dx = Math.cos(g.angle * DEG), dy = Math.sin(g.angle * DEG), off = g.width / 2 + size / 2;
-    for (const sg2 of [-1, 1]) kept.push({ x: g.x + sg2 * off * dx + g.outward[0] * size * 0.25, y: g.y + sg2 * off * dy + g.outward[1] * size * 0.25, shape, size, angle: g.angle });
+    const dx = Math.cos(g.angle * DEG), dy = Math.sin(g.angle * DEG), off = g.width / 2 + size2 / 2;
+    for (const sg2 of [-1, 1]) kept.push({ x: g.x + sg2 * off * dx + g.outward[0] * size2 * 0.25, y: g.y + sg2 * off * dy + g.outward[1] * size2 * 0.25, shape, size: size2, angle: g.angle });
   }
   return { index, kind: w.kind, pts: pts2, closed, thickness, towers: kept, gates };
 }
@@ -12522,8 +13303,8 @@ function uncovered(a, b, covers) {
   }
   return out;
 }
-function onOutline(outline2, at3) {
-  const s2 = snapToLine(outline2, true, at3);
+function onOutline(outline2, at4) {
+  const s2 = snapToLine(outline2, true, at4);
   return { x: s2.x, y: s2.y, angle: s2.angle };
 }
 function layoutFloor(spec, b, floor3) {
@@ -12704,7 +13485,7 @@ function ridgeOf(w) {
 }
 function roofSvg(g, k, p2, u) {
   const b = g.building, roof = roofOf(b), d = ring(g.outline, k), sw = Math.max(0.8, 1.1 * u), tone = p2.roof[roofTone(b.kind)];
-  const round4 = b.shape === "circle" || b.shape === "octagon" || b.shape === "poly";
+  const round6 = b.shape === "circle" || b.shape === "octagon" || b.shape === "poly";
   const shadow = p2.ripples ? "" : `<path d="${d}" transform="translate(${n1(0.22 * k)} ${n1(0.22 * k)})" fill="#000000" fill-opacity="0.16"/>`;
   if (roof === "none") {
     return `<path d="${d}" fill="${p2.floor}" fill-opacity="0.55" stroke="${p2.outerWall}" stroke-width="${n1(Math.max(1.5 * u, 0.25 * k))}" stroke-dasharray="${n1(k * 0.9)} ${n1(k * 0.35)} ${n1(k * 0.4)} ${n1(k * 0.5)}" stroke-linejoin="miter"/>`;
@@ -12712,7 +13493,7 @@ function roofSvg(g, k, p2, u) {
   let g2 = `${shadow}<path d="${d}" fill="${tone}" stroke="${p2.ink}" stroke-width="${n1(sw)}" stroke-linejoin="${roof === "thatch" ? "round" : "miter"}"/>`;
   const ln2 = (dd2, w = sw * 0.9, color = p2.ridge) => `<path d="${dd2}" fill="none" stroke="${color}" stroke-width="${n1(w)}" stroke-linecap="round" stroke-linejoin="round"/>`;
   const M = (q) => `${n1(q[0] * k)} ${n1(q[1] * k)}`;
-  if (roof === "cone" || round4 && (roof === "gable" || roof === "hip" || roof === "thatch")) {
+  if (roof === "cone" || round6 && (roof === "gable" || roof === "hip" || roof === "thatch")) {
     const pts2 = toP(g.outline), step = Math.max(1, Math.floor(pts2.length / 8));
     let dd2 = "";
     for (let i = 0; i < pts2.length; i += step) dd2 += `M${M([g.cx, g.cy])}L${M(pts2[i])}`;
@@ -13097,14 +13878,14 @@ function frontSide(spec, b) {
 }
 function splitFloor(spec, b, level2, min, single, rand) {
   const f = planFactor(spec), tag = level2 < 0 ? `c${-level2}` : `f${level2}`;
-  const blocks = [];
-  if (b.shape === "rect" || b.shape === "L" || b.shape === "T") buildingWings(b).forEach(([x, y, w, h], i) => blocks.push({ id: `${tag}${"abc"[i]}`, shape: "rect", x: (x - b.x) * f, y: (y - b.y) * f, w: w * f, h: h * f, split: { mode: "bsp", min, seed: Math.floor(rand() * 1e9) }, doors: 0.25 }));
+  const blocks2 = [];
+  if (b.shape === "rect" || b.shape === "L" || b.shape === "T") buildingWings(b).forEach(([x, y, w, h], i) => blocks2.push({ id: `${tag}${"abc"[i]}`, shape: "rect", x: (x - b.x) * f, y: (y - b.y) * f, w: w * f, h: h * f, split: { mode: "bsp", min, seed: Math.floor(rand() * 1e9) }, doors: 0.25 }));
   else if (b.shape === "poly") {
     const o = planOutline(spec, b), xs = o.filter((_, i) => i % 2 === 0), ys = o.filter((_, i) => i % 2 === 1);
-    blocks.push({ id: `${tag}a`, shape: "poly", points: o, x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys), split: { mode: "bsp", min, seed: Math.floor(rand() * 1e9) }, doors: 0.25 });
-  } else blocks.push({ id: `${tag}a`, shape: b.shape, x: 0, y: 0, w: b.w * f, h: b.h * f, split: { mode: "bsp", min, seed: Math.floor(rand() * 1e9) }, doors: 0.25 });
+    blocks2.push({ id: `${tag}a`, shape: "poly", points: o, x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys), split: { mode: "bsp", min, seed: Math.floor(rand() * 1e9) }, doors: 0.25 });
+  } else blocks2.push({ id: `${tag}a`, shape: b.shape, x: 0, y: 0, w: b.w * f, h: b.h * f, split: { mode: "bsp", min, seed: Math.floor(rand() * 1e9) }, doors: 0.25 });
   const rooms = [], connections = [], wingRooms = [];
-  for (const bl of blocks) {
+  for (const bl of blocks2) {
     const whole = single || bl.w * bl.h < min * min * 2.2;
     const part = whole ? { rooms: [bl.shape === "rect" ? { id: `${bl.id}-1`, shape: "rect", x: bl.x, y: bl.y, w: bl.w, h: bl.h } : { id: `${bl.id}-1`, shape: bl.shape === "poly" ? "poly" : bl.shape, x: bl.x, y: bl.y, w: bl.w, h: bl.h, ...bl.points && { points: bl.points } }], connections: [] } : splitBlock(bl);
     wingRooms.push(part.rooms);
@@ -13121,10 +13902,10 @@ function splitFloor(spec, b, level2, min, single, rand) {
   }
   return { rooms: rooms.map((r) => ({ ...r, x: r2(r.x), y: r2(r.y), w: r2(r.w), h: r2(r.h), origin: ORIGIN })), connections: connections.map((c) => ({ ...c, origin: ORIGIN })) };
 }
-function place(pl, room3, outline2, kind, where, rand, per, farFrom, size) {
+function place(pl, room3, outline2, kind, where, rand, per, farFrom, size2) {
   const fx2 = FIXTURES[kind];
   if (!fx2) return false;
-  let [fw, fh] = size ?? [fx2.ft[0] / per, fx2.ft[1] / per];
+  let [fw, fh] = size2 ?? [fx2.ft[0] / per, fx2.ft[1] / per];
   const { x, y, w, h } = room3, inset = 0.12;
   const cands = [];
   const along2 = (n) => Array.from({ length: n }, () => 0.15 + rand() * 0.7);
@@ -13152,7 +13933,7 @@ function place(pl, room3, outline2, kind, where, rand, per, farFrom, size) {
     if (!corners.every(([px, py]) => inPolygon(outline2, px + (px < c.x ? 0.02 : -0.02), py + (py < c.y ? 0.02 : -0.02)))) continue;
     if (where !== "under" && pl.boxes.some((o) => hits(o, bx, 0.12))) continue;
     if (pl.keepOut.some((k) => k.x > bx.x - 0.7 && k.x < bx.x + bx.w + 0.7 && k.y > bx.y - 0.7 && k.y < bx.y + bx.h + 0.7)) continue;
-    pl.fixtures.push({ kind, x: r2(c.x), y: r2(c.y), ...size && { w: r2(fw), h: r2(fh) }, ...c.angle && { angle: c.angle }, origin: ORIGIN });
+    pl.fixtures.push({ kind, x: r2(c.x), y: r2(c.y), ...size2 && { w: r2(fw), h: r2(fh) }, ...c.angle && { angle: c.angle }, origin: ORIGIN });
     if (where !== "under") pl.boxes.push(bx);
     return true;
   }
@@ -13264,11 +14045,11 @@ function generateInterior(spec, b, o = {}) {
       const role = roles[n] ?? (level2 > 0 ? "bedroom" : "store"), out = roomOutline(r);
       const doorNear = lay.doors.concat(lay.inner).filter((d) => d.x >= r.x - 0.1 && d.x <= r.x + r.w + 0.1 && d.y >= r.y - 0.1 && d.y <= r.y + r.h + 0.1)[0] ?? null;
       if (ROOM_NAMES[role] && r.w * r.h >= 6) r.label = ROOM_NAMES[role];
-      for (const [kind, where, count2 = 1, chance = 1] of FURNISH[role] ?? []) {
+      for (const [kind, where, count = 1, chance = 1] of FURNISH[role] ?? []) {
         if (rand() > chance) continue;
-        if (where === "rows") rows(pl, r, kind, count2, per, doorNear);
+        if (where === "rows") rows(pl, r, kind, count, per, doorNear);
         else if (where === "feast") feast(pl, r, kind, per);
-        else for (let c = 0; c < count2; c++) place(pl, r, out, kind, where, rand, per, doorNear);
+        else for (let c = 0; c < count; c++) place(pl, r, out, kind, where, rand, per, doorNear);
       }
     });
     fl2.fixtures = [...pl.fixtures.filter((x) => x.kind === "rug"), ...pl.fixtures.filter((x) => x.kind !== "rug")];
@@ -13385,17 +14166,17 @@ var init_interior = __esm({
 // ../artgen-mapgen/src/settlement/generate.ts
 function groundFromMap(spec, field) {
   const u = spec.underlay, T2 = (t) => TERRAINS.indexOf(t);
-  const at3 = (x, y) => {
+  const at4 = (x, y) => {
     const mx = u.origin[0] + x * u.scale, my = u.origin[1] + y * u.scale, i = Math.floor(mx * field.res), j = Math.floor(my * field.res);
     return i < 0 || j < 0 || i >= field.w || j >= field.h ? -1 : j * field.w + i;
   };
   const elev = (x, y) => {
-    const n = at3(x, y);
+    const n = at4(x, y);
     return n < 0 ? 0 : field.elevation[n];
   };
   return {
     water: (x, y) => {
-      const n = at3(x, y);
+      const n = at4(x, y);
       return n >= 0 && (field.terrain[n] === T2("water") || field.terrain[n] === T2("deep"));
     },
     slope: (x, y) => {
@@ -13403,7 +14184,7 @@ function groundFromMap(spec, field) {
       return Math.hypot(elev(x + d, y) - elev(x - d, y), elev(x, y + d) - elev(x, y - d)) / (2 * d * u.scale);
     },
     forest: (x, y) => {
-      const n = at3(x, y);
+      const n = at4(x, y);
       return n >= 0 && field.terrain[n] === T2("forest");
     }
   };
@@ -13825,8 +14606,8 @@ function generateSettlement(spec, ctx = {}) {
     const x = rand() * cols, y = rand() * rows2;
     if (occ.taken(x, y) || s2.areas.some((a) => a.kind !== "paddock" && a.kind !== "garden" && inPolygon(a.points, x, y))) continue;
     const t = rand(), kind = ground2.forest(x, y) || t < 0.62 ? "tree" : t < 0.78 ? "conifer" : t < 0.95 ? "bush" : "boulder";
-    const size = kind === "boulder" ? ft(8) : sizes[kind] * (0.8 + rand() * 0.4);
-    s2.trees.push({ kind, x: r22(x), y: r22(y), size: r22(size), origin: ORIGIN2 });
+    const size2 = kind === "boulder" ? ft(8) : sizes[kind] * (0.8 + rand() * 0.4);
+    s2.trees.push({ kind, x: r22(x), y: r22(y), size: r22(size2), origin: ORIGIN2 });
     occ.mark(x, y);
     i++;
   }
@@ -13962,21 +14743,21 @@ function lintSettlement(spec, l = layoutSettlement(spec)) {
   const add2 = (severity, path, message) => out.push({ severity, path, message });
   const off = (x, y) => x < 0 || y < 0 || x > spec.cols || y > spec.rows;
   l.buildings.forEach((g, i) => {
-    const at3 = `buildings[${i}]`, b = g.building;
-    if (polygonArea(g.outline) < 0.25) add2("error", at3, "the footprint has (almost) no area");
-    if (g.outline.some((v, j) => j % 2 ? v < 0 || v > spec.rows : v < 0 || v > spec.cols)) add2("warning", at3, `${b.id} runs off the sheet`);
+    const at4 = `buildings[${i}]`, b = g.building;
+    if (polygonArea(g.outline) < 0.25) add2("error", at4, "the footprint has (almost) no area");
+    if (g.outline.some((v, j) => j % 2 ? v < 0 || v > spec.rows : v < 0 || v > spec.cols)) add2("warning", at4, `${b.id} runs off the sheet`);
     const wet = share(g.outline, (x, y) => inWater(l.water, x, y));
-    if (wet > 0.2) add2("warning", at3, `${b.id} stands in water (${Math.round(wet * 100)}% of it)`);
+    if (wet > 0.2) add2("warning", at4, `${b.id} stands in water (${Math.round(wet * 100)}% of it)`);
     const onRoad = l.roads.findIndex((r) => r.kind !== "path" && share(g.outline, (x, y) => nearestOnLine(r.pts, x, y).d < r.width / 2) > 0.2);
-    if (onRoad >= 0) add2("warning", at3, `${b.id} stands across roads[${onRoad}] (a ${l.roads[onRoad].kind})`);
+    if (onRoad >= 0) add2("warning", at4, `${b.id} stands across roads[${onRoad}] (a ${l.roads[onRoad].kind})`);
     for (let j = 0; j < i; j++) {
       const o = l.buildings[j], ob = o.building;
       if (Math.abs(o.cx - g.cx) > (b.w + b.h + ob.w + ob.h) / 2 || Math.abs(o.cy - g.cy) > (b.w + b.h + ob.w + ob.h) / 2) continue;
-      if (share(g.outline, (x, y) => inPolygon(o.outline, x, y)) > 0.05) add2("warning", at3, `${b.id} overlaps ${ob.id} (buildings[${j}])`);
+      if (share(g.outline, (x, y) => inPolygon(o.outline, x, y)) > 0.05) add2("warning", at4, `${b.id} overlaps ${ob.id} (buildings[${j}])`);
     }
     const outline2 = planOutline(spec, b), levels = new Map((b.floors ?? []).map((f) => [f.level, f]));
     (b.floors ?? []).forEach((fl2, fi) => {
-      const fa = `${at3}.floors[${fi}]`;
+      const fa = `${at4}.floors[${fi}]`;
       fl2.rooms.forEach((r, ri) => {
         const ro = roomOutline(r);
         if (share(ro, (x, y) => !inPolygon(outline2, x, y)) > 0.1) add2("warning", `${fa}.rooms[${ri}]`, `room ${r.id} reaches outside the footprint`);
@@ -14123,7 +14904,7 @@ function editSettlement(m, o) {
       const kind = oneOf(o, "kind", BUILDING_KINDS), shape = oneOf(o, "shape", BUILDING_SHAPES, "rect");
       const id2 = opt(o, "id") ?? nextId(m.buildings, "b");
       if (m.buildings.some((b2) => b2.id === id2)) throw new Error(`building ${id2} already exists`);
-      const box2 = shape === "poly" ? polyBox(pts(o, "points", 3)) : { x: num(o, "x"), y: num(o, "y"), w: num(o, "w"), h: num(o, "h") };
+      const box2 = shape === "poly" ? polyBox(pts(o, "points", 3)) : { x: num2(o, "x"), y: num2(o, "y"), w: num2(o, "w"), h: num2(o, "h") };
       const b = { id: id2, kind, shape, ...box2 };
       fields(b, o, BUILDING_FIELDS.filter((k) => k !== "kind" && k !== "shape"));
       m.buildings.push(b);
@@ -14138,7 +14919,7 @@ function editSettlement(m, o) {
       return `set ${done.join(", ") || "nothing"} of ${b.id}`;
     }
     case "building.move": {
-      const b = building(m, o.id), x = num(o, "x"), y = num(o, "y");
+      const b = building(m, o.id), x = num2(o, "x"), y = num2(o, "y");
       if (b.points) b.points = b.points.map((v, i) => v + (i % 2 ? y - b.y : x - b.x));
       b.x = x;
       b.y = y;
@@ -14175,7 +14956,7 @@ function editSettlement(m, o) {
       const { b, f } = floor(m, o, true), shape = oneOf(o, "shape", ["rect", "circle", "octagon", "cave", "poly"], "rect");
       const id2 = opt(o, "id") ?? nextId(f.rooms, `${f.level < 0 ? "c" : "f"}${Math.abs(f.level)}r`);
       if (f.rooms.some((r4) => r4.id === id2)) throw new Error(`room ${id2} already exists on that floor`);
-      const box2 = shape === "poly" ? polyBox(pts(o, "points", 3)) : { x: num(o, "x"), y: num(o, "y"), w: num(o, "w"), h: num(o, "h") };
+      const box2 = shape === "poly" ? polyBox(pts(o, "points", 3)) : { x: num2(o, "x"), y: num2(o, "y"), w: num2(o, "w"), h: num2(o, "h") };
       const r = { id: id2, shape, ...box2, ...shape === "poly" && { points: o.points } };
       fields(r, o, ["label", "number"]);
       f.rooms.push(r);
@@ -14216,7 +14997,7 @@ function editSettlement(m, o) {
     }
     case "fixture.add":
     case "prop.add": {
-      const x = { kind: str(o, "kind"), x: num(o, "x"), y: num(o, "y") };
+      const x = { kind: str(o, "kind"), x: num2(o, "x"), y: num2(o, "y") };
       fields(x, o, ["w", "h", "angle", "label", "origin"]);
       if (o.op === "prop.add" || o.building === void 0) {
         m.props.push(x);
@@ -14267,16 +15048,16 @@ function editSettlement(m, o) {
       return `added a ${a.kind} (area ${m.areas.length - 1})`;
     }
     case "tree.add": {
-      const t = { kind: oneOf(o, "kind", TREE_KINDS, "tree"), x: num(o, "x"), y: num(o, "y") };
+      const t = { kind: oneOf(o, "kind", TREE_KINDS, "tree"), x: num2(o, "x"), y: num2(o, "y") };
       fields(t, o, ["size", "origin"]);
       m.trees.push(t);
       return `added a ${t.kind} at ${t.x},${t.y}`;
     }
     case "tree.scatter": {
-      const kind = oneOf(o, "kind", TREE_KINDS, "tree"), area3 = pts(o, "area", 3), count2 = num(o, "count"), rand = rng(typeof o.seed === "number" ? o.seed : m.trees.length + 1);
+      const kind = oneOf(o, "kind", TREE_KINDS, "tree"), area3 = pts(o, "area", 3), count = num2(o, "count"), rand = rng(typeof o.seed === "number" ? o.seed : m.trees.length + 1);
       const box2 = polyBox(area3);
       let added = 0;
-      for (let i = 0; i < count2 * 20 && added < count2; i++) {
+      for (let i = 0; i < count * 20 && added < count; i++) {
         const x = box2.x + rand() * box2.w, y = box2.y + rand() * box2.h;
         if (!inPolygon(area3, x, y)) continue;
         m.trees.push({ kind, x: Math.round(x * 100) / 100, y: Math.round(y * 100) / 100 });
@@ -14285,13 +15066,13 @@ function editSettlement(m, o) {
       return `scattered ${added} ${kind}${added === 1 ? "" : "s"}`;
     }
     case "label": {
-      const l = { text: str(o, "text"), x: num(o, "x"), y: num(o, "y"), kind: o.kind ?? "name" };
+      const l = { text: str(o, "text"), x: num2(o, "x"), y: num2(o, "y"), kind: o.kind ?? "name" };
       fields(l, o, ["size", "angle", "href", "origin"]);
       m.overlay.labels.push(l);
       return `label "${l.text}" at ${l.x},${l.y}`;
     }
     case "symbol": {
-      const s2 = { kind: str(o, "kind"), x: num(o, "x"), y: num(o, "y") };
+      const s2 = { kind: str(o, "kind"), x: num2(o, "x"), y: num2(o, "y") };
       fields(s2, o, ["scale", "angle", "origin"]);
       m.overlay.symbols.push(s2);
       return `symbol ${s2.kind} at ${s2.x},${s2.y}`;
@@ -14310,7 +15091,7 @@ function editSettlement(m, o) {
   }
   throw new Error(`no edit ${JSON.stringify(o.op)}: ${SETTLEMENT_OPS.join(", ")}`);
 }
-var SETTLEMENT_OPS, str, num, opt, pt2, pts, at, BUILDING_FIELDS;
+var SETTLEMENT_OPS, str, num2, opt, pt2, pts, at, BUILDING_FIELDS;
 var init_edit2 = __esm({
   "../artgen-mapgen/src/settlement/edit.ts"() {
     "use strict";
@@ -14361,7 +15142,7 @@ var init_edit2 = __esm({
       if (typeof v !== "string" || !v) throw new Error(`${o.op}: ${k} (text) is required`);
       return v;
     };
-    num = (o, k) => {
+    num2 = (o, k) => {
       const v = o[k];
       if (typeof v !== "number" || !Number.isFinite(v)) throw new Error(`${o.op}: ${k} (a number) is required`);
       return v;
@@ -14489,8 +15270,265 @@ var init_settlement = __esm({
   }
 });
 
+// ../artgen-mapgen/src/workflow.ts
+var workflow_exports = {};
+__export(workflow_exports, {
+  SUBJECTS: () => SUBJECTS,
+  blocking: () => blocking,
+  checkSource: () => checkSource,
+  sizeOf: () => sizeOf
+});
+function symbolCheck(used, allowed2) {
+  if (!allowed2?.length) return [];
+  const bad = [...new Set(used.filter((k) => !allowed2.includes(k)))];
+  return bad.length ? [{ id: "symbols", status: "flag", detail: `not in the map direction's symbol set: ${bad.join(", ")}` }] : [{ id: "symbols", status: "pass", detail: "all in the map direction's symbol set" }];
+}
+function lintChecks(found) {
+  return found.length ? found.map((f) => ({ id: f.rule ? `lint:${f.rule}` : "lint", status: f.severity === "error" ? "fail" : "flag", detail: at2(f) })) : [{ id: "lint", status: "pass", detail: "no findings" }];
+}
+function underlayCheck(raw, errors, exists) {
+  const u = raw?.underlay;
+  if (!exists || !u || typeof u.map !== "string" || errors.some((e) => e.path.startsWith("underlay"))) return [];
+  return [exists(u.map) ? { id: "underlay", status: "pass", detail: u.map } : { id: "underlay", status: "fail", detail: `underlay.map: no such map file ${u.map}` }];
+}
+function checkSource(kind, text3, o = {}) {
+  let raw;
+  try {
+    raw = JSON.parse(text3);
+  } catch (e) {
+    return [{ id: "format", status: "fail", detail: `(file): not JSON: ${e.message}` }];
+  }
+  return SUBJECTS[kind].check(raw, o);
+}
+function sizeOf(text3) {
+  try {
+    const r = JSON.parse(text3);
+    return Number.isFinite(r?.cols) && Number.isFinite(r?.rows) ? { cols: r.cols, rows: r.rows } : null;
+  } catch {
+    return null;
+  }
+}
+var at2, formatChecks, size, scaleOf, mustOf, verdict, mapSubject, dungeonSubject, settlementSubject, SUBJECTS, blocking;
+var init_workflow = __esm({
+  "../artgen-mapgen/src/workflow.ts"() {
+    "use strict";
+    init_dungeon();
+    init_map();
+    init_settlement();
+    at2 = (i) => `${i.path || "(file)"}: ${i.message}`;
+    formatChecks = (errors) => errors.length ? errors.map((e) => ({ id: "format", status: "fail", detail: at2(e) })) : [{ id: "format", status: "pass", detail: "ok" }];
+    size = (s2) => `${s2.cols}x${s2.rows}`;
+    scaleOf = (s2) => `${s2.scale.perCell} ${s2.scale.unit} a cell`;
+    mustOf = (checks) => {
+      const m = checks.filter((c) => c.id.startsWith("require:")).map((c) => ({ text: c.detail, met: c.status === "pass" }));
+      return m.length ? m : void 0;
+    };
+    verdict = (checks) => {
+      const f = checks.filter((c) => c.status === "fail").length, w = checks.filter((c) => c.status === "flag").length;
+      return f ? `${f} failing${w ? `, ${w} warnings` : ""}` : w ? `ok, ${w} warnings` : "ok";
+    };
+    mapSubject = {
+      kind: "map",
+      dir: "maps",
+      file: "map.json",
+      parse: (raw) => parseMap(raw),
+      check(raw, o = {}) {
+        const { errors } = checkMap(raw), out = formatChecks(errors);
+        if (errors.length) return out;
+        const spec = parseMap(raw);
+        out.push(...checkRequirements(spec).map((r) => ({ id: `require:${r.id}`, status: r.met ? "pass" : "fail", detail: r.text })));
+        return [...out, ...symbolCheck(spec.overlay.symbols.map((s2) => s2.kind), o.symbols)];
+      },
+      sheet: (m, checks) => ({
+        title: `${m.id} \u2014 terrain map`,
+        subject: `map:${m.id}`,
+        rows: [
+          { label: "Title", value: m.title ?? "-" },
+          { label: "Size", value: `${size(m)} cells, ${scaleOf(m)}` },
+          { label: "Preset", value: m.preset },
+          { label: "Grid", value: m.grid.type },
+          { label: "Seed", value: String(m.seed) },
+          { label: "Contents", value: `${m.edits.length} edits, ${m.overlay.labels.length} labels, ${m.overlay.symbols.length} symbols` },
+          { label: "Checks", value: verdict(checks) }
+        ],
+        must: mustOf(checks)
+      })
+    };
+    dungeonSubject = {
+      kind: "dungeon",
+      dir: "dungeons",
+      file: "dungeon.json",
+      parse: (raw) => parseDungeon(raw),
+      check(raw, o = {}) {
+        const { errors } = checkDungeon(raw), out = formatChecks(errors);
+        if (!errors.length) {
+          const spec = parseDungeon(raw);
+          out.push(...lintChecks(lintDungeon(spec)), ...symbolCheck(spec.overlay.symbols.map((s2) => s2.kind), o.symbols));
+        }
+        return [...out, ...underlayCheck(raw, errors, o.exists)];
+      },
+      sheet: (d, checks) => ({
+        title: `${d.id} \u2014 dungeon`,
+        subject: `dungeon:${d.id}`,
+        rows: [
+          { label: "Title", value: d.title ?? "-" },
+          { label: "Size", value: `${size(d)} cells, ${scaleOf(d)}` },
+          { label: "Seed", value: String(d.seed) },
+          { label: "Layout", value: `${d.rooms.length} rooms, ${d.corridors.length} corridors` },
+          { label: "Contents", value: `${d.overlay.labels.length} labels, ${d.overlay.symbols.length} symbols` },
+          { label: "Checks", value: verdict(checks) }
+        ]
+      })
+    };
+    settlementSubject = {
+      kind: "settlement",
+      dir: "settlements",
+      file: "settlement.json",
+      parse: (raw) => parseSettlement(raw),
+      check(raw, o = {}) {
+        const { errors } = checkSettlement(raw), out = formatChecks(errors);
+        if (!errors.length) {
+          const spec = parseSettlement(raw);
+          out.push(...lintChecks(lintSettlement(spec)), ...symbolCheck(spec.overlay.symbols.map((s2) => s2.kind), o.symbols));
+        }
+        return [...out, ...underlayCheck(raw, errors, o.exists)];
+      },
+      sheet: (s2, checks) => ({
+        title: `${s2.id} \u2014 ${s2.kind}`,
+        subject: `settlement:${s2.id}`,
+        rows: [
+          { label: "Title", value: s2.title ?? "-" },
+          { label: "Kind", value: s2.kind },
+          { label: "Size", value: `${size(s2)} cells, ${scaleOf(s2)}` },
+          { label: "Seed", value: String(s2.seed) },
+          { label: "Buildings", value: `${s2.buildings.length}, ${s2.buildings.filter((b) => b.floors?.length).length} with floor plans` },
+          { label: "Site", value: `${s2.roads.length} roads, ${s2.walls.length} walls, ${s2.water.length} water, ${s2.trees.length} trees` },
+          { label: "Contents", value: `${s2.overlay.labels.length} labels, ${s2.overlay.symbols.length} symbols` },
+          { label: "Checks", value: verdict(checks) }
+        ]
+      })
+    };
+    SUBJECTS = { map: mapSubject, dungeon: dungeonSubject, settlement: settlementSubject };
+    blocking = (checks) => checks.filter((c) => c.status === "fail");
+  }
+});
+
+// ../artgen-mapgen/src/direction.ts
+var direction_exports = {};
+__export(direction_exports, {
+  DEFAULT_THEME: () => DEFAULT_THEME,
+  DIRECTION_FILE: () => DIRECTION_FILE,
+  KINDS: () => KINDS,
+  SYMBOL_NAMES: () => SYMBOL_NAMES,
+  THEME_NAMES: () => THEME_NAMES,
+  checkMapDirection: () => checkMapDirection,
+  directionRef: () => directionRef,
+  editMapDirection: () => editMapDirection,
+  formatMapDirection: () => formatMapDirection,
+  lockMapDirection: () => lockMapDirection,
+  lockedMapDirection: () => lockedMapDirection,
+  newMapDirection: () => newMapDirection,
+  parseMapDirection: () => parseMapDirection,
+  parseSymbolsFlag: () => parseSymbolsFlag,
+  parseThemeFlag: () => parseThemeFlag,
+  symbolsFor: () => symbolsFor,
+  themeFor: () => themeFor
+});
+function checkMapDirection(raw) {
+  const e = [], r = raw;
+  if (!r || typeof r !== "object" || Array.isArray(r)) return ["(file): a JSON object"];
+  if (typeof r.id !== "string" || !r.id) e.push("id: a non-empty string");
+  if (!Number.isInteger(r.version) || r.version < 0) e.push("version: a whole number, 0 or more");
+  if (r.status !== "draft" && r.status !== "locked") e.push("status: draft or locked");
+  if (r.status === "locked" && !(r.version >= 1)) e.push("version: 1 or more when locked");
+  for (const [key2, names] of [["themes", THEME_NAMES], ["symbols", SYMBOL_NAMES]]) {
+    const o = r[key2];
+    if (o === void 0) continue;
+    if (!o || typeof o !== "object" || Array.isArray(o)) {
+      e.push(`${key2}: an object keyed by ${KINDS.join(", ")}`);
+      continue;
+    }
+    for (const [k, v] of Object.entries(o)) {
+      if (!KINDS.includes(k)) {
+        e.push(`${key2}.${k}: not a kind (${KINDS.join(", ")})`);
+        continue;
+      }
+      const have = names[k];
+      if (key2 === "themes") {
+        if (typeof v !== "string" || !have.includes(v)) e.push(`themes.${k}: one of ${have.join(", ")}`);
+      } else if (!Array.isArray(v) || v.some((s2) => typeof s2 !== "string" || !have.includes(s2))) e.push(`symbols.${k}: a list of ${k} symbol kinds${Array.isArray(v) ? ` (not ${v.filter((s2) => !have.includes(s2)).join(", ")})` : ""}`);
+    }
+  }
+  if (r.note !== void 0 && typeof r.note !== "string") e.push("note: a string");
+  return e;
+}
+function parseMapDirection(raw) {
+  const e = checkMapDirection(raw);
+  if (e.length) throw new Error(`invalid map direction:
+  ${e.join("\n  ")}`);
+  const r = raw;
+  return { id: r.id, version: r.version, status: r.status, themes: { ...r.themes }, symbols: Object.fromEntries(Object.entries(r.symbols ?? {}).map(([k, v]) => [k, [...v]])), ...r.note && { note: r.note } };
+}
+function parseThemeFlag(v) {
+  const out = {};
+  for (const part of v.split(",").map((s2) => s2.trim()).filter(Boolean)) {
+    const [k, t] = part.split("=");
+    if (!KINDS.includes(k) || !t) throw new Error(`--theme: kind=theme pairs, e.g. map=bw,settlement=color (kinds: ${KINDS.join(", ")})`);
+    if (!THEME_NAMES[k].includes(t)) throw new Error(`--theme ${k}: one of ${THEME_NAMES[k].join(", ")}`);
+    out[k] = t;
+  }
+  return out;
+}
+function parseSymbolsFlag(v) {
+  const out = {};
+  for (const part of v.split(";").map((s2) => s2.trim()).filter(Boolean)) {
+    const [k, list6 = ""] = part.split("=");
+    if (!KINDS.includes(k)) throw new Error(`--symbols: kind=symbol,symbol (kinds: ${KINDS.join(", ")})`);
+    const names = list6.split(",").map((s2) => s2.trim()).filter(Boolean), bad = names.filter((n) => !SYMBOL_NAMES[k].includes(n));
+    if (bad.length) throw new Error(`--symbols ${k}: no such symbol ${bad.join(", ")} (have: ${SYMBOL_NAMES[k].join(", ")})`);
+    out[k] = names;
+  }
+  return out;
+}
+function editMapDirection(d, o) {
+  const symbols4 = { ...d.symbols, ...o.symbols };
+  for (const k of KINDS) if (symbols4[k] && !symbols4[k].length) delete symbols4[k];
+  return { ...d, status: "draft", themes: { ...d.themes, ...o.themes }, symbols: symbols4, ...o.note !== void 0 && (o.note ? { note: o.note } : {}) };
+}
+function formatMapDirection(d) {
+  return JSON.stringify({ id: d.id, version: d.version, status: d.status, themes: d.themes, symbols: d.symbols, ...d.note && { note: d.note } }, null, 2) + "\n";
+}
+var DIRECTION_FILE, KINDS, THEME_NAMES, SYMBOL_NAMES, DEFAULT_THEME, newMapDirection, lockedMapDirection, directionRef, themeFor, symbolsFor, lockMapDirection;
+var init_direction2 = __esm({
+  "../artgen-mapgen/src/direction.ts"() {
+    "use strict";
+    init_theme();
+    init_theme2();
+    init_symbols();
+    init_symbols2();
+    init_render3();
+    DIRECTION_FILE = "map-direction.json";
+    KINDS = ["map", "dungeon", "settlement"];
+    THEME_NAMES = { map: THEMES, dungeon: ["bw"], settlement: THEMES2 };
+    SYMBOL_NAMES = { map: SYMBOL_KINDS, dungeon: SYMBOL_KINDS2, settlement: SYMBOL_KINDS3 };
+    DEFAULT_THEME = { map: "color", dungeon: "bw", settlement: "color" };
+    newMapDirection = () => ({ id: "maps", version: 0, status: "draft", themes: {}, symbols: {} });
+    lockedMapDirection = (d) => d && d.status === "locked" ? d : null;
+    directionRef = (d) => {
+      const l = lockedMapDirection(d);
+      return l ? { id: l.id, version: l.version } : void 0;
+    };
+    themeFor = (d, kind) => lockedMapDirection(d)?.themes[kind] ?? DEFAULT_THEME[kind];
+    symbolsFor = (d, kind) => {
+      const s2 = lockedMapDirection(d)?.symbols[kind];
+      return s2?.length ? s2 : void 0;
+    };
+    lockMapDirection = (d) => ({ ...d, status: "locked", version: d.version + 1 });
+  }
+});
+
 // ../artgen-mapgen/src/index.ts
-var init_src3 = __esm({
+var init_src4 = __esm({
   "../artgen-mapgen/src/index.ts"() {
     "use strict";
     init_map();
@@ -14501,6 +15539,9 @@ var init_src3 = __esm({
     init_svg();
     init_view();
     init_view();
+    init_workflow();
+    init_direction2();
+    init_grid();
   }
 });
 
@@ -14618,7 +15659,7 @@ function makeLib(dir, kind, stage, seed = 1, onScene) {
   };
 }
 function renderAsset(mod4, { dir, brief, seed = 1, variant = 0, params = {}, stages, onScene }) {
-  const dc = dirContext(dir), size = resolveSize(dir, brief.size, brief.kind);
+  const dc = dirContext(dir), size2 = resolveSize(dir, brief.size, brief.kind);
   const states2 = brief.states?.length ? brief.states : ["idle"];
   const facings = FACINGS[brief.directions ?? 1];
   if (!facings) throw new Error(`brief ${brief.id}: directions must be 1, 4, 8 or 16`);
@@ -14642,7 +15683,7 @@ function renderAsset(mod4, { dir, brief, seed = 1, variant = 0, params = {}, sta
     const ctx = {
       dir: dc,
       brief,
-      size,
+      size: size2,
       seed,
       variant,
       params: allParams,
@@ -14665,7 +15706,7 @@ function renderAsset(mod4, { dir, brief, seed = 1, variant = 0, params = {}, sta
       for (const m of sc.lint()) lint.add(m);
       onScene?.(key2, sc);
     }
-    if (grid4.w !== size[0] || grid4.h !== size[1]) throw new Error(`${brief.id} ${key2}: rendered ${grid4.w}x${grid4.h}, brief size is ${size.join("x")}`);
+    if (grid4.w !== size2[0] || grid4.h !== size2[1]) throw new Error(`${brief.id} ${key2}: rendered ${grid4.w}x${grid4.h}, brief size is ${size2.join("x")}`);
     return {
       state,
       facing,
@@ -14686,7 +15727,7 @@ function renderAsset(mod4, { dir, brief, seed = 1, variant = 0, params = {}, sta
         e = renderCell(state, src, frame);
         cache2.set(key2, e);
       }
-      const anchors2 = e.anchors && Object.fromEntries(Object.entries(e.anchors).map(([k, [x, y]]) => [k, [size[0] - 1 - x, y]]));
+      const anchors2 = e.anchors && Object.fromEntries(Object.entries(e.anchors).map(([k, [x, y]]) => [k, [size2[0] - 1 - x, y]]));
       cells.push({ state, facing, frame, grid: e.grid.flip("x"), mirrored: true, anchors: anchors2, ...e.normal && { normal: flipNormalMap(e.normal) }, ...e.logical !== void 0 && { logical: e.logical, sub: e.sub } });
     } else {
       const key2 = `${state}/${facing}/${frame}`;
@@ -14698,7 +15739,7 @@ function renderAsset(mod4, { dir, brief, seed = 1, variant = 0, params = {}, sta
       cells.push(c);
     }
   }
-  return { brief, size, states: states2, facings, frames, cells, lint: [...lint] };
+  return { brief, size: size2, states: states2, facings, frames, cells, lint: [...lint] };
 }
 function assembleSheet(r, gap = 0) {
   const [w, h] = r.size, cols = Math.max(...Object.values(r.frames)), rows2 = r.states.length * r.facings.length;
@@ -14798,7 +15839,7 @@ function measure2(g, { symAxis = "x", palette, shadow = "rgba(0,0,0,0.35)" }) {
   m.hygiene = +Math.max(0, s2).toFixed(1);
   return m;
 }
-var init_metrics = __esm({
+var init_metrics2 = __esm({
   "../artgen-core/src/qa/metrics.ts"() {
     "use strict";
     init_color();
@@ -14912,9 +15953,9 @@ function animChecks(input, dir, kind, th = ANIM_THRESHOLDS) {
         why.push(`${st.name}: no held contact frame (give anims.${st.name}.durations with one frame held longer)`);
         continue;
       }
-      const med = [...d].sort((a, b) => a - b)[d.length >> 1], max2 = Math.max(...d), at3 = d.indexOf(max2);
+      const med = [...d].sort((a, b) => a - b)[d.length >> 1], max2 = Math.max(...d), at4 = d.indexOf(max2);
       if (max2 < med * th.holdRatio || d.filter((x) => x === max2).length > 1) why.push(`${st.name}: no single held contact frame (durations ${d.join("/")} ms)`);
-      else ok.push(`${st.name}: ${st.logical} frames, contact frame ${at3} held ${max2} ms`);
+      else ok.push(`${st.name}: ${st.logical} frames, contact frame ${at4} held ${max2} ms`);
     }
     checks.push({ id: "attack", status: why.length ? "flag" : "pass", detail: why.length ? why.join("; ") : ok.join("; ") });
   }
@@ -15177,7 +16218,7 @@ function histogramDistance(a, b) {
   return d / 2;
 }
 function conformance(input) {
-  const { frames, dir, kind, size, source, anchors: anchors2 = [], symAxis = "x" } = input;
+  const { frames, dir, kind, size: size2, source, anchors: anchors2 = [], symAxis = "x" } = input;
   const th = { ...DEFAULT_THRESHOLDS, ...input.thresholds };
   const checks = [], add2 = (id2, status2, detail) => checks.push({ id: id2, status: status2, detail });
   const shadowRGBA = [...parseColor(dir.palette.shadow.color).slice(0, 3), Math.round(dir.palette.shadow.alpha * 255)];
@@ -15207,10 +16248,10 @@ function conformance(input) {
   if (off) add2("palette", "fail", `${off} off-palette pixels`);
   else if (max2 && colors.size > max2) add2("palette", "fail", `${colors.size} colours > perKindMax.${kind} ${max2}`);
   else add2("palette", "pass", `${colors.size} colours, all in ${kind && dir.palette.perKind[kind] ? `${kind} ramps` : "direction ramps"}`);
-  if (!size) add2("scale", "skip", "no expected size");
+  if (!size2) add2("scale", "skip", "no expected size");
   else {
-    const bad = frames.filter((g) => g.w !== size[0] || g.h !== size[1]);
-    add2("scale", bad.length ? "fail" : "pass", bad.length ? `${bad.length} frames not ${size.join("x")}` : `${size.join("x")}`);
+    const bad = frames.filter((g) => g.w !== size2[0] || g.h !== size2[1]);
+    add2("scale", bad.length ? "fail" : "pass", bad.length ? `${bad.length} frames not ${size2.join("x")}` : `${size2.join("x")}`);
   }
   add2("aa", partial ? "fail" : "pass", partial ? `${partial} partial-alpha pixels` : "no partial alpha");
   const darkest = new Set(Object.values(dir.palette.ramps).map((r) => normHex(r[r.length - 1])));
@@ -15273,12 +16314,12 @@ function conformance(input) {
   else if (kind && (TILE_KINDS.has(kind) || LAYER_KINDS.has(kind))) add2("height", "skip", `${kind}: ground plane or scenery`);
   else {
     const want = input.height.metres * input.height.pxPerMetre, got = drawnHeight(input.height.frames ?? frames.slice(0, 1)), dev = (got - want) / want;
-    const h = input.height, fits = !size || want <= size[1];
+    const h = input.height, fits = !size2 || want <= size2[1];
     const figure = th.heightFail !== void 0 && !!kind && FIGURE_KINDS.has(kind) && h.view !== "fp" && !LOW_BODIES.has(h.body ?? ""), limit = figure ? th.heightFail : th.heightTolerance;
     add2(
       "height",
       Math.abs(dev) <= limit ? "pass" : figure ? "fail" : "flag",
-      `${got} px drawn, ${want.toFixed(1)} px expected for ${input.height.metres} m (${dev >= 0 ? "+" : ""}${Math.round(dev * 100)} %, limit \xB1${Math.round(limit * 100)} %)${fits ? "" : `; the ${size[1]} px frame is too short for it`}`
+      `${got} px drawn, ${want.toFixed(1)} px expected for ${input.height.metres} m (${dev >= 0 ? "+" : ""}${Math.round(dev * 100)} %, limit \xB1${Math.round(limit * 100)} %)${fits ? "" : `; the ${size2[1]} px frame is too short for it`}`
     );
   }
   if (kind && TILE_KINDS.has(kind)) {
@@ -15312,7 +16353,7 @@ var init_conformance = __esm({
     "use strict";
     init_direction();
     init_color();
-    init_metrics();
+    init_metrics2();
     init_anim2();
     init_tiles();
     DEFAULT_THRESHOLDS = { lineMin: 0.85, lineNoneMax: 0.15, lightTolerance: 4, ditherMax: 2, anchorMax: 0.6, heightTolerance: 0.2, seamMax: 1.8, borderMax: 25 };
@@ -15337,24 +16378,31 @@ function checker(g, x, y, w, h, s2 = 8) {
     g.fill(x + i, y + j, Math.min(s2, w - i), Math.min(s2, h - j), (i + j) / s2 % 2 ? "#2a2a33" : "#33333d");
 }
 function layout(o, k) {
-  let W3 = PAD * 2 + textWidth(o.title, TXT), H = PAD + LAB + PAD / 2;
+  let W3 = PAD2 * 2 + textWidth(o.title, TXT2), H = PAD2 + LAB + PAD2 / 2;
   const rows2 = o.rows.map((r) => {
     const s2 = Math.max(1, Math.round(r.scale * k)), sw = r.grid.w * s2, sh = r.grid.h * s2;
-    const sil = r.silhouette === false ? 0 : PAD + r.grid.w * silScale(s2);
-    W3 = Math.max(W3, PAD * 4 + r.grid.w + sw * 2 + sil, PAD * 2 + textWidth(r.label, TXT));
+    const sil = r.silhouette === false ? 0 : PAD2 + r.grid.w * silScale(s2);
+    W3 = Math.max(W3, PAD2 * 4 + r.grid.w + sw * 2 + sil, PAD2 * 2 + textWidth(r.label, TXT2));
     const y = H;
-    H += LAB + sh + PAD;
+    H += LAB + sh + PAD2;
     return { r, s: s2, sw, sh, y };
   });
   const as = Math.max(1, Math.round((o.anchorScale ?? 3) * k)), anchors2 = o.anchors ?? [];
   let ay = 0;
   if (anchors2.length) {
     ay = H;
-    const aw = anchors2.reduce((n, a) => n + a.grid.w * as + PAD, PAD);
+    const aw = anchors2.reduce((n, a) => n + a.grid.w * as + PAD2, PAD2);
     W3 = Math.max(W3, aw);
-    H += LAB + Math.max(...anchors2.map((a) => a.grid.h * as)) + LAB + PAD;
+    H += LAB + Math.max(...anchors2.map((a) => a.grid.h * as)) + LAB + PAD2;
   }
-  return { W: W3, H, rows: rows2, as, ay };
+  const refs = (o.refs ?? []).map((r) => ({ label: r.label, grid: refThumb(r.grid, k) }));
+  let ry = 0;
+  if (refs.length) {
+    ry = H;
+    W3 = Math.max(W3, refs.reduce((n, r) => n + Math.max(r.grid.w, textWidth(r.label, TXT2)) + PAD2, PAD2));
+    H += LAB + Math.max(...refs.map((r) => r.grid.h)) + LAB + PAD2;
+  }
+  return { W: W3, H, rows: rows2, as, ay, refs, ry };
 }
 function reviewSheet(o) {
   const maxEdge = o.maxEdge ?? 1568;
@@ -15363,109 +16411,96 @@ function reviewSheet(o) {
     k *= 0.85;
     L2 = layout(o, k);
   }
-  const g = new Grid(L2.W, L2.H).fill(0, 0, L2.W, L2.H, BG);
-  drawText(g, PAD, PAD, o.title, TITLE, TXT);
+  const g = new Grid(L2.W, L2.H).fill(0, 0, L2.W, L2.H, BG2);
+  drawText(g, PAD2, PAD2, o.title, TITLE2, TXT2);
   for (const { r, s: s2, sw, sh, y } of L2.rows) {
-    drawText(g, PAD, y, r.label, FG, TXT);
+    drawText(g, PAD2, y, r.label, FG2, TXT2);
     const top = y + LAB, big = r.grid.scale(s2);
-    checker(g, PAD, top, r.grid.w, r.grid.h, 4);
-    g.over(r.grid, PAD, top);
-    const x2 = PAD * 2 + r.grid.w;
+    checker(g, PAD2, top, r.grid.w, r.grid.h, 4);
+    g.over(r.grid, PAD2, top);
+    const x2 = PAD2 * 2 + r.grid.w;
     checker(g, x2, top, sw, sh);
     g.over(big, x2, top);
-    const x3 = x2 + sw + PAD;
+    const x3 = x2 + sw + PAD2;
     g.fill(x3, top, sw, sh, r.bg ?? "#000000");
     if (r.context) g.over(r.context.scale(s2), x3, top);
     g.over(big, x3, top);
     if (r.silhouette !== false) {
-      const ss = silScale(s2), x4 = x3 + sw + PAD;
+      const ss = silScale(s2), x4 = x3 + sw + PAD2;
       g.fill(x4, top, r.grid.w * ss, r.grid.h * ss, SIL_BG);
       g.over(silhouette(r.grid).scale(ss), x4, top);
     }
   }
   if (o.anchors?.length) {
-    drawText(g, PAD, L2.ay, "ANCHORS", FG, TXT);
-    let x = PAD;
+    drawText(g, PAD2, L2.ay, "ANCHORS", FG2, TXT2);
+    let x = PAD2;
     for (const a of o.anchors) {
       const top = L2.ay + LAB, big = a.grid.scale(L2.as);
       checker(g, x, top, big.w, big.h);
       g.over(big, x, top);
-      drawText(g, x, top + big.h + 4, a.label, FG, TXT);
-      x += big.w + PAD;
+      drawText(g, x, top + big.h + 4, a.label, FG2, TXT2);
+      x += big.w + PAD2;
+    }
+  }
+  if (L2.refs.length) {
+    drawText(g, PAD2, L2.ry, "REFERENCES", FG2, TXT2);
+    let x = PAD2;
+    for (const r of L2.refs) {
+      const top = L2.ry + LAB;
+      checker(g, x, top, r.grid.w, r.grid.h);
+      g.over(r.grid, x, top);
+      drawText(g, x, top + r.grid.h + 4, r.label, FG2, TXT2);
+      x += Math.max(r.grid.w, textWidth(r.label, TXT2)) + PAD2;
     }
   }
   return g;
 }
 function contactSheet(title, items, scale2, cols, maxEdge = 1568) {
-  const size = (sc) => {
-    const cw = Array.from({ length: cols }, (_, c) => Math.max(0, ...items.filter((_2, n) => n % cols === c).map((i) => Math.max(i.grid.w * sc, textWidth(i.label, TXT)))) + PAD);
-    const rh = Array.from({ length: Math.ceil(items.length / cols) }, (_, r) => Math.max(...items.slice(r * cols, r * cols + cols).map((i) => i.grid.h * sc)) + LAB + PAD);
-    const W3 = Math.max(PAD + cw.reduce((a, b) => a + b, 0), PAD * 2 + textWidth(title, TXT)), H = PAD + LAB + rh.reduce((a, b) => a + b, 0) + PAD;
+  const size2 = (sc) => {
+    const cw = Array.from({ length: cols }, (_, c) => Math.max(0, ...items.filter((_2, n) => n % cols === c).map((i) => Math.max(i.grid.w * sc, textWidth(i.label, TXT2)))) + PAD2);
+    const rh = Array.from({ length: Math.ceil(items.length / cols) }, (_, r) => Math.max(...items.slice(r * cols, r * cols + cols).map((i) => i.grid.h * sc)) + LAB + PAD2);
+    const W3 = Math.max(PAD2 + cw.reduce((a, b) => a + b, 0), PAD2 * 2 + textWidth(title, TXT2)), H = PAD2 + LAB + rh.reduce((a, b) => a + b, 0) + PAD2;
     return { cw, rh, W: W3, H };
   };
-  let s2 = scale2, L2 = size(s2);
+  let s2 = scale2, L2 = size2(s2);
   while (Math.max(L2.W, L2.H) > maxEdge && s2 > 1) {
     s2--;
-    L2 = size(s2);
+    L2 = size2(s2);
   }
-  const g = new Grid(L2.W, L2.H).fill(0, 0, L2.W, L2.H, BG);
-  drawText(g, PAD, PAD, title, TITLE, TXT);
+  const g = new Grid(L2.W, L2.H).fill(0, 0, L2.W, L2.H, BG2);
+  drawText(g, PAD2, PAD2, title, TITLE2, TXT2);
   items.forEach((it, n) => {
     const c = n % cols, r = Math.floor(n / cols), big = it.grid.scale(s2);
-    const x = PAD + L2.cw.slice(0, c).reduce((a, b) => a + b, 0), y = PAD + LAB + L2.rh.slice(0, r).reduce((a, b) => a + b, 0);
+    const x = PAD2 + L2.cw.slice(0, c).reduce((a, b) => a + b, 0), y = PAD2 + LAB + L2.rh.slice(0, r).reduce((a, b) => a + b, 0);
     if (it.bg) g.fill(x, y, big.w, big.h, it.bg);
     else checker(g, x, y, big.w, big.h);
     if (it.context) g.over(it.context.scale(s2), x, y);
     g.over(big, x, y);
-    drawText(g, x, y + big.h + 4, it.label, FG, TXT);
+    drawText(g, x, y + big.h + 4, it.label, FG2, TXT2);
   });
   return g;
 }
-var SIL_BG, SIL_INK, silScale, PAD, TXT, LAB, BG, FG, TITLE;
-var init_sheet = __esm({
+var SIL_BG, SIL_INK, silScale, REF_BOX, refThumb, PAD2, TXT2, LAB, BG2, FG2, TITLE2;
+var init_sheet2 = __esm({
   "../artgen-core/src/qa/sheet.ts"() {
     "use strict";
     init_font();
     init_grid();
+    init_sheet();
     SIL_BG = "#c8c8c8";
     SIL_INK = "#000000";
     silScale = (s2) => Math.max(1, Math.round(s2 / 2));
-    PAD = 12;
-    TXT = 2;
-    LAB = GLYPH_H * TXT + 6;
-    BG = "#16161c";
-    FG = "#dddddd";
-    TITLE = "#ffffff";
-  }
-});
-
-// ../artgen-core/src/qa/ledger.ts
-function imageTokens(w, h) {
-  const s2 = Math.min(1, 1568 / Math.max(w, h));
-  return Math.ceil(w * s2 * (h * s2) / 750);
-}
-function formatLedgerLine(e) {
-  if (!e.ts || !e.type || !e.asset) throw new Error("ledger entry needs ts, type and asset");
-  return JSON.stringify(e);
-}
-function parseLedger(text3) {
-  const out = [];
-  text3.split("\n").forEach((l, i) => {
-    if (!l.trim()) return;
-    try {
-      out.push(JSON.parse(l));
-    } catch {
-      throw new Error(`ledger line ${i + 1}: invalid JSON`);
-    }
-  });
-  return out;
-}
-var sourceHash;
-var init_ledger = __esm({
-  "../artgen-core/src/qa/ledger.ts"() {
-    "use strict";
-    init_rng();
-    sourceHash = (src) => hashString(src.replace(/\r\n/g, "\n"));
+    REF_BOX = 96;
+    refThumb = (g, k) => {
+      const box2 = Math.max(24, Math.round(REF_BOX * k)), s2 = Math.min(3, Math.floor(box2 / Math.max(g.w, g.h)));
+      return s2 >= 1 ? g.scale(s2) : fitGrid(g, box2, box2);
+    };
+    PAD2 = 12;
+    TXT2 = 2;
+    LAB = GLYPH_H * TXT2 + 6;
+    BG2 = "#16161c";
+    FG2 = "#dddddd";
+    TITLE2 = "#ffffff";
   }
 });
 
@@ -15500,7 +16535,7 @@ function blindIssues(own, blind, o) {
   else if (blind.score < o.minScore) out.push(`blind re-score ${blind.score} is under ${o.minScore}${note}`);
   return out;
 }
-function latestScores(ledger) {
+function latestScores2(ledger) {
   const m = /* @__PURE__ */ new Map();
   for (const e of ledger) if (e.type === "score" && !e.blind && e.version && typeof e.score === "number")
     m.set(e.version, { score: e.score, gate: e.conformance?.pass, failing: e.conformance?.checks?.filter((c) => c.status === "fail").map((c) => `${c.id}: ${c.detail}`), ...typeof e.note === "string" && e.note && { note: e.note } });
@@ -15514,7 +16549,7 @@ function planPasses(input) {
   const { asset, revisionPasses: N3, finishPass } = input;
   const vs = input.versions.map(parseVersion).filter((v) => !!v);
   const bases = vs.filter((v) => v.kind === "base").sort((a, b) => a.n - b.n), finishes = vs.filter((v) => v.kind === "finish").sort((a, b) => a.n - b.n);
-  const scores = latestScores(input.ledger), fb = input.feedback, userFb = fb?.filter((f) => f.by !== "agent"), userOpened = userFb?.map((f) => f.opens);
+  const scores = latestScores2(input.ledger), fb = input.feedback, userFb = fb?.filter((f) => f.by !== "agent"), userOpened = userFb?.map((f) => f.opens);
   const pid = (v) => passId(v, N3, userOpened);
   const isUserBase = (b) => b.n > N3 && (!fb || !!userFb?.some((f) => f.opens === b.name));
   const isAgentOpened = (v) => !!fb?.some((f) => f.by === "agent" && f.opens === v);
@@ -15688,9 +16723,9 @@ function makePx(dc, record = () => {
     color,
     step,
     /** Direction token of a pixel (`skin.2`, `outline`), or null when empty — to repaint with the colour already there. */
-    tokenAt: (g, at3) => opaque(g, at3[0], at3[1]) ? tokenOf(g.get(at3[0], at3[1])) : null,
-    set(g, at3, token) {
-      plot(g, at3[0], at3[1], color(token));
+    tokenAt: (g, at4) => opaque(g, at4[0], at4[1]) ? tokenOf(g.get(at4[0], at4[1])) : null,
+    set(g, at4, token) {
+      plot(g, at4[0], at4[1], color(token));
       return g;
     },
     fill(g, [x, y, w, h], token) {
@@ -15722,9 +16757,9 @@ function makePx(dc, record = () => {
      * Char-map patch (T1 `blit`): `rows` of characters, `.` transparent, `_` clears the pixel, others look up a
      * token in `key`. `anchor: 'center'` (default) centres the map on `at`; `'topleft'` puts its corner there.
      */
-    patch(g, at3, rows2, key2, o2 = {}) {
+    patch(g, at4, rows2, key2, o2 = {}) {
       const h = rows2.length, w = Math.max(...rows2.map((r) => r.length));
-      const x0 = o2.anchor === "topleft" ? at3[0] : at3[0] - (w >> 1), y0 = o2.anchor === "topleft" ? at3[1] : at3[1] - (h >> 1);
+      const x0 = o2.anchor === "topleft" ? at4[0] : at4[0] - (w >> 1), y0 = o2.anchor === "topleft" ? at4[1] : at4[1] - (h >> 1);
       const under = [];
       for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) under.push(tokenOf(g.get(x0 + x, y0 + y)));
       const cols = {};
@@ -15736,7 +16771,7 @@ function makePx(dc, record = () => {
         else throw new Error(`patch: no key for ${JSON.stringify(ch)}`);
         guard.add(`${x0 + x},${y0 + y}`);
       }));
-      record({ anchor: at3.anchor, x: x0, y: y0, w, h, under, rows: rows2, key: key2, mode: o2.anchor ?? "center" });
+      record({ anchor: at4.anchor, x: x0, y: y0, w, h, under, rows: rows2, key: key2, mode: o2.anchor ?? "center" });
       return g;
     },
     fix: {
@@ -15818,26 +16853,26 @@ function makePx(dc, record = () => {
     },
     fx: {
       /** Bright pixel (`dot`), plus or x shape; default colour is the lightest step of the pixel's ramp. */
-      glint(g, at3, token, o2 = {}) {
-        const base = g.get(at3[0], at3[1]), c = token ? color(token) : base ? step(base, -99) : null;
+      glint(g, at4, token, o2 = {}) {
+        const base = g.get(at4[0], at4[1]), c = token ? color(token) : base ? step(base, -99) : null;
         if (!c) return g;
-        plot(g, at3[0], at3[1], c);
+        plot(g, at4[0], at4[1], c);
         const arms = o2.shape === "plus" ? N46 : o2.shape === "x" ? [[1, 1], [-1, -1], [1, -1], [-1, 1]] : [];
-        for (const [dx, dy] of arms) if (opaque(g, at3[0] + dx, at3[1] + dy) && g.get(at3[0] + dx, at3[1] + dy) !== outline2) plot(g, at3[0] + dx, at3[1] + dy, step(g.get(at3[0] + dx, at3[1] + dy), -1));
+        for (const [dx, dy] of arms) if (opaque(g, at4[0] + dx, at4[1] + dy) && g.get(at4[0] + dx, at4[1] + dy) !== outline2) plot(g, at4[0] + dx, at4[1] + dy, step(g.get(at4[0] + dx, at4[1] + dy), -1));
         return g;
       },
       /** Four-armed spark of radius r in `token` (arms may extend over empty pixels). */
-      spark(g, at3, token, r = 2) {
+      spark(g, at4, token, r = 2) {
         const c = color(token);
-        plot(g, at3[0], at3[1], c);
-        for (let k = 1; k <= r; k++) for (const [dx, dy] of N46) plot(g, at3[0] + dx * k, at3[1] + dy * k, c);
+        plot(g, at4[0], at4[1], c);
+        for (let k = 1; k <= r; k++) for (const [dx, dy] of N46) plot(g, at4[0] + dx * k, at4[1] + dy * k, c);
         return g;
       },
       /** Lighten fill pixels within radius r by one step. */
-      glow(g, at3, r = 2) {
+      glow(g, at4, r = 2) {
         const w = [];
-        for (let y = at3[1] - r; y <= at3[1] + r; y++) for (let x = at3[0] - r; x <= at3[0] + r; x++)
-          if ((x - at3[0]) ** 2 + (y - at3[1]) ** 2 <= r * r && fill2(g, x, y) && !guard.has(`${x},${y}`)) w.push([x, y, step(g.get(x, y), -1)]);
+        for (let y = at4[1] - r; y <= at4[1] + r; y++) for (let x = at4[0] - r; x <= at4[0] + r; x++)
+          if ((x - at4[0]) ** 2 + (y - at4[1]) ** 2 <= r * r && fill2(g, x, y) && !guard.has(`${x},${y}`)) w.push([x, y, step(g.get(x, y), -1)]);
         return batch(g, w);
       }
     },
@@ -15853,9 +16888,9 @@ function makePx(dc, record = () => {
         return batch(g, w);
       },
       /** Set one pixel to the lightest step of its ramp (or a token). */
-      highlight(g, at3, token) {
-        const c = g.get(at3[0], at3[1]);
-        if (c && c !== outline2) plot(g, at3[0], at3[1], token ? color(token) : step(c, -99));
+      highlight(g, at4, token) {
+        const c = g.get(at4[0], at4[1]);
+        if (c && c !== outline2) plot(g, at4[0], at4[1], token ? color(token) : step(c, -99));
         return g;
       },
       /** Move every fill pixel in scope `by` steps along its ramp (default -1 = one lighter): light-side shade fixes. */
@@ -16020,7 +17055,7 @@ var init_finish = __esm({
     init_post();
     init_conformance();
     N46 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-    finishSnapshot = (patches) => patches.map(({ cell: cell2, anchor, x, y, w, h, under, replay }) => ({ cell: cell2, anchor, x, y, w, h, under, ...replay && { replay } }));
+    finishSnapshot = (patches) => patches.map(({ cell: cell3, anchor, x, y, w, h, under, replay }) => ({ cell: cell3, anchor, x, y, w, h, under, ...replay && { replay } }));
   }
 });
 
@@ -16267,7 +17302,7 @@ var init_candidates = __esm({
 });
 
 // ../artgen-core/src/w1/sheets.ts
-function wrap(text3, max2) {
+function wrap2(text3, max2) {
   const out = [];
   let cur = "";
   for (const w of text3.split(/\s+/).filter(Boolean)) {
@@ -16281,11 +17316,11 @@ function wrap(text3, max2) {
 }
 function swatches(g, x, y, dir, sw, names) {
   const rows2 = [...Object.entries(dir.palette.ramps), ["outline", [dir.palette.outline]]];
-  const nameW = names ? Math.max(...rows2.map(([n]) => textWidth(n, TXT2))) + 8 : 0;
+  const nameW = names ? Math.max(...rows2.map(([n]) => textWidth(n, TXT3))) + 8 : 0;
   let w = 0;
   rows2.forEach(([name, ramp2], i) => {
     const yy = y + i * (sw + 2);
-    if (g && names) drawText(g, x, yy + (sw - GLYPH_H * TXT2 >> 1), name, DIM, TXT2);
+    if (g && names) drawText(g, x, yy + (sw - GLYPH_H * TXT3 >> 1), name, DIM2, TXT3);
     ramp2.forEach((c, k) => g?.fill(x + nameW + k * (sw + 2), yy, sw, sw, c));
     w = Math.max(w, nameW + ramp2.length * (sw + 2));
   });
@@ -16310,43 +17345,43 @@ function styleTile(title, columns, { scale: scale2 = 4, maxEdge = 1568 } = {}) {
       const field = tileField(p2.tile, 3);
       const fx2 = p2.effect.reduce((n, f) => n + f.w * sc2 + 4, 0);
       const w = Math.max(
-        textWidth(c.label, TXT2),
-        ...c.notes.map((n) => textWidth(n, TXT2)),
+        textWidth(c.label, TXT3),
+        ...c.notes.map((n) => textWidth(n, TXT3)),
         pal.w,
         p2.character.w + 6 + p2.character.w * sc2,
         p2.prop.w + 6 + p2.prop.w * sc2,
         field.w * sc2,
         fx2
       );
-      const h = LINE + c.notes.length * LINE + 6 + pal.h + 8 + LINE + Math.max(p2.character.h * sc2, p2.character.h) + 8 + LINE + p2.prop.h * sc2 + 8 + LINE + field.h * sc2 + 8 + LINE + Math.max(0, ...p2.effect.map((f) => f.h * sc2)) + 8;
+      const h = LINE2 + c.notes.length * LINE2 + 6 + pal.h + 8 + LINE2 + Math.max(p2.character.h * sc2, p2.character.h) + 8 + LINE2 + p2.prop.h * sc2 + 8 + LINE2 + field.h * sc2 + 8 + LINE2 + Math.max(0, ...p2.effect.map((f) => f.h * sc2)) + 8;
       return { c, w, h, sw, field };
     });
-    const W3 = PAD2 + cols.reduce((n, c) => n + c.w + PAD2 * 2, 0), H = PAD2 + LINE + PAD2 + Math.max(...cols.map((c) => c.h)) + PAD2;
-    return { cols, W: Math.max(W3, PAD2 * 2 + textWidth(title, TXT2)), H };
+    const W3 = PAD3 + cols.reduce((n, c) => n + c.w + PAD3 * 2, 0), H = PAD3 + LINE2 + PAD3 + Math.max(...cols.map((c) => c.h)) + PAD3;
+    return { cols, W: Math.max(W3, PAD3 * 2 + textWidth(title, TXT3)), H };
   };
   let sc = scale2, L2 = layout2(sc);
   while (Math.max(L2.W, L2.H) > maxEdge && sc > 1) {
     sc--;
     L2 = layout2(sc);
   }
-  const g = new Grid(L2.W, L2.H).fill(0, 0, L2.W, L2.H, BG2);
-  drawText(g, PAD2, PAD2, title, TITLE2, TXT2);
-  let x = PAD2;
+  const g = new Grid(L2.W, L2.H).fill(0, 0, L2.W, L2.H, BG3);
+  drawText(g, PAD3, PAD3, title, TITLE3, TXT3);
+  let x = PAD3;
   for (const { c, w, sw, field } of L2.cols) {
     const bg = c.background ?? c.dir.background ?? "#202028", p2 = c.probes;
-    let y = PAD2 + LINE + PAD2;
-    drawText(g, x, y, c.label, TITLE2, TXT2);
-    y += LINE;
+    let y = PAD3 + LINE2 + PAD3;
+    drawText(g, x, y, c.label, TITLE3, TXT3);
+    y += LINE2;
     for (const n of c.notes) {
-      drawText(g, x, y, n, DIM, TXT2);
-      y += LINE;
+      drawText(g, x, y, n, DIM2, TXT3);
+      y += LINE2;
     }
     y += 6;
     y += swatches(g, x, y, c.dir, sw, false).h + 8;
     const gate = (k) => c.gates?.[k] === void 0 ? "" : c.gates[k] ? "  gate ok" : "  gate FAIL";
     const sprite = (k, s2) => {
-      drawText(g, x, y, k + gate(k), FG2, TXT2);
-      y += LINE;
+      drawText(g, x, y, k + gate(k), FG3, TXT3);
+      y += LINE2;
       g.fill(x, y, s2.w, s2.h, bg);
       g.over(s2, x, y);
       const bx = x + s2.w + 6, big = s2.scale(sc);
@@ -16356,14 +17391,14 @@ function styleTile(title, columns, { scale: scale2 = 4, maxEdge = 1568 } = {}) {
     };
     sprite("character", p2.character);
     sprite("prop", p2.prop);
-    drawText(g, x, y, `tile 3x3${gate("tile")}`, FG2, TXT2);
-    y += LINE;
+    drawText(g, x, y, `tile 3x3${gate("tile")}`, FG3, TXT3);
+    y += LINE2;
     const fb = field.scale(sc);
     g.fill(x, y, fb.w, fb.h, bg);
     g.over(fb, x, y);
     y += fb.h + 8;
-    drawText(g, x, y, `effect ${p2.effect.length} frames${gate("effect")}`, FG2, TXT2);
-    y += LINE;
+    drawText(g, x, y, `effect ${p2.effect.length} frames${gate("effect")}`, FG3, TXT3);
+    y += LINE2;
     let fxX = x;
     for (const f of p2.effect) {
       const b = f.scale(sc);
@@ -16371,16 +17406,16 @@ function styleTile(title, columns, { scale: scale2 = 4, maxEdge = 1568 } = {}) {
       g.over(b, fxX, y);
       fxX += b.w + 4;
     }
-    x += w + PAD2 * 2;
-    if (x - PAD2 < g.w) g.fill(x - PAD2 - 1, PAD2 + LINE, 1, g.h - PAD2 * 2 - LINE, "#2c2c36");
+    x += w + PAD3 * 2;
+    if (x - PAD3 < g.w) g.fill(x - PAD3 - 1, PAD3 + LINE2, 1, g.h - PAD3 * 2 - LINE2, "#2c2c36");
   }
   return g;
 }
 function lightDiagram(dir, r) {
   const ramp2 = dir.palette.ramps[dir.palette.materials.metal ?? ""] ?? Object.values(dir.palette.ramps).sort((a, b) => b.length - a.length)[0];
   const [lx, ly, lz] = dir.camera.light, n = Math.hypot(lx, ly, lz) || 1, bands2 = Math.min(dir.shading.bands, ramp2.length);
-  const size = r * 2 + 1 + 8, g = new Grid(size, size), c = size / 2;
-  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+  const size2 = r * 2 + 1 + 8, g = new Grid(size2, size2), c = size2 / 2;
+  for (let y = 0; y < size2; y++) for (let x = 0; x < size2; x++) {
     const dx = (x + 0.5 - c) / r, dy = (y + 0.5 - c) / r, d2 = dx * dx + dy * dy;
     if (d2 > 1) continue;
     const dz = Math.sqrt(1 - d2), dot = Math.max(0, (dx * lx + dy * ly + dz * lz) / n);
@@ -16395,7 +17430,7 @@ function styleSheet(dir, anchors2, { scale: scale2 = 4, maxEdge = 1568 } = {}) {
   const bg = dir.background ?? "#202028";
   const kinds = Object.keys(dir.scale).filter((k) => k !== "proportions");
   const sizes = kinds.map((k) => ({ k, s: resolveSize(dir, k) }));
-  const pitch = wrap(dir.theme.pitch ?? "", 70), notes = wrap(dir.theme.notes ?? "", 70);
+  const pitch = wrap2(dir.theme.pitch ?? "", 70), notes = wrap2(dir.theme.notes ?? "", 70);
   const settings = [
     `view ${dir.camera.view}, ${dir.camera.directions} facings, pixel scale ${dir.camera.pixelScale}x, light ${dir.camera.light.join(",")}`,
     `line outer ${dir.line.outer}, inner ${dir.line.inner}, weight ${dir.line.weight}`,
@@ -16405,11 +17440,11 @@ function styleSheet(dir, anchors2, { scale: scale2 = 4, maxEdge = 1568 } = {}) {
   const rules = [...dir.rules.do.map((r) => `DO   ${r}`), ...dir.rules.dont.map((r) => `DONT ${r}`)];
   const build = (sc2) => {
     const sw = 10, pal2 = swatches(null, 0, 0, dir, sw, true), light = lightDiagram(dir, 14);
-    const rulerW = sizes.reduce((n, { k, s: s2 }) => n + Math.max(s2[0], textWidth(k, TXT2)) + PAD2, 0), rulerH = LINE + Math.max(...sizes.map(({ s: s2 }) => s2[1]), 0) + 8;
-    const anchorsW = anchors2.reduce((n, a) => n + a.grid.w * (sc2 + 1) + 6 + PAD2, 0), anchorsH = anchors2.length ? LINE + Math.max(...anchors2.map((a) => a.grid.h * sc2)) + LINE + 8 : 0;
+    const rulerW = sizes.reduce((n, { k, s: s2 }) => n + Math.max(s2[0], textWidth(k, TXT3)) + PAD3, 0), rulerH = LINE2 + Math.max(...sizes.map(({ s: s2 }) => s2[1]), 0) + 8;
+    const anchorsW = anchors2.reduce((n, a) => n + a.grid.w * (sc2 + 1) + 6 + PAD3, 0), anchorsH = anchors2.length ? LINE2 + Math.max(...anchors2.map((a) => a.grid.h * sc2)) + LINE2 + 8 : 0;
     const textLines = [...pitch, ...notes, ...settings, ...rules];
-    const W3 = PAD2 * 2 + Math.max(pal2.w + PAD2 * 2 + light.w * 3, rulerW, anchorsW, ...textLines.map((l) => textWidth(l, TXT2)), textWidth(`${dir.id} v${dir.version}`, TXT2 * 2));
-    const H = PAD2 + LINE * 2 + (pitch.length + notes.length) * LINE + 8 + LINE + Math.max(pal2.h, light.h * 3) + 8 + LINE + settings.length * LINE + 8 + rulerH + anchorsH + (rules.length ? LINE + rules.length * LINE : 0) + PAD2;
+    const W3 = PAD3 * 2 + Math.max(pal2.w + PAD3 * 2 + light.w * 3, rulerW, anchorsW, ...textLines.map((l) => textWidth(l, TXT3)), textWidth(`${dir.id} v${dir.version}`, TXT3 * 2));
+    const H = PAD3 + LINE2 * 2 + (pitch.length + notes.length) * LINE2 + 8 + LINE2 + Math.max(pal2.h, light.h * 3) + 8 + LINE2 + settings.length * LINE2 + 8 + rulerH + anchorsH + (rules.length ? LINE2 + rules.length * LINE2 : 0) + PAD3;
     return { W: W3, H, sw, light };
   };
   let sc = scale2, L2 = build(sc);
@@ -16417,39 +17452,39 @@ function styleSheet(dir, anchors2, { scale: scale2 = 4, maxEdge = 1568 } = {}) {
     sc--;
     L2 = build(sc);
   }
-  const g = new Grid(L2.W, L2.H).fill(0, 0, L2.W, L2.H, BG2);
-  let y = PAD2;
-  drawText(g, PAD2, y, `${dir.id} v${dir.version} (${dir.status})`, TITLE2, TXT2 * 2);
-  y += LINE * 2;
+  const g = new Grid(L2.W, L2.H).fill(0, 0, L2.W, L2.H, BG3);
+  let y = PAD3;
+  drawText(g, PAD3, y, `${dir.id} v${dir.version} (${dir.status})`, TITLE3, TXT3 * 2);
+  y += LINE2 * 2;
   for (const l of pitch) {
-    drawText(g, PAD2, y, l, FG2, TXT2);
-    y += LINE;
+    drawText(g, PAD3, y, l, FG3, TXT3);
+    y += LINE2;
   }
   for (const l of notes) {
-    drawText(g, PAD2, y, l, DIM, TXT2);
-    y += LINE;
+    drawText(g, PAD3, y, l, DIM2, TXT3);
+    y += LINE2;
   }
   y += 8;
-  drawText(g, PAD2, y, "PALETTE", FG2, TXT2);
-  const pal = swatches(g, PAD2, y + LINE, dir, L2.sw, true);
-  const lx = PAD2 + pal.w + PAD2 * 2;
-  drawText(g, lx, y, "LIGHT", FG2, TXT2);
+  drawText(g, PAD3, y, "PALETTE", FG3, TXT3);
+  const pal = swatches(g, PAD3, y + LINE2, dir, L2.sw, true);
+  const lx = PAD3 + pal.w + PAD3 * 2;
+  drawText(g, lx, y, "LIGHT", FG3, TXT3);
   const lg = L2.light.scale(3);
-  g.fill(lx, y + LINE, lg.w, lg.h, bg);
-  g.over(lg, lx, y + LINE);
-  y += LINE + Math.max(pal.h, lg.h) + 8;
-  drawText(g, PAD2, y, "SETTINGS", FG2, TXT2);
-  y += LINE;
+  g.fill(lx, y + LINE2, lg.w, lg.h, bg);
+  g.over(lg, lx, y + LINE2);
+  y += LINE2 + Math.max(pal.h, lg.h) + 8;
+  drawText(g, PAD3, y, "SETTINGS", FG3, TXT3);
+  y += LINE2;
   for (const l of settings) {
-    drawText(g, PAD2, y, l, DIM, TXT2);
-    y += LINE;
+    drawText(g, PAD3, y, l, DIM2, TXT3);
+    y += LINE2;
   }
   y += 8;
-  let x = PAD2;
+  let x = PAD3;
   const maxH = Math.max(...sizes.map(({ s: s2 }) => s2[1]), 0);
   for (const { k, s: s2 } of sizes) {
-    drawText(g, x, y, k, DIM, TXT2);
-    const top = y + LINE + (maxH - s2[1]);
+    drawText(g, x, y, k, DIM2, TXT3);
+    const top = y + LINE2 + (maxH - s2[1]);
     g.fill(x, top, s2[0], s2[1], bg);
     for (let i = 0; i < s2[0]; i++) {
       g.set(x + i, top, "#5a5a66");
@@ -16459,13 +17494,13 @@ function styleSheet(dir, anchors2, { scale: scale2 = 4, maxEdge = 1568 } = {}) {
       g.set(x, top + j, "#5a5a66");
       g.set(x + s2[0] - 1, top + j, "#5a5a66");
     }
-    x += Math.max(s2[0], textWidth(k, TXT2)) + PAD2;
+    x += Math.max(s2[0], textWidth(k, TXT3)) + PAD3;
   }
-  y += LINE + maxH + 8;
+  y += LINE2 + maxH + 8;
   if (anchors2.length) {
-    drawText(g, PAD2, y, "ANCHORS", FG2, TXT2);
-    y += LINE;
-    x = PAD2;
+    drawText(g, PAD3, y, "ANCHORS", FG3, TXT3);
+    y += LINE2;
+    x = PAD3;
     const rowH = Math.max(...anchors2.map((a) => a.grid.h * sc));
     for (const a of anchors2) {
       checker(g, x, y, a.grid.w, a.grid.h, 4);
@@ -16473,22 +17508,22 @@ function styleSheet(dir, anchors2, { scale: scale2 = 4, maxEdge = 1568 } = {}) {
       const bx = x + a.grid.w + 6, big = a.grid.scale(sc);
       g.fill(bx, y, big.w, big.h, bg);
       g.over(big, bx, y);
-      drawText(g, x, y + rowH + 4, a.label, DIM, TXT2);
-      x = bx + big.w + PAD2;
+      drawText(g, x, y + rowH + 4, a.label, DIM2, TXT3);
+      x = bx + big.w + PAD3;
     }
-    y += rowH + LINE + 8;
+    y += rowH + LINE2 + 8;
   }
   if (rules.length) {
-    drawText(g, PAD2, y, "RULES", FG2, TXT2);
-    y += LINE;
+    drawText(g, PAD3, y, "RULES", FG3, TXT3);
+    y += LINE2;
     for (const r of rules) {
-      drawText(g, PAD2, y, r, r.startsWith("DO ") ? "#9fd39a" : "#e39a9a", TXT2);
-      y += LINE;
+      drawText(g, PAD3, y, r, r.startsWith("DO ") ? "#9fd39a" : "#e39a9a", TXT3);
+      y += LINE2;
     }
   }
   return g;
 }
-var PAD2, TXT2, LINE, BG2, FG2, DIM, TITLE2, paletteLuma;
+var PAD3, TXT3, LINE2, BG3, FG3, DIM2, TITLE3, paletteLuma;
 var init_sheets = __esm({
   "../artgen-core/src/w1/sheets.ts"() {
     "use strict";
@@ -16496,14 +17531,14 @@ var init_sheets = __esm({
     init_color();
     init_font();
     init_grid();
-    init_sheet();
-    PAD2 = 12;
-    TXT2 = 2;
-    LINE = GLYPH_H * TXT2 + 6;
-    BG2 = "#16161c";
-    FG2 = "#dddddd";
-    DIM = "#8a8a96";
-    TITLE2 = "#ffffff";
+    init_sheet2();
+    PAD3 = 12;
+    TXT3 = 2;
+    LINE2 = GLYPH_H * TXT3 + 6;
+    BG3 = "#16161c";
+    FG3 = "#dddddd";
+    DIM2 = "#8a8a96";
+    TITLE3 = "#ffffff";
     paletteLuma = (d) => {
       const l = Object.values(d.palette.ramps).flat().map(lumaOf);
       return l.reduce((a, b) => a + b, 0) / (l.length || 1);
@@ -17079,8 +18114,8 @@ var require_Node = __commonJS({
         };
         const res = toJS.toJS(this, "", ctx);
         if (typeof onAnchor === "function")
-          for (const { count: count2, res: res2 } of ctx.anchors.values())
-            onAnchor(res2, count2);
+          for (const { count, res: res2 } of ctx.anchors.values())
+            onAnchor(res2, count);
         return typeof reviver === "function" ? applyReviver.applyReviver(reviver, { "": res }, "", res) : res;
       }
     };
@@ -17188,13 +18223,13 @@ var require_Alias = __commonJS({
         const anchor = anchors3 && source && anchors3.get(source);
         return anchor ? anchor.count * anchor.aliasCount : 0;
       } else if (identity.isCollection(node)) {
-        let count2 = 0;
+        let count = 0;
         for (const item of node.items) {
           const c = getAliasCount(doc2, item, anchors3);
-          if (c > count2)
-            count2 = c;
+          if (c > count)
+            count = c;
         }
-        return count2;
+        return count;
       } else if (identity.isPair(node)) {
         const kc = getAliasCount(doc2, node.key, anchors3);
         const vc = getAliasCount(doc2, node.value, anchors3);
@@ -18856,9 +19891,9 @@ var require_stringifyNumber = __commonJS({
     function stringifyNumber({ format, minFractionDigits, tag, value }) {
       if (typeof value === "bigint")
         return String(value);
-      const num2 = typeof value === "number" ? value : Number(value);
-      if (!isFinite(num2))
-        return isNaN(num2) ? ".nan" : num2 < 0 ? "-.inf" : ".inf";
+      const num3 = typeof value === "number" ? value : Number(value);
+      if (!isFinite(num3))
+        return isNaN(num3) ? ".nan" : num3 < 0 ? "-.inf" : ".inf";
       let n = Object.is(value, -0) ? "-0" : JSON.stringify(value);
       if (!format && minFractionDigits && (!tag || tag === "tag:yaml.org,2002:float") && /^-?\d/.test(n) && !n.includes("e")) {
         let i = n.indexOf(".");
@@ -18898,8 +19933,8 @@ var require_float = __commonJS({
       test: /^[-+]?(?:\.[0-9]+|[0-9]+(?:\.[0-9]*)?)[eE][-+]?[0-9]+$/,
       resolve: (str2) => parseFloat(str2),
       stringify(node) {
-        const num2 = Number(node.value);
-        return isFinite(num2) ? num2.toExponential() : stringifyNumber.stringifyNumber(node);
+        const num3 = Number(node.value);
+        return isFinite(num3) ? num3.toExponential() : stringifyNumber.stringifyNumber(node);
       }
     };
     var float = {
@@ -19338,8 +20373,8 @@ var require_float2 = __commonJS({
       test: /^[-+]?(?:[0-9][0-9_]*)?(?:\.[0-9_]*)?[eE][-+]?[0-9]+$/,
       resolve: (str2) => parseFloat(str2.replace(/_/g, "")),
       stringify(node) {
-        const num2 = Number(node.value);
-        return isFinite(num2) ? num2.toExponential() : stringifyNumber.stringifyNumber(node);
+        const num3 = Number(node.value);
+        return isFinite(num3) ? num3.toExponential() : stringifyNumber.stringifyNumber(node);
       }
     };
     var float = {
@@ -19541,23 +20576,23 @@ var require_timestamp = __commonJS({
     function parseSexagesimal(str2, asBigInt) {
       const sign = str2[0];
       const parts = sign === "-" || sign === "+" ? str2.substring(1) : str2;
-      const num2 = (n) => asBigInt ? BigInt(n) : Number(n);
-      const res = parts.replace(/_/g, "").split(":").reduce((res2, p2) => res2 * num2(60) + num2(p2), num2(0));
-      return sign === "-" ? num2(-1) * res : res;
+      const num3 = (n) => asBigInt ? BigInt(n) : Number(n);
+      const res = parts.replace(/_/g, "").split(":").reduce((res2, p2) => res2 * num3(60) + num3(p2), num3(0));
+      return sign === "-" ? num3(-1) * res : res;
     }
     function stringifySexagesimal(node) {
       let { value } = node;
-      let num2 = (n) => n;
+      let num3 = (n) => n;
       if (typeof value === "bigint")
-        num2 = (n) => BigInt(n);
+        num3 = (n) => BigInt(n);
       else if (isNaN(value) || !isFinite(value))
         return stringifyNumber.stringifyNumber(node);
       let sign = "";
       if (value < 0) {
         sign = "-";
-        value *= num2(-1);
+        value *= num3(-1);
       }
-      const _60 = num2(60);
+      const _60 = num3(60);
       const parts = [value % _60];
       if (value < 60) {
         parts.unshift(0);
@@ -20147,8 +21182,8 @@ var require_Document = __commonJS({
         };
         const res = toJS.toJS(this.contents, jsonArg ?? "", ctx);
         if (typeof onAnchor === "function")
-          for (const { count: count2, res: res2 } of ctx.anchors.values())
-            onAnchor(res2, count2);
+          for (const { count, res: res2 } of ctx.anchors.values())
+            onAnchor(res2, count);
         return typeof reviver === "function" ? applyReviver.applyReviver(reviver, { "": res }, "", res) : res;
       }
       /**
@@ -20225,12 +21260,12 @@ var require_errors = __commonJS({
         lineStr = prev + lineStr;
       }
       if (/[^ ]/.test(lineStr)) {
-        let count2 = 1;
+        let count = 1;
         const end = error.linePos[1];
         if (end?.line === line2 && end.col > col) {
-          count2 = Math.max(1, Math.min(end.col - col, 80 - ci));
+          count = Math.max(1, Math.min(end.col - col, 80 - ci));
         }
-        const pointer = " ".repeat(ci) + "^".repeat(count2);
+        const pointer = " ".repeat(ci) + "^".repeat(count);
         error.message += `:
 
 ${lineStr}
@@ -23866,43 +24901,46 @@ function briefMaterialIssues(b, dir) {
 }
 function validateBrief(b, where = "brief") {
   const e = [];
-  if (!isObj2(b)) return [`${where}: must be a mapping`];
-  const at3 = `${where} ${typeof b.id === "string" ? b.id : "?"}`;
-  if (typeof b.id !== "string" || !ID.test(b.id)) e.push(`${at3}: id must be lowercase letters, digits, - or _ (starting with a letter)`);
-  if (typeof b.kind !== "string" || !BRIEF_KINDS.includes(b.kind)) e.push(`${at3}: kind must be one of ${BRIEF_KINDS.join(", ")}`);
-  if (b.view !== void 0 && !VIEWS.includes(b.view)) e.push(`${at3}: view must be one of ${VIEWS.join(", ")}`);
-  if (b.size !== void 0 && typeof b.size !== "string" && !(Array.isArray(b.size) && b.size.length === 2 && b.size.every((n) => Number.isInteger(n) && n > 0))) e.push(`${at3}: size must be a direction scale key or [w, h]`);
-  if (b.states !== void 0 && !(Array.isArray(b.states) && b.states.length && b.states.every((s2) => typeof s2 === "string" && ID.test(s2)))) e.push(`${at3}: states must be a non-empty list of names`);
-  if (b.directions !== void 0 && ![1, 4, 8, 16].includes(b.directions)) e.push(`${at3}: directions must be 1, 4, 8 or 16`);
+  if (!isObj3(b)) return [`${where}: must be a mapping`];
+  const at4 = `${where} ${typeof b.id === "string" ? b.id : "?"}`;
+  if (typeof b.id !== "string" || !ID.test(b.id)) e.push(`${at4}: id must be lowercase letters, digits, - or _ (starting with a letter)`);
+  if (typeof b.kind !== "string" || !BRIEF_KINDS.includes(b.kind)) e.push(`${at4}: kind must be one of ${BRIEF_KINDS.join(", ")}`);
+  if (b.view !== void 0 && !VIEWS.includes(b.view)) e.push(`${at4}: view must be one of ${VIEWS.join(", ")}`);
+  if (b.size !== void 0 && typeof b.size !== "string" && !(Array.isArray(b.size) && b.size.length === 2 && b.size.every((n) => Number.isInteger(n) && n > 0))) e.push(`${at4}: size must be a direction scale key or [w, h]`);
+  if (b.states !== void 0 && !(Array.isArray(b.states) && b.states.length && b.states.every((s2) => typeof s2 === "string" && ID.test(s2)))) e.push(`${at4}: states must be a non-empty list of names`);
+  if (b.directions !== void 0 && ![1, 4, 8, 16].includes(b.directions)) e.push(`${at4}: directions must be 1, 4, 8 or 16`);
   if (b.anims !== void 0) {
-    if (!isObj2(b.anims)) e.push(`${at3}: anims must map state \u2192 { frames, fps, loop, durations }`);
+    if (!isObj3(b.anims)) e.push(`${at4}: anims must map state \u2192 { frames, fps, loop, durations }`);
     else for (const [s2, a] of Object.entries(b.anims)) {
-      if (!isObj2(a) || !Number.isInteger(a.frames) || a.frames < 1) e.push(`${at3}: anims.${s2}.frames must be a positive integer`);
-      else if (Array.isArray(b.states) && !b.states.includes(s2)) e.push(`${at3}: anims.${s2} is not in states`);
+      if (!isObj3(a) || !Number.isInteger(a.frames) || a.frames < 1) e.push(`${at4}: anims.${s2}.frames must be a positive integer`);
+      else if (Array.isArray(b.states) && !b.states.includes(s2)) e.push(`${at4}: anims.${s2} is not in states`);
       else if (a.durations !== void 0 && !(Array.isArray(a.durations) && a.durations.length === a.frames && a.durations.every((d) => Number.isInteger(d) && d > 0)))
-        e.push(`${at3}: anims.${s2}.durations must list one positive whole number of ms per frame (${a.frames})`);
-      else if (a.sub !== void 0 && !(Number.isInteger(a.sub) && a.sub >= 1 && a.sub <= 8)) e.push(`${at3}: anims.${s2}.sub must be a whole number of sub-frames per logical frame (1\u20138)`);
+        e.push(`${at4}: anims.${s2}.durations must list one positive whole number of ms per frame (${a.frames})`);
+      else if (a.sub !== void 0 && !(Number.isInteger(a.sub) && a.sub >= 1 && a.sub <= 8)) e.push(`${at4}: anims.${s2}.sub must be a whole number of sub-frames per logical frame (1\u20138)`);
     }
   }
-  if (b.variants !== void 0 && !(Number.isInteger(b.variants) && b.variants >= 1)) e.push(`${at3}: variants must be a positive integer`);
-  if (b.importance !== void 0 && !IMPORTANCE.includes(b.importance)) e.push(`${at3}: importance must be one of ${IMPORTANCE.join(", ")}`);
-  if (b.priority !== void 0 && typeof b.priority !== "number") e.push(`${at3}: priority must be a number`);
-  if (b.height !== void 0 && !(typeof b.height === "number" && b.height > 0 && b.height <= 1e3)) e.push(`${at3}: height must be the real-world height in metres (> 0)`);
+  if (b.variants !== void 0 && !(Number.isInteger(b.variants) && b.variants >= 1)) e.push(`${at4}: variants must be a positive integer`);
+  if (b.importance !== void 0 && !IMPORTANCE.includes(b.importance)) e.push(`${at4}: importance must be one of ${IMPORTANCE.join(", ")}`);
+  if (b.priority !== void 0 && typeof b.priority !== "number") e.push(`${at4}: priority must be a number`);
+  if (b.height !== void 0 && !(typeof b.height === "number" && b.height > 0 && b.height <= 1e3)) e.push(`${at4}: height must be the real-world height in metres (> 0)`);
   if (b.object !== void 0) {
-    if (typeof b.object !== "string" || !b.object.trim()) e.push(`${at3}: object must be text`);
-    else for (const m of effectObjectIssues({ kind: String(b.kind), object: b.object })) e.push(`${at3}: ${m}`);
+    if (typeof b.object !== "string" || !b.object.trim()) e.push(`${at4}: object must be text`);
+    else for (const m of effectObjectIssues({ kind: String(b.kind), object: b.object })) e.push(`${at4}: ${m}`);
   }
   if (b.body !== void 0) {
-    if (!BODIES.includes(b.body)) e.push(`${at3}: body must be one of ${BODIES.join(", ")}`);
-    else if (b.kind !== "character" && b.kind !== "creature") e.push(`${at3}: body applies to characters and creatures`);
+    if (!BODIES.includes(b.body)) e.push(`${at4}: body must be one of ${BODIES.join(", ")}`);
+    else if (b.kind !== "character" && b.kind !== "creature") e.push(`${at4}: body applies to characters and creatures`);
   }
-  if (b.autotile !== void 0 && !["wang16", "blob47"].includes(b.autotile)) e.push(`${at3}: autotile must be wang16 or blob47`);
-  if (b.surface !== void 0 && !["wall", "floor", "ceiling", "sky"].includes(b.surface)) e.push(`${at3}: surface must be wall, floor, ceiling or sky`);
-  if (b.blend !== void 0 && !["normal", "add"].includes(b.blend)) e.push(`${at3}: blend must be normal or add`);
-  if (b.anchor !== void 0 && !(Array.isArray(b.anchor) && b.anchor.length === 2 && b.anchor.every((n) => typeof n === "number"))) e.push(`${at3}: anchor must be [x, y]`);
+  if (b.autotile !== void 0 && !["wang16", "blob47"].includes(b.autotile)) e.push(`${at4}: autotile must be wang16 or blob47`);
+  if (b.surface !== void 0 && !["wall", "floor", "ceiling", "sky"].includes(b.surface)) e.push(`${at4}: surface must be wall, floor, ceiling or sky`);
+  if (b.blend !== void 0 && !["normal", "add"].includes(b.blend)) e.push(`${at4}: blend must be normal or add`);
+  if (b.anchor !== void 0 && !(Array.isArray(b.anchor) && b.anchor.length === 2 && b.anchor.every((n) => typeof n === "number"))) e.push(`${at4}: anchor must be [x, y]`);
+  if (b.refs !== void 0) {
+    if (!Array.isArray(b.refs) || !b.refs.every((r) => typeof r === "string" && /^refs\/[^\\]+$/.test(r) && !r.split("/").includes(".."))) e.push(`${at4}: refs must be a list of paths under refs/ (refs/goblin-1.png)`);
+  }
   if (b.swaps !== void 0) {
-    if (!isObj2(b.swaps)) e.push(`${at3}: swaps must map variant name \u2192 { ramp: ramp }`);
-    else for (const [n, m] of Object.entries(b.swaps)) if (!isObj2(m) || !Object.values(m).every((v) => typeof v === "string" && !v.startsWith("#"))) e.push(`${at3}: swaps.${n} must map ramp names to ramp names (no hex, R11)`);
+    if (!isObj3(b.swaps)) e.push(`${at4}: swaps must map variant name \u2192 { ramp: ramp }`);
+    else for (const [n, m] of Object.entries(b.swaps)) if (!isObj3(m) || !Object.values(m).every((v) => typeof v === "string" && !v.startsWith("#"))) e.push(`${at4}: swaps.${n} must map ramp names to ramp names (no hex, R11)`);
   }
   return e;
 }
@@ -23914,7 +24952,7 @@ function parseBriefs(text3) {
   const errors = [], seen = /* @__PURE__ */ new Set();
   data.forEach((b, i) => {
     errors.push(...validateBrief(b, `brief #${i + 1}`));
-    if (isObj2(b) && typeof b.id === "string") {
+    if (isObj3(b) && typeof b.id === "string") {
       if (seen.has(b.id)) errors.push(`brief ${b.id}: duplicate id`);
       seen.add(b.id);
     }
@@ -23957,7 +24995,7 @@ function removeBrief(text3, id2) {
   items.splice(i, 1);
   return doc2.toString({ lineWidth: 120 });
 }
-var import_yaml, BRIEF_KINDS, IMPORTANCE, BODIES, ID, COLOUR_WORDS, MATERIAL_WORDS, isObj2, briefDir;
+var import_yaml, BRIEF_KINDS, IMPORTANCE, BODIES, ID, COLOUR_WORDS, MATERIAL_WORDS, isObj3, briefDir;
 var init_briefs = __esm({
   "../artgen-core/src/w2/briefs.ts"() {
     "use strict";
@@ -23979,51 +25017,8 @@ var init_briefs = __esm({
       hair: ["hair", "fur", "mane", "beard", "furred"],
       grass: ["grass", "moss", "leaves", "leaf", "vine", "vines", "shrub", "hedge"]
     };
-    isObj2 = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
+    isObj3 = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
     briefDir = (b) => `assets/${b.kind}/${b.id}`;
-  }
-});
-
-// ../artgen-core/src/w2/status.ts
-function assetStatus({ ledger, next: next4, direction, finalHash: finalHash2 }) {
-  if (!next4) return { status: "brief", issues: [], why: "no versions yet" };
-  const iFeedback = lastIndex(ledger, (e) => e.type === "feedback" && e.by === "user");
-  const iApprove = lastIndex(ledger, (e) => e.type === "approve" && e.by === "user");
-  if (next4.action !== "ready") {
-    const revising = iFeedback >= 0 && iFeedback > iApprove;
-    return { status: revising ? "revision" : "in-pipeline", issues: [], why: `${next4.action} ${"version" in next4 ? next4.version : ""}`.trim() };
-  }
-  const final = next4.final, issues = next4.issues;
-  const approval = iApprove >= 0 ? ledger[iApprove] : void 0;
-  if (!approval || iFeedback > iApprove || approval.version !== final || finalHash2 && approval.sourceHash !== finalHash2) {
-    return { status: "final", final, issues, why: approval && iFeedback < iApprove ? `approved ${approval.version} changed since (re-review)` : "finished; waiting for the user to approve or give feedback" };
-  }
-  const iExport = lastIndex(ledger, (e) => e.type === "export" && e.version === final);
-  const exp = iExport > iApprove ? ledger[iExport] : void 0;
-  if (approval.direction?.version !== direction.version || approval.direction?.id !== direction.id) {
-    const iRestyle = lastIndex(ledger, (e) => e.type === "restyle" && e.direction?.version === direction.version);
-    const restyled = iRestyle > iApprove;
-    if (restyled && ledger[iRestyle].changedPct === 0) {
-      const iExp2 = lastIndex(ledger, (e) => e.type === "export" && e.version === final && e.direction?.version === direction.version);
-      if (iExp2 > iRestyle) return { status: "exported", final, issues, approval, export: ledger[iExp2], why: `in pack ${String(ledger[iExp2].pack ?? "")} (approval carried over a no-change restyle)` };
-      return { status: "approved", final, issues, approval, why: `restyled to direction v${direction.version} with no pixel change; approval carried over` };
-    }
-    return restyled ? { status: "final", final, issues, approval, why: `restyled to direction v${direction.version}; re-approve` } : { status: "stale", final, issues, approval, export: exp, why: `approved under direction v${approval.direction?.version}, now v${direction.version}: run restyle` };
-  }
-  if (exp) {
-    if (exp.sourceHash && finalHash2 && exp.sourceHash !== finalHash2) return { status: "stale", final, issues, approval, export: exp, why: "sources changed since export" };
-    return { status: "exported", final, issues, approval, export: exp, why: `in pack ${String(exp.pack ?? "")}`.trim() };
-  }
-  return { status: "approved", final, issues, approval, why: "approved; ready to export" };
-}
-var lastIndex;
-var init_status = __esm({
-  "../artgen-core/src/w2/status.ts"() {
-    "use strict";
-    lastIndex = (xs, f) => {
-      for (let i = xs.length - 1; i >= 0; i--) if (f(xs[i])) return i;
-      return -1;
-    };
   }
 });
 
@@ -24100,9 +25095,9 @@ function fitBin(out, W3, H) {
   while (h / 2 >= uh && h > 16) h /= 2;
   return [w, h];
 }
-function defaultAnchor(b, view, size) {
+function defaultAnchor(b, view, size2) {
   if (b.anchor) return b.anchor;
-  return view === "topdown" || TILE_KINDS2.has(b.kind) || b.kind === "effect" ? [size[0] >> 1, size[1] >> 1] : [size[0] >> 1, size[1] - 1];
+  return view === "topdown" || TILE_KINDS2.has(b.kind) || b.kind === "effect" ? [size2[0] >> 1, size2[1] >> 1] : [size2[0] >> 1, size2[1] - 1];
 }
 function stateDefs(b, dir, frames) {
   const out = {};
@@ -24143,16 +25138,16 @@ function buildPack(pack, dir, inputs, opts = {}) {
   const refs = [];
   const withNormals = inputs.some((i) => i.renders.some((r) => r.cells.some((c) => c.normal)));
   for (const inp of inputs) inp.renders.forEach((r, variant) => {
-    for (const cell2 of r.cells) {
-      const h = cell2.grid.hash() + (withNormals && cell2.normal ? cell2.normal.hash() : "");
+    for (const cell3 of r.cells) {
+      const h = cell3.grid.hash() + (withNormals && cell3.normal ? cell3.normal.hash() : "");
       let img = byHash.get(h);
       if (img === void 0) {
         img = uniq.length;
-        uniq.push(cell2.grid);
-        uniqN.push(cell2.normal);
+        uniq.push(cell3.grid);
+        uniqN.push(cell3.normal);
         byHash.set(h, img);
       }
-      refs.push({ asset: inp.brief.id, cell: cell2, variant, img, fi: r.facings.indexOf(cell2.facing), si: cell2.state });
+      refs.push({ asset: inp.brief.id, cell: cell3, variant, img, fi: r.facings.indexOf(cell3.facing), si: cell3.state });
     }
   });
   const { placed, bins } = packRects(uniq.map((g) => ({ w: g.w, h: g.h })), opts);
@@ -24217,8 +25212,8 @@ function asepriteJson(m, bin, g, image2) {
   const frames = [], tags = [];
   for (const [id2, a] of Object.entries(m.assets)) {
     let tag;
-    for (const [at3, x, y, w, h, fi, state, frame, variant] of a.frames) {
-      if (at3 !== bin) continue;
+    for (const [at4, x, y, w, h, fi, state, frame, variant] of a.frames) {
+      if (at4 !== bin) continue;
       const strip2 = `${id2}/${state}/${a.facings[fi]}${variant ? `#${a.variants[variant]}` : ""}`;
       if (!tag || tag.name !== strip2) {
         tag = { name: strip2, from: frames.length, to: frames.length, direction: "forward" };
@@ -24265,6 +25260,47 @@ var init_pack = __esm({
     LOOPING2 = /^(idle|walk|run|fly|swim|loop|burn|glow|flicker)/;
     frameDurations = (st) => st.durations ?? Array.from({ length: st.frames }, () => Math.round(1e3 / st.fps));
     ident = (s2) => /^[A-Za-z_$][\w$]*$/.test(s2) ? s2 : JSON.stringify(s2);
+  }
+});
+
+// ../artgen-core/src/w2/sheet.ts
+function assetDataSheet(brief, dir, budget, contract) {
+  const [w, h] = resolveSize(dir, brief.size, brief.kind), ppm = pxPerMetre(dir), names = brief.states?.length ? brief.states : ["idle"];
+  const defs = stateDefs(brief, dir, Object.fromEntries(names.map((s2) => [s2, brief.anims?.[s2]?.frames ?? 1]))), facings = FACINGS[brief.directions ?? 1] ?? ["s"];
+  const frames = names.map((s2) => `${s2} ${defs[s2].frames} frame${defs[s2].frames === 1 ? "" : "s"}${defs[s2].frames > 1 ? ` at ${defs[s2].fps} fps` : ""}${defs[s2].loop ? ", loops" : ""}`);
+  const words = (brief.notes ?? "").trim().split(/\s+/).filter(Boolean), notes = words.length > NOTE_WORDS ? `${words.slice(0, NOTE_WORDS).join(" ")} ...` : words.join(" ");
+  return {
+    title: `${brief.id} \u2014 ${brief.kind}`,
+    subject: brief.id,
+    rows: [
+      { label: "Kind", value: brief.kind },
+      { label: "Importance", value: brief.importance ?? "standard" },
+      { label: "View", value: brief.view ?? dir.camera.view },
+      { label: "Size", value: `${w}x${h} px, ${Math.round(ppm * 10) / 10} px per metre${brief.height ? `; ${brief.height} m tall is about ${Math.round(brief.height * ppm)} px` : ""}` },
+      { label: "States", value: names.join(", ") },
+      { label: "Facings", value: `${facings.length}: ${facings.join(" ")}` },
+      { label: "Frames", value: frames.join("; ") },
+      { label: "Template", value: brief.template ?? "-" },
+      { label: "Budget", value: `${budget.revisionPasses} revision passes, ${budget.maxUserIterations} user iterations${budget.maxImageTokens ? `, ${budget.maxImageTokens} image tokens` : ""}` }
+    ],
+    ...contract && { must: [
+      { text: `facings ${contract.facings.join(" ")}` },
+      ...Object.entries(contract.states).map(([s2, c]) => ({ text: `${s2}: ${c.frames} frame${c.frames === 1 ? "" : "s"}, ${c.durations.join("/")} ms${c.loop ? ", loops" : ""}` })),
+      ...contract.anchors.length ? [{ text: `anchors ${contract.anchors.join(", ")}` }] : []
+    ] },
+    swatches: kindPalette(dir, brief.kind),
+    ...brief.refs?.length && { refs: [...brief.refs] },
+    ...notes && { notes }
+  };
+}
+var NOTE_WORDS;
+var init_sheet3 = __esm({
+  "../artgen-core/src/w2/sheet.ts"() {
+    "use strict";
+    init_direction();
+    init_render4();
+    init_pack();
+    NOTE_WORDS = 60;
   }
 });
 
@@ -24322,13 +25358,13 @@ function body(g) {
 }
 function silhouetteOverlap(a, b) {
   const W3 = Math.max(a.w, b.w), H = Math.max(a.h, b.h);
-  const at3 = (s2, x, y) => {
+  const at4 = (s2, x, y) => {
     const sx = x - (W3 - s2.w >> 1), sy = y - (H - s2.h);
     return sx >= 0 && sy >= 0 && sx < s2.w && sy < s2.h && s2.mask[sy * s2.w + sx] === 1;
   };
   let i = 0, u = 0;
   for (let y = 0; y < H; y++) for (let x = 0; x < W3; x++) {
-    const p2 = at3(a, x, y), q = at3(b, x, y);
+    const p2 = at4(a, x, y), q = at4(b, x, y);
     if (p2 && q) i++;
     if (p2 || q) u++;
   }
@@ -24352,16 +25388,16 @@ function page(items, bodies, o, key2) {
     const j = Math.floor(r() * (i + 1));
     [order[i], order[j]] = [order[j], order[i]];
   }
-  const S3 = 5, cell2 = Math.max(8, ...bodies.map((b) => Math.max(b.w, b.h))) * S3 + 16, cols = Math.min(5, Math.max(1, items.length)), rows2 = Math.ceil(items.length / cols);
-  const silhouettes = new Grid(cols * cell2, Math.max(1, rows2) * (cell2 + 12)).fill(0, 0, cols * cell2, Math.max(1, rows2) * (cell2 + 12), "#d8d8d8");
+  const S3 = 5, cell3 = Math.max(8, ...bodies.map((b) => Math.max(b.w, b.h))) * S3 + 16, cols = Math.min(5, Math.max(1, items.length)), rows2 = Math.ceil(items.length / cols);
+  const silhouettes = new Grid(cols * cell3, Math.max(1, rows2) * (cell3 + 12)).fill(0, 0, cols * cell3, Math.max(1, rows2) * (cell3 + 12), "#d8d8d8");
   order.forEach((ix, n) => {
-    const b = bodies[ix], cx = n % cols * cell2, cy = Math.floor(n / cols) * (cell2 + 12), L2 = rosterLabel(o.from + n);
+    const b = bodies[ix], cx = n % cols * cell3, cy = Math.floor(n / cols) * (cell3 + 12), L2 = rosterLabel(o.from + n);
     key2[L2] = items[ix].id;
     drawText(silhouettes, cx + 4, cy + 3, L2, "#000000", 1);
-    const ox = cx + (cell2 - b.w * S3 >> 1), oy = cy + 12 + cell2 - 8 - b.h * S3;
+    const ox = cx + (cell3 - b.w * S3 >> 1), oy = cy + 12 + cell3 - 8 - b.h * S3;
     for (let j = 0; j < b.h; j++) for (let k = 0; k < b.w; k++) if (b.mask[j * b.w + k]) {
       silhouettes.fill(ox + k * S3, oy + j * S3, S3, S3, "#000000");
-      silhouettes.set(cx + cell2 - b.w - 3 + k, cy + 3 + j, "#000000");
+      silhouettes.set(cx + cell3 - b.w - 3 + k, cy + 3 + j, "#000000");
     }
   });
   return { lineup, silhouettes, ids: items.map((it) => it.id) };
@@ -24413,246 +25449,10 @@ var init_roster = __esm({
 });
 
 // ../artgen-core/src/w2/analytics.ts
-function passRecords(ledger) {
-  const latest = /* @__PURE__ */ new Map();
-  for (const e of ledger) if (e.type === "score" && !e.blind && e.version && typeof e.score === "number" && e.asset !== "direction") latest.set(`${e.asset}\0${e.version}`, e);
-  const out = [], lastBase = /* @__PURE__ */ new Map(), baseScore = /* @__PURE__ */ new Map();
-  for (const e of latest.values()) {
-    const tk = e.tokens ?? {};
-    const pass = e.pass ?? (e.version.startsWith("finish") ? "f" : "r?"), stage = stageOf(pass), key2 = (v) => `${e.asset}\0${v}`;
-    let delta;
-    if (e.version.startsWith("base")) {
-      const prev = lastBase.get(e.asset);
-      if (prev !== void 0) delta = round(e.score - prev);
-      lastBase.set(e.asset, e.score);
-      baseScore.set(key2(e.version), e.score);
-    } else if (typeof e.base === "string" && baseScore.has(key2(e.base))) delta = round(e.score - baseScore.get(key2(e.base)));
-    out.push({
-      asset: e.asset,
-      version: e.version,
-      pass,
-      stage,
-      score: e.score,
-      delta,
-      gate: e.conformance?.pass,
-      outTokens: tk.out ?? tk.edit ?? 0,
-      inTokens: tk.in ?? 0,
-      imageTokens: e.imageTokens ?? 0,
-      agentIn: tk.agentIn ?? 0,
-      wallMs: typeof e.wallMs === "number" ? e.wallMs : void 0,
-      model: e.model,
-      effort: e.effort,
-      reviewModel: typeof e.reviewModel === "string" ? e.reviewModel : void 0
-    });
-  }
-  return out;
-}
-function analytics(ledger, metas) {
-  const recs = passRecords(ledger), ids = [...new Set(recs.map((r) => r.asset))], meta7 = new Map(metas.map((m) => [m.id, m]));
-  const passKey = (p2) => /^f\d*$/.test(p2) ? p2 === "f" ? "f" : "f2+" : /^[xu]\d+$/.test(p2) ? p2[0] : p2;
-  const ORDER = ["r1", "r2", "r3", "r4", "r5", "x", "f", "u", "f2+"];
-  const passes = [...new Set(recs.map((r) => passKey(r.pass)))].sort((a, b) => (ORDER.indexOf(a) + 1 || 99) - (ORDER.indexOf(b) + 1 || 99)).map((pass) => {
-    const rs = recs.filter((r) => passKey(r.pass) === pass), walls = rs.map((r) => r.wallMs).filter((w) => w !== void 0);
-    return {
-      pass,
-      n: rs.length,
-      meanScore: mean(rs.map((r) => r.score)),
-      meanDelta: mean(rs.map((r) => r.delta).filter((d) => d !== void 0)),
-      regressed: rs.filter((r) => (r.delta ?? 0) < 0).length,
-      gatePass: rs.filter((r) => r.gate).length,
-      outTokens: sum(rs.map((r) => r.outTokens)),
-      imageTokens: sum(rs.map((r) => r.imageTokens)),
-      meanWallS: walls.length ? round(mean(walls) / 1e3, 0) : void 0
-    };
-  });
-  const perAsset = ids.map((id2) => {
-    const rs = recs.filter((r) => r.asset === id2), bases = rs.filter((r) => r.version.startsWith("base")), fins = rs.filter((r) => r.stage === "finish");
-    const r13 = rs.find((r) => r.pass === "r1")?.score, best = bases.length ? Math.max(...bases.filter((b) => b.stage !== "user").map((b) => b.score)) : void 0;
-    const fin = fins[fins.length - 1], finBase = fin && rs.find((r) => r.version === ledger.find((e) => e.type === "score" && e.asset === id2 && e.version === fin.version)?.base);
-    const out = sum(rs.map((r) => r.outTokens + r.inTokens)), img = sum(rs.map((r) => r.imageTokens)), agent = sum(rs.map((r) => r.agentIn));
-    return {
-      id: id2,
-      kind: meta7.get(id2)?.kind ?? "?",
-      r1: r13,
-      best: Number.isFinite(best) ? best : void 0,
-      final: fin?.score ?? best,
-      fromRevisions: r13 !== void 0 && best !== void 0 && Number.isFinite(best) ? round(best - r13) : void 0,
-      fromFinish: fin && finBase ? round(fin.score - finBase.score) : void 0,
-      passes: rs.length,
-      outTokens: out,
-      imageTokens: img,
-      cost: round(tokenCost(sum(rs.map((r) => r.outTokens)), img + agent + sum(rs.map((r) => r.inTokens))), 4)
-    };
-  });
-  const group = (f) => {
-    const g = /* @__PURE__ */ new Map();
-    for (const a of perAsset) {
-      const k = f(meta7.get(a.id)) ?? "-";
-      g.set(k, [...g.get(k) ?? [], a]);
-    }
-    return [...g].map(([key2, as]) => ({ key: key2, n: as.length, meanFinal: mean(as.map((a) => a.final).filter((x) => x !== void 0)), meanCost: as.length ? round(mean(as.map((a) => a.cost)) ?? 0, 4) : void 0, meanPasses: mean(as.map((a) => a.passes)) }));
-  };
-  const tmpl = /* @__PURE__ */ new Map();
-  for (const a of perAsset) if (a.r1 !== void 0) {
-    const t = meta7.get(a.id)?.template ?? "-";
-    tmpl.set(t, [...tmpl.get(t) ?? [], a.r1]);
-  }
-  const fb = ledger.filter((e) => e.type === "feedback" && e.by === "user" && e.asset !== "direction");
-  const finals = new Set(ledger.filter((e) => e.type === "status" && e.status === "final").map((e) => e.asset)).size || perAsset.filter((a) => a.final !== void 0).length;
-  const byRoute = {};
-  for (const e of fb) byRoute[String(e.route ?? "?")] = (byRoute[String(e.route ?? "?")] ?? 0) + 1;
-  const mg = /* @__PURE__ */ new Map();
-  for (const r of recs) {
-    const k = `${r.model ?? "unrecorded"}\0${r.effort ?? "-"}`;
-    mg.set(k, [...mg.get(k) ?? [], r]);
-  }
-  const models = [...mg].map(([k, rs]) => {
-    const [model, effort] = k.split("\0"), ds = rs.map((r) => r.delta).filter((d) => d !== void 0), tok2 = sum(rs.map((r) => r.outTokens + r.inTokens + r.imageTokens + r.agentIn));
-    return { model, effort, n: rs.length, meanDelta: mean(ds), deltaPerKTok: tok2 ? round(sum(ds) / tok2 * 1e3, 3) : void 0 };
-  });
-  const rg = /* @__PURE__ */ new Map();
-  for (const r of recs) {
-    const k = r.reviewModel ?? "unrecorded";
-    rg.set(k, [...rg.get(k) ?? [], r]);
-  }
-  const reviewers = [...rg].map(([model, rs]) => {
-    const ds = rs.map((r) => r.delta).filter((d) => d !== void 0), tok2 = sum(rs.map((r) => r.outTokens + r.inTokens + r.imageTokens + r.agentIn));
-    return { model, passes: [...new Set(rs.map((r) => r.pass.replace(/\d+$/, "")))].sort(), n: rs.length, meanDelta: mean(ds), deltaPerKTok: tok2 && ds.length ? round(sum(ds) / tok2 * 1e3, 3) : void 0 };
-  });
-  const suggestions = [];
-  const kinds = [...new Set(perAsset.map((a) => a.kind))];
-  const gainRules = (label4, d3, d2, key2) => {
-    if (d3.length >= 3 && mean(d3) <= 0.1) suggestions.push(`${label4}: v3 adds ${mean(d3)} on average over ${d3.length} assets \u2014 try ${key2}.revisionPasses = 2`);
-    else if (d3.length >= 3 && mean(d3) >= 0.75) suggestions.push(`${label4}: v3 still adds ${mean(d3)} on average \u2014 a fourth revision may pay off (${key2}.revisionPasses = 4)`);
-    if (d2.length >= 3 && mean(d2) <= 0) suggestions.push(`${label4}: v2 does not improve on v1 (${mean(d2)}) \u2014 look at the template or the review notes`);
-  };
-  const deltas = (p2, kind) => recs.filter((r) => r.pass === p2 && (!kind || meta7.get(r.asset)?.kind === kind) && r.delta !== void 0).map((r) => r.delta);
-  for (const kind of kinds) gainRules(kind, deltas("r3", kind), deltas("r2", kind), `budget.perKind.${kind}`);
-  if (kinds.length > 1 && kinds.every((k) => deltas("r3", k).length < 3 && deltas("r2", k).length < 3)) gainRules("all kinds together", deltas("r3"), deltas("r2"), "budget");
-  const fRecs = recs.filter((r) => r.pass === "f" && r.delta !== void 0), allTok = sum(recs.map((r) => r.outTokens + r.inTokens + r.imageTokens + r.agentIn));
-  if (fRecs.length >= 3) {
-    const fMean = mean(fRecs.map((r) => r.delta)), fReg = fRecs.filter((r) => r.delta < 0).length / fRecs.length;
-    const fTok = sum(recs.filter((r) => r.stage === "finish").map((r) => r.outTokens + r.inTokens + r.imageTokens + r.agentIn)), share2 = allTok ? Math.round(100 * fTok / allTok) : 0;
-    if (fMean <= 0 || fReg >= 0.3)
-      suggestions.push(`the finishing pass adds ${fMean} on average and regressed ${Math.round(fReg * 100)}% of ${fRecs.length} assets, for ${share2}% of the tokens \u2014 set review.finish = "auto" (finish only on a finish-level note or a base over approveMin), or check it fixes what the review sheets show`);
-  }
-  const revs = recs.filter((r) => r.stage === "revision" && r.delta !== void 0), regRate = revs.filter((r) => r.delta < 0).length / Math.max(1, revs.length);
-  if (recs.length >= 10 && regRate >= 0.3) suggestions.push(`${Math.round(regRate * 100)}% of revisions regressed \u2014 change one thing per revision (R12 keeps the best, but each regression costs a pass)`);
-  const byReviewer = {}, own = /* @__PURE__ */ new Map();
-  for (const e of ledger) if (e.type === "score" && !e.blind && e.asset !== "direction" && typeof e.score === "number") {
-    const k = typeof e.reviewer === "string" ? e.reviewer : "unrecorded";
-    byReviewer[k] = (byReviewer[k] ?? 0) + 1;
-    own.set(`${e.asset}\0${e.version}`, e.score);
-  }
-  const blindLatest = /* @__PURE__ */ new Map();
-  for (const e of ledger) if (e.type === "score" && e.blind && typeof e.score === "number") blindLatest.set(`${e.asset}\0${e.version}`, e);
-  const blindRows = [...blindLatest].filter(([k]) => own.has(k)).map(([k, e]) => ({ asset: e.asset, version: e.version, own: own.get(k), blind: e.score, gap: round(own.get(k) - e.score) }));
-  const meanGap = mean(blindRows.map((b) => b.gap));
-  if (blindRows.length >= 3 && meanGap >= 0.5) suggestions.push(`blind re-scores average ${meanGap} below the pipeline's own scores over ${blindRows.length} finals \u2014 run every review through the art-reviewer subagent, not the authoring agent`);
-  const ff = perAsset.map((a) => a.fromFinish).filter((x) => x !== void 0);
-  const totOut = sum(recs.map((r) => r.outTokens)), totIn = sum(recs.map((r) => r.inTokens)), totImg = sum(recs.map((r) => r.imageTokens)), totAgent = sum(recs.map((r) => r.agentIn));
-  return {
-    assets: ids.length,
-    passes,
-    perAsset,
-    byGroup: { kind: group((m) => m?.kind), size: group((m) => m?.size), view: group((m) => m?.view), importance: group((m) => m?.importance) },
-    firstPassByTemplate: [...tmpl].map(([template, xs]) => ({ template, n: xs.length, meanR1: mean(xs) })),
-    regressions: recs.filter((r) => r.delta !== void 0 && r.delta < 0).map((r) => ({ asset: r.asset, version: r.version, pass: r.pass, delta: r.delta })),
-    userRevisionRate: { feedback: fb.length, finals, rate: finals ? round(new Set(fb.map((e) => e.asset)).size / finals) : void 0, byRoute },
-    models,
-    reviewers,
-    review: { byReviewer, blind: { n: blindRows.length, meanGap, over1: blindRows.filter((b) => b.gap > 1).length, assets: blindRows } },
-    suggestions,
-    totals: {
-      outTokens: totOut,
-      inTokens: totIn,
-      imageTokens: totImg,
-      cost: round(tokenCost(totOut, totIn + totImg + totAgent), 4),
-      meanFromRevisions: mean(perAsset.map((a) => a.fromRevisions).filter((x) => x !== void 0)),
-      meanFromFinish: mean(ff),
-      agentIn: totAgent,
-      agentInRecords: recs.filter((r) => r.agentIn > 0).length,
-      records: recs.length
-    }
-  };
-}
-function analyticsMarkdown(r, title = "artgen pipeline analytics") {
-  let md = `# ${title}
-
-${r.assets} assets. Price basis: $${PRICE.inPerM}/M input (review images, measured input), $${PRICE.outPerM}/M output (code; estimated at 3.5 chars/token unless measured).
-
-`;
-  md += `Totals: ${r.totals.outTokens} output tok, ${r.totals.imageTokens} review-image tok${r.totals.inTokens ? `, ${r.totals.inTokens} measured input tok` : ""}, est. $${r.totals.cost.toFixed(3)}. Average gain from revisions ${s(r.totals.meanFromRevisions, true)}, from the finishing pass ${s(r.totals.meanFromFinish, true)}.
-
-` + (r.totals.agentInRecords ? `Agent input (the context each maker and reviewer read) is in the cost for ${r.totals.agentInRecords} of ${r.totals.records} score records: ${r.totals.agentIn} tok.
-
-` : "The cost leaves out what the agents read (skills, direction, rigs): pass `score --agent-tokens-in <n>` to count it.\n\n");
-  md += "## Per pass\n\n| Pass | n | Mean score | Mean \u0394 | Regressed | Gate pass | Output tok | Review tok | Mean wall s |\n|---|---|---|---|---|---|---|---|---|\n";
-  for (const p2 of r.passes) md += `| ${p2.pass} | ${p2.n} | ${s(p2.meanScore)} | ${s(p2.meanDelta, true)} | ${p2.regressed} | ${p2.gatePass}/${p2.n} | ${p2.outTokens} | ${p2.imageTokens} | ${s(p2.meanWallS)} |
-`;
-  md += "\n## Per asset\n\n| Asset | Kind | r1 | Best revision | Final | From revisions | From finish | Passes | Output tok | Review tok | Est. cost |\n|---|---|---|---|---|---|---|---|---|---|---|\n";
-  for (const a of r.perAsset) md += `| ${a.id} | ${a.kind} | ${s(a.r1)} | ${s(a.best)} | ${s(a.final)} | ${s(a.fromRevisions, true)} | ${s(a.fromFinish, true)} | ${a.passes} | ${a.outTokens} | ${a.imageTokens} | $${a.cost.toFixed(4)} |
-`;
-  for (const [k, rows2] of Object.entries(r.byGroup)) {
-    if (rows2.length < 2 && rows2[0]?.key === "-") continue;
-    md += `
-## Cost by ${k}
-
-| ${k} | n | Mean final | Mean cost | Mean passes |
-|---|---|---|---|---|
-`;
-    for (const g of rows2) md += `| ${g.key} | ${g.n} | ${s(g.meanFinal)} | ${g.meanCost === void 0 ? "-" : `$${g.meanCost.toFixed(4)}`} | ${s(g.meanPasses)} |
-`;
-  }
-  md += "\n## First-pass quality by template\n\n| Template | n | Mean r1 |\n|---|---|---|\n";
-  for (const t of r.firstPassByTemplate) md += `| ${t.template} | ${t.n} | ${s(t.meanR1)} |
-`;
-  md += `
-## Regressions
-
-${r.regressions.length ? r.regressions.map((x) => `- ${x.asset} ${x.version} (${x.pass}) ${x.delta}`).join("\n") : "none"}
-`;
-  const u = r.userRevisionRate;
-  md += `
-## User revisions
-
-${u.feedback} feedback rounds over ${u.finals} finished assets (rate ${s(u.rate)})${Object.keys(u.byRoute).length ? `; by route: ${Object.entries(u.byRoute).map(([k, v]) => `${k} ${v}`).join(", ")}` : ""}.
-`;
-  md += "\n## Model / effort per stage\n\n| Model | Effort | Passes | Mean \u0394 | \u0394 per 1k tok |\n|---|---|---|---|---|\n";
-  for (const m of r.models) md += `| ${m.model} | ${m.effort} | ${m.n} | ${s(m.meanDelta, true)} | ${s(m.deltaPerKTok)} |
-`;
-  md += "\n## Review tiers\n\nPasses by the model that scored them (`models.reviewEarly` for r1/r2, `models.review` for the rest).\n\n| Reviewer model | Passes | n | Mean \u0394 | \u0394 per 1k tok |\n|---|---|---|---|---|\n";
-  for (const m of r.reviewers) md += `| ${m.model} | ${m.passes.join(", ")} | ${m.n} | ${s(m.meanDelta, true)} | ${s(m.deltaPerKTok)} |
-`;
-  const rv = r.review;
-  md += `
-## Review independence
-
-Scores by reviewer: ${Object.entries(rv.byReviewer).map(([k, v]) => `${k} ${v}`).join(", ") || "none"}. Blind re-scores: ${rv.blind.n}${rv.blind.n ? `, mean gap ${s(rv.blind.meanGap, true)} (own \u2212 blind), ${rv.blind.over1} more than 1 point apart` : ""}.
-`;
-  if (rv.blind.n) {
-    md += "\n| Asset | Final | Own | Blind | Gap |\n|---|---|---|---|---|\n";
-    for (const b of rv.blind.assets) md += `| ${b.asset} | ${b.version} | ${b.own} | ${b.blind} | ${s(b.gap, true)} |
-`;
-  }
-  md += `
-## Budget suggestions
-
-${r.suggestions.length ? r.suggestions.map((x) => `- ${x}`).join("\n") : "- none: nothing crosses a threshold (v3 adding \u2264 0.1 or \u2265 0.75 over \u2265 3 assets of a kind, or of the batch when every kind is smaller; v2 not improving; the first finish adding \u2264 0 or regressing \u2265 30% of \u2265 3 assets; \u2265 30% of revisions regressing)"}
-`;
-  return md;
-}
-var PRICE, tokenCost, stageOf, round, mean, sum, s;
-var init_analytics = __esm({
+var init_analytics2 = __esm({
   "../artgen-core/src/w2/analytics.ts"() {
     "use strict";
-    PRICE = { inPerM: 4, outPerM: 20 };
-    tokenCost = (out, inp) => (out * PRICE.outPerM + inp * PRICE.inPerM) / 1e6;
-    stageOf = (pass) => pass.startsWith("f") ? "finish" : pass.startsWith("x") ? "extra" : pass.startsWith("u") ? "user" : "revision";
-    round = (v, d = 2) => Math.round(v * 10 ** d) / 10 ** d;
-    mean = (xs) => xs.length ? round(xs.reduce((a, b) => a + b, 0) / xs.length) : void 0;
-    sum = (xs) => xs.reduce((a, b) => a + b, 0);
-    s = (v, sign = false) => v === void 0 ? "-" : `${sign && v >= 0 ? "+" : ""}${v}`;
+    init_analytics();
   }
 });
 
@@ -24729,8 +25529,8 @@ function recommend(sets, o = {}) {
       confidence,
       why,
       imageTokens: { n: perAssetImg.length, p50: perAssetImg.length ? pct(perAssetImg, 0.5) : 0, p90, ...cap && { cap } },
-      finish: { n: fins.length, ...firstFin.length && { meanGain: mean2(firstFin) }, ...fins.length && { extraFinishRate: round2(fins.filter((f) => f.length > 1).length / fins.length) } },
-      ...finished.length && { userRevisionRate: round2(finished.filter((a) => feedback2.has(a)).length / finished.length) },
+      finish: { n: fins.length, ...firstFin.length && { meanGain: mean2(firstFin) }, ...fins.length && { extraFinishRate: round3(fins.filter((f) => f.length > 1).length / fins.length) } },
+      ...finished.length && { userRevisionRate: round3(finished.filter((a) => feedback2.has(a)).length / finished.length) },
       ...bl.length && { blindGap: { n: bl.length, mean: mean2(bl.map((b) => b.gap)) } }
     };
     kinds.push(kb);
@@ -24751,7 +25551,7 @@ function recommend(sets, o = {}) {
     }
     const mappings = [...g].map(([k, xs]) => {
       const [model, effort] = k.split("\0"), ds = xs.map((x) => stage === "base" ? x.score : x.delta).filter((d) => d !== void 0), tok2 = xs.reduce((s2, x) => s2 + totalTok(x), 0);
-      return { model, effort, n: xs.length, ...ds.length && { meanDelta: mean2(ds) }, ...tok2 && ds.length && { deltaPerKTok: round2(ds.reduce((a, b) => a + b, 0) / tok2 * 1e3, 3) } };
+      return { model, effort, n: xs.length, ...ds.length && { meanDelta: mean2(ds) }, ...tok2 && ds.length && { deltaPerKTok: round3(ds.reduce((a, b) => a + b, 0) / tok2 * 1e3, 3) } };
     }).sort((a, b) => b.n - a.n);
     const solid = mappings.filter((m) => m.n >= minAssets && m.meanDelta !== void 0);
     let why, pick2;
@@ -24836,13 +25636,13 @@ function applyRecommendations(cfg, patch) {
   for (const [k, v] of Object.entries(patch.budget.perKind)) perKind[k] = { ...perKind[k] ?? {}, ...v };
   return { ...cfg, budget: { ...cfg.budget, ...Object.keys(perKind).length && { perKind } }, models: { ...cfg.models, ...patch.models } };
 }
-var round2, mean2, pct, stageOfRec, baseIndex, sg;
+var round3, mean2, pct, stageOfRec, baseIndex, sg;
 var init_recommend = __esm({
   "../artgen-core/src/w2/recommend.ts"() {
     "use strict";
-    init_analytics();
-    round2 = (v, d = 2) => Math.round(v * 10 ** d) / 10 ** d;
-    mean2 = (xs) => round2(xs.reduce((a, b) => a + b, 0) / xs.length);
+    init_analytics2();
+    round3 = (v, d = 2) => Math.round(v * 10 ** d) / 10 ** d;
+    mean2 = (xs) => round3(xs.reduce((a, b) => a + b, 0) / xs.length);
     pct = (xs, q) => {
       const s2 = [...xs].sort((a, b) => a - b);
       return s2[Math.min(s2.length - 1, Math.max(0, Math.ceil(q * s2.length) - 1))];
@@ -24907,31 +25707,31 @@ function tokenDiffMask(before, after, from, to) {
   return g;
 }
 function restyleSheet(title, rows2, scale2 = 3, maxEdge = 1568) {
-  const size = (s3) => {
-    const cw = Math.max(...rows2.map((r) => r.after.w * s3), textWidth("token diff", TXT3)) + PAD3;
-    const W3 = Math.max(PAD3 + cw * 3, PAD3 * 2 + textWidth(title, TXT3), ...rows2.map((r) => PAD3 * 2 + textWidth(r.label, TXT3)));
-    const H = PAD3 + LAB2 * 2 + rows2.reduce((n, r) => n + LAB2 + r.after.h * s3 + PAD3, 0);
+  const size2 = (s3) => {
+    const cw = Math.max(...rows2.map((r) => r.after.w * s3), textWidth("token diff", TXT4)) + PAD4;
+    const W3 = Math.max(PAD4 + cw * 3, PAD4 * 2 + textWidth(title, TXT4), ...rows2.map((r) => PAD4 * 2 + textWidth(r.label, TXT4)));
+    const H = PAD4 + LAB2 * 2 + rows2.reduce((n, r) => n + LAB2 + r.after.h * s3 + PAD4, 0);
     return { cw, W: W3, H };
   };
-  let s2 = scale2, L2 = size(s2);
+  let s2 = scale2, L2 = size2(s2);
   while (Math.max(L2.W, L2.H) > maxEdge && s2 > 1) {
     s2--;
-    L2 = size(s2);
+    L2 = size2(s2);
   }
-  const g = new Grid(L2.W, L2.H).fill(0, 0, L2.W, L2.H, BG3);
-  drawText(g, PAD3, PAD3, title, "#ffffff", TXT3);
-  ["before", "after", "token diff"].forEach((h, i) => drawText(g, PAD3 + i * L2.cw, PAD3 + LAB2, h, FG3, TXT3));
-  let y = PAD3 + LAB2 * 2;
+  const g = new Grid(L2.W, L2.H).fill(0, 0, L2.W, L2.H, BG4);
+  drawText(g, PAD4, PAD4, title, "#ffffff", TXT4);
+  ["before", "after", "token diff"].forEach((h, i) => drawText(g, PAD4 + i * L2.cw, PAD4 + LAB2, h, FG4, TXT4));
+  let y = PAD4 + LAB2 * 2;
   for (const r of rows2) {
-    drawText(g, PAD3, y, r.label, FG3, TXT3);
+    drawText(g, PAD4, y, r.label, FG4, TXT4);
     const top = y + LAB2;
     [r.before, r.after, r.mask].forEach((im, i) => {
-      const big = im.scale(s2), x = PAD3 + i * L2.cw;
+      const big = im.scale(s2), x = PAD4 + i * L2.cw;
       if (r.bg && i < 2) g.fill(x, top, big.w, big.h, r.bg);
       else checker(g, x, top, big.w, big.h);
       g.over(big, x, top);
     });
-    y = top + r.after.h * s2 + PAD3;
+    y = top + r.after.h * s2 + PAD4;
   }
   return g;
 }
@@ -24953,7 +25753,7 @@ function editOps(current, edited, dir) {
   }
   return { ops, snapped };
 }
-var PAD3, TXT3, LAB2, BG3, FG3;
+var PAD4, TXT4, LAB2, BG4, FG4;
 var init_edit3 = __esm({
   "../artgen-core/src/w2/edit.ts"() {
     "use strict";
@@ -24961,12 +25761,12 @@ var init_edit3 = __esm({
     init_color();
     init_font();
     init_grid();
-    init_sheet();
-    PAD3 = 10;
-    TXT3 = 2;
-    LAB2 = GLYPH_H * TXT3 + 6;
-    BG3 = "#16161c";
-    FG3 = "#dddddd";
+    init_sheet2();
+    PAD4 = 10;
+    TXT4 = 2;
+    LAB2 = GLYPH_H * TXT4 + 6;
+    BG4 = "#16161c";
+    FG4 = "#dddddd";
   }
 });
 
@@ -25012,29 +25812,28 @@ var init_config = __esm({
 });
 
 // ../artgen-core/src/index.ts
-var init_src4 = __esm({
+var init_src5 = __esm({
   "../artgen-core/src/index.ts"() {
     "use strict";
     init_src();
     init_src2();
     init_src3();
+    init_src4();
     init_render4();
-    init_metrics();
+    init_metrics2();
     init_conformance();
-    init_sheet();
+    init_sheet2();
     init_tiles();
     init_anim2();
-    init_ledger();
     init_pipeline();
     init_finish();
     init_candidates();
     init_sheets();
     init_briefs();
-    init_status();
+    init_sheet3();
     init_pack();
     init_contract();
     init_roster();
-    init_analytics();
     init_recommend();
     init_edit3();
     init_config();
@@ -25045,6 +25844,7 @@ var init_src4 = __esm({
 var init_maps = __esm({
   "../artgen-core/src/maps.ts"() {
     "use strict";
+    init_src4();
     init_src3();
   }
 });
@@ -25085,33 +25885,753 @@ var init_node_svg = __esm({
   }
 });
 
-// ../artgen-cli/src/node.ts
-import { appendFileSync, mkdirSync, readFileSync as readFileSync2, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
-function writeGrid(path, g) {
-  mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, encodePNG(g));
+// ../artgen-cli/src/projectfs.ts
+import { existsSync as existsSync2, mkdirSync, readFileSync as readFileSync2, writeFileSync } from "node:fs";
+import { basename, dirname, extname, join as join2, resolve } from "node:path";
+function findProject(start = process.cwd()) {
+  for (let d = resolve(start); ; d = dirname(d)) {
+    if (existsSync2(join2(d, "art", CONFIG_FILE))) return { root: d, art: join2(d, "art") };
+    if (dirname(d) === d) return null;
+  }
 }
+var CONFIG_FILE, fileStem, fileId, readJson, writeJson;
+var init_projectfs = __esm({
+  "../artgen-cli/src/projectfs.ts"() {
+    "use strict";
+    CONFIG_FILE = "artgen.config.json";
+    fileStem = (file) => basename(file, extname(file));
+    fileId = (file) => fileStem(file).replace(/[^\w-]+/g, "-").replace(/^-+|-+$/g, "") || "map";
+    readJson = (p2) => JSON.parse(readFileSync2(p2, "utf8"));
+    writeJson = (p2, v) => {
+      mkdirSync(dirname(p2), { recursive: true });
+      writeFileSync(p2, JSON.stringify(v, null, 2) + "\n");
+    };
+  }
+});
+
+// ../artgen-cli/src/map.ts
+import { existsSync as existsSync3, mkdirSync as mkdirSync2, readdirSync, readFileSync as readFileSync3, writeFileSync as writeFileSync2 } from "node:fs";
+import { dirname as dirname2, join as join3, relative, resolve as resolve2 } from "node:path";
+function mapFile(p2, ref) {
+  if (typeof ref !== "string") return resolve2(ref.file);
+  if (!/^[\w-]+$/.test(ref ?? "")) throw new Error(`map id ${JSON.stringify(ref)}: letters, digits, - and _ only`);
+  if (!p2) throw new Error("no artgen project here: name the map file with --file <path>");
+  return join3(mapsDir(p2), ref, "map.json");
+}
+function listMaps(p2) {
+  if (!existsSync3(mapsDir(p2))) return [];
+  return readdirSync(mapsDir(p2), { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync3(join3(mapsDir(p2), d.name, "map.json"))).map((d) => mapSummary(readMap(p2, d.name)));
+}
+function readMap(p2, ref) {
+  const f = mapFile(p2, ref);
+  if (!existsSync3(f)) throw new Error(typeof ref === "string" ? `no map ${ref} (${shown(p2, f)}) \u2014 artgen map new ${ref}` : `no map file ${shown(p2, f)} \u2014 artgen map new --file ${ref.file}`);
+  return map_exports.parseMap(readJson(f));
+}
+function writeMap(p2, m, ref = m.id) {
+  const spec = map_exports.parseMap(m), f = mapFile(p2, ref);
+  writeJson(f, spec);
+  return shown(p2, f);
+}
+function createMap(p2, id2, preset2, over = {}, force = false, at4 = id2) {
+  if (existsSync3(mapFile(p2, at4)) && !force) throw new Error(typeof at4 === "string" ? `map ${id2} already exists (edit it, or pick another id)` : `${shown(p2, mapFile(p2, at4))} already exists (edit it, or --force)`);
+  const m = map_exports.newMap(id2, preset2, over);
+  return { file: writeMap(p2, m, at4), map: m };
+}
+function updateMap(p2, ref, change) {
+  const m = readMap(p2, ref);
+  change(m);
+  writeMap(p2, m, ref);
+  return m;
+}
+function checkMapFile(p2, ref) {
+  const f = mapFile(p2, ref);
+  let raw;
+  try {
+    raw = JSON.parse(readFileSync3(f, "utf8"));
+  } catch (e) {
+    const missing = e.code === "ENOENT";
+    return { file: shown(p2, f), ok: false, errors: [{ path: "", message: missing ? `no such file: ${shown(p2, f)}` : `not JSON: ${e.message}` }], requirements: [], unmet: [] };
+  }
+  const { errors } = map_exports.checkMap(raw);
+  if (errors.length) return { file: shown(p2, f), ok: false, errors, requirements: [], unmet: [] };
+  const requirements = map_exports.checkRequirements(map_exports.parseMap(raw)), unmet = requirements.filter((r) => !r.met).map((r) => r.id);
+  return { file: shown(p2, f), ok: !unmet.length, errors, requirements, unmet };
+}
+async function renderMapFiles(p2, ref, o = {}) {
+  const m = readMap(p2, ref), field = map_exports.generateMap(m), id2 = typeof ref === "string" ? ref : fileStem(ref.file);
+  const out = o.out ?? (typeof ref === "string" ? join3(mapsDir(p2), id2, "out") : dirname2(mapFile(p2, ref)));
+  const formats2 = o.formats ?? ["svg", "png"], files = [];
+  if (o.fit && o.ppu !== void 0) throw new Error("--fit and --ppu both set the scale: use one");
+  const crop2 = clampCrop(o.crop ?? [0, 0, m.cols, m.rows], m.cols, m.rows), ppu = o.fit ? fitPpu(crop2[2], crop2[3], o.fit) : o.ppu ?? 40;
+  const size2 = [Math.round(crop2[2] * ppu), Math.round(crop2[3] * ppu)], unit = o.fit?.unit ?? "px";
+  const pageScale = o.pageScale ?? (o.fit ? PX_PER_MM : void 0);
+  if (formats2.includes("png")) await initNodeMapSvg();
+  mkdirSync2(out, { recursive: true });
+  for (const theme of o.themes ?? ["color"]) {
+    const svg4 = map_exports.renderMapSvg(m, { theme, ppu, layers: o.layers, field, ...o.crop && { crop: crop2 }, unit, pageScale }), base = join3(out, `${id2}.${theme}`);
+    if (formats2.includes("svg")) {
+      writeFileSync2(`${base}.svg`, svg4);
+      files.push(`${base}.svg`);
+    }
+    if (formats2.includes("png")) {
+      writeFileSync2(`${base}.png`, encodePNG(rasterizeSvg(svg4, size2[0], size2[1])));
+      files.push(`${base}.png`);
+    }
+  }
+  return { files: files.map((f) => relative(process.cwd(), f)), terrains: map_exports.terrainsUsed(field), rivers: field.rivers.length, size: size2, crop: crop2, ppu, svg: svgSize(crop2, ppu, unit), pageScale: pageScale ?? null, unplaced: map_exports.mapLabelLayout(m, ppu, pageScale).unplaced };
+}
+function svgSize(crop2, ppu, unit) {
+  const f = unit === "mm" ? 96 / 25.4 : 1, r = (v) => Math.round(v * ppu / f * 100) / 100;
+  return { width: r(crop2[2]), height: r(crop2[3]), unit };
+}
+function numbers2(v, what, pairs2 = true) {
+  const xs = (v ?? "").split(",").map((s2) => s2.trim()).filter(Boolean).map(Number);
+  if (!xs.length || xs.some((x) => !Number.isFinite(x)) || pairs2 && xs.length % 2) throw new Error(`${what}: comma-separated numbers${pairs2 ? " in x,y pairs" : ""}`);
+  return xs;
+}
+function shapeFrom(o) {
+  const arr = (v, what, pairs2 = true) => Array.isArray(v) ? v.map(Number) : numbers2(v, what, pairs2);
+  if (o.circle !== void 0) {
+    const c = arr(o.circle, "--circle x,y,r", false);
+    if (c.length !== 3) throw new Error("--circle: x,y,r");
+    return { circle: [c[0], c[1], c[2]] };
+  }
+  if (o.poly !== void 0) return { poly: arr(o.poly, "--poly") };
+  if (o.stroke !== void 0) return { stroke: arr(o.stroke, "--stroke"), width: Number(o.width ?? 1) };
+  throw new Error("a shape is required: --circle x,y,r | --poly x,y,x,y,\u2026 | --stroke x,y,\u2026 --width w");
+}
+function parseLayers(v, names = map_exports.MAP_LAYERS) {
+  if (!v) return void 0;
+  const out = {};
+  for (const part of v.split(",").map((s2) => s2.trim()).filter(Boolean)) {
+    const [name, val] = part.split("=");
+    if (!names.includes(name)) throw new Error(`--layers: unknown layer ${name} (${names.join(", ")})`);
+    out[name] = val === void 0 ? false : onOff(val);
+  }
+  return out;
+}
+function describeMap(m) {
+  const g = m.gen;
+  return [
+    `${m.id}${m.title ? ` "${m.title}"` : ""}: ${m.preset}, ${m.cols}\xD7${m.rows} ${m.grid.type === "hex" ? "hexes" : "cells"} of ${m.scale.perCell} ${m.scale.unit}, seed ${m.seed}`,
+    `  gen: land ${g.land}, sea ${g.sea}, moisture ${g.moisture}, roughness ${g.roughness}, relief ${g.relief}, rivers ${g.rivers}, simplify ${g.simplify}, feature ${g.feature}`,
+    `  topo: every ${m.topo.interval} ${m.topo.unit} up to ${m.topo.maxElevation}, major every ${m.topo.majorEvery}${m.topo.labels ? ", labelled" : ""}`,
+    `  grid: ${m.grid.type}${m.grid.type !== "none" ? ` size ${m.grid.size}${m.grid.coords ? ", coordinates" : ""}` : ""}; legend ${m.legend ? "on" : "off"}, scale bar ${m.scaleBar ? "on" : "off"}, compass ${m.compass ? "on" : "off"}`,
+    ...m.require?.length ? [`  require (${m.require.length}):${m.require.map((r) => `
+    ${r.id} ${r.kind}${r.kind === "terrain" ? ` ${r.terrain} ${r.share}` : r.kind === "height" ? ` ${r.low}-${r.high} ${m.topo.unit}` : r.kind === "path" ? ` ${r.path}` : ""}`).join("")}`] : [],
+    `  edits (${m.edits.length}):${m.edits.map((e, i) => `
+    ${i}. ${e.op}${e.op === "paint" ? ` ${e.terrain}` : e.op === "elevate" ? ` ${e.amount}` : ""} ${"shape" in e ? JSON.stringify(e.shape) : JSON.stringify(e.points)}`).join("")}`,
+    `  labels (${m.overlay.labels.length}):${m.overlay.labels.map((l, i) => `
+    ${i}. ${l.kind} "${l.text}" at ${l.x},${l.y}`).join("")}`,
+    `  symbols (${m.overlay.symbols.length}):${m.overlay.symbols.map((s2, i) => `
+    ${i}. ${s2.kind} at ${s2.x},${s2.y}`).join("")}`
+  ].join("\n");
+}
+function describeMapFacts(r) {
+  const { scale: scale2, height } = r.unit, out = [`${r.id}: ${r.size.cols}\xD7${r.size.rows} cells; heights in ${height}, distances in cells (${scale2})`];
+  const share2 = (s2) => s2.map((x) => `${x.terrain} ${x.share}%`).join(", ");
+  const hi = (h) => `${h.height} ${height} at ${at3(h.at)}${h.prominence ? ` (stands ${h.prominence} ${height} clear)` : ""}`;
+  for (const p2 of r.points ?? []) {
+    out.push(`at ${at3(p2.at)}: ${p2.terrain}, ${p2.height} ${height}, slope ${p2.slope.band ?? "?"} (${p2.slope.gradient} ${height}/${scale2})`);
+    for (const k of ["river", "road"]) if (p2[k]) out.push(`  ${k}: ${p2[k].name}${p2[k].source ? ` (${p2[k].source})` : ""} ${km(p2[k].distance, scale2)} away at ${at3(p2[k].at)}${p2[k].within ? ", in it" : ""}`);
+    if (p2.above) out.push(`  ${p2.above.value === null ? `no ${p2.above.of} to measure from` : `${p2.above.value} ${height} above the ${p2.above.of === "river" ? "river" : "lowest ground"}`}${p2.above.reference ? ` (${hi(p2.above.reference)})` : ""}`);
+  }
+  for (const a of r.areas ?? []) {
+    out.push(`area ${a.area.map(at3).join(" ")}: ${share2(a.terrain)}; lowest ${hi(a.lowest)}, highest ${hi(a.highest)}`);
+    for (const c of [...a.rivers, ...a.roads]) out.push(`  ${c.name}${c.source ? ` (${c.source})` : ""}: ${c.enters ? `in at ${at3(c.enters)}` : "starts inside"}, ${c.leaves ? `out at ${at3(c.leaves)}` : "ends inside"}, ${km(c.length, scale2)}`);
+  }
+  const f = r.features;
+  if (f) {
+    out.push(`terrain: ${share2(f.terrain)}; lowest ${hi(f.lowest)}, highest ${hi(f.highest)}`);
+    for (const [what, lines2] of [["river", f.rivers], ["generated river", f.generatedRivers], ["road", f.roads]])
+      for (const l of lines2) out.push(`${what} ${l.name}: ${km(l.length, scale2)}, ${l.points.length} points from ${at3(l.points[0])} to ${at3(l.points[l.points.length - 1])}`);
+    out.push(`hilltops: ${f.hilltops.map(hi).join("; ") || "none"}`, `hollows: ${f.hollows.map(hi).join("; ") || "none"}`);
+  }
+  return out.join("\n");
+}
+var mapsDir, shown, mapSummary, onOff, km, at3;
+var init_map2 = __esm({
+  "../artgen-cli/src/map.ts"() {
+    "use strict";
+    init_maps();
+    init_node_svg();
+    init_projectfs();
+    mapsDir = (p2) => join3(p2.art, "maps");
+    shown = (p2, f) => relative(p2?.root ?? process.cwd(), f);
+    mapSummary = (m) => ({ id: m.id, preset: m.preset, size: `${m.cols}x${m.rows}`, ...m.title && { title: m.title }, edits: m.edits.length, labels: m.overlay.labels.length, symbols: m.overlay.symbols.length });
+    onOff = (v) => v === void 0 ? void 0 : /^(on|true|yes|1)$/i.test(v);
+    km = (l, unit) => `${l.map} (${l.scale} ${unit})`;
+    at3 = (p2) => `${p2[0]},${p2[1]}`;
+  }
+});
+
+// ../artgen-cli/src/dungeon.ts
+import { existsSync as existsSync4, mkdirSync as mkdirSync3, readdirSync as readdirSync2, readFileSync as readFileSync4, writeFileSync as writeFileSync3 } from "node:fs";
+import { dirname as dirname3, join as join4, relative as relative2, resolve as resolve3 } from "node:path";
+function dungeonFile(p2, ref) {
+  if (typeof ref !== "string") return resolve3(ref.file);
+  if (!/^[\w-]+$/.test(ref ?? "")) throw new Error(`dungeon id ${JSON.stringify(ref)}: letters, digits, - and _ only`);
+  if (!p2) throw new Error("no artgen project here: name the dungeon file with --file <path>");
+  return join4(dungeonsDir(p2), ref, "dungeon.json");
+}
+function listDungeons(p2) {
+  if (!existsSync4(dungeonsDir(p2))) return [];
+  return readdirSync2(dungeonsDir(p2), { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync4(join4(dungeonsDir(p2), d.name, "dungeon.json"))).map((d) => dungeonSummary(readDungeon(p2, d.name)));
+}
+function readDungeon(p2, ref) {
+  const f = dungeonFile(p2, ref);
+  if (!existsSync4(f)) throw new Error(typeof ref === "string" ? `no dungeon ${ref} (${shown2(p2, f)}) \u2014 artgen dungeon new ${ref}` : `no dungeon file ${shown2(p2, f)} \u2014 artgen dungeon new --file ${ref.file}`);
+  return dungeon_exports.parseDungeon(readJson(f));
+}
+function writeDungeon(p2, m, ref = m.id) {
+  const spec = dungeon_exports.parseDungeon(m), f = dungeonFile(p2, ref);
+  writeJson(f, spec);
+  return shown2(p2, f);
+}
+function createDungeon(p2, m, force = false, at4 = m.id) {
+  if (existsSync4(dungeonFile(p2, at4)) && !force) throw new Error(typeof at4 === "string" ? `dungeon ${m.id} already exists (edit it, or pick another id)` : `${shown2(p2, dungeonFile(p2, at4))} already exists (edit it, or --force)`);
+  return { file: writeDungeon(p2, m, at4), dungeon: m };
+}
+function updateDungeon(p2, ref, change) {
+  const m = readDungeon(p2, ref), next4 = change(m) ?? m;
+  writeDungeon(p2, next4, ref);
+  return next4;
+}
+function checkDungeonFile(p2, ref) {
+  const f = dungeonFile(p2, ref);
+  let raw;
+  try {
+    raw = JSON.parse(readFileSync4(f, "utf8"));
+  } catch (e) {
+    const missing = e.code === "ENOENT";
+    return { file: shown2(p2, f), ok: false, errors: [{ path: "", message: missing ? `no such file: ${shown2(p2, f)}` : `not JSON: ${e.message}` }], warnings: [] };
+  }
+  const r = dungeon_exports.checkDungeon(raw), errors = [...r.errors], warnings = [];
+  if (!errors.length) for (const x of dungeon_exports.lintDungeon(dungeon_exports.parseDungeon(raw))) (x.severity === "error" ? errors : warnings).push({ path: x.path, message: x.message });
+  const u = raw?.underlay;
+  if (!errors.some((e) => e.path.startsWith("underlay")) && u && typeof u.map === "string" && !existsSync4(resolve3(dirname3(f), u.map)))
+    errors.push({ path: "underlay.map", message: `no such map file ${u.map}` });
+  return { file: shown2(p2, f), ok: !errors.length, errors, warnings };
+}
+function readUnderlay(p2, ref, m) {
+  if (!m.underlay) return null;
+  const f = resolve3(dirname3(dungeonFile(p2, ref)), m.underlay.map);
+  if (!existsSync4(f)) throw new Error(`underlay.map: no such map file ${m.underlay.map} (looked for ${shown2(p2, f)})`);
+  const spec = map_exports.parseMap(readJson(f));
+  return { map: spec, field: map_exports.generateMap(spec) };
+}
+async function renderDungeonFiles(p2, ref, o = {}) {
+  const m = readDungeon(p2, ref), layout2 = dungeon_exports.layoutDungeon(m), id2 = typeof ref === "string" ? ref : fileStem(ref.file);
+  const out = o.out ?? (typeof ref === "string" ? join4(dungeonsDir(p2), id2, "out") : dirname3(dungeonFile(p2, ref)));
+  const formats2 = o.formats ?? ["svg", "png"], files = [];
+  if (o.fit && o.ppu !== void 0) throw new Error("--fit and --ppu both set the scale: use one");
+  if (o.crop && o.rooms?.length) throw new Error("--crop and --room both set the window: use one");
+  if (o.margin !== void 0 && !o.rooms?.length) throw new Error("--margin goes with --room");
+  const window = o.rooms?.length ? dungeon_exports.roomCrop(m, o.rooms, o.margin, layout2) : o.crop;
+  const crop2 = clampCrop(window ?? [0, 0, m.cols, m.rows], m.cols, m.rows), unit = o.fit?.unit ?? "px";
+  const pageScale = o.pageScale ?? (o.fit ? PX_PER_MM : void 0), underlay = readUnderlay(p2, ref, m);
+  const view = { layers: o.layers, layout: layout2, ...window && { crop: crop2 }, pageScale };
+  let ppu = o.fit ? fitPpu(crop2[2], crop2[3], o.fit) : o.ppu ?? 40;
+  const fits = (k) => {
+    const r = dungeon_exports.dungeonRenderSize(m, { ...view, ppu: k }), f = o.fit.unit === "mm" ? PX_PER_MM : 1;
+    return r.width <= o.fit.w * f + 1e-6 && r.height <= o.fit.h * f + 1e-6;
+  };
+  if (o.fit && !fits(ppu)) {
+    let lo = 0, hi = ppu;
+    for (let i = 0; i < 40; i++) {
+      const mid = (lo + hi) / 2;
+      if (fits(mid)) lo = mid;
+      else hi = mid;
+    }
+    ppu = lo;
+  }
+  const px = dungeon_exports.dungeonRenderSize(m, { ...view, ppu }), size2 = [Math.round(px.width), Math.round(px.height)];
+  if (formats2.includes("png")) await initNodeMapSvg();
+  mkdirSync3(out, { recursive: true });
+  const svg4 = dungeon_exports.renderDungeonSvg(m, { ...view, ppu, unit, ...underlay && { underlay } }), base = join4(out, id2);
+  if (formats2.includes("svg")) {
+    writeFileSync3(`${base}.svg`, svg4);
+    files.push(`${base}.svg`);
+  }
+  if (formats2.includes("png")) {
+    writeFileSync3(`${base}.png`, encodePNG(rasterizeSvg(svg4, size2[0], size2[1])));
+    files.push(`${base}.png`);
+  }
+  return { files: files.map((f) => relative2(process.cwd(), f)), rooms: m.rooms.length, corridors: m.corridors.length, doors: layout2.doors.length, size: size2, crop: crop2, ppu, svg: svgSize([0, 0, px.width, px.height], 1, unit), pageScale: pageScale ?? null, unplaced: dungeon_exports.dungeonLabelLayout(m, ppu, pageScale, layout2).unplaced };
+}
+function warningLines(m, max2 = 5) {
+  const found = dungeon_exports.lintDungeon(m);
+  if (!found.length) return [];
+  const lines2 = found.slice(0, max2).map((x) => `  ${x.severity}: ${x.path}: ${x.message}`);
+  if (found.length > max2) lines2.push(`  \u2026 ${found.length - max2} more (artgen dungeon check ${m.id})`);
+  return lines2;
+}
+function describeDungeon(m) {
+  const g = m.gen, end = endText;
+  const gridFt = (n) => `${n * m.scale.perCell} ${m.scale.unit}`;
+  return [
+    `${m.id}${m.title ? ` "${m.title}"` : ""}: ${m.cols}\xD7${m.rows} cells of ${m.scale.perCell} ${m.scale.unit}, seed ${m.seed}`,
+    `  gen: rooms ${g.rooms}, size ${g.minSize}..${g.maxSize}, caves ${g.caves}, round ${g.round}, loops ${g.loops}, doors ${g.doors}, corridor width ${g.corridorWidth}, spacing ${g.spacing}, entrance ${g.entrance ? "on" : "off"}${g.layout && g.layout !== "scatter" ? `, layout ${g.layout}${g.layout === "dense" ? ` (density ${g.density ?? 0.5})` : ""}` : ""}`,
+    `  grid: ${m.grid.show ? `size ${gridFt(m.grid.size)}, sub-grid ${m.grid.sub && m.grid.size > 1 ? `${gridFt(1)}` : "off"}, ${m.grid.clip === "floor" ? "on the floor" : "everywhere"}` : "off"}; hatch ${m.style.hatch}${m.style.hatch === "band" ? ` (${m.style.band} cells)` : ""}; shared walls ${dungeon_exports.sharedWallsOn(m) ? "on" : "off"}${m.style.sharedWalls === void 0 ? " (auto)" : ""}; numbers ${m.numbers ? "on" : "off"}, scale bar ${m.scaleBar ? "on" : "off"}, compass ${m.compass ? "on" : "off"}`,
+    ...m.furniture && m.furniture.place !== "over" ? [`  furniture: ${m.furniture.place}, band ${m.furniture.side ?? "bottom"}`] : [],
+    `  rooms (${m.rooms.length}):${m.rooms.map((r) => `
+    ${r.id}: ${r.shape} ${r.w}\xD7${r.h} at ${r.x},${r.y}${r.fill && r.fill !== "floor" ? `, ${r.fill}` : ""}${r.number === false ? ", no number" : r.number !== void 0 ? `, #${r.number}` : ""}${r.label ? ` "${r.label}"` : ""}${r.href ? ` \u2192 ${r.href}` : ""}`).join("")}`,
+    `  corridors (${m.corridors.length}):${m.corridors.map((c, i) => `
+    ${i}.${c.id ? ` [${c.id}]` : ""} ${end(c.from)} \u2192 ${end(c.to)}${c.width && c.width !== 1 ? `, width ${c.width}` : ""}${c.via ? `, via ${c.via.join(",")}` : c.route && c.route !== "auto" ? `, ${c.route}` : ""}${c.curve === "smooth" ? ", curved" : ""}${c.style === "natural" ? ", natural" : ""}${c.doors?.some(Boolean) ? `, doors ${c.doors.map((d) => d ?? "none").join("/")}` : ""}`).join("")}`,
+    ...m.blocks?.length ? [`  blocks (${m.blocks.length}):${m.blocks.map((b) => `
+    ${b.id}: ${b.shape} ${b.w}\xD7${b.h} at ${b.x},${b.y}, split ${b.split.mode}${b.split.min ? ` (min ${b.split.min})` : ""}${b.split.seed !== void 0 ? `, seed ${b.split.seed}` : ""}: ${m.rooms.filter((r) => r.origin === `block:${b.id}`).length} rooms`).join("")}`] : [],
+    ...m.connections?.length ? [`  connections (${m.connections.length}):${m.connections.map((c, i) => `
+    ${i}. ${c.a} \u2194 ${c.b}: ${c.kind ?? "door"}${c.width && c.width !== 1 ? `, width ${c.width}` : ""}${c.at ? ` at ${c.at.join(",")}` : ""}`).join("")}`] : [],
+    `  labels (${m.overlay.labels.length}):${m.overlay.labels.map((l, i) => `
+    ${i}. ${l.kind} "${l.text}" at ${l.x},${l.y}${l.href ? ` \u2192 ${l.href}` : ""}`).join("")}`,
+    `  symbols (${m.overlay.symbols.length}):${m.overlay.symbols.map((s2, i) => `
+    ${i}. ${s2.kind} at ${s2.x},${s2.y}${s2.angle ? ` turned ${s2.angle}\xB0` : ""}`).join("")}`
+  ].join("\n");
+}
+function describeDungeonFacts(r) {
+  const unit = r.unit.scale, box2 = (b) => `${b.cells.w}\xD7${b.cells.h} cells (${b.scale.w}\xD7${b.scale.h} ${unit}) at ${b.cells.x},${b.cells.y}`;
+  const end = endText;
+  return [
+    `${r.id}: ${r.size.cols}\xD7${r.size.rows} cells; positions in cells, lengths also in ${unit}`,
+    `rooms (${r.rooms.length}):${r.rooms.map((m) => `
+  ${m.id}${m.number !== null ? ` #${m.number}` : ""}: ${m.shape} ${box2(m.box)}${m.label ? ` "${m.label}"` : ""}${m.doors.length ? `; doors ${m.doors.map((d) => `${d.kind}${d.at ? ` at ${d.at.join(",")}` : ""}`).join(", ")}` : ""}${m.connections?.length ? `; joins ${m.connections.map((c) => `${c.to} (${c.kind})`).join(", ")}` : ""}`).join("")}`,
+    `corridors (${r.corridors.length}):${r.corridors.map((c) => `
+  ${c.index}. ${end(c.from)} \u2192 ${end(c.to)}: ${c.length.map} cells (${c.length.scale} ${unit}), width ${c.width}${c.doors.some(Boolean) ? `, doors ${c.doors.map((d) => d ?? "none").join("/")}` : ""}`).join("")}`,
+    `exits (${r.exits.length}):${r.exits.map((x) => `
+  corridor ${x.corridor} ${x.end} at ${x.at.join(",")}${x.room ? ` from ${x.room}` : ""}: nearest edge ${x.edge}, ${x.distance.map} cells (${x.distance.scale} ${unit})`).join("")}`,
+    `overlaps (${r.overlaps.length}):${r.overlaps.map((o) => `
+  ${o.rooms.join(" / ")}: ${o.count} cells, ${box2(o.box)}`).join("")}`,
+    `unreached rooms: ${r.unreached.join(", ") || "none"}`,
+    ...(r.walls ?? []).map((w) => `wall ${w.id ?? w.index}: ${w.corners.length} corners, ${w.towers.length} towers (${w.towers.filter((t) => t.source === "corner").length} at corners), thickness ${w.thickness}; ${w.enclosed.every((e) => e.inside) ? "encloses every room" : `does not enclose ${w.enclosed.filter((e) => !e.inside).map((e) => e.room).join(", ")}`}${w.gates.map((g) => `
+  ${g.kind} at ${g.at.join(",")} (wall at ${g.angle}\xB0, ${g.width} wide, ${g.towers} towers${g.room ? `, opens into ${g.room}` : ""})`).join("")}`)
+  ].join("\n");
+}
+var dungeonsDir, shown2, dungeonSummary, cornerPoint2, corridorEnd2, doorPair2, gridMode2, endText;
+var init_dungeon2 = __esm({
+  "../artgen-cli/src/dungeon.ts"() {
+    "use strict";
+    init_maps();
+    init_map2();
+    init_node_svg();
+    init_projectfs();
+    dungeonsDir = (p2) => join4(p2.art, "dungeons");
+    shown2 = (p2, f) => relative2(p2?.root ?? process.cwd(), f);
+    dungeonSummary = (m) => ({ id: m.id, size: `${m.cols}x${m.rows}`, ...m.title && { title: m.title }, rooms: m.rooms.length, corridors: m.corridors.length, labels: m.overlay.labels.length, symbols: m.overlay.symbols.length });
+    ({ cornerPoint: cornerPoint2, corridorEnd: corridorEnd2, doorPair: doorPair2, gridMode: gridMode2 } = dungeon_exports);
+    endText = (e) => "room" in e ? `${e.room}${e.side ? `.${e.side}${e.offset !== void 0 ? `+${e.offset}` : ""}` : ""}` : "at" in e ? `(${e.at.join(",")})${e.exit ? ` "${e.exit.text}"` : ""}` : `corridor ${e.corridor}`;
+  }
+});
+
+// ../artgen-cli/src/settlement.ts
+import { existsSync as existsSync5, mkdirSync as mkdirSync4, readdirSync as readdirSync3, readFileSync as readFileSync5, writeFileSync as writeFileSync4 } from "node:fs";
+import { dirname as dirname4, join as join5, relative as relative3, resolve as resolve4 } from "node:path";
+function settlementFile(p2, ref) {
+  if (typeof ref !== "string") return resolve4(ref.file);
+  if (!/^[\w-]+$/.test(ref ?? "")) throw new Error(`settlement id ${JSON.stringify(ref)}: letters, digits, - and _ only`);
+  if (!p2) throw new Error("no artgen project here: name the settlement file with --file <path>");
+  return join5(settlementsDir(p2), ref, "settlement.json");
+}
+function listSettlements(p2) {
+  if (!existsSync5(settlementsDir(p2))) return [];
+  return readdirSync3(settlementsDir(p2), { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync5(join5(settlementsDir(p2), d.name, "settlement.json"))).map((d) => settlementSummary(readSettlement(p2, d.name)));
+}
+function readSettlement(p2, ref) {
+  const f = settlementFile(p2, ref);
+  if (!existsSync5(f)) throw new Error(typeof ref === "string" ? `no settlement ${ref} (${shown3(p2, f)}) \u2014 artgen settlement new ${ref}` : `no settlement file ${shown3(p2, f)} \u2014 artgen settlement new --file ${ref.file}`);
+  return settlement_exports.parseSettlement(readJson(f));
+}
+function writeSettlement(p2, m, ref = m.id) {
+  const spec = settlement_exports.parseSettlement(m), f = settlementFile(p2, ref);
+  writeJson(f, spec);
+  return shown3(p2, f);
+}
+function createSettlement(p2, m, force = false, at4 = m.id) {
+  if (existsSync5(settlementFile(p2, at4)) && !force) throw new Error(typeof at4 === "string" ? `settlement ${m.id} already exists (edit it, or pick another id)` : `${shown3(p2, settlementFile(p2, at4))} already exists (edit it, or --force)`);
+  return { file: writeSettlement(p2, m, at4), settlement: m };
+}
+function updateSettlement(p2, ref, change) {
+  const m = readSettlement(p2, ref), next4 = change(m) ?? m;
+  writeSettlement(p2, next4, ref);
+  return next4;
+}
+function readSettlementUnderlay(p2, ref, m) {
+  if (!m.underlay) return null;
+  const f = resolve4(dirname4(settlementFile(p2, ref)), m.underlay.map);
+  if (!existsSync5(f)) throw new Error(`underlay.map: no such map file ${m.underlay.map} (looked for ${shown3(p2, f)})`);
+  const spec = map_exports.parseMap(readJson(f));
+  return { map: spec, field: map_exports.generateMap(spec) };
+}
+function mapForSettlement(p2, ref, mapRef) {
+  const path = /[\\/.]/.test(mapRef) ? resolve4(mapRef) : (() => {
+    if (!p2) throw new Error("--map: a map file path (no project here)");
+    return join5(p2.art, "maps", mapRef, "map.json");
+  })();
+  if (!existsSync5(path)) throw new Error(`--map: no map ${mapRef} (${shown3(p2, path)})`);
+  return { path, rel: relative3(dirname4(settlementFile(p2, ref)), path).split("\\").join("/") };
+}
+function checkSettlementFile(p2, ref) {
+  const f = settlementFile(p2, ref);
+  let raw;
+  try {
+    raw = JSON.parse(readFileSync5(f, "utf8"));
+  } catch (e) {
+    const missing = e.code === "ENOENT";
+    return { file: shown3(p2, f), ok: false, errors: [{ path: "", message: missing ? `no such file: ${shown3(p2, f)}` : `not JSON: ${e.message}` }], warnings: [] };
+  }
+  const r = settlement_exports.checkSettlement(raw), errors = [...r.errors], warnings = [];
+  if (!errors.length) for (const x of settlement_exports.lintSettlement(settlement_exports.parseSettlement(raw))) (x.severity === "error" ? errors : warnings).push({ path: x.path, message: x.message });
+  const u = raw?.underlay;
+  if (!errors.some((e) => e.path.startsWith("underlay")) && u && typeof u.map === "string" && !existsSync5(resolve4(dirname4(f), u.map))) errors.push({ path: "underlay.map", message: `no such map file ${u.map}` });
+  return { file: shown3(p2, f), ok: !errors.length, errors, warnings };
+}
+function settlementWarningLines(m, max2 = 5) {
+  const found = settlement_exports.lintSettlement(m);
+  const lines2 = found.slice(0, max2).map((x) => `  ${x.severity}: ${x.path}: ${x.message}`);
+  if (found.length > max2) lines2.push(`  \u2026 ${found.length - max2} more (artgen settlement check ${m.id})`);
+  return lines2;
+}
+async function renderSettlementFiles(p2, ref, o = {}) {
+  const m = readSettlement(p2, ref), id2 = typeof ref === "string" ? ref : fileStem(ref.file);
+  const out = o.out ?? (typeof ref === "string" ? join5(settlementsDir(p2), id2, "out") : dirname4(settlementFile(p2, ref)));
+  const formats2 = o.formats ?? ["svg", "png"], themes = o.themes ?? ["color"];
+  if (o.fit && o.ppu !== void 0) throw new Error("--fit and --ppu both set the scale: use one");
+  const underlay = readSettlementUnderlay(p2, ref, m), layout2 = settlement_exports.layoutSettlement(m);
+  const jobs = [];
+  if (o.plans) {
+    jobs.push({ view: "site" });
+    for (const b of m.buildings) for (const f of b.floors ?? []) jobs.push({ view: "plan", building: b.id, floor: f.level });
+  } else if ((o.view ?? (o.building ? "plan" : "site")) === "plan") {
+    const t = settlement_exports.planTarget(m, o.building, o.floor);
+    jobs.push({ view: "plan", building: t.building.id, ...t.floor && { floor: t.floor.level } });
+  } else jobs.push({ view: "site" });
+  if (formats2.includes("png")) await initNodeMapSvg();
+  mkdirSync4(out, { recursive: true });
+  const results = [];
+  for (const job of jobs) {
+    const sheet = job.view === "plan" ? settlement_exports.planSheet(m, m.buildings.find((b) => b.id === job.building)) : { cols: m.cols, rows: m.rows };
+    const crop2 = clampCrop(o.crop ?? [0, 0, sheet.cols, sheet.rows], sheet.cols, sheet.rows), unit = o.fit?.unit ?? "px", pageScale = o.pageScale ?? (o.fit ? PX_PER_MM : void 0);
+    const view = { view: job.view, ...job.building && { building: job.building }, ...job.floor !== void 0 && { floor: job.floor }, buildings: o.buildings, layers: o.layers, ...job.view === "site" && { layout: layout2 }, ...o.crop && { crop: crop2 }, pageScale };
+    let ppu = o.fit ? fitPpu(crop2[2], crop2[3], o.fit) : o.ppu ?? (job.view === "plan" ? 40 : 24);
+    if (o.fit) {
+      const f = o.fit.unit === "mm" ? PX_PER_MM : 1, fits = (k) => {
+        const r = settlement_exports.settlementRenderSize(m, { ...view, ppu: k });
+        return r.width <= o.fit.w * f + 1e-6 && r.height <= o.fit.h * f + 1e-6;
+      };
+      if (!fits(ppu)) {
+        let lo = 0, hi = ppu;
+        for (let i = 0; i < 30; i++) {
+          const mid = (lo + hi) / 2;
+          if (fits(mid)) lo = mid;
+          else hi = mid;
+        }
+        ppu = lo;
+      }
+    }
+    const px = settlement_exports.settlementRenderSize(m, { ...view, ppu }), size2 = [Math.round(px.width), Math.round(px.height)], files = [];
+    const stem = job.view === "plan" ? `${id2}.${job.building}.${(job.floor ?? 0) < 0 ? `c${-(job.floor ?? 0)}` : `f${job.floor ?? 0}`}` : id2;
+    for (const theme of themes) {
+      const svg4 = settlement_exports.renderSettlementSvg(m, { ...view, ppu, unit, theme, ...underlay && job.view === "site" && { underlay } }), base = join5(out, `${stem}.${theme}`);
+      if (formats2.includes("svg")) {
+        writeFileSync4(`${base}.svg`, svg4);
+        files.push(`${base}.svg`);
+      }
+      if (formats2.includes("png")) {
+        writeFileSync4(`${base}.png`, encodePNG(rasterizeSvg(svg4, size2[0], size2[1])));
+        files.push(`${base}.png`);
+      }
+    }
+    results.push({ files: files.map((f) => relative3(process.cwd(), f)), view: job.view, ...job.building && { building: job.building }, ...job.floor !== void 0 && { floor: job.floor }, size: size2, crop: crop2, ppu, svg: svgSize([0, 0, px.width, px.height], 1, unit) });
+  }
+  return results;
+}
+function describeSettlement(m) {
+  const g = m.gen, l = settlement_exports.layoutSettlement(m), unit = m.scale.unit;
+  const counts = (xs) => Object.entries(xs.reduce((a, k) => (a[k] = (a[k] ?? 0) + 1, a), {})).map(([k, n]) => `${n} ${k}`).join(", ") || "none";
+  return [
+    `${m.id}${m.title ? ` "${m.title}"` : ""}: a ${m.kind}, ${m.cols}\xD7${m.rows} cells of ${m.scale.perCell} ${unit} (plans in ${m.interior.perCell} ${unit} cells), seed ${m.seed}, ${m.ground} ground`,
+    `  gen: buildings ${g.buildings}, density ${g.density}, streets ${g.streets}, wall ${g.wall}, water ${g.water}, trees ${g.trees}, fields ${g.fields}, market ${g.market ? "on" : "off"}, castle ${g.castle ? "on" : "off"}, interiors ${g.interiors ? "on" : "off"}`,
+    `  grid: ${m.grid.show ? `every ${m.grid.size * m.scale.perCell} ${unit}${m.grid.sub ? ", sub-grid" : ""}` : "off"}; numbers ${m.numbers ? "on" : "off"}, scale bar ${m.scaleBar ? "on" : "off"}, compass ${m.compass ? "on" : "off"}, legend ${m.legend ? "on" : "off"}${m.underlay ? `; underlay ${m.underlay.map} at ${m.underlay.origin.join(",")}, ${m.underlay.scale} map units a cell` : ""}`,
+    `  buildings (${m.buildings.length}):${l.buildings.map((bg) => {
+      const b = bg.building;
+      return `
+    ${b.id}${bg.number !== void 0 ? ` #${bg.number}` : ""}: ${b.kind}, ${b.shape} ${b.w}\xD7${b.h} at ${b.x},${b.y}${b.angle ? ` turned ${b.angle}\xB0` : ""}${b.label ? ` "${b.label}"` : ""}${b.floors?.length ? `; floors ${b.floors.map((f) => `${f.level} (${f.rooms.length} rooms, ${f.fixtures?.length ?? 0} fixtures)`).join(", ")}` : ""}`;
+    }).join("")}`,
+    `  roads (${m.roads.length}): ${counts(m.roads.map((r) => r.kind))}`,
+    `  water (${m.water.length}): ${counts(m.water.map((w) => w.kind))}${l.bridges.length ? `; ${l.bridges.length} bridge${l.bridges.length === 1 ? "" : "s"}` : ""}`,
+    `  walls (${m.walls.length}):${m.walls.map((w, i) => `
+    ${i}. ${w.kind}${w.closed ? ", closed" : ""}, ${w.points.length / 2} points, ${l.walls[i].towers.length} towers, gates ${w.gates?.map((gt) => gt.kind).join(", ") || "none"}`).join("")}`,
+    `  areas (${m.areas.length}): ${counts(m.areas.map((a) => a.kind))}; trees ${m.trees.length} (+${l.areaTrees.length} in woods and orchards); props: ${counts(m.props.map((x) => x.kind))}`,
+    `  labels ${m.overlay.labels.length}, symbols ${m.overlay.symbols.length}`
+  ].join("\n");
+}
+function describeSettlementFacts(f) {
+  const t = (r) => Object.entries(r).map(([k, n]) => `${n} ${k}`).join(", ") || "none";
+  return [
+    `${f.id}: a ${f.kind}, ${f.size.cols}\xD7${f.size.rows} cells, ${f.size.scale}`,
+    `buildings: ${t(f.counts.buildings)}; roads: ${t(f.counts.roads)}; walls: ${t(f.counts.walls)}; water: ${t(f.counts.water)}; areas: ${t(f.counts.areas)}; trees ${f.counts.trees}; ${f.bridges} bridges`,
+    ...f.buildings.map((b) => `  ${b.id}${b.number !== void 0 ? ` #${b.number}` : ""} ${b.kind}${b.label ? ` "${b.label}"` : ""}: ${b.size}, ${b.stories} storey${b.stories === 1 ? "" : "s"}${b.floors.map((fl2) => `
+    ${fl2.name}: ${fl2.rooms} rooms, ${fl2.doors} doors, ${fl2.windows} windows; ${t(fl2.fixtures)}`).join("")}`),
+    ...f.walls.map((w) => `  wall ${w.index}: ${w.kind}, ${w.length} long, ${w.towers} towers, gates ${w.gates.map((g) => `${g.kind} at ${g.at.join(",")}`).join("; ") || "none"}`),
+    ...f.roads.map((r) => `  road ${r.index}: ${r.kind}, ${r.length}${r.label ? ` "${r.label}"` : ""}`)
+  ].join("\n");
+}
+var settlementsDir, shown3, settlementSummary;
+var init_settlement2 = __esm({
+  "../artgen-cli/src/settlement.ts"() {
+    "use strict";
+    init_maps();
+    init_map2();
+    init_node_svg();
+    init_projectfs();
+    settlementsDir = (p2) => join5(p2.art, "settlements");
+    shown3 = (p2, f) => relative3(p2?.root ?? process.cwd(), f);
+    settlementSummary = (m) => ({
+      id: m.id,
+      kind: m.kind,
+      size: `${m.cols}x${m.rows}`,
+      ...m.title && { title: m.title },
+      buildings: m.buildings.length,
+      interiors: m.buildings.filter((b) => b.floors?.length).length,
+      roads: m.roads.length,
+      walls: m.walls.length,
+      water: m.water.length
+    });
+  }
+});
+
+// ../artgen-cli/src/workflow.ts
+import { appendFileSync, copyFileSync, existsSync as existsSync6, mkdirSync as mkdirSync5, readdirSync as readdirSync4, readFileSync as readFileSync6, writeFileSync as writeFileSync5 } from "node:fs";
+import { dirname as dirname5, extname as extname2, join as join6, relative as relative4, resolve as resolve5 } from "node:path";
 function appendLedger(path, entry) {
-  mkdirSync(dirname(path), { recursive: true });
+  mkdirSync5(dirname5(path), { recursive: true });
   appendFileSync(path, formatLedgerLine({ ts: (/* @__PURE__ */ new Date()).toISOString(), ...entry }) + "\n");
+}
+function subjectPaths(p2, kind, id2) {
+  if (!ID2.test(id2 ?? "")) throw new Error(`${kind} id ${JSON.stringify(id2)}: letters, digits, - and _ only`);
+  const s2 = SUBJECTS2[kind], dir = join6(p2.art, s2.dir, id2), stem = stemOf(s2);
+  return { kind, id: id2, key: subjectKey(kind, id2), dir, stem, file: join6(dir, s2.file), brief: join6(dir, `${stem}.brief.md`), out: join6(dir, "out"), version: (v) => join6(dir, versionFile(stem, v)) };
+}
+function readWorking(p2, kind, id2) {
+  const f = subjectPaths(p2, kind, id2).file;
+  if (!existsSync6(f)) throw new Error(`no ${kind} ${id2} (${relRoot(p2, f)}) \u2014 artgen ${kind} new ${id2}`);
+  return readFileSync6(f, "utf8");
+}
+function listSubjectIds(p2, kind) {
+  const root = join6(p2.art, SUBJECTS2[kind].dir);
+  if (!existsSync6(root)) return [];
+  return readdirSync4(root, { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync6(join6(root, d.name, SUBJECTS2[kind].file))).map((d) => d.name).sort();
+}
+function listVersions(p2, kind, id2) {
+  const { dir, stem } = subjectPaths(p2, kind, id2);
+  return existsSync6(dir) ? sortVersions(readdirSync4(dir).map((f) => versionOfFile(stem, f)).filter((v) => !!v)) : [];
+}
+function readDirection(p2) {
+  const f = directionPath(p2);
+  if (!existsSync6(f)) return null;
+  let raw;
+  try {
+    raw = JSON.parse(readFileSync6(f, "utf8"));
+  } catch (e) {
+    throw new Error(`${relRoot(p2, f)}: not JSON (${e.message})`);
+  }
+  try {
+    return direction_exports.parseMapDirection(raw);
+  } catch (e) {
+    throw new Error(`${relRoot(p2, f)}: ${e.message}`);
+  }
+}
+function checksOf(p2, kind, id2, text3) {
+  const { dir } = subjectPaths(p2, kind, id2);
+  return workflow_exports.checkSource(kind, text3, { exists: (rel3) => existsSync6(resolve5(dir, rel3)), symbols: direction_exports.symbolsFor(readDirection(p2), kind) });
+}
+function subjectState(p2, kind, id2) {
+  const paths = subjectPaths(p2, kind, id2), text3 = readWorking(p2, kind, id2), direction2 = readDirection(p2), entries = entriesOf(p2, kind, id2);
+  return { paths, text: text3, entries, versions: listVersions(p2, kind, id2), direction: direction2, status: subjectStatus({ entries, key: paths.key, workingHash: sourceHash(text3), direction: direction_exports.directionRef(direction2) }) };
+}
+function readBrief(p2, kind, id2) {
+  const f = subjectPaths(p2, kind, id2).brief;
+  if (!existsSync6(f)) return null;
+  const text3 = readFileSync6(f, "utf8");
+  return { path: relRoot(p2, f), text: text3, brief: parseSubjectBrief(text3) };
+}
+function writeBrief(p2, kind, id2, o) {
+  readWorking(p2, kind, id2);
+  const paths = subjectPaths(p2, kind, id2), had = readBrief(p2, kind, id2)?.brief ?? { refs: [], body: "" };
+  for (const r of o.refs ?? []) if (!refOk(r)) throw new Error(`--refs ${r}: a path under art/ (no .. and not absolute)`);
+  const next4 = { title: had.title, refs: o.refs ?? had.refs, body: o.text ?? had.body };
+  writeFileSync5(paths.brief, formatSubjectBrief(next4));
+  return { path: relRoot(p2, paths.brief), brief: parseSubjectBrief(formatSubjectBrief(next4)) };
+}
+function loadRefs(p2, refs) {
+  const out = [], warnings = [];
+  for (const r of refs) {
+    const f = resolve5(p2.art, r);
+    if (!refOk(r)) warnings.push(`${r}: not a path under art/, skipped`);
+    else if (extname2(r).toLowerCase() !== ".png") warnings.push(`${r}: not a PNG, skipped`);
+    else if (!existsSync6(f)) warnings.push(`${r}: no such file, skipped`);
+    else try {
+      out.push({ label: r.split("/").pop().replace(/\.png$/i, ""), grid: decodePNG(new Uint8Array(readFileSync6(f))) });
+    } catch {
+      warnings.push(`${r}: not a readable PNG, skipped`);
+    }
+  }
+  return { refs: out, warnings };
+}
+function recordVersion(p2, kind, id2, o = {}) {
+  const st = subjectState(p2, kind, id2);
+  try {
+    SUBJECTS2[kind].parse(JSON.parse(st.text));
+  } catch (e) {
+    throw new Error(`${id2}: the file does not parse, so it cannot be a version \u2014 ${e.message}`);
+  }
+  const latest = st.versions[st.versions.length - 1], hash3 = sourceHash(st.text);
+  if (latest && sourceHash(readFileSync6(st.paths.version(latest), "utf8")) === hash3) throw new Error(`${id2}: no change since ${latest}`);
+  const version = nextVersion(st.versions), file = st.paths.version(version), prev = st.entries[st.entries.length - 1];
+  copyFileSync(st.paths.file, file);
+  const wallMs = prev ? Math.max(0, Date.now() - Date.parse(prev.ts)) : void 0;
+  appendLedger(ledgerPath(p2), { type: "version", asset: st.paths.key, version, file: relArt(p2, file), sourceHash: hash3, ...o.note && { note: o.note }, by: o.by ?? "agent", ...Number.isFinite(wallMs) && { wallMs } });
+  return { version, file: relRoot(p2, file), sourceHash: hash3, ...Number.isFinite(wallMs) && { wallMs } };
+}
+function diffVersions(p2, kind, id2, a, b) {
+  const st = subjectState(p2, kind, id2), latest = st.versions[st.versions.length - 1];
+  if (!st.versions.length) throw new Error(`${id2}: no version yet \u2014 ${hint(kind, "version", id2)}`);
+  const read = (name) => {
+    const f = name === "working" ? st.paths.file : st.paths.version(name);
+    if (name !== "working" && !st.versions.includes(name)) throw new Error(`${id2}: no ${name} (have ${st.versions.join(", ")}, or working)`);
+    return JSON.parse(readFileSync6(f, "utf8"));
+  };
+  const from = a ?? latest, to = b ?? (a ? latest : "working");
+  return { from, to, changes: diffJson(read(from), read(to)) };
+}
+async function renderPng(kind, file, theme, out, text3) {
+  const size2 = workflow_exports.sizeOf(text3), edge = size2 ? Math.max(size2.cols, size2.rows) : 30, ref = { file };
+  const ppu = Math.max(4, Math.min({ map: 40, dungeon: 40, settlement: 24 }[kind], Math.floor(RENDER_EDGE / edge)));
+  if (kind === "map") return resolve5((await renderMapFiles(null, ref, { themes: [theme], formats: ["png"], ppu, out })).files[0]);
+  if (kind === "dungeon") return resolve5((await renderDungeonFiles(null, ref, { formats: ["png"], ppu, out })).files[0]);
+  return resolve5((await renderSettlementFiles(null, ref, { themes: [theme], formats: ["png"], ppu, out }))[0].files[0]);
+}
+function sheetOf(p2, st, text3, checks, version) {
+  const { kind, id: id2 } = st.paths, base = SUBJECTS2[kind].sheet(SUBJECTS2[kind].parse(JSON.parse(text3)), checks), brief = readBrief(p2, kind, id2)?.brief;
+  const { refs, warnings } = loadRefs(p2, brief?.refs ?? []);
+  return { sheet: subjectDataSheet(base, { version, theme: direction_exports.themeFor(st.direction, kind), directionVersion: direction_exports.lockedMapDirection(st.direction)?.version, brief }), refs, warnings };
+}
+async function reviewSubject(p2, kind, id2, o = {}) {
+  const st = subjectState(p2, kind, id2);
+  if (!st.versions.length) throw new Error(`${id2}: no version yet \u2014 ${hint(kind, "version", id2)}`);
+  const version = o.version ?? st.versions[st.versions.length - 1];
+  if (!st.versions.includes(version)) throw new Error(`${id2}: no ${version} (have ${st.versions.join(", ")})`);
+  if (o.score !== void 0 && !(o.score >= 0 && o.score <= 10)) throw new Error("--score: a number from 0 to 10");
+  const vfile = st.paths.version(version), text3 = readFileSync6(vfile, "utf8"), checks = checksOf(p2, kind, id2, text3), theme = direction_exports.themeFor(st.direction, kind);
+  const png = await renderPng(kind, vfile, theme, st.paths.out, text3), { sheet, refs, warnings } = sheetOf(p2, st, text3, checks, version);
+  const grid4 = subjectReviewSheet({ title: `${id2} - ${version}`, render: decodePNG(new Uint8Array(readFileSync6(png))), sheet, refs }), sheetFile = join6(st.paths.out, `review-${version}.png`);
+  mkdirSync5(st.paths.out, { recursive: true });
+  writeFileSync5(sheetFile, encodePNG(grid4));
+  const tokens = imageTokens(grid4.w, grid4.h), conformance3 = { pass: !fails(checks).length, checks };
+  appendLedger(ledgerPath(p2), { type: "review", asset: st.paths.key, version, sheet: relArt(p2, sheetFile), imageTokens: tokens, conformance: conformance3, by: "agent" });
+  if (o.score !== void 0) appendLedger(ledgerPath(p2), { type: "score", asset: st.paths.key, version, score: o.score, ...o.note && { note: o.note }, reviewer: o.reviewer ?? "self", conformance: conformance3, by: "agent" });
+  return { version, sheet: relRoot(p2, sheetFile), sheetFile, imageTokens: tokens, pass: conformance3.pass, checks, warnings, ...o.score !== void 0 && { score: o.score } };
+}
+function writeSheet(p2, kind, id2) {
+  const st = subjectState(p2, kind, id2), checks = checksOf(p2, kind, id2, st.text), { sheet, refs, warnings } = sheetOf(p2, st, st.text, checks);
+  mkdirSync5(st.paths.out, { recursive: true });
+  const png = join6(st.paths.out, "sheet.png"), json = join6(st.paths.out, "sheet.json");
+  writeFileSync5(png, encodePNG(renderDataSheet(sheet, { refs })));
+  writeFileSync5(json, JSON.stringify(sheet, null, 2) + "\n");
+  return { png: relRoot(p2, png), pngFile: png, json: relRoot(p2, json), sheet, markdown: dataSheetMarkdown(sheet), warnings };
+}
+function feedbackSubject(p2, kind, id2, o) {
+  const st = subjectState(p2, kind, id2), entry = feedbackEntry({ kind, id: id2, key: st.paths.key, latest: st.versions[st.versions.length - 1] }, o);
+  appendLedger(ledgerPath(p2), entry);
+  const after = subjectState(p2, kind, id2).status;
+  return { on: entry.on, status: after.status, why: after.why };
+}
+function approveSubject(p2, kind, id2, o = {}) {
+  const st = subjectState(p2, kind, id2), version = st.status.version;
+  const checks = version && isApprovable(st.status, sourceHash(st.text)) ? checksOf(p2, kind, id2, readFileSync6(st.paths.version(version), "utf8")) : [];
+  const entry = approvalEntry({ kind, id: id2, key: st.paths.key, status: st.status, checks, workingHash: sourceHash(st.text), direction: direction_exports.directionRef(st.direction) }, o);
+  appendLedger(ledgerPath(p2), entry);
+  return { ts: (/* @__PURE__ */ new Date()).toISOString(), ...entry };
+}
+function statusRows(p2, kind, ids) {
+  return (ids?.length ? ids : listSubjectIds(p2, kind)).map((id2) => {
+    const st = subjectState(p2, kind, id2), checks = checksOf(p2, kind, id2, st.text);
+    return { id: id2, kind, status: st.status.status, ...st.status.version && { version: st.status.version }, why: st.status.why, fail: fails(checks).length, flag: flags(checks).length };
+  });
+}
+function history(p2, kind, id2) {
+  return entriesOf(p2, kind, id2).filter((e) => ["version", "review", "score", "feedback", "approve"].includes(e.type)).map((e) => ({
+    ts: e.ts,
+    type: e.type,
+    ...typeof (e.version ?? e.on) === "string" && { version: String(e.version ?? e.on) },
+    ...e.by && { by: e.by },
+    text: e.type === "score" ? `${e.score}${e.reviewer ? ` by ${String(e.reviewer)}` : ""}${e.note ? `: ${String(e.note)}` : ""}` : e.type === "review" ? `${e.conformance?.pass === false ? "checks fail, " : ""}~${String(e.imageTokens ?? 0)} image tokens` : String(e.note ?? "")
+  }));
+}
+function runDirection(p2, o) {
+  const had = readDirection(p2), file = relRoot(p2, directionPath(p2));
+  const themes = o.theme ? direction_exports.parseThemeFlag(o.theme) : void 0, symbols4 = o.symbols ? direction_exports.parseSymbolsFlag(o.symbols) : void 0;
+  if (!themes && !symbols4 && !o.lock) return { direction: had, file, changed: false, locked: false };
+  let d = had ?? direction_exports.newMapDirection();
+  const edited = !!(themes || symbols4);
+  if (edited) d = direction_exports.editMapDirection(d, { themes, symbols: symbols4 });
+  if (o.lock) {
+    if (!had && !edited) throw new Error("map direction --lock: nothing to lock yet \u2014 set a theme or symbols first (--theme map=bw, --symbols dungeon=altar,statue)");
+    if (!edited && d.status === "locked") throw new Error(`map direction is already locked at v${d.version} \u2014 change a theme or symbols first`);
+    d = direction_exports.lockMapDirection(d);
+  }
+  mkdirSync5(p2.art, { recursive: true });
+  writeFileSync5(directionPath(p2), direction_exports.formatMapDirection(d));
+  if (o.lock) appendLedger(ledgerPath(p2), { type: "approve", asset: "maps:direction", version: `v${d.version}`, note: o.note ?? "", by: "user", ...o.via && { via: o.via } });
+  return { direction: d, file, changed: true, locked: !!o.lock };
+}
+var SUBJECTS2, KIND_NOUN, ID2, RENDER_EDGE, ledgerPath, directionPath, relArt, relRoot, readLedger, entriesOf, fails, flags, hint;
+var init_workflow2 = __esm({
+  "../artgen-cli/src/workflow.ts"() {
+    "use strict";
+    init_maps();
+    init_dungeon2();
+    init_map2();
+    init_settlement2();
+    SUBJECTS2 = workflow_exports.SUBJECTS;
+    KIND_NOUN = { map: "terrain map", dungeon: "dungeon", settlement: "settlement" };
+    ID2 = /^[\w-]+$/;
+    RENDER_EDGE = 900;
+    ledgerPath = (p2) => join6(p2.art, "ledger.jsonl");
+    directionPath = (p2) => join6(p2.art, direction_exports.DIRECTION_FILE);
+    relArt = (p2, f) => relative4(p2.art, f).split("\\").join("/");
+    relRoot = (p2, f) => relative4(p2.root, f).split("\\").join("/");
+    readLedger = (p2) => existsSync6(ledgerPath(p2)) ? parseLedger(readFileSync6(ledgerPath(p2), "utf8")) : [];
+    entriesOf = (p2, kind, id2) => readLedger(p2).filter((e) => e.asset === subjectKey(kind, id2));
+    fails = (checks) => checks.filter((c) => c.status === "fail");
+    flags = (checks) => checks.filter((c) => c.status === "flag");
+    hint = (kind, cmd, id2) => `artgen ${kind} ${cmd} ${id2}`;
+  }
+});
+
+// ../artgen-cli/src/node.ts
+import { mkdirSync as mkdirSync6, readFileSync as readFileSync7, writeFileSync as writeFileSync6 } from "node:fs";
+import { dirname as dirname6 } from "node:path";
+function writeGrid(path, g) {
+  mkdirSync6(dirname6(path), { recursive: true });
+  writeFileSync6(path, encodePNG(g));
 }
 var readGrid;
 var init_node = __esm({
   "../artgen-cli/src/node.ts"() {
     "use strict";
-    init_src4();
+    init_src5();
     init_node_svg();
-    readGrid = (path) => decodePNG(new Uint8Array(readFileSync2(path)));
+    init_workflow2();
+    readGrid = (path) => decodePNG(new Uint8Array(readFileSync7(path)));
   }
 });
 
 // ../artgen-cli/src/bench.ts
-import { existsSync as existsSync2, readFileSync as readFileSync3, writeFileSync as writeFileSync2 } from "node:fs";
+import { existsSync as existsSync7, readFileSync as readFileSync8, writeFileSync as writeFileSync7 } from "node:fs";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
-import { join as join2 } from "node:path";
+import { join as join7 } from "node:path";
 function benchSource(a) {
-  return readFileSync3(join2(BENCH_ROOT, "assets", a.file), "utf8");
+  return readFileSync8(join7(BENCH_ROOT, "assets", a.file), "utf8");
 }
 function strip(r) {
   const g = new Grid(r.size[0] * r.cells.length, r.size[1]);
@@ -25120,7 +26640,7 @@ function strip(r) {
 }
 function resolveDirection(name) {
   if (BENCH_DIRECTIONS[name]) return parseDirection(BENCH_DIRECTIONS[name]);
-  return parseDirection(JSON.parse(readFileSync3(name, "utf8")));
+  return parseDirection(JSON.parse(readFileSync8(name, "utf8")));
 }
 async function runBench(dir, opts = {}) {
   await initNodeSvg();
@@ -25139,8 +26659,8 @@ async function runBench(dir, opts = {}) {
       source: benchSource(asset),
       symAxis: asset.review.sym
     });
-    const ref = join2(BENCH_ROOT, "reference", `${asset.id}.png`);
-    const referenceDiff = dir.id === BENCH_DIRECTIONS.benchmark.id && existsSync2(ref) ? s2.diffCount(readGrid(ref)) : void 0;
+    const ref = join7(BENCH_ROOT, "reference", `${asset.id}.png`);
+    const referenceDiff = dir.id === BENCH_DIRECTIONS.benchmark.id && existsSync7(ref) ? s2.diffCount(readGrid(ref)) : void 0;
     out.push({ asset, render: render11, strip: s2, hash: s2.hash(), report: report2, referenceDiff });
   }
   return out;
@@ -25148,12 +26668,12 @@ async function runBench(dir, opts = {}) {
 async function writeBench(dir, outDir2, { stages = false, ledger } = {}) {
   const stageMap = stages ? /* @__PURE__ */ new Map() : void 0;
   const results = await runBench(dir, { stages: stageMap });
-  const root = join2(outDir2, dir.id);
+  const root = join7(outDir2, dir.id);
   for (const r of results) {
     const { asset } = r, A = asset.review, context = A.iso ? iso_exports.isoFloor(r.strip.w, r.strip.h) : void 0;
-    writeGrid(join2(root, `${asset.id}.png`), r.strip);
-    writeGrid(join2(root, `${asset.id}@${A.scale}x.png`), r.strip.scale(A.scale));
-    writeGrid(join2(root, `${asset.id}-sheet.png`), assembleSheet(r.render).grid);
+    writeGrid(join7(root, `${asset.id}.png`), r.strip);
+    writeGrid(join7(root, `${asset.id}@${A.scale}x.png`), r.strip.scale(A.scale));
+    writeGrid(join7(root, `${asset.id}-sheet.png`), assembleSheet(r.render).grid);
     const m = r.report.metrics, rows2 = [{
       label: `${asset.id} ${dir.id} | hyg ${m.hygiene} col ${m.colors} orph ${m.orphanPct}% outl ${m.outlinePct}% | gate ${r.report.pass ? "pass" : "FAIL"}`,
       grid: r.strip,
@@ -25161,10 +26681,10 @@ async function writeBench(dir, outDir2, { stages = false, ledger } = {}) {
       bg: A.bg,
       context
     }];
-    const refPath = join2(BENCH_ROOT, "reference", `${asset.id}.png`);
-    if (existsSync2(refPath)) rows2.unshift({ label: `artlab ${asset.artlab.tech} ${asset.artlab.ver} (scored ${asset.artlab.score})`, grid: readGrid(refPath), scale: A.scale, bg: A.bg, context });
+    const refPath = join7(BENCH_ROOT, "reference", `${asset.id}.png`);
+    if (existsSync7(refPath)) rows2.unshift({ label: `artlab ${asset.artlab.tech} ${asset.artlab.ver} (scored ${asset.artlab.score})`, grid: readGrid(refPath), scale: A.scale, bg: A.bg, context });
     const sheet = reviewSheet({ title: A.label, rows: rows2 });
-    const sheetPath = join2(root, `review-${asset.id}.png`);
+    const sheetPath = join7(root, `review-${asset.id}.png`);
     writeGrid(sheetPath, sheet);
     if (ledger) appendLedger(ledger, {
       type: "render",
@@ -25181,17 +26701,17 @@ async function writeBench(dir, outDir2, { stages = false, ledger } = {}) {
     });
   }
   const items = results.map((r) => ({ label: `${r.asset.id} ${r.report.pass ? "ok" : "FAIL"}`, grid: r.strip, bg: r.asset.review.bg, context: r.asset.review.iso ? iso_exports.isoFloor(r.strip.w, r.strip.h) : void 0 }));
-  writeGrid(join2(root, "comparison.png"), contactSheet(`artlab benchmark under ${dir.id}`, items, 4, 3));
+  writeGrid(join7(root, "comparison.png"), contactSheet(`artlab benchmark under ${dir.id}`, items, 4, 3));
   const pairs2 = results.flatMap((r) => {
-    const ref = join2(BENCH_ROOT, "reference", `${r.asset.id}.png`), context = r.asset.review.iso ? iso_exports.isoFloor(r.strip.w, r.strip.h) : void 0;
+    const ref = join7(BENCH_ROOT, "reference", `${r.asset.id}.png`), context = r.asset.review.iso ? iso_exports.isoFloor(r.strip.w, r.strip.h) : void 0;
     return r.referenceDiff === void 0 ? [] : [
       { label: `${r.asset.id} artlab ${r.asset.artlab.score}`, grid: readGrid(ref), bg: r.asset.review.bg, context },
       { label: `${r.asset.id} port ${r.referenceDiff}px diff`, grid: r.strip, bg: r.asset.review.bg, context }
     ];
   });
-  if (pairs2.length) writeGrid(join2(root, "parity.png"), contactSheet("artlab final (left) vs artgen-core port (right)", pairs2, 4, 4));
-  if (stageMap) for (const [k, g] of stageMap) writeGrid(join2(root, "stages", `${k.replace(/\//g, "_")}.png`), g);
-  writeFileSync2(join2(root, "conformance.json"), JSON.stringify(Object.fromEntries(results.map((r) => [r.asset.id, {
+  if (pairs2.length) writeGrid(join7(root, "parity.png"), contactSheet("artlab final (left) vs artgen-core port (right)", pairs2, 4, 4));
+  if (stageMap) for (const [k, g] of stageMap) writeGrid(join7(root, "stages", `${k.replace(/\//g, "_")}.png`), g);
+  writeFileSync7(join7(root, "conformance.json"), JSON.stringify(Object.fromEntries(results.map((r) => [r.asset.id, {
     hash: r.hash,
     referenceDiff: r.referenceDiff,
     pass: r.report.pass,
@@ -25206,89 +26726,65 @@ async function updateGolden() {
   for (const name of Object.keys(BENCH_DIRECTIONS)) {
     golden[name] = Object.fromEntries((await runBench(resolveDirection(name))).map((r) => [r.asset.id, r.hash]));
   }
-  writeFileSync2(GOLDEN_PATH, JSON.stringify(golden, null, 2) + "\n");
+  writeFileSync7(GOLDEN_PATH, JSON.stringify(golden, null, 2) + "\n");
   return golden;
 }
 var BENCH_ROOT, GOLDEN_PATH, fmt;
 var init_bench2 = __esm({
   "../artgen-cli/src/bench.ts"() {
     "use strict";
-    init_src4();
+    init_src5();
     init_bench();
     init_node();
     BENCH_ROOT = fileURLToPath2(new URL("../../artgen-core/bench/", import.meta.url));
-    GOLDEN_PATH = join2(BENCH_ROOT, "golden.json");
+    GOLDEN_PATH = join7(BENCH_ROOT, "golden.json");
     fmt = (r) => r.checks.map((c) => `${c.id}:${c.status}`).join(" ");
   }
 });
 
-// ../artgen-cli/src/projectfs.ts
-import { existsSync as existsSync3, mkdirSync as mkdirSync2, readFileSync as readFileSync4, writeFileSync as writeFileSync3 } from "node:fs";
-import { basename, dirname as dirname2, extname, join as join3, resolve } from "node:path";
-function findProject(start = process.cwd()) {
-  for (let d = resolve(start); ; d = dirname2(d)) {
-    if (existsSync3(join3(d, "art", CONFIG_FILE))) return { root: d, art: join3(d, "art") };
-    if (dirname2(d) === d) return null;
-  }
-}
-var CONFIG_FILE, fileStem, fileId, readJson, writeJson;
-var init_projectfs = __esm({
-  "../artgen-cli/src/projectfs.ts"() {
-    "use strict";
-    CONFIG_FILE = "artgen.config.json";
-    fileStem = (file) => basename(file, extname(file));
-    fileId = (file) => fileStem(file).replace(/[^\w-]+/g, "-").replace(/^-+|-+$/g, "") || "map";
-    readJson = (p2) => JSON.parse(readFileSync4(p2, "utf8"));
-    writeJson = (p2, v) => {
-      mkdirSync2(dirname2(p2), { recursive: true });
-      writeFileSync3(p2, JSON.stringify(v, null, 2) + "\n");
-    };
-  }
-});
-
 // ../artgen-cli/src/project.ts
-import { existsSync as existsSync4, mkdirSync as mkdirSync3, writeFileSync as writeFileSync4 } from "node:fs";
-import { dirname as dirname3, join as join4 } from "node:path";
+import { existsSync as existsSync8, mkdirSync as mkdirSync7, writeFileSync as writeFileSync8 } from "node:fs";
+import { dirname as dirname7, join as join8 } from "node:path";
 function initProject(root) {
-  const art = join4(root, "art"), created = [];
+  const art = join8(root, "art"), created = [];
   const dir = (p2) => {
-    if (!existsSync4(p2)) {
-      mkdirSync3(p2, { recursive: true });
+    if (!existsSync8(p2)) {
+      mkdirSync7(p2, { recursive: true });
       created.push(p2);
     }
   };
   const file = (p2, text3) => {
-    if (!existsSync4(p2)) {
-      mkdirSync3(dirname3(p2), { recursive: true });
-      writeFileSync4(p2, text3);
+    if (!existsSync8(p2)) {
+      mkdirSync7(dirname7(p2), { recursive: true });
+      writeFileSync8(p2, text3);
       created.push(p2);
     }
   };
   dir(art);
-  file(join4(art, "direction.json"), JSON.stringify(EMPTY_DIRECTION, null, 2) + "\n");
-  file(join4(art, "briefs.yaml"), "# Asset briefs. One entry per asset: id, kind, view, size, states, directions, anims, notes.\n[]\n");
-  for (const d of ["assets", "anchors", "refs", "candidates", "probes", "sheets"]) dir(join4(art, d));
-  file(join4(art, "assets", ".gitkeep"), "");
-  file(join4(art, "anchors", ".gitkeep"), "");
-  file(join4(art, "refs", "README.md"), "Reference images for the art direction interview. `artgen palette extract art/refs/<image>.png` pulls a palette from one.\n");
-  file(join4(art, "ledger.jsonl"), "");
-  file(join4(art, CONFIG_FILE), JSON.stringify(INIT_CONFIG, null, 2) + "\n");
-  file(join4(art, ".gitignore"), ART_GITIGNORE);
-  file(join4(art, "package.json"), JSON.stringify({ private: true, type: "module", description: "artgen asset sources (ESM)" }, null, 2) + "\n");
+  file(join8(art, "direction.json"), JSON.stringify(EMPTY_DIRECTION, null, 2) + "\n");
+  file(join8(art, "briefs.yaml"), "# Asset briefs. One entry per asset: id, kind, view, size, states, directions, anims, notes.\n[]\n");
+  for (const d of ["assets", "anchors", "refs", "candidates", "probes", "sheets"]) dir(join8(art, d));
+  file(join8(art, "assets", ".gitkeep"), "");
+  file(join8(art, "anchors", ".gitkeep"), "");
+  file(join8(art, "refs", "README.md"), "Reference images for the art direction interview. `artgen palette extract art/refs/<image>.png` pulls a palette from one.\n");
+  file(join8(art, "ledger.jsonl"), "");
+  file(join8(art, CONFIG_FILE), JSON.stringify(INIT_CONFIG, null, 2) + "\n");
+  file(join8(art, ".gitignore"), ART_GITIGNORE);
+  file(join8(art, "package.json"), JSON.stringify({ private: true, type: "module", description: "artgen asset sources (ESM)" }, null, 2) + "\n");
   return { project: { root, art }, created };
 }
 function projectConfig(p2) {
-  const f = join4(p2.art, CONFIG_FILE);
-  return mergeConfig(existsSync4(f) ? readJson(f) : {});
+  const f = join8(p2.art, CONFIG_FILE);
+  return mergeConfig(existsSync8(f) ? readJson(f) : {});
 }
 var EMPTY_DIRECTION, ART_GITIGNORE;
 var init_project = __esm({
   "../artgen-cli/src/project.ts"() {
     "use strict";
     init_projectfs();
-    init_src4();
+    init_src5();
     init_projectfs();
-    init_src4();
+    init_src5();
     EMPTY_DIRECTION = {
       id: "untitled",
       version: 0,
@@ -25305,13 +26801,13 @@ sheets/*
 });
 
 // ../artgen-cli/src/asset.ts
-import { existsSync as existsSync5, readdirSync, readFileSync as readFileSync5, writeFileSync as writeFileSync5 } from "node:fs";
-import { basename as basename2, dirname as dirname4, join as join5, relative, resolve as resolve2 } from "node:path";
+import { existsSync as existsSync9, readdirSync as readdirSync5, readFileSync as readFileSync9, writeFileSync as writeFileSync9 } from "node:fs";
+import { basename as basename2, dirname as dirname8, join as join9, relative as relative5, resolve as resolve6 } from "node:path";
 import { pathToFileURL } from "node:url";
 function projectBrief(p2, id2) {
-  const f = join5(p2.art, "briefs.yaml");
-  if (!existsSync5(f)) return void 0;
-  const r = parseBriefs(readFileSync5(f, "utf8"));
+  const f = join9(p2.art, "briefs.yaml");
+  if (!existsSync9(f)) return void 0;
+  const r = parseBriefs(readFileSync9(f, "utf8"));
   if (!r.ok) throw new Error(`art/briefs.yaml:
   ${r.errors.join("\n  ")}`);
   return r.briefs.find((b) => b.id === id2);
@@ -25329,56 +26825,56 @@ function editTokens(prev, src) {
   return codeTokens(added);
 }
 function findUp(start, name) {
-  for (let d = resolve2(start); ; d = dirname4(d)) {
-    if (existsSync5(join5(d, name))) return join5(d, name);
-    if (dirname4(d) === d) return null;
+  for (let d = resolve6(start); ; d = dirname8(d)) {
+    if (existsSync9(join9(d, name))) return join9(d, name);
+    if (dirname8(d) === d) return null;
   }
 }
 function openAsset(path, opts = {}) {
-  const briefPath = join5(path, "brief.json"), project2 = findProject(path) ?? void 0;
-  const local = existsSync5(briefPath) ? JSON.parse(readFileSync5(briefPath, "utf8")) : void 0;
-  const id2 = local?.id ?? basename2(resolve2(path)), fromYaml = project2 ? projectBrief(project2, id2) : void 0;
+  const briefPath = join9(path, "brief.json"), project2 = findProject(path) ?? void 0;
+  const local = existsSync9(briefPath) ? JSON.parse(readFileSync9(briefPath, "utf8")) : void 0;
+  const id2 = local?.id ?? basename2(resolve6(path)), fromYaml = project2 ? projectBrief(project2, id2) : void 0;
   if (!local && !fromYaml) throw new Error(`${path}: no brief.json and no brief "${id2}" in art/briefs.yaml`);
   const brief = { ...local, ...fromYaml, id: id2 };
   const dname = opts.direction ?? brief.direction;
   let dir;
   if (dname && BENCH_DIRECTIONS[dname]) dir = parseDirection(BENCH_DIRECTIONS[dname]);
   else {
-    const file = opts.direction ? resolve2(opts.direction) : dname ? resolve2(path, dname) : findUp(path, "direction.json");
+    const file = opts.direction ? resolve6(opts.direction) : dname ? resolve6(path, dname) : findUp(path, "direction.json");
     if (!file) throw new Error(`${path}: no direction (brief.direction, --direction or a direction.json up the tree)`);
-    const raw = JSON.parse(readFileSync5(file, "utf8"));
+    const raw = JSON.parse(readFileSync9(file, "utf8"));
     if (isPlaceholderDirection(raw)) throw new Error(`${file} is not locked yet \u2014 lock one with \`artgen direction lock <candidate>\`, or pass --direction art/candidates/<name>.json`);
     dir = parseDirection(raw);
   }
-  const ledgerPath2 = opts.ledger ?? findUp(path, "ledger.jsonl") ?? join5(dirname4(resolve2(path)), "ledger.jsonl");
+  const ledgerPath3 = opts.ledger ?? findUp(path, "ledger.jsonl") ?? join9(dirname8(resolve6(path)), "ledger.jsonl");
   const cfg = project2 ? projectConfig(project2) : void 0;
-  return { path, brief, dir, ledgerPath: ledgerPath2, ...project2 && { project: project2 }, budget: budgetFor(cfg, brief, dir) };
+  return { path, brief, dir, ledgerPath: ledgerPath3, ...project2 && { project: project2 }, budget: budgetFor(cfg, brief, dir) };
 }
 function ledgerFor(a) {
-  return existsSync5(a.ledgerPath) ? parseLedger(readFileSync5(a.ledgerPath, "utf8")).filter((e) => e.asset === a.brief.id) : [];
+  return existsSync9(a.ledgerPath) ? parseLedger(readFileSync9(a.ledgerPath, "utf8")).filter((e) => e.asset === a.brief.id) : [];
 }
 async function load(file) {
-  return await import(`${pathToFileURL(resolve2(file)).href}?h=${sourceHash(readFileSync5(file, "utf8"))}`);
+  return await import(`${pathToFileURL(resolve6(file)).href}?h=${sourceHash(readFileSync9(file, "utf8"))}`);
 }
 async function renderVersion(a, version, opts = {}) {
   await initNodeSvg();
   const v = parseVersion(version);
   if (!v) throw new Error(`bad version ${version}`);
-  const file = join5(a.path, `${v.name}.js`);
-  if (!existsSync5(file)) throw new Error(`${file} does not exist`);
-  const source = readFileSync5(file, "utf8");
+  const file = join9(a.path, `${v.name}.js`);
+  if (!existsSync9(file)) throw new Error(`${file} does not exist`);
+  const source = readFileSync9(file, "utf8");
   let render11, base, patches, stale, src = source;
   if (v.kind === "base") render11 = renderAsset(await load(file), { dir: a.dir, brief: a.brief, variant: opts.variant, stages: opts.stages, onScene: opts.onScene });
   else {
     const fin = await load(file);
     base = fin.base;
     if (!parseVersion(base ?? "")) throw new Error(`${file}: export const base = 'base.vN' is required`);
-    const baseRender = renderAsset(await load(join5(a.path, `${base}.js`)), { dir: a.dir, brief: a.brief, variant: opts.variant, stages: opts.stages, onScene: opts.onScene });
+    const baseRender = renderAsset(await load(join9(a.path, `${base}.js`)), { dir: a.dir, brief: a.brief, variant: opts.variant, stages: opts.stages, onScene: opts.onScene });
     const f = applyFinish(baseRender, fin, a.dir);
     render11 = f.render;
     patches = f.patches;
-    const snap2 = join5(a.path, `${v.name}.snapshot.json`);
-    if (existsSync5(snap2) && !opts.variant) stale = finishStale(JSON.parse(readFileSync5(snap2, "utf8")), patches);
+    const snap2 = join9(a.path, `${v.name}.snapshot.json`);
+    if (existsSync9(snap2) && !opts.variant) stale = finishStale(JSON.parse(readFileSync9(snap2, "utf8")), patches);
     src = sourceOf(a, base) + "\n" + source;
   }
   const s2 = strip(render11), grid4 = reviewGrid(render11, a.dir);
@@ -25489,10 +26985,10 @@ function layoutGrid(r) {
   return assembleSheet({ ...r, facings, cells: r.cells.filter((c) => facings.includes(c.facing)) }, 1).grid;
 }
 function outDir(a) {
-  return join5(a.path, "out");
+  return join9(a.path, "out");
 }
 function writeRender(a, r, out = outDir(a)) {
-  const sc = a.brief.review?.scale ?? 4, files = [join5(out, `${r.version}.png`), join5(out, `${r.version}@${sc}x.png`)];
+  const sc = a.brief.review?.scale ?? 4, files = [join9(out, `${r.version}.png`), join9(out, `${r.version}@${sc}x.png`)];
   writeGrid(files[0], r.strip);
   writeGrid(files[1], r.strip.scale(sc));
   return files;
@@ -25511,7 +27007,7 @@ async function reviewVersion(a, version, o = {}) {
       maxEdge: cfg?.budget?.maxSheetEdge,
       rows: [{ label: a.brief.id, grid: cur.grid, scale: sc, bg: R3.bg ?? a.dir.background, context: contextFor(a, cur.grid), silhouette: sil }, ...scene]
     });
-    const path2 = join5(outDir(a), `review-${version}-blind.png`), tokens2 = imageTokens(sheet2.w, sheet2.h);
+    const path2 = join9(outDir(a), `review-${version}-blind.png`), tokens2 = imageTokens(sheet2.w, sheet2.h);
     writeGrid(path2, sheet2);
     appendLedger(a.ledgerPath, { type: "review", asset: a.brief.id, version, pass: "b", blind: true, sheet: relPath(a, path2), imageTokens: tokens2, detail, by: "agent" });
     return { path: path2, tokens: tokens2, render: cur };
@@ -25520,7 +27016,7 @@ async function reviewVersion(a, version, o = {}) {
   const ctx = (g) => contextFor(a, g);
   const rows2 = [];
   if (a.brief.reference) {
-    const ref = readGrid(resolve2(a.path, a.brief.reference));
+    const ref = readGrid(resolve6(a.path, a.brief.reference));
     rows2.push({ label: `reference${a.brief.target !== void 0 ? ` (target ${a.brief.target})` : ""}`, grid: ref, scale: sc, bg: R3.bg, context: ctx(ref) });
   }
   const v = parseVersion(version), prev = v.kind === "finish" ? cur.base : vs.filter((x) => parseVersion(x).kind === "base" && parseVersion(x).n < v.n).pop();
@@ -25532,13 +27028,14 @@ async function reviewVersion(a, version, o = {}) {
   }
   const curGrid = low && multi ? firstFacing(cur.render) : cur.grid;
   rows2.push({ label: `>> ${rowLabel(cur)}${low && multi ? " | first facing (low detail)" : ""}`, grid: curGrid, scale: sc, bg: R3.bg ?? a.dir.background, context: ctx(curGrid), silhouette: sil }, ...scene);
-  const sheet = reviewSheet({ title: `${R3.label ?? a.brief.id} - ${version} (${pass})`, rows: rows2, anchors: anchorsFor(a), maxEdge: cfg?.budget?.maxSheetEdge });
-  const path = join5(outDir(a), `review-${version}.png`);
+  const refs = a.project && a.brief.refs?.length ? loadRefs(a.project, a.brief.refs) : { refs: [], warnings: [] };
+  const sheet = reviewSheet({ title: `${R3.label ?? a.brief.id} - ${version} (${pass})`, rows: rows2, anchors: anchorsFor(a), ...refs.refs.length && { refs: refs.refs }, maxEdge: cfg?.budget?.maxSheetEdge });
+  const path = join9(outDir(a), `review-${version}.png`);
   writeGrid(path, sheet);
   writeRender(a, cur);
   const tokens = imageTokens(sheet.w, sheet.h);
   appendLedger(a.ledgerPath, { type: "review", asset: a.brief.id, version, pass, sheet: relPath(a, path), imageTokens: tokens, detail, ...o.scene && { scene: true }, by: "agent" });
-  return { path, tokens, render: cur };
+  return { path, tokens, render: cur, ...refs.warnings.length && { warnings: refs.warnings } };
 }
 function sceneGrid(dir, sprite) {
   const ramps = dir.palette.ramps, ramp2 = ramps[dir.palette.materials.stone ?? "stone"] ?? ramps[dir.palette.materials.dirt ?? "dirt"] ?? Object.values(ramps)[0];
@@ -25560,8 +27057,8 @@ async function scoreVersion(a, version, score2, note = "", extra = {}) {
   const blind = extra.blind === true, reviews = ledgerFor(a).filter((e) => e.type === "review" && e.version === version && !!e.blind === blind);
   if (blind && !reviews.length) throw new Error(`${a.brief.id} ${version}: no blind sheet yet \u2014 artgen review ${a.brief.id} --version ${version} --blind, and give only that sheet to the reviewer`);
   if (v.kind === "finish" && r.patches) {
-    const snap2 = join5(a.path, `${version}.snapshot.json`);
-    if (!existsSync5(snap2)) writeFileSync5(snap2, JSON.stringify(finishSnapshot(r.patches)) + "\n");
+    const snap2 = join9(a.path, `${version}.snapshot.json`);
+    if (!existsSync9(snap2)) writeFileSync9(snap2, JSON.stringify(finishSnapshot(r.patches)) + "\n");
   }
   const ledger = ledgerFor(a), prevTs = ledger.length ? Date.parse(ledger[ledger.length - 1].ts) : NaN;
   const scores = new Map(ledger.filter((e) => e.type === "score" && !e.blind && e.version).map((e) => [e.version, e.score]));
@@ -25608,7 +27105,7 @@ async function passState(a) {
     ...a.project && { feedback: feedbackOf(a), extraRevisions: a.budget?.extraRevisions ?? 0, ...blindConfig(a.project) }
   });
   const lastFinish = versions.filter((v) => v.startsWith("finish.")).pop();
-  if (lastFinish && existsSync5(join5(a.path, `${lastFinish}.snapshot.json`))) {
+  if (lastFinish && existsSync9(join9(a.path, `${lastFinish}.snapshot.json`))) {
     const stale = (await renderVersion(a, lastFinish)).stale;
     if (stale?.length) return { ...st, stale };
   }
@@ -25627,7 +27124,7 @@ async function variantsSheet(a, version, n = 8) {
   }
   const distinct = new Set(hashes).size, cols = Math.min(4, n);
   const sheet = contactSheet(`${a.brief.id} ${version}: ${n} variants, ${distinct} distinct`, items, a.brief.review?.scale ?? 4, cols);
-  const path = join5(outDir(a), `variants-${version}.png`);
+  const path = join9(outDir(a), `variants-${version}.png`);
   writeGrid(path, sheet);
   return { path, distinct, hashes };
 }
@@ -25642,7 +27139,7 @@ function stageModel(a, pass) {
 }
 function anchorsFor(a) {
   if (!a.project || !a.dir.anchors?.length) return [];
-  const all = a.dir.anchors.map((f) => ({ label: basename2(f, ".png"), file: resolve2(a.project.art, f) })).filter((x) => existsSync5(x.file));
+  const all = a.dir.anchors.map((f) => ({ label: basename2(f, ".png"), file: resolve6(a.project.art, f) })).filter((x) => existsSync9(x.file));
   const same = all.filter((x) => x.label === a.brief.kind || a.brief.kind === "creature" && x.label === "character" || ["tileset", "texture"].includes(a.brief.kind) && x.label === "tile");
   return (same.length ? same : all).map((x) => ({ label: `anchor ${x.label}`, grid: readGrid(x.file) }));
 }
@@ -25656,11 +27153,12 @@ var CHARS_PER_TOKEN, codeTokens, revisionPasses, feedbackOf, passOf, versionsIn,
 var init_asset = __esm({
   "../artgen-cli/src/asset.ts"() {
     "use strict";
-    init_src4();
+    init_src5();
     init_bench();
     init_bench2();
     init_node();
     init_project();
+    init_workflow2();
     CHARS_PER_TOKEN = 3.5;
     codeTokens = (src) => Math.ceil(src.length / CHARS_PER_TOKEN);
     revisionPasses = (a) => a.budget?.revisionPasses ?? a.dir.pipeline.revisionPasses;
@@ -25674,23 +27172,23 @@ var init_asset = __esm({
       ...typeof e.cell === "string" && { cell: e.cell }
     }));
     passOf = (a, version) => passId(version, revisionPasses(a), a.project ? feedbackOf(a).filter((f) => f.by !== "agent").map((f) => f.opens) : void 0);
-    versionsIn = (a) => readdirSync(a.path).map((f) => parseVersion(f)?.name).filter((v) => !!v).sort((x, y) => {
+    versionsIn = (a) => readdirSync5(a.path).map((f) => parseVersion(f)?.name).filter((v) => !!v).sort((x, y) => {
       const a1 = parseVersion(x), b1 = parseVersion(y);
       return a1.kind === b1.kind ? a1.n - b1.n : a1.kind === "base" ? -1 : 1;
     });
-    sourceOf = (a, version) => readFileSync5(join5(a.path, `${version}.js`), "utf8");
+    sourceOf = (a, version) => readFileSync9(join9(a.path, `${version}.js`), "utf8");
     rowLabel = (r, score2) => `${r.version}${score2 !== void 0 ? ` (${score2})` : ""} | hyg ${r.report.metrics.hygiene} col ${r.report.metrics.colors} orph ${r.report.metrics.orphanPct}% | gate ${r.report.pass ? "pass" : "FAIL"}${r.stale?.length ? " | FINISH-STALE" : ""}`;
-    relPath = (a, p2) => relative(dirname4(resolve2(a.ledgerPath)), resolve2(p2)).split("\\").join("/");
+    relPath = (a, p2) => relative5(dirname8(resolve6(a.ledgerPath)), resolve6(p2)).split("\\").join("/");
     stageKey = (pass) => pass === "r1" ? "base" : pass.startsWith("f") ? "finish" : "revise";
     reviewKey = (pass) => pass === "b" ? "blind" : pass === "r1" || pass === "r2" ? "reviewEarly" : "review";
   }
 });
 
 // ../artgen-cli/src/report.ts
-import { existsSync as existsSync6, readdirSync as readdirSync2, writeFileSync as writeFileSync6 } from "node:fs";
-import { join as join6, resolve as resolve3 } from "node:path";
+import { existsSync as existsSync10, readdirSync as readdirSync6, writeFileSync as writeFileSync10 } from "node:fs";
+import { join as join10, resolve as resolve7 } from "node:path";
 function assetDirs(root) {
-  return readdirSync2(root, { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync6(join6(root, d.name, "brief.json"))).map((d) => join6(root, d.name));
+  return readdirSync6(root, { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync10(join10(root, d.name, "brief.json"))).map((d) => join10(root, d.name));
 }
 async function report(root, opts = {}) {
   const assets = assetDirs(root).map((p2) => openAsset(p2));
@@ -25702,7 +27200,7 @@ Price basis (same as artlab): $${PRICE2.inPerM}/M input (review images), $${PRIC
   md += "| Asset | Pass | Version | Score | \u0394 | Gate | Hygiene | Colours | Code tok | Edit tok | Review tok | Note |\n|---|---|---|---|---|---|---|---|---|---|---|---|\n";
   const summaries = [];
   for (const a of assets) {
-    const ledger = ledgerFor(a), scores = latestScores(ledger), st = await passState(a);
+    const ledger = ledgerFor(a), scores = latestScores2(ledger), st = await passState(a);
     const entries = st.rows.map((row) => ({ row, e: [...ledger].reverse().find((e) => e.type === "score" && !e.blind && e.version === row.version) }));
     let prev, out = 0, inp = 0;
     for (const { row, e } of entries) {
@@ -25745,8 +27243,8 @@ Price basis (same as artlab): $${PRICE2.inPerM}/M input (review images), $${PRIC
 Totals: ${tot.out} output tok, ${tot.inp} review tok, est. $${cost(tot.out, tot.inp).toFixed(3)}. Average gain from revisions ${avg((s2) => s2.revisionGain)}, from the finishing pass ${avg((s2) => s2.finishGain)}. ${summaries.filter((s2) => s2.met).length}/${summaries.length} assets at or above target.
 `;
   if (opts.out) {
-    writeFileSync6(opts.out, md);
-    await finalComparison(assets, summaries, resolve3(opts.out, "..", "final-comparison.png"));
+    writeFileSync10(opts.out, md);
+    await finalComparison(assets, summaries, resolve7(opts.out, "..", "final-comparison.png"));
   }
   return { markdown: md, summaries };
 }
@@ -25758,7 +27256,7 @@ async function finalComparison(assets, summaries, path) {
     const fin = (await renderVersion(a, s2.final)).strip, R3 = a.brief.review ?? {};
     const ctx = (g) => R3.iso ? iso_exports.isoFloor(g.w, g.h) : void 0;
     if (a.brief.reference) {
-      const ref = readGrid(resolve3(a.path, a.brief.reference));
+      const ref = readGrid(resolve7(a.path, a.brief.reference));
       items.push({ label: `${a.brief.id} ref ${s2.target ?? ""}`, grid: ref, bg: R3.bg, context: ctx(ref) });
     }
     items.push({ label: `${a.brief.id} ${s2.final} ${s2.finish ?? s2.bestRevision?.score ?? ""}`, grid: fin, bg: R3.bg, context: ctx(fin) });
@@ -25769,11 +27267,967 @@ var PRICE2, cost;
 var init_report = __esm({
   "../artgen-cli/src/report.ts"() {
     "use strict";
-    init_src4();
+    init_src5();
     init_asset();
     init_node();
     PRICE2 = { inPerM: 4, outPerM: 20 };
     cost = (out, inp) => (out * PRICE2.outPerM + inp * PRICE2.inPerM) / 1e6;
+  }
+});
+
+// ../artgen-runtime/src/autotile.ts
+function reduceCorners2(m) {
+  let r = m & (N2 | E3 | S2 | W2);
+  if (m & NE2 && m & N2 && m & E3) r |= NE2;
+  if (m & SE2 && m & S2 && m & E3) r |= SE2;
+  if (m & SW2 && m & S2 && m & W2) r |= SW2;
+  if (m & NW2 && m & N2 && m & W2) r |= NW2;
+  return r;
+}
+var N2, NE2, E3, SE2, S2, SW2, W2, NW2, BLOB472, BLOB_INDEX;
+var init_autotile2 = __esm({
+  "../artgen-runtime/src/autotile.ts"() {
+    "use strict";
+    N2 = 1;
+    NE2 = 2;
+    E3 = 4;
+    SE2 = 8;
+    S2 = 16;
+    SW2 = 32;
+    W2 = 64;
+    NW2 = 128;
+    BLOB472 = [...new Set(Array.from({ length: 256 }, (_, m) => reduceCorners2(m)))].sort((a, b) => a - b);
+    BLOB_INDEX = new Map(BLOB472.map((m, i) => [m, i]));
+  }
+});
+
+// ../artgen-runtime/src/facing.ts
+var TAU;
+var init_facing = __esm({
+  "../artgen-runtime/src/facing.ts"() {
+    "use strict";
+    TAU = Math.PI * 2;
+  }
+});
+
+// ../artgen-runtime/src/stack.ts
+var init_stack = __esm({
+  "../artgen-runtime/src/stack.ts"() {
+    "use strict";
+  }
+});
+
+// ../artgen-runtime/src/pack.ts
+var RUNTIME_VERSION;
+var init_pack2 = __esm({
+  "../artgen-runtime/src/pack.ts"() {
+    "use strict";
+    init_autotile2();
+    init_facing();
+    init_stack();
+    RUNTIME_VERSION = "1.2.1";
+  }
+});
+
+// ../artgen-runtime/src/coords.ts
+var init_coords = __esm({
+  "../artgen-runtime/src/coords.ts"() {
+    "use strict";
+  }
+});
+
+// ../artgen-runtime/src/index.ts
+var init_src6 = __esm({
+  "../artgen-runtime/src/index.ts"() {
+    "use strict";
+    init_pack2();
+    init_facing();
+    init_autotile2();
+    init_stack();
+    init_coords();
+  }
+});
+
+// ../artgen-cli/src/runtime.ts
+import { createHash } from "node:crypto";
+import { existsSync as existsSync11, mkdirSync as mkdirSync8, readdirSync as readdirSync7, readFileSync as readFileSync10, rmSync, writeFileSync as writeFileSync11 } from "node:fs";
+import { dirname as dirname9, join as join11, relative as relative6 } from "node:path";
+import { fileURLToPath as fileURLToPath3 } from "node:url";
+function runtimeRoot() {
+  const here = dirname9(fileURLToPath3(import.meta.url));
+  for (const p2 of [join11(here, "runtime"), join11(here, "..", "..", "artgen-runtime", "src")]) if (existsSync11(join11(p2, "pack.ts"))) return p2;
+  throw new Error(`artgen runtime sources not found next to ${here}`);
+}
+function runtimeFiles(adapters, root = runtimeRoot()) {
+  const ts = (d) => existsSync11(d) ? readdirSync7(d).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts") && f !== "testkit.ts" && f !== "contract.ts") : [];
+  const available = ts(join11(root, "adapters")).map((f) => f.replace(/\.ts$/, ""));
+  for (const a of adapters) if (!available.includes(a)) throw new Error(`unknown runtime adapter "${a}" in artgen.config.json (available: ${available.join(", ")})`);
+  return [...ts(root).sort(), ...[...new Set(adapters)].map((a) => `adapters/${a}.ts`)];
+}
+function vendorRuntime(p2, o = {}) {
+  const cfg = projectConfig(p2), root = runtimeRoot(), adapters = cfg.runtime.adapters, files = runtimeFiles(adapters, root);
+  const dir = join11(p2.root, cfg.export.runtimeDir), stampFile = join11(dir, STAMP);
+  const old = existsSync11(stampFile) ? readJson(stampFile) : null;
+  const generator = o.generator ?? "artgen";
+  const r = { dir: relative6(p2.root, dir).split("\\").join("/"), version: RUNTIME_VERSION, from: old?.runtime ?? null, adapters, written: [], unchanged: [], kept: [], removed: [] };
+  const hashes = {};
+  const edited = (f) => {
+    const dest = join11(dir, f);
+    return existsSync11(dest) && old?.files[f] !== void 0 && sha(readFileSync10(dest, "utf8")) !== old.files[f];
+  };
+  for (const f of files) {
+    const text3 = vendoredSource(f, root), h = sha(text3), dest = join11(dir, f);
+    if (existsSync11(dest)) {
+      const cur = sha(readFileSync10(dest, "utf8"));
+      if (cur === h) {
+        r.unchanged.push(f);
+        hashes[f] = h;
+        continue;
+      }
+      if (!o.force && (old?.files[f] === void 0 || edited(f))) {
+        r.kept.push(f);
+        hashes[f] = old?.files[f] ?? cur;
+        continue;
+      }
+    }
+    mkdirSync8(dirname9(dest), { recursive: true });
+    writeFileSync11(dest, text3);
+    r.written.push(f);
+    hashes[f] = h;
+  }
+  for (const f of Object.keys(old?.files ?? {})) {
+    if (files.includes(f) || !existsSync11(join11(dir, f))) continue;
+    if (!o.force && edited(f)) {
+      r.kept.push(f);
+      hashes[f] = old.files[f];
+      continue;
+    }
+    rmSync(join11(dir, f));
+    r.removed.push(f);
+  }
+  writeJson(stampFile, { runtime: RUNTIME_VERSION, generator, adapters, files: hashes });
+  return r;
+}
+var STAMP, sha, HEADER, vendoredSource;
+var init_runtime = __esm({
+  "../artgen-cli/src/runtime.ts"() {
+    "use strict";
+    init_src6();
+    init_project();
+    STAMP = "runtime.json";
+    sha = (s2) => createHash("sha256").update(s2).digest("hex").slice(0, 16);
+    HEADER = `// Vendored by \`artgen export --runtime\` (artgen-runtime ${RUNTIME_VERSION}). Local edits are detected and kept;
+// re-export with --force to overwrite them. Source: packages/artgen-runtime in rstevenson1237/image_tools.
+`;
+    vendoredSource = (file, root = runtimeRoot()) => HEADER + readFileSync10(join11(root, file), "utf8");
+  }
+});
+
+// ../artgen-cli/src/templates.ts
+import { existsSync as existsSync12, mkdirSync as mkdirSync9, readFileSync as readFileSync11, writeFileSync as writeFileSync12 } from "node:fs";
+import { dirname as dirname10, join as join12, resolve as resolve8 } from "node:path";
+import { fileURLToPath as fileURLToPath4 } from "node:url";
+function templatesRoot() {
+  const here = dirname10(fileURLToPath4(import.meta.url));
+  for (const p2 of [join12(here, "templates"), join12(here, "..", "templates")]) if (existsSync12(join12(p2, "finish.js"))) return p2;
+  throw new Error(`artgen templates not found next to ${here}`);
+}
+function findTemplate(view, kind) {
+  const root = templatesRoot(), alias = KIND_ALIAS[kind] ?? kind;
+  for (const [v, k] of [[view, kind], ["topdown", kind], [view, alias], ["topdown", alias], [view, "prop"], ["topdown", "prop"]]) {
+    const dir = join12(root, v, k);
+    if (existsSync12(join12(dir, "base.js"))) return { view: v, kind: k, dir, fallback: v !== view || k !== kind };
+  }
+  throw new Error(`no template for ${view}/${kind}`);
+}
+function newAsset(path, o) {
+  const t = findTemplate(o.view, o.kind), base = join12(path, "base.v1.js");
+  if (existsSync12(base)) throw new Error(`${base} exists \u2014 write the next version instead (R10)`);
+  mkdirSync9(path, { recursive: true });
+  const brief = {
+    id: o.id,
+    ...JSON.parse(readFileSync11(join12(t.dir, "brief.json"), "utf8")),
+    kind: o.kind,
+    view: o.view,
+    ...o.size && { size: o.size },
+    ...o.states && { states: o.states },
+    ...o.directions && { directions: o.directions },
+    ...o.notes && { notes: o.notes }
+  };
+  writeFileSync12(join12(path, "brief.json"), JSON.stringify(brief, null, 2) + "\n");
+  writeFileSync12(base, fill(readFileSync11(join12(t.dir, "base.js"), "utf8"), { ID: o.id }));
+  return { files: [join12(path, "brief.json"), base], template: t };
+}
+function newFinish(path, n, base, kind) {
+  const file = join12(path, `finish.v${n}.js`);
+  if (existsSync12(file)) throw new Error(`${file} exists`);
+  if (kind === void 0 && existsSync12(join12(path, "brief.json"))) kind = JSON.parse(readFileSync11(join12(path, "brief.json"), "utf8")).kind;
+  writeFileSync12(file, fill(readFileSync11(finishTemplate(kind), "utf8"), { BASE: base, N: String(n) }));
+  return resolve8(file);
+}
+var KIND_ALIAS, fill, FACE_KINDS, finishTemplate;
+var init_templates = __esm({
+  "../artgen-cli/src/templates.ts"() {
+    "use strict";
+    KIND_ALIAS = { creature: "character", tileset: "tile", texture: "tile", viewmodel: "prop", "ui-icon": "prop" };
+    fill = (text3, vars) => text3.replace(/\{\{(\w+)\}\}/g, (m, k) => vars[k] ?? m);
+    FACE_KINDS = /* @__PURE__ */ new Set(["character", "creature"]);
+    finishTemplate = (kind) => join12(templatesRoot(), kind && FACE_KINDS.has(kind) ? "finish-character.js" : "finish.js");
+  }
+});
+
+// ../artgen-cli/src/w1.ts
+import { existsSync as existsSync13, readdirSync as readdirSync8, readFileSync as readFileSync12 } from "node:fs";
+import { basename as basename3, join as join13, relative as relative7 } from "node:path";
+function directionVersion(p2, version) {
+  const f = directionFile(p2, version);
+  if (existsSync13(f)) return parseDirection(readJson(f));
+  const cur = lockedDirection(p2);
+  if (cur?.version === version) return cur;
+  throw new Error(`direction v${version} is not archived (art/directions/v${version}.json) \u2014 directions locked by older artgen versions are archived on the next lock`);
+}
+function candidateNames(p2) {
+  if (!existsSync13(cdir(p2))) return [];
+  return readdirSync8(cdir(p2)).filter((f) => f.endsWith(".json")).map((f) => f.slice(0, -5)).sort((x, y) => (x.length === 1 ? 0 : 1) - (y.length === 1 ? 0 : 1) || x.localeCompare(y, "en", { numeric: true }));
+}
+function loadCandidate(p2, name) {
+  const file = existsSync13(join13(cdir(p2), `${name}.json`)) ? join13(cdir(p2), `${name}.json`) : name;
+  if (!existsSync13(file)) throw new Error(`no candidate ${name} (have: ${candidateNames(p2).join(", ") || "none \u2014 run direction candidates"})`);
+  return parseDirection(readJson(file));
+}
+function lockedDirection(p2) {
+  const f = join13(p2.art, "direction.json");
+  if (!existsSync13(f)) return null;
+  const raw = readJson(f);
+  return isPlaceholderDirection(raw) ? null : parseDirection(raw);
+}
+function ensureProbes(p2, view) {
+  const created = [], fallbacks = [];
+  for (const kind of PROBE_KINDS) {
+    const d = probeDir(p2, kind);
+    if (existsSync13(join13(d, "brief.json"))) continue;
+    const r = newAsset(d, { id: `probe-${kind}`, kind, view });
+    created.push(...r.files.map((f) => rel(p2, f)));
+    if (r.template.fallback) fallbacks.push(`${kind}: ${view} has no template yet, used ${r.template.view}/${r.template.kind}`);
+  }
+  return { created, fallbacks };
+}
+function writeCandidates(p2, iv) {
+  const ivFile = join13(p2.art, "interview.json");
+  writeJson(ivFile, iv);
+  const dirs = generateCandidates(iv), out = [];
+  dirs.forEach((d, i) => {
+    const name = "abc"[i], file = join13(cdir(p2), `${name}.json`);
+    writeJson(file, d);
+    out.push({ name, file: rel(p2, file), summary: [d.theme.notes ?? "", ...describeDirection(d)] });
+  });
+  const probes = ensureProbes(p2, iv.view ?? "topdown");
+  appendLedger(ledgerPath2(p2), { type: "note", asset: "direction", note: `candidates ${out.map((c) => c.name).join(", ")} from interview`, by: "agent" });
+  return { interview: rel(p2, ivFile), candidates: out, probes: probes.created, fallbacks: probes.fallbacks };
+}
+function probeVersion(a) {
+  const vs = versionsIn(a);
+  if (!vs.length) throw new Error(`${a.path}: no base.vN.js`);
+  return [...vs].reverse().find((v) => v.startsWith("finish.")) ?? vs.filter((v) => v.startsWith("base.")).pop();
+}
+function probeAsset(p2, kind, dir) {
+  const path = probeDir(p2, kind), brief = readJson(join13(path, "brief.json"));
+  return { path, brief: { ...brief, id: brief.id ?? `probe-${kind}` }, dir, ledgerPath: ledgerPath2(p2) };
+}
+async function renderProbes(p2, dir, opts = {}) {
+  const renders = {};
+  for (const kind of PROBE_KINDS) {
+    const a = probeAsset(p2, kind, dir);
+    renders[kind] = await renderVersion(a, opts.versions?.[kind] ?? probeVersion(a));
+  }
+  const cell3 = (k) => renders[k].render.cells[0].grid;
+  const images = { character: cell3("character"), prop: cell3("prop"), tile: cell3("tile"), effect: renders.effect.render.cells.map((c) => c.grid) };
+  return { renders, images };
+}
+async function writeTile(p2, names) {
+  const list6 = names?.length ? names : candidateNames(p2);
+  if (!list6.length) throw new Error("no candidates \u2014 run `artgen direction candidates` first");
+  const columns = [], info = [], hashes = [];
+  for (const name of list6) {
+    const dir = loadCandidate(p2, name), { renders, images } = await renderProbes(p2, dir);
+    const gates = Object.fromEntries(Object.entries(renders).map(([k, r]) => [k, r.report.pass]));
+    const failing = Object.entries(renders).flatMap(([k, r]) => r.report.checks.filter((c) => c.status === "fail").map((c) => `${k}.${c.id}: ${c.detail}`));
+    columns.push({ label: `${name.length === 1 ? name.toUpperCase() : name} - ${dir.id}`, notes: describeDirection(dir), dir, probes: images, gates });
+    info.push({ name, id: dir.id, gates, failing });
+    hashes.push(images.character.hash() + images.prop.hash());
+  }
+  const versions = PROBE_KINDS.map((k) => `${k} ${probeVersion(probeAsset(p2, k, loadCandidate(p2, list6[0])))}`).join(", ");
+  const round6 = (existsSync13(cdir(p2)) ? readdirSync8(cdir(p2)).filter((f) => /^style-tile-r\d+\.png$/.test(f)).length : 0) + 1;
+  const sheet = styleTile(`style tile round ${round6}: ${versions}`, columns);
+  const path = join13(cdir(p2), `style-tile-r${round6}.png`);
+  writeGrid(path, sheet);
+  const tokens = imageTokens(sheet.w, sheet.h);
+  appendLedger(ledgerPath2(p2), { type: "review", asset: "direction", version: `tile-r${round6}`, sheet: relative7(p2.art, path).split("\\").join("/"), imageTokens: tokens, candidates: list6, by: "agent" });
+  const dirs = list6.map((n) => loadCandidate(p2, n)), lumas = dirs.map(paletteLuma);
+  let minGap = Infinity;
+  for (let i = 0; i < lumas.length; i++) for (let j = i + 1; j < lumas.length; j++) minGap = Math.min(minGap, Math.abs(lumas[i] - lumas[j]));
+  return { path: rel(p2, path), round: round6, tokens, columns: info, distinct: { pairs: new Set(hashes).size, minLumaGap: Number.isFinite(minGap) ? Math.round(minGap * 10) / 10 : 0 } };
+}
+function writeMix(p2, base, take, name) {
+  const n = name ?? `mix${candidateNames(p2).filter((c) => c.startsWith("mix")).length + 1}`;
+  const parts = {};
+  for (const [part, src] of Object.entries(take)) {
+    if (!MIX_PARTS.includes(part)) throw new Error(`unknown part ${part} (have: ${MIX_PARTS.join(", ")})`);
+    parts[part] = loadCandidate(p2, src);
+  }
+  const b = loadCandidate(p2, base), d = mixDirections(b, parts, `${b.id.replace(/-[a-z]$/, "")}-${n}`);
+  d.theme.notes = `mix ${n}: ${base.toUpperCase()} as the base${Object.entries(take).map(([k, v]) => `, ${k} from ${String(v).toUpperCase()}`).join("")}`;
+  const file = join13(cdir(p2), `${n}.json`);
+  writeJson(file, d);
+  appendLedger(ledgerPath2(p2), { type: "note", asset: "direction", note: d.theme.notes, by: "user" });
+  return { name: n, file: rel(p2, file), dir: d };
+}
+function writeDraft(p2, from, name = "next") {
+  const src = from ? loadCandidate(p2, from) : lockedDirection(p2);
+  if (!src) throw new Error("nothing to start from: no locked direction; use --from <candidate>");
+  const d = { ...JSON.parse(JSON.stringify(src)), status: "draft" };
+  const file = join13(cdir(p2), `${name}.json`);
+  writeJson(file, d);
+  return { name, file: rel(p2, file) };
+}
+async function writeAnchors(p2) {
+  const dir = lockedDirection(p2);
+  if (!dir) throw new Error("art/direction.json is not locked yet \u2014 run `artgen direction lock <candidate>`");
+  const { renders, images } = await renderProbes(p2, dir), files = [], list6 = [];
+  const strip2 = (fs) => {
+    const g = new Grid(fs.reduce((n, f) => n + f.w, 0) + fs.length - 1, Math.max(...fs.map((f) => f.h)));
+    let x = 0;
+    for (const f of fs) {
+      g.blit(f, x, 0);
+      x += f.w + 1;
+    }
+    return g;
+  };
+  for (const kind of PROBE_KINDS) {
+    const g = kind === "effect" ? strip2(images.effect) : images[kind];
+    const f = join13(p2.art, "anchors", `${kind}.png`);
+    writeGrid(f, g);
+    files.push(relative7(p2.art, f).split("\\").join("/"));
+    list6.push({ label: kind, grid: g });
+  }
+  const file = join13(p2.art, "direction.json"), raw = readJson(file);
+  writeJson(file, { ...raw, anchors: files });
+  const sheet = join13(p2.art, "direction.png");
+  writeGrid(sheet, styleSheet({ ...dir, anchors: files }, list6));
+  const versions = Object.fromEntries(Object.entries(renders).map(([k, r]) => [k, r.version]));
+  appendLedger(ledgerPath2(p2), { type: "note", asset: "direction", version: `v${dir.version}`, note: `anchors from probes ${Object.entries(versions).map(([k, v]) => `${k} ${v}`).join(", ")}`, by: "agent" });
+  return { anchors: files.map((f) => `art/${f}`), sheet: rel(p2, sheet), versions, gates: Object.fromEntries(Object.entries(renders).map(([k, r]) => [k, r.report.pass])) };
+}
+async function lock(p2, name, opts = {}) {
+  const chosen = loadCandidate(p2, name), prev = lockedDirection(p2);
+  const d = lockDirection(chosen, prev, opts.id);
+  d.theme = { ...d.theme, notes: `${d.theme.notes ?? ""}${opts.note ? `. ${opts.note}` : ""}`.trim() };
+  const file = join13(p2.art, "direction.json");
+  if (prev && !existsSync13(directionFile(p2, prev.version))) writeJson(directionFile(p2, prev.version), readJson(file));
+  writeJson(file, d);
+  appendLedger(ledgerPath2(p2), { type: "approve", asset: "direction", version: `v${d.version}`, note: `locked ${name}${opts.note ? `: ${opts.note}` : ""}`, direction: { id: d.id, version: d.version }, by: "user" });
+  const anchors2 = await writeAnchors(p2);
+  writeJson(directionFile(p2, d.version), readJson(file));
+  return { direction: lockedDirection(p2), file: rel(p2, file), ...anchors2 };
+}
+function show2(p2) {
+  const locked = lockedDirection(p2);
+  const candidates3 = candidateNames(p2).map((n) => {
+    const raw = readJson(join13(cdir(p2), `${n}.json`)), r = validateDirection(raw);
+    return r.ok ? { name: n, id: r.direction.id, status: r.direction.status, summary: describeDirection(r.direction) } : { name: n, id: "?", status: "invalid", summary: r.errors.slice(0, 3) };
+  });
+  const tiles = existsSync13(cdir(p2)) ? readdirSync8(cdir(p2)).filter((f) => /^style-tile-r\d+\.png$/.test(f)).sort((a, b) => parseInt(a.slice(12)) - parseInt(b.slice(12))).map((f) => rel(p2, join13(cdir(p2), f))) : [];
+  const probes = {};
+  for (const k of PROBE_KINDS) if (existsSync13(join13(probeDir(p2, k), "brief.json"))) {
+    const a = { path: probeDir(p2, k), brief: readJson(join13(probeDir(p2, k), "brief.json")), dir: void 0, ledgerPath: ledgerPath2(p2) };
+    probes[k] = versionsIn(a).join(" ");
+  }
+  const history2 = existsSync13(ledgerPath2(p2)) ? ledgerFor({ brief: { id: "direction" }, ledgerPath: ledgerPath2(p2) }).length : 0;
+  return { locked, candidates: candidates3, tiles, probes, history: history2 };
+}
+var cdir, probeDir, ledgerPath2, rel, directionFile, readInterview;
+var init_w1 = __esm({
+  "../artgen-cli/src/w1.ts"() {
+    "use strict";
+    init_src5();
+    init_asset();
+    init_node();
+    init_project();
+    init_templates();
+    cdir = (p2) => join13(p2.art, "candidates");
+    probeDir = (p2, kind) => join13(p2.art, "probes", kind);
+    ledgerPath2 = (p2) => join13(p2.art, "ledger.jsonl");
+    rel = (p2, f) => relative7(p2.root, f).split("\\").join("/");
+    directionFile = (p2, version) => join13(p2.art, "directions", `v${version}.json`);
+    readInterview = (file) => {
+      const iv = JSON.parse(readFileSync12(file, "utf8"));
+      if (!iv.pitch) throw new Error(`${basename3(file)}: "pitch" is required`);
+      return iv;
+    };
+  }
+});
+
+// ../artgen-cli/src/w2.ts
+import { copyFileSync as copyFileSync2, existsSync as existsSync14, mkdirSync as mkdirSync10, readdirSync as readdirSync9, readFileSync as readFileSync13, writeFileSync as writeFileSync13 } from "node:fs";
+import { dirname as dirname11, join as join14, relative as relative8, resolve as resolve9 } from "node:path";
+function readBriefs(p2) {
+  if (!existsSync14(briefsFile(p2))) return [];
+  const r = parseBriefs(readFileSync13(briefsFile(p2), "utf8"));
+  if (!r.ok) throw new Error(`art/briefs.yaml:
+  ${r.errors.join("\n  ")}`);
+  return r.briefs;
+}
+function readContract(p2, id2) {
+  return existsSync14(contractFile(p2, id2)) ? readJson(contractFile(p2, id2)) : void 0;
+}
+function addBrief(p2, b, o = {}) {
+  const old = readContract(p2, b.id), dir = old && lockedDirection(p2);
+  if (old && dir && !o.breakContract) {
+    const d = diffContract(old, briefContract(b, dir, old));
+    if (d.breaking.length) throw new Error(`brief ${b.id} would break its exported animation contract (art/contracts/${b.id}.json):
+  ${d.breaking.join("\n  ")}
+game code may depend on it; re-run with --break-contract if that is intended`);
+  }
+  const text3 = existsSync14(briefsFile(p2)) ? readFileSync13(briefsFile(p2), "utf8") : "";
+  writeFileSync13(briefsFile(p2), upsertBrief(text3, b));
+  return readBriefs(p2);
+}
+function removeBriefFile(p2, id2) {
+  const text3 = readFileSync13(briefsFile(p2), "utf8"), out = removeBrief(text3, id2);
+  if (out !== text3) writeFileSync13(briefsFile(p2), out);
+  return out !== text3;
+}
+function templateFor(b, dir) {
+  const view = b.view ?? dir.camera.view, figure = ["character", "creature"].includes(b.kind);
+  if (figure && b.body && b.body !== "humanoid") return findTemplate(view, `creature-${b.body}`);
+  const walker = figure && ((b.directions ?? 1) > 1 || !!b.anims?.walk);
+  return walker ? findTemplate(view, "character-walk") : findTemplate(view, b.kind);
+}
+function briefWarnings(b, dir) {
+  const out = briefMaterialIssues(b, dir), t = templateFor(b, dir), view = b.view ?? dir.camera.view;
+  if (t.view !== view) out.push(`no ${view} template for it: it starts from ${t.view}/${t.kind} \u2014 check the review sheets for the ${view} camera`);
+  return out;
+}
+function scaffoldAsset(p2, b, dir) {
+  const path = assetPathOf(p2, b), t = templateFor(b, dir), template = `${t.view}/${t.kind}`;
+  if (existsSync14(join14(path, "base.v1.js"))) return { path, created: false, template };
+  mkdirSync10(path, { recursive: true });
+  const tb = readJson(join14(t.dir, "brief.json"));
+  if (!existsSync14(join14(path, "brief.json"))) writeJson(join14(path, "brief.json"), { id: b.id, template, review: tb.review ?? {} });
+  writeFileSync13(join14(path, "base.v1.js"), readFileSync13(join14(t.dir, "base.js"), "utf8").replace(/\{\{ID\}\}/g, b.id));
+  return { path, created: true, template };
+}
+async function assetRow(p2, b) {
+  const path = assetPathOf(p2, b);
+  const base = { id: b.id, kind: b.kind, path: rel2(p2, path), issues: effectObjectIssues(b).map((x) => `brief: ${x}`), imageTokens: 0 };
+  if (!existsSync14(join14(path, "base.v1.js")) && !versionsInPath(path).length) return { ...base, status: "brief", why: "not started" };
+  const a = openAsset(path), st = await passState(a), ledger = ledgerFor(a);
+  const imageTokens2 = ledger.filter((e) => e.type === "review").reduce((n, e) => n + (e.imageTokens ?? 0), 0);
+  if (!ledger.length && st.next.action === "review" && st.next.version === "base.v1") return { ...base, status: "in-pipeline", next: st.next, why: "base.v1 from the template: adapt it to the brief, then review", imageTokens: imageTokens2 };
+  const fh = st.next.action === "ready" ? finalHash(a, st.next.final) : void 0;
+  const s2 = assetStatus({ ledger, next: st.next, direction: { id: a.dir.id, version: a.dir.version }, finalHash: fh });
+  const sc = s2.final ? [...ledger].reverse().find((e) => e.type === "score" && !e.blind && e.version === s2.final) : void 0;
+  const ro = s2.final ? [...ledger].reverse().find((e) => e.type === "roster" && e.version === s2.final && Array.isArray(e.issues)) : void 0;
+  const issues = [...effectObjectIssues(b).map((x) => `brief: ${x}`), ...s2.issues, ...(st.stale ?? []).map((x) => `finish-stale ${x}`), ...ro?.issues ?? []];
+  const blind = s2.final ? blindScores(ledger).get(s2.final)?.score : void 0, score2 = sc?.score, eff = blind ?? score2;
+  const top = st.next.action === "ready" ? st.next.top : void 0;
+  return {
+    ...base,
+    status: s2.status,
+    final: s2.final,
+    score: score2,
+    gate: sc?.conformance?.pass,
+    issues,
+    next: st.next,
+    why: s2.why,
+    imageTokens: imageTokens2,
+    stale: st.stale,
+    ...blind !== void 0 && { blind },
+    ...eff !== void 0 && eff < projectConfig(p2).review.approveMin && { belowBar: true },
+    ...top && { top }
+  };
+}
+async function projectStatus(p2, ids) {
+  requireLocked(p2);
+  const rows2 = [];
+  for (const b of briefOrder(readBriefs(p2))) if (!ids?.length || ids.includes(b.id)) rows2.push(await assetRow(p2, b));
+  return rows2;
+}
+function requireLocked(p2) {
+  const d = lockedDirection(p2);
+  if (!d) throw new Error("no locked direction yet \u2014 run the art direction workflow first (`artgen direction lock <candidate>`)");
+  return d;
+}
+function workPacket(row, reviewed = true) {
+  const st = row.next;
+  if (!st || st.action === "ready") return void 0;
+  const owns = row.path, base = { id: row.id, kind: row.kind, owns, step: st };
+  if (st.action === "write-base" || st.action === "write-finish") return { ...base, writes: [`${owns}/${st.version}.js`], role: "maker" };
+  if (st.action === "review" && st.version === "base.v1" && /^base\.v1 from the template/.test(row.why)) return { ...base, writes: [`${owns}/base.v1.js`], role: "maker" };
+  if (st.action === "review" && !reviewed) return { ...base, writes: [`${owns}/${st.version}.js`], role: "maker", resume: true };
+  return { ...base, writes: [], role: "main" };
+}
+async function make(p2, ids, o = {}) {
+  const dir = requireLocked(p2), briefs = briefOrder(readBriefs(p2)).filter((b) => !ids?.length || ids.includes(b.id) || ids.includes("all"));
+  if (ids?.length && !ids.includes("all")) {
+    for (const id2 of ids) if (!briefs.some((b) => b.id === id2)) throw new Error(`no brief ${id2} in art/briefs.yaml`);
+  }
+  const scaffolded = [], finals = [], overBudget = [], rows2 = [], reviewed = /* @__PURE__ */ new Map();
+  for (const b of briefs) {
+    const sc = scaffoldAsset(p2, b, dir);
+    if (sc.created) scaffolded.push(rel2(p2, join14(sc.path, "base.v1.js")));
+    let row = await assetRow(p2, b);
+    const a = openAsset(sc.path), ledger = ledgerFor(a);
+    if (row.next?.action === "review") {
+      const v = row.next.version;
+      reviewed.set(b.id, ledger.some((e) => e.type === "review" && e.version === v && !e.blind));
+    }
+    if (row.next?.action === "ready") {
+      const fin = row.next.final;
+      if (!ledger.some((e) => e.type === "status" && e.status === "final" && e.version === fin && e.sourceHash === finalHash(a, fin))) {
+        appendLedger(ledgerFile(p2), { type: "status", asset: b.id, status: "final", version: fin, sourceHash: finalHash(a, fin), issues: row.issues, direction: { id: dir.id, version: dir.version }, by: "agent" });
+        finals.push(b.id);
+      }
+    } else if (row.next && a.budget?.maxImageTokens && row.imageTokens >= a.budget.maxImageTokens) {
+      const st = await passState(a), best = st.rows.filter((r) => r.score !== void 0).sort((x, y) => y.score - x.score)[0];
+      if (best && !ledger.some((e) => e.type === "status" && e.status === "final" && e.version === best.version)) {
+        appendLedger(ledgerFile(p2), { type: "status", asset: b.id, status: "final", version: best.version, sourceHash: finalHash(a, best.version), issues: [`budget: ${row.imageTokens} review-image tokens \u2265 ${a.budget.maxImageTokens}`], direction: { id: dir.id, version: dir.version }, by: "agent" });
+        overBudget.push(b.id);
+      }
+      row = { ...row, why: `over budget (${row.imageTokens} image tokens); left at ${best?.version ?? "nothing scored"}` };
+    }
+    rows2.push(row);
+  }
+  const live = rows2.filter((r) => !DONE.includes(r.status) && !r.why.startsWith("over budget")), active = new Set((o.wave ? live.slice(0, o.wave) : live).map((r) => r.id));
+  const roster3 = earlyRoster(p2, rows2.filter((r) => active.has(r.id)));
+  const held = new Set(roster3?.ids ?? []), pending = rows2.filter((r) => active.has(r.id) && r.next && r.next.action !== "ready" && !held.has(r.id));
+  const n0 = pending[0], next4 = n0 && { id: n0.id, path: n0.path, step: n0.next };
+  const finalRoster = rows2.filter((r) => r.status === "final" && !TILE_KINDS.has(r.kind) && !ledgerFor(openAsset(join14(p2.root, r.path))).some((e) => e.type === "roster" && e.version === r.final && Array.isArray(e.issues))).map((r) => r.id);
+  const res = { rows: rows2, ...next4 && { next: next4 }, scaffolded, finals, overBudget, ...roster3 && { roster: roster3 }, ...finalRoster.length >= 2 && { finalRoster } };
+  if (!o.parallel) return res;
+  const packets = pending.map((r) => workPacket(r, reviewed.get(r.id) ?? true)).filter((x) => !!x), makers = packets.filter((x) => x.role === "maker");
+  const waiting = rows2.filter((r) => !active.has(r.id) && !DONE.includes(r.status) && !r.why.startsWith("over budget")).map((r) => workPacket(r, reviewed.get(r.id) ?? true)).filter((x) => !!x && x.role === "maker");
+  return { ...res, work: { makers: makers.slice(0, o.parallel), queued: [...makers.slice(o.parallel), ...waiting], main: packets.filter((x) => x.role === "main") } };
+}
+function earlyRoster(p2, rows2) {
+  if (!projectConfig(p2).review.earlyRoster) return void 0;
+  const figures = rows2.filter((r) => !TILE_KINDS.has(r.kind) && r.status !== "brief");
+  if (figures.length < 2) return void 0;
+  const atV1 = v1Rows(p2, figures), ready2 = new Set(atV1.map((r) => r.id));
+  const beforeV1 = figures.filter((r) => !ready2.has(r.id) && r.next?.action !== "ready" && (r.next?.action === "review" || r.next?.action === "write-base") && "version" in r.next && r.next.version === "base.v1");
+  const uncovered2 = atV1.filter((r) => !ledgerFor(openAsset(join14(p2.root, r.path))).some((e) => e.type === "roster" && e.version === "base.v1" && Array.isArray(e.issues)));
+  if (uncovered2.length < 2 && !(uncovered2.length && atV1.length >= 2)) return void 0;
+  if (beforeV1.length) return { stage: "v1", ids: uncovered2.map((r) => r.id), why: `holding v2 for the v1 roster until ${beforeV1.map((r) => r.id).join(", ")} ${beforeV1.length > 1 ? "have" : "has"} a scored v1` };
+  return { stage: "v1", ids: uncovered2.map((r) => r.id), why: "every v1 is scored: run the v1 roster (`roster --stage v1`, a fresh art-reviewer, `roster record`) before any v2 \u2014 its notes go into each v2 brief" };
+}
+function thumb(r) {
+  const f = r.facings[0], cells = r.cells.filter((c) => c.facing === f);
+  return cells.length > 1 ? strip({ ...r, cells }) : cells[0].grid;
+}
+function reviewOf(a, final) {
+  const ledger = ledgerFor(a), own = [...ledger].reverse().find((e) => e.type === "score" && !e.blind && e.version === final);
+  return { reviewer: typeof own?.reviewer === "string" ? own.reviewer : void 0, blind: blindScores(ledger).get(final)?.score };
+}
+async function gallery(p2, opts = {}) {
+  const dir = requireLocked(p2), want = opts.statuses ?? ["final"], rows2 = (await projectStatus(p2, opts.ids)).filter((r) => r.final && (opts.ids?.length || want.includes(r.status)));
+  const items = [], assets = [];
+  for (const r of rows2) {
+    const a = openAsset(join14(p2.root, r.path)), v = await renderVersion(a, r.final);
+    const rv = reviewOf(a, r.final);
+    const tag = `${r.id} ${r.final} ${r.score ?? "-"}${rv.blind !== void 0 ? ` b${rv.blind}` : rv.reviewer === "self" ? " SELF" : ""}${r.gate === false ? " GATE" : ""}${r.belowBar ? " BELOW BAR" : ""}${r.top ? ` final\u2260best ${r.top.version} ${r.top.score}` : ""}${r.issues.length ? ` !${r.issues.length}` : ""}`;
+    items.push({ label: tag, grid: thumb(v.render), bg: a.brief.review?.bg ?? dir.background });
+    assets.push({ id: r.id, final: r.final, score: r.score, ...rv.blind !== void 0 && { blind: rv.blind }, ...rv.reviewer && { reviewer: rv.reviewer }, issues: r.issues, ...r.belowBar && { belowBar: true }, ...r.top && { top: r.top } });
+  }
+  if (!items.length) return { sheets: [], tokens: 0, assets };
+  const sheets = [];
+  let tokens = 0;
+  const n0 = (existsSync14(join14(p2.art, "sheets")) ? readdirCount(join14(p2.art, "sheets"), /^gallery-\d+\.png$/) : 0) + 1;
+  for (let i = 0; i < items.length; i += 12) {
+    const page2 = items.slice(i, i + 12), sheet = contactSheet(`${dir.id} v${dir.version}: finished assets ${i + 1}-${i + page2.length} of ${items.length} (score, b blind score, !issues; BELOW BAR under ${projectConfig(p2).review.approveMin})`, page2, 4, Math.min(4, page2.length));
+    const f = join14(p2.art, "sheets", `gallery-${n0 + i / 12}.png`);
+    writeGrid(f, sheet);
+    sheets.push(rel2(p2, f));
+    tokens += imageTokens(sheet.w, sheet.h);
+  }
+  appendLedger(ledgerFile(p2), { type: "review", asset: "gallery", sheet: sheets.join(","), imageTokens: tokens, assets: assets.map((x) => x.id), by: "agent" });
+  return { sheets, tokens, assets };
+}
+function v1Rows(p2, rows2) {
+  const out = [];
+  for (const r of rows2) {
+    if (TILE_KINDS.has(r.kind) || r.status === "brief") continue;
+    const a = openAsset(join14(p2.root, r.path)), vs = versionsIn(a);
+    if (!vs.includes("base.v1") || vs.includes("base.v2") || (a.budget?.revisionPasses ?? 3) < 2) continue;
+    if (ledgerFor(a).some((e) => e.type === "score" && !e.blind && e.version === "base.v1")) out.push(r);
+  }
+  return out;
+}
+async function rosterRun(p2, o = {}) {
+  const dir = requireLocked(p2), briefs = readBriefs(p2), ledgerAll = parseLedger(existsSync14(ledgerFile(p2)) ? readFileSync13(ledgerFile(p2), "utf8") : ""), stage = o.stage ?? "final";
+  const ids = o.ids?.length ? o.ids : void 0;
+  const all = await projectStatus(p2, ids), rows2 = stage === "v1" ? v1Rows(p2, all) : all.filter((r) => r.final);
+  const items = [], versions = {}, skipped = [];
+  for (const r of rows2) {
+    const b = briefs.find((x) => x.id === r.id), version = stage === "v1" ? "base.v1" : r.final;
+    if (TILE_KINDS.has(b.kind)) {
+      skipped.push(`${r.id} (${b.kind})`);
+      continue;
+    }
+    const v = await renderVersion(openAsset(join14(p2.root, r.path)), version);
+    items.push({ id: r.id, kind: b.kind, grid: v.render.cells[0].grid, drawn: drawnHeight(standFrames(v.render)), notes: b.notes, height: b.height });
+    versions[r.id] = version;
+  }
+  if (items.length < 2) throw new Error(`roster: needs at least two ${stage === "v1" ? "non-tile assets with a scored base.v1 and no v2" : "finished non-tile assets"} (have ${items.length})`);
+  const seed = o.seed ?? ledgerAll.filter((e) => e.type === "roster" && e.asset === "roster" && e.key).length + 1;
+  const res = roster(items, { bg: dir.background ?? "#202020", pxPerMetre: pxPerMetre(dir), heightFail: projectConfig(p2).review.heightFail, seed });
+  const f = (n) => join14(p2.art, "sheets", n), many = res.pages.length > 1, sheets = [];
+  let tokens = 0;
+  res.pages.forEach((pg, i) => {
+    const sfx = many ? `-${i + 1}` : "";
+    writeGrid(f(`roster-lineup${sfx}.png`), pg.lineup);
+    writeGrid(f(`roster-silhouettes${sfx}.png`), pg.silhouettes);
+    sheets.push(rel2(p2, f(`roster-lineup${sfx}.png`)), rel2(p2, f(`roster-silhouettes${sfx}.png`)));
+    tokens += imageTokens(pg.lineup.w, pg.lineup.h) + imageTokens(pg.silhouettes.w, pg.silhouettes.h);
+  });
+  writeJson(f("roster-assets.json"), {
+    stage,
+    lineup: items.map((it) => it.id),
+    ...many && { pages: res.pages.map((pg, i) => ({ lineup: `roster-lineup-${i + 1}.png`, silhouettes: `roster-silhouettes-${i + 1}.png`, ids: pg.ids })) },
+    assets: [...items].sort((a, b) => a.id.localeCompare(b.id)).map((it) => ({ id: it.id, kind: it.kind, notes: it.notes ?? "", ...it.height && { height: it.height } }))
+  });
+  appendLedger(ledgerFile(p2), { type: "roster", asset: "roster", stage, key: res.key, versions, seed, sizes: res.sizes, pairs: res.pairs, sheet: sheets.map((x) => relative8(p2.art, join14(p2.root, x)).split("\\").join("/")).join(","), imageTokens: tokens, by: "agent" });
+  return { lineup: sheets[0], silhouettes: sheets[1], sheets, assets: rel2(p2, f("roster-assets.json")), tokens, seed, stage, sizes: res.sizes, pairs: res.pairs, skipped };
+}
+function rosterRecord(p2, file, reviewer = "self") {
+  const ledgerAll = parseLedger(existsSync14(ledgerFile(p2)) ? readFileSync13(ledgerFile(p2), "utf8") : "");
+  const run2 = [...ledgerAll].reverse().find((e) => e.type === "roster" && e.asset === "roster" && e.key);
+  if (!run2) throw new Error("roster record: run `artgen roster` first");
+  const review2 = readJson(resolve9(file)), key2 = run2.key, versions = run2.versions;
+  const issues = rosterIssues(review2, key2);
+  for (const id2 of Object.values(key2)) {
+    const s2 = (review2.silhouettes ?? []).find((x) => key2[x.letter] === id2);
+    appendLedger(ledgerFile(p2), { type: "roster", asset: id2, version: versions[id2], issues: issues[id2] ?? [], ...s2 && { readability: s2.readability, guess: s2.guess }, reviewer, by: "agent" });
+  }
+  appendLedger(ledgerFile(p2), { type: "roster", asset: "roster", recorded: true, notes: review2.notes ?? [], reviewer, by: "agent" });
+  return { issues, notes: review2.notes ?? [] };
+}
+async function feedback(p2, id2, o) {
+  const b = readBriefs(p2).find((x) => x.id === id2);
+  if (!b) throw new Error(`no brief ${id2}`);
+  requireLocked(p2);
+  const row = await assetRow(p2, b), agent = o.by === "agent";
+  if (!["final", "approved", "exported", "stale"].includes(row.status)) throw new Error(`${id2} is ${row.status}: feedback applies to finished assets (wait for final)`);
+  const a = openAsset(assetPathOf(p2, b)), mine = feedbackOf(a).filter((f) => f.by === "agent" === agent), iterations = mine.length + 1;
+  const max2 = agent ? projectConfig(p2).review.rosterRevisions : a.budget?.maxUserIterations ?? 3;
+  if (iterations > max2 && !o.force) throw new Error(agent ? `${id2}: ${iterations - 1} revisions from roster notes already (review.rosterRevisions ${max2}) \u2014 list the note for the user instead, or pass --force` : `${id2}: ${iterations - 1} user iterations already (budget.maxUserIterations ${max2}) \u2014 escalate: talk it through with the user, or pass --force`);
+  const vs = versionsIn(a), kind = o.route === "base" ? "base" : "finish";
+  const opens = `${kind}.v${Math.max(0, ...vs.map(parseVersion).filter((v) => v.kind === kind).map((v) => v.n)) + 1}`;
+  appendLedger(ledgerFile(p2), { type: "feedback", asset: id2, route: o.route, opens, on: row.final, note: o.note, ...o.region && { region: o.region }, ...o.cell && { cell: o.cell }, ...agent ? { by: "agent", source: o.source ?? "roster" } : { by: "user" }, ...o.via && { via: o.via } });
+  return { opens, next: (await passState(openAsset(assetPathOf(p2, b)))).next, iterations };
+}
+async function approve(p2, id2, note = "", via) {
+  const b = readBriefs(p2).find((x) => x.id === id2);
+  if (!b) throw new Error(`no brief ${id2}`);
+  const dir = requireLocked(p2), row = await assetRow(p2, b);
+  if (row.status !== "final") throw new Error(`${id2} is ${row.status}: only a final asset can be approved${row.status === "stale" ? " (run restyle first)" : ""}`);
+  const a = openAsset(assetPathOf(p2, b)), r = await renderVersion(a, row.final);
+  if (!r.report.pass) throw new Error(`${id2} ${row.final}: the gate fails (${r.report.checks.filter((c) => c.status === "fail").map((c) => c.id).join(", ")}) \u2014 give feedback instead (R6)`);
+  const sheet = [...ledgerFor(a)].reverse().find((e2) => e2.type === "review" && e2.version === row.final)?.sheet;
+  if (!sheet) throw new Error(`${id2} ${row.final}: no review sheet yet \u2014 artgen review first (R6)`);
+  const kept = join14(p2.art, "sheets", "approved", `${id2}-${row.final}.png`), src = resolve9(dirname11(ledgerFile(p2)), String(sheet));
+  if (existsSync14(src)) {
+    mkdirSync10(dirname11(kept), { recursive: true });
+    copyFileSync2(src, kept);
+  }
+  const rv = reviewOf(a, row.final), cfg = projectConfig(p2).review, warnings = [];
+  if (rv.blind === void 0) warnings.push(rv.reviewer === "self" || !rv.reviewer ? "scored only by the agent that made it, with no blind re-score" : "no blind re-score of the final");
+  warnings.push(...row.issues.filter((x) => x.startsWith("blind re-score")));
+  if (rv.blind !== void 0 && rv.blind < cfg.approveMin && !warnings.some((x) => x.startsWith("blind re-score"))) warnings.push(`blind re-score ${rv.blind} is under ${cfg.approveMin}`);
+  const e = { type: "approve", asset: id2, version: row.final, sourceHash: finalHash(a, row.final), outputHash: r.strip.hash(), sheet: existsSync14(kept) ? relative8(p2.art, kept).split("\\").join("/") : sheet, direction: { id: dir.id, version: dir.version }, note, ...warnings.length && { warnings }, by: "user", ...via && { via } };
+  appendLedger(ledgerFile(p2), e);
+  return { ts: (/* @__PURE__ */ new Date()).toISOString(), ...e };
+}
+async function writeNextFinish(path, o = {}) {
+  const vs = versionsIn({ path }), n = vs.filter((v) => v.startsWith("finish.")).length + 1;
+  let base = o.base;
+  if (!base) {
+    const st = await (async () => {
+      try {
+        return await passState(openAsset(path, o));
+      } catch {
+        return void 0;
+      }
+    })();
+    base = st?.next.action === "write-finish" ? st.next.base : st?.best?.version ?? vs.filter((v) => v.startsWith("base.")).pop();
+  }
+  if (!base) throw new Error(`${path}: no base version to finish`);
+  const kind = (() => {
+    try {
+      return openAsset(path, o).brief.kind;
+    } catch {
+      return void 0;
+    }
+  })();
+  return { file: newFinish(path, n, base, kind), base };
+}
+function inPack(b, pack, include) {
+  if (b.pack) return b.pack === pack;
+  return include.some((pat) => pat.startsWith("kind:") ? b.kind === pat.slice(5) : new RegExp(`^${pat.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*")}$`).test(b.id));
+}
+async function exportPacks(p2, o = {}) {
+  const dir = requireLocked(p2), cfg = projectConfig(p2), rows2 = await projectStatus(p2), briefs = readBriefs(p2);
+  const ok = (s2) => s2 === "approved" || s2 === "exported" || o.includeDrafts && s2 === "final";
+  const skipped = rows2.filter((r) => !ok(r.status)).map((r) => ({ id: r.id, status: r.status }));
+  const out = [], forTs = [];
+  const builds = [];
+  for (const [pack, def] of Object.entries(cfg.packs)) {
+    if (o.packs?.length && !o.packs.includes(pack)) continue;
+    const inputs = [];
+    for (const r of rows2) {
+      const b = briefs.find((x) => x.id === r.id);
+      if (!ok(r.status) || !inPack(b, pack, def.include)) continue;
+      const a = openAsset(join14(p2.root, r.path)), n = Math.max(1, b.variants ?? 1), renders = [];
+      for (let k = 0; k < n; k++) renders.push((await renderVersion(a, r.final, { variant: k })).render);
+      inputs.push({ brief: a.brief, view: a.brief.view ?? dir.camera.view, renders, version: r.final, sourceHash: finalHash(a, r.final), draft: r.status === "final" });
+    }
+    if (!inputs.length) continue;
+    builds.push({ pack, inputs, built: buildPack(pack, dir, inputs, { generator: o.generator, runtime: RUNTIME_VERSION, maxSize: cfg.export.maxAtlas, padding: cfg.export.padding }) });
+  }
+  const contracts = [], refused = [], seen = /* @__PURE__ */ new Set();
+  for (const { built } of builds) for (const [id2, a] of Object.entries(built.manifest.assets)) {
+    if (seen.has(id2)) continue;
+    seen.add(id2);
+    const next4 = contractOf(id2, a), old = readContract(p2, id2);
+    if (!old) {
+      contracts.push({ next: next4, change: { id: id2, change: "created", notes: [] } });
+      continue;
+    }
+    const d = diffContract(old, next4);
+    if (d.breaking.length && !allowed(o.breakContract, id2)) refused.push(`${id2}: ${d.breaking.join("; ")}`);
+    else if (d.breaking.length || d.added.length) contracts.push({ next: next4, change: { id: id2, change: d.breaking.length ? "broken" : "extended", notes: [...d.breaking, ...d.added.map((x) => `added ${x}`)] } });
+  }
+  if (refused.length) throw new Error(`export refused: the animation contract changed for
+  ${refused.join("\n  ")}
+game code indexes these states and frames (art/contracts/<id>.json). Restore the brief's anims/states/directions and the base's anchors, or re-run with --break-contract <id> once the game code is updated`);
+  for (const { pack, built, inputs } of builds) {
+    const pdir = join14(p2.root, cfg.export.packDir, pack);
+    built.atlases.forEach((g, i) => {
+      writeGrid(join14(pdir, built.manifest.atlases[i]), g);
+      writeJson(join14(pdir, built.manifest.atlases[i].replace(/\.png$/, ".aseprite.json")), built.aseprite[i]);
+    });
+    built.normals?.forEach((g, i) => writeGrid(join14(pdir, built.manifest.normals[i]), g));
+    writeJson(join14(pdir, "pack.json"), built.manifest);
+    for (const inp of inputs) appendLedger(ledgerFile(p2), { type: "export", asset: inp.brief.id, version: inp.version, sourceHash: inp.sourceHash, pack, direction: { id: dir.id, version: dir.version }, ...inp.draft && { draft: true }, by: "agent" });
+    out.push({ pack, dir: rel2(p2, pdir), atlases: built.manifest.atlases.map((f) => rel2(p2, join14(pdir, f))), assets: inputs.map((i) => i.brief.id), drafts: built.manifest.drafts ?? [] });
+    const pub = cfg.export.packDir.replace(/\\/g, "/").replace(/^\.?\/?/, "");
+    forTs.push({ manifest: built.manifest, url: pub.startsWith("public/") || pub === "public" ? `/${pub.slice(7)}${pub.length > 7 ? "/" : ""}${pack}/pack.json`.replace(/\/+/g, "/") : `${pub}/${pack}/pack.json` });
+  }
+  for (const { next: next4, change } of contracts) {
+    writeJson(contractFile(p2, next4.asset), next4);
+    appendLedger(ledgerFile(p2), { type: "contract", asset: next4.asset, change: change.change, ...change.notes.length && { notes: change.notes }, by: "agent" });
+  }
+  const tsFile = join14(p2.root, cfg.export.assetsTs);
+  if (forTs.length) {
+    mkdirSync10(dirname11(tsFile), { recursive: true });
+    writeFileSync13(tsFile, assetsTs(forTs));
+  }
+  const runtime = o.runtime ? vendorRuntime(p2, { force: o.force, generator: o.generator }) : void 0;
+  return { packs: out, assetsTs: forTs.length ? rel2(p2, tsFile) : "", skipped, contracts: contracts.map((c) => c.change), ...runtime && { runtime } };
+}
+async function restyle(p2, o = {}) {
+  const to = requireLocked(p2), from = directionVersion(p2, o.from ?? to.version - 1);
+  if (from.version === to.version) throw new Error(`nothing to restyle: direction is v${to.version}`);
+  const rows2 = (await projectStatus(p2)).filter((r) => r.final), sheetRows = [], assets = [];
+  const fromFile = join14(p2.art, "directions", `v${from.version}.json`);
+  for (const r of rows2) {
+    const path = join14(p2.root, r.path), a = openAsset(path), old = openAsset(path, { direction: existsSync14(fromFile) ? fromFile : void 0 });
+    if (!existsSync14(fromFile)) old.dir = from;
+    const [before, after] = [await renderVersion(old, r.final), await renderVersion(a, r.final)];
+    const d = restyleDiff(before.strip, after.strip, from, to);
+    sheetRows.push({ label: `${r.id} ${r.final}: ${d.changedPct}% px changed, tokens kept ${Math.round(d.tokenSame * 100)}%${after.report.pass ? "" : " GATE FAIL"}${after.stale?.length ? " FINISH-STALE" : ""}`, before: thumb(before.render), after: thumb(after.render), mask: tokenDiffMask(thumb(before.render), thumb(after.render), from, to), bg: to.background });
+    assets.push({ id: r.id, final: r.final, changedPct: d.changedPct, tokenSame: d.tokenSame, consistent: d.consistent, gate: after.report.pass, stale: after.stale ?? [] });
+    appendLedger(ledgerFile(p2), { type: "restyle", asset: r.id, version: r.final, from: { id: from.id, version: from.version }, direction: { id: to.id, version: to.version }, changedPct: d.changedPct, tokenSame: d.tokenSame, consistent: d.consistent, gate: after.report.pass, outputHash: after.strip.hash(), ...after.stale?.length && { stale: after.stale }, by: "agent" });
+  }
+  const sheet = restyleSheet(`restyle ${from.id} v${from.version} -> ${to.id} v${to.version}`, sheetRows);
+  const f = join14(p2.art, "sheets", `restyle-v${from.version}-v${to.version}.png`);
+  writeGrid(f, sheet);
+  return { from: from.version, to: to.version, sheet: rel2(p2, f), tokens: imageTokens(sheet.w, sheet.h), assets };
+}
+async function importEdit(p2, id2, png, o = {}) {
+  const b = readBriefs(p2).find((x) => x.id === id2);
+  if (!b) throw new Error(`no brief ${id2}`);
+  const dir = requireLocked(p2), row = await assetRow(p2, b);
+  if (!row.final) throw new Error(`${id2} is ${row.status}: import-edit applies to a finished asset`);
+  const a = openAsset(assetPathOf(p2, b)), r = await renderVersion(a, row.final), edited = readGrid(resolve9(png)), [w, h] = r.render.size;
+  const cells = r.render.cells;
+  let pieces2;
+  if (o.cell) {
+    const idx = cells.findIndex((c) => `${c.state}/${c.facing}/${c.frame}` === o.cell);
+    if (idx < 0) throw new Error(`no cell ${o.cell} (cells are state/facing/frame)`);
+    pieces2 = [{ idx, grid: edited }];
+  } else if (edited.w === r.strip.w && edited.h === r.strip.h) {
+    pieces2 = cells.map((_, i) => {
+      const g = new Grid(w, h);
+      g.blit(crop(edited, i * w, 0, w, h), 0, 0);
+      return { idx: i, grid: g };
+    });
+  } else if (cells.length === 1) pieces2 = [{ idx: 0, grid: edited }];
+  else throw new Error(`${png} is ${edited.w}x${edited.h}; expected the ${r.strip.w}x${r.strip.h} strip (out/${row.final}.png) or --cell state/facing/frame`);
+  const edits = {};
+  let pixels = 0, snapped = 0, conflicts = 0;
+  for (const { idx, grid: grid4 } of pieces2) {
+    const c = cells[idx], e = editOps(c.grid, grid4, dir);
+    if (!e.ops.length) continue;
+    snapped += e.snapped;
+    const key2 = c.mirrored ? `${c.state}/${mirrorFacing(c.facing)}/${c.frame}` : `${c.state}/${c.facing}/${c.frame}`;
+    const ops = c.mirrored ? e.ops.map(([x, y, t]) => [w - 1 - x, y, t]) : e.ops;
+    if (edits[key2]) {
+      conflicts += ops.length;
+      if (c.mirrored) continue;
+    }
+    edits[key2] = ops;
+    pixels += ops.length;
+  }
+  if (!pixels) throw new Error(`${png}: no pixel differs from ${row.final}`);
+  const vs = versionsIn(a), n = Math.max(0, ...vs.map(parseVersion).filter((v) => v.kind === "finish").map((v) => v.n)) + 1;
+  const fin = parseVersion(row.final), base = fin.kind === "finish" ? r.base : row.final, prev = fin.kind === "finish" ? row.final : void 0;
+  const file = join14(a.path, `finish.v${n}.js`);
+  const body3 = Object.entries(edits).map(([k, ops]) => `  '${k}': ${JSON.stringify(ops)},`).join("\n");
+  writeFileSync13(file, `// finish.v${n} \u2014 hand edit imported from ${relative8(a.path, resolve9(png)).split("\\").join("/")} (artgen import-edit):
+// ${pixels} pixels in ${Object.keys(edits).length} cells, as colour tokens so the edit survives a restyle.${prev ? ` Replays ${prev} first.` : ""}
+${prev ? `import * as prev from './${prev}.js';
+` : ""}export const base = '${base}';
+export const meta = { notes: 'hand edit (import-edit)' };
+
+const EDITS = {
+${body3}
+};
+
+export function finish(g, ctx) {
+${prev ? "  g = prev.finish(g, ctx) ?? g;\n" : ""}  for (const [x, y, t] of EDITS[\`\${ctx.state}/\${ctx.facing}/\${ctx.frame}\`] ?? []) {
+    if (t === null) g.clear(x, y); else ctx.lib.px.set(g, [x, y], t);
+  }
+  return g;
+}
+`);
+  appendLedger(ledgerFile(p2), { type: "import-edit", asset: id2, version: `finish.v${n}`, on: row.final, file: rel2(p2, resolve9(png)), pixels, snapped, by: "user" });
+  appendLedger(ledgerFile(p2), { type: "feedback", asset: id2, route: "finish", opens: `finish.v${n}`, on: row.final, note: `hand edit: ${pixels} px (import-edit)`, by: "user" });
+  return { file: rel2(p2, file), pixels, cells: Object.keys(edits).length, snapped, conflicts };
+}
+function crop(g, x0, y0, w, h) {
+  const out = new Grid(w, h);
+  for (let y = 0; y < h; y++) out.d.set(g.d.subarray(((y0 + y) * g.w + x0) * 4, ((y0 + y) * g.w + x0 + w) * 4), y * w * 4);
+  return out;
+}
+function projectAnalytics(p2, title) {
+  const dir = requireLocked(p2), all = parseAll(ledgerFile(p2)), metas = projectMetas(p2, dir);
+  const ids = new Set(metas.map((m) => m.id)), analysed = analytics(all.filter((e) => ids.has(e.asset) || e.asset === "gallery"), metas);
+  const maps = SUBJECT_KINDS.flatMap((kind) => listSubjectIds(p2, kind).map((id2) => ({ generator: kind, key: subjectKey(kind, id2) })));
+  const generators = all.some((e) => isSubjectKey(e.asset)) ? generatorMetrics(all, [...metas.map((m) => ({ generator: "art", key: m.id })), ...maps]) : void 0, report2 = generators ? { ...analysed, generators } : analysed;
+  return { report: report2, markdown: analyticsMarkdown(report2, title ?? `${dir.id}: pipeline analytics`) + (generators ? generatorsMarkdown(generators) : "") };
+}
+function projectMetas(p2, dir) {
+  return readBriefs(p2).map((b) => {
+    const bj = join14(assetPathOf(p2, b), "brief.json"), local = existsSync14(bj) ? readJson(bj) : {};
+    const size2 = Array.isArray(b.size) ? b.size.join("x") : b.size ?? b.kind;
+    return { id: b.id, kind: b.kind, view: b.view ?? dir?.camera.view, size: size2, template: local.template, importance: b.importance ?? "standard" };
+  });
+}
+function ledgerSet(dir) {
+  const root = resolve9(dir), name = relative8(process.cwd(), root).split("\\").join("/") || ".";
+  if (existsSync14(join14(root, "art", "artgen.config.json"))) {
+    const p2 = { root, art: join14(root, "art") };
+    return { project: name, ledger: parseAll(ledgerFile(p2)), metas: projectMetas(p2, lockedDirection(p2)), config: projectConfig(p2) };
+  }
+  if (!existsSync14(join14(root, "ledger.jsonl"))) throw new Error(`${dir}: neither a project (art/artgen.config.json) nor a folder with ledger.jsonl`);
+  const metas = [];
+  for (const d of readdirSync9(root, { withFileTypes: true })) {
+    const bj = join14(root, d.name, "brief.json");
+    if (!d.isDirectory() || !existsSync14(bj)) continue;
+    const b = readJson(bj);
+    metas.push({ id: b.id ?? d.name, kind: b.kind, view: b.view, size: Array.isArray(b.size) ? b.size.join("x") : b.size, template: b.template, importance: b.importance ?? "standard" });
+  }
+  return { project: name, ledger: parseAll(join14(root, "ledger.jsonl")), metas };
+}
+function pooledAnalytics(dirs, o = {}) {
+  const r = recommend(dirs.map(ledgerSet), { minAssets: o.minAssets });
+  let applied;
+  if (o.apply) {
+    const f = join14(o.apply.art, "artgen.config.json"), raw = readJson(f), next4 = applyRecommendations(mergeConfig(raw), r.patch);
+    writeJson(f, { ...raw, budget: { ...raw.budget, ...next4.budget.perKind && { perKind: next4.budget.perKind } }, models: next4.models });
+    applied = rel2(o.apply, f);
+  }
+  return { report: r, markdown: recommendMarkdown(r, o.title), ...applied && { applied } };
+}
+function writeAssetSheet(p2, id2) {
+  const b = readBriefs(p2).find((x) => x.id === id2);
+  if (!b) throw new Error(`no brief ${id2}`);
+  const dir = requireLocked(p2), folder = assetPathOf(p2, b), bj = join14(folder, "brief.json"), local = existsSync14(bj) ? readJson(bj) : {};
+  const brief = { ...local, ...b }, sheet = assetDataSheet(brief, dir, budgetFor(projectConfig(p2), brief, dir), readContract(p2, id2)), { refs, warnings } = loadRefs(p2, brief.refs ?? []);
+  const png = join14(folder, "out", "sheet.png"), json = join14(folder, "out", "sheet.json");
+  mkdirSync10(dirname11(png), { recursive: true });
+  writeFileSync13(png, encodePNG(renderDataSheet(sheet, { refs })));
+  writeFileSync13(json, JSON.stringify(sheet, null, 2) + "\n");
+  return { png: rel2(p2, png), pngFile: png, json: rel2(p2, json), sheet, markdown: dataSheetMarkdown(sheet), warnings };
+}
+var briefsFile, ledgerFile, rel2, contractFile, allowed, assetPathOf, versionsInPath, DONE, readdirCount, parseAll;
+var init_w2 = __esm({
+  "../artgen-cli/src/w2.ts"() {
+    "use strict";
+    init_src5();
+    init_asset();
+    init_bench2();
+    init_src6();
+    init_node();
+    init_runtime();
+    init_project();
+    init_templates();
+    init_w1();
+    init_workflow2();
+    briefsFile = (p2) => join14(p2.art, "briefs.yaml");
+    ledgerFile = (p2) => join14(p2.art, "ledger.jsonl");
+    rel2 = (p2, f) => relative8(p2.root, f).split("\\").join("/");
+    contractFile = (p2, id2) => join14(p2.art, "contracts", `${id2}.json`);
+    allowed = (list6, id2) => !!list6 && (list6.includes("*") || list6.includes(id2));
+    assetPathOf = (p2, b) => join14(p2.art, briefDir(b));
+    versionsInPath = (path) => existsSync14(path) ? versionsIn({ path }) : [];
+    DONE = ["final", "approved", "exported"];
+    readdirCount = (d, re) => readdirSync9(d).filter((f) => re.test(f)).length;
+    parseAll = (f) => existsSync14(f) ? parseLedger(readFileSync13(f, "utf8")) : [];
+  }
+});
+
+// ../artgen-cli/src/loop/art-metrics.ts
+function artMetricsOf(p2) {
+  const set2 = ledgerSet(p2.root), ledger = set2.ledger, report2 = analytics(ledger, set2.metas);
+  const ids = new Set(set2.metas.map((m) => m.id));
+  const approved = new Set(ledger.filter((e) => e.type === "approve" && ids.has(e.asset)).map((e) => e.asset));
+  const userFeedback = new Set(ledger.filter((e) => e.type === "feedback" && e.by !== "agent").map((e) => e.asset));
+  const untouched = [...approved].filter((a) => !userFeedback.has(a)).length;
+  const finals = report2.perAsset.filter((a) => a.final !== void 0).length;
+  const gateFailures = {};
+  for (const e of ledger) for (const c of e.conformance?.checks ?? []) if (c.status === "fail") gateFailures[c.id] = (gateFailures[c.id] ?? 0) + 1;
+  const recs = passRecords(ledger);
+  const wall2 = (rs) => round4(rs.reduce((n, r) => n + (r.wallMs ?? 0), 0) / 6e4, 1);
+  return {
+    assets: { total: set2.metas.length, final: finals, approved: approved.size },
+    byKind: Object.fromEntries(report2.byGroup.kind.map((g) => [g.key, { assets: g.n, meanFinal: g.meanFinal, meanPasses: g.meanPasses, meanCost: g.meanCost }])),
+    passes: report2.passes.map((x) => ({ pass: x.pass, n: x.n, meanDelta: x.meanDelta, regressed: x.regressed, gatePass: x.gatePass, outTokens: x.outTokens, imageTokens: x.imageTokens, ...x.meanWallS !== void 0 && { wallMinutes: round4(x.meanWallS * x.n / 60, 1) } })),
+    totals: { outTokens: report2.totals.outTokens, inTokens: report2.totals.inTokens, imageTokens: report2.totals.imageTokens, cost: round4(report2.totals.cost, 2), wallMinutes: wall2(recs) },
+    firstPassApproval: { approved: approved.size, untouched, rate: approved.size ? round4(untouched / approved.size) : void 0 },
+    userRevisionRate: report2.userRevisionRate.rate,
+    gateFailures,
+    blind: { n: report2.review.blind.n, meanGap: report2.review.blind.meanGap },
+    generators: generatorMetrics(ledger, set2.metas.map((m) => ({ generator: "art", key: m.id })))
+  };
+}
+var round4;
+var init_art_metrics = __esm({
+  "../artgen-cli/src/loop/art-metrics.ts"() {
+    "use strict";
+    init_src5();
+    init_w2();
+    round4 = (v, d = 2) => Math.round(v * 10 ** d) / 10 ** d;
   }
 });
 
@@ -25835,496 +28289,6 @@ var init_cli = __esm({
   }
 });
 
-// ../artgen-cli/src/map.ts
-import { existsSync as existsSync7, mkdirSync as mkdirSync4, readdirSync as readdirSync3, readFileSync as readFileSync6, writeFileSync as writeFileSync7 } from "node:fs";
-import { dirname as dirname5, join as join7, relative as relative2, resolve as resolve4 } from "node:path";
-function mapFile(p2, ref) {
-  if (typeof ref !== "string") return resolve4(ref.file);
-  if (!/^[\w-]+$/.test(ref ?? "")) throw new Error(`map id ${JSON.stringify(ref)}: letters, digits, - and _ only`);
-  if (!p2) throw new Error("no artgen project here: name the map file with --file <path>");
-  return join7(mapsDir(p2), ref, "map.json");
-}
-function listMaps(p2) {
-  if (!existsSync7(mapsDir(p2))) return [];
-  return readdirSync3(mapsDir(p2), { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync7(join7(mapsDir(p2), d.name, "map.json"))).map((d) => mapSummary(readMap(p2, d.name)));
-}
-function readMap(p2, ref) {
-  const f = mapFile(p2, ref);
-  if (!existsSync7(f)) throw new Error(typeof ref === "string" ? `no map ${ref} (${shown(p2, f)}) \u2014 artgen map new ${ref}` : `no map file ${shown(p2, f)} \u2014 artgen map new --file ${ref.file}`);
-  return map_exports.parseMap(readJson(f));
-}
-function writeMap(p2, m, ref = m.id) {
-  const spec = map_exports.parseMap(m), f = mapFile(p2, ref);
-  writeJson(f, spec);
-  return shown(p2, f);
-}
-function createMap(p2, id2, preset2, over = {}, force = false, at3 = id2) {
-  if (existsSync7(mapFile(p2, at3)) && !force) throw new Error(typeof at3 === "string" ? `map ${id2} already exists (edit it, or pick another id)` : `${shown(p2, mapFile(p2, at3))} already exists (edit it, or --force)`);
-  const m = map_exports.newMap(id2, preset2, over);
-  return { file: writeMap(p2, m, at3), map: m };
-}
-function updateMap(p2, ref, change) {
-  const m = readMap(p2, ref);
-  change(m);
-  writeMap(p2, m, ref);
-  return m;
-}
-function checkMapFile(p2, ref) {
-  const f = mapFile(p2, ref);
-  let raw;
-  try {
-    raw = JSON.parse(readFileSync6(f, "utf8"));
-  } catch (e) {
-    const missing = e.code === "ENOENT";
-    return { file: shown(p2, f), ok: false, errors: [{ path: "", message: missing ? `no such file: ${shown(p2, f)}` : `not JSON: ${e.message}` }], requirements: [], unmet: [] };
-  }
-  const { errors } = map_exports.checkMap(raw);
-  if (errors.length) return { file: shown(p2, f), ok: false, errors, requirements: [], unmet: [] };
-  const requirements = map_exports.checkRequirements(map_exports.parseMap(raw)), unmet = requirements.filter((r) => !r.met).map((r) => r.id);
-  return { file: shown(p2, f), ok: !unmet.length, errors, requirements, unmet };
-}
-async function renderMapFiles(p2, ref, o = {}) {
-  const m = readMap(p2, ref), field = map_exports.generateMap(m), id2 = typeof ref === "string" ? ref : fileStem(ref.file);
-  const out = o.out ?? (typeof ref === "string" ? join7(mapsDir(p2), id2, "out") : dirname5(mapFile(p2, ref)));
-  const formats2 = o.formats ?? ["svg", "png"], files = [];
-  if (o.fit && o.ppu !== void 0) throw new Error("--fit and --ppu both set the scale: use one");
-  const crop2 = clampCrop(o.crop ?? [0, 0, m.cols, m.rows], m.cols, m.rows), ppu = o.fit ? fitPpu(crop2[2], crop2[3], o.fit) : o.ppu ?? 40;
-  const size = [Math.round(crop2[2] * ppu), Math.round(crop2[3] * ppu)], unit = o.fit?.unit ?? "px";
-  const pageScale = o.pageScale ?? (o.fit ? PX_PER_MM : void 0);
-  if (formats2.includes("png")) await initNodeMapSvg();
-  mkdirSync4(out, { recursive: true });
-  for (const theme of o.themes ?? ["color"]) {
-    const svg4 = map_exports.renderMapSvg(m, { theme, ppu, layers: o.layers, field, ...o.crop && { crop: crop2 }, unit, pageScale }), base = join7(out, `${id2}.${theme}`);
-    if (formats2.includes("svg")) {
-      writeFileSync7(`${base}.svg`, svg4);
-      files.push(`${base}.svg`);
-    }
-    if (formats2.includes("png")) {
-      writeFileSync7(`${base}.png`, encodePNG(rasterizeSvg(svg4, size[0], size[1])));
-      files.push(`${base}.png`);
-    }
-  }
-  return { files: files.map((f) => relative2(process.cwd(), f)), terrains: map_exports.terrainsUsed(field), rivers: field.rivers.length, size, crop: crop2, ppu, svg: svgSize(crop2, ppu, unit), pageScale: pageScale ?? null, unplaced: map_exports.mapLabelLayout(m, ppu, pageScale).unplaced };
-}
-function svgSize(crop2, ppu, unit) {
-  const f = unit === "mm" ? 96 / 25.4 : 1, r = (v) => Math.round(v * ppu / f * 100) / 100;
-  return { width: r(crop2[2]), height: r(crop2[3]), unit };
-}
-function numbers2(v, what, pairs2 = true) {
-  const xs = (v ?? "").split(",").map((s2) => s2.trim()).filter(Boolean).map(Number);
-  if (!xs.length || xs.some((x) => !Number.isFinite(x)) || pairs2 && xs.length % 2) throw new Error(`${what}: comma-separated numbers${pairs2 ? " in x,y pairs" : ""}`);
-  return xs;
-}
-function shapeFrom(o) {
-  const arr = (v, what, pairs2 = true) => Array.isArray(v) ? v.map(Number) : numbers2(v, what, pairs2);
-  if (o.circle !== void 0) {
-    const c = arr(o.circle, "--circle x,y,r", false);
-    if (c.length !== 3) throw new Error("--circle: x,y,r");
-    return { circle: [c[0], c[1], c[2]] };
-  }
-  if (o.poly !== void 0) return { poly: arr(o.poly, "--poly") };
-  if (o.stroke !== void 0) return { stroke: arr(o.stroke, "--stroke"), width: Number(o.width ?? 1) };
-  throw new Error("a shape is required: --circle x,y,r | --poly x,y,x,y,\u2026 | --stroke x,y,\u2026 --width w");
-}
-function parseLayers(v, names = map_exports.MAP_LAYERS) {
-  if (!v) return void 0;
-  const out = {};
-  for (const part of v.split(",").map((s2) => s2.trim()).filter(Boolean)) {
-    const [name, val] = part.split("=");
-    if (!names.includes(name)) throw new Error(`--layers: unknown layer ${name} (${names.join(", ")})`);
-    out[name] = val === void 0 ? false : onOff2(val);
-  }
-  return out;
-}
-function describeMap(m) {
-  const g = m.gen;
-  return [
-    `${m.id}${m.title ? ` "${m.title}"` : ""}: ${m.preset}, ${m.cols}\xD7${m.rows} ${m.grid.type === "hex" ? "hexes" : "cells"} of ${m.scale.perCell} ${m.scale.unit}, seed ${m.seed}`,
-    `  gen: land ${g.land}, sea ${g.sea}, moisture ${g.moisture}, roughness ${g.roughness}, relief ${g.relief}, rivers ${g.rivers}, simplify ${g.simplify}, feature ${g.feature}`,
-    `  topo: every ${m.topo.interval} ${m.topo.unit} up to ${m.topo.maxElevation}, major every ${m.topo.majorEvery}${m.topo.labels ? ", labelled" : ""}`,
-    `  grid: ${m.grid.type}${m.grid.type !== "none" ? ` size ${m.grid.size}${m.grid.coords ? ", coordinates" : ""}` : ""}; legend ${m.legend ? "on" : "off"}, scale bar ${m.scaleBar ? "on" : "off"}, compass ${m.compass ? "on" : "off"}`,
-    ...m.require?.length ? [`  require (${m.require.length}):${m.require.map((r) => `
-    ${r.id} ${r.kind}${r.kind === "terrain" ? ` ${r.terrain} ${r.share}` : r.kind === "height" ? ` ${r.low}-${r.high} ${m.topo.unit}` : r.kind === "path" ? ` ${r.path}` : ""}`).join("")}`] : [],
-    `  edits (${m.edits.length}):${m.edits.map((e, i) => `
-    ${i}. ${e.op}${e.op === "paint" ? ` ${e.terrain}` : e.op === "elevate" ? ` ${e.amount}` : ""} ${"shape" in e ? JSON.stringify(e.shape) : JSON.stringify(e.points)}`).join("")}`,
-    `  labels (${m.overlay.labels.length}):${m.overlay.labels.map((l, i) => `
-    ${i}. ${l.kind} "${l.text}" at ${l.x},${l.y}`).join("")}`,
-    `  symbols (${m.overlay.symbols.length}):${m.overlay.symbols.map((s2, i) => `
-    ${i}. ${s2.kind} at ${s2.x},${s2.y}`).join("")}`
-  ].join("\n");
-}
-function describeMapFacts(r) {
-  const { scale: scale2, height } = r.unit, out = [`${r.id}: ${r.size.cols}\xD7${r.size.rows} cells; heights in ${height}, distances in cells (${scale2})`];
-  const share2 = (s2) => s2.map((x) => `${x.terrain} ${x.share}%`).join(", ");
-  const hi = (h) => `${h.height} ${height} at ${at2(h.at)}${h.prominence ? ` (stands ${h.prominence} ${height} clear)` : ""}`;
-  for (const p2 of r.points ?? []) {
-    out.push(`at ${at2(p2.at)}: ${p2.terrain}, ${p2.height} ${height}, slope ${p2.slope.band ?? "?"} (${p2.slope.gradient} ${height}/${scale2})`);
-    for (const k of ["river", "road"]) if (p2[k]) out.push(`  ${k}: ${p2[k].name}${p2[k].source ? ` (${p2[k].source})` : ""} ${km(p2[k].distance, scale2)} away at ${at2(p2[k].at)}${p2[k].within ? ", in it" : ""}`);
-    if (p2.above) out.push(`  ${p2.above.value === null ? `no ${p2.above.of} to measure from` : `${p2.above.value} ${height} above the ${p2.above.of === "river" ? "river" : "lowest ground"}`}${p2.above.reference ? ` (${hi(p2.above.reference)})` : ""}`);
-  }
-  for (const a of r.areas ?? []) {
-    out.push(`area ${a.area.map(at2).join(" ")}: ${share2(a.terrain)}; lowest ${hi(a.lowest)}, highest ${hi(a.highest)}`);
-    for (const c of [...a.rivers, ...a.roads]) out.push(`  ${c.name}${c.source ? ` (${c.source})` : ""}: ${c.enters ? `in at ${at2(c.enters)}` : "starts inside"}, ${c.leaves ? `out at ${at2(c.leaves)}` : "ends inside"}, ${km(c.length, scale2)}`);
-  }
-  const f = r.features;
-  if (f) {
-    out.push(`terrain: ${share2(f.terrain)}; lowest ${hi(f.lowest)}, highest ${hi(f.highest)}`);
-    for (const [what, lines2] of [["river", f.rivers], ["generated river", f.generatedRivers], ["road", f.roads]])
-      for (const l of lines2) out.push(`${what} ${l.name}: ${km(l.length, scale2)}, ${l.points.length} points from ${at2(l.points[0])} to ${at2(l.points[l.points.length - 1])}`);
-    out.push(`hilltops: ${f.hilltops.map(hi).join("; ") || "none"}`, `hollows: ${f.hollows.map(hi).join("; ") || "none"}`);
-  }
-  return out.join("\n");
-}
-var mapsDir, shown, mapSummary, onOff2, km, at2;
-var init_map2 = __esm({
-  "../artgen-cli/src/map.ts"() {
-    "use strict";
-    init_maps();
-    init_node_svg();
-    init_projectfs();
-    mapsDir = (p2) => join7(p2.art, "maps");
-    shown = (p2, f) => relative2(p2?.root ?? process.cwd(), f);
-    mapSummary = (m) => ({ id: m.id, preset: m.preset, size: `${m.cols}x${m.rows}`, ...m.title && { title: m.title }, edits: m.edits.length, labels: m.overlay.labels.length, symbols: m.overlay.symbols.length });
-    onOff2 = (v) => v === void 0 ? void 0 : /^(on|true|yes|1)$/i.test(v);
-    km = (l, unit) => `${l.map} (${l.scale} ${unit})`;
-    at2 = (p2) => `${p2[0]},${p2[1]}`;
-  }
-});
-
-// ../artgen-cli/src/dungeon.ts
-import { existsSync as existsSync8, mkdirSync as mkdirSync5, readdirSync as readdirSync4, readFileSync as readFileSync7, writeFileSync as writeFileSync8 } from "node:fs";
-import { dirname as dirname6, join as join8, relative as relative3, resolve as resolve5 } from "node:path";
-function dungeonFile(p2, ref) {
-  if (typeof ref !== "string") return resolve5(ref.file);
-  if (!/^[\w-]+$/.test(ref ?? "")) throw new Error(`dungeon id ${JSON.stringify(ref)}: letters, digits, - and _ only`);
-  if (!p2) throw new Error("no artgen project here: name the dungeon file with --file <path>");
-  return join8(dungeonsDir(p2), ref, "dungeon.json");
-}
-function listDungeons(p2) {
-  if (!existsSync8(dungeonsDir(p2))) return [];
-  return readdirSync4(dungeonsDir(p2), { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync8(join8(dungeonsDir(p2), d.name, "dungeon.json"))).map((d) => dungeonSummary(readDungeon(p2, d.name)));
-}
-function readDungeon(p2, ref) {
-  const f = dungeonFile(p2, ref);
-  if (!existsSync8(f)) throw new Error(typeof ref === "string" ? `no dungeon ${ref} (${shown2(p2, f)}) \u2014 artgen dungeon new ${ref}` : `no dungeon file ${shown2(p2, f)} \u2014 artgen dungeon new --file ${ref.file}`);
-  return dungeon_exports.parseDungeon(readJson(f));
-}
-function writeDungeon(p2, m, ref = m.id) {
-  const spec = dungeon_exports.parseDungeon(m), f = dungeonFile(p2, ref);
-  writeJson(f, spec);
-  return shown2(p2, f);
-}
-function createDungeon(p2, m, force = false, at3 = m.id) {
-  if (existsSync8(dungeonFile(p2, at3)) && !force) throw new Error(typeof at3 === "string" ? `dungeon ${m.id} already exists (edit it, or pick another id)` : `${shown2(p2, dungeonFile(p2, at3))} already exists (edit it, or --force)`);
-  return { file: writeDungeon(p2, m, at3), dungeon: m };
-}
-function updateDungeon(p2, ref, change) {
-  const m = readDungeon(p2, ref), next4 = change(m) ?? m;
-  writeDungeon(p2, next4, ref);
-  return next4;
-}
-function checkDungeonFile(p2, ref) {
-  const f = dungeonFile(p2, ref);
-  let raw;
-  try {
-    raw = JSON.parse(readFileSync7(f, "utf8"));
-  } catch (e) {
-    const missing = e.code === "ENOENT";
-    return { file: shown2(p2, f), ok: false, errors: [{ path: "", message: missing ? `no such file: ${shown2(p2, f)}` : `not JSON: ${e.message}` }], warnings: [] };
-  }
-  const r = dungeon_exports.checkDungeon(raw), errors = [...r.errors], warnings = [];
-  if (!errors.length) for (const x of dungeon_exports.lintDungeon(dungeon_exports.parseDungeon(raw))) (x.severity === "error" ? errors : warnings).push({ path: x.path, message: x.message });
-  const u = raw?.underlay;
-  if (!errors.some((e) => e.path.startsWith("underlay")) && u && typeof u.map === "string" && !existsSync8(resolve5(dirname6(f), u.map)))
-    errors.push({ path: "underlay.map", message: `no such map file ${u.map}` });
-  return { file: shown2(p2, f), ok: !errors.length, errors, warnings };
-}
-function readUnderlay(p2, ref, m) {
-  if (!m.underlay) return null;
-  const f = resolve5(dirname6(dungeonFile(p2, ref)), m.underlay.map);
-  if (!existsSync8(f)) throw new Error(`underlay.map: no such map file ${m.underlay.map} (looked for ${shown2(p2, f)})`);
-  const spec = map_exports.parseMap(readJson(f));
-  return { map: spec, field: map_exports.generateMap(spec) };
-}
-async function renderDungeonFiles(p2, ref, o = {}) {
-  const m = readDungeon(p2, ref), layout2 = dungeon_exports.layoutDungeon(m), id2 = typeof ref === "string" ? ref : fileStem(ref.file);
-  const out = o.out ?? (typeof ref === "string" ? join8(dungeonsDir(p2), id2, "out") : dirname6(dungeonFile(p2, ref)));
-  const formats2 = o.formats ?? ["svg", "png"], files = [];
-  if (o.fit && o.ppu !== void 0) throw new Error("--fit and --ppu both set the scale: use one");
-  if (o.crop && o.rooms?.length) throw new Error("--crop and --room both set the window: use one");
-  if (o.margin !== void 0 && !o.rooms?.length) throw new Error("--margin goes with --room");
-  const window = o.rooms?.length ? dungeon_exports.roomCrop(m, o.rooms, o.margin, layout2) : o.crop;
-  const crop2 = clampCrop(window ?? [0, 0, m.cols, m.rows], m.cols, m.rows), unit = o.fit?.unit ?? "px";
-  const pageScale = o.pageScale ?? (o.fit ? PX_PER_MM : void 0), underlay = readUnderlay(p2, ref, m);
-  const view = { layers: o.layers, layout: layout2, ...window && { crop: crop2 }, pageScale };
-  let ppu = o.fit ? fitPpu(crop2[2], crop2[3], o.fit) : o.ppu ?? 40;
-  const fits = (k) => {
-    const r = dungeon_exports.dungeonRenderSize(m, { ...view, ppu: k }), f = o.fit.unit === "mm" ? PX_PER_MM : 1;
-    return r.width <= o.fit.w * f + 1e-6 && r.height <= o.fit.h * f + 1e-6;
-  };
-  if (o.fit && !fits(ppu)) {
-    let lo = 0, hi = ppu;
-    for (let i = 0; i < 40; i++) {
-      const mid = (lo + hi) / 2;
-      if (fits(mid)) lo = mid;
-      else hi = mid;
-    }
-    ppu = lo;
-  }
-  const px = dungeon_exports.dungeonRenderSize(m, { ...view, ppu }), size = [Math.round(px.width), Math.round(px.height)];
-  if (formats2.includes("png")) await initNodeMapSvg();
-  mkdirSync5(out, { recursive: true });
-  const svg4 = dungeon_exports.renderDungeonSvg(m, { ...view, ppu, unit, ...underlay && { underlay } }), base = join8(out, id2);
-  if (formats2.includes("svg")) {
-    writeFileSync8(`${base}.svg`, svg4);
-    files.push(`${base}.svg`);
-  }
-  if (formats2.includes("png")) {
-    writeFileSync8(`${base}.png`, encodePNG(rasterizeSvg(svg4, size[0], size[1])));
-    files.push(`${base}.png`);
-  }
-  return { files: files.map((f) => relative3(process.cwd(), f)), rooms: m.rooms.length, corridors: m.corridors.length, doors: layout2.doors.length, size, crop: crop2, ppu, svg: svgSize([0, 0, px.width, px.height], 1, unit), pageScale: pageScale ?? null, unplaced: dungeon_exports.dungeonLabelLayout(m, ppu, pageScale, layout2).unplaced };
-}
-function warningLines(m, max2 = 5) {
-  const found = dungeon_exports.lintDungeon(m);
-  if (!found.length) return [];
-  const lines2 = found.slice(0, max2).map((x) => `  ${x.severity}: ${x.path}: ${x.message}`);
-  if (found.length > max2) lines2.push(`  \u2026 ${found.length - max2} more (artgen dungeon check ${m.id})`);
-  return lines2;
-}
-function describeDungeon(m) {
-  const g = m.gen, end = endText;
-  const gridFt = (n) => `${n * m.scale.perCell} ${m.scale.unit}`;
-  return [
-    `${m.id}${m.title ? ` "${m.title}"` : ""}: ${m.cols}\xD7${m.rows} cells of ${m.scale.perCell} ${m.scale.unit}, seed ${m.seed}`,
-    `  gen: rooms ${g.rooms}, size ${g.minSize}..${g.maxSize}, caves ${g.caves}, round ${g.round}, loops ${g.loops}, doors ${g.doors}, corridor width ${g.corridorWidth}, spacing ${g.spacing}, entrance ${g.entrance ? "on" : "off"}${g.layout && g.layout !== "scatter" ? `, layout ${g.layout}${g.layout === "dense" ? ` (density ${g.density ?? 0.5})` : ""}` : ""}`,
-    `  grid: ${m.grid.show ? `size ${gridFt(m.grid.size)}, sub-grid ${m.grid.sub && m.grid.size > 1 ? `${gridFt(1)}` : "off"}, ${m.grid.clip === "floor" ? "on the floor" : "everywhere"}` : "off"}; hatch ${m.style.hatch}${m.style.hatch === "band" ? ` (${m.style.band} cells)` : ""}; shared walls ${dungeon_exports.sharedWallsOn(m) ? "on" : "off"}${m.style.sharedWalls === void 0 ? " (auto)" : ""}; numbers ${m.numbers ? "on" : "off"}, scale bar ${m.scaleBar ? "on" : "off"}, compass ${m.compass ? "on" : "off"}`,
-    ...m.furniture && m.furniture.place !== "over" ? [`  furniture: ${m.furniture.place}, band ${m.furniture.side ?? "bottom"}`] : [],
-    `  rooms (${m.rooms.length}):${m.rooms.map((r) => `
-    ${r.id}: ${r.shape} ${r.w}\xD7${r.h} at ${r.x},${r.y}${r.fill && r.fill !== "floor" ? `, ${r.fill}` : ""}${r.number === false ? ", no number" : r.number !== void 0 ? `, #${r.number}` : ""}${r.label ? ` "${r.label}"` : ""}${r.href ? ` \u2192 ${r.href}` : ""}`).join("")}`,
-    `  corridors (${m.corridors.length}):${m.corridors.map((c, i) => `
-    ${i}.${c.id ? ` [${c.id}]` : ""} ${end(c.from)} \u2192 ${end(c.to)}${c.width && c.width !== 1 ? `, width ${c.width}` : ""}${c.via ? `, via ${c.via.join(",")}` : c.route && c.route !== "auto" ? `, ${c.route}` : ""}${c.curve === "smooth" ? ", curved" : ""}${c.style === "natural" ? ", natural" : ""}${c.doors?.some(Boolean) ? `, doors ${c.doors.map((d) => d ?? "none").join("/")}` : ""}`).join("")}`,
-    ...m.blocks?.length ? [`  blocks (${m.blocks.length}):${m.blocks.map((b) => `
-    ${b.id}: ${b.shape} ${b.w}\xD7${b.h} at ${b.x},${b.y}, split ${b.split.mode}${b.split.min ? ` (min ${b.split.min})` : ""}${b.split.seed !== void 0 ? `, seed ${b.split.seed}` : ""}: ${m.rooms.filter((r) => r.origin === `block:${b.id}`).length} rooms`).join("")}`] : [],
-    ...m.connections?.length ? [`  connections (${m.connections.length}):${m.connections.map((c, i) => `
-    ${i}. ${c.a} \u2194 ${c.b}: ${c.kind ?? "door"}${c.width && c.width !== 1 ? `, width ${c.width}` : ""}${c.at ? ` at ${c.at.join(",")}` : ""}`).join("")}`] : [],
-    `  labels (${m.overlay.labels.length}):${m.overlay.labels.map((l, i) => `
-    ${i}. ${l.kind} "${l.text}" at ${l.x},${l.y}${l.href ? ` \u2192 ${l.href}` : ""}`).join("")}`,
-    `  symbols (${m.overlay.symbols.length}):${m.overlay.symbols.map((s2, i) => `
-    ${i}. ${s2.kind} at ${s2.x},${s2.y}${s2.angle ? ` turned ${s2.angle}\xB0` : ""}`).join("")}`
-  ].join("\n");
-}
-function describeDungeonFacts(r) {
-  const unit = r.unit.scale, box2 = (b) => `${b.cells.w}\xD7${b.cells.h} cells (${b.scale.w}\xD7${b.scale.h} ${unit}) at ${b.cells.x},${b.cells.y}`;
-  const end = endText;
-  return [
-    `${r.id}: ${r.size.cols}\xD7${r.size.rows} cells; positions in cells, lengths also in ${unit}`,
-    `rooms (${r.rooms.length}):${r.rooms.map((m) => `
-  ${m.id}${m.number !== null ? ` #${m.number}` : ""}: ${m.shape} ${box2(m.box)}${m.label ? ` "${m.label}"` : ""}${m.doors.length ? `; doors ${m.doors.map((d) => `${d.kind}${d.at ? ` at ${d.at.join(",")}` : ""}`).join(", ")}` : ""}${m.connections?.length ? `; joins ${m.connections.map((c) => `${c.to} (${c.kind})`).join(", ")}` : ""}`).join("")}`,
-    `corridors (${r.corridors.length}):${r.corridors.map((c) => `
-  ${c.index}. ${end(c.from)} \u2192 ${end(c.to)}: ${c.length.map} cells (${c.length.scale} ${unit}), width ${c.width}${c.doors.some(Boolean) ? `, doors ${c.doors.map((d) => d ?? "none").join("/")}` : ""}`).join("")}`,
-    `exits (${r.exits.length}):${r.exits.map((x) => `
-  corridor ${x.corridor} ${x.end} at ${x.at.join(",")}${x.room ? ` from ${x.room}` : ""}: nearest edge ${x.edge}, ${x.distance.map} cells (${x.distance.scale} ${unit})`).join("")}`,
-    `overlaps (${r.overlaps.length}):${r.overlaps.map((o) => `
-  ${o.rooms.join(" / ")}: ${o.count} cells, ${box2(o.box)}`).join("")}`,
-    `unreached rooms: ${r.unreached.join(", ") || "none"}`,
-    ...(r.walls ?? []).map((w) => `wall ${w.id ?? w.index}: ${w.corners.length} corners, ${w.towers.length} towers (${w.towers.filter((t) => t.source === "corner").length} at corners), thickness ${w.thickness}; ${w.enclosed.every((e) => e.inside) ? "encloses every room" : `does not enclose ${w.enclosed.filter((e) => !e.inside).map((e) => e.room).join(", ")}`}${w.gates.map((g) => `
-  ${g.kind} at ${g.at.join(",")} (wall at ${g.angle}\xB0, ${g.width} wide, ${g.towers} towers${g.room ? `, opens into ${g.room}` : ""})`).join("")}`)
-  ].join("\n");
-}
-var dungeonsDir, shown2, dungeonSummary, cornerPoint2, corridorEnd2, doorPair2, gridMode2, endText;
-var init_dungeon2 = __esm({
-  "../artgen-cli/src/dungeon.ts"() {
-    "use strict";
-    init_maps();
-    init_map2();
-    init_node_svg();
-    init_projectfs();
-    dungeonsDir = (p2) => join8(p2.art, "dungeons");
-    shown2 = (p2, f) => relative3(p2?.root ?? process.cwd(), f);
-    dungeonSummary = (m) => ({ id: m.id, size: `${m.cols}x${m.rows}`, ...m.title && { title: m.title }, rooms: m.rooms.length, corridors: m.corridors.length, labels: m.overlay.labels.length, symbols: m.overlay.symbols.length });
-    ({ cornerPoint: cornerPoint2, corridorEnd: corridorEnd2, doorPair: doorPair2, gridMode: gridMode2 } = dungeon_exports);
-    endText = (e) => "room" in e ? `${e.room}${e.side ? `.${e.side}${e.offset !== void 0 ? `+${e.offset}` : ""}` : ""}` : "at" in e ? `(${e.at.join(",")})${e.exit ? ` "${e.exit.text}"` : ""}` : `corridor ${e.corridor}`;
-  }
-});
-
-// ../artgen-cli/src/settlement.ts
-import { existsSync as existsSync9, mkdirSync as mkdirSync6, readdirSync as readdirSync5, readFileSync as readFileSync8, writeFileSync as writeFileSync9 } from "node:fs";
-import { dirname as dirname7, join as join9, relative as relative4, resolve as resolve6 } from "node:path";
-function settlementFile(p2, ref) {
-  if (typeof ref !== "string") return resolve6(ref.file);
-  if (!/^[\w-]+$/.test(ref ?? "")) throw new Error(`settlement id ${JSON.stringify(ref)}: letters, digits, - and _ only`);
-  if (!p2) throw new Error("no artgen project here: name the settlement file with --file <path>");
-  return join9(settlementsDir(p2), ref, "settlement.json");
-}
-function listSettlements(p2) {
-  if (!existsSync9(settlementsDir(p2))) return [];
-  return readdirSync5(settlementsDir(p2), { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync9(join9(settlementsDir(p2), d.name, "settlement.json"))).map((d) => settlementSummary(readSettlement(p2, d.name)));
-}
-function readSettlement(p2, ref) {
-  const f = settlementFile(p2, ref);
-  if (!existsSync9(f)) throw new Error(typeof ref === "string" ? `no settlement ${ref} (${shown3(p2, f)}) \u2014 artgen settlement new ${ref}` : `no settlement file ${shown3(p2, f)} \u2014 artgen settlement new --file ${ref.file}`);
-  return settlement_exports.parseSettlement(readJson(f));
-}
-function writeSettlement(p2, m, ref = m.id) {
-  const spec = settlement_exports.parseSettlement(m), f = settlementFile(p2, ref);
-  writeJson(f, spec);
-  return shown3(p2, f);
-}
-function createSettlement(p2, m, force = false, at3 = m.id) {
-  if (existsSync9(settlementFile(p2, at3)) && !force) throw new Error(typeof at3 === "string" ? `settlement ${m.id} already exists (edit it, or pick another id)` : `${shown3(p2, settlementFile(p2, at3))} already exists (edit it, or --force)`);
-  return { file: writeSettlement(p2, m, at3), settlement: m };
-}
-function updateSettlement(p2, ref, change) {
-  const m = readSettlement(p2, ref), next4 = change(m) ?? m;
-  writeSettlement(p2, next4, ref);
-  return next4;
-}
-function readSettlementUnderlay(p2, ref, m) {
-  if (!m.underlay) return null;
-  const f = resolve6(dirname7(settlementFile(p2, ref)), m.underlay.map);
-  if (!existsSync9(f)) throw new Error(`underlay.map: no such map file ${m.underlay.map} (looked for ${shown3(p2, f)})`);
-  const spec = map_exports.parseMap(readJson(f));
-  return { map: spec, field: map_exports.generateMap(spec) };
-}
-function mapForSettlement(p2, ref, mapRef) {
-  const path = /[\\/.]/.test(mapRef) ? resolve6(mapRef) : (() => {
-    if (!p2) throw new Error("--map: a map file path (no project here)");
-    return join9(p2.art, "maps", mapRef, "map.json");
-  })();
-  if (!existsSync9(path)) throw new Error(`--map: no map ${mapRef} (${shown3(p2, path)})`);
-  return { path, rel: relative4(dirname7(settlementFile(p2, ref)), path).split("\\").join("/") };
-}
-function checkSettlementFile(p2, ref) {
-  const f = settlementFile(p2, ref);
-  let raw;
-  try {
-    raw = JSON.parse(readFileSync8(f, "utf8"));
-  } catch (e) {
-    const missing = e.code === "ENOENT";
-    return { file: shown3(p2, f), ok: false, errors: [{ path: "", message: missing ? `no such file: ${shown3(p2, f)}` : `not JSON: ${e.message}` }], warnings: [] };
-  }
-  const r = settlement_exports.checkSettlement(raw), errors = [...r.errors], warnings = [];
-  if (!errors.length) for (const x of settlement_exports.lintSettlement(settlement_exports.parseSettlement(raw))) (x.severity === "error" ? errors : warnings).push({ path: x.path, message: x.message });
-  const u = raw?.underlay;
-  if (!errors.some((e) => e.path.startsWith("underlay")) && u && typeof u.map === "string" && !existsSync9(resolve6(dirname7(f), u.map))) errors.push({ path: "underlay.map", message: `no such map file ${u.map}` });
-  return { file: shown3(p2, f), ok: !errors.length, errors, warnings };
-}
-function settlementWarningLines(m, max2 = 5) {
-  const found = settlement_exports.lintSettlement(m);
-  const lines2 = found.slice(0, max2).map((x) => `  ${x.severity}: ${x.path}: ${x.message}`);
-  if (found.length > max2) lines2.push(`  \u2026 ${found.length - max2} more (artgen settlement check ${m.id})`);
-  return lines2;
-}
-async function renderSettlementFiles(p2, ref, o = {}) {
-  const m = readSettlement(p2, ref), id2 = typeof ref === "string" ? ref : fileStem(ref.file);
-  const out = o.out ?? (typeof ref === "string" ? join9(settlementsDir(p2), id2, "out") : dirname7(settlementFile(p2, ref)));
-  const formats2 = o.formats ?? ["svg", "png"], themes = o.themes ?? ["color"];
-  if (o.fit && o.ppu !== void 0) throw new Error("--fit and --ppu both set the scale: use one");
-  const underlay = readSettlementUnderlay(p2, ref, m), layout2 = settlement_exports.layoutSettlement(m);
-  const jobs = [];
-  if (o.plans) {
-    jobs.push({ view: "site" });
-    for (const b of m.buildings) for (const f of b.floors ?? []) jobs.push({ view: "plan", building: b.id, floor: f.level });
-  } else if ((o.view ?? (o.building ? "plan" : "site")) === "plan") {
-    const t = settlement_exports.planTarget(m, o.building, o.floor);
-    jobs.push({ view: "plan", building: t.building.id, ...t.floor && { floor: t.floor.level } });
-  } else jobs.push({ view: "site" });
-  if (formats2.includes("png")) await initNodeMapSvg();
-  mkdirSync6(out, { recursive: true });
-  const results = [];
-  for (const job of jobs) {
-    const sheet = job.view === "plan" ? settlement_exports.planSheet(m, m.buildings.find((b) => b.id === job.building)) : { cols: m.cols, rows: m.rows };
-    const crop2 = clampCrop(o.crop ?? [0, 0, sheet.cols, sheet.rows], sheet.cols, sheet.rows), unit = o.fit?.unit ?? "px", pageScale = o.pageScale ?? (o.fit ? PX_PER_MM : void 0);
-    const view = { view: job.view, ...job.building && { building: job.building }, ...job.floor !== void 0 && { floor: job.floor }, buildings: o.buildings, layers: o.layers, ...job.view === "site" && { layout: layout2 }, ...o.crop && { crop: crop2 }, pageScale };
-    let ppu = o.fit ? fitPpu(crop2[2], crop2[3], o.fit) : o.ppu ?? (job.view === "plan" ? 40 : 24);
-    if (o.fit) {
-      const f = o.fit.unit === "mm" ? PX_PER_MM : 1, fits = (k) => {
-        const r = settlement_exports.settlementRenderSize(m, { ...view, ppu: k });
-        return r.width <= o.fit.w * f + 1e-6 && r.height <= o.fit.h * f + 1e-6;
-      };
-      if (!fits(ppu)) {
-        let lo = 0, hi = ppu;
-        for (let i = 0; i < 30; i++) {
-          const mid = (lo + hi) / 2;
-          if (fits(mid)) lo = mid;
-          else hi = mid;
-        }
-        ppu = lo;
-      }
-    }
-    const px = settlement_exports.settlementRenderSize(m, { ...view, ppu }), size = [Math.round(px.width), Math.round(px.height)], files = [];
-    const stem = job.view === "plan" ? `${id2}.${job.building}.${(job.floor ?? 0) < 0 ? `c${-(job.floor ?? 0)}` : `f${job.floor ?? 0}`}` : id2;
-    for (const theme of themes) {
-      const svg4 = settlement_exports.renderSettlementSvg(m, { ...view, ppu, unit, theme, ...underlay && job.view === "site" && { underlay } }), base = join9(out, `${stem}.${theme}`);
-      if (formats2.includes("svg")) {
-        writeFileSync9(`${base}.svg`, svg4);
-        files.push(`${base}.svg`);
-      }
-      if (formats2.includes("png")) {
-        writeFileSync9(`${base}.png`, encodePNG(rasterizeSvg(svg4, size[0], size[1])));
-        files.push(`${base}.png`);
-      }
-    }
-    results.push({ files: files.map((f) => relative4(process.cwd(), f)), view: job.view, ...job.building && { building: job.building }, ...job.floor !== void 0 && { floor: job.floor }, size, crop: crop2, ppu, svg: svgSize([0, 0, px.width, px.height], 1, unit) });
-  }
-  return results;
-}
-function describeSettlement(m) {
-  const g = m.gen, l = settlement_exports.layoutSettlement(m), unit = m.scale.unit;
-  const counts = (xs) => Object.entries(xs.reduce((a, k) => (a[k] = (a[k] ?? 0) + 1, a), {})).map(([k, n]) => `${n} ${k}`).join(", ") || "none";
-  return [
-    `${m.id}${m.title ? ` "${m.title}"` : ""}: a ${m.kind}, ${m.cols}\xD7${m.rows} cells of ${m.scale.perCell} ${unit} (plans in ${m.interior.perCell} ${unit} cells), seed ${m.seed}, ${m.ground} ground`,
-    `  gen: buildings ${g.buildings}, density ${g.density}, streets ${g.streets}, wall ${g.wall}, water ${g.water}, trees ${g.trees}, fields ${g.fields}, market ${g.market ? "on" : "off"}, castle ${g.castle ? "on" : "off"}, interiors ${g.interiors ? "on" : "off"}`,
-    `  grid: ${m.grid.show ? `every ${m.grid.size * m.scale.perCell} ${unit}${m.grid.sub ? ", sub-grid" : ""}` : "off"}; numbers ${m.numbers ? "on" : "off"}, scale bar ${m.scaleBar ? "on" : "off"}, compass ${m.compass ? "on" : "off"}, legend ${m.legend ? "on" : "off"}${m.underlay ? `; underlay ${m.underlay.map} at ${m.underlay.origin.join(",")}, ${m.underlay.scale} map units a cell` : ""}`,
-    `  buildings (${m.buildings.length}):${l.buildings.map((bg) => {
-      const b = bg.building;
-      return `
-    ${b.id}${bg.number !== void 0 ? ` #${bg.number}` : ""}: ${b.kind}, ${b.shape} ${b.w}\xD7${b.h} at ${b.x},${b.y}${b.angle ? ` turned ${b.angle}\xB0` : ""}${b.label ? ` "${b.label}"` : ""}${b.floors?.length ? `; floors ${b.floors.map((f) => `${f.level} (${f.rooms.length} rooms, ${f.fixtures?.length ?? 0} fixtures)`).join(", ")}` : ""}`;
-    }).join("")}`,
-    `  roads (${m.roads.length}): ${counts(m.roads.map((r) => r.kind))}`,
-    `  water (${m.water.length}): ${counts(m.water.map((w) => w.kind))}${l.bridges.length ? `; ${l.bridges.length} bridge${l.bridges.length === 1 ? "" : "s"}` : ""}`,
-    `  walls (${m.walls.length}):${m.walls.map((w, i) => `
-    ${i}. ${w.kind}${w.closed ? ", closed" : ""}, ${w.points.length / 2} points, ${l.walls[i].towers.length} towers, gates ${w.gates?.map((gt) => gt.kind).join(", ") || "none"}`).join("")}`,
-    `  areas (${m.areas.length}): ${counts(m.areas.map((a) => a.kind))}; trees ${m.trees.length} (+${l.areaTrees.length} in woods and orchards); props: ${counts(m.props.map((x) => x.kind))}`,
-    `  labels ${m.overlay.labels.length}, symbols ${m.overlay.symbols.length}`
-  ].join("\n");
-}
-function describeSettlementFacts(f) {
-  const t = (r) => Object.entries(r).map(([k, n]) => `${n} ${k}`).join(", ") || "none";
-  return [
-    `${f.id}: a ${f.kind}, ${f.size.cols}\xD7${f.size.rows} cells, ${f.size.scale}`,
-    `buildings: ${t(f.counts.buildings)}; roads: ${t(f.counts.roads)}; walls: ${t(f.counts.walls)}; water: ${t(f.counts.water)}; areas: ${t(f.counts.areas)}; trees ${f.counts.trees}; ${f.bridges} bridges`,
-    ...f.buildings.map((b) => `  ${b.id}${b.number !== void 0 ? ` #${b.number}` : ""} ${b.kind}${b.label ? ` "${b.label}"` : ""}: ${b.size}, ${b.stories} storey${b.stories === 1 ? "" : "s"}${b.floors.map((fl2) => `
-    ${fl2.name}: ${fl2.rooms} rooms, ${fl2.doors} doors, ${fl2.windows} windows; ${t(fl2.fixtures)}`).join("")}`),
-    ...f.walls.map((w) => `  wall ${w.index}: ${w.kind}, ${w.length} long, ${w.towers} towers, gates ${w.gates.map((g) => `${g.kind} at ${g.at.join(",")}`).join("; ") || "none"}`),
-    ...f.roads.map((r) => `  road ${r.index}: ${r.kind}, ${r.length}${r.label ? ` "${r.label}"` : ""}`)
-  ].join("\n");
-}
-var settlementsDir, shown3, settlementSummary;
-var init_settlement2 = __esm({
-  "../artgen-cli/src/settlement.ts"() {
-    "use strict";
-    init_maps();
-    init_map2();
-    init_node_svg();
-    init_projectfs();
-    settlementsDir = (p2) => join9(p2.art, "settlements");
-    shown3 = (p2, f) => relative4(p2?.root ?? process.cwd(), f);
-    settlementSummary = (m) => ({
-      id: m.id,
-      kind: m.kind,
-      size: `${m.cols}x${m.rows}`,
-      ...m.title && { title: m.title },
-      buildings: m.buildings.length,
-      interiors: m.buildings.filter((b) => b.floors?.length).length,
-      roads: m.roads.length,
-      walls: m.walls.length,
-      water: m.water.length
-    });
-  }
-});
-
 // ../artgen-cli/src/version.ts
 var VERSION;
 var init_version = __esm({
@@ -26336,10 +28300,10 @@ var init_version = __esm({
 
 // ../artgen-cli/src/loop/feedback-bundle.ts
 import { execFileSync } from "node:child_process";
-import { copyFileSync, cpSync, existsSync as existsSync10, mkdirSync as mkdirSync7, readdirSync as readdirSync6, readFileSync as readFileSync9, statSync, writeFileSync as writeFileSync10 } from "node:fs";
-import { basename as basename3, dirname as dirname8, join as join10, relative as relative5, resolve as resolve7, sep } from "node:path";
+import { copyFileSync as copyFileSync3, cpSync, existsSync as existsSync15, mkdirSync as mkdirSync11, readdirSync as readdirSync10, readFileSync as readFileSync14, statSync, writeFileSync as writeFileSync14 } from "node:fs";
+import { basename as basename4, dirname as dirname12, join as join15, relative as relative9, resolve as resolve10, sep } from "node:path";
 function consumerOf(root) {
-  const url = run(root, "config", "--get", "remote.origin.url"), name = url?.replace(/\.git$/, "").split(/[/:]/).slice(-2).join("/") ?? basename3(root);
+  const url = run(root, "config", "--get", "remote.origin.url"), name = url?.replace(/\.git$/, "").split(/[/:]/).slice(-2).join("/") ?? basename4(root);
   return { name, commit: run(root, "rev-parse", "HEAD") ?? "unknown", branch: run(root, "rev-parse", "--abbrev-ref", "HEAD") ?? "unknown" };
 }
 function kindOfFile(raw) {
@@ -26351,37 +28315,37 @@ function kindOfFile(raw) {
   return void 0;
 }
 function assetDirOf(p2, id2) {
-  const base = join10(p2.art, "assets");
-  if (!existsSync10(base)) return void 0;
-  for (const k of readdirSync6(base, { withFileTypes: true })) {
-    const d = join10(base, k.name, id2);
-    if (k.isDirectory() && existsSync10(d) && statSync(d).isDirectory()) return d;
+  const base = join15(p2.art, "assets");
+  if (!existsSync15(base)) return void 0;
+  for (const k of readdirSync10(base, { withFileTypes: true })) {
+    const d = join15(base, k.name, id2);
+    if (k.isDirectory() && existsSync15(d) && statSync(d).isDirectory()) return d;
   }
   return void 0;
 }
 function candidates(p2, id2) {
   const out = [];
   if (/^[\w-]+$/.test(id2)) {
-    for (const [kind, file] of [["map", mapFile(p2, id2)], ["dungeon", dungeonFile(p2, id2)], ["settlement", settlementFile(p2, id2)]]) if (existsSync10(file)) out.push({ kind, file });
+    for (const [kind, file] of [["map", mapFile(p2, id2)], ["dungeon", dungeonFile(p2, id2)], ["settlement", settlementFile(p2, id2)]]) if (existsSync15(file)) out.push({ kind, file });
     const a = assetDirOf(p2, id2);
     if (a) out.push({ kind: "asset", file: a });
   }
   return out;
 }
 function briefOf(yaml, id2) {
-  const blocks = yaml.split(/\r?\n/).reduce((acc, line2) => {
+  const blocks2 = yaml.split(/\r?\n/).reduce((acc, line2) => {
     if (/^- /.test(line2)) acc.push([line2]);
     else acc.at(-1)?.push(line2);
     return acc;
   }, []);
-  if (!blocks.length) return void 0;
-  const mine = blocks.filter((b) => b.some((l) => new RegExp(`^(?:- )?\\s*id:\\s*["']?${id2.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}["']?\\s*$`).test(l)));
+  if (!blocks2.length) return void 0;
+  const mine = blocks2.filter((b) => b.some((l) => new RegExp(`^(?:- )?\\s*id:\\s*["']?${id2.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}["']?\\s*$`).test(l)));
   return mine.length === 1 ? mine[0].join("\n").replace(/\n*$/, "\n") : void 0;
 }
 function freshDir(parent, name) {
   for (let n = 1; ; n++) {
-    const d = join10(parent, n === 1 ? name : `${name}-${n}`);
-    if (!existsSync10(d)) return d;
+    const d = join15(parent, n === 1 ? name : `${name}-${n}`);
+    if (!existsSync15(d)) return d;
   }
 }
 function caseMd(o) {
@@ -26418,21 +28382,21 @@ async function writeBundle(p2, target, o = {}) {
   const now = o.now ?? /* @__PURE__ */ new Date(), note = (o.note ?? "").trim();
   let kind, input, id2;
   if (o.file) {
-    input = resolve7(o.file);
-    if (!existsSync10(input)) throw new Error(`report: no such file ${o.file}`);
+    input = resolve10(o.file);
+    if (!existsSync15(input)) throw new Error(`report: no such file ${o.file}`);
     let raw;
     try {
-      raw = JSON.parse(readFileSync9(input, "utf8"));
+      raw = JSON.parse(readFileSync14(input, "utf8"));
     } catch {
       raw = void 0;
     }
     const k = o.kind ?? kindOfFile(raw);
     if (!k || k === "asset") throw new Error(`report --file ${o.file}: is it a map, a dungeon or a settlement? say so with --kind`);
     kind = k;
-    id2 = safeId(target ?? (raw?.id ?? basename3(dirname8(input))));
+    id2 = safeId(target ?? (raw?.id ?? basename4(dirname12(input))));
   } else {
     if (!target) throw new Error("report: name an asset, map, dungeon or settlement id (or --file <path>)");
-    if (existsSync10(target) && statSync(target).isDirectory() && !candidates(p2 ?? { root: ".", art: "." }, target).length) throw new Error(`report: ${target} is a folder: a benchmark report on a folder of asset directories is now \`artgen bench-report ${target}\`; \`report\` sends feedback about one asset or map`);
+    if (existsSync15(target) && statSync(target).isDirectory() && !candidates(p2 ?? { root: ".", art: "." }, target).length) throw new Error(`report: ${target} is a folder: a benchmark report on a folder of asset directories is now \`artgen bench-report ${target}\`; \`report\` sends feedback about one asset or map`);
     if (!p2) throw new Error("report: no artgen project here \u2014 name a file with --file <path>");
     const found = candidates(p2, target).filter((c) => !o.kind || c.kind === o.kind);
     if (!found.length) throw new Error(`report: ${target} is not an asset, a map, a dungeon or a settlement in this project`);
@@ -26440,17 +28404,17 @@ async function writeBundle(p2, target, o = {}) {
     ({ kind, file: input } = { kind: found[0].kind, file: found[0].file });
     id2 = target;
   }
-  const root = p2?.root ?? dirname8(input), consumer = consumerOf(root);
-  const dir = resolve7(o.out ?? (p2 ? freshDir(join10(p2.art, "feedback"), `${dateOf(now)}-${id2}`) : freshDir(dirname8(input), `feedback-${dateOf(now)}-${id2}`)));
-  mkdirSync7(dir, { recursive: true });
+  const root = p2?.root ?? dirname12(input), consumer = consumerOf(root);
+  const dir = resolve10(o.out ?? (p2 ? freshDir(join15(p2.art, "feedback"), `${dateOf(now)}-${id2}`) : freshDir(dirname12(input), `feedback-${dateOf(now)}-${id2}`)));
+  mkdirSync11(dir, { recursive: true });
   const files = [], put = (rel3, text3) => {
-    mkdirSync7(dirname8(join10(dir, rel3)), { recursive: true });
-    writeFileSync10(join10(dir, rel3), text3);
+    mkdirSync11(dirname12(join15(dir, rel3)), { recursive: true });
+    writeFileSync14(join15(dir, rel3), text3);
     files.push(rel3);
   };
   const mapgen = (() => {
     try {
-      return readFileSync9(join10(root, "tools", "artgen", "VERSION"), "utf8").trim();
+      return readFileSync14(join15(root, "tools", "artgen", "VERSION"), "utf8").trim();
     } catch {
       return void 0;
     }
@@ -26458,20 +28422,20 @@ async function writeBundle(p2, target, o = {}) {
   let briefsNote;
   let check4 = "ok", render11 = o.noRender ? "not made (--no-render)" : "ok", format, command, assetPath2;
   if (kind === "asset") {
-    assetPath2 = p2 ? relative5(p2.art, input).split("\\").join("/") : void 0;
-    const dst = join10(dir, "asset");
-    cpSync(input, dst, { recursive: true, filter: (f) => relative5(input, f).split(sep)[0] !== "out" });
+    assetPath2 = p2 ? relative9(p2.art, input).split("\\").join("/") : void 0;
+    const dst = join15(dir, "asset");
+    cpSync(input, dst, { recursive: true, filter: (f) => relative9(input, f).split(sep)[0] !== "out" });
     files.push(...list2(dst).map((f) => `asset/${f}`));
-    for (const f of ["direction.json", "artgen.config.json"]) if (p2 && existsSync10(join10(p2.art, f))) {
-      copyFileSync(join10(p2.art, f), join10(dir, f));
+    for (const f of ["direction.json", "artgen.config.json"]) if (p2 && existsSync15(join15(p2.art, f))) {
+      copyFileSync3(join15(p2.art, f), join15(dir, f));
       files.push(f);
     }
-    if (p2 && existsSync10(join10(p2.art, "briefs.yaml"))) {
-      const all = readFileSync9(join10(p2.art, "briefs.yaml"), "utf8"), mine = briefOf(all, id2);
+    if (p2 && existsSync15(join15(p2.art, "briefs.yaml"))) {
+      const all = readFileSync14(join15(p2.art, "briefs.yaml"), "utf8"), mine = briefOf(all, id2);
       put("briefs.yaml", mine ?? all);
       if (!mine) briefsNote = "briefs.yaml is the whole file: the brief of this asset could not be cut out of it";
     }
-    const ledger = p2 && existsSync10(join10(p2.art, "ledger.jsonl")) ? readFileSync9(join10(p2.art, "ledger.jsonl"), "utf8").split("\n").filter((l) => {
+    const ledger = p2 && existsSync15(join15(p2.art, "ledger.jsonl")) ? readFileSync14(join15(p2.art, "ledger.jsonl"), "utf8").split("\n").filter((l) => {
       try {
         return JSON.parse(l).asset === id2;
       } catch {
@@ -26486,11 +28450,11 @@ async function writeBundle(p2, target, o = {}) {
         return {};
       }
     }).find((e) => e.type === "review" && typeof e.sheet === "string")?.sheet;
-    const sheetFile = p2 && sheet ? resolve7(p2.art, sheet.split(",")[0]) : void 0;
-    if (!o.noRender && sheetFile && existsSync10(sheetFile)) {
-      mkdirSync7(join10(dir, "render"), { recursive: true });
-      copyFileSync(sheetFile, join10(dir, "render", basename3(sheetFile)));
-      files.push(`render/${basename3(sheetFile)}`);
+    const sheetFile = p2 && sheet ? resolve10(p2.art, sheet.split(",")[0]) : void 0;
+    if (!o.noRender && sheetFile && existsSync15(sheetFile)) {
+      mkdirSync11(join15(dir, "render"), { recursive: true });
+      copyFileSync3(sheetFile, join15(dir, "render", basename4(sheetFile)));
+      files.push(`render/${basename4(sheetFile)}`);
     } else if (!o.noRender) render11 = "no review sheet on disk (run `artgen review`)";
     const last = [...ledger].reverse().map((l) => {
       try {
@@ -26503,11 +28467,11 @@ async function writeBundle(p2, target, o = {}) {
     check4 = ledger.length ? `${ledger.length} ledger lines${briefsNote ? `; ${briefsNote}` : ""}` : "no ledger lines for it";
   } else {
     const ref = { file: input };
-    writeFileSync10(join10(dir, INPUT[kind]), readFileSync9(input));
+    writeFileSync14(join15(dir, INPUT[kind]), readFileSync14(input));
     files.push(INPUT[kind]);
     let raw;
     try {
-      raw = JSON.parse(readFileSync9(input, "utf8"));
+      raw = JSON.parse(readFileSync14(input, "utf8"));
     } catch {
       raw = void 0;
     }
@@ -26518,7 +28482,7 @@ async function writeBundle(p2, target, o = {}) {
     if (!o.noRender) {
       try {
         const rr = kind === "map" ? await renderMapFiles(p2, ref, { out: dir }) : kind === "dungeon" ? await renderDungeonFiles(p2, ref, { out: dir }) : await renderSettlementFiles(p2, ref, { out: dir });
-        for (const f of [...new Set((Array.isArray(rr) ? rr.flatMap((x) => x.files) : rr.files).map((f2) => basename3(f2)))]) if (existsSync10(join10(dir, f))) files.push(f);
+        for (const f of [...new Set((Array.isArray(rr) ? rr.flatMap((x) => x.files) : rr.files).map((f2) => basename4(f2)))]) if (existsSync15(join15(dir, f))) files.push(f);
       } catch (e) {
         render11 = `failed: ${e.message.split("\n")[0]}`;
       }
@@ -26529,11 +28493,11 @@ async function writeBundle(p2, target, o = {}) {
   put("case.md", md);
   put("report.json", JSON.stringify({ schema: 1, id: id2, kind, ...format !== void 0 && { format }, artgen: VERSION, ...mapgen && { installed: mapgen }, consumer, note, check: check4, render: render11, createdAt: now.toISOString(), command }, null, 2) + "\n");
   const title = `[artgen report] ${kind} ${id2}${note ? `: ${note.split("\n")[0].slice(0, 60)}` : ""}`;
-  const inputText = kind === "asset" ? void 0 : readFileSync9(join10(dir, INPUT[kind]), "utf8");
+  const inputText = kind === "asset" ? void 0 : readFileSync14(join15(dir, INPUT[kind]), "utf8");
   const inline = inputText !== void 0 && inputText.length <= INLINE_MAX;
   const body3 = [
     md,
-    ...inline ? [`<!-- artgen:input ${INPUT[kind]} -->`, "```json", inputText.trimEnd(), "```", ""] : [kind === "asset" ? `The asset files, ledger lines and render are in \`${relative5(p2?.root ?? process.cwd(), dir)}\`: zip the folder and attach it to this issue.` : `The input file is too large to paste: attach \`${INPUT[kind]}\` from \`${relative5(p2?.root ?? process.cwd(), dir)}\` to this issue.`, ""]
+    ...inline ? [`<!-- artgen:input ${INPUT[kind]} -->`, "```json", inputText.trimEnd(), "```", ""] : [kind === "asset" ? `The asset files, ledger lines and render are in \`${relative9(p2?.root ?? process.cwd(), dir)}\`: zip the folder and attach it to this issue.` : `The input file is too large to paste: attach \`${INPUT[kind]}\` from \`${relative9(p2?.root ?? process.cwd(), dir)}\` to this issue.`, ""]
   ].join("\n");
   put("ISSUE.md", `# ${title}
 
@@ -26573,11 +28537,146 @@ var init_feedback_bundle = __esm({
     };
     dateOf = (d) => d.toISOString().slice(0, 10);
     safeId = (id2) => id2.replace(/[^\w-]+/g, "-").replace(/^-+|-+$/g, "") || "file";
-    list2 = (dir) => readdirSync6(dir, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? list2(join10(dir, e.name)).map((f) => `${e.name}/${f}`) : [e.name]);
+    list2 = (dir) => readdirSync10(dir, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? list2(join15(dir, e.name)).map((f) => `${e.name}/${f}`) : [e.name]);
     issueLink = (repo, title, body3) => `https://github.com/${repo}/issues/new?${new URLSearchParams({ labels: "artgen-feedback", title, body: body3.length > LINK_BODY_MAX ? `${body3.slice(0, LINK_BODY_MAX)}
 \u2026
 (the rest is in ISSUE.md of the bundle: paste it here)` : body3 }).toString()}`;
     formatOf = (raw) => raw && typeof raw === "object" && typeof raw.version === "number" ? raw.version : void 0;
+  }
+});
+
+// ../artgen-cli/src/loop/metrics.ts
+import { existsSync as existsSync16, mkdirSync as mkdirSync12, readdirSync as readdirSync11, readFileSync as readFileSync15, statSync as statSync2, writeFileSync as writeFileSync15 } from "node:fs";
+import { createHash as createHash2 } from "node:crypto";
+import { basename as basename5, dirname as dirname13, join as join16, resolve as resolve11 } from "node:path";
+function modulesOf(root) {
+  try {
+    return JSON.parse(readFileSync15(join16(root, "tools", "artgen", "MANIFEST.json"), "utf8")).modules ?? {};
+  } catch {
+    return {};
+  }
+}
+function metricsOf(p2, o = {}) {
+  const art = o.art?.(p2), { generators: artGenerators, ...artFields } = art ?? {};
+  const subjects = SUBJECT_KINDS.flatMap((kind) => listSubjectIds(p2, kind).map((id2) => ({ generator: kind, key: subjectKey(kind, id2) })));
+  const count = (kind) => subjects.filter((s2) => s2.generator === kind).length;
+  const generators = { ...artGenerators, ...generatorMetrics(readLedger(p2), subjects) };
+  return {
+    schema: METRICS_SCHEMA,
+    repo: o.name ?? `repo-${createHash2("sha256").update(basename5(p2.root)).digest("hex").slice(0, 8)}`,
+    artgen: VERSION,
+    modules: modulesOf(p2.root),
+    exported: (o.now ?? /* @__PURE__ */ new Date()).toISOString().slice(0, 10),
+    ...artFields.assets && { assets: artFields.assets },
+    maps: { map: count("map"), dungeon: count("dungeon"), settlement: count("settlement") },
+    ...artFields.assets && { byKind: artFields.byKind, passes: artFields.passes, totals: artFields.totals, firstPassApproval: artFields.firstPassApproval, userRevisionRate: artFields.userRevisionRate, gateFailures: artFields.gateFailures, blind: artFields.blind },
+    generators
+  };
+}
+function exportMetrics(p2, o = {}) {
+  const metrics = metricsOf(p2, o), file = resolve11(o.out ?? join16(p2.art, "metrics", `${metrics.artgen}.json`));
+  mkdirSync12(dirname13(file), { recursive: true });
+  writeFileSync15(file, JSON.stringify(metrics, null, 2) + "\n");
+  return { file, metrics };
+}
+function exportsIn(paths) {
+  const out = [];
+  const add2 = (f) => {
+    let j;
+    try {
+      j = JSON.parse(readFileSync15(f, "utf8"));
+    } catch {
+      throw new Error(`${f}: not JSON`);
+    }
+    const schema = j?.schema;
+    if (schema !== 1 && schema !== METRICS_SCHEMA || typeof j.repo !== "string") throw new Error(`${f}: not an artgen metrics export (schema 1 or ${METRICS_SCHEMA})`);
+    out.push(j);
+  };
+  const walk = (x) => {
+    if (!existsSync16(x)) throw new Error(`${x}: no such file or folder`);
+    if (statSync2(x).isDirectory()) for (const e of readdirSync11(x).sort()) {
+      const f = join16(x, e);
+      if (statSync2(f).isDirectory() ? e !== "node_modules" && e !== ".git" : e.endsWith(".json")) walk(f);
+    }
+    else add2(x);
+  };
+  for (const x of paths) walk(x);
+  return out;
+}
+function pool(paths) {
+  const all = exportsIn(paths), latest = /* @__PURE__ */ new Map();
+  for (const e of all) {
+    const k = `${e.repo}\0${e.artgen}`, had = latest.get(k);
+    if (!had || e.exported >= had.exported) latest.set(k, e);
+  }
+  const byVersion = /* @__PURE__ */ new Map();
+  for (const e of latest.values()) byVersion.set(e.artgen, [...byVersion.get(e.artgen) ?? [], e]);
+  const sum2 = (xs) => xs.reduce((a, b) => a + b, 0);
+  const versions = [...byVersion.entries()].map(([artgen, es]) => {
+    const art = es.filter((e) => e.assets), approved = sum2(art.map((e) => e.assets.approved)), untouched = sum2(art.map((e) => e.firstPassApproval.untouched));
+    const tokens = sum2(art.map((e) => e.totals.outTokens + e.totals.imageTokens)), fails2 = {};
+    for (const e of art) for (const [c, n] of Object.entries(e.gateFailures)) fails2[c] = (fails2[c] ?? 0) + n;
+    const gens = {}, byGen = /* @__PURE__ */ new Map();
+    for (const e of es) for (const [g, m] of Object.entries(e.generators ?? {})) byGen.set(g, [...byGen.get(g) ?? [], m]);
+    for (const [g, ms] of [...byGen].sort(([a], [b]) => a.localeCompare(b))) {
+      const ap = sum2(ms.map((m) => m.approved));
+      gens[g] = {
+        subjects: sum2(ms.map((m) => m.subjects)),
+        approved: ap,
+        ...ap && { passesPerApproved: round5(sum2(ms.map((m) => (m.passesPerApproved ?? 0) * m.approved)) / ap), firstPassApprovalRate: round5(sum2(ms.map((m) => m.firstPassApproval.untouched)) / ap) },
+        imageTokens: sum2(ms.map((m) => m.imageTokens)),
+        wallMinutes: round5(sum2(ms.map((m) => m.wallMinutes)), 1)
+      };
+    }
+    return {
+      artgen,
+      repos: es.map((e) => e.repo).sort(),
+      assets: sum2(art.map((e) => e.assets.total)),
+      approved,
+      tokensPerApproved: approved ? Math.round(tokens / approved) : void 0,
+      wallMinutesPerApproved: approved ? round5(sum2(art.map((e) => e.totals.wallMinutes)) / approved, 1) : void 0,
+      firstPassApprovalRate: approved ? round5(untouched / approved) : void 0,
+      topGateFailures: Object.entries(fails2).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 3).map(([check4, n]) => ({ check: check4, n })),
+      generators: gens
+    };
+  }).sort((a, b) => a.artgen.localeCompare(b.artgen, void 0, { numeric: true }));
+  return { exports: latest.size, repos: [...new Set([...latest.values()].map((e) => e.repo))].sort(), versions };
+}
+function poolMarkdown(r, title = "artgen pooled metrics") {
+  const cell3 = (v) => v === void 0 ? "\u2014" : String(v);
+  const gens = r.versions.flatMap((v) => Object.entries(v.generators).map(([g, m]) => ({ artgen: v.artgen, g, ...m })));
+  return [
+    `# ${title}`,
+    "",
+    `${r.exports} exports from ${r.repos.length} repo${r.repos.length === 1 ? "" : "s"}: ${r.repos.join(", ") || "\u2014"}.`,
+    "",
+    "| artgen | repos | assets | approved | tokens / approved | minutes / approved | first-pass approval | gate checks failing most |",
+    "|---|---|---|---|---|---|---|---|",
+    ...r.versions.map((v) => `| ${v.artgen} | ${v.repos.length} | ${v.assets} | ${v.approved} | ${cell3(v.tokensPerApproved)} | ${cell3(v.wallMinutesPerApproved)} | ${cell3(v.firstPassApprovalRate)} | ${v.topGateFailures.map((f) => `${f.check} \xD7${f.n}`).join(", ") || "\u2014"} |`),
+    "",
+    "Tokens are written code plus review images. A lower tokens / approved number at a later version is the sign a release made production cheaper; compare versions only when they hold the same kinds of asset.",
+    "",
+    ...gens.length ? [
+      "## Per generator",
+      "",
+      "From the exports of schema 2: the same numbers for pixel art and each kind of map.",
+      "",
+      "| artgen | generator | subjects | approved | passes / approved | first-pass approval | review image tokens | minutes |",
+      "|---|---|---|---|---|---|---|---|",
+      ...gens.map((m) => `| ${m.artgen} | ${m.g} | ${m.subjects} | ${m.approved} | ${cell3(m.passesPerApproved)} | ${cell3(m.firstPassApprovalRate)} | ${m.imageTokens} | ${m.wallMinutes} |`),
+      ""
+    ] : []
+  ].join("\n");
+}
+var METRICS_SCHEMA, round5;
+var init_metrics3 = __esm({
+  "../artgen-cli/src/loop/metrics.ts"() {
+    "use strict";
+    init_maps();
+    init_version();
+    init_workflow2();
+    METRICS_SCHEMA = 2;
+    round5 = (v, d = 2) => Math.round(v * 10 ** d) / 10 ** d;
   }
 });
 
@@ -26610,9 +28709,9 @@ function unifiedDiff(path, before, after, context = 3) {
   const out = [`--- a/${path}`, `+++ b/${path}`];
   const changed = ops.map((o, i) => o.t === " " ? -1 : i).filter((i) => i >= 0);
   let k = 0, aLine = 1, bLine = 1, pos = 0;
-  const at3 = [];
+  const at4 = [];
   for (const o of ops) {
-    at3.push([aLine, bLine]);
+    at4.push([aLine, bLine]);
     if (o.t !== "+") aLine++;
     if (o.t !== "-") bLine++;
   }
@@ -26626,7 +28725,7 @@ function unifiedDiff(path, before, after, context = 3) {
     const body3 = ops.slice(Math.max(from, pos), to);
     from = Math.max(from, pos);
     const aCount = body3.filter((o) => o.t !== "+").length, bCount = body3.filter((o) => o.t !== "-").length;
-    const [as, bs] = at3[from];
+    const [as, bs] = at4[from];
     out.push(`@@ -${aCount ? as : as - 1}${aCount === 1 ? "" : `,${aCount}`} +${bCount ? bs : bs - 1}${bCount === 1 ? "" : `,${bCount}`} @@`);
     for (const o of body3) out.push(o.t + o.line);
     pos = to;
@@ -26648,9 +28747,9 @@ var init_diff = __esm({
 });
 
 // ../artgen-cli/src/loop/upstream.ts
-import { createHash } from "node:crypto";
-import { existsSync as existsSync11, mkdirSync as mkdirSync8, readFileSync as readFileSync10, writeFileSync as writeFileSync11 } from "node:fs";
-import { dirname as dirname9, join as join11, resolve as resolve8 } from "node:path";
+import { createHash as createHash3 } from "node:crypto";
+import { existsSync as existsSync17, mkdirSync as mkdirSync13, readFileSync as readFileSync16, writeFileSync as writeFileSync16 } from "node:fs";
+import { dirname as dirname14, join as join17, resolve as resolve12 } from "node:path";
 function distPathOf(installed) {
   const t = TARGETS.find(([, to]) => installed.startsWith(to));
   if (!t) throw new Error(`${installed}: not under a folder the installer writes to`);
@@ -26662,7 +28761,7 @@ function unfill(text3) {
 async function baseOf(version, installed, o) {
   const dist = distPathOf(installed);
   if (o.base) {
-    for (const f of [join11(o.base, "dist", dist), join11(o.base, dist)]) if (existsSync11(f)) return readFileSync10(f);
+    for (const f of [join17(o.base, "dist", dist), join17(o.base, dist)]) if (existsSync17(f)) return readFileSync16(f);
     return void 0;
   }
   try {
@@ -26673,20 +28772,20 @@ async function baseOf(version, installed, o) {
   }
 }
 async function upstream(root, o = {}) {
-  root = resolve8(root);
-  const mf = join11(root, MANIFEST);
-  if (!existsSync11(mf)) throw new Error("upstream: artgen is not installed here (tools/artgen/MANIFEST.json not found)");
-  const m = JSON.parse(readFileSync10(mf, "utf8"));
+  root = resolve12(root);
+  const mf = join17(root, MANIFEST);
+  if (!existsSync17(mf)) throw new Error("upstream: artgen is not installed here (tools/artgen/MANIFEST.json not found)");
+  const m = JSON.parse(readFileSync16(mf, "utf8"));
   if (!m.sources) throw new Error(`upstream: this install (${m.version}) does not record where its files come from \u2014 run \`npx -y github:${o.repo ?? DEFAULT_REPO}#artgen-dist update\` once, then try again`);
   const files = [], patches = [];
   for (const [installed, hash3] of Object.entries(m.files)) {
-    const f = join11(root, installed);
-    if (!existsSync11(f)) {
+    const f = join17(root, installed);
+    if (!existsSync17(f)) {
       files.push({ installed, source: m.sources[installed], status: "deleted", note: "deleted here; remove it in the source by hand if that is meant" });
       continue;
     }
-    const cur = readFileSync10(f);
-    if (sha(cur) === hash3) continue;
+    const cur = readFileSync16(f);
+    if (sha2(cur) === hash3) continue;
     const source = m.sources[installed];
     if (!source) {
       files.push({ installed, status: "built", note: "built from the sources, not copied: change the source it is built from" });
@@ -26702,7 +28801,7 @@ async function upstream(root, o = {}) {
       continue;
     }
     const patch2 = unifiedDiff(source, unfill(base.toString("utf8")), unfill(cur.toString("utf8")));
-    const drift = sha(base) !== hash3 ? `the base is not the file as installed (hash ${sha(base)}, installed ${hash3}): the patch may include changes from another release` : void 0;
+    const drift = sha2(base) !== hash3 ? `the base is not the file as installed (hash ${sha2(base)}, installed ${hash3}): the patch may include changes from another release` : void 0;
     if (!patch2) {
       files.push({ installed, source, status: "same", note: "edited only where the build fills in a value" });
       continue;
@@ -26714,13 +28813,13 @@ async function upstream(root, o = {}) {
   let out;
   if (patch) {
     const date = (o.now ?? /* @__PURE__ */ new Date()).toISOString().slice(0, 10);
-    out = resolve8(o.out ?? join11(root, existsSync11(join11(root, "art")) ? join11("art", "feedback") : ".", `upstream-${date}.patch`));
-    mkdirSync8(dirname9(out), { recursive: true });
-    writeFileSync11(out, patch);
+    out = resolve12(o.out ?? join17(root, existsSync17(join17(root, "art")) ? join17("art", "feedback") : ".", `upstream-${date}.patch`));
+    mkdirSync13(dirname14(out), { recursive: true });
+    writeFileSync16(out, patch);
   }
   return { version: m.version, patch, files, ...out && { out } };
 }
-var MANIFEST, TARGETS, sha;
+var MANIFEST, TARGETS, sha2;
 var init_upstream = __esm({
   "../artgen-cli/src/loop/upstream.ts"() {
     "use strict";
@@ -26728,15 +28827,15 @@ var init_upstream = __esm({
     init_feedback_bundle();
     MANIFEST = "tools/artgen/MANIFEST.json";
     TARGETS = [["claude/", ".claude/"], ["tools/artgen/", "tools/artgen/"], ["github/", ".github/"]];
-    sha = (buf) => createHash("sha256").update(buf).digest("hex").slice(0, 16);
+    sha2 = (buf) => createHash3("sha256").update(buf).digest("hex").slice(0, 16);
   }
 });
 
 // ../artgen-cli/src/ui-server.ts
 import { randomBytes, timingSafeEqual } from "node:crypto";
-import { appendFileSync as appendFileSync2, existsSync as existsSync12, lstatSync, mkdirSync as mkdirSync9, readdirSync as readdirSync7, readFileSync as readFileSync11, realpathSync, statSync as statSync2, writeFileSync as writeFileSync12 } from "node:fs";
+import { appendFileSync as appendFileSync2, existsSync as existsSync18, lstatSync, mkdirSync as mkdirSync14, readdirSync as readdirSync12, readFileSync as readFileSync17, realpathSync, statSync as statSync3, writeFileSync as writeFileSync17 } from "node:fs";
 import { createServer } from "node:http";
-import { basename as basename4, dirname as dirname10, extname as extname2, join as join12, resolve as resolve9, sep as sep2 } from "node:path";
+import { basename as basename6, dirname as dirname15, extname as extname3, join as join18, resolve as resolve13, sep as sep2 } from "node:path";
 function artPath(raw) {
   if (raw.includes("\0") || raw.includes("\\") || raw.startsWith("/") || /^[a-zA-Z]:/.test(raw)) throw new HttpError(400, `bad path ${JSON.stringify(raw)}`);
   const parts = raw.split("/").filter(Boolean);
@@ -26754,15 +28853,15 @@ async function body2(req) {
   return Buffer.concat(chunks);
 }
 async function startUiServer(o) {
-  const files = new ArtFiles(o.root), ui = resolve9(o.uiDir), token = o.token ?? randomBytes(16).toString("hex");
-  if (!existsSync12(join12(ui, "index.html"))) throw new Error(`no web tools in ${ui} \u2014 install the ui module: npx -y github:rstevenson1237/image_tools#artgen-dist add ui`);
+  const files = new ArtFiles(o.root), ui = resolve13(o.uiDir), token = o.token ?? randomBytes(16).toString("hex");
+  if (!existsSync18(join18(ui, "index.html"))) throw new Error(`no web tools in ${ui} \u2014 install the ui module: npx -y github:rstevenson1237/image_tools#artgen-dist add ui`);
   let port = 0;
   const hostOk = (h) => h === `127.0.0.1:${port}` || h === `localhost:${port}`;
   const api = async (req, res, url) => {
     const t = req.headers["x-artgen-token"];
     if (typeof t !== "string" || !sameToken(t, token)) throw new HttpError(401, "missing or wrong token \u2014 open the link `artgen ui` printed");
     const path = url.searchParams.get("path") ?? "", route3 = url.pathname.slice("/api/".length);
-    if (req.method === "GET" && route3 === "info") return send(res, 200, JSON.stringify({ name: basename4(resolve9(o.root)), ...o.info }));
+    if (req.method === "GET" && route3 === "info") return send(res, 200, JSON.stringify({ name: basename6(resolve13(o.root)), ...o.info }));
     if (req.method === "GET" && route3 === "list") return send(res, 200, JSON.stringify(files.list(url.searchParams.get("dir") ?? "")));
     if (req.method === "GET" && route3 === "stat") return send(res, 200, JSON.stringify(files.stat(path) ?? null));
     if (req.method === "GET" && route3 === "read") {
@@ -26789,11 +28888,11 @@ async function startUiServer(o) {
     }
     if (decoded.includes("\0")) throw new HttpError(400, "bad address");
     const rel3 = decoded.replace(/^\/+/, "") || "index.html";
-    const base = o.shared && (rel3 === "resvg.wasm" || /^fonts\/[^/]+$/.test(rel3)) ? resolve9(o.shared) : ui;
-    const f = resolve9(base, rel3);
+    const base = o.shared && (rel3 === "resvg.wasm" || /^fonts\/[^/]+$/.test(rel3)) ? resolve13(o.shared) : ui;
+    const f = resolve13(base, rel3);
     if (f !== base && !f.startsWith(base + sep2)) throw new HttpError(403, "outside the web tools");
-    if (!statSync2(f, { throwIfNoEntry: false })?.isFile()) throw new HttpError(404, "not found");
-    send(res, 200, req.method === "HEAD" ? "" : readFileSync11(f), TYPES[extname2(f).toLowerCase()] ?? "application/octet-stream", { "cache-control": "no-cache" });
+    if (!statSync3(f, { throwIfNoEntry: false })?.isFile()) throw new HttpError(404, "not found");
+    send(res, 200, req.method === "HEAD" ? "" : readFileSync17(f), TYPES[extname3(f).toLowerCase()] ?? "application/octet-stream", { "cache-control": "no-cache" });
   };
   const server = createServer((req, res) => {
     void (async () => {
@@ -26855,8 +28954,8 @@ var init_ui_server = __esm({
     ArtFiles = class {
       art;
       constructor(root) {
-        const art = join12(resolve9(root), "art");
-        if (!existsSync12(art)) throw new Error(`${art} does not exist`);
+        const art = join18(resolve13(root), "art");
+        if (!existsSync18(art)) throw new Error(`${art} does not exist`);
         this.art = realpathSync(art);
       }
       /**
@@ -26866,7 +28965,7 @@ var init_ui_server = __esm({
       at(parts) {
         let cur = this.art;
         for (const part of parts) {
-          cur = join12(cur, part);
+          cur = join18(cur, part);
           const l = lstatSync(cur, { throwIfNoEntry: false });
           if (!l) break;
           if (l.isSymbolicLink()) {
@@ -26879,34 +28978,34 @@ var init_ui_server = __esm({
             if (real !== this.art && !real.startsWith(this.art + sep2)) throw new HttpError(403, "path leaves art/");
           }
         }
-        return join12(this.art, ...parts);
+        return join18(this.art, ...parts);
       }
       list(dir) {
         const p2 = this.at(artPath(dir));
-        if (!existsSync12(p2) || !statSync2(p2).isDirectory()) return [];
-        return readdirSync7(p2, { withFileTypes: true }).filter((e) => e.name !== ".git").map((e) => e.isDirectory() || e.isSymbolicLink() && statSync2(join12(p2, e.name), { throwIfNoEntry: false })?.isDirectory() ? `${e.name}/` : e.name).sort();
+        if (!existsSync18(p2) || !statSync3(p2).isDirectory()) return [];
+        return readdirSync12(p2, { withFileTypes: true }).filter((e) => e.name !== ".git").map((e) => e.isDirectory() || e.isSymbolicLink() && statSync3(join18(p2, e.name), { throwIfNoEntry: false })?.isDirectory() ? `${e.name}/` : e.name).sort();
       }
       stat(path) {
-        const s2 = statSync2(this.at(artPath(path)), { throwIfNoEntry: false });
+        const s2 = statSync3(this.at(artPath(path)), { throwIfNoEntry: false });
         return s2?.isFile() ? { size: s2.size, lastModified: Math.trunc(s2.mtimeMs) } : void 0;
       }
       read(path) {
         const p2 = this.at(artPath(path));
-        return statSync2(p2, { throwIfNoEntry: false })?.isFile() ? readFileSync11(p2) : void 0;
+        return statSync3(p2, { throwIfNoEntry: false })?.isFile() ? readFileSync17(p2) : void 0;
       }
       write(path, data) {
         const parts = artPath(path);
         if (!parts.length) throw new HttpError(400, "no file name");
         const p2 = this.at(parts);
-        mkdirSync9(dirname10(p2), { recursive: true });
+        mkdirSync14(dirname15(p2), { recursive: true });
         this.at(parts);
-        writeFileSync12(p2, data);
+        writeFileSync17(p2, data);
       }
       append(path, data) {
         const parts = artPath(path);
         if (!parts.length) throw new HttpError(400, "no file name");
         const p2 = this.at(parts);
-        mkdirSync9(dirname10(p2), { recursive: true });
+        mkdirSync14(dirname15(p2), { recursive: true });
         appendFileSync2(p2, data);
       }
     };
@@ -26923,9 +29022,9 @@ var init_ui_server = __esm({
 
 // ../artgen-cli/src/ops/core.ts
 import { spawn } from "node:child_process";
-import { existsSync as existsSync13, readFileSync as readFileSync12 } from "node:fs";
-import { dirname as dirname11, join as join13 } from "node:path";
-import { fileURLToPath as fileURLToPath3 } from "node:url";
+import { existsSync as existsSync19, readFileSync as readFileSync18, writeFileSync as writeFileSync18 } from "node:fs";
+import { dirname as dirname16, join as join19 } from "node:path";
+import { fileURLToPath as fileURLToPath5 } from "node:url";
 function openBrowser(url) {
   const [cmd, args] = process.platform === "darwin" ? ["open", [url]] : process.platform === "win32" ? ["cmd", ["/c", "start", "", url]] : ["xdg-open", [url]];
   try {
@@ -26936,16 +29035,17 @@ function openBrowser(url) {
 }
 function installedModules(root) {
   try {
-    return Object.keys(JSON.parse(readFileSync12(join13(root, "tools", "artgen", "MANIFEST.json"), "utf8")).modules ?? {});
+    return Object.keys(JSON.parse(readFileSync18(join19(root, "tools", "artgen", "MANIFEST.json"), "utf8")).modules ?? {});
   } catch {
     return [];
   }
 }
-var uiOp, reportOp, upstreamOp, CORE_OPS;
+var uiOp, reportOp, upstreamOp, metricsExport, metricsPool, CORE_OPS;
 var init_core = __esm({
   "../artgen-cli/src/ops/core.ts"() {
     "use strict";
     init_feedback_bundle();
+    init_metrics3();
     init_upstream();
     init_ui_server();
     init_registry();
@@ -26960,8 +29060,8 @@ var init_core = __esm({
         open: p.bool("open the link in the default browser", { mcp: false })
       },
       async run(i, ctx) {
-        const project2 = ctx.project(), here = dirname11(fileURLToPath3(import.meta.url)), uiDir = i.dir ?? join13(here, "ui");
-        if (!existsSync13(join13(uiDir, "index.html"))) throw new Error(`ui: no web tools in ${uiDir} \u2014 install the ui module: npx -y github:rstevenson1237/image_tools#artgen-dist add ui`);
+        const project2 = ctx.project(), here = dirname16(fileURLToPath5(import.meta.url)), uiDir = i.dir ?? join19(here, "ui");
+        if (!existsSync19(join19(uiDir, "index.html"))) throw new Error(`ui: no web tools in ${uiDir} \u2014 install the ui module: npx -y github:rstevenson1237/image_tools#artgen-dist add ui`);
         const modules = installedModules(project2.root), s2 = await startUiServer({ root: project2.root, uiDir, shared: here, port: i.port, info: { modules } });
         console.log(`artgen ui: ${s2.url}
 serving ${project2.art} \u2014 Ctrl-C to stop`);
@@ -27044,14 +29144,54 @@ apply it in the artgen repo: git apply ${r.out}` : "no patch to write"
       mcp: { exclude: "compares installed files and may fetch from GitHub; the user sends edits upstream" },
       python: {}
     });
-    CORE_OPS = [uiOp, reportOp, upstreamOp];
+    metricsExport = defineOp({
+      name: "metrics.export",
+      module: "core",
+      effect: "write",
+      summary: "Write this repo's counts and ratios (assets, passes, tokens, minutes, scores, gate failures, per kind; per generator, maps too) to art/metrics/<version>.json for the pool.",
+      description: "Write art/metrics/<artgen version>.json: counts and ratios from the ledger and briefs (per generator: pixel art and each kind of map; for art also assets, passes, tokens, minutes, scores, gate failures per kind), the artgen version and the installed modules. No images, ids, notes or paths.",
+      params: { name: p.str("how this repo appears in the pool (default: a short hash of its folder name)"), out: p.str("write the file here instead", { mcp: false }) },
+      run: (i, ctx) => {
+        const r = exportMetrics(ctx.project(), { name: i.name, out: i.out, art: ctx.artMetrics });
+        return { file: ctx.rel(r.file), metrics: r.metrics };
+      },
+      cli: {
+        usage: "       artgen metrics export [--name repo] [--out file]   counts and ratios for the pool (art/metrics/<version>.json)",
+        text: (r) => {
+          const m = r.metrics, g = Object.entries(m.generators ?? {}).filter(([k]) => k !== "art").map(([k, x]) => `${x.subjects} ${k}${x.subjects === 1 ? "" : "s"}, ${x.approved} approved`).join("; ");
+          const head = m.assets ? `${m.assets.total} assets, ${m.assets.approved} approved, ${m.totals.outTokens + m.totals.imageTokens} tokens${g ? `; ${g}` : ""}` : g || "nothing to count yet";
+          return `metrics for artgen ${m.artgen}: ${head}
+${r.file}
+read it before you share it: it holds counts and ratios only`;
+        },
+        json: (r) => r.metrics
+      },
+      mcp: {},
+      python: {}
+    });
+    metricsPool = defineOp({
+      name: "metrics.pool",
+      module: "core",
+      effect: "read",
+      summary: "Put exported metrics from several repos side by side per artgen version (tokens and minutes per approved asset, first-pass approval, gate failures; per generator).",
+      params: { paths: p.str("export files or folders of them", { positional: "rest", required: "metrics pool: name the export files or folders to pool", schema: { type: "array", items: { type: "string" } }, mcp: false }), out: p.str("also write the markdown here", { mcp: false }) },
+      run(i) {
+        const r = pool(i.paths), markdown = poolMarkdown(r);
+        if (i.out) writeFileSync18(i.out, markdown);
+        return { markdown, pool: r };
+      },
+      cli: { usage: "       artgen metrics pool <file|folder>\u2026 [--out pool.md]   exports from several repos, per artgen version", text: (r) => r.markdown, json: (r) => r.pool },
+      mcp: { exclude: "reads export files by path outside art/" },
+      python: {}
+    });
+    CORE_OPS = [uiOp, reportOp, upstreamOp, metricsExport, metricsPool];
   }
 });
 
 // ../artgen-cli/src/ops/maps-shared.ts
-import { readFileSync as readFileSync13 } from "node:fs";
-function viewOf(i, cell2) {
-  return { ...i.crop !== void 0 && { crop: parseCrop(i.crop, cell2()) }, ...i.fit !== void 0 && { fit: parseFit(i.fit) } };
+import { readFileSync as readFileSync19 } from "node:fs";
+function viewOf(i, cell3) {
+  return { ...i.crop !== void 0 && { crop: parseCrop(i.crop, cell3()) }, ...i.fit !== void 0 && { fit: parseFit(i.fit) } };
 }
 function syncText(file, r) {
   const lists = Object.entries(r.lists).filter(([, c]) => c.removed || c.added).map(([n, c]) => `${n}: ${c.removed} of ${r.origin} replaced by ${c.added}`);
@@ -27098,7 +29238,7 @@ var init_maps_shared = __esm({
     init_map2();
     init_registry();
     text = (v) => ({ type: "text", text: typeof v === "string" ? v : JSON.stringify(v, null, 2) });
-    pngFile = (f) => ({ type: "image", data: readFileSync13(f).toString("base64"), mimeType: "image/png" });
+    pngFile = (f) => ({ type: "image", data: readFileSync19(f).toString("base64"), mimeType: "image/png" });
     withVersion = (data, version) => data && typeof data === "object" && !Array.isArray(data) ? { version, ...data } : { version, items: data };
     projectOf = (i, ctx) => i.path ? null : ctx.project();
     refOf = (i) => i.path ? { file: i.path } : i.id;
@@ -27139,7 +29279,7 @@ var init_maps_shared = __esm({
 });
 
 // ../artgen-cli/src/ops/maps-dungeon.ts
-import { join as join14 } from "node:path";
+import { join as join20 } from "node:path";
 function applyGenFlags(m, i) {
   if (typeof i.seed === "number") m.seed = i.seed;
   if (i.size) [m.cols, m.rows] = i.size;
@@ -27154,10 +29294,10 @@ function applyGenFlags(m, i) {
 async function renderPreview(r, i, ctx) {
   const P2 = ctx.project(), layers = layersOf(i.layers, (v) => parseLayers(v, dungeon_exports.DUNGEON_LAYERS));
   const files = r.files.map((f) => ctx.rel(f));
-  const look = typeof i.ppu === "number" ? files.filter((f) => f.endsWith(".png")) : (await renderDungeonFiles(P2, i.id, { ppu: 24, layers, formats: ["png"], out: join14(P2.art, "dungeons", i.id, "out", "preview") })).files.map((f) => ctx.rel(f));
-  return [text({ ...r, files }), ...look.map((f) => pngFile(join14(P2.root, f)))];
+  const look = typeof i.ppu === "number" ? files.filter((f) => f.endsWith(".png")) : (await renderDungeonFiles(P2, i.id, { ppu: 24, layers, formats: ["png"], out: join20(P2.art, "dungeons", i.id, "out", "preview") })).files.map((f) => ctx.rel(f));
+  return [text({ ...r, files }), ...look.map((f) => pngFile(join20(P2.root, f)))];
 }
-var V, next, CELLS, numberOf, findRoom2, GEN_PARAMS, GEN_KEYS, list3, symbols, show2, create, update, grid, style, gen, OPS_DOC, edit, roomCmd, link, corridorOf, unlink, door, block, connect, disconnect, fit, label, symbol, check, overlay, render7, facts, sync, DUNGEON_OPS_LIST;
+var V, next, CELLS, numberOf, findRoom2, GEN_PARAMS, GEN_KEYS, list3, symbols, show3, create, update, grid, style, gen, OPS_DOC, edit, roomCmd, link, corridorOf, unlink, door, block, connect, disconnect, fit, label, symbol, check, overlay, render7, facts, sync, DUNGEON_OPS_LIST;
 var init_maps_dungeon = __esm({
   "../artgen-cli/src/ops/maps-dungeon.ts"() {
     "use strict";
@@ -27170,7 +29310,7 @@ var init_maps_dungeon = __esm({
     V = (data) => withVersion(data, dungeon_exports.DUNGEON_FORMAT);
     next = (i, id2) => i.path ? `next: artgen dungeon render --file ${i.path}` : `next: artgen dungeon render ${id2 ?? i.id}`;
     CELLS = "WIDTHxHEIGHT in cells, e.g. 8x6";
-    numberOf = (v) => roomNumber(v, (s2) => onOff2(s2));
+    numberOf = (v) => roomNumber(v, (s2) => onOff(s2));
     findRoom2 = (m, rid) => {
       const r = m.rooms.find((x) => x.id === rid);
       if (!r) throw new Error(`no room ${String(rid)} (have: ${m.rooms.map((x) => x.id).join(", ") || "none"})`);
@@ -27219,7 +29359,7 @@ var init_maps_dungeon = __esm({
       mcp: { exclude: "dungeon_list returns the symbol kinds" },
       python: {}
     });
-    show2 = defineOp({
+    show3 = defineOp({
       name: "dungeon.show",
       module: "maps",
       effect: "read",
@@ -27412,7 +29552,7 @@ ${next(i, m.id)}`,
           if (i.band !== void 0) m.style.band = i.band;
           if (i.wall !== void 0) m.style.wall = i.wall;
           if (i.shared_walls === "auto") delete m.style.sharedWalls;
-          else if (i.shared_walls !== void 0) m.style.sharedWalls = onOff2(i.shared_walls);
+          else if (i.shared_walls !== void 0) m.style.sharedWalls = onOff(i.shared_walls);
           if (i.title !== void 0) {
             if (i.title) m.title = i.title;
             else delete m.title;
@@ -28006,19 +30146,19 @@ ${next(i, m.id)}`, json: (m) => V({ cols: m.cols, rows: m.rows }) },
       mcp: { exclude: "reads --from by path (consumer tooling)" },
       python: {}
     });
-    DUNGEON_OPS_LIST = [list3, symbols, show2, create, update, grid, style, gen, edit, roomCmd, block, link, unlink, door, connect, disconnect, fit, label, symbol, check, overlay, render7, facts, sync];
+    DUNGEON_OPS_LIST = [list3, symbols, show3, create, update, grid, style, gen, edit, roomCmd, block, link, unlink, door, connect, disconnect, fit, label, symbol, check, overlay, render7, facts, sync];
   }
 });
 
 // ../artgen-cli/src/ops/maps-map.ts
-import { join as join15 } from "node:path";
+import { join as join21 } from "node:path";
 async function renderPreview2(r, i, ctx) {
   const P2 = ctx.project(), theme = i.theme ?? "color", themes = theme === "both" ? ["color", "bw"] : [theme === "bw" ? "bw" : "color"], layers = layersOf(i.layers, (v) => parseLayers(v));
   const files = r.files.map((f) => ctx.rel(f));
-  const look = typeof i.ppu === "number" ? files.filter((f) => f.endsWith(".png")) : (await renderMapFiles(P2, i.id, { themes, ppu: 24, layers, formats: ["png"], out: join15(P2.art, "maps", i.id, "out", "preview") })).files.map((f) => ctx.rel(f));
-  return [text({ ...r, files }), ...look.map((f) => pngFile(join15(P2.root, f)))];
+  const look = typeof i.ppu === "number" ? files.filter((f) => f.endsWith(".png")) : (await renderMapFiles(P2, i.id, { themes, ppu: 24, layers, formats: ["png"], out: join21(P2.art, "maps", i.id, "out", "preview") })).files.map((f) => ctx.rel(f));
+  return [text({ ...r, files }), ...look.map((f) => pngFile(join21(P2.root, f)))];
 }
-var V2, next2, LAYER_DOC, list4, symbols2, show3, create2, gen2, update2, edit2, grid2, label2, symbol2, overlay2, set, render8, facts2, check2, sync2, MAP_MAP_OPS;
+var V2, next2, LAYER_DOC, list4, symbols2, show4, create2, gen2, update2, edit2, grid2, label2, symbol2, overlay2, set, render8, facts2, check2, sync2, MAP_MAP_OPS;
 var init_maps_map = __esm({
   "../artgen-cli/src/ops/maps-map.ts"() {
     "use strict";
@@ -28057,7 +30197,7 @@ var init_maps_map = __esm({
       mcp: { exclude: "map_list returns the symbol kinds" },
       python: {}
     });
-    show3 = defineOp({
+    show4 = defineOp({
       name: "map.show",
       module: "maps",
       effect: "read",
@@ -28468,8 +30608,8 @@ ${next2(i, m.id)}`, json: (m) => V2(m) },
         const m = readMap(projectOf(i, ctx), refOf(i));
         if (i.radius !== void 0 && !(i.radius > 0)) throw new Error("--radius: a number above 0 (map units)");
         const areas = (i.area ?? []).map((a) => map_exports.areaOutline(typeof a === "string" ? numbers2(a, "--area", false) : a.map(Number)));
-        const at3 = (i.at ?? []).map((v) => map_exports.parsePoint(m, Array.isArray(v) ? `${v[0]},${v[1]}` : String(v)));
-        return map_exports.mapFacts(m, { at: at3, areas, ...i.above && { above: i.above }, ...i.radius !== void 0 && { radius: i.radius } });
+        const at4 = (i.at ?? []).map((v) => map_exports.parsePoint(m, Array.isArray(v) ? `${v[0]},${v[1]}` : String(v)));
+        return map_exports.mapFacts(m, { at: at4, areas, ...i.above && { above: i.above }, ...i.radius !== void 0 && { radius: i.radius } });
       },
       cli: {
         usage: [
@@ -28526,12 +30666,219 @@ ${next2(i, m.id)}`, json: (m) => V2(m) },
       mcp: { exclude: "reads --from by path (consumer tooling)" },
       python: {}
     });
-    MAP_MAP_OPS = [list4, symbols2, show3, create2, gen2, update2, edit2, grid2, label2, symbol2, overlay2, set, render8, facts2, check2, sync2];
+    MAP_MAP_OPS = [list4, symbols2, show4, create2, gen2, update2, edit2, grid2, label2, symbol2, overlay2, set, render8, facts2, check2, sync2];
+  }
+});
+
+// ../artgen-cli/src/ops/maps-workflow.ts
+function opsFor(kind) {
+  const k = kind, N3 = noun(kind), ID3 = (cmd) => idP(k, cmd);
+  const brief = defineOp({
+    name: `${k}.brief`,
+    module: "maps",
+    effect: "write",
+    summary: `Show or write the ${N3}'s brief: what it is for in the user's words, and its reference images.`,
+    description: `Show, or write, the ${N3}'s brief (art/${workflow_exports.SUBJECTS[k].dir}/<id>/${k}.brief.md): what it is for, in the user's words, with optional references (paths under art/, e.g. refs/coast.png) that the review sheet shows. Write it before generating. text and refs are changed only when given.`,
+    params: { id: ID3("brief"), text: p.str("the brief, in the user's words (replaces the text)"), refs: p.list("string", "reference image paths under art/, e.g. refs/coast.png (replaces the list)", { schema: STR_LIST }) },
+    run(i, ctx) {
+      const P2 = ctx.project();
+      if (i.text === void 0 && i.refs === void 0) {
+        const b = readBrief(P2, k, i.id);
+        return { id: i.id, written: false, ...b && { path: b.path, text: b.text, brief: b.brief } };
+      }
+      const w = writeBrief(P2, k, i.id, { text: typeof i.text === "string" ? i.text : void 0, refs: Array.isArray(i.refs) ? i.refs : void 0 });
+      return { id: i.id, written: true, path: w.path, brief: w.brief };
+    },
+    cli: {
+      usage: `       artgen ${k} brief <id> [--text "..."] [--refs a.png,b.png]   show or write the ${N3}'s brief (what it is for, in the user's words) and its references`,
+      text: (r) => r.written ? `wrote ${r.path}${r.brief?.refs.length ? ` (${r.brief.refs.length} references)` : ""}` : r.text ?? `no brief yet: artgen ${k} brief ${r.id} --text "what it is for"`
+    },
+    mcp: { content: (r) => [text(r.written ? { written: r.path, brief: r.brief } : r.text ?? `no brief yet for ${r.id}`)] },
+    python: {}
+  });
+  const version = defineOp({
+    name: `${k}.version`,
+    module: "maps",
+    effect: "write",
+    summary: `Record the working file as the next version (v1, v2, \u2026), a frozen copy beside it.`,
+    description: `Record the ${N3}'s working file as the next version (a frozen copy beside it: v1, v2, \u2026) and log it. Refused when nothing changed since the latest version. Do this after the edits of a round, before review.`,
+    params: { id: ID3("version"), note: p.str("what this version changes") },
+    run: (i, ctx) => recordVersion(ctx.project(), k, i.id, { note: typeof i.note === "string" ? i.note : void 0 }),
+    cli: { usage: `       artgen ${k} version <id> [--note "..."]   record the working file as the next version (a frozen copy beside it)`, text: (r, i) => `${i.id}: ${r.version} (${r.file})
+next: artgen ${k} review ${i.id}` },
+    mcp: {},
+    python: {}
+  });
+  const diff2 = defineOp({
+    name: `${k}.diff`,
+    module: "maps",
+    effect: "read",
+    summary: `What changed between two versions of a ${N3} (default: the latest version \u2192 the working file).`,
+    description: `What changed between two versions of the ${N3}, one line per change (paths like rooms[id=hall].w). a and b are version names (v1, v2\u2026) or "working"; default: the latest version against the working file.`,
+    params: { id: ID3("diff"), a: p.str('the older version, or "working"', { positional: true }), b: p.str('the newer version, or "working"', { positional: true }) },
+    run: (i, ctx) => diffVersions(ctx.project(), k, i.id, i.a, i.b),
+    cli: {
+      usage: `       artgen ${k} diff <id> [a] [b]   what changed between two versions (default: the latest version \u2192 the working file; "working" is the file now)`,
+      text: (r) => r.changes.length ? [`${r.from} -> ${r.to}: ${r.changes.length} change${r.changes.length === 1 ? "" : "s"}`, ...diffLines(r.changes)].join("\n") : `${r.from} -> ${r.to}: no change`
+    },
+    mcp: { content: (r) => [text({ from: r.from, to: r.to, changes: diffLines(r.changes) })] },
+    python: {}
+  });
+  const review2 = defineOp({
+    name: `${k}.review`,
+    module: "maps",
+    effect: "render",
+    summary: `Build the review sheet of a version (render, data sheet, references) and log it; --score also logs a score.`,
+    description: `Render a version of the ${N3} (default: the latest) in the map direction's theme and put the render, the one-page data sheet and the references on a review sheet (art/\u2026/out/review-vN.png), log it with the checks, and return it. Look at it: labels can be read, symbols don't overlap, the legend matches what is drawn, the requirements are met. score (0-10) with note and reviewer also logs a score for that version.`,
+    params: {
+      id: ID3("review"),
+      version: p.str("the version to review (v1, v2\u2026; default the latest)", { positional: true }),
+      score: p.num("also log this 0-10 score for the version"),
+      note: p.str("the reviewer's note, with --score"),
+      reviewer: p.str("who scored: the reviewer subagent's name (default self)")
+    },
+    run: (i, ctx) => reviewSubject(ctx.project(), k, i.id, { version: i.version, score: typeof i.score === "number" ? i.score : void 0, note: i.note, reviewer: i.reviewer }),
+    cli: {
+      usage: `       artgen ${k} review <id> [version] [--score n --note "..." --reviewer name]   the review sheet of a version (render, data sheet, references); --score logs a score`,
+      text: (r, i) => [`review sheet ${r.sheet} (~${r.imageTokens} image tokens); checks ${r.pass ? "pass" : "FAIL"}`, ...r.checks.filter((c) => c.status === "fail" || c.status === "flag").map((c) => `  ${c.status === "fail" ? "FAIL" : "flag"} ${c.id}: ${c.detail}`), ...r.warnings.map((w) => `  warning: ${w}`), ...r.score !== void 0 ? [`score ${r.score} logged for ${r.version}`] : [], `next: show it to the user, then artgen ${k} approve ${i.id} or artgen ${k} feedback ${i.id} --note "..."`].join("\n"),
+      json: (r) => ({ version: r.version, sheet: r.sheet, imageTokens: r.imageTokens, pass: r.pass, checks: r.checks, warnings: r.warnings, ...r.score !== void 0 && { score: r.score } })
+    },
+    mcp: { content: (r, _i, ctx) => [text({ version: r.version, sheet: ctx.rel(r.sheetFile), imageTokens: r.imageTokens, pass: r.pass, checks: r.checks, warnings: r.warnings, ...r.score !== void 0 && { score: r.score } }), pngFile(r.sheetFile)] },
+    python: {}
+  });
+  const feedback2 = defineOp({
+    name: `${k}.feedback`,
+    module: "maps",
+    effect: "write",
+    summary: `Record the user's feedback on the latest version and open a revision.`,
+    description: `Record the USER's feedback on the latest version of the ${N3} (their words, not yours) and open a revision: rework, then record the next version. region x,y,w,h is optional (${k === "map" ? "map units" : "cells"}).`,
+    params: {
+      id: ID3("feedback"),
+      note: p.str("what the user asked for, in their words", { required: `${k} feedback: --note "<what the user asked for>" is required` }),
+      region: p.list("number", `x,y,w,h the note is about, in ${k === "map" ? "map units" : "cells"}`),
+      via: p.str("where the feedback came from, recorded in the ledger (pr: a pull request comment)", { mcp: false })
+    },
+    run: (i, ctx) => feedbackSubject(ctx.project(), k, i.id, { note: i.note, region: region(i.region), via: typeof i.via === "string" ? i.via : void 0 }),
+    cli: { usage: `       artgen ${k} feedback <id> --note "..." [--region x,y,w,h] [--via pr]   the user's feedback on the latest version; opens a revision`, text: (r, i) => `feedback recorded on ${r.on}: ${i.id} is ${r.status} (${r.why})` },
+    mcp: {},
+    python: {}
+  });
+  const approve2 = defineOp({
+    name: `${k}.approve`,
+    module: "maps",
+    effect: "write",
+    summary: `Record the user's approval of the latest version (it must be final, with no failing check).`,
+    description: `Record the USER's approval of the ${N3}'s latest version (approval is the user's call, never the agent's). Call only after the user said so in this conversation; user_approved must be true and note should quote them. The version must be final (the working file equals it, no feedback open) and no check may fail; warnings are copied into the approval.`,
+    params: {
+      id: ID3("approve"),
+      note: p.str("the user's words"),
+      user_approved: p.bool(`true only when the user explicitly approved this ${N3}`, { required: true, cli: false }),
+      via: p.str("where the approval came from, recorded in the ledger (pr: a pull request comment)", { mcp: false })
+    },
+    run(i, ctx) {
+      if (ctx.surface === "mcp" && i.user_approved !== true) throw new Error(`approve: only the user approves a ${N3} \u2014 show them the review sheet and ask; pass user_approved: true once they say so`);
+      return approveSubject(ctx.project(), k, i.id, { note: typeof i.note === "string" ? i.note : void 0, via: typeof i.via === "string" ? i.via : void 0 });
+    },
+    cli: {
+      usage: `       artgen ${k} approve <id> [--note "..."] [--via pr]   the user's approval of the latest version (final, no failing check)`,
+      text: (e) => `approved ${e.asset} ${e.version}${e.direction ? ` (map direction v${e.direction.version})` : ""}${e.warnings?.length ? `
+note for the user: ${e.warnings.join("; ")}` : ""}`
+    },
+    mcp: {},
+    python: {}
+  });
+  const status2 = defineOp({
+    name: `${k}.status`,
+    module: "maps",
+    effect: "read",
+    summary: `Status of each ${N3}: in-pipeline, final, approved, revision, stale; with one id, its history.`,
+    description: `Status of every ${N3} in the project (or the ids given): in-pipeline, revision, final (waiting for the user), approved or stale, with the latest version and why. With one id, also its history: versions with notes, reviews, scores, feedback and approvals.`,
+    params: { ids: p.str(`${N3} ids; default all`, { positional: "rest", schema: STR_LIST }) },
+    run(i, ctx) {
+      const P2 = ctx.project(), ids = Array.isArray(i.ids) ? i.ids : void 0, rows2 = statusRows(P2, k, ids);
+      return { rows: rows2, ...ids?.length === 1 && { history: history(P2, k, ids[0]) } };
+    },
+    cli: {
+      usage: `       artgen ${k} status [ids]   status of each ${N3}; with one id, its history (versions, reviews, feedback, approvals)`,
+      text: (r) => [...r.rows.length ? r.rows.map(rowLine) : [`no ${k}s yet: artgen ${k} new <id>`], ...r.history ? ["", ...r.history.length ? r.history.map((h) => `  ${h.ts.slice(0, 16).replace("T", " ")}  ${cell(h.version ?? "", 4)} ${cell(h.type, 8)} ${h.by ?? ""}${h.text ? `  ${h.text}` : ""}`) : ["  no history yet"]] : []].join("\n")
+    },
+    mcp: {},
+    python: {}
+  });
+  const sheet = defineOp({
+    name: `${k}.sheet`,
+    module: "maps",
+    effect: "render",
+    summary: `The ${N3}'s one-page data sheet: out/sheet.png and out/sheet.json.`,
+    description: `Write the ${N3}'s one-page data sheet (size, scale, grid, counts, what must hold, brief, references) to art/\u2026/out/sheet.png and sheet.json, and return it.`,
+    params: { id: ID3("sheet") },
+    run: (i, ctx) => writeSheet(ctx.project(), k, i.id),
+    cli: {
+      usage: `       artgen ${k} sheet <id>   the one-page data sheet: out/sheet.png and out/sheet.json`,
+      text: (r) => `${r.png}
+${r.json}
+${r.markdown}${r.warnings.map((w) => `
+warning: ${w}`).join("")}`,
+      json: (r) => ({ png: r.png, json: r.json, sheet: r.sheet, warnings: r.warnings })
+    },
+    mcp: { content: (r) => [text({ png: r.png, json: r.json, sheet: r.sheet, warnings: r.warnings }), pngFile(r.pngFile)] },
+    python: {}
+  });
+  return [brief, version, diff2, review2, feedback2, approve2, status2, sheet];
+}
+var noun, ID_DOC, idP, STR_LIST, region, cell, rowLine, direction, WORKFLOW_OPS;
+var init_maps_workflow = __esm({
+  "../artgen-cli/src/ops/maps-workflow.ts"() {
+    "use strict";
+    init_maps();
+    init_workflow2();
+    init_maps_shared();
+    init_registry();
+    noun = (k) => KIND_NOUN[k];
+    ID_DOC = (k) => `the ${noun(k)}'s id`;
+    idP = (k, cmd) => p.str(ID_DOC(k), { positional: true, required: `${k} ${cmd}: <id>` });
+    STR_LIST = { type: "array", items: { type: "string" } };
+    region = (v) => Array.isArray(v) ? v.map(Number) : void 0;
+    cell = (s2, n) => s2.length > n ? `${s2.slice(0, n - 1)}~` : s2.padEnd(n);
+    rowLine = (r) => `${cell(r.id, 16)} ${cell(r.status, 11)} ${cell(r.version ?? "-", 4)} ${r.why}${r.fail ? `  (${r.fail} check${r.fail === 1 ? "" : "s"} fail)` : ""}${r.flag ? `  (${r.flag} warning${r.flag === 1 ? "" : "s"})` : ""}`;
+    direction = defineOp({
+      name: "map.direction",
+      module: "maps",
+      effect: "write",
+      summary: "Show or change the map direction: the theme of each kind of map, the symbols a kind may use, and its lock.",
+      description: `Show, or change, the map direction (art/map-direction.json): the theme for each kind (map, dungeon, settlement) and the symbols a kind may use. theme "map=bw,settlement=color" and symbols "dungeon=altar,statue" change the draft; lock locks it, which is the USER's call (user_approved must be true). A lock moves the version up by one, so maps approved under the old one show as stale. The direction applies to review sheets, checks and staleness only; renders keep their own defaults.`,
+      params: {
+        theme: p.str("kind=theme pairs, e.g. map=bw,settlement=color (a dungeon is bw only)"),
+        symbols: p.str('kind=symbol,symbol, e.g. dungeon=altar,statue ("dungeon=" clears the set; ; between kinds)'),
+        lock: p.bool("lock the direction (the user's call)"),
+        note: p.str("the user's words, with --lock"),
+        user_approved: p.bool("true only when the user explicitly asked to lock the map direction", { cli: false }),
+        via: p.str("where the lock came from, recorded in the ledger (pr: a pull request comment)", { mcp: false })
+      },
+      run(i, ctx) {
+        if (i.lock && ctx.surface === "mcp" && i.user_approved !== true) throw new Error("map direction: only the user locks the map direction \u2014 ask them; pass user_approved: true once they say so");
+        return runDirection(ctx.project(), { theme: i.theme, symbols: i.symbols, lock: i.lock === true, note: i.note, via: typeof i.via === "string" ? i.via : void 0 });
+      },
+      cli: {
+        usage: `       artgen map direction [--theme map=bw,settlement=color] [--symbols dungeon=altar,statue] [--lock] [--note "..."]   show or change the map direction; --lock is the user's call`,
+        text: (r) => {
+          const d = r.direction;
+          if (!d) return `no map direction yet: artgen map direction --theme map=bw,dungeon=bw,settlement=color --symbols dungeon=altar,statue, then --lock when the user agrees
+reviews use ${Object.entries(direction_exports.DEFAULT_THEME).map(([k, t]) => `${k} ${t}`).join(", ")}`;
+          const lines2 = [`${d.id} v${d.version} ${d.status}${d.note ? ` \u2014 ${d.note}` : ""}`, ...Object.entries(d.themes).map(([k, t]) => `  ${k}: ${t}`), ...Object.entries(d.symbols).map(([k, s2]) => `  ${k} symbols: ${s2.join(", ")}`)];
+          return [...lines2, ...r.changed ? [r.locked ? `locked at v${d.version}: maps approved under another version are stale until re-approved` : `draft saved to ${r.file}; it applies once the user locks it (--lock)`] : []].join("\n");
+        },
+        json: (r) => ({ direction: r.direction, file: r.file, changed: r.changed, locked: r.locked })
+      },
+      mcp: { content: (r) => [text({ direction: r.direction, file: r.file, changed: r.changed, locked: r.locked })] },
+      python: {}
+    });
+    WORKFLOW_OPS = [...opsFor("map"), direction, ...opsFor("dungeon"), ...opsFor("settlement")];
   }
 });
 
 // ../artgen-cli/src/ops/maps-settlement.ts
-import { join as join16 } from "node:path";
+import { join as join22 } from "node:path";
 function applyGenFlags2(m, i) {
   if (typeof i.seed === "number") m.seed = i.seed;
   if (i.size) [m.cols, m.rows] = i.size;
@@ -28565,10 +30912,10 @@ function buildingFields(i) {
   for (const k of ["angle", "stories"]) if (i[k] !== void 0) o[k] = i[k];
   const nb = numberOf2(i.number);
   if (nb !== void 0) o.number = nb;
-  const at3 = pointOf(i.at, "--at", false);
+  const at4 = pointOf(i.at, "--at", false);
   if (i.points !== void 0) o.points = i.points;
   if (i.wing !== void 0) o.wing = i.wing;
-  if (at3) [o.x, o.y] = at3;
+  if (at4) [o.x, o.y] = at4;
   if (i.size) [o.w, o.h] = i.size;
   return o;
 }
@@ -28600,10 +30947,10 @@ async function renderPreview3(rs, i, ctx) {
   const P2 = ctx.project(), o = renderOptions(i, ctx), files = rs.flatMap((r) => r.files.map((f) => ctx.rel(f)));
   if (i.plans === true) return [text({ renders: rs.length, files })];
   const spec = readSettlement(P2, i.id);
-  const look = typeof i.ppu === "number" ? files.filter((f) => f.endsWith(".png")) : (await renderSettlementFiles(P2, i.id, { ...o, ppu: o.view === "plan" ? 28 : Math.max(4, Math.min(16, Math.round(1100 / Math.max(spec.cols, spec.rows)))), formats: ["png"], out: join16(P2.art, "settlements", i.id, "out", "preview") })).flatMap((r) => r.files.map((f) => ctx.rel(f)));
-  return [text({ ...rs[0], files }), ...look.map((f) => pngFile(join16(P2.root, f)))];
+  const look = typeof i.ppu === "number" ? files.filter((f) => f.endsWith(".png")) : (await renderSettlementFiles(P2, i.id, { ...o, ppu: o.view === "plan" ? 28 : Math.max(4, Math.min(16, Math.round(1100 / Math.max(spec.cols, spec.rows)))), formats: ["png"], out: join22(P2.art, "settlements", i.id, "out", "preview") })).flatMap((r) => r.files.map((f) => ctx.rel(f)));
+  return [text({ ...rs[0], files }), ...look.map((f) => pngFile(join22(P2.root, f)))];
 }
-var V3, next3, CELLS2, numberOf2, pointOf, OBJ, GEN_PARAMS2, list5, symbols3, fixtures, show4, create3, gen3, update3, edit3, editText, editJson, id, level, LEVEL, AT, SIZE, BUILDING_PARAMS, building2, interior, floor2, room2, KINDS_DOOR, connect2, disconnect2, openingParams, door2, windowOp, fixture, prop, LINE_PARAMS, road, water, wall, area, tree, grid3, style2, label3, symbol3, overlay3, check3, facts3, renderOptions, render9, SETTLEMENT_OPS_LIST;
+var V3, next3, CELLS2, numberOf2, pointOf, OBJ, GEN_PARAMS2, list5, symbols3, fixtures, show5, create3, gen3, update3, edit3, editText, editJson, id, level, LEVEL, AT, SIZE, BUILDING_PARAMS, building2, interior, floor2, room2, KINDS_DOOR, connect2, disconnect2, openingParams, door2, windowOp, fixture, prop, LINE_PARAMS, road, water, wall, area, tree, grid3, style2, label3, symbol3, overlay3, check3, facts3, renderOptions, render9, SETTLEMENT_OPS_LIST;
 var init_maps_settlement = __esm({
   "../artgen-cli/src/ops/maps-settlement.ts"() {
     "use strict";
@@ -28616,7 +30963,7 @@ var init_maps_settlement = __esm({
     V3 = (data) => withVersion(data, settlement_exports.SETTLEMENT_FORMAT);
     next3 = (i, id2) => i.path ? `next: artgen settlement render --file ${i.path}` : `next: artgen settlement render ${id2 ?? i.id}`;
     CELLS2 = "WIDTHxHEIGHT in cells, e.g. 8x6";
-    numberOf2 = (v) => roomNumber(v, (s2) => onOff2(s2));
+    numberOf2 = (v) => roomNumber(v, (s2) => onOff(s2));
     pointOf = (v, name, required = true) => {
       if (v === void 0) {
         if (required) throw new Error(`${name} x,y is required`);
@@ -28694,7 +31041,7 @@ var init_maps_settlement = __esm({
       mcp: { exclude: "settlement_list returns the fixture kinds" },
       python: {}
     });
-    show4 = defineOp({
+    show5 = defineOp({
       name: "settlement.show",
       module: "maps",
       effect: "read",
@@ -28740,15 +31087,15 @@ var init_maps_settlement = __esm({
         applyGenFlags2(base, i);
         if (i.gen && typeof i.gen === "object") Object.assign(base.gen, i.gen);
         if (i.interiors === true) base.gen.interiors = true;
-        const at3 = i.path ? { file: i.path } : sid;
+        const at4 = i.path ? { file: i.path } : sid;
         if (typeof i.map === "string" && i.map) {
-          const mp = mapForSettlement(P2, at3, i.map), mspec = map_exports.parseMap(readJson(mp.path)), origin = Array.isArray(i.at) ? [Number(i.at[0]), Number(i.at[1])] : pointOf(i.at, "--at", false) ?? [0, 0];
+          const mp = mapForSettlement(P2, at4, i.map), mspec = map_exports.parseMap(readJson(mp.path)), origin = Array.isArray(i.at) ? [Number(i.at[0]), Number(i.at[1])] : pointOf(i.at, "--at", false) ?? [0, 0];
           const scale2 = Math.round(base.scale.perCell * settlement_exports.feetIn(base.scale.unit) / (mspec.scale.perCell * settlement_exports.feetIn(mspec.scale.unit)) * 1e4) / 1e4;
           base.underlay = { map: mp.rel, origin, scale: scale2 };
         }
         const spec = settlement_exports.parseSettlement(base);
         const m = i.mode === "empty" || i.empty === true ? spec : (() => {
-          const u = readSettlementUnderlay(P2, at3, spec);
+          const u = readSettlementUnderlay(P2, at4, spec);
           return settlement_exports.generateSettlement(spec, u ?? {});
         })();
         return createSettlement(P2, m, i.force === true, i.path ? { file: i.path } : void 0);
@@ -28928,8 +31275,8 @@ ${next3(i, m.id)}`,
         }
         if (act === "set") return [{ op: "building.set", id: bid, ...buildingFields(i) }];
         if (act === "move") {
-          const at3 = pointOf(i.at, "--at");
-          return [{ op: "building.move", id: bid, x: at3[0], y: at3[1] }];
+          const at4 = pointOf(i.at, "--at");
+          return [{ op: "building.move", id: bid, x: at4[0], y: at4[1] }];
         }
         if (act === "rm") return [{ op: "building.rm", id: bid }];
         throw new Error("settlement building <id> add|set|move|rm \u2026");
@@ -28969,9 +31316,9 @@ ${next3(i, m.id)}`,
         room_id: p.str("add: the new room's id")
       },
       (i) => {
-        const bid = i.building, act = i.action, x = i.target, size = i.size, at3 = pointOf(i.at, "--at", false);
-        if (act === "add") return [{ op: "room.add", building: bid, level: level(i), shape: x ?? "rect", ...at3 && { x: at3[0], y: at3[1] }, ...size && { w: size[0], h: size[1] }, ...i.points && { points: i.points }, ...i.label && { label: i.label }, ...i.room_id && { id: i.room_id } }];
-        if (act === "set") return [{ op: "room.set", building: bid, level: level(i), id: x, ...at3 && { x: at3[0], y: at3[1] }, ...size && { w: size[0], h: size[1] }, ...i.label !== void 0 && { label: i.label } }];
+        const bid = i.building, act = i.action, x = i.target, size2 = i.size, at4 = pointOf(i.at, "--at", false);
+        if (act === "add") return [{ op: "room.add", building: bid, level: level(i), shape: x ?? "rect", ...at4 && { x: at4[0], y: at4[1] }, ...size2 && { w: size2[0], h: size2[1] }, ...i.points && { points: i.points }, ...i.label && { label: i.label }, ...i.room_id && { id: i.room_id } }];
+        if (act === "set") return [{ op: "room.set", building: bid, level: level(i), id: x, ...at4 && { x: at4[0], y: at4[1] }, ...size2 && { w: size2[0], h: size2[1] }, ...i.label !== void 0 && { label: i.label } }];
         if (act === "rm") return [{ op: "room.rm", building: bid, level: level(i), id: x }];
         throw new Error("settlement room <id> <bid> add|set|rm \u2026");
       }
@@ -29013,8 +31360,8 @@ ${next3(i, m.id)}`,
       { id: id("fixture: <id>"), building: p.str("the building id", { positional: true }), action: p.str("add | rm", { positional: true }), what: p.str("add: the kind (settlement fixtures); rm: the index", { positional: true }), at: AT, level: LEVEL, size: SIZE, angle: p.num("degrees"), label: p.str("a label") },
       (i) => {
         if (i.action === "add") {
-          const at3 = pointOf(i.at, "--at"), size = i.size;
-          return [{ op: "fixture.add", building: i.building, level: level(i), kind: i.what, x: at3[0], y: at3[1], ...size && { w: size[0], h: size[1] }, ...i.angle !== void 0 && { angle: i.angle }, ...i.label && { label: i.label } }];
+          const at4 = pointOf(i.at, "--at"), size2 = i.size;
+          return [{ op: "fixture.add", building: i.building, level: level(i), kind: i.what, x: at4[0], y: at4[1], ...size2 && { w: size2[0], h: size2[1] }, ...i.angle !== void 0 && { angle: i.angle }, ...i.label && { label: i.label } }];
         }
         if (i.action === "rm") return [{ op: "fixture.rm", building: i.building, level: level(i), index: Number(i.what) }];
         throw new Error("settlement fixture <id> <bid> add <kind> --at x,y [--level n] | rm <i>");
@@ -29027,8 +31374,8 @@ ${next3(i, m.id)}`,
       { id: id("prop: <id>"), action: p.str("add | rm", { positional: true }), what: p.str("add: the kind (settlement fixtures); rm: the index", { positional: true }), at: AT, size: SIZE, angle: p.num("degrees"), label: p.str("a label") },
       (i) => {
         if (i.action === "add") {
-          const at3 = pointOf(i.at, "--at"), size = i.size;
-          return [{ op: "prop.add", kind: i.what, x: at3[0], y: at3[1], ...size && { w: size[0], h: size[1] }, ...i.angle !== void 0 && { angle: i.angle }, ...i.label && { label: i.label } }];
+          const at4 = pointOf(i.at, "--at"), size2 = i.size;
+          return [{ op: "prop.add", kind: i.what, x: at4[0], y: at4[1], ...size2 && { w: size2[0], h: size2[1] }, ...i.angle !== void 0 && { angle: i.angle }, ...i.label && { label: i.label } }];
         }
         if (i.action === "rm") return [{ op: "prop.rm", index: Number(i.what) }];
         throw new Error("settlement prop <id> add <kind> --at x,y | rm <i>");
@@ -29061,8 +31408,8 @@ ${next3(i, m.id)}`,
         if (act === "rm") return [{ op: "tree.rm", index: Number(what) }];
         if (act === "scatter") return [{ op: "tree.scatter", kind: what ?? "tree", area: needPoints(i.area, "--area"), count: i.count ?? 10, ...i.seed !== void 0 && { seed: i.seed } }];
         if (act !== "add") throw new Error("settlement tree <id> add <kind> \u2026 | rm <i>");
-        const at3 = pointOf(i.at, "--at");
-        return [{ op: "tree.add", kind: what ?? "tree", x: at3[0], y: at3[1], ...i.size !== void 0 && { size: i.size } }];
+        const at4 = pointOf(i.at, "--at");
+        return [{ op: "tree.add", kind: what ?? "tree", x: at4[0], y: at4[1], ...i.size !== void 0 && { size: i.size } }];
       }
     );
     grid3 = defineOp({
@@ -29137,8 +31484,8 @@ ${next3(i, m.id)}`,
       '       artgen settlement label <id> "Text" --at x,y [--kind name|note|area|street] [--size f] [--angle deg] [--href url]',
       { id: id("label: <id>"), text: p.str("the label text", { positional: true }), at: AT, kind: p.str("name | note | area | street (default name)"), size: p.num("size factor"), angle: p.num("degrees"), href: p.str("a link") },
       (i) => {
-        const at3 = pointOf(i.at, "--at");
-        return [{ op: "label", text: i.text, x: at3[0], y: at3[1], kind: i.kind ?? "name", ...i.size !== void 0 && { size: i.size }, ...i.angle !== void 0 && { angle: i.angle }, ...i.href && { href: i.href } }];
+        const at4 = pointOf(i.at, "--at");
+        return [{ op: "label", text: i.text, x: at4[0], y: at4[1], kind: i.kind ?? "name", ...i.size !== void 0 && { size: i.size }, ...i.angle !== void 0 && { angle: i.angle }, ...i.href && { href: i.href } }];
       }
     );
     symbol3 = sugar(
@@ -29147,8 +31494,8 @@ ${next3(i, m.id)}`,
       "       artgen settlement symbol <id> <kind> --at x,y [--scale f] [--angle deg]",
       { id: id("symbol: <id>"), kind: p.str("the symbol kind (artgen settlement symbols)", { positional: true }), at: AT, scale: p.num("size factor"), angle: p.num("degrees") },
       (i) => {
-        const at3 = pointOf(i.at, "--at");
-        return [{ op: "symbol", kind: i.kind, x: at3[0], y: at3[1], ...i.scale !== void 0 && { scale: i.scale }, ...i.angle !== void 0 && { angle: i.angle } }];
+        const at4 = pointOf(i.at, "--at");
+        return [{ op: "symbol", kind: i.kind, x: at4[0], y: at4[1], ...i.scale !== void 0 && { scale: i.scale }, ...i.angle !== void 0 && { angle: i.angle } }];
       }
     );
     overlay3 = sugar(
@@ -29248,7 +31595,7 @@ ${next3(i, m.id)}`,
       list5,
       symbols3,
       fixtures,
-      show4,
+      show5,
       create3,
       update3,
       style2,
@@ -29288,6 +31635,7 @@ var init_maps2 = __esm({
     init_maps();
     init_maps_dungeon();
     init_maps_map();
+    init_maps_workflow();
     init_maps_settlement();
     init_registry();
     formats = defineOp({
@@ -29302,7 +31650,7 @@ var init_maps2 = __esm({
       mcp: {},
       python: {}
     });
-    MAP_OPS = [...MAP_MAP_OPS, ...DUNGEON_OPS_LIST, ...SETTLEMENT_OPS_LIST, formats];
+    MAP_OPS = [...MAP_MAP_OPS, ...DUNGEON_OPS_LIST, ...SETTLEMENT_OPS_LIST, formats, ...WORKFLOW_OPS];
     MAP_NOTE = "       (map, dungeon and settlement commands take --file <path> in place of <id>: no project needed; renders go beside the file or to --out)";
     MAP_USAGE = `${MAP_OPS.flatMap(usageLines).join("\n")}
 ${MAP_NOTE}`;
@@ -29325,52 +31673,52 @@ ${CORE_OPS.flatMap(usageLines).join("\n")}`;
 });
 
 // ../artgen-cli/src/p6.ts
-import { mkdirSync as mkdirSync10, writeFileSync as writeFileSync13 } from "node:fs";
-import { join as join17, relative as relative6 } from "node:path";
+import { mkdirSync as mkdirSync15, writeFileSync as writeFileSync19 } from "node:fs";
+import { join as join23, relative as relative10 } from "node:path";
 async function voxelExport(a, o = {}) {
   const version = o.version ?? versionsIn(a).filter((v) => v.startsWith("base.")).pop();
   if (!version) throw new Error(`${a.brief.id}: no base version`);
   const scenes = /* @__PURE__ */ new Map();
-  const r = await renderVersion(a, version, { onScene: (cell3, sc) => {
-    if (sc instanceof Scene3D && !scenes.has(cell3)) scenes.set(cell3, sc);
+  const r = await renderVersion(a, version, { onScene: (cell4, sc) => {
+    if (sc instanceof Scene3D && !scenes.has(cell4)) scenes.set(cell4, sc);
   } });
-  const first = r.render.cells[0], cell2 = o.cell ?? `${first.state}/${first.facing}/${first.frame}`, scene = scenes.get(cell2);
-  if (!scene) throw new Error(`${a.brief.id} ${version}: ${scenes.size ? `no 3D scene for cell ${cell2} (have ${[...scenes.keys()].join(", ")})` : "renders no 3D-mode scene (ctx.lib.t2.scene3d)"}`);
-  const set2 = scene.voxelSet(), vox = voxFromSet(set2), out = o.out ?? join17(a.path, "out");
-  mkdirSync10(out, { recursive: true });
-  const id2 = a.brief.id, voxFile = join17(out, `${id2}.vox`), glbFile = join17(out, `${id2}.glb`);
-  writeFileSync13(voxFile, encodeVox(vox));
-  writeFileSync13(glbFile, voxelGlb(set2, { scale: o.scale ?? 0.1, name: id2 }));
-  return { vox: relative6(process.cwd(), voxFile), glb: relative6(process.cwd(), glbFile), voxels: set2.cells.length, materials: set2.mats.length, size: vox.size, cell: cell2 };
+  const first = r.render.cells[0], cell3 = o.cell ?? `${first.state}/${first.facing}/${first.frame}`, scene = scenes.get(cell3);
+  if (!scene) throw new Error(`${a.brief.id} ${version}: ${scenes.size ? `no 3D scene for cell ${cell3} (have ${[...scenes.keys()].join(", ")})` : "renders no 3D-mode scene (ctx.lib.t2.scene3d)"}`);
+  const set2 = scene.voxelSet(), vox = voxFromSet(set2), out = o.out ?? join23(a.path, "out");
+  mkdirSync15(out, { recursive: true });
+  const id2 = a.brief.id, voxFile = join23(out, `${id2}.vox`), glbFile = join23(out, `${id2}.glb`);
+  writeFileSync19(voxFile, encodeVox(vox));
+  writeFileSync19(glbFile, voxelGlb(set2, { scale: o.scale ?? 0.1, name: id2 }));
+  return { vox: relative10(process.cwd(), voxFile), glb: relative10(process.cwd(), glbFile), voxels: set2.cells.length, materials: set2.mats.length, size: vox.size, cell: cell3 };
 }
 function textureRun(dir, name, o) {
   if (!MATERIALS.includes(name)) throw new Error(`unknown material ${name} (have: ${MATERIALS.join(", ")})`);
   const [w, h] = o.size, t = material(name, dirContext(dir), { w, h, seed: o.seed, ramps: o.ramps, scale: o.scale });
   const pre = new Grid(w * 3, h * 3);
   for (let j = 0; j < 3; j++) for (let i = 0; i < 3; i++) pre.blit(t.grid, i * w, j * h);
-  const files = [join17(o.out, `${name}.png`), join17(o.out, `${name}.n.png`), join17(o.out, `${name}-3x3@4x.png`)];
+  const files = [join23(o.out, `${name}.png`), join23(o.out, `${name}.n.png`), join23(o.out, `${name}-3x3@4x.png`)];
   writeGrid(files[0], t.grid);
   writeGrid(files[1], t.normal);
   writeGrid(files[2], pre.scale(4));
   const repetition = repetitionMetric(t.grid);
-  return { files: files.map((f) => relative6(process.cwd(), f)), seam: seamMetric(t.grid), repetition, issues: repetitionIssues(repetition), ramps: t.ramps };
+  return { files: files.map((f) => relative10(process.cwd(), f)), seam: seamMetric(t.grid), repetition, issues: repetitionIssues(repetition), ramps: t.ramps };
 }
 async function animPreview(a, o = {}) {
   const version = o.version ?? versionsIn(a).pop();
   if (!version) throw new Error(`${a.brief.id}: no versions yet`);
-  const { render: r } = await renderVersion(a, version), out = o.out ?? join17(a.path, "out"), sc = o.scale ?? a.brief.review?.scale ?? 4;
+  const { render: r } = await renderVersion(a, version), out = o.out ?? join23(a.path, "out"), sc = o.scale ?? a.brief.review?.scale ?? 4;
   const defs = stateDefs(a.brief, a.dir, Object.fromEntries(r.states.map((s2) => [s2, r.frames[s2] / Math.max(1, Math.floor(a.brief.anims?.[s2]?.sub ?? 1))])));
   const states2 = o.state ? [o.state] : r.states, facings = o.facing ? [o.facing] : [r.facings[0]];
   for (const s2 of states2) if (!r.states.includes(s2)) throw new Error(`${a.brief.id}: no state ${s2} (has ${r.states.join(", ")})`);
   for (const f of facings) if (!r.facings.includes(f)) throw new Error(`${a.brief.id}: no facing ${f} (has ${r.facings.join(", ")})`);
-  mkdirSync10(out, { recursive: true });
+  mkdirSync15(out, { recursive: true });
   const res = { files: [], states: [] };
   for (const s2 of states2) for (const f of facings) {
     const frames = r.cells.filter((c) => c.state === s2 && c.facing === f).sort((x, y) => x.frame - y.frame).map((c) => c.grid.scale(sc)), d = displayDurations(defs[s2]);
-    const base = join17(out, `${a.brief.id}-${version}-${s2}-${f}`);
-    writeFileSync13(`${base}.gif`, encodeGIF(frames, d));
-    writeFileSync13(`${base}.apng`, encodeAPNG(frames, d));
-    res.files.push(relative6(process.cwd(), `${base}.gif`), relative6(process.cwd(), `${base}.apng`));
+    const base = join23(out, `${a.brief.id}-${version}-${s2}-${f}`);
+    writeFileSync19(`${base}.gif`, encodeGIF(frames, d));
+    writeFileSync19(`${base}.apng`, encodeAPNG(frames, d));
+    res.files.push(relative10(process.cwd(), `${base}.gif`), relative10(process.cwd(), `${base}.apng`));
     res.states.push({ state: s2, facing: f, frames: frames.length, ms: d.reduce((x, y) => x + y, 0) });
   }
   return res;
@@ -29380,937 +31728,29 @@ function fxRun(dir, name, o) {
   const line2 = dir.line.outer === "none" ? false : (g) => dir.line.outer === "selout" ? post_exports.selout(g, Object.values(dc.pal), dc.outline) : post_exports.outline(g, dc.outline);
   const layers = preset(name, { w, h, duration });
   const frames = Array.from({ length: o.frames }, (_, i) => particles(dc, { w, h, t: i / o.frames, duration, layers, seed: o.seed ?? 1, line: line2 }));
-  mkdirSync10(o.out, { recursive: true });
+  mkdirSync15(o.out, { recursive: true });
   const strip2 = new Grid(o.frames * (w + 1) - 1, h);
   frames.forEach((f, i) => strip2.blit(f, i * (w + 1), 0));
-  const files = [join17(o.out, `${name}.png`), join17(o.out, `${name}-onion@${sc}x.png`), join17(o.out, `${name}.gif`), join17(o.out, `${name}.apng`)];
+  const files = [join23(o.out, `${name}.png`), join23(o.out, `${name}-onion@${sc}x.png`), join23(o.out, `${name}.gif`), join23(o.out, `${name}.apng`)];
   writeGrid(files[0], strip2);
   writeGrid(files[1], onionSkin(frames).scale(sc));
   const big = frames.map((f) => f.scale(sc)), d = frames.map(() => Math.round(1e3 / fps));
-  writeFileSync13(files[2], encodeGIF(big, d));
-  writeFileSync13(files[3], encodeAPNG(big, d));
-  return { files: files.map((f) => relative6(process.cwd(), f)), fill: fillQA(frames, dir), frames: o.frames };
+  writeFileSync19(files[2], encodeGIF(big, d));
+  writeFileSync19(files[3], encodeAPNG(big, d));
+  return { files: files.map((f) => relative10(process.cwd(), f)), fill: fillQA(frames, dir), frames: o.frames };
 }
 var init_p6 = __esm({
   "../artgen-cli/src/p6.ts"() {
     "use strict";
-    init_src4();
-    init_node();
-    init_asset();
-  }
-});
-
-// ../artgen-runtime/src/autotile.ts
-function reduceCorners2(m) {
-  let r = m & (N2 | E3 | S2 | W2);
-  if (m & NE2 && m & N2 && m & E3) r |= NE2;
-  if (m & SE2 && m & S2 && m & E3) r |= SE2;
-  if (m & SW2 && m & S2 && m & W2) r |= SW2;
-  if (m & NW2 && m & N2 && m & W2) r |= NW2;
-  return r;
-}
-var N2, NE2, E3, SE2, S2, SW2, W2, NW2, BLOB472, BLOB_INDEX;
-var init_autotile2 = __esm({
-  "../artgen-runtime/src/autotile.ts"() {
-    "use strict";
-    N2 = 1;
-    NE2 = 2;
-    E3 = 4;
-    SE2 = 8;
-    S2 = 16;
-    SW2 = 32;
-    W2 = 64;
-    NW2 = 128;
-    BLOB472 = [...new Set(Array.from({ length: 256 }, (_, m) => reduceCorners2(m)))].sort((a, b) => a - b);
-    BLOB_INDEX = new Map(BLOB472.map((m, i) => [m, i]));
-  }
-});
-
-// ../artgen-runtime/src/facing.ts
-var TAU;
-var init_facing = __esm({
-  "../artgen-runtime/src/facing.ts"() {
-    "use strict";
-    TAU = Math.PI * 2;
-  }
-});
-
-// ../artgen-runtime/src/stack.ts
-var init_stack = __esm({
-  "../artgen-runtime/src/stack.ts"() {
-    "use strict";
-  }
-});
-
-// ../artgen-runtime/src/pack.ts
-var RUNTIME_VERSION;
-var init_pack2 = __esm({
-  "../artgen-runtime/src/pack.ts"() {
-    "use strict";
-    init_autotile2();
-    init_facing();
-    init_stack();
-    RUNTIME_VERSION = "1.2.1";
-  }
-});
-
-// ../artgen-runtime/src/coords.ts
-var init_coords = __esm({
-  "../artgen-runtime/src/coords.ts"() {
-    "use strict";
-  }
-});
-
-// ../artgen-runtime/src/index.ts
-var init_src5 = __esm({
-  "../artgen-runtime/src/index.ts"() {
-    "use strict";
-    init_pack2();
-    init_facing();
-    init_autotile2();
-    init_stack();
-    init_coords();
-  }
-});
-
-// ../artgen-cli/src/runtime.ts
-import { createHash as createHash2 } from "node:crypto";
-import { existsSync as existsSync14, mkdirSync as mkdirSync11, readdirSync as readdirSync8, readFileSync as readFileSync14, rmSync, writeFileSync as writeFileSync14 } from "node:fs";
-import { dirname as dirname12, join as join18, relative as relative7 } from "node:path";
-import { fileURLToPath as fileURLToPath4 } from "node:url";
-function runtimeRoot() {
-  const here = dirname12(fileURLToPath4(import.meta.url));
-  for (const p2 of [join18(here, "runtime"), join18(here, "..", "..", "artgen-runtime", "src")]) if (existsSync14(join18(p2, "pack.ts"))) return p2;
-  throw new Error(`artgen runtime sources not found next to ${here}`);
-}
-function runtimeFiles(adapters, root = runtimeRoot()) {
-  const ts = (d) => existsSync14(d) ? readdirSync8(d).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts") && f !== "testkit.ts" && f !== "contract.ts") : [];
-  const available = ts(join18(root, "adapters")).map((f) => f.replace(/\.ts$/, ""));
-  for (const a of adapters) if (!available.includes(a)) throw new Error(`unknown runtime adapter "${a}" in artgen.config.json (available: ${available.join(", ")})`);
-  return [...ts(root).sort(), ...[...new Set(adapters)].map((a) => `adapters/${a}.ts`)];
-}
-function vendorRuntime(p2, o = {}) {
-  const cfg = projectConfig(p2), root = runtimeRoot(), adapters = cfg.runtime.adapters, files = runtimeFiles(adapters, root);
-  const dir = join18(p2.root, cfg.export.runtimeDir), stampFile = join18(dir, STAMP);
-  const old = existsSync14(stampFile) ? readJson(stampFile) : null;
-  const generator = o.generator ?? "artgen";
-  const r = { dir: relative7(p2.root, dir).split("\\").join("/"), version: RUNTIME_VERSION, from: old?.runtime ?? null, adapters, written: [], unchanged: [], kept: [], removed: [] };
-  const hashes = {};
-  const edited = (f) => {
-    const dest = join18(dir, f);
-    return existsSync14(dest) && old?.files[f] !== void 0 && sha2(readFileSync14(dest, "utf8")) !== old.files[f];
-  };
-  for (const f of files) {
-    const text3 = vendoredSource(f, root), h = sha2(text3), dest = join18(dir, f);
-    if (existsSync14(dest)) {
-      const cur = sha2(readFileSync14(dest, "utf8"));
-      if (cur === h) {
-        r.unchanged.push(f);
-        hashes[f] = h;
-        continue;
-      }
-      if (!o.force && (old?.files[f] === void 0 || edited(f))) {
-        r.kept.push(f);
-        hashes[f] = old?.files[f] ?? cur;
-        continue;
-      }
-    }
-    mkdirSync11(dirname12(dest), { recursive: true });
-    writeFileSync14(dest, text3);
-    r.written.push(f);
-    hashes[f] = h;
-  }
-  for (const f of Object.keys(old?.files ?? {})) {
-    if (files.includes(f) || !existsSync14(join18(dir, f))) continue;
-    if (!o.force && edited(f)) {
-      r.kept.push(f);
-      hashes[f] = old.files[f];
-      continue;
-    }
-    rmSync(join18(dir, f));
-    r.removed.push(f);
-  }
-  writeJson(stampFile, { runtime: RUNTIME_VERSION, generator, adapters, files: hashes });
-  return r;
-}
-var STAMP, sha2, HEADER, vendoredSource;
-var init_runtime = __esm({
-  "../artgen-cli/src/runtime.ts"() {
-    "use strict";
-    init_src5();
-    init_project();
-    STAMP = "runtime.json";
-    sha2 = (s2) => createHash2("sha256").update(s2).digest("hex").slice(0, 16);
-    HEADER = `// Vendored by \`artgen export --runtime\` (artgen-runtime ${RUNTIME_VERSION}). Local edits are detected and kept;
-// re-export with --force to overwrite them. Source: packages/artgen-runtime in rstevenson1237/image_tools.
-`;
-    vendoredSource = (file, root = runtimeRoot()) => HEADER + readFileSync14(join18(root, file), "utf8");
-  }
-});
-
-// ../artgen-cli/src/templates.ts
-import { existsSync as existsSync15, mkdirSync as mkdirSync12, readFileSync as readFileSync15, writeFileSync as writeFileSync15 } from "node:fs";
-import { dirname as dirname13, join as join19, resolve as resolve10 } from "node:path";
-import { fileURLToPath as fileURLToPath5 } from "node:url";
-function templatesRoot() {
-  const here = dirname13(fileURLToPath5(import.meta.url));
-  for (const p2 of [join19(here, "templates"), join19(here, "..", "templates")]) if (existsSync15(join19(p2, "finish.js"))) return p2;
-  throw new Error(`artgen templates not found next to ${here}`);
-}
-function findTemplate(view, kind) {
-  const root = templatesRoot(), alias = KIND_ALIAS[kind] ?? kind;
-  for (const [v, k] of [[view, kind], ["topdown", kind], [view, alias], ["topdown", alias], [view, "prop"], ["topdown", "prop"]]) {
-    const dir = join19(root, v, k);
-    if (existsSync15(join19(dir, "base.js"))) return { view: v, kind: k, dir, fallback: v !== view || k !== kind };
-  }
-  throw new Error(`no template for ${view}/${kind}`);
-}
-function newAsset(path, o) {
-  const t = findTemplate(o.view, o.kind), base = join19(path, "base.v1.js");
-  if (existsSync15(base)) throw new Error(`${base} exists \u2014 write the next version instead (R10)`);
-  mkdirSync12(path, { recursive: true });
-  const brief = {
-    id: o.id,
-    ...JSON.parse(readFileSync15(join19(t.dir, "brief.json"), "utf8")),
-    kind: o.kind,
-    view: o.view,
-    ...o.size && { size: o.size },
-    ...o.states && { states: o.states },
-    ...o.directions && { directions: o.directions },
-    ...o.notes && { notes: o.notes }
-  };
-  writeFileSync15(join19(path, "brief.json"), JSON.stringify(brief, null, 2) + "\n");
-  writeFileSync15(base, fill(readFileSync15(join19(t.dir, "base.js"), "utf8"), { ID: o.id }));
-  return { files: [join19(path, "brief.json"), base], template: t };
-}
-function newFinish(path, n, base, kind) {
-  const file = join19(path, `finish.v${n}.js`);
-  if (existsSync15(file)) throw new Error(`${file} exists`);
-  if (kind === void 0 && existsSync15(join19(path, "brief.json"))) kind = JSON.parse(readFileSync15(join19(path, "brief.json"), "utf8")).kind;
-  writeFileSync15(file, fill(readFileSync15(finishTemplate(kind), "utf8"), { BASE: base, N: String(n) }));
-  return resolve10(file);
-}
-var KIND_ALIAS, fill, FACE_KINDS, finishTemplate;
-var init_templates = __esm({
-  "../artgen-cli/src/templates.ts"() {
-    "use strict";
-    KIND_ALIAS = { creature: "character", tileset: "tile", texture: "tile", viewmodel: "prop", "ui-icon": "prop" };
-    fill = (text3, vars) => text3.replace(/\{\{(\w+)\}\}/g, (m, k) => vars[k] ?? m);
-    FACE_KINDS = /* @__PURE__ */ new Set(["character", "creature"]);
-    finishTemplate = (kind) => join19(templatesRoot(), kind && FACE_KINDS.has(kind) ? "finish-character.js" : "finish.js");
-  }
-});
-
-// ../artgen-cli/src/w1.ts
-import { existsSync as existsSync16, readdirSync as readdirSync9, readFileSync as readFileSync16 } from "node:fs";
-import { basename as basename5, join as join20, relative as relative8 } from "node:path";
-function directionVersion(p2, version) {
-  const f = directionFile(p2, version);
-  if (existsSync16(f)) return parseDirection(readJson(f));
-  const cur = lockedDirection(p2);
-  if (cur?.version === version) return cur;
-  throw new Error(`direction v${version} is not archived (art/directions/v${version}.json) \u2014 directions locked by older artgen versions are archived on the next lock`);
-}
-function candidateNames(p2) {
-  if (!existsSync16(cdir(p2))) return [];
-  return readdirSync9(cdir(p2)).filter((f) => f.endsWith(".json")).map((f) => f.slice(0, -5)).sort((x, y) => (x.length === 1 ? 0 : 1) - (y.length === 1 ? 0 : 1) || x.localeCompare(y, "en", { numeric: true }));
-}
-function loadCandidate(p2, name) {
-  const file = existsSync16(join20(cdir(p2), `${name}.json`)) ? join20(cdir(p2), `${name}.json`) : name;
-  if (!existsSync16(file)) throw new Error(`no candidate ${name} (have: ${candidateNames(p2).join(", ") || "none \u2014 run direction candidates"})`);
-  return parseDirection(readJson(file));
-}
-function lockedDirection(p2) {
-  const f = join20(p2.art, "direction.json");
-  if (!existsSync16(f)) return null;
-  const raw = readJson(f);
-  return isPlaceholderDirection(raw) ? null : parseDirection(raw);
-}
-function ensureProbes(p2, view) {
-  const created = [], fallbacks = [];
-  for (const kind of PROBE_KINDS) {
-    const d = probeDir(p2, kind);
-    if (existsSync16(join20(d, "brief.json"))) continue;
-    const r = newAsset(d, { id: `probe-${kind}`, kind, view });
-    created.push(...r.files.map((f) => rel(p2, f)));
-    if (r.template.fallback) fallbacks.push(`${kind}: ${view} has no template yet, used ${r.template.view}/${r.template.kind}`);
-  }
-  return { created, fallbacks };
-}
-function writeCandidates(p2, iv) {
-  const ivFile = join20(p2.art, "interview.json");
-  writeJson(ivFile, iv);
-  const dirs = generateCandidates(iv), out = [];
-  dirs.forEach((d, i) => {
-    const name = "abc"[i], file = join20(cdir(p2), `${name}.json`);
-    writeJson(file, d);
-    out.push({ name, file: rel(p2, file), summary: [d.theme.notes ?? "", ...describeDirection(d)] });
-  });
-  const probes = ensureProbes(p2, iv.view ?? "topdown");
-  appendLedger(ledgerPath(p2), { type: "note", asset: "direction", note: `candidates ${out.map((c) => c.name).join(", ")} from interview`, by: "agent" });
-  return { interview: rel(p2, ivFile), candidates: out, probes: probes.created, fallbacks: probes.fallbacks };
-}
-function probeVersion(a) {
-  const vs = versionsIn(a);
-  if (!vs.length) throw new Error(`${a.path}: no base.vN.js`);
-  return [...vs].reverse().find((v) => v.startsWith("finish.")) ?? vs.filter((v) => v.startsWith("base.")).pop();
-}
-function probeAsset(p2, kind, dir) {
-  const path = probeDir(p2, kind), brief = readJson(join20(path, "brief.json"));
-  return { path, brief: { ...brief, id: brief.id ?? `probe-${kind}` }, dir, ledgerPath: ledgerPath(p2) };
-}
-async function renderProbes(p2, dir, opts = {}) {
-  const renders = {};
-  for (const kind of PROBE_KINDS) {
-    const a = probeAsset(p2, kind, dir);
-    renders[kind] = await renderVersion(a, opts.versions?.[kind] ?? probeVersion(a));
-  }
-  const cell2 = (k) => renders[k].render.cells[0].grid;
-  const images = { character: cell2("character"), prop: cell2("prop"), tile: cell2("tile"), effect: renders.effect.render.cells.map((c) => c.grid) };
-  return { renders, images };
-}
-async function writeTile(p2, names) {
-  const list6 = names?.length ? names : candidateNames(p2);
-  if (!list6.length) throw new Error("no candidates \u2014 run `artgen direction candidates` first");
-  const columns = [], info = [], hashes = [];
-  for (const name of list6) {
-    const dir = loadCandidate(p2, name), { renders, images } = await renderProbes(p2, dir);
-    const gates = Object.fromEntries(Object.entries(renders).map(([k, r]) => [k, r.report.pass]));
-    const failing = Object.entries(renders).flatMap(([k, r]) => r.report.checks.filter((c) => c.status === "fail").map((c) => `${k}.${c.id}: ${c.detail}`));
-    columns.push({ label: `${name.length === 1 ? name.toUpperCase() : name} - ${dir.id}`, notes: describeDirection(dir), dir, probes: images, gates });
-    info.push({ name, id: dir.id, gates, failing });
-    hashes.push(images.character.hash() + images.prop.hash());
-  }
-  const versions = PROBE_KINDS.map((k) => `${k} ${probeVersion(probeAsset(p2, k, loadCandidate(p2, list6[0])))}`).join(", ");
-  const round4 = (existsSync16(cdir(p2)) ? readdirSync9(cdir(p2)).filter((f) => /^style-tile-r\d+\.png$/.test(f)).length : 0) + 1;
-  const sheet = styleTile(`style tile round ${round4}: ${versions}`, columns);
-  const path = join20(cdir(p2), `style-tile-r${round4}.png`);
-  writeGrid(path, sheet);
-  const tokens = imageTokens(sheet.w, sheet.h);
-  appendLedger(ledgerPath(p2), { type: "review", asset: "direction", version: `tile-r${round4}`, sheet: relative8(p2.art, path).split("\\").join("/"), imageTokens: tokens, candidates: list6, by: "agent" });
-  const dirs = list6.map((n) => loadCandidate(p2, n)), lumas = dirs.map(paletteLuma);
-  let minGap = Infinity;
-  for (let i = 0; i < lumas.length; i++) for (let j = i + 1; j < lumas.length; j++) minGap = Math.min(minGap, Math.abs(lumas[i] - lumas[j]));
-  return { path: rel(p2, path), round: round4, tokens, columns: info, distinct: { pairs: new Set(hashes).size, minLumaGap: Number.isFinite(minGap) ? Math.round(minGap * 10) / 10 : 0 } };
-}
-function writeMix(p2, base, take, name) {
-  const n = name ?? `mix${candidateNames(p2).filter((c) => c.startsWith("mix")).length + 1}`;
-  const parts = {};
-  for (const [part, src] of Object.entries(take)) {
-    if (!MIX_PARTS.includes(part)) throw new Error(`unknown part ${part} (have: ${MIX_PARTS.join(", ")})`);
-    parts[part] = loadCandidate(p2, src);
-  }
-  const b = loadCandidate(p2, base), d = mixDirections(b, parts, `${b.id.replace(/-[a-z]$/, "")}-${n}`);
-  d.theme.notes = `mix ${n}: ${base.toUpperCase()} as the base${Object.entries(take).map(([k, v]) => `, ${k} from ${String(v).toUpperCase()}`).join("")}`;
-  const file = join20(cdir(p2), `${n}.json`);
-  writeJson(file, d);
-  appendLedger(ledgerPath(p2), { type: "note", asset: "direction", note: d.theme.notes, by: "user" });
-  return { name: n, file: rel(p2, file), dir: d };
-}
-function writeDraft(p2, from, name = "next") {
-  const src = from ? loadCandidate(p2, from) : lockedDirection(p2);
-  if (!src) throw new Error("nothing to start from: no locked direction; use --from <candidate>");
-  const d = { ...JSON.parse(JSON.stringify(src)), status: "draft" };
-  const file = join20(cdir(p2), `${name}.json`);
-  writeJson(file, d);
-  return { name, file: rel(p2, file) };
-}
-async function writeAnchors(p2) {
-  const dir = lockedDirection(p2);
-  if (!dir) throw new Error("art/direction.json is not locked yet \u2014 run `artgen direction lock <candidate>`");
-  const { renders, images } = await renderProbes(p2, dir), files = [], list6 = [];
-  const strip2 = (fs) => {
-    const g = new Grid(fs.reduce((n, f) => n + f.w, 0) + fs.length - 1, Math.max(...fs.map((f) => f.h)));
-    let x = 0;
-    for (const f of fs) {
-      g.blit(f, x, 0);
-      x += f.w + 1;
-    }
-    return g;
-  };
-  for (const kind of PROBE_KINDS) {
-    const g = kind === "effect" ? strip2(images.effect) : images[kind];
-    const f = join20(p2.art, "anchors", `${kind}.png`);
-    writeGrid(f, g);
-    files.push(relative8(p2.art, f).split("\\").join("/"));
-    list6.push({ label: kind, grid: g });
-  }
-  const file = join20(p2.art, "direction.json"), raw = readJson(file);
-  writeJson(file, { ...raw, anchors: files });
-  const sheet = join20(p2.art, "direction.png");
-  writeGrid(sheet, styleSheet({ ...dir, anchors: files }, list6));
-  const versions = Object.fromEntries(Object.entries(renders).map(([k, r]) => [k, r.version]));
-  appendLedger(ledgerPath(p2), { type: "note", asset: "direction", version: `v${dir.version}`, note: `anchors from probes ${Object.entries(versions).map(([k, v]) => `${k} ${v}`).join(", ")}`, by: "agent" });
-  return { anchors: files.map((f) => `art/${f}`), sheet: rel(p2, sheet), versions, gates: Object.fromEntries(Object.entries(renders).map(([k, r]) => [k, r.report.pass])) };
-}
-async function lock(p2, name, opts = {}) {
-  const chosen = loadCandidate(p2, name), prev = lockedDirection(p2);
-  const d = lockDirection(chosen, prev, opts.id);
-  d.theme = { ...d.theme, notes: `${d.theme.notes ?? ""}${opts.note ? `. ${opts.note}` : ""}`.trim() };
-  const file = join20(p2.art, "direction.json");
-  if (prev && !existsSync16(directionFile(p2, prev.version))) writeJson(directionFile(p2, prev.version), readJson(file));
-  writeJson(file, d);
-  appendLedger(ledgerPath(p2), { type: "approve", asset: "direction", version: `v${d.version}`, note: `locked ${name}${opts.note ? `: ${opts.note}` : ""}`, direction: { id: d.id, version: d.version }, by: "user" });
-  const anchors2 = await writeAnchors(p2);
-  writeJson(directionFile(p2, d.version), readJson(file));
-  return { direction: lockedDirection(p2), file: rel(p2, file), ...anchors2 };
-}
-function show5(p2) {
-  const locked = lockedDirection(p2);
-  const candidates3 = candidateNames(p2).map((n) => {
-    const raw = readJson(join20(cdir(p2), `${n}.json`)), r = validateDirection(raw);
-    return r.ok ? { name: n, id: r.direction.id, status: r.direction.status, summary: describeDirection(r.direction) } : { name: n, id: "?", status: "invalid", summary: r.errors.slice(0, 3) };
-  });
-  const tiles = existsSync16(cdir(p2)) ? readdirSync9(cdir(p2)).filter((f) => /^style-tile-r\d+\.png$/.test(f)).sort((a, b) => parseInt(a.slice(12)) - parseInt(b.slice(12))).map((f) => rel(p2, join20(cdir(p2), f))) : [];
-  const probes = {};
-  for (const k of PROBE_KINDS) if (existsSync16(join20(probeDir(p2, k), "brief.json"))) {
-    const a = { path: probeDir(p2, k), brief: readJson(join20(probeDir(p2, k), "brief.json")), dir: void 0, ledgerPath: ledgerPath(p2) };
-    probes[k] = versionsIn(a).join(" ");
-  }
-  const history = existsSync16(ledgerPath(p2)) ? ledgerFor({ brief: { id: "direction" }, ledgerPath: ledgerPath(p2) }).length : 0;
-  return { locked, candidates: candidates3, tiles, probes, history };
-}
-var cdir, probeDir, ledgerPath, rel, directionFile, readInterview;
-var init_w1 = __esm({
-  "../artgen-cli/src/w1.ts"() {
-    "use strict";
-    init_src4();
-    init_asset();
-    init_node();
-    init_project();
-    init_templates();
-    cdir = (p2) => join20(p2.art, "candidates");
-    probeDir = (p2, kind) => join20(p2.art, "probes", kind);
-    ledgerPath = (p2) => join20(p2.art, "ledger.jsonl");
-    rel = (p2, f) => relative8(p2.root, f).split("\\").join("/");
-    directionFile = (p2, version) => join20(p2.art, "directions", `v${version}.json`);
-    readInterview = (file) => {
-      const iv = JSON.parse(readFileSync16(file, "utf8"));
-      if (!iv.pitch) throw new Error(`${basename5(file)}: "pitch" is required`);
-      return iv;
-    };
-  }
-});
-
-// ../artgen-cli/src/w2.ts
-import { copyFileSync as copyFileSync2, existsSync as existsSync17, mkdirSync as mkdirSync13, readdirSync as readdirSync10, readFileSync as readFileSync17, writeFileSync as writeFileSync16 } from "node:fs";
-import { dirname as dirname14, join as join21, relative as relative9, resolve as resolve11 } from "node:path";
-function readBriefs(p2) {
-  if (!existsSync17(briefsFile(p2))) return [];
-  const r = parseBriefs(readFileSync17(briefsFile(p2), "utf8"));
-  if (!r.ok) throw new Error(`art/briefs.yaml:
-  ${r.errors.join("\n  ")}`);
-  return r.briefs;
-}
-function readContract(p2, id2) {
-  return existsSync17(contractFile(p2, id2)) ? readJson(contractFile(p2, id2)) : void 0;
-}
-function addBrief(p2, b, o = {}) {
-  const old = readContract(p2, b.id), dir = old && lockedDirection(p2);
-  if (old && dir && !o.breakContract) {
-    const d = diffContract(old, briefContract(b, dir, old));
-    if (d.breaking.length) throw new Error(`brief ${b.id} would break its exported animation contract (art/contracts/${b.id}.json):
-  ${d.breaking.join("\n  ")}
-game code may depend on it; re-run with --break-contract if that is intended`);
-  }
-  const text3 = existsSync17(briefsFile(p2)) ? readFileSync17(briefsFile(p2), "utf8") : "";
-  writeFileSync16(briefsFile(p2), upsertBrief(text3, b));
-  return readBriefs(p2);
-}
-function removeBriefFile(p2, id2) {
-  const text3 = readFileSync17(briefsFile(p2), "utf8"), out = removeBrief(text3, id2);
-  if (out !== text3) writeFileSync16(briefsFile(p2), out);
-  return out !== text3;
-}
-function templateFor(b, dir) {
-  const view = b.view ?? dir.camera.view, figure = ["character", "creature"].includes(b.kind);
-  if (figure && b.body && b.body !== "humanoid") return findTemplate(view, `creature-${b.body}`);
-  const walker = figure && ((b.directions ?? 1) > 1 || !!b.anims?.walk);
-  return walker ? findTemplate(view, "character-walk") : findTemplate(view, b.kind);
-}
-function briefWarnings(b, dir) {
-  const out = briefMaterialIssues(b, dir), t = templateFor(b, dir), view = b.view ?? dir.camera.view;
-  if (t.view !== view) out.push(`no ${view} template for it: it starts from ${t.view}/${t.kind} \u2014 check the review sheets for the ${view} camera`);
-  return out;
-}
-function scaffoldAsset(p2, b, dir) {
-  const path = assetPathOf(p2, b), t = templateFor(b, dir), template = `${t.view}/${t.kind}`;
-  if (existsSync17(join21(path, "base.v1.js"))) return { path, created: false, template };
-  mkdirSync13(path, { recursive: true });
-  const tb = readJson(join21(t.dir, "brief.json"));
-  if (!existsSync17(join21(path, "brief.json"))) writeJson(join21(path, "brief.json"), { id: b.id, template, review: tb.review ?? {} });
-  writeFileSync16(join21(path, "base.v1.js"), readFileSync17(join21(t.dir, "base.js"), "utf8").replace(/\{\{ID\}\}/g, b.id));
-  return { path, created: true, template };
-}
-async function assetRow(p2, b) {
-  const path = assetPathOf(p2, b);
-  const base = { id: b.id, kind: b.kind, path: rel2(p2, path), issues: effectObjectIssues(b).map((x) => `brief: ${x}`), imageTokens: 0 };
-  if (!existsSync17(join21(path, "base.v1.js")) && !versionsInPath(path).length) return { ...base, status: "brief", why: "not started" };
-  const a = openAsset(path), st = await passState(a), ledger = ledgerFor(a);
-  const imageTokens2 = ledger.filter((e) => e.type === "review").reduce((n, e) => n + (e.imageTokens ?? 0), 0);
-  if (!ledger.length && st.next.action === "review" && st.next.version === "base.v1") return { ...base, status: "in-pipeline", next: st.next, why: "base.v1 from the template: adapt it to the brief, then review", imageTokens: imageTokens2 };
-  const fh = st.next.action === "ready" ? finalHash(a, st.next.final) : void 0;
-  const s2 = assetStatus({ ledger, next: st.next, direction: { id: a.dir.id, version: a.dir.version }, finalHash: fh });
-  const sc = s2.final ? [...ledger].reverse().find((e) => e.type === "score" && !e.blind && e.version === s2.final) : void 0;
-  const ro = s2.final ? [...ledger].reverse().find((e) => e.type === "roster" && e.version === s2.final && Array.isArray(e.issues)) : void 0;
-  const issues = [...effectObjectIssues(b).map((x) => `brief: ${x}`), ...s2.issues, ...(st.stale ?? []).map((x) => `finish-stale ${x}`), ...ro?.issues ?? []];
-  const blind = s2.final ? blindScores(ledger).get(s2.final)?.score : void 0, score2 = sc?.score, eff = blind ?? score2;
-  const top = st.next.action === "ready" ? st.next.top : void 0;
-  return {
-    ...base,
-    status: s2.status,
-    final: s2.final,
-    score: score2,
-    gate: sc?.conformance?.pass,
-    issues,
-    next: st.next,
-    why: s2.why,
-    imageTokens: imageTokens2,
-    stale: st.stale,
-    ...blind !== void 0 && { blind },
-    ...eff !== void 0 && eff < projectConfig(p2).review.approveMin && { belowBar: true },
-    ...top && { top }
-  };
-}
-async function projectStatus(p2, ids) {
-  requireLocked(p2);
-  const rows2 = [];
-  for (const b of briefOrder(readBriefs(p2))) if (!ids?.length || ids.includes(b.id)) rows2.push(await assetRow(p2, b));
-  return rows2;
-}
-function requireLocked(p2) {
-  const d = lockedDirection(p2);
-  if (!d) throw new Error("no locked direction yet \u2014 run the art direction workflow first (`artgen direction lock <candidate>`)");
-  return d;
-}
-function workPacket(row, reviewed = true) {
-  const st = row.next;
-  if (!st || st.action === "ready") return void 0;
-  const owns = row.path, base = { id: row.id, kind: row.kind, owns, step: st };
-  if (st.action === "write-base" || st.action === "write-finish") return { ...base, writes: [`${owns}/${st.version}.js`], role: "maker" };
-  if (st.action === "review" && st.version === "base.v1" && /^base\.v1 from the template/.test(row.why)) return { ...base, writes: [`${owns}/base.v1.js`], role: "maker" };
-  if (st.action === "review" && !reviewed) return { ...base, writes: [`${owns}/${st.version}.js`], role: "maker", resume: true };
-  return { ...base, writes: [], role: "main" };
-}
-async function make(p2, ids, o = {}) {
-  const dir = requireLocked(p2), briefs = briefOrder(readBriefs(p2)).filter((b) => !ids?.length || ids.includes(b.id) || ids.includes("all"));
-  if (ids?.length && !ids.includes("all")) {
-    for (const id2 of ids) if (!briefs.some((b) => b.id === id2)) throw new Error(`no brief ${id2} in art/briefs.yaml`);
-  }
-  const scaffolded = [], finals = [], overBudget = [], rows2 = [], reviewed = /* @__PURE__ */ new Map();
-  for (const b of briefs) {
-    const sc = scaffoldAsset(p2, b, dir);
-    if (sc.created) scaffolded.push(rel2(p2, join21(sc.path, "base.v1.js")));
-    let row = await assetRow(p2, b);
-    const a = openAsset(sc.path), ledger = ledgerFor(a);
-    if (row.next?.action === "review") {
-      const v = row.next.version;
-      reviewed.set(b.id, ledger.some((e) => e.type === "review" && e.version === v && !e.blind));
-    }
-    if (row.next?.action === "ready") {
-      const fin = row.next.final;
-      if (!ledger.some((e) => e.type === "status" && e.status === "final" && e.version === fin && e.sourceHash === finalHash(a, fin))) {
-        appendLedger(ledgerFile(p2), { type: "status", asset: b.id, status: "final", version: fin, sourceHash: finalHash(a, fin), issues: row.issues, direction: { id: dir.id, version: dir.version }, by: "agent" });
-        finals.push(b.id);
-      }
-    } else if (row.next && a.budget?.maxImageTokens && row.imageTokens >= a.budget.maxImageTokens) {
-      const st = await passState(a), best = st.rows.filter((r) => r.score !== void 0).sort((x, y) => y.score - x.score)[0];
-      if (best && !ledger.some((e) => e.type === "status" && e.status === "final" && e.version === best.version)) {
-        appendLedger(ledgerFile(p2), { type: "status", asset: b.id, status: "final", version: best.version, sourceHash: finalHash(a, best.version), issues: [`budget: ${row.imageTokens} review-image tokens \u2265 ${a.budget.maxImageTokens}`], direction: { id: dir.id, version: dir.version }, by: "agent" });
-        overBudget.push(b.id);
-      }
-      row = { ...row, why: `over budget (${row.imageTokens} image tokens); left at ${best?.version ?? "nothing scored"}` };
-    }
-    rows2.push(row);
-  }
-  const live = rows2.filter((r) => !DONE.includes(r.status) && !r.why.startsWith("over budget")), active = new Set((o.wave ? live.slice(0, o.wave) : live).map((r) => r.id));
-  const roster3 = earlyRoster(p2, rows2.filter((r) => active.has(r.id)));
-  const held = new Set(roster3?.ids ?? []), pending = rows2.filter((r) => active.has(r.id) && r.next && r.next.action !== "ready" && !held.has(r.id));
-  const n0 = pending[0], next4 = n0 && { id: n0.id, path: n0.path, step: n0.next };
-  const finalRoster = rows2.filter((r) => r.status === "final" && !TILE_KINDS.has(r.kind) && !ledgerFor(openAsset(join21(p2.root, r.path))).some((e) => e.type === "roster" && e.version === r.final && Array.isArray(e.issues))).map((r) => r.id);
-  const res = { rows: rows2, ...next4 && { next: next4 }, scaffolded, finals, overBudget, ...roster3 && { roster: roster3 }, ...finalRoster.length >= 2 && { finalRoster } };
-  if (!o.parallel) return res;
-  const packets = pending.map((r) => workPacket(r, reviewed.get(r.id) ?? true)).filter((x) => !!x), makers = packets.filter((x) => x.role === "maker");
-  const waiting = rows2.filter((r) => !active.has(r.id) && !DONE.includes(r.status) && !r.why.startsWith("over budget")).map((r) => workPacket(r, reviewed.get(r.id) ?? true)).filter((x) => !!x && x.role === "maker");
-  return { ...res, work: { makers: makers.slice(0, o.parallel), queued: [...makers.slice(o.parallel), ...waiting], main: packets.filter((x) => x.role === "main") } };
-}
-function earlyRoster(p2, rows2) {
-  if (!projectConfig(p2).review.earlyRoster) return void 0;
-  const figures = rows2.filter((r) => !TILE_KINDS.has(r.kind) && r.status !== "brief");
-  if (figures.length < 2) return void 0;
-  const atV1 = v1Rows(p2, figures), ready2 = new Set(atV1.map((r) => r.id));
-  const beforeV1 = figures.filter((r) => !ready2.has(r.id) && r.next?.action !== "ready" && (r.next?.action === "review" || r.next?.action === "write-base") && "version" in r.next && r.next.version === "base.v1");
-  const uncovered2 = atV1.filter((r) => !ledgerFor(openAsset(join21(p2.root, r.path))).some((e) => e.type === "roster" && e.version === "base.v1" && Array.isArray(e.issues)));
-  if (uncovered2.length < 2 && !(uncovered2.length && atV1.length >= 2)) return void 0;
-  if (beforeV1.length) return { stage: "v1", ids: uncovered2.map((r) => r.id), why: `holding v2 for the v1 roster until ${beforeV1.map((r) => r.id).join(", ")} ${beforeV1.length > 1 ? "have" : "has"} a scored v1` };
-  return { stage: "v1", ids: uncovered2.map((r) => r.id), why: "every v1 is scored: run the v1 roster (`roster --stage v1`, a fresh art-reviewer, `roster record`) before any v2 \u2014 its notes go into each v2 brief" };
-}
-function thumb(r) {
-  const f = r.facings[0], cells = r.cells.filter((c) => c.facing === f);
-  return cells.length > 1 ? strip({ ...r, cells }) : cells[0].grid;
-}
-function reviewOf(a, final) {
-  const ledger = ledgerFor(a), own = [...ledger].reverse().find((e) => e.type === "score" && !e.blind && e.version === final);
-  return { reviewer: typeof own?.reviewer === "string" ? own.reviewer : void 0, blind: blindScores(ledger).get(final)?.score };
-}
-async function gallery(p2, opts = {}) {
-  const dir = requireLocked(p2), want = opts.statuses ?? ["final"], rows2 = (await projectStatus(p2, opts.ids)).filter((r) => r.final && (opts.ids?.length || want.includes(r.status)));
-  const items = [], assets = [];
-  for (const r of rows2) {
-    const a = openAsset(join21(p2.root, r.path)), v = await renderVersion(a, r.final);
-    const rv = reviewOf(a, r.final);
-    const tag = `${r.id} ${r.final} ${r.score ?? "-"}${rv.blind !== void 0 ? ` b${rv.blind}` : rv.reviewer === "self" ? " SELF" : ""}${r.gate === false ? " GATE" : ""}${r.belowBar ? " BELOW BAR" : ""}${r.top ? ` final\u2260best ${r.top.version} ${r.top.score}` : ""}${r.issues.length ? ` !${r.issues.length}` : ""}`;
-    items.push({ label: tag, grid: thumb(v.render), bg: a.brief.review?.bg ?? dir.background });
-    assets.push({ id: r.id, final: r.final, score: r.score, ...rv.blind !== void 0 && { blind: rv.blind }, ...rv.reviewer && { reviewer: rv.reviewer }, issues: r.issues, ...r.belowBar && { belowBar: true }, ...r.top && { top: r.top } });
-  }
-  if (!items.length) return { sheets: [], tokens: 0, assets };
-  const sheets = [];
-  let tokens = 0;
-  const n0 = (existsSync17(join21(p2.art, "sheets")) ? readdirCount(join21(p2.art, "sheets"), /^gallery-\d+\.png$/) : 0) + 1;
-  for (let i = 0; i < items.length; i += 12) {
-    const page2 = items.slice(i, i + 12), sheet = contactSheet(`${dir.id} v${dir.version}: finished assets ${i + 1}-${i + page2.length} of ${items.length} (score, b blind score, !issues; BELOW BAR under ${projectConfig(p2).review.approveMin})`, page2, 4, Math.min(4, page2.length));
-    const f = join21(p2.art, "sheets", `gallery-${n0 + i / 12}.png`);
-    writeGrid(f, sheet);
-    sheets.push(rel2(p2, f));
-    tokens += imageTokens(sheet.w, sheet.h);
-  }
-  appendLedger(ledgerFile(p2), { type: "review", asset: "gallery", sheet: sheets.join(","), imageTokens: tokens, assets: assets.map((x) => x.id), by: "agent" });
-  return { sheets, tokens, assets };
-}
-function v1Rows(p2, rows2) {
-  const out = [];
-  for (const r of rows2) {
-    if (TILE_KINDS.has(r.kind) || r.status === "brief") continue;
-    const a = openAsset(join21(p2.root, r.path)), vs = versionsIn(a);
-    if (!vs.includes("base.v1") || vs.includes("base.v2") || (a.budget?.revisionPasses ?? 3) < 2) continue;
-    if (ledgerFor(a).some((e) => e.type === "score" && !e.blind && e.version === "base.v1")) out.push(r);
-  }
-  return out;
-}
-async function rosterRun(p2, o = {}) {
-  const dir = requireLocked(p2), briefs = readBriefs(p2), ledgerAll = parseLedger(existsSync17(ledgerFile(p2)) ? readFileSync17(ledgerFile(p2), "utf8") : ""), stage = o.stage ?? "final";
-  const ids = o.ids?.length ? o.ids : void 0;
-  const all = await projectStatus(p2, ids), rows2 = stage === "v1" ? v1Rows(p2, all) : all.filter((r) => r.final);
-  const items = [], versions = {}, skipped = [];
-  for (const r of rows2) {
-    const b = briefs.find((x) => x.id === r.id), version = stage === "v1" ? "base.v1" : r.final;
-    if (TILE_KINDS.has(b.kind)) {
-      skipped.push(`${r.id} (${b.kind})`);
-      continue;
-    }
-    const v = await renderVersion(openAsset(join21(p2.root, r.path)), version);
-    items.push({ id: r.id, kind: b.kind, grid: v.render.cells[0].grid, drawn: drawnHeight(standFrames(v.render)), notes: b.notes, height: b.height });
-    versions[r.id] = version;
-  }
-  if (items.length < 2) throw new Error(`roster: needs at least two ${stage === "v1" ? "non-tile assets with a scored base.v1 and no v2" : "finished non-tile assets"} (have ${items.length})`);
-  const seed = o.seed ?? ledgerAll.filter((e) => e.type === "roster" && e.asset === "roster" && e.key).length + 1;
-  const res = roster(items, { bg: dir.background ?? "#202020", pxPerMetre: pxPerMetre(dir), heightFail: projectConfig(p2).review.heightFail, seed });
-  const f = (n) => join21(p2.art, "sheets", n), many = res.pages.length > 1, sheets = [];
-  let tokens = 0;
-  res.pages.forEach((pg, i) => {
-    const sfx = many ? `-${i + 1}` : "";
-    writeGrid(f(`roster-lineup${sfx}.png`), pg.lineup);
-    writeGrid(f(`roster-silhouettes${sfx}.png`), pg.silhouettes);
-    sheets.push(rel2(p2, f(`roster-lineup${sfx}.png`)), rel2(p2, f(`roster-silhouettes${sfx}.png`)));
-    tokens += imageTokens(pg.lineup.w, pg.lineup.h) + imageTokens(pg.silhouettes.w, pg.silhouettes.h);
-  });
-  writeJson(f("roster-assets.json"), {
-    stage,
-    lineup: items.map((it) => it.id),
-    ...many && { pages: res.pages.map((pg, i) => ({ lineup: `roster-lineup-${i + 1}.png`, silhouettes: `roster-silhouettes-${i + 1}.png`, ids: pg.ids })) },
-    assets: [...items].sort((a, b) => a.id.localeCompare(b.id)).map((it) => ({ id: it.id, kind: it.kind, notes: it.notes ?? "", ...it.height && { height: it.height } }))
-  });
-  appendLedger(ledgerFile(p2), { type: "roster", asset: "roster", stage, key: res.key, versions, seed, sizes: res.sizes, pairs: res.pairs, sheet: sheets.map((x) => relative9(p2.art, join21(p2.root, x)).split("\\").join("/")).join(","), imageTokens: tokens, by: "agent" });
-  return { lineup: sheets[0], silhouettes: sheets[1], sheets, assets: rel2(p2, f("roster-assets.json")), tokens, seed, stage, sizes: res.sizes, pairs: res.pairs, skipped };
-}
-function rosterRecord(p2, file, reviewer = "self") {
-  const ledgerAll = parseLedger(existsSync17(ledgerFile(p2)) ? readFileSync17(ledgerFile(p2), "utf8") : "");
-  const run2 = [...ledgerAll].reverse().find((e) => e.type === "roster" && e.asset === "roster" && e.key);
-  if (!run2) throw new Error("roster record: run `artgen roster` first");
-  const review2 = readJson(resolve11(file)), key2 = run2.key, versions = run2.versions;
-  const issues = rosterIssues(review2, key2);
-  for (const id2 of Object.values(key2)) {
-    const s2 = (review2.silhouettes ?? []).find((x) => key2[x.letter] === id2);
-    appendLedger(ledgerFile(p2), { type: "roster", asset: id2, version: versions[id2], issues: issues[id2] ?? [], ...s2 && { readability: s2.readability, guess: s2.guess }, reviewer, by: "agent" });
-  }
-  appendLedger(ledgerFile(p2), { type: "roster", asset: "roster", recorded: true, notes: review2.notes ?? [], reviewer, by: "agent" });
-  return { issues, notes: review2.notes ?? [] };
-}
-async function feedback(p2, id2, o) {
-  const b = readBriefs(p2).find((x) => x.id === id2);
-  if (!b) throw new Error(`no brief ${id2}`);
-  requireLocked(p2);
-  const row = await assetRow(p2, b), agent = o.by === "agent";
-  if (!["final", "approved", "exported", "stale"].includes(row.status)) throw new Error(`${id2} is ${row.status}: feedback applies to finished assets (wait for final)`);
-  const a = openAsset(assetPathOf(p2, b)), mine = feedbackOf(a).filter((f) => f.by === "agent" === agent), iterations = mine.length + 1;
-  const max2 = agent ? projectConfig(p2).review.rosterRevisions : a.budget?.maxUserIterations ?? 3;
-  if (iterations > max2 && !o.force) throw new Error(agent ? `${id2}: ${iterations - 1} revisions from roster notes already (review.rosterRevisions ${max2}) \u2014 list the note for the user instead, or pass --force` : `${id2}: ${iterations - 1} user iterations already (budget.maxUserIterations ${max2}) \u2014 escalate: talk it through with the user, or pass --force`);
-  const vs = versionsIn(a), kind = o.route === "base" ? "base" : "finish";
-  const opens = `${kind}.v${Math.max(0, ...vs.map(parseVersion).filter((v) => v.kind === kind).map((v) => v.n)) + 1}`;
-  appendLedger(ledgerFile(p2), { type: "feedback", asset: id2, route: o.route, opens, on: row.final, note: o.note, ...o.region && { region: o.region }, ...o.cell && { cell: o.cell }, ...agent ? { by: "agent", source: o.source ?? "roster" } : { by: "user" }, ...o.via && { via: o.via } });
-  return { opens, next: (await passState(openAsset(assetPathOf(p2, b)))).next, iterations };
-}
-async function approve(p2, id2, note = "", via) {
-  const b = readBriefs(p2).find((x) => x.id === id2);
-  if (!b) throw new Error(`no brief ${id2}`);
-  const dir = requireLocked(p2), row = await assetRow(p2, b);
-  if (row.status !== "final") throw new Error(`${id2} is ${row.status}: only a final asset can be approved${row.status === "stale" ? " (run restyle first)" : ""}`);
-  const a = openAsset(assetPathOf(p2, b)), r = await renderVersion(a, row.final);
-  if (!r.report.pass) throw new Error(`${id2} ${row.final}: the gate fails (${r.report.checks.filter((c) => c.status === "fail").map((c) => c.id).join(", ")}) \u2014 give feedback instead (R6)`);
-  const sheet = [...ledgerFor(a)].reverse().find((e2) => e2.type === "review" && e2.version === row.final)?.sheet;
-  if (!sheet) throw new Error(`${id2} ${row.final}: no review sheet yet \u2014 artgen review first (R6)`);
-  const kept = join21(p2.art, "sheets", "approved", `${id2}-${row.final}.png`), src = resolve11(dirname14(ledgerFile(p2)), String(sheet));
-  if (existsSync17(src)) {
-    mkdirSync13(dirname14(kept), { recursive: true });
-    copyFileSync2(src, kept);
-  }
-  const rv = reviewOf(a, row.final), cfg = projectConfig(p2).review, warnings = [];
-  if (rv.blind === void 0) warnings.push(rv.reviewer === "self" || !rv.reviewer ? "scored only by the agent that made it, with no blind re-score" : "no blind re-score of the final");
-  warnings.push(...row.issues.filter((x) => x.startsWith("blind re-score")));
-  if (rv.blind !== void 0 && rv.blind < cfg.approveMin && !warnings.some((x) => x.startsWith("blind re-score"))) warnings.push(`blind re-score ${rv.blind} is under ${cfg.approveMin}`);
-  const e = { type: "approve", asset: id2, version: row.final, sourceHash: finalHash(a, row.final), outputHash: r.strip.hash(), sheet: existsSync17(kept) ? relative9(p2.art, kept).split("\\").join("/") : sheet, direction: { id: dir.id, version: dir.version }, note, ...warnings.length && { warnings }, by: "user", ...via && { via } };
-  appendLedger(ledgerFile(p2), e);
-  return { ts: (/* @__PURE__ */ new Date()).toISOString(), ...e };
-}
-async function writeNextFinish(path, o = {}) {
-  const vs = versionsIn({ path }), n = vs.filter((v) => v.startsWith("finish.")).length + 1;
-  let base = o.base;
-  if (!base) {
-    const st = await (async () => {
-      try {
-        return await passState(openAsset(path, o));
-      } catch {
-        return void 0;
-      }
-    })();
-    base = st?.next.action === "write-finish" ? st.next.base : st?.best?.version ?? vs.filter((v) => v.startsWith("base.")).pop();
-  }
-  if (!base) throw new Error(`${path}: no base version to finish`);
-  const kind = (() => {
-    try {
-      return openAsset(path, o).brief.kind;
-    } catch {
-      return void 0;
-    }
-  })();
-  return { file: newFinish(path, n, base, kind), base };
-}
-function inPack(b, pack, include) {
-  if (b.pack) return b.pack === pack;
-  return include.some((pat) => pat.startsWith("kind:") ? b.kind === pat.slice(5) : new RegExp(`^${pat.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*")}$`).test(b.id));
-}
-async function exportPacks(p2, o = {}) {
-  const dir = requireLocked(p2), cfg = projectConfig(p2), rows2 = await projectStatus(p2), briefs = readBriefs(p2);
-  const ok = (s2) => s2 === "approved" || s2 === "exported" || o.includeDrafts && s2 === "final";
-  const skipped = rows2.filter((r) => !ok(r.status)).map((r) => ({ id: r.id, status: r.status }));
-  const out = [], forTs = [];
-  const builds = [];
-  for (const [pack, def] of Object.entries(cfg.packs)) {
-    if (o.packs?.length && !o.packs.includes(pack)) continue;
-    const inputs = [];
-    for (const r of rows2) {
-      const b = briefs.find((x) => x.id === r.id);
-      if (!ok(r.status) || !inPack(b, pack, def.include)) continue;
-      const a = openAsset(join21(p2.root, r.path)), n = Math.max(1, b.variants ?? 1), renders = [];
-      for (let k = 0; k < n; k++) renders.push((await renderVersion(a, r.final, { variant: k })).render);
-      inputs.push({ brief: a.brief, view: a.brief.view ?? dir.camera.view, renders, version: r.final, sourceHash: finalHash(a, r.final), draft: r.status === "final" });
-    }
-    if (!inputs.length) continue;
-    builds.push({ pack, inputs, built: buildPack(pack, dir, inputs, { generator: o.generator, runtime: RUNTIME_VERSION, maxSize: cfg.export.maxAtlas, padding: cfg.export.padding }) });
-  }
-  const contracts = [], refused = [], seen = /* @__PURE__ */ new Set();
-  for (const { built } of builds) for (const [id2, a] of Object.entries(built.manifest.assets)) {
-    if (seen.has(id2)) continue;
-    seen.add(id2);
-    const next4 = contractOf(id2, a), old = readContract(p2, id2);
-    if (!old) {
-      contracts.push({ next: next4, change: { id: id2, change: "created", notes: [] } });
-      continue;
-    }
-    const d = diffContract(old, next4);
-    if (d.breaking.length && !allowed(o.breakContract, id2)) refused.push(`${id2}: ${d.breaking.join("; ")}`);
-    else if (d.breaking.length || d.added.length) contracts.push({ next: next4, change: { id: id2, change: d.breaking.length ? "broken" : "extended", notes: [...d.breaking, ...d.added.map((x) => `added ${x}`)] } });
-  }
-  if (refused.length) throw new Error(`export refused: the animation contract changed for
-  ${refused.join("\n  ")}
-game code indexes these states and frames (art/contracts/<id>.json). Restore the brief's anims/states/directions and the base's anchors, or re-run with --break-contract <id> once the game code is updated`);
-  for (const { pack, built, inputs } of builds) {
-    const pdir = join21(p2.root, cfg.export.packDir, pack);
-    built.atlases.forEach((g, i) => {
-      writeGrid(join21(pdir, built.manifest.atlases[i]), g);
-      writeJson(join21(pdir, built.manifest.atlases[i].replace(/\.png$/, ".aseprite.json")), built.aseprite[i]);
-    });
-    built.normals?.forEach((g, i) => writeGrid(join21(pdir, built.manifest.normals[i]), g));
-    writeJson(join21(pdir, "pack.json"), built.manifest);
-    for (const inp of inputs) appendLedger(ledgerFile(p2), { type: "export", asset: inp.brief.id, version: inp.version, sourceHash: inp.sourceHash, pack, direction: { id: dir.id, version: dir.version }, ...inp.draft && { draft: true }, by: "agent" });
-    out.push({ pack, dir: rel2(p2, pdir), atlases: built.manifest.atlases.map((f) => rel2(p2, join21(pdir, f))), assets: inputs.map((i) => i.brief.id), drafts: built.manifest.drafts ?? [] });
-    const pub = cfg.export.packDir.replace(/\\/g, "/").replace(/^\.?\/?/, "");
-    forTs.push({ manifest: built.manifest, url: pub.startsWith("public/") || pub === "public" ? `/${pub.slice(7)}${pub.length > 7 ? "/" : ""}${pack}/pack.json`.replace(/\/+/g, "/") : `${pub}/${pack}/pack.json` });
-  }
-  for (const { next: next4, change } of contracts) {
-    writeJson(contractFile(p2, next4.asset), next4);
-    appendLedger(ledgerFile(p2), { type: "contract", asset: next4.asset, change: change.change, ...change.notes.length && { notes: change.notes }, by: "agent" });
-  }
-  const tsFile = join21(p2.root, cfg.export.assetsTs);
-  if (forTs.length) {
-    mkdirSync13(dirname14(tsFile), { recursive: true });
-    writeFileSync16(tsFile, assetsTs(forTs));
-  }
-  const runtime = o.runtime ? vendorRuntime(p2, { force: o.force, generator: o.generator }) : void 0;
-  return { packs: out, assetsTs: forTs.length ? rel2(p2, tsFile) : "", skipped, contracts: contracts.map((c) => c.change), ...runtime && { runtime } };
-}
-async function restyle(p2, o = {}) {
-  const to = requireLocked(p2), from = directionVersion(p2, o.from ?? to.version - 1);
-  if (from.version === to.version) throw new Error(`nothing to restyle: direction is v${to.version}`);
-  const rows2 = (await projectStatus(p2)).filter((r) => r.final), sheetRows = [], assets = [];
-  const fromFile = join21(p2.art, "directions", `v${from.version}.json`);
-  for (const r of rows2) {
-    const path = join21(p2.root, r.path), a = openAsset(path), old = openAsset(path, { direction: existsSync17(fromFile) ? fromFile : void 0 });
-    if (!existsSync17(fromFile)) old.dir = from;
-    const [before, after] = [await renderVersion(old, r.final), await renderVersion(a, r.final)];
-    const d = restyleDiff(before.strip, after.strip, from, to);
-    sheetRows.push({ label: `${r.id} ${r.final}: ${d.changedPct}% px changed, tokens kept ${Math.round(d.tokenSame * 100)}%${after.report.pass ? "" : " GATE FAIL"}${after.stale?.length ? " FINISH-STALE" : ""}`, before: thumb(before.render), after: thumb(after.render), mask: tokenDiffMask(thumb(before.render), thumb(after.render), from, to), bg: to.background });
-    assets.push({ id: r.id, final: r.final, changedPct: d.changedPct, tokenSame: d.tokenSame, consistent: d.consistent, gate: after.report.pass, stale: after.stale ?? [] });
-    appendLedger(ledgerFile(p2), { type: "restyle", asset: r.id, version: r.final, from: { id: from.id, version: from.version }, direction: { id: to.id, version: to.version }, changedPct: d.changedPct, tokenSame: d.tokenSame, consistent: d.consistent, gate: after.report.pass, outputHash: after.strip.hash(), ...after.stale?.length && { stale: after.stale }, by: "agent" });
-  }
-  const sheet = restyleSheet(`restyle ${from.id} v${from.version} -> ${to.id} v${to.version}`, sheetRows);
-  const f = join21(p2.art, "sheets", `restyle-v${from.version}-v${to.version}.png`);
-  writeGrid(f, sheet);
-  return { from: from.version, to: to.version, sheet: rel2(p2, f), tokens: imageTokens(sheet.w, sheet.h), assets };
-}
-async function importEdit(p2, id2, png, o = {}) {
-  const b = readBriefs(p2).find((x) => x.id === id2);
-  if (!b) throw new Error(`no brief ${id2}`);
-  const dir = requireLocked(p2), row = await assetRow(p2, b);
-  if (!row.final) throw new Error(`${id2} is ${row.status}: import-edit applies to a finished asset`);
-  const a = openAsset(assetPathOf(p2, b)), r = await renderVersion(a, row.final), edited = readGrid(resolve11(png)), [w, h] = r.render.size;
-  const cells = r.render.cells;
-  let pieces2;
-  if (o.cell) {
-    const idx = cells.findIndex((c) => `${c.state}/${c.facing}/${c.frame}` === o.cell);
-    if (idx < 0) throw new Error(`no cell ${o.cell} (cells are state/facing/frame)`);
-    pieces2 = [{ idx, grid: edited }];
-  } else if (edited.w === r.strip.w && edited.h === r.strip.h) {
-    pieces2 = cells.map((_, i) => {
-      const g = new Grid(w, h);
-      g.blit(crop(edited, i * w, 0, w, h), 0, 0);
-      return { idx: i, grid: g };
-    });
-  } else if (cells.length === 1) pieces2 = [{ idx: 0, grid: edited }];
-  else throw new Error(`${png} is ${edited.w}x${edited.h}; expected the ${r.strip.w}x${r.strip.h} strip (out/${row.final}.png) or --cell state/facing/frame`);
-  const edits = {};
-  let pixels = 0, snapped = 0, conflicts = 0;
-  for (const { idx, grid: grid4 } of pieces2) {
-    const c = cells[idx], e = editOps(c.grid, grid4, dir);
-    if (!e.ops.length) continue;
-    snapped += e.snapped;
-    const key2 = c.mirrored ? `${c.state}/${mirrorFacing(c.facing)}/${c.frame}` : `${c.state}/${c.facing}/${c.frame}`;
-    const ops = c.mirrored ? e.ops.map(([x, y, t]) => [w - 1 - x, y, t]) : e.ops;
-    if (edits[key2]) {
-      conflicts += ops.length;
-      if (c.mirrored) continue;
-    }
-    edits[key2] = ops;
-    pixels += ops.length;
-  }
-  if (!pixels) throw new Error(`${png}: no pixel differs from ${row.final}`);
-  const vs = versionsIn(a), n = Math.max(0, ...vs.map(parseVersion).filter((v) => v.kind === "finish").map((v) => v.n)) + 1;
-  const fin = parseVersion(row.final), base = fin.kind === "finish" ? r.base : row.final, prev = fin.kind === "finish" ? row.final : void 0;
-  const file = join21(a.path, `finish.v${n}.js`);
-  const body3 = Object.entries(edits).map(([k, ops]) => `  '${k}': ${JSON.stringify(ops)},`).join("\n");
-  writeFileSync16(file, `// finish.v${n} \u2014 hand edit imported from ${relative9(a.path, resolve11(png)).split("\\").join("/")} (artgen import-edit):
-// ${pixels} pixels in ${Object.keys(edits).length} cells, as colour tokens so the edit survives a restyle.${prev ? ` Replays ${prev} first.` : ""}
-${prev ? `import * as prev from './${prev}.js';
-` : ""}export const base = '${base}';
-export const meta = { notes: 'hand edit (import-edit)' };
-
-const EDITS = {
-${body3}
-};
-
-export function finish(g, ctx) {
-${prev ? "  g = prev.finish(g, ctx) ?? g;\n" : ""}  for (const [x, y, t] of EDITS[\`\${ctx.state}/\${ctx.facing}/\${ctx.frame}\`] ?? []) {
-    if (t === null) g.clear(x, y); else ctx.lib.px.set(g, [x, y], t);
-  }
-  return g;
-}
-`);
-  appendLedger(ledgerFile(p2), { type: "import-edit", asset: id2, version: `finish.v${n}`, on: row.final, file: rel2(p2, resolve11(png)), pixels, snapped, by: "user" });
-  appendLedger(ledgerFile(p2), { type: "feedback", asset: id2, route: "finish", opens: `finish.v${n}`, on: row.final, note: `hand edit: ${pixels} px (import-edit)`, by: "user" });
-  return { file: rel2(p2, file), pixels, cells: Object.keys(edits).length, snapped, conflicts };
-}
-function crop(g, x0, y0, w, h) {
-  const out = new Grid(w, h);
-  for (let y = 0; y < h; y++) out.d.set(g.d.subarray(((y0 + y) * g.w + x0) * 4, ((y0 + y) * g.w + x0 + w) * 4), y * w * 4);
-  return out;
-}
-function projectAnalytics(p2, title) {
-  const dir = requireLocked(p2), all = parseAll(ledgerFile(p2)), metas = projectMetas(p2, dir);
-  const ids = new Set(metas.map((m) => m.id)), report2 = analytics(all.filter((e) => ids.has(e.asset) || e.asset === "gallery"), metas);
-  return { report: report2, markdown: analyticsMarkdown(report2, title ?? `${dir.id}: pipeline analytics`) };
-}
-function projectMetas(p2, dir) {
-  return readBriefs(p2).map((b) => {
-    const bj = join21(assetPathOf(p2, b), "brief.json"), local = existsSync17(bj) ? readJson(bj) : {};
-    const size = Array.isArray(b.size) ? b.size.join("x") : b.size ?? b.kind;
-    return { id: b.id, kind: b.kind, view: b.view ?? dir?.camera.view, size, template: local.template, importance: b.importance ?? "standard" };
-  });
-}
-function ledgerSet(dir) {
-  const root = resolve11(dir), name = relative9(process.cwd(), root).split("\\").join("/") || ".";
-  if (existsSync17(join21(root, "art", "artgen.config.json"))) {
-    const p2 = { root, art: join21(root, "art") };
-    return { project: name, ledger: parseAll(ledgerFile(p2)), metas: projectMetas(p2, lockedDirection(p2)), config: projectConfig(p2) };
-  }
-  if (!existsSync17(join21(root, "ledger.jsonl"))) throw new Error(`${dir}: neither a project (art/artgen.config.json) nor a folder with ledger.jsonl`);
-  const metas = [];
-  for (const d of readdirSync10(root, { withFileTypes: true })) {
-    const bj = join21(root, d.name, "brief.json");
-    if (!d.isDirectory() || !existsSync17(bj)) continue;
-    const b = readJson(bj);
-    metas.push({ id: b.id ?? d.name, kind: b.kind, view: b.view, size: Array.isArray(b.size) ? b.size.join("x") : b.size, template: b.template, importance: b.importance ?? "standard" });
-  }
-  return { project: name, ledger: parseAll(join21(root, "ledger.jsonl")), metas };
-}
-function pooledAnalytics(dirs, o = {}) {
-  const r = recommend(dirs.map(ledgerSet), { minAssets: o.minAssets });
-  let applied;
-  if (o.apply) {
-    const f = join21(o.apply.art, "artgen.config.json"), raw = readJson(f), next4 = applyRecommendations(mergeConfig(raw), r.patch);
-    writeJson(f, { ...raw, budget: { ...raw.budget, ...next4.budget.perKind && { perKind: next4.budget.perKind } }, models: next4.models });
-    applied = rel2(o.apply, f);
-  }
-  return { report: r, markdown: recommendMarkdown(r, o.title), ...applied && { applied } };
-}
-var briefsFile, ledgerFile, rel2, contractFile, allowed, assetPathOf, versionsInPath, DONE, readdirCount, parseAll;
-var init_w2 = __esm({
-  "../artgen-cli/src/w2.ts"() {
-    "use strict";
-    init_src4();
-    init_asset();
-    init_bench2();
     init_src5();
     init_node();
-    init_runtime();
-    init_project();
-    init_templates();
-    init_w1();
-    briefsFile = (p2) => join21(p2.art, "briefs.yaml");
-    ledgerFile = (p2) => join21(p2.art, "ledger.jsonl");
-    rel2 = (p2, f) => relative9(p2.root, f).split("\\").join("/");
-    contractFile = (p2, id2) => join21(p2.art, "contracts", `${id2}.json`);
-    allowed = (list6, id2) => !!list6 && (list6.includes("*") || list6.includes(id2));
-    assetPathOf = (p2, b) => join21(p2.art, briefDir(b));
-    versionsInPath = (path) => existsSync17(path) ? versionsIn({ path }) : [];
-    DONE = ["final", "approved", "exported"];
-    readdirCount = (d, re) => readdirSync10(d).filter((f) => re.test(f)).length;
-    parseAll = (f) => existsSync17(f) ? parseLedger(readFileSync17(f, "utf8")) : [];
+    init_asset();
   }
 });
 
 // ../artgen-cli/src/ops/art-shared.ts
-import { existsSync as existsSync18 } from "node:fs";
-import { join as join22 } from "node:path";
+import { existsSync as existsSync20 } from "node:fs";
+import { join as join24 } from "node:path";
 function versionOf(ctx, a, i, mcpEmpty) {
   if (typeof i.version === "string") return i.version;
   const vs = versionsIn(a);
@@ -30319,21 +31759,21 @@ function versionOf(ctx, a, i, mcpEmpty) {
   return vs[vs.length - 1];
 }
 function toolDirection(cmd, project2, override) {
-  const file = override ?? (project2 ? join22(project2.art, "direction.json") : void 0);
+  const file = override ?? (project2 ? join24(project2.art, "direction.json") : void 0);
   const fix = "lock one first (artgen direction candidates \u2192 tile \u2192 lock, or /artgen-direction in Claude Code), or pass --direction <file|benchmark>";
-  if (override && !existsSync18(override) && ["benchmark", "alt"].includes(override)) return { p: project2, dir: resolveDirection(override) };
-  if (override && !existsSync18(override)) throw new Error(`${cmd}: --direction ${override}: no such file (or bench direction: benchmark, alt)`);
-  if (!file || !existsSync18(file)) throw new Error(`${cmd}: no art direction found \u2014 ${fix}`);
+  if (override && !existsSync20(override) && ["benchmark", "alt"].includes(override)) return { p: project2, dir: resolveDirection(override) };
+  if (override && !existsSync20(override)) throw new Error(`${cmd}: --direction ${override}: no such file (or bench direction: benchmark, alt)`);
+  if (!file || !existsSync20(file)) throw new Error(`${cmd}: no art direction found \u2014 ${fix}`);
   const raw = readJson(file), v = validateDirection(raw);
   if (!v.ok) throw new Error(raw?.status === "draft" && !override ? `${cmd}: the art direction is still a draft \u2014 ${fix}` : `${cmd}: ${file} is not a valid direction:
   ${v.errors.join("\n  ")}`);
   return { p: project2, dir: parseDirection(raw) };
 }
-var image, W1, BY_PATH, STR_LIST, assetParam, directionParam, ledgerParam, idsParam, versionParam, assetOpts, assetOf, sizeOf, sizeKey, statusTable, packetLine, projectPng;
+var image, W1, BY_PATH, STR_LIST2, assetParam, directionParam, ledgerParam, idsParam, versionParam, assetOpts, assetOf, sizeOf2, sizeKey, statusTable, packetLine, projectPng;
 var init_art_shared = __esm({
   "../artgen-cli/src/ops/art-shared.ts"() {
     "use strict";
-    init_src4();
+    init_src5();
     init_bench2();
     init_asset();
     init_projectfs();
@@ -30342,15 +31782,15 @@ var init_art_shared = __esm({
     image = (g) => ({ type: "image", data: Buffer.from(encodePNG(g)).toString("base64"), mimeType: "image/png" });
     W1 = "W1 runs through the art-direction skill and the CLI";
     BY_PATH = "reads a file by path outside the art/ sandbox";
-    STR_LIST = { type: "array", items: { type: "string" } };
+    STR_LIST2 = { type: "array", items: { type: "string" } };
     assetParam = (doc2 = "the asset: a brief id (art/briefs.yaml) or an asset directory, e.g. art/probes/character") => p.str(doc2, { positional: true, required: true });
     directionParam = () => p.str("a direction file (or a bench direction: benchmark, alt) in place of the locked one");
     ledgerParam = () => p.str("the ledger file to log to (default: art/ledger.jsonl)", { mcp: false });
-    idsParam = (doc2 = "brief ids; default all") => p.str(doc2, { positional: "rest", schema: STR_LIST });
+    idsParam = (doc2 = "brief ids; default all") => p.str(doc2, { positional: "rest", schema: STR_LIST2 });
     versionParam = (doc2 = "base.vN or finish.vM; default the latest") => p.str(doc2);
     assetOpts = (i) => ({ direction: i.direction, ledger: i.ledger });
     assetOf = (ctx, i) => ctx.asset(i.asset, assetOpts(i));
-    sizeOf = (v, d = 32) => {
+    sizeOf2 = (v, d = 32) => {
       if (Array.isArray(v) && v.length === 2) return [Number(v[0]), Number(v[1])];
       const m = typeof v === "string" ? v.match(/^(\d+)x(\d+)$/) : null;
       return m ? [+m[1], +m[2]] : [Number(v ?? d), Number(v ?? d)];
@@ -30362,17 +31802,17 @@ var init_art_shared = __esm({
     statusTable = (rows2) => rows2.map((r) => `  ${r.id.padEnd(16)} ${r.status.padEnd(11)} ${r.final ? `${r.final} ${r.score ?? "-"}${r.blind !== void 0 ? ` b${r.blind}` : ""}${r.gate === false ? " GATE FAIL" : ""}${r.belowBar ? " BELOW BAR" : ""}${r.top ? ` final\u2260best (${r.top.version} ${r.top.score})` : ""}` : r.next ? `${r.next.action} ${"version" in r.next ? r.next.version : ""}` : ""}${r.issues.length ? `
 ${r.issues.map((i) => `      issue: ${i}`).join("\n")}` : ""}`).join("\n");
     packetLine = (x) => `  ${x.id.padEnd(16)} ${x.step.action} ${"version" in x.step ? x.step.version : ""}${x.writes.length ? ` \u2192 writes ${x.writes.join(", ")}` : ""}${x.resume ? " (resume: written, never reviewed \u2014 check it, complete it, review it)" : ""}`;
-    projectPng = (ctx, f) => pngFile(join22(ctx.project().root, f));
+    projectPng = (ctx, f) => pngFile(join24(ctx.project().root, f));
   }
 });
 
 // ../artgen-cli/src/ops/art-asset.ts
-import { join as join23 } from "node:path";
+import { join as join25 } from "node:path";
 var PASS_NEXT, passRows, nextLine, passStatus, passNext, render10, review, conformance2, score, variants, reportOp2, voxel, anim, texture, fx, bench;
 var init_art_asset = __esm({
   "../artgen-cli/src/ops/art-asset.ts"() {
     "use strict";
-    init_src4();
+    init_src5();
     init_asset();
     init_bench2();
     init_node();
@@ -30431,8 +31871,8 @@ var init_art_asset = __esm({
         const r = await renderVersion(a, version, { variant, stages });
         let files = [];
         if (ctx.surface === "cli") {
-          files = writeRender(a, r, variant ? join23(a.path, "out", `variant-${variant}`) : void 0);
-          if (stages) for (const [k, g] of stages) writeGrid(join23(a.path, "out", "stages", version, `${k.replace(/\//g, "_")}.png`), g);
+          files = writeRender(a, r, variant ? join25(a.path, "out", `variant-${variant}`) : void 0);
+          if (stages) for (const [k, g] of stages) writeGrid(join25(a.path, "out", "stages", version, `${k.replace(/\//g, "_")}.png`), g);
         }
         return { id: a.brief.id, version, r, files };
       },
@@ -30470,10 +31910,11 @@ var init_art_asset = __esm({
       },
       cli: {
         usage: "       artgen review <assetDir> [--version v] [--blind] [--detail low|full] [--scene]",
-        text: (r) => `review sheet ${r.path} (~${r.tokens} image tokens); gate ${r.render.report.pass ? "pass" : "FAIL"}`,
-        json: (r) => ({ sheet: r.path, tokens: r.tokens, pass: r.render.report.pass, checks: r.render.report.checks })
+        text: (r) => `review sheet ${r.path} (~${r.tokens} image tokens); gate ${r.render.report.pass ? "pass" : "FAIL"}${(r.warnings ?? []).map((w) => `
+  warning: ${w}`).join("")}`,
+        json: (r) => ({ sheet: r.path, tokens: r.tokens, pass: r.render.report.pass, checks: r.render.report.checks, ...r.warnings && { warnings: r.warnings } })
       },
-      mcp: { content: (r, _i, ctx) => [text({ sheet: ctx.rel(r.path), imageTokens: r.tokens, pass: r.render.report.pass, checks: r.render.report.checks }), pngFile(r.path)] },
+      mcp: { content: (r, _i, ctx) => [text({ sheet: ctx.rel(r.path), imageTokens: r.tokens, pass: r.render.report.pass, checks: r.render.report.checks, ...r.warnings && { warnings: r.warnings } }), pngFile(r.path)] },
       python: {}
     });
     conformance2 = defineOp({
@@ -30625,13 +32066,13 @@ var init_art_asset = __esm({
         if (i.list === true || mcp && !i.material) return { list: MATERIALS };
         if (!i.material) throw new Error("texture: name a material (artgen texture --list)");
         const { p: pr, dir } = mcp ? { p: ctx.project(), dir: typeof i.direction === "string" ? resolveDirection(ctx.direction(i.direction)) : requireLocked(ctx.project()) } : toolDirection("texture", ctx.findProject(), i.direction);
-        const size = sizeOf(i.size), ramps = Array.isArray(i.ramps) ? i.ramps.reduce((m, x) => {
+        const size2 = sizeOf2(i.size), ramps = Array.isArray(i.ramps) ? i.ramps.reduce((m, x) => {
           const [k, v] = x.split("=");
           m[k] = v;
           return m;
         }, {}) : i.ramps;
-        const out = mcp ? join23(pr.art, "sheets", "textures") : i.out ?? (pr ? join23(pr.art, "sheets", "textures") : "artgen-out");
-        return { material: i.material, size, r: textureRun(dir, i.material, { size, seed: typeof i.seed === "number" ? i.seed : void 0, ramps, scale: typeof i.scale === "number" ? i.scale : void 0, out }) };
+        const out = mcp ? join25(pr.art, "sheets", "textures") : i.out ?? (pr ? join25(pr.art, "sheets", "textures") : "artgen-out");
+        return { material: i.material, size: size2, r: textureRun(dir, i.material, { size: size2, seed: typeof i.seed === "number" ? i.seed : void 0, ramps, scale: typeof i.scale === "number" ? i.scale : void 0, out }) };
       },
       cli: {
         usage: "       artgen texture <material> [--size 32|WxH] [--seed n] [--ramps base=stone,\u2026] [--scale k] [--out dir] | texture --list",
@@ -30672,8 +32113,8 @@ var init_art_asset = __esm({
         if (i.list === true || mcp && !i.preset) return { list: PRESET_NAMES };
         if (!i.preset) throw new Error("fx: name a preset (artgen fx --list)");
         const { p: pr, dir } = mcp ? { p: ctx.project(), dir: typeof i.direction === "string" ? resolveDirection(ctx.direction(i.direction)) : requireLocked(ctx.project()) } : toolDirection("fx", ctx.findProject(), i.direction);
-        const size = sizeOf(i.size), out = mcp ? join23(pr.art, "sheets", "fx") : i.out ?? (pr ? join23(pr.art, "sheets", "fx") : "artgen-out");
-        return { preset: i.preset, size, r: fxRun(dir, i.preset, { size, frames: typeof i.frames === "number" ? i.frames : 8, seed: typeof i.seed === "number" ? i.seed : void 0, scale: typeof i.scale === "number" ? i.scale : void 0, out }) };
+        const size2 = sizeOf2(i.size), out = mcp ? join25(pr.art, "sheets", "fx") : i.out ?? (pr ? join25(pr.art, "sheets", "fx") : "artgen-out");
+        return { preset: i.preset, size: size2, r: fxRun(dir, i.preset, { size: size2, frames: typeof i.frames === "number" ? i.frames : 8, seed: typeof i.seed === "number" ? i.seed : void 0, scale: typeof i.scale === "number" ? i.scale : void 0, out }) };
       },
       cli: {
         usage: "       artgen fx <preset> [--size 32|WxH] [--frames 8] [--seed n] [--scale n] [--out dir] | fx --list",
@@ -30721,20 +32162,20 @@ var init_art_asset = __esm({
 });
 
 // ../artgen-cli/src/ops/art-direction.ts
-import { existsSync as existsSync19, readFileSync as readFileSync18 } from "node:fs";
-import { join as join24 } from "node:path";
+import { existsSync as existsSync21, readFileSync as readFileSync20 } from "node:fs";
+import { join as join26 } from "node:path";
 function readColors(src, n = 16) {
   if (/^#?[0-9a-f]{6}(,#?[0-9a-f]{6})*$/i.test(src)) return src.split(",").map((c) => "#" + c.replace("#", "").toLowerCase());
-  if (!existsSync19(src)) throw new Error(`${src}: not found`);
+  if (!existsSync21(src)) throw new Error(`${src}: not found`);
   if (src.endsWith(".png")) return extractPalette(readGrid(src), n).colors;
-  const t = readFileSync18(src, "utf8");
+  const t = readFileSync20(src, "utf8");
   return src.endsWith(".gpl") ? parseGpl(t) : parseHexPalette(t);
 }
 var init, candidates2, directionShow, tile, mix, lockOp, anchors, draft, validate, swatch, paletteFile, paletteImport, paletteExtract, ramp, newOp, finish2;
 var init_art_direction = __esm({
   "../artgen-cli/src/ops/art-direction.ts"() {
     "use strict";
-    init_src4();
+    init_src5();
     init_node();
     init_project();
     init_templates();
@@ -30777,7 +32218,7 @@ var init_art_direction = __esm({
         from: p.str("an interview file (default art/interview.json)")
       },
       run(i, ctx) {
-        const pr = ctx.project(), base = i.from ? readInterview(i.from) : existsSync19(join24(pr.art, "interview.json")) ? readJson(join24(pr.art, "interview.json")) : {};
+        const pr = ctx.project(), base = i.from ? readInterview(i.from) : existsSync21(join26(pr.art, "interview.json")) ? readJson(join26(pr.art, "interview.json")) : {};
         const iv = {
           ...base,
           pitch: i.pitch ?? base.pitch ?? "",
@@ -30811,7 +32252,7 @@ var init_art_direction = __esm({
       run(i, ctx) {
         const pr = ctx.project();
         if (typeof i.candidate === "string") return { candidate: loadCandidate(pr, i.candidate) };
-        return ctx.surface === "mcp" ? { get: { locked: lockedDirection(pr), candidates: candidateNames(pr) } } : { show: show5(pr) };
+        return ctx.surface === "mcp" ? { get: { locked: lockedDirection(pr), candidates: candidateNames(pr) } } : { show: show2(pr) };
       },
       cli: {
         usage: "       artgen direction show [--candidate name]       the locked direction, the candidates, the style tiles, the probes",
@@ -30922,7 +32363,7 @@ style sheet: ${r.sheet}`
       effect: "read",
       summary: "Check a direction file against the direction format.",
       params: { file: p.str("the direction file", { positional: true, required: true }) },
-      run: (i) => validateDirection(JSON.parse(readFileSync18(i.file, "utf8"))),
+      run: (i) => validateDirection(JSON.parse(readFileSync20(i.file, "utf8"))),
       cli: {
         usage: "       artgen direction validate <file>",
         // prints the same lines with --json
@@ -30951,7 +32392,7 @@ style sheet: ${r.sheet}`
       run(i, ctx) {
         const colors = readColors(i.file, i.n ?? 16), ramps = rampsFromColors(colors);
         if (i.interview) {
-          const f = join24(ctx.project().art, "interview.json"), iv = existsSync19(f) ? readJson(f) : { pitch: "" };
+          const f = join26(ctx.project().art, "interview.json"), iv = existsSync21(f) ? readJson(f) : { pitch: "" };
           writeJson(f, { ...iv, colors });
         }
         if (i.swatch) swatch(colors, i.swatch);
@@ -30997,12 +32438,12 @@ ${Object.entries(r.ramps).map(([k, x]) => `  ${k}: ${x.join(" ")}`).join("\n")}$
       run(i, ctx) {
         const pr = ctx.findProject(), view = i.view ?? (pr && (() => {
           try {
-            return readJson(join24(pr.art, "direction.json")).camera?.view;
+            return readJson(join26(pr.art, "direction.json")).camera?.view;
           } catch {
             return void 0;
           }
         })()) ?? "topdown";
-        const path = i.dir ?? (pr ? join24(pr.art, "assets", i.kind, i.id) : i.id);
+        const path = i.dir ?? (pr ? join26(pr.art, "assets", i.kind, i.id) : i.id);
         return { id: i.id, path, ...newAsset(path, { id: i.id, kind: i.kind, view, size: sizeKey(i.size), states: i.states, directions: i.directions, notes: i.notes }) };
       },
       cli: {
@@ -31030,12 +32471,12 @@ next: edit base.v1.js for the brief, then artgen review ${r.path}`,
 });
 
 // ../artgen-cli/src/ops/art-production.ts
-import { writeFileSync as writeFileSync17 } from "node:fs";
-var ROSTER_SKILL, briefAdd, briefList, briefRm, briefLint, makeOp, status, galleryOp, feedbackOp, approveOp, roster2, rosterRecordOp, exportOp, restyleOp, importEditOp, analytics2;
+import { writeFileSync as writeFileSync20 } from "node:fs";
+var ROSTER_SKILL, briefAdd, briefList, briefRm, briefLint, makeOp, status, galleryOp, sheetOp, feedbackOp, approveOp, roster2, rosterRecordOp, exportOp, restyleOp, importEditOp, analytics2;
 var init_art_production = __esm({
   "../artgen-cli/src/ops/art-production.ts"() {
     "use strict";
-    init_src4();
+    init_src5();
     init_version();
     init_w1();
     init_w2();
@@ -31235,6 +32676,25 @@ ${a.issues.map((x) => `    issue: ${x}`).join("\n")}` : ""}`).join("\n")}` : "no
       mcp: { content: (r, _i, ctx) => [text(r.sheets.length ? r : "no finished assets waiting for review"), ...r.sheets.map((f) => projectPng(ctx, f))] },
       python: {}
     });
+    sheetOp = defineOp({
+      name: "sheet",
+      module: "art",
+      effect: "render",
+      summary: "The asset's one-page data sheet: kind, size, states, facings, frames, template, budget, palette, contract, references.",
+      description: "Write the asset's one-page data sheet (kind, importance, view, size in pixels and px per metre, states, facings, frames and fps, template, budget, the kind's palette, the animation contract when there is one, references) to art/assets/<kind>/<id>/out/sheet.png and sheet.json, and return it.",
+      params: { id: p.str("the brief id", { positional: true, required: true }) },
+      run: (i, ctx) => writeAssetSheet(ctx.project(), i.id),
+      cli: {
+        usage: "       artgen sheet <id>   the asset's one-page data sheet: out/sheet.png and out/sheet.json",
+        text: (r) => `${r.png}
+${r.json}
+${r.markdown}${r.warnings.map((w) => `
+warning: ${w}`).join("")}`,
+        json: (r) => ({ png: r.png, json: r.json, sheet: r.sheet, warnings: r.warnings })
+      },
+      mcp: { content: (r, _i, ctx) => [text({ png: r.png, json: r.json, sheet: r.sheet, warnings: r.warnings }), projectPng(ctx, r.png)] },
+      python: {}
+    });
     feedbackOp = defineOp({
       name: "feedback",
       module: "art",
@@ -31423,12 +32883,12 @@ next: artgen review ${id2}`,
         if (across2) {
           if (!across2.length) throw new Error("analytics --across <project root>[,<root>\u2026]: the projects (or bench folders with a ledger.jsonl) to pool");
           const r4 = pooledAnalytics(across2, { apply: i.apply ? ctx.project() : void 0, minAssets: i.min_assets });
-          if (i.out) writeFileSync17(i.out, r4.markdown);
+          if (i.out) writeFileSync20(i.out, r4.markdown);
           return { markdown: r4.markdown + (r4.applied ? `
 applied to ${r4.applied}` : ""), data: { ...r4.report, ...r4.applied && { applied: r4.applied } } };
         }
         const r = projectAnalytics(ctx.project());
-        if (i.out) writeFileSync17(i.out, r.markdown);
+        if (i.out) writeFileSync20(i.out, r.markdown);
         return { markdown: r.markdown, data: r.report };
       },
       cli: {
@@ -31442,159 +32902,37 @@ applied to ${r4.applied}` : ""), data: { ...r4.report, ...r4.applied && { applie
   }
 });
 
-// ../artgen-cli/src/loop/metrics.ts
-import { existsSync as existsSync20, mkdirSync as mkdirSync14, readdirSync as readdirSync11, readFileSync as readFileSync19, statSync as statSync3, writeFileSync as writeFileSync18 } from "node:fs";
-import { createHash as createHash3 } from "node:crypto";
-import { basename as basename6, dirname as dirname15, join as join25, resolve as resolve12 } from "node:path";
-function modulesOf(root) {
-  try {
-    return JSON.parse(readFileSync19(join25(root, "tools", "artgen", "MANIFEST.json"), "utf8")).modules ?? {};
-  } catch {
-    return {};
-  }
-}
-function metricsOf(p2, o = {}) {
-  const set2 = ledgerSet(p2.root), ledger = set2.ledger, report2 = analytics(ledger, set2.metas);
-  const ids = new Set(set2.metas.map((m) => m.id));
-  const approved = new Set(ledger.filter((e) => e.type === "approve" && ids.has(e.asset)).map((e) => e.asset));
-  const userFeedback = new Set(ledger.filter((e) => e.type === "feedback" && e.by !== "agent").map((e) => e.asset));
-  const untouched = [...approved].filter((a) => !userFeedback.has(a)).length;
-  const finals = report2.perAsset.filter((a) => a.final !== void 0).length;
-  const gateFailures = {};
-  for (const e of ledger) for (const c of e.conformance?.checks ?? []) if (c.status === "fail") gateFailures[c.id] = (gateFailures[c.id] ?? 0) + 1;
-  const recs = passRecords(ledger);
-  const wall2 = (rs) => round3(rs.reduce((n, r) => n + (r.wallMs ?? 0), 0) / 6e4, 1);
-  return {
-    schema: METRICS_SCHEMA,
-    repo: o.name ?? `repo-${createHash3("sha256").update(basename6(p2.root)).digest("hex").slice(0, 8)}`,
-    artgen: VERSION,
-    modules: modulesOf(p2.root),
-    exported: (o.now ?? /* @__PURE__ */ new Date()).toISOString().slice(0, 10),
-    assets: { total: set2.metas.length, final: finals, approved: approved.size },
-    maps: { map: count(join25(p2.art, "maps")), dungeon: count(join25(p2.art, "dungeons")), settlement: count(join25(p2.art, "settlements")) },
-    byKind: Object.fromEntries(report2.byGroup.kind.map((g) => [g.key, { assets: g.n, meanFinal: g.meanFinal, meanPasses: g.meanPasses, meanCost: g.meanCost }])),
-    passes: report2.passes.map((x) => ({ pass: x.pass, n: x.n, meanDelta: x.meanDelta, regressed: x.regressed, gatePass: x.gatePass, outTokens: x.outTokens, imageTokens: x.imageTokens, ...x.meanWallS !== void 0 && { wallMinutes: round3(x.meanWallS * x.n / 60, 1) } })),
-    totals: { outTokens: report2.totals.outTokens, inTokens: report2.totals.inTokens, imageTokens: report2.totals.imageTokens, cost: round3(report2.totals.cost, 2), wallMinutes: wall2(recs) },
-    firstPassApproval: { approved: approved.size, untouched, rate: approved.size ? round3(untouched / approved.size) : void 0 },
-    userRevisionRate: report2.userRevisionRate.rate,
-    gateFailures,
-    blind: { n: report2.review.blind.n, meanGap: report2.review.blind.meanGap }
-  };
-}
-function exportMetrics(p2, o = {}) {
-  const metrics = metricsOf(p2, o), file = resolve12(o.out ?? join25(p2.art, "metrics", `${metrics.artgen}.json`));
-  mkdirSync14(dirname15(file), { recursive: true });
-  writeFileSync18(file, JSON.stringify(metrics, null, 2) + "\n");
-  return { file, metrics };
-}
-function exportsIn(paths) {
-  const out = [];
-  const add2 = (f) => {
-    let j;
-    try {
-      j = JSON.parse(readFileSync19(f, "utf8"));
-    } catch {
-      throw new Error(`${f}: not JSON`);
-    }
-    if (j?.schema !== METRICS_SCHEMA || typeof j.repo !== "string") throw new Error(`${f}: not an artgen metrics export (schema ${METRICS_SCHEMA})`);
-    out.push(j);
-  };
-  const walk = (x) => {
-    if (!existsSync20(x)) throw new Error(`${x}: no such file or folder`);
-    if (statSync3(x).isDirectory()) for (const e of readdirSync11(x).sort()) {
-      const f = join25(x, e);
-      if (statSync3(f).isDirectory() ? e !== "node_modules" && e !== ".git" : e.endsWith(".json")) walk(f);
-    }
-    else add2(x);
-  };
-  for (const x of paths) walk(x);
-  return out;
-}
-function pool(paths) {
-  const all = exportsIn(paths), latest = /* @__PURE__ */ new Map();
-  for (const e of all) {
-    const k = `${e.repo}\0${e.artgen}`, had = latest.get(k);
-    if (!had || e.exported >= had.exported) latest.set(k, e);
-  }
-  const byVersion = /* @__PURE__ */ new Map();
-  for (const e of latest.values()) byVersion.set(e.artgen, [...byVersion.get(e.artgen) ?? [], e]);
-  const sum2 = (xs) => xs.reduce((a, b) => a + b, 0);
-  const versions = [...byVersion.entries()].map(([artgen, es]) => {
-    const approved = sum2(es.map((e) => e.assets.approved)), untouched = sum2(es.map((e) => e.firstPassApproval.untouched));
-    const tokens = sum2(es.map((e) => e.totals.outTokens + e.totals.imageTokens)), fails = {};
-    for (const e of es) for (const [c, n] of Object.entries(e.gateFailures)) fails[c] = (fails[c] ?? 0) + n;
-    return {
-      artgen,
-      repos: es.map((e) => e.repo).sort(),
-      assets: sum2(es.map((e) => e.assets.total)),
-      approved,
-      tokensPerApproved: approved ? Math.round(tokens / approved) : void 0,
-      wallMinutesPerApproved: approved ? round3(sum2(es.map((e) => e.totals.wallMinutes)) / approved, 1) : void 0,
-      firstPassApprovalRate: approved ? round3(untouched / approved) : void 0,
-      topGateFailures: Object.entries(fails).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 3).map(([check4, n]) => ({ check: check4, n }))
-    };
-  }).sort((a, b) => a.artgen.localeCompare(b.artgen, void 0, { numeric: true }));
-  return { exports: latest.size, repos: [...new Set([...latest.values()].map((e) => e.repo))].sort(), versions };
-}
-function poolMarkdown(r, title = "artgen pooled metrics") {
-  const cell2 = (v) => v === void 0 ? "\u2014" : String(v);
-  return [
-    `# ${title}`,
-    "",
-    `${r.exports} exports from ${r.repos.length} repo${r.repos.length === 1 ? "" : "s"}: ${r.repos.join(", ") || "\u2014"}.`,
-    "",
-    "| artgen | repos | assets | approved | tokens / approved | minutes / approved | first-pass approval | gate checks failing most |",
-    "|---|---|---|---|---|---|---|---|",
-    ...r.versions.map((v) => `| ${v.artgen} | ${v.repos.length} | ${v.assets} | ${v.approved} | ${cell2(v.tokensPerApproved)} | ${cell2(v.wallMinutesPerApproved)} | ${cell2(v.firstPassApprovalRate)} | ${v.topGateFailures.map((f) => `${f.check} \xD7${f.n}`).join(", ") || "\u2014"} |`),
-    "",
-    "Tokens are written code plus review images. A lower tokens / approved number at a later version is the sign a release made production cheaper; compare versions only when they hold the same kinds of asset.",
-    ""
-  ].join("\n");
-}
-var METRICS_SCHEMA, round3, count;
-var init_metrics2 = __esm({
-  "../artgen-cli/src/loop/metrics.ts"() {
-    "use strict";
-    init_src4();
-    init_version();
-    init_w2();
-    METRICS_SCHEMA = 1;
-    round3 = (v, d = 2) => Math.round(v * 10 ** d) / 10 ** d;
-    count = (dir) => existsSync20(dir) ? readdirSync11(dir, { withFileTypes: true }).filter((d) => d.isDirectory()).length : 0;
-  }
-});
-
 // ../artgen-cli/src/loop/pr-review.ts
-import { copyFileSync as copyFileSync3, existsSync as existsSync21, mkdirSync as mkdirSync15, readdirSync as readdirSync12, rmSync as rmSync2, writeFileSync as writeFileSync19 } from "node:fs";
-import { join as join26, resolve as resolve13 } from "node:path";
+import { copyFileSync as copyFileSync4, existsSync as existsSync22, mkdirSync as mkdirSync16, readdirSync as readdirSync13, rmSync as rmSync2, writeFileSync as writeFileSync21 } from "node:fs";
+import { join as join27, resolve as resolve14 } from "node:path";
 function sheetFor(p2, row, version) {
-  const a = openAsset(join26(p2.root, row.path)), s2 = [...ledgerFor(a)].reverse().find((e) => e.type === "review" && e.version === version && typeof e.sheet === "string")?.sheet;
+  const a = openAsset(join27(p2.root, row.path)), s2 = [...ledgerFor(a)].reverse().find((e) => e.type === "review" && e.version === version && typeof e.sheet === "string")?.sheet;
   if (!s2) return void 0;
-  const f = resolve13(p2.art, String(s2).split(",")[0]);
-  return existsSync21(f) ? f : void 0;
+  const f = resolve14(p2.art, String(s2).split(",")[0]);
+  return existsSync22(f) ? f : void 0;
 }
 async function prepareReview(p2, o = {}) {
   const rows2 = (await projectStatus(p2, o.ids)).filter((r) => r.final && (o.ids?.length || r.status === "final"));
-  const dir = join26(p2.art, "review");
-  if (existsSync21(dir)) {
-    for (const f of readdirSync12(dir)) if (/^[\w-]+-(base|finish)\.v\d+\.png$|^REVIEW\.md$/.test(f)) rmSync2(join26(dir, f));
+  const dir = join27(p2.art, "review");
+  if (existsSync22(dir)) {
+    for (const f of readdirSync13(dir)) if (/^[\w-]+-(base|finish)\.v\d+\.png$|^REVIEW\.md$/.test(f)) rmSync2(join27(dir, f));
   }
-  mkdirSync15(dir, { recursive: true });
+  mkdirSync16(dir, { recursive: true });
   const items = [], missing = [];
   for (const r of rows2) {
     const item = { id: r.id, version: r.final, score: r.score, blind: r.blind, issues: r.issues, ...r.belowBar && { belowBar: true } };
     const sheet = sheetFor(p2, r, r.final);
     if (sheet) {
       const name = `${r.id}-${r.final}.png`;
-      copyFileSync3(sheet, join26(dir, name));
+      copyFileSync4(sheet, join27(dir, name));
       item.sheet = name;
     } else missing.push(r.id);
-    const fb = [...ledgerFor(openAsset(join26(p2.root, r.path)))].reverse().find((e) => e.type === "feedback" && typeof e.on === "string" && e.on !== r.final);
+    const fb = [...ledgerFor(openAsset(join27(p2.root, r.path)))].reverse().find((e) => e.type === "feedback" && typeof e.on === "string" && e.on !== r.final);
     if (fb) {
       const prev = sheetFor(p2, r, fb.on);
       if (prev) {
         const name = `${r.id}-${fb.on}.png`;
-        copyFileSync3(prev, join26(dir, name));
+        copyFileSync4(prev, join27(dir, name));
         item.before = name;
         item.beforeVersion = fb.on;
       }
@@ -31615,11 +32953,11 @@ async function prepareReview(p2, o = {}) {
     "`approve <id>` approves the asset as shown. `<id>: <what to change>` sends it back; start the note with `base:` (form, proportion, colour) or `finish:` (pixels) to say which kind of change it is, or leave that to the session. Lines that are neither are ignored.",
     "",
     items.length ? "| Asset | Version | Score | Blind | Open issues | Before | Now |\n|---|---|---|---|---|---|---|" : "No finished assets are waiting for review.",
-    ...items.map((i) => `| **${i.id}**${i.belowBar ? " (below bar)" : ""} | ${i.version} | ${i.score ?? "\u2014"} | ${i.blind ?? "\u2014"} | ${i.issues.length ? cell(i.issues.join("; ")) : "\u2014"} | ${i.beforeVersion ? `${i.beforeVersion}<br>${img(i.before, `${i.id} ${i.beforeVersion}`)}` : "\u2014"} | ${img(i.sheet, `${i.id} ${i.version}`)} |`),
+    ...items.map((i) => `| **${i.id}**${i.belowBar ? " (below bar)" : ""} | ${i.version} | ${i.score ?? "\u2014"} | ${i.blind ?? "\u2014"} | ${i.issues.length ? cell2(i.issues.join("; ")) : "\u2014"} | ${i.beforeVersion ? `${i.beforeVersion}<br>${img(i.before, `${i.id} ${i.beforeVersion}`)}` : "\u2014"} | ${img(i.sheet, `${i.id} ${i.version}`)} |`),
     ...missing.length ? ["", `No review sheet yet for ${missing.join(", ")}: run \`artgen review <id>\` first.`] : [],
     ""
   ].join("\n");
-  writeFileSync19(join26(dir, "REVIEW.md"), table);
+  writeFileSync21(join27(dir, "REVIEW.md"), table);
   return { dir, table, items, missing };
 }
 function parseReviewComment(text3, ids) {
@@ -31652,64 +32990,27 @@ function parseReviewComment(text3, ids) {
   }
   return { actions, unknown, ignored };
 }
-var cell;
+var cell2;
 var init_pr_review = __esm({
   "../artgen-cli/src/loop/pr-review.ts"() {
     "use strict";
     init_asset();
     init_w1();
     init_w2();
-    cell = (s2) => s2.replace(/\|/g, "/").replace(/\n/g, " ");
+    cell2 = (s2) => s2.replace(/\|/g, "/").replace(/\n/g, " ");
   }
 });
 
 // ../artgen-cli/src/ops/art-loop.ts
-import { readFileSync as readFileSync20, writeFileSync as writeFileSync20 } from "node:fs";
-var metricsExport, metricsPool, prPrepare, prParse, LOOP_ART_OPS;
+import { readFileSync as readFileSync21 } from "node:fs";
+var prPrepare, prParse, LOOP_ART_OPS;
 var init_art_loop = __esm({
   "../artgen-cli/src/ops/art-loop.ts"() {
     "use strict";
-    init_metrics2();
     init_pr_review();
     init_w2();
     init_art_shared();
     init_registry();
-    metricsExport = defineOp({
-      name: "metrics.export",
-      module: "art",
-      effect: "write",
-      summary: "Write this repo's counts and ratios (assets, passes, tokens, minutes, scores, gate failures, per kind) to art/metrics/<version>.json for the pool.",
-      description: "Write art/metrics/<artgen version>.json: counts and ratios from the ledger and briefs (assets, passes, tokens, minutes, scores, gate failures, per kind), the artgen version and the installed modules. No images, ids, notes or paths.",
-      params: { name: p.str("how this repo appears in the pool (default: a short hash of its folder name)"), out: p.str("write the file here instead", { mcp: false }) },
-      run: (i, ctx) => {
-        const r = exportMetrics(ctx.project(), { name: i.name, out: i.out });
-        return { file: ctx.rel(r.file), metrics: r.metrics };
-      },
-      cli: {
-        usage: "       artgen metrics export [--name repo] [--out file]   counts and ratios for the pool (art/metrics/<version>.json)",
-        text: (r) => `metrics for artgen ${r.metrics.artgen}: ${r.metrics.assets.total} assets, ${r.metrics.assets.approved} approved, ${r.metrics.totals.outTokens + r.metrics.totals.imageTokens} tokens
-${r.file}
-read it before you share it: it holds counts and ratios only`,
-        json: (r) => r.metrics
-      },
-      mcp: {},
-      python: {}
-    });
-    metricsPool = defineOp({
-      name: "metrics.pool",
-      module: "art",
-      effect: "read",
-      summary: "Put exported metrics from several repos side by side per artgen version (tokens and minutes per approved asset, first-pass approval, gate failures).",
-      params: { paths: p.str("export files or folders of them", { positional: "rest", required: "metrics pool: name the export files or folders to pool", schema: { type: "array", items: { type: "string" } }, mcp: false }), out: p.str("also write the markdown here", { mcp: false }) },
-      run(i) {
-        const r = pool(i.paths), markdown = poolMarkdown(r);
-        if (i.out) writeFileSync20(i.out, markdown);
-        return { markdown, pool: r };
-      },
-      cli: { usage: "       artgen metrics pool <file|folder>\u2026 [--out pool.md]   exports from several repos, per artgen version", text: (r) => r.markdown, json: (r) => r.pool },
-      mcp: { exclude: "reads export files by path outside art/" },
-      python: {}
-    });
     prPrepare = defineOp({
       name: "pr.prepare",
       module: "art",
@@ -31738,7 +33039,7 @@ commit art/review/ to the pull request, then ask the user to reply there: approv
       description: `Read the user's pull request comment ("approve goblin", "goblin: arms too long", "goblin: finish: eyes too dark") into actions: approve and feedback calls, with lines naming no brief listed apart. Parse only: the session makes the calls with via: pr, after checking the comment is the user's.`,
       params: { comment: p.str("the comment text; or a file with --file", { positional: true }), file: p.str("read the comment from this file (- for standard input)", { mcp: false }), ids: idsParam("brief ids that count; default every brief") },
       run(i, ctx) {
-        const body3 = typeof i.file === "string" ? readFileSync20(i.file === "-" ? 0 : i.file, "utf8") : typeof i.comment === "string" ? i.comment : void 0;
+        const body3 = typeof i.file === "string" ? readFileSync21(i.file === "-" ? 0 : i.file, "utf8") : typeof i.comment === "string" ? i.comment : void 0;
         if (body3 === void 0) throw new Error("pr parse: give the comment text, or --file <path>");
         const ids = Array.isArray(i.ids) && i.ids.length ? i.ids : readBriefs(ctx.project()).map((b) => b.id);
         return parseReviewComment(body3, ids);
@@ -31754,7 +33055,7 @@ commit art/review/ to the pull request, then ask the user to reply there: approv
       mcp: {},
       python: {}
     });
-    LOOP_ART_OPS = [metricsExport, metricsPool, prPrepare, prParse];
+    LOOP_ART_OPS = [prPrepare, prParse];
   }
 });
 
@@ -31798,6 +33099,7 @@ var init_art = __esm({
       briefRm,
       status,
       galleryOp,
+      sheetOp,
       feedbackOp,
       approveOp,
       roster2,
@@ -31835,6 +33137,7 @@ var init_cli2 = __esm({
   "../artgen-cli/src/cli.ts"() {
     "use strict";
     init_asset();
+    init_art_metrics();
     init_maps_cli();
     init_projectfs();
     init_cli();
@@ -31863,7 +33166,7 @@ var init_gen = __esm({
 });
 
 // ../artgen-cli/src/index.ts
-var init_src6 = __esm({
+var init_src7 = __esm({
   "../artgen-cli/src/index.ts"() {
     "use strict";
     init_node();
@@ -31880,6 +33183,9 @@ var init_src6 = __esm({
     init_w1();
     init_w2();
     init_runtime();
+    init_art_metrics();
+    init_metrics3();
+    init_workflow2();
     init_maps2();
     init_ops();
     init_art();
@@ -31899,8 +33205,8 @@ __export(server_exports, {
   handle: () => handle,
   serve: () => serve
 });
-import { existsSync as existsSync22, readdirSync as readdirSync13 } from "node:fs";
-import { isAbsolute, join as join27, relative as relative10, resolve as resolve14 } from "node:path";
+import { existsSync as existsSync23, readdirSync as readdirSync14 } from "node:fs";
+import { isAbsolute, join as join28, relative as relative11, resolve as resolve15 } from "node:path";
 function mcpTool(op) {
   const m = mcpOf(op), schema = inputSchema(op), known = new Set(Object.keys(schema.properties));
   return {
@@ -31924,14 +33230,14 @@ function assetPath(p2, arg) {
       return void 0;
     }
   })() : void 0;
-  const kinds = bare && existsSync22(join27(p2.art, "assets")) ? readdirSync13(join27(p2.art, "assets"), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => join27(p2.art, "assets", d.name, arg)) : [];
-  const cands = [...brief ? [resolve14(p2.art, "assets", brief.kind, brief.id)] : [], ...isAbsolute(arg) ? [arg] : [resolve14(p2.root, arg), resolve14(p2.art, arg)], ...bare ? [join27(p2.art, "assets", arg)] : [], ...kinds];
+  const kinds = bare && existsSync23(join28(p2.art, "assets")) ? readdirSync14(join28(p2.art, "assets"), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => join28(p2.art, "assets", d.name, arg)) : [];
+  const cands = [...brief ? [resolve15(p2.art, "assets", brief.kind, brief.id)] : [], ...isAbsolute(arg) ? [arg] : [resolve15(p2.root, arg), resolve15(p2.art, arg)], ...bare ? [join28(p2.art, "assets", arg)] : [], ...kinds];
   const inside = cands.filter((c) => {
-    const r = relative10(p2.art, c);
+    const r = relative11(p2.art, c);
     return r && !r.startsWith("..") && !isAbsolute(r);
   });
   if (!inside.length) throw new Error(`asset path ${arg} is outside art/ (sandbox)`);
-  return inside.find((c) => existsSync22(c)) ?? inside[0];
+  return inside.find((c) => existsSync23(c)) ?? inside[0];
 }
 async function handle(msg, cwd = process.cwd()) {
   const reply = (result) => ({ jsonrpc: "2.0", id: msg.id ?? null, result });
@@ -31999,11 +33305,11 @@ var init_server = __esm({
   "../artgen-mcp/src/server.ts"() {
     "use strict";
     init_bench();
-    init_src6();
+    init_src7();
     SERVER = { name: "artgen", version: VERSION === "dev" ? "0.0.0-dev" : VERSION };
     PROTOCOLS = ["2025-06-18", "2025-03-26", "2024-11-05"];
     text2 = (v) => ({ type: "text", text: typeof v === "string" ? v : JSON.stringify(v, null, 2) });
-    projRel = (p2, f) => relative10(p2.root, resolve14(f)).split("\\").join("/");
+    projRel = (p2, f) => relative11(p2.root, resolve15(f)).split("\\").join("/");
     mcpCtx = (p2) => ({
       surface: "mcp",
       project: () => p2,
@@ -32011,9 +33317,10 @@ var init_server = __esm({
       rel: (f) => projRel(p2, f),
       assetPath: (arg) => assetPath(p2, arg),
       asset: (arg, o) => openAsset(assetPath(p2, arg), { direction: dirOpt(p2, o?.direction) }),
-      direction: (d) => dirOpt(p2, d)
+      direction: (d) => dirOpt(p2, d),
+      artMetrics: artMetricsOf
     });
-    dirOpt = (p2, d) => typeof d !== "string" ? void 0 : BENCH_DIRECTIONS[d] ? d : join27(p2.root, d);
+    dirOpt = (p2, d) => typeof d !== "string" ? void 0 : BENCH_DIRECTIONS[d] ? d : join28(p2.root, d);
     TOOLS = OPS.filter((op) => mcpOf(op)).map(mcpTool);
   }
 });

@@ -47,7 +47,7 @@ that. Start with `/artgen-direction` (or ask Claude to set the art direction).
   Only this machine can reach it and the file API needs the token in the link. A cloud session's container can't be reached
   from your browser: review on the pull request there.
 - **Library packages** (code that imports the engine): the release attaches `artgen-runtime`, `artgen-primitives`,
-  `artgen-scene` and `artgen-mapgen` as `.tgz` files, installed by URL
+  `artgen-scene`, `artgen-workflow` and `artgen-mapgen` as `.tgz` files, installed by URL
   (`npm install https://github.com/rstevenson1237/image_tools/releases/download/artgen-v0.12.0/artgen-mapgen-0.11.0.tgz`).
   `update` moves such URLs in the repo's `package.json` to the new release.
 

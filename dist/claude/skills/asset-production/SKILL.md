@@ -22,6 +22,7 @@ node tools/artgen/artgen.js brief add mud --kind tile
 node tools/artgen/artgen.js brief add wisp --kind effect --object "will-o'-wisp flame with orbiting sparks" --anims idle:6 --importance filler
 node tools/artgen/artgen.js brief list
 ```
+A brief may list reference images (`refs: [refs/goblin-1.png]` in `art/briefs.yaml`: PNGs under `art/refs/`). Every review sheet shows them in a REFERENCES row under the anchors (a missing one, or one that isn't a PNG, is skipped with a warning), and `node tools/artgen/artgen.js sheet <id>` writes the asset's one-page data sheet (kind, size and px per metre, states, facings, frames, template, budget, palette, the animation contract, the references) to `out/sheet.png` and `sheet.json`, which the user reads in **Asset Review**.
 Kinds: `character creature prop tile tileset texture effect viewmodel ui-icon`. `--size` takes a direction scale key or
 `WxH`. `--swaps red:cloth=accent` adds a palette-swap variant (ramp → ramp, exported for the runtime). `--importance
 hero|standard|filler` picks the pass budget tier. `--height <metres>` gives the thing's real-world height (a barrel
