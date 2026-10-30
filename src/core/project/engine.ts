@@ -11,14 +11,15 @@
  * Asset modules are arbitrary code from the game repo (D17): the loader runs them in the worker, never on the page.
  */
 import {
-  analytics, applyFinish, assetStatus, blindScores, briefDir, briefOrder, budgetFor, conformance, describeDirection,
+  analytics, applyFinish, approvalEntry, isApprovable, diffJson, diffLines, assetDataSheet, assetStatus, dataSheetMarkdown, feedbackEntry, generatorMetrics, isSubjectKey, mapDirection, parseSubjectBrief, subjectDataSheet, subjectKey, subjectStatus, subjects, SUBJECT_KINDS, versionFile, versionOfFile, blindScores, briefDir, briefOrder, budgetFor, conformance, describeDirection,
   effectObjectIssues, encodePNG, finishBaseOf, finishStale, formatLedgerLine, Grid, isPlaceholderDirection, iso, lockDirection,
   mergeConfig, parseBriefs, parseDirection, parseLedger, parseVersion, passId, planPasses, PROBE_KINDS, pxPerMetre, animInput, standFrames,
   renderAsset, FACINGS, resolveSize, sourceHash, styleSheet, styleTile, TILE_KINDS, validateDirection, decodePNG, viewContext, stackStrip, parallaxStrip, fpRole, fpShots, autotileCount, autotileMap,
-  type AnalyticsReport, type AssetBudget, type AssetMeta, type AssetModule, type AssetStatus, type BriefEntry,
+  type AnalyticsReport, type AnimContract, type Check, type DataSheet, type GeneratorMetrics, type SubjectBrief, type SubjectKind, type AssetBudget, type AssetMeta, type AssetModule, type AssetStatus, type BriefEntry,
   type ConformanceReport, type Direction, type FeedbackOpen, type FinishModule, type LedgerEntry, type NextStep,
   type PassRow, type PatchRecord, type ProbeImages, type ProjectConfig, type RenderResult, type StyleTileColumn,
 } from 'artgen-core';
+import { joinPath } from './snapshot';
 
 /** Text and binary files of the art folder, keyed by path relative to it (`assets/prop/reeds/base.v2.js`). */
 export interface Snapshot {
@@ -72,6 +73,42 @@ export interface AssetRow {
   why: string;
   imageTokens: number;
   stale?: string[];
+}
+
+/** A map, dungeon or settlement in Asset Review: a row in the same status groups as an asset. */
+export interface SubjectRow {
+  key: string;
+  kind: SubjectKind;
+  id: string;
+  status: AssetStatus;
+  /** The latest version. */
+  version?: string;
+  why: string;
+  /** No check fails (the checks of the latest version, or of the working file when there is none). */
+  pass: boolean;
+  fail: number;
+  flag: number;
+  /** The user may approve the latest version now (final, or stale from a map direction change alone). */
+  approvable: boolean;
+}
+
+export interface SubjectVersion { version: string; ts?: string; note?: string; by?: string; sourceHash?: string; score?: number; reviewer?: string }
+
+export interface SubjectDetail {
+  row: SubjectRow;
+  /** Oldest first. */
+  versions: SubjectVersion[];
+  /** The checks of the latest version (the working file when there is none). */
+  checks: Check[];
+  sheet: DataSheet;
+  markdown: string;
+  brief?: SubjectBrief;
+  /** The theme the version is shown in (the locked map direction's, else the default). */
+  theme: string;
+  direction: mapDirection.MapDirection | null;
+  feedback: LedgerEntry[];
+  approvals: LedgerEntry[];
+  reviews: LedgerEntry[];
 }
 
 export interface TimelineRow extends PassRow {
@@ -267,7 +304,9 @@ export class ArtProject {
 
   /** Every brief's status, in brief priority order (`artgen status`). */
   async status(): Promise<AssetRow[]> {
-    const dir = this.requireLocked(), rows: AssetRow[] = [];
+    // a maps-only repo has no locked art direction: no art rows, but the maps are still listed (`subjects()`)
+    const dir = this.locked(), rows: AssetRow[] = [];
+    if (!dir) return rows;
     for (const b of briefOrder(this.briefs())) rows.push(await this.row(b, dir));
     return rows;
   }
@@ -350,14 +389,112 @@ export class ArtProject {
   /** Ledger line for an entry (the store appends it). */
   static line(e: Omit<LedgerEntry, 'ts'>): string { return ledgerLine(e); }
 
-  analytics(): { report: AnalyticsReport; metas: AssetMeta[] } {
-    const dir = this.requireLocked(), metas: AssetMeta[] = this.briefs().map(b => {
+  analytics(): { report: AnalyticsReport; metas: AssetMeta[]; generators?: Record<string, GeneratorMetrics> } {
+    const dir = this.locked(), metas: AssetMeta[] = dir ? this.briefs().map(b => {
       const t = this.text(`${briefDir(b)}/brief.json`), local = t ? (JSON.parse(t) as { template?: string }) : {};
       const size = Array.isArray(b.size) ? b.size.join('x') : (b.size ?? b.kind);
       return { id: b.id, kind: b.kind, view: b.view ?? dir.camera.view, size, template: local.template, importance: b.importance ?? 'standard' };
+    }) : [];
+    const ids = new Set(metas.map(m => m.id)), ledger = this.ledger(), report = analytics(ledger.filter(e => ids.has(e.asset) || e.asset === 'gallery'), metas);
+    // once there is map work in the ledger, the Generators table (as `artgen analytics` shows it)
+    const maps = SUBJECT_KINDS.flatMap(kind => this.subjectIds(kind).map(id => ({ generator: kind as string, key: subjectKey(kind, id) })));
+    return { report, metas, ...(ledger.some(e => isSubjectKey(e.asset)) && { generators: generatorMetrics(ledger, [...metas.map(m => ({ generator: 'art', key: m.id })), ...maps]) }) };
+  }
+
+  // ---- maps, dungeons and settlements (docs/WORKFLOW.md §11): the same rules as the CLI's `workflow.ts`, over the snapshot ----------
+
+  /** Ids of the subjects of a kind (the folders under `art/<dir>/` that hold the working file). */
+  subjectIds(kind: SubjectKind): string[] {
+    const sub = subjects.SUBJECTS[kind], re = new RegExp(`^${sub.dir}/([\\w-]+)/${sub.file.replace('.', '\\.')}$`);
+    return Object.keys(this.snap.text).map(p => re.exec(p)?.[1]).filter((id): id is string => !!id).sort();
+  }
+
+  /** `art/map-direction.json`, or null when there is none. */
+  mapDirection(): mapDirection.MapDirection | null {
+    const t = this.text(mapDirection.DIRECTION_FILE);
+    if (t === undefined) return null;
+    try { return mapDirection.parseMapDirection(JSON.parse(t)); } catch (e) { throw new Error(`art/${mapDirection.DIRECTION_FILE}: ${(e as Error).message}`); }
+  }
+
+  /** The working file, its versions and ledger lines, and its status. */
+  private subjectState(kind: SubjectKind, id: string) {
+    const sub = subjects.SUBJECTS[kind], stem = sub.file.replace(/\.json$/, ''), dir = `${sub.dir}/${id}`, text = this.text(`${dir}/${sub.file}`);
+    if (text === undefined) throw new Error(`no ${kind} ${id} (art/${dir}/${sub.file})`);
+    const key = subjectKey(kind, id), entries = this.ledger().filter(e => e.asset === key), direction = this.mapDirection();
+    const versions = Object.keys(this.snap.text).filter(p => p.startsWith(`${dir}/`) && !p.slice(dir.length + 1).includes('/')).map(p => versionOfFile(stem, p.slice(dir.length + 1))).filter((v): v is string => !!v)
+      .sort((a, b) => +a.slice(1) - +b.slice(1));
+    const ref = mapDirection.directionRef(direction), status = subjectStatus({ entries, key, workingHash: sourceHash(text), direction: ref });
+    return { sub, stem, dir, key, text, entries, versions, direction, ref, status, versionText: (v: string) => this.text(`${dir}/${versionFile(stem, v)}`) };
+  }
+
+  /** The checks of a file's text under the locked map direction's symbol set; an underlay is looked for in the snapshot. */
+  private subjectChecks(kind: SubjectKind, dir: string, text: string, direction: mapDirection.MapDirection | null): Check[] {
+    return subjects.checkSource(kind, text, { exists: rel => this.text(joinPath(dir, rel)) !== undefined, symbols: mapDirection.symbolsFor(direction, kind) });
+  }
+
+  /** One row per map, dungeon and settlement in the project, as `artgen <kind> status` shows them. */
+  subjects(): SubjectRow[] {
+    return SUBJECT_KINDS.flatMap(kind => this.subjectIds(kind).map((id): SubjectRow => {
+      const st = this.subjectState(kind, id), v = st.status.version, checks = this.subjectChecks(kind, st.dir, (v && st.versionText(v)) || st.text, st.direction);
+      const fail = checks.filter(c => c.status === 'fail').length;
+      return { key: st.key, kind, id, status: st.status.status, ...(v && { version: v }), why: st.status.why, pass: !fail, fail, flag: checks.filter(c => c.status === 'flag').length, approvable: isApprovable(st.status, sourceHash(st.text)) };
+    }));
+  }
+
+  /** One subject for Asset Review: status, versions with their notes, checks, the data sheet, the brief, and its ledger lines. */
+  subjectDetail(kind: SubjectKind, id: string): SubjectDetail {
+    const st = this.subjectState(kind, id), v = st.status.version, text = (v && st.versionText(v)) || st.text, checks = this.subjectChecks(kind, st.dir, text, st.direction);
+    const briefText = this.text(`${st.dir}/${st.stem}.brief.md`), brief = briefText === undefined ? undefined : parseSubjectBrief(briefText), theme = mapDirection.themeFor(st.direction, kind);
+    const fail = checks.filter(c => c.status === 'fail').length;
+    const versionEntries = st.entries.filter(e => e.type === 'version'), scores = st.entries.filter(e => e.type === 'score' && !e.blind);
+    const versions = st.versions.map((name): SubjectVersion => {
+      const e = [...versionEntries].reverse().find(x => x.version === name), sc = [...scores].reverse().find(x => x.version === name);
+      return { version: name, ...(e && { ts: e.ts, by: e.by, sourceHash: e.sourceHash }), ...(typeof e?.note === 'string' && e.note && { note: e.note }), ...(typeof sc?.score === 'number' && { score: sc.score }), ...(typeof sc?.reviewer === 'string' && { reviewer: sc.reviewer }) };
     });
-    const ids = new Set(metas.map(m => m.id));
-    return { report: analytics(this.ledger().filter(e => ids.has(e.asset) || e.asset === 'gallery'), metas), metas };
+    const sheet = subjectDataSheet(st.sub.sheet(st.sub.parse(JSON.parse(text)), checks), { version: v, theme, directionVersion: mapDirection.lockedMapDirection(st.direction)?.version, brief });
+    return {
+      row: { key: st.key, kind, id, status: st.status.status, ...(v && { version: v }), why: st.status.why, pass: !fail, fail, flag: checks.filter(c => c.status === 'flag').length, approvable: isApprovable(st.status, sourceHash(st.text)) },
+      versions, checks, sheet, markdown: dataSheetMarkdown(sheet), ...(brief && { brief }), theme, direction: st.direction,
+      feedback: st.entries.filter(e => e.type === 'feedback'), approvals: st.entries.filter(e => e.type === 'approve'), reviews: st.entries.filter(e => e.type === 'review'),
+    };
+  }
+
+  /** The file text of a version (the working file when `version` is left out): what the worker renders. */
+  subjectFile(kind: SubjectKind, id: string, version?: string): string {
+    const st = this.subjectState(kind, id), t = version ? st.versionText(version) : st.text;
+    if (t === undefined) throw new Error(`${id}: no ${version} (have ${st.versions.join(', ') || 'none'})`);
+    return t;
+  }
+
+  /** What changed between two versions of a subject (`working` is the file now), one line per change (`artgen <kind> diff`). */
+  subjectDiff(kind: SubjectKind, id: string, a: string, b: string): string[] {
+    const read = (v: string) => JSON.parse(this.subjectFile(kind, id, v === 'working' ? undefined : v));
+    return diffLines(diffJson(read(a), read(b)));
+  }
+
+  /** The terrain map a dungeon's or settlement's `underlay` names, as its JSON (undefined when it has none or it is not in the project). */
+  subjectUnderlay(kind: SubjectKind, id: string): unknown | undefined {
+    const st = this.subjectState(kind, id), u = (JSON.parse(st.text) as { underlay?: { map?: unknown } }).underlay?.map, t = typeof u === 'string' ? this.text(joinPath(st.dir, u)) : undefined;
+    return t === undefined ? undefined : JSON.parse(t);
+  }
+
+  /** Approve the latest version of a subject: the CLI's rules (it must be final, no check may fail). The ledger line is the plan to write. */
+  approveSubject(kind: SubjectKind, id: string, note = ''): FileOp[] {
+    const st = this.subjectState(kind, id), v = st.status.version, checks = v && isApprovable(st.status, sourceHash(st.text)) ? this.subjectChecks(kind, st.dir, st.versionText(v) ?? st.text, st.direction) : [];
+    const entry = approvalEntry({ kind, id, key: st.key, status: st.status, checks, workingHash: sourceHash(st.text), direction: st.ref }, { note, via: 'image-tools' });
+    return [{ op: 'append', path: LEDGER, data: ledgerLine(entry) }];
+  }
+
+  /** The user's feedback on the latest version (a note; the region is optional and not drawn on maps yet). */
+  feedbackSubject(kind: SubjectKind, id: string, o: { note: string; region?: number[] }): FileOp[] {
+    const st = this.subjectState(kind, id), entry = feedbackEntry({ kind, id, key: st.key, latest: st.versions[st.versions.length - 1] }, { ...o, via: 'image-tools' });
+    return [{ op: 'append', path: LEDGER, data: ledgerLine(entry) }];
+  }
+
+  /** The one-page data sheet of an asset (what `artgen sheet` writes), with the animation contract when the asset has been exported. */
+  assetSheet(id: string): { sheet: DataSheet; markdown: string } {
+    const a = this.asset(id), ct = this.text(`contracts/${id}.json`), sheet = assetDataSheet(a.brief, a.dir, a.budget, ct ? (JSON.parse(ct) as AnimContract) : undefined);
+    return { sheet, markdown: dataSheetMarkdown(sheet) };
   }
 
   /** In-context background for an asset's review: 3×3 tiling is done by the viewer; iso assets get the floor, oblique

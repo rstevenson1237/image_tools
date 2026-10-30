@@ -6,6 +6,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { openAsset } from './asset.ts';
+import { artMetricsOf } from './loop/art-metrics.ts';
 import { GROUP_HELP } from './maps-cli.ts';
 import { findProject, requireProject } from './projectfs.ts';
 import { findOp, runCli } from './ops/cli.ts';
@@ -32,7 +33,7 @@ const cliCtx = (root: string | undefined): Ctx => ({
   surface: 'cli', root, project: () => requireProject(root), findProject: () => findProject(root), rel: f => f,
   assetPath: arg => resolveAssetArg(findProject(root), arg as string),
   asset: (arg, o) => openAsset(resolveAssetArg(findProject(root), arg as string), { direction: o?.direction, ledger: o?.ledger }),
-  direction: d => d as string | undefined,
+  direction: d => d as string | undefined, artMetrics: artMetricsOf,
 });
 
 export async function main(argv: string[]): Promise<number> {

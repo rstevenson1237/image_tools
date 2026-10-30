@@ -43,6 +43,7 @@ _OPS: dict[str, tuple[tuple[str, ...], tuple[str, ...], dict[str, tuple[str, str
     "brief.rm": (("brief", "rm"), ("id",), {}),
     "status": (("status",), ("*ids",), {}),
     "gallery": (("gallery",), ("*ids",), {}),
+    "sheet": (("sheet",), ("id",), {}),
     "feedback": (("feedback",), ("id",), {"route": ("--route", "value"), "note": ("--note", "value"), "by": ("--by", "value"), "region": ("--region", "list"), "cell": ("--cell", "value"), "force": ("--force", "switch"), "via": ("--via", "value")}),
     "approve": (("approve",), ("id",), {"note": ("--note", "value"), "via": ("--via", "value")}),
     "roster": (("roster",), ("*ids",), {"seed": ("--seed", "value"), "stage": ("--stage", "value")}),
@@ -52,8 +53,6 @@ _OPS: dict[str, tuple[tuple[str, ...], tuple[str, ...], dict[str, tuple[str, str
     "export": (("export",), (), {"pack": ("--pack", "list"), "include_drafts": ("--include-drafts", "switch"), "runtime": ("--runtime", "switch"), "force": ("--force", "switch"), "break_contract": ("--break-contract", "list")}),
     "restyle": (("restyle",), (), {"from_": ("--from", "value")}),
     "analytics": (("analytics",), (), {"across": ("--across", "list"), "apply": ("--apply", "switch"), "min_assets": ("--min-assets", "value"), "out": ("--out", "value")}),
-    "metrics.export": (("metrics", "export"), (), {"name": ("--name", "value"), "out": ("--out", "value")}),
-    "metrics.pool": (("metrics", "pool"), ("*paths",), {"out": ("--out", "value")}),
     "pr.prepare": (("pr", "prepare"), ("*ids",), {"base": ("--base", "value")}),
     "pr.parse": (("pr", "parse"), ("comment", "*ids"), {"file": ("--file", "value")}),
     "import-edit": (("import-edit",), ("id", "png"), {"cell": ("--cell", "value")}),
@@ -131,8 +130,35 @@ _OPS: dict[str, tuple[tuple[str, ...], tuple[str, ...], dict[str, tuple[str, str
     "settlement.facts": (("settlement", "facts"), ("id",), {"file": ("--file", "value")}),
     "settlement.render": (("settlement", "render"), ("id",), {"file": ("--file", "value"), "view": ("--view", "value"), "building": ("--building", "value"), "floor": ("--floor", "value"), "buildings": ("--buildings", "value"), "theme": ("--theme", "value"), "plans": ("--plans", "switch"), "ppu": ("--ppu", "value"), "layers": ("--layers", "value"), "format": ("--format", "value"), "fit": ("--fit", "value"), "page_scale": ("--page-scale", "value"), "crop": ("--crop", "value"), "out": ("--out", "value")}),
     "formats": (("formats",), (), {}),
+    "map.brief": (("map", "brief"), ("id",), {"text": ("--text", "value"), "refs": ("--refs", "list")}),
+    "map.version": (("map", "version"), ("id",), {"note": ("--note", "value")}),
+    "map.diff": (("map", "diff"), ("id", "a", "b"), {}),
+    "map.review": (("map", "review"), ("id", "version"), {"score": ("--score", "value"), "note": ("--note", "value"), "reviewer": ("--reviewer", "value")}),
+    "map.feedback": (("map", "feedback"), ("id",), {"note": ("--note", "value"), "region": ("--region", "list"), "via": ("--via", "value")}),
+    "map.approve": (("map", "approve"), ("id",), {"note": ("--note", "value"), "via": ("--via", "value")}),
+    "map.status": (("map", "status"), ("*ids",), {}),
+    "map.sheet": (("map", "sheet"), ("id",), {}),
+    "map.direction": (("map", "direction"), (), {"theme": ("--theme", "value"), "symbols": ("--symbols", "value"), "lock": ("--lock", "switch"), "note": ("--note", "value"), "via": ("--via", "value")}),
+    "dungeon.brief": (("dungeon", "brief"), ("id",), {"text": ("--text", "value"), "refs": ("--refs", "list")}),
+    "dungeon.version": (("dungeon", "version"), ("id",), {"note": ("--note", "value")}),
+    "dungeon.diff": (("dungeon", "diff"), ("id", "a", "b"), {}),
+    "dungeon.review": (("dungeon", "review"), ("id", "version"), {"score": ("--score", "value"), "note": ("--note", "value"), "reviewer": ("--reviewer", "value")}),
+    "dungeon.feedback": (("dungeon", "feedback"), ("id",), {"note": ("--note", "value"), "region": ("--region", "list"), "via": ("--via", "value")}),
+    "dungeon.approve": (("dungeon", "approve"), ("id",), {"note": ("--note", "value"), "via": ("--via", "value")}),
+    "dungeon.status": (("dungeon", "status"), ("*ids",), {}),
+    "dungeon.sheet": (("dungeon", "sheet"), ("id",), {}),
+    "settlement.brief": (("settlement", "brief"), ("id",), {"text": ("--text", "value"), "refs": ("--refs", "list")}),
+    "settlement.version": (("settlement", "version"), ("id",), {"note": ("--note", "value")}),
+    "settlement.diff": (("settlement", "diff"), ("id", "a", "b"), {}),
+    "settlement.review": (("settlement", "review"), ("id", "version"), {"score": ("--score", "value"), "note": ("--note", "value"), "reviewer": ("--reviewer", "value")}),
+    "settlement.feedback": (("settlement", "feedback"), ("id",), {"note": ("--note", "value"), "region": ("--region", "list"), "via": ("--via", "value")}),
+    "settlement.approve": (("settlement", "approve"), ("id",), {"note": ("--note", "value"), "via": ("--via", "value")}),
+    "settlement.status": (("settlement", "status"), ("*ids",), {}),
+    "settlement.sheet": (("settlement", "sheet"), ("id",), {}),
     "report": (("report",), ("id",), {"file": ("--file", "value"), "kind": ("--kind", "value"), "note": ("--note", "value"), "out": ("--out", "value"), "no_render": ("--no-render", "switch"), "issue": ("--issue", "switch"), "repo": ("--repo", "value")}),
     "upstream": (("upstream",), (), {"base": ("--base", "value"), "out": ("--out", "value"), "repo": ("--repo", "value")}),
+    "metrics.export": (("metrics", "export"), (), {"name": ("--name", "value"), "out": ("--out", "value")}),
+    "metrics.pool": (("metrics", "pool"), ("*paths",), {"out": ("--out", "value")}),
 }
 
 
@@ -258,6 +284,10 @@ class Ops:
         """A sheet of finished assets for the user: score, open issues, BELOW BAR. (artgen gallery)"""
         return self._op("gallery", [*ids], {})
 
+    def sheet(self, id: str) -> "Result":
+        """The asset's one-page data sheet: kind, size, states, facings, frames, template, budget, palette, contract, references. (artgen sheet)"""
+        return self._op("sheet", [id], {})
+
     def feedback(self, id: str, *, route: Optional[str] = None, note: Optional[str] = None, by: Optional[str] = None, region: Optional[Sequence[float]] = None, cell: Optional[str] = None, force: Optional[bool] = None, via: Optional[str] = None) -> "Result":
         """Record feedback on a finished asset and open a revision. (artgen feedback)"""
         return self._op("feedback", [id], {"route": route, "note": note, "by": by, "region": region, "cell": cell, "force": force, "via": via})
@@ -293,14 +323,6 @@ class Ops:
     def analytics(self, *, across: Optional[Sequence[str]] = None, apply: Optional[bool] = None, min_assets: Optional[float] = None, out: Optional[str] = None) -> "Result":
         """Pipeline analytics: per-pass gains, cost per asset, budget suggestions (--across: pooled over projects). (artgen analytics)"""
         return self._op("analytics", [], {"across": across, "apply": apply, "min_assets": min_assets, "out": out})
-
-    def metrics_export(self, *, name: Optional[str] = None, out: Optional[str] = None) -> "Result":
-        """Write this repo's counts and ratios (assets, passes, tokens, minutes, scores, gate failures, per kind) to art/metrics/<version>.json for the pool. (artgen metrics export)"""
-        return self._op("metrics.export", [], {"name": name, "out": out})
-
-    def metrics_pool(self, *paths: str, out: Optional[str] = None) -> "Result":
-        """Put exported metrics from several repos side by side per artgen version (tokens and minutes per approved asset, first-pass approval, gate failures). (artgen metrics pool)"""
-        return self._op("metrics.pool", [*paths], {"out": out})
 
     def pr_prepare(self, *ids: str, base: Optional[str] = None) -> "Result":
         """Copy the finished assets' review sheets to art/review/ and write REVIEW.md, the table to commit to the pull request for review from the phone or the cloud. (artgen pr prepare)"""
@@ -610,6 +632,106 @@ class Ops:
         """The map, dungeon and settlement file format versions this artgen reads and writes. (artgen formats)"""
         return self._op("formats", [], {})
 
+    def map_brief(self, id: str, *, text: Optional[str] = None, refs: Optional[Sequence[str]] = None) -> "Result":
+        """Show or write the terrain map's brief: what it is for in the user's words, and its reference images. (artgen map brief)"""
+        return self._op("map.brief", [id], {"text": text, "refs": refs})
+
+    def map_version(self, id: str, *, note: Optional[str] = None) -> "Result":
+        """Record the working file as the next version (v1, v2, …), a frozen copy beside it. (artgen map version)"""
+        return self._op("map.version", [id], {"note": note})
+
+    def map_diff(self, id: str, a: Optional[str] = None, b: Optional[str] = None) -> "Result":
+        """What changed between two versions of a terrain map (default: the latest version → the working file). (artgen map diff)"""
+        return self._op("map.diff", [id, a, b], {})
+
+    def map_review(self, id: str, version: Optional[str] = None, *, score: Optional[float] = None, note: Optional[str] = None, reviewer: Optional[str] = None) -> "Result":
+        """Build the review sheet of a version (render, data sheet, references) and log it; --score also logs a score. (artgen map review)"""
+        return self._op("map.review", [id, version], {"score": score, "note": note, "reviewer": reviewer})
+
+    def map_feedback(self, id: str, *, note: Optional[str] = None, region: Optional[Sequence[float]] = None, via: Optional[str] = None) -> "Result":
+        """Record the user's feedback on the latest version and open a revision. (artgen map feedback)"""
+        return self._op("map.feedback", [id], {"note": note, "region": region, "via": via})
+
+    def map_approve(self, id: str, *, note: Optional[str] = None, via: Optional[str] = None) -> "Result":
+        """Record the user's approval of the latest version (it must be final, with no failing check). (artgen map approve)"""
+        return self._op("map.approve", [id], {"note": note, "via": via})
+
+    def map_status(self, *ids: str) -> "Result":
+        """Status of each terrain map: in-pipeline, final, approved, revision, stale; with one id, its history. (artgen map status)"""
+        return self._op("map.status", [*ids], {})
+
+    def map_sheet(self, id: str) -> "Result":
+        """The terrain map's one-page data sheet: out/sheet.png and out/sheet.json. (artgen map sheet)"""
+        return self._op("map.sheet", [id], {})
+
+    def map_direction(self, *, theme: Optional[str] = None, symbols: Optional[str] = None, lock: Optional[bool] = None, note: Optional[str] = None, via: Optional[str] = None) -> "Result":
+        """Show or change the map direction: the theme of each kind of map, the symbols a kind may use, and its lock. (artgen map direction)"""
+        return self._op("map.direction", [], {"theme": theme, "symbols": symbols, "lock": lock, "note": note, "via": via})
+
+    def dungeon_brief(self, id: str, *, text: Optional[str] = None, refs: Optional[Sequence[str]] = None) -> "Result":
+        """Show or write the dungeon's brief: what it is for in the user's words, and its reference images. (artgen dungeon brief)"""
+        return self._op("dungeon.brief", [id], {"text": text, "refs": refs})
+
+    def dungeon_version(self, id: str, *, note: Optional[str] = None) -> "Result":
+        """Record the working file as the next version (v1, v2, …), a frozen copy beside it. (artgen dungeon version)"""
+        return self._op("dungeon.version", [id], {"note": note})
+
+    def dungeon_diff(self, id: str, a: Optional[str] = None, b: Optional[str] = None) -> "Result":
+        """What changed between two versions of a dungeon (default: the latest version → the working file). (artgen dungeon diff)"""
+        return self._op("dungeon.diff", [id, a, b], {})
+
+    def dungeon_review(self, id: str, version: Optional[str] = None, *, score: Optional[float] = None, note: Optional[str] = None, reviewer: Optional[str] = None) -> "Result":
+        """Build the review sheet of a version (render, data sheet, references) and log it; --score also logs a score. (artgen dungeon review)"""
+        return self._op("dungeon.review", [id, version], {"score": score, "note": note, "reviewer": reviewer})
+
+    def dungeon_feedback(self, id: str, *, note: Optional[str] = None, region: Optional[Sequence[float]] = None, via: Optional[str] = None) -> "Result":
+        """Record the user's feedback on the latest version and open a revision. (artgen dungeon feedback)"""
+        return self._op("dungeon.feedback", [id], {"note": note, "region": region, "via": via})
+
+    def dungeon_approve(self, id: str, *, note: Optional[str] = None, via: Optional[str] = None) -> "Result":
+        """Record the user's approval of the latest version (it must be final, with no failing check). (artgen dungeon approve)"""
+        return self._op("dungeon.approve", [id], {"note": note, "via": via})
+
+    def dungeon_status(self, *ids: str) -> "Result":
+        """Status of each dungeon: in-pipeline, final, approved, revision, stale; with one id, its history. (artgen dungeon status)"""
+        return self._op("dungeon.status", [*ids], {})
+
+    def dungeon_sheet(self, id: str) -> "Result":
+        """The dungeon's one-page data sheet: out/sheet.png and out/sheet.json. (artgen dungeon sheet)"""
+        return self._op("dungeon.sheet", [id], {})
+
+    def settlement_brief(self, id: str, *, text: Optional[str] = None, refs: Optional[Sequence[str]] = None) -> "Result":
+        """Show or write the settlement's brief: what it is for in the user's words, and its reference images. (artgen settlement brief)"""
+        return self._op("settlement.brief", [id], {"text": text, "refs": refs})
+
+    def settlement_version(self, id: str, *, note: Optional[str] = None) -> "Result":
+        """Record the working file as the next version (v1, v2, …), a frozen copy beside it. (artgen settlement version)"""
+        return self._op("settlement.version", [id], {"note": note})
+
+    def settlement_diff(self, id: str, a: Optional[str] = None, b: Optional[str] = None) -> "Result":
+        """What changed between two versions of a settlement (default: the latest version → the working file). (artgen settlement diff)"""
+        return self._op("settlement.diff", [id, a, b], {})
+
+    def settlement_review(self, id: str, version: Optional[str] = None, *, score: Optional[float] = None, note: Optional[str] = None, reviewer: Optional[str] = None) -> "Result":
+        """Build the review sheet of a version (render, data sheet, references) and log it; --score also logs a score. (artgen settlement review)"""
+        return self._op("settlement.review", [id, version], {"score": score, "note": note, "reviewer": reviewer})
+
+    def settlement_feedback(self, id: str, *, note: Optional[str] = None, region: Optional[Sequence[float]] = None, via: Optional[str] = None) -> "Result":
+        """Record the user's feedback on the latest version and open a revision. (artgen settlement feedback)"""
+        return self._op("settlement.feedback", [id], {"note": note, "region": region, "via": via})
+
+    def settlement_approve(self, id: str, *, note: Optional[str] = None, via: Optional[str] = None) -> "Result":
+        """Record the user's approval of the latest version (it must be final, with no failing check). (artgen settlement approve)"""
+        return self._op("settlement.approve", [id], {"note": note, "via": via})
+
+    def settlement_status(self, *ids: str) -> "Result":
+        """Status of each settlement: in-pipeline, final, approved, revision, stale; with one id, its history. (artgen settlement status)"""
+        return self._op("settlement.status", [*ids], {})
+
+    def settlement_sheet(self, id: str) -> "Result":
+        """The settlement's one-page data sheet: out/sheet.png and out/sheet.json. (artgen settlement sheet)"""
+        return self._op("settlement.sheet", [id], {})
+
     def report(self, id: Optional[str] = None, *, file: Optional[str] = None, kind: Optional[Literal["asset", "map", "dungeon", "settlement"]] = None, note: Optional[str] = None, out: Optional[str] = None, no_render: Optional[bool] = None, issue: Optional[bool] = None, repo: Optional[str] = None) -> "Result":
         """Write a feedback bundle for an asset, map, dungeon or settlement (its files, versions, render, a case.md) to send back to the artgen repo. (artgen report)"""
         return self._op("report", [id], {"file": file, "kind": kind, "note": note, "out": out, "no_render": no_render, "issue": issue, "repo": repo})
@@ -617,3 +739,11 @@ class Ops:
     def upstream(self, *, base: Optional[str] = None, out: Optional[str] = None, repo: Optional[str] = None) -> "Result":
         """Your local edits to the installed skills, agents, commands and templates as a patch against their sources in the artgen repo. (artgen upstream)"""
         return self._op("upstream", [], {"base": base, "out": out, "repo": repo})
+
+    def metrics_export(self, *, name: Optional[str] = None, out: Optional[str] = None) -> "Result":
+        """Write this repo's counts and ratios (assets, passes, tokens, minutes, scores, gate failures, per kind; per generator, maps too) to art/metrics/<version>.json for the pool. (artgen metrics export)"""
+        return self._op("metrics.export", [], {"name": name, "out": out})
+
+    def metrics_pool(self, *paths: str, out: Optional[str] = None) -> "Result":
+        """Put exported metrics from several repos side by side per artgen version (tokens and minutes per approved asset, first-pass approval, gate failures; per generator). (artgen metrics pool)"""
+        return self._op("metrics.pool", [*paths], {"out": out})

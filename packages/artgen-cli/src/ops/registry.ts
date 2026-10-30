@@ -5,6 +5,7 @@
  * types), so the web app can use it too; the command-line parser is `cli.ts`, the declarations are `maps.ts` and `art.ts`.
  */
 import type { AssetDir } from '../asset.ts';
+import type { ArtMetricsOf } from '../loop/metrics.ts';
 import type { Project } from '../projectfs.ts';
 
 export type Module = 'core' | 'art' | 'maps';
@@ -47,6 +48,8 @@ export interface Ctx {
   /** art module only (set by the CLI's and the MCP server's art context): resolve and open an asset argument. */
   asset?(arg: unknown, o?: { direction?: string; ledger?: string }): AssetDir;
   assetPath?(arg: unknown): string;
+  /** art module only (set by the CLI's and the MCP server's art contexts): the pixel-art numbers of a metrics export. A maps-only repo has none. */
+  artMetrics?: ArtMetricsOf;
   /** art module only: a `direction` argument as the engine takes it (CLI: as given; MCP: a bench name or a file under the project root). */
   direction?(d: unknown): string | undefined;
 }

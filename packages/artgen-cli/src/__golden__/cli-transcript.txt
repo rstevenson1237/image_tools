@@ -31,7 +31,7 @@ exit 0
 }
 
 $ artgen texture stone
-threw: artgen-maps: texture: not a command here; this bundle has map, dungeon, settlement, formats, ui, report, upstream (--help)
+threw: artgen-maps: texture: not a command here; this bundle has map, dungeon, settlement, formats, ui, report, upstream, metrics (--help)
 
 $ artgen --version
 exit 0
@@ -2229,10 +2229,10 @@ $ artgen map sync isle --root <root>
 threw: map sync <id>|--file target.json --from new.json --origin tables
 
 $ artgen map bogus --root <root>
-threw: map: new | gen | edit | grid | label | symbol | symbols | overlay | set | render | show | facts | check | sync | list (artgen --help)
+threw: map: new | gen | edit | grid | label | symbol | symbols | overlay | set | render | show | facts | check | sync | list | brief | version | diff | review | feedback | approve | status | sheet | direction (artgen --help)
 
 $ artgen map --root <root>
-threw: map: new | gen | edit | grid | label | symbol | symbols | overlay | set | render | show | facts | check | sync | list (artgen --help)
+threw: map: new | gen | edit | grid | label | symbol | symbols | overlay | set | render | show | facts | check | sync | list | brief | version | diff | review | feedback | approve | status | sheet | direction (artgen --help)
 
 $ artgen map new --preset local --size 16x12 --seed 4 --title Gorge --file <root>/pm/F.a.json
 exit 0
@@ -6348,10 +6348,10 @@ $ artgen dungeon sync crypt --root <root>
 threw: dungeon sync <id>|--file target.json --from new.json --origin tables
 
 $ artgen dungeon bogus --root <root>
-threw: dungeon: new | gen | room | block | link | unlink | door | connect | disconnect | grid | style | label | symbol | symbols | overlay | check | fit | render | show | facts | sync | list (artgen --help)
+threw: dungeon: new | gen | room | block | link | unlink | door | connect | disconnect | grid | style | label | symbol | symbols | overlay | check | fit | render | show | facts | sync | list | brief | version | diff | review | feedback | approve | status | sheet (artgen --help)
 
 $ artgen dungeon --root <root>
-threw: dungeon: new | gen | room | block | link | unlink | door | connect | disconnect | grid | style | label | symbol | symbols | overlay | check | fit | render | show | facts | sync | list (artgen --help)
+threw: dungeon: new | gen | room | block | link | unlink | door | connect | disconnect | grid | style | label | symbol | symbols | overlay | check | fit | render | show | facts | sync | list | brief | version | diff | review | feedback | approve | status | sheet (artgen --help)
 
 $ artgen dungeon new --size 24x18 --seed 2 --title Hole --file <root>/pm/D.a.json
 exit 0
@@ -13098,10 +13098,10 @@ $ artgen settlement render ford --view plan --root <root>
 threw: no building with floors (give --building)
 
 $ artgen settlement bogus --root <root>
-threw: settlement: new | gen | building | interior | floor | room | connect | disconnect | door | window | fixture | prop | road | water | wall | area | tree | grid | style | label | symbol | overlay | check | facts | render | show | list | fixtures | symbols (artgen --help)
+threw: settlement: new | gen | building | interior | floor | room | connect | disconnect | door | window | fixture | prop | road | water | wall | area | tree | grid | style | label | symbol | overlay | check | facts | render | show | list | fixtures | symbols | brief | version | diff | review | feedback | approve | status | sheet (artgen --help)
 
 $ artgen settlement --root <root>
-threw: settlement: new | gen | building | interior | floor | room | connect | disconnect | door | window | fixture | prop | road | water | wall | area | tree | grid | style | label | symbol | overlay | check | facts | render | show | list | fixtures | symbols (artgen --help)
+threw: settlement: new | gen | building | interior | floor | room | connect | disconnect | door | window | fixture | prop | road | water | wall | area | tree | grid | style | label | symbol | overlay | check | facts | render | show | list | fixtures | symbols | brief | version | diff | review | feedback | approve | status | sheet (artgen --help)
 
 $ artgen settlement new --kind hamlet --seed 3 --size 40x30 --file <root>/pm/S.a.json
 exit 0

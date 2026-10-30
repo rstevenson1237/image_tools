@@ -3,12 +3,13 @@
 //
 //   interfaces (cli, mcp, python, web)  →  anything
 //   artgen (artgen-core)                →  scene, workflow, primitives
-//   mapgen, imagekit, workflow, scene   →  primitives   (mapgen also gets workflow from R5)
+//   mapgen                              →  workflow, primitives
+//   imagekit, workflow, scene           →  primitives
 //   primitives, runtime                 →  nothing
 //
 // artgen-core is both the artgen layer and the facade that re-exports the lower packages for existing imports. Its
 // `index.ts` and `maps.ts` are the facade and sit outside the layers; everything else under `src/` is the artgen layer.
-// The workflow package arrives in R5; until then the ledger and status logic stay in the artgen layer.
+// The workflow package (R5) holds the ledger, status rules, versions, analytics, metrics and the data sheet.
 //
 //   node scripts/check-boundaries.mjs            list violations (exit 0)
 //   node scripts/check-boundaries.mjs --strict   exit 1 on any violation (CI)
@@ -25,7 +26,7 @@ export const ALLOWED = {
   scene: ['primitives'],
   workflow: ['primitives'],
   artgen: ['scene', 'workflow', 'primitives'],
-  mapgen: ['primitives'],
+  mapgen: ['primitives', 'workflow'],
   imagekit: ['primitives'],
   runtime: [],
   interface: ['primitives', 'scene', 'workflow', 'artgen', 'mapgen', 'imagekit', 'runtime'],
@@ -40,11 +41,12 @@ const LAYERS = [
   ['primitives', ['packages/artgen-primitives/']],
   ['scene', ['packages/artgen-scene/']],
   ['mapgen', ['packages/artgen-mapgen/']],
+  ['workflow', ['packages/artgen-workflow/']],
   ['artgen', [CORE]],
   ['interface', ['packages/artgen-cli/', 'packages/artgen-mcp/', 'packages/artgen-dist/', 'src/', 'python/']],
 ];
 /** The layer a bare package specifier belongs to. `artgen-core` is the facade: a layer must not import it. */
-const PACKAGE_LAYER = { 'artgen-primitives': 'primitives', 'artgen-scene': 'scene', 'artgen-mapgen': 'mapgen', 'artgen-runtime': 'runtime' };
+const PACKAGE_LAYER = { 'artgen-primitives': 'primitives', 'artgen-scene': 'scene', 'artgen-mapgen': 'mapgen', 'artgen-workflow': 'workflow', 'artgen-runtime': 'runtime' };
 
 /** Test files that import the facade on purpose. */
 const FACADE_TESTS = [

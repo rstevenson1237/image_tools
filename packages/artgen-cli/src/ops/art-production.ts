@@ -3,7 +3,7 @@ import { writeFileSync } from 'node:fs';
 import { IMPORTANCE, type BriefEntry, type Importance } from 'artgen-core';
 import { VERSION } from '../version.ts';
 import { lockedDirection } from '../w1.ts';
-import { addBrief, approve, briefWarnings, exportPacks, feedback, gallery, importEdit, make, pooledAnalytics, projectAnalytics, projectStatus, readBriefs, removeBriefFile, requireLocked, restyle, rosterRecord, rosterRun, type WorkPacket } from '../w2.ts';
+import { addBrief, approve, briefWarnings, exportPacks, feedback, gallery, importEdit, make, pooledAnalytics, projectAnalytics, projectStatus, readBriefs, removeBriefFile, requireLocked, restyle, rosterRecord, rosterRun, writeAssetSheet, type WorkPacket } from '../w2.ts';
 import { idsParam, packetLine, projectPng, sizeKey, statusTable, text, type Inp } from './art-shared.ts';
 import { defineOp, p } from './registry.ts';
 
@@ -146,6 +146,19 @@ export const galleryOp = defineOp({
     text: r => (r.sheets.length ? `gallery ${r.sheets.join(', ')} (~${r.tokens} image tokens)\n${r.assets.map((a: any) => `  ${a.id} ${a.final} ${a.score ?? '-'}${a.blind !== undefined ? ` b${a.blind}` : ''}${a.belowBar ? ' BELOW BAR' : ''}${a.top ? ` final≠best (${a.top.version} ${a.top.score})` : ''}${a.issues.length ? `\n${a.issues.map((x: string) => `    issue: ${x}`).join('\n')}` : ''}`).join('\n')}` : 'no finished assets waiting for review'),
   },
   mcp: { content: (r, _i, ctx) => [text(r.sheets.length ? r : 'no finished assets waiting for review'), ...r.sheets.map((f: string) => projectPng(ctx, f))] }, python: {},
+});
+
+export const sheetOp = defineOp({
+  name: 'sheet', module: 'art', effect: 'render', summary: 'The asset\'s one-page data sheet: kind, size, states, facings, frames, template, budget, palette, contract, references.',
+  description: 'Write the asset\'s one-page data sheet (kind, importance, view, size in pixels and px per metre, states, facings, frames and fps, template, budget, the kind\'s palette, the animation contract when there is one, references) to art/assets/<kind>/<id>/out/sheet.png and sheet.json, and return it.',
+  params: { id: p.str('the brief id', { positional: true, required: true }) },
+  run: (i: Inp, ctx) => writeAssetSheet(ctx.project(), i.id),
+  cli: {
+    usage: '       artgen sheet <id>   the asset\'s one-page data sheet: out/sheet.png and out/sheet.json',
+    text: r => `${r.png}\n${r.json}\n${r.markdown}${r.warnings.map((w: string) => `\nwarning: ${w}`).join('')}`,
+    json: r => ({ png: r.png, json: r.json, sheet: r.sheet, warnings: r.warnings }),
+  },
+  mcp: { content: (r, _i, ctx) => [text({ png: r.png, json: r.json, sheet: r.sheet, warnings: r.warnings }), projectPng(ctx, r.png)] }, python: {},
 });
 
 export const feedbackOp = defineOp({

@@ -11,7 +11,7 @@ import fontBold from '../../packages/artgen-core/assets/fonts/AlegreyaSans-Bold.
 import fontItalic from '../../packages/artgen-core/assets/fonts/AlegreyaSans-Italic.ttf?url';
 import {
   buildPack, dungeon, encodePNG, extractPalette, decodePNG, Grid, initSvg, map, parseDirection, rasterizeSvg, setSvgFonts, settlement, sourceHash, validateDirection,
-  type Direction, type LedgerEntry, type PackManifest,
+  mapDirection, type Direction, type LedgerEntry, type PackManifest, type SubjectKind,
 } from 'artgen-core';
 import { RUNTIME_VERSION } from 'artgen-runtime';
 import { ArtProject, img, strip, type FileOp, type Img, type Snapshot } from '../core/project/engine';
@@ -116,6 +116,23 @@ const api = {
   analytics: () => current().analytics(),
 
   anchors: () => current().anchors(),
+
+  /** Asset Review: every map, dungeon and settlement in the project (works without a locked art direction), and one in detail. */
+  subjects: () => current().subjects(),
+  subjectDetail: (kind: SubjectKind, id: string) => current().subjectDetail(kind, id),
+  subjectDiff: (kind: SubjectKind, id: string, a: string, b: string) => current().subjectDiff(kind, id, a, b),
+  approveSubject: (kind: SubjectKind, id: string, note?: string): FileOp[] => current().approveSubject(kind, id, note),
+  feedbackSubject: (kind: SubjectKind, id: string, o: { note: string; region?: number[] }): FileOp[] => current().feedbackSubject(kind, id, o),
+  assetSheet: (id: string) => current().assetSheet(id),
+
+  /** A version of a map, dungeon or settlement (the working file when `version` is left out) as a PNG, in the locked map direction's theme: the same render functions as the editors, over the raw JSON of the version's file. */
+  async subjectPng(kind: SubjectKind, id: string, version?: string): Promise<Uint8Array> {
+    const p = current(), raw = JSON.parse(p.subjectFile(kind, id, version)) as { cols: number; rows: number }, theme = mapDirection.themeFor(p.mapDirection(), kind);
+    const ppu = (base: number) => Math.max(4, Math.min(base, Math.floor(700 / Math.max(raw.cols, raw.rows))));
+    if (kind === 'map') return api.mapPng(raw, { theme: theme as map.ThemeName, ppu: ppu(40) });
+    if (kind === 'dungeon') return api.dungeonPng(raw, { ppu: ppu(40) });
+    return api.settlementPng(raw, { theme: theme as settlement.SettlementTheme, ppu: ppu(24), underlayMap: p.subjectUnderlay(kind, id) });
+  },
 
   direction() {
     const p = current();

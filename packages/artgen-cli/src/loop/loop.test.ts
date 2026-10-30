@@ -11,6 +11,7 @@ import { dungeonFile } from '../dungeon.ts';
 import { initProject } from '../project.ts';
 import { unifiedDiff } from './diff.ts';
 import { briefOf, kindOfFile, openIssue, writeBundle } from './feedback-bundle.ts';
+import { artMetricsOf } from './art-metrics.ts';
 import { exportMetrics, metricsOf, pool, poolMarkdown } from './metrics.ts';
 import { parseReviewComment, prepareReview } from './pr-review.ts';
 import { unfill } from './upstream.ts';
@@ -223,28 +224,28 @@ describe('report', () => {
 describe('metrics', () => {
   test('the export holds counts and ratios only: no asset id, note or path', () => {
     const root = example('swamp-topdown'), project = { root, art: join(root, 'art') };
-    const { file, metrics } = exportMetrics(project, { name: 'swamp', now: new Date('2026-10-29T08:30:00Z') });
+    const { file, metrics } = exportMetrics(project, { name: 'swamp', now: new Date('2026-10-29T08:30:00Z'), art: artMetricsOf });
     expect(file).toBe(join(root, 'art', 'metrics', `${metrics.artgen}.json`));
-    expect(metrics).toMatchObject({ schema: 1, repo: 'swamp', exported: '2026-10-29' });
-    expect(metrics.assets.total).toBeGreaterThan(0);
-    expect(metrics.assets.approved).toBeGreaterThanOrEqual(0);
-    expect(Object.keys(metrics.byKind).length).toBeGreaterThan(0);
+    expect(metrics).toMatchObject({ schema: 2, repo: 'swamp', exported: '2026-10-29' });
+    expect(metrics.assets!.total).toBeGreaterThan(0);
+    expect(metrics.assets!.approved).toBeGreaterThanOrEqual(0);
+    expect(Object.keys(metrics.byKind!).length).toBeGreaterThan(0);
     const text = readFileSync(file, 'utf8');
     for (const id of ['leech', 'wisp', 'reeds', 'bog-water']) expect(text).not.toContain(id);
     expect(text).not.toContain(root);
-    expect(metrics.firstPassApproval.untouched).toBeLessThanOrEqual(metrics.firstPassApproval.approved);
+    expect(metrics.firstPassApproval!.untouched).toBeLessThanOrEqual(metrics.firstPassApproval!.approved);
   });
 
   test('the repo name is a hash of the folder name unless given', () => {
     const root = example('swamp-topdown');
-    expect(metricsOf({ root, art: join(root, 'art') }).repo).toMatch(/^repo-[0-9a-f]{8}$/);
+    expect(metricsOf({ root, art: join(root, 'art') }, { art: artMetricsOf }).repo).toMatch(/^repo-[0-9a-f]{8}$/);
   });
 
   test('the pool puts two repos side by side per version, and counts a repo once per version', () => {
     const dir = scratch('pool'), a = example('swamp-topdown'), b = example('iso-dungeon');
-    exportMetrics({ root: a, art: join(a, 'art') }, { name: 'swamp', out: join(dir, 'a.json'), now: new Date('2026-10-28') });
-    exportMetrics({ root: a, art: join(a, 'art') }, { name: 'swamp', out: join(dir, 'a2.json'), now: new Date('2026-10-29') });
-    exportMetrics({ root: b, art: join(b, 'art') }, { name: 'iso', out: join(dir, 'b.json') });
+    exportMetrics({ root: a, art: join(a, 'art') }, { name: 'swamp', out: join(dir, 'a.json'), now: new Date('2026-10-28'), art: artMetricsOf });
+    exportMetrics({ root: a, art: join(a, 'art') }, { name: 'swamp', out: join(dir, 'a2.json'), now: new Date('2026-10-29'), art: artMetricsOf });
+    exportMetrics({ root: b, art: join(b, 'art') }, { name: 'iso', out: join(dir, 'b.json'), art: artMetricsOf });
     const r = pool([dir]);
     expect(r.repos).toEqual(['iso', 'swamp']);
     expect(r.exports).toBe(2);

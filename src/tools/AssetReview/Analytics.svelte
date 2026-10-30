@@ -1,11 +1,13 @@
 <script lang="ts">
   /** Pipeline analytics (D19, SPEC §11.1): per-pass gains, cost per asset, revision rate, review independence. */
-  import type { AnalyticsReport } from 'artgen-core';
+  import type { AnalyticsReport, GeneratorMetrics } from 'artgen-core';
 
   interface Props {
     report: AnalyticsReport;
+    /** Per generator (art and each kind of map), once there is map work in the ledger. */
+    generators?: Record<string, GeneratorMetrics>;
   }
-  let { report }: Props = $props();
+  let { report, generators }: Props = $props();
 
   const fmt = (v: number | undefined, d = 2) => (v === undefined ? '–' : (Math.round(v * 10 ** d) / 10 ** d).toString());
   const signed = (v: number | undefined) => (v === undefined ? '–' : `${v > 0 ? '+' : ''}${fmt(v)}`);
@@ -28,6 +30,21 @@
       <span>mean blind gap (own − blind, {report.review.blind.n} finals)</span>
     </div>
   </div>
+
+  {#if generators}
+    <h3>Generators</h3>
+    <table>
+      <thead><tr><th>generator</th><th>subjects</th><th>started</th><th>final</th><th>approved</th><th>passes / approved</th><th>first-pass approval</th><th>feedback</th><th>review tok</th><th>minutes</th></tr></thead>
+      <tbody>
+        {#each Object.entries(generators) as [name, g] (name)}
+          <tr>
+            <td>{name}</td><td>{g.subjects}</td><td>{g.started}</td><td>{g.final}</td><td>{g.approved}</td><td>{fmt(g.passesPerApproved)}</td>
+            <td>{g.firstPassApproval.rate === undefined ? '–' : `${Math.round(g.firstPassApproval.rate * 100)}%`}</td><td>{g.feedback}</td><td>{k(g.imageTokens)}</td><td>{g.wallMinutes}</td>
+          </tr>
+        {/each}
+      </tbody>
+    </table>
+  {/if}
 
   <h3>Per pass</h3>
   <table>

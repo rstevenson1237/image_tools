@@ -70,7 +70,7 @@ week it runs `update` and opens a pull request with the changelog and the files 
 
 Code that imports the engine (a game's runtime, a tool that builds maps in code) installs the library packages attached
 to each release: `npm install https://github.com/rstevenson1237/image_tools/releases/download/artgen-v0.12.0/artgen-mapgen-0.11.0.tgz`
-(`artgen-runtime`, `artgen-primitives`, `artgen-scene` and `artgen-mapgen`; no registry). `update` moves those URLs in
+(`artgen-runtime`, `artgen-primitives`, `artgen-scene`, `artgen-workflow` and `artgen-mapgen`; no registry). `update` moves those URLs in
 your `package.json` to the new release.
 
 Later: `npx -y github:rstevenson1237/image_tools#artgen-dist update` (keeps your local edits), or pin a release with
@@ -83,8 +83,9 @@ dungeon (Pixi.js) and a first-person billboard crawler (three.js).
 |---|---|
 | [`packages/artgen-primitives`](packages/artgen-primitives) | engine layer 1: grid, colour, palette, noise, PNG, SVG, geometry, format versions |
 | [`packages/artgen-scene`](packages/artgen-scene) | engine layer 2: direction types, 2D/3D scenes, procedural layers, voxels, views, animation, effects, textures |
+| [`packages/artgen-workflow`](packages/artgen-workflow) | what pixel art and maps share once something is made: ledger, status, versions and diffs, analytics, metrics, the data sheet |
 | [`packages/artgen-mapgen`](packages/artgen-mapgen) | the terrain, dungeon and settlement map engines |
-| [`packages/artgen-core`](packages/artgen-core) | the artgen pipeline (rendering, passes, checks, workflows, export) and the facade that re-exports the three above |
+| [`packages/artgen-core`](packages/artgen-core) | the artgen pipeline (rendering, passes, checks, workflows, export) and the facade that re-exports the four above |
 | [`packages/artgen-cli`](packages/artgen-cli) | the `artgen` CLI the skills call |
 | [`packages/artgen-runtime`](packages/artgen-runtime) | the runtime vendored into games, with Pixi.js / three.js / Canvas 2D adapters |
 | [`packages/artgen-mcp`](packages/artgen-mcp) | the MCP server |

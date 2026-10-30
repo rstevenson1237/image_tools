@@ -16,7 +16,7 @@ import { packLibs } from '../pack-libs.mjs';
 const require = createRequire(import.meta.url);
 const REPO = fileURLToPath(new URL('../../../', import.meta.url));
 const tmp = mkdtempSync(join(tmpdir(), 'artgen-libs-')), packs = join(tmp, 'packs'), consumer = join(tmp, 'consumer');
-const NAMES = ['artgen-runtime', 'artgen-primitives', 'artgen-scene', 'artgen-mapgen'];
+const NAMES = ['artgen-runtime', 'artgen-primitives', 'artgen-scene', 'artgen-workflow', 'artgen-mapgen'];
 const manifest = (name: string) => JSON.parse(readFileSync(join(consumer, 'node_modules', name, 'package.json'), 'utf8'));
 const node = (args: string[]) => spawnSync(process.execPath, args, { cwd: consumer, encoding: 'utf8' });
 
@@ -37,17 +37,19 @@ beforeAll(() => {
 afterAll(() => { rmSync(tmp, { recursive: true, force: true }); });
 
 describe('library packages', () => {
-  test('four files, each named for its own version line; the release lists them in packages.json', () => {
+  test('five files, each named for its own version line; the release lists them in packages.json', () => {
     const idx = packagesIndex(VERSION);
     expect(Object.keys(idx.packages)).toEqual(NAMES);
     expect(idx.packages['artgen-mapgen']).toEqual({ version: MAPGEN_VERSION, file: `artgen-mapgen-${MAPGEN_VERSION}.tgz` });
     expect(idx.packages['artgen-runtime'].version).toBe(RUNTIME_VERSION);
     expect(idx.packages['artgen-scene'].version).toBe(VERSION);
+    expect(idx.packages['artgen-workflow'].version).toBe(VERSION);
     for (const p of Object.values(idx.packages)) expect(existsSync(join(packs, p.file)), p.file).toBe(true);
   });
 
   test('a package that needs another points at its file on the same release; the rest of its dependencies are the registry\'s', () => {
-    expect(manifest('artgen-mapgen').dependencies).toEqual({ 'artgen-primitives': releaseUrl(VERSION, `artgen-primitives-${VERSION}.tgz`) });
+    expect(manifest('artgen-mapgen').dependencies).toEqual({ 'artgen-primitives': releaseUrl(VERSION, `artgen-primitives-${VERSION}.tgz`), 'artgen-workflow': releaseUrl(VERSION, `artgen-workflow-${VERSION}.tgz`) });
+    expect(manifest('artgen-workflow').dependencies).toEqual({ 'artgen-primitives': releaseUrl(VERSION, `artgen-primitives-${VERSION}.tgz`) });
     expect(manifest('artgen-scene').dependencies).toEqual({ 'artgen-primitives': releaseUrl(VERSION, `artgen-primitives-${VERSION}.tgz`) });
     expect(Object.keys(manifest('artgen-primitives').dependencies).sort()).toEqual(['@resvg/resvg-wasm', 'fflate']);
     expect(manifest('artgen-runtime').dependencies).toBeUndefined();

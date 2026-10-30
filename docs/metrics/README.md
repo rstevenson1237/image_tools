@@ -56,3 +56,13 @@ tuning budgets; the export is for comparing versions, and works without the ledg
 The three files in `pool/` today are exports of this repo's example games (`examples/`), made with the sources (`dev`) from ledgers
 that older versions wrote, and they stand for the mechanism: the first real consumer export replaces them.
 
+### Schema 2: every generator (R5)
+
+From R5 the export is schema 2. It gains `generators`: the same fields for pixel art (`art`) and for each kind of map that has any
+(`map`, `dungeon`, `settlement`): subjects, how many were started, reached final, were approved, passes per approved subject
+(art: scored passes; maps: versions), first-pass approval (approved with no user feedback), user feedback notes, review image
+tokens, written tokens, minutes, and the checks that failed by id. The ledger is the source; map ids never leave the repo. The art
+fields (`assets`, `byKind`, `passes`, `totals`, `firstPassApproval`, `userRevisionRate`, `gateFailures`, `blind`) are there only when the art
+module is installed, so a maps-only repo exports `generators` and `maps` alone. `metrics export` and `metrics pool` belong to the
+`core` module for that reason. `metrics pool` reads schemas 1 and 2 together and adds a per-generator table for the schema 2 exports;
+the pool of schema 1 exports reads as before. `artgen analytics` shows the same table (Generators) once the ledger holds map work.

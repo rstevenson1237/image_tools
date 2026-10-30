@@ -1,7 +1,6 @@
 # Tooling plan: separate, refactor, and build a feedback loop
 
-Status: proposal, 2026-10-27; decisions settled 2026-10-27 and revised 2026-10-29 (§12). R0, R1, R2 and R3 are built, and R4's
-code is built but its acceptance run is not (§10); the rest is not. It follows on from the finished artgen plan ([`archive/artgen/PLAN.md`](archive/artgen/PLAN.md)) and reuses its
+Status: proposal, 2026-10-27; decisions settled 2026-10-27 and revised 2026-10-29 (§12). R0, R1, R2, R3 and R5 are built, and R4's code is built but its acceptance run is not (§10); the rest is not. It follows on from the finished artgen plan ([`archive/artgen/PLAN.md`](archive/artgen/PLAN.md)) and reuses its
 decisions (`Dn`) where they still hold.
 
 ## 1. Summary
@@ -565,7 +564,7 @@ faster for the phases after it.
     against a local folder; neither has talked to GitHub (the tag fetch needs the repository to be readable without a token). The
     intake workflow and the new CI steps have not run on GitHub.
 
-### R5 — One workflow for maps and assets (M–L)
+### R5 — One workflow for maps and assets (M–L) — built 2026-10-30
 - Build the `workflow` package (§7): versions, ledger, review and approval for maps; map briefs; map themes as a
   locked direction; the one-page data sheet for both maps and assets; references shown on review sheets.
 - Make metrics part of what every generator must provide, so terrain, dungeon and settlement maps report the same
@@ -574,6 +573,48 @@ faster for the phases after it.
 - **Makes later work faster:** maps get metrics, so map work can be tuned the same way art is; a single review tool
   is less code to maintain.
 - **Accept:** a map goes through v1 → review → approve in the CLI and in the web UI, and analytics include maps.
+- **Built:** the design and what was built are in [`WORKFLOW.md`](WORKFLOW.md) (§15 lists where the build differs from it).
+  - **The `artgen-workflow` package** (`packages/artgen-workflow`, the `workflow` layer, depends on primitives only). The ledger format, the
+    asset status rules and analytics moved out of `artgen-core` with `git mv` (one-line re-exports stay at the old paths). New in it: subject
+    keys (`map:keep`), version names and `diffJson`, `subjectStatus` (the art status names for a map), `generatorMetrics`, the data sheet
+    (markdown and picture, 1568 px cap), the map brief's front matter, and the approval and feedback rules as ledger entries. mapgen may import
+    it (`ALLOWED.mapgen` is `primitives`, `workflow`); the maps-only bundle holds its files (the graph test names them) and still holds neither
+    `yaml` nor the pixel pipeline. The library packages gain `artgen-workflow` (mapgen's file depends on it).
+  - **Maps, dungeons and settlements are subjects.** One factory declares `brief`, `version`, `diff`, `review`, `feedback`, `approve`, `status`
+    and `sheet` for each kind, and `map direction` (26 new operations with the art `sheet`: 147 operations in all, on the CLI, MCP and Python).
+    They write the shared `art/ledger.jsonl` under a subject key, so every art reader ignores them; a version is a byte copy beside the working file
+    (`map.v1.json`, refused when nothing changed); `review` renders the version in the map direction's theme and puts the render, the data sheet and
+    the references on one sheet. Only the user approves or gives feedback or locks the direction (MCP: `user_approved`); an approval needs status `final`
+    (the file equals a version, no feedback open) and no failing check. A map whose approval went stale only because the
+    map direction changed (the file is unchanged) is approved again as the same version, since no new version can be recorded. They need a project, so none takes `--file`.
+  - **The map direction** (`art/map-direction.json`): a theme for each kind and the symbols a kind may use, with a version and a lock. Only a locked one
+    applies, to review sheets, checks and staleness; `map render` is unchanged. A dungeon's only theme is `bw`.
+  - **Data sheets and references.** `artgen sheet <id>` writes an asset's one-page sheet (the same `assetDataSheet` Asset Review shows); briefs may
+    list `refs: [refs/x.png]`, drawn in a REFERENCES row on every review sheet (a missing or non-PNG one is skipped with a warning).
+  - **Metrics.** `generatorMetrics` gives the same fields for `art`, `map`, `dungeon` and `settlement`. `metrics export` and `metrics pool` are in the
+    `core` module now (a maps-only repo exports too); the export is schema 2 with `generators`, its art fields come from `Ctx.artMetrics` and are absent
+    without the art module; the pool reads schemas 1 and 2 (the pooled markdown of the three example exports is unchanged). `analytics` adds a Generators
+    table once the ledger holds map work; art numbers are the same with map entries in the ledger (tested).
+  - **Web.** Asset Review lists maps in the same status groups (kind badge), shows the latest version rendered by the editors' own render functions,
+    the versions with any two side by side and their diff, the checks, the data sheet, the brief and the references, and approves or requests changes by
+    the CLI's rules. It also shows an asset's data sheet and references. It is available when either art or maps is installed, and works with no locked art
+    direction. The engine's subject code is tested against the CLI's on the same files.
+  - **Docs and skills:** the three map skills and `maps/claude-md.md` have the steps (brief, generate, version, review, show the user, approve or feedback),
+    the art skill's brief section mentions `refs` and `sheet`; `OPERATIONS.md` and the Python methods are regenerated; `metrics/README.md` has schema 2.
+  - **Guards.** The bench golden hashes and the consumer fixtures are unchanged (`node packages/artgen-dist/build.mjs --no-ui && node scripts/artgen-consumer-ci.mjs`
+    passes). Recorded transcripts change only where they list the maps commands (six group-help lines) and the maps bundle's commands (`metrics` added).
+    Four recorded expectations had to change because the design says so: `metrics_export` moves after the maps tools in the MCP tool list (it is a `core`
+    operation), the metrics tests expect schema 2 and pass the art numbers in, Asset Review is listed for a maps-only install, and the library packages test
+    lists `artgen-workflow`. Tests: root 88 → 96; packages 805 → 886 (cli 275 → 304, core
+    153 → 158, dist 73 → 73, mapgen 124 → 133, mcp 29 → 30, workflow 0 →
+    37); `check`, `check:packages` and the strict boundary lint pass; the Python tests pass (16). Bundles grew: `artgen.js` 1.54 → 1.61 MB, `artgen-mcp.js`
+    1.53 → 1.61 MB and `artgen-maps.js` 0.65 → 0.73 MB (the workflow code, the three subjects and the review sheet, every bundle holds the new usage text);
+    the web build is 49 KB larger in JS (1.28 → 1.33 MB; the worker +32 KB).
+  - **Acceptance run.** In the CLI, `workflow.test.ts` takes a map, a dungeon and a settlement through version, review, feedback, a new version and approval.
+    In the web UI, `npm run accept:ui` (headless Chromium) now also records a map's v1 with `artgen-maps.js`, opens it in Asset Review in a maps-only
+    repo, sees its render, approves it there, and checks that `map status` shows it approved with `"via": "image-tools"`. The whole acceptance passes.
+  - **Not done here.** Firefox (not installed in this sandbox), a review on a real machine and the first use in a game repo. As designed: pull request review of maps (§12 of the
+    design), region pins drawn on map renders, custom inks and fonts in the map direction, art assets as a subject.
 
 ### R5b — Image tools join the pipeline (M)
 - Rewrite the Token Cutter's and SVG Tracer's processing in TypeScript as `imagekit` operations (§6b), checked against

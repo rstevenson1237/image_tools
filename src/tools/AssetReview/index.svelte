@@ -3,28 +3,37 @@
    * Asset Review (W4, SPEC §13.1): the user's side of the autonomous pipeline (D10). Finished assets by status; per
    * asset the final in context, the pass timeline with scores, any version beside another, metrics and conformance;
    * approve, or request changes with notes pinned to regions of the sprite (the U-stage input Claude Code picks up on
-   * its next `/artgen-make`). Everything is written to `art/ledger.jsonl` as `by: "user"`.
+   * its next `/artgen-make`). Maps, dungeons and settlements are listed in the same status groups and reviewed in
+   * `SubjectReview.svelte` (R5). Everything is written to `art/ledger.jsonl` as `by: "user"`.
    */
   import { onDestroy } from 'svelte';
-  import type { AnalyticsReport } from 'artgen-core';
+  import type { AnalyticsReport, DataSheet, GeneratorMetrics } from 'artgen-core';
   import { acquire } from '../../workers/workerRegistry';
   import type { ArtgenApi, RenderPayload } from '../../workers/artgen.worker';
-  import type { AssetDetail, AssetRow } from '../../core/project/engine';
+  import type { AssetDetail, AssetRow, SubjectRow } from '../../core/project/engine';
   import { project } from '../../core/project/store.svelte';
   import ProjectBar from '../../core/components/ProjectBar.svelte';
   import PixelPreview from '../../core/components/PixelPreview.svelte';
   import CompareView from '../../core/components/CompareView.svelte';
   import StatusBadge from '../../core/components/StatusBadge.svelte';
   import Analytics from './Analytics.svelte';
+  import SubjectReview from './SubjectReview.svelte';
   import { fitScale, type Img, type Region } from '../../core/components/pixels';
 
   const lease = acquire<ArtgenApi>('artgen');
-  onDestroy(() => lease.release());
+  const blobs: string[] = [];
+  onDestroy(() => { lease.release(); for (const u of blobs) URL.revokeObjectURL(u); });
 
   /** Gallery order: what waits for the user first. */
   const ORDER = ['final', 'revision', 'in-pipeline', 'stale', 'approved', 'exported', 'brief'];
 
   let rows = $state<AssetRow[]>([]);
+  /** Maps, dungeons and settlements, listed beside the assets in the same status groups. */
+  let subjectRows = $state<SubjectRow[]>([]);
+  let selectedSubject = $state<string | null>(null);
+  /** The selected asset's data sheet and reference images. */
+  let assetSheet = $state<DataSheet | null>(null);
+  let assetRefs = $state<{ path: string; url: string }[]>([]);
   let thumbs = $state<Record<string, Img>>({});
   let selected = $state<string | null>(null);
   let detail = $state<AssetDetail | null>(null);
@@ -41,10 +50,12 @@
   let approveNote = $state('');
   let showAnalytics = $state(false);
   let analytics = $state<AnalyticsReport | null>(null);
+  let generators = $state<Record<string, GeneratorMetrics> | undefined>(undefined);
   let loadError = $state<string | null>(null);
   let loading = $state(false);
 
-  const groups = $derived(ORDER.map(s => ({ status: s, rows: rows.filter(r => r.status === s) })).filter(g => g.rows.length));
+  const groups = $derived(ORDER.map(s => ({ status: s, rows: rows.filter(r => r.status === s), subjects: subjectRows.filter(r => r.status === s) })).filter(g => g.rows.length || g.subjects.length));
+  const currentSubject = $derived(subjectRows.find(r => r.key === selectedSubject));
   const cell = $derived(finalRender?.cells[Math.min(cellIndex, (finalRender?.cells.length ?? 1) - 1)]);
   const cellId = $derived(cell ? `${cell.state}/${cell.facing}/${cell.frame}` : undefined);
   /** Pixels the preview spans at 1×: the iso floor when shown in context, 3×3 for tiles, else the sprite. */
@@ -66,7 +77,7 @@
   $effect(() => {
     void project.revision;
     if (project.snapshot) void refresh();
-    else { rows = []; detail = null; finalRender = null; }
+    else { rows = []; subjectRows = []; selectedSubject = null; detail = null; finalRender = null; }
   });
 
   // a reload can start while the previous read is still running: only the latest one writes the view
@@ -79,9 +90,16 @@
       const api = await project.sync(lease.api), next = await api.status();
       if (mine !== ticket) return;
       rows = next;
-      if (showAnalytics) analytics = (await api.analytics()).report;
-      if (selected && rows.some(r => r.id === selected)) await select(selected, true);
-      else { const first = rows.find(r => r.status === 'final') ?? rows.find(r => r.final); if (first) await select(first.id); }
+      subjectRows = await api.subjects();
+      if (mine !== ticket) return;
+      if (showAnalytics) { const a = await api.analytics(); analytics = a.report; generators = a.generators; }
+      if (selectedSubject && subjectRows.some(r => r.key === selectedSubject)) { /* SubjectReview reads itself again when the project reloads */ }
+      else if (selected && rows.some(r => r.id === selected)) { selectedSubject = null; await select(selected, true); }
+      else {
+        const first = rows.find(r => r.status === 'final') ?? rows.find(r => r.final);
+        if (first) { selectedSubject = null; await select(first.id); }
+        else { const s = subjectRows.find(r => r.status === 'final') ?? subjectRows[0]; selectedSubject = s?.key ?? null; if (s) { selected = null; detail = null; finalRender = null; } }
+      }
       await loadThumbs(api, mine);
     } catch (e) {
       if (mine === ticket) loadError = e instanceof Error ? e.message : String(e);
@@ -100,13 +118,14 @@
 
   async function select(id: string, keep = false) {
     const mine = ++selTicket;
-    selected = id;
+    selected = id; selectedSubject = null;
     if (!keep) { cellIndex = 0; region = null; note = ''; approveNote = ''; }
     try {
       const api = await project.sync(lease.api), d = await api.detail(id);
       const fr = d.row.final ? await api.render(id, d.row.final) : null;
       if (mine !== selTicket) return;
       detail = d; finalRender = fr;
+      void loadSheet(api, id, mine);
       const vs = d.timeline.map(t => t.version);
       const b = d.row.final ?? vs[vs.length - 1] ?? null;
       const a = b && d.timeline.find(t => t.version === b)?.base ? d.timeline.find(t => t.version === b)!.base! : vs[vs.indexOf(b ?? '') - 1] ?? null;
@@ -115,6 +134,22 @@
     } catch (e) {
       if (mine === selTicket) loadError = e instanceof Error ? e.message : String(e);
     }
+  }
+
+  /** The data sheet and reference images of an asset (an asset with no direction yet, or that has never been started, simply has none to show). */
+  async function loadSheet(api: typeof lease.api, id: string, mine: number) {
+    try {
+      const sheet = (await api.assetSheet(id)).sheet, refs: { path: string; url: string }[] = [];
+      for (const path of sheet.refs ?? []) {
+        const bytes = project.files && /\.png$/i.test(path) ? await project.files.readBytes(path) : undefined;
+        if (bytes) { const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'image/png' })); blobs.push(url); refs.push({ path, url }); }
+      }
+      if (mine === selTicket) { assetSheet = sheet; assetRefs = refs; }
+    } catch { if (mine === selTicket) { assetSheet = null; assetRefs = []; } }
+  }
+
+  function pickSubject(r: SubjectRow) {
+    selectedSubject = r.key; selected = null; detail = null; finalRender = null; assetSheet = null; showAnalytics = false;
   }
 
   async function loadCompare() {
@@ -126,7 +161,7 @@
   async function toggleAnalytics() {
     showAnalytics = !showAnalytics;
     if (!showAnalytics || analytics) return;
-    try { analytics = (await (await project.sync(lease.api)).analytics()).report; } catch (e) { loadError = e instanceof Error ? e.message : String(e); showAnalytics = false; }
+    try { const a = await (await project.sync(lease.api)).analytics(); analytics = a.report; generators = a.generators; } catch (e) { loadError = e instanceof Error ? e.message : String(e); showAnalytics = false; }
   }
 
   async function approve() {
@@ -152,16 +187,21 @@
   {#if !project.files}
     <div class="empty">
       <h2>Asset Review</h2>
-      <p>Open a game repo that has an artgen <code>art/</code> folder. Finished assets wait here for your approval; notes you pin
-        to a sprite go to Claude Code as feedback on its next <code>/artgen-make</code>.</p>
+      <p>Open a game repo that has an artgen <code>art/</code> folder. Finished assets, maps, dungeons and settlements wait here for
+        your approval; notes you pin to a sprite go to Claude Code as feedback on its next <code>/artgen-make</code>, and notes on a map
+        go to it as feedback on the latest version.</p>
     </div>
   {:else}
     {#if loadError}<p class="error" role="alert">{loadError}</p>{/if}
     <div class="layout" class:wide={showAnalytics}>
       <aside class="gallery" aria-label="Assets by status">
-        {#if loading && !rows.length}<p class="dim">reading the project…</p>{/if}
+        {#if loading && !rows.length && !subjectRows.length}<p class="dim">reading the project…</p>
+        {:else if !loadError && !rows.length && !subjectRows.length}
+          <p class="dim">Nothing to review yet. Assets show here once the art direction is locked (<code>/artgen-direction</code>) and
+            Claude Code has started them; maps, dungeons and settlements show once they exist in <code>art/</code>.</p>
+        {/if}
         {#each groups as g (g.status)}
-          <h3><StatusBadge status={g.status} /> <span class="dim">{g.rows.length}</span></h3>
+          <h3><StatusBadge status={g.status} /> <span class="dim">{g.rows.length + g.subjects.length}</span></h3>
           <ul>
             {#each g.rows as r (r.id)}
               <li>
@@ -177,13 +217,27 @@
                 </button>
               </li>
             {/each}
+            {#each g.subjects as r (r.key)}
+              <li>
+                <button type="button" class:active={r.key === selectedSubject} onclick={() => pickSubject(r)} data-subject={r.key}>
+                  <span class="ph kindph" title={r.kind}>{r.kind}</span>
+                  <span class="meta">
+                    <strong>{r.id}</strong>
+                    <small>{r.kind} · {r.version ?? 'no version'} · {r.pass ? 'checks pass' : `${r.fail} check${r.fail > 1 ? 's' : ''} fail`}</small>
+                    {#if r.flag}<small class="warn">{r.flag} warning{r.flag > 1 ? 's' : ''}</small>{/if}
+                  </span>
+                </button>
+              </li>
+            {/each}
           </ul>
         {/each}
       </aside>
 
       <section class="detail">
         {#if showAnalytics && analytics}
-          <Analytics report={analytics} />
+          <Analytics report={analytics} {generators} />
+        {:else if currentSubject}
+          <SubjectReview {lease} row={currentSubject} />
         {:else if detail}
           {@const row = detail.row}
           <header class="head">
@@ -194,6 +248,17 @@
           <p class="why">{row.why}</p>
           {#if row.issues.length}
             <ul class="issues">{#each row.issues as i (i)}<li>{i}</li>{/each}</ul>
+          {/if}
+
+          {#if assetSheet}
+            <details class="datasheet">
+              <summary>Data sheet{assetRefs.length ? ` and ${assetRefs.length} reference${assetRefs.length > 1 ? 's' : ''}` : ''}</summary>
+              <table class="sheet"><tbody>{#each assetSheet.rows as r (r.label)}<tr><th>{r.label}</th><td>{r.value}</td></tr>{/each}</tbody></table>
+              {#if assetSheet.must?.length}<p class="dim small">Contract: {assetSheet.must.map(m => m.text).join(' · ')}</p>{/if}
+              {#if assetSheet.swatches?.length}<div class="swatches">{#each assetSheet.swatches as c (c)}<span style:background={c} title={c}></span>{/each}</div>{/if}
+              {#if assetRefs.length}<div class="refs">{#each assetRefs as r (r.path)}<figure><img src={r.url} alt={r.path} /><figcaption>{r.path}</figcaption></figure>{/each}</div>{/if}
+              {#if assetSheet.notes}<p class="small">{assetSheet.notes}</p>{/if}
+            </details>
           {/if}
 
           {#if finalRender && cell}
@@ -387,6 +452,14 @@
     border-radius: 4px;
     flex: none;
   }
+  .kindph {
+    display: grid;
+    place-items: center;
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
   .meta {
     display: flex;
     flex-direction: column;
@@ -551,6 +624,45 @@
   .history {
     font-size: 0.8rem;
     padding-left: 1.1rem;
+  }
+  .datasheet {
+    margin: 0.4rem 0 0.2rem;
+    font-size: 0.8rem;
+  }
+  .datasheet summary {
+    cursor: pointer;
+    color: var(--text-dim);
+  }
+  .sheet th {
+    width: 7rem;
+  }
+  .swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin: 0.4rem 0;
+  }
+  .swatches span {
+    width: 16px;
+    height: 16px;
+    border: 1px solid var(--border);
+  }
+  .refs {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin: 0.4rem 0;
+  }
+  .refs figure {
+    margin: 0;
+    font-size: 0.72rem;
+    color: var(--text-dim);
+  }
+  .refs img {
+    display: block;
+    max-height: 110px;
+    max-width: 200px;
+    border: 1px solid var(--border);
   }
   .dim {
     color: var(--text-dim);
