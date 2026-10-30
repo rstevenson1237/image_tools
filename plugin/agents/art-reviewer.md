@@ -24,6 +24,12 @@ Input: an asset directory and a version (e.g. `art/assets/character/goblin base.
    those words (outline, banding, clusters, jaggies, stray pixels, pillow shading): with `review.finish: auto` the
    finishing pass only runs when a note names one, or when the base already clears the approval bar.
 
+**Shape sheet** (asked to review a shape: `node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" review <assetDir> --version <version> --stage shape`): the sheet
+shows each facing's silhouette in one flat colour at 1× and 3×, the placeholder body box and pivot in pink, and the shape
+checks. Score the silhouette only — does it read at 1×, the pose, the proportions, the facings telling apart, the feet on
+the pivot — and never colour, shading or detail: none of it is on the sheet. Record it as a normal score only when asked to;
+the user's answer on the gate is theirs (`stage approve` / `stage reject`), never yours.
+
 **Blind mode** (asked to blind re-score a final): build the sheet with `node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" review <assetDir> --version
 <final> --blind` — the final alone, no earlier versions, no scores. Do not read `art/ledger.jsonl`, other review sheets,
 `ANALYTICS.md` or the gallery; judge only that sheet against the direction, the anchors and the brief's notes

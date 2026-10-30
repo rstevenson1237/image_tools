@@ -41,6 +41,7 @@ the view and kind (`artgen new <id> --kind … --view …`, or `make` from a bri
 - Time: `ctx.t` (0–1 over displayed frames), `ctx.ms` / `ctx.duration` (real time, from fps or `durations`),
   `ctx.logical` / `ctx.sub`.
 - Tracks: `ctx.lib.anim.track([[0, a], [0.5, b]], t)`, `blend({ 0: poseA, 0.4: poseB }, t)`, `ease`, `pingpong`.
+- Body rigs (R6b): `const rig = ctx.lib.rigs.body('biped', ctx, { height }); const p = rig.pose(ctx.state, ctx.t)` gives a skeleton with idle, walk, attack and hurt clips, foot IK and the facing's projection; `rig.anchors(p)` has ground/head/hand/tail/muzzle. Plans: biped, quadruped (`large`), flyer, serpent, turret.
 - Pose rig — animate intent, not limbs: `const r = ctx.lib.anim.rig({ root: [x, y], bones: { spine: { len: 9, angle:
   180 }, arm: { parent: 'spine', at: 0.9, len: 5 }, fore: { parent: 'arm', len: 5 }, … } })`, then
   `const p = r.pose({ spine: 6 }, { ik: { fore: { target: handXY, bend: -1 }, shin: { target: footXY, bend: 1 } } })`;

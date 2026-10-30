@@ -115,6 +115,10 @@ var init_grid = __esm({
       d;
       /** Normal map of this image (same size; RGB = normal, OpenGL convention), when the renderer produced one. */
       normal;
+      /** Decal masks by layer name (one byte per pixel, 1 = the decal shows), when the procedural pass placed decals. */
+      decals;
+      /** Per decal: shape pixels in the frame and those that landed on the target part. */
+      decalStats;
       constructor(w, h, data) {
         this.w = w;
         this.h = h;
@@ -1431,9 +1435,9 @@ var init_palette = __esm({
 function drawText(g, x, y, text2, color, scale2 = 1) {
   let cx = x;
   for (const ch of text2.toUpperCase()) {
-    const rows2 = GLYPHS[ch] ?? GLYPHS["?"];
+    const rows3 = GLYPHS[ch] ?? GLYPHS["?"];
     for (let r = 0; r < GLYPH_H; r++) {
-      const bits2 = +rows2[r];
+      const bits2 = +rows3[r];
       for (let c = 0; c < GLYPH_W; c++) if (bits2 & 4 >> c) g.fill(cx + c * scale2, y + r * scale2, scale2, scale2, color);
     }
     cx += (GLYPH_W + 1) * scale2;
@@ -1800,8 +1804,8 @@ __export(blit_exports, {
   blitMirrored: () => blitMirrored,
   shadeSide: () => shadeSide
 });
-function blit(g, rows2, key2, ox = 0, oy = 0) {
-  rows2.forEach((r, y) => [...r].forEach((ch, x) => {
+function blit(g, rows3, key2, ox = 0, oy = 0) {
+  rows3.forEach((r, y) => [...r].forEach((ch, x) => {
     if (ch !== ".") g.set(ox + x, oy + y, key2[ch]);
   }));
   return g;
@@ -2373,8 +2377,8 @@ var init_resvg_wasm = __esm({
           wasm.renderedimage_asPng(retptr, this.__wbg_ptr);
           var r0 = getInt32Memory0()[retptr / 4 + 0];
           var r13 = getInt32Memory0()[retptr / 4 + 1];
-          var r23 = getInt32Memory0()[retptr / 4 + 2];
-          if (r23) {
+          var r24 = getInt32Memory0()[retptr / 4 + 2];
+          if (r24) {
             throw takeObject(r13);
           }
           return takeObject(r0);
@@ -2418,8 +2422,8 @@ var init_resvg_wasm = __esm({
           wasm.resvg_new(retptr, addHeapObject(svg4), ptr0, len0, isLikeNone(custom_font_buffers) ? 0 : addHeapObject(custom_font_buffers));
           var r0 = getInt32Memory0()[retptr / 4 + 0];
           var r13 = getInt32Memory0()[retptr / 4 + 1];
-          var r23 = getInt32Memory0()[retptr / 4 + 2];
-          if (r23) {
+          var r24 = getInt32Memory0()[retptr / 4 + 2];
+          if (r24) {
             throw takeObject(r13);
           }
           this.__wbg_ptr = r0 >>> 0;
@@ -2454,8 +2458,8 @@ var init_resvg_wasm = __esm({
           wasm.resvg_render(retptr, this.__wbg_ptr);
           var r0 = getInt32Memory0()[retptr / 4 + 0];
           var r13 = getInt32Memory0()[retptr / 4 + 1];
-          var r23 = getInt32Memory0()[retptr / 4 + 2];
-          if (r23) {
+          var r24 = getInt32Memory0()[retptr / 4 + 2];
+          if (r24) {
             throw takeObject(r13);
           }
           return RenderedImage.__wrap(r0);
@@ -2521,8 +2525,8 @@ var init_resvg_wasm = __esm({
           wasm.resvg_imagesToResolve(retptr, this.__wbg_ptr);
           var r0 = getInt32Memory0()[retptr / 4 + 0];
           var r13 = getInt32Memory0()[retptr / 4 + 1];
-          var r23 = getInt32Memory0()[retptr / 4 + 2];
-          if (r23) {
+          var r24 = getInt32Memory0()[retptr / 4 + 2];
+          if (r24) {
             throw takeObject(r13);
           }
           return takeObject(r0);
@@ -2717,25 +2721,121 @@ var init_normals = __esm({
   }
 });
 
+// ../artgen-primitives/src/lib/rotsprite.ts
+function same(d, i, j) {
+  if (d[i + 3] !== d[j + 3]) return false;
+  return d[i + 3] === 0 || d[i] === d[j] && d[i + 1] === d[j + 1] && d[i + 2] === d[j + 2];
+}
+function scale2x(g) {
+  const { w, h, d } = g, out = new Grid(w * 2, h * 2), o = out.d;
+  const put = (x, y, i) => {
+    const k = (y * w * 2 + x) * 4;
+    o[k] = d[i];
+    o[k + 1] = d[i + 1];
+    o[k + 2] = d[i + 2];
+    o[k + 3] = d[i + 3];
+  };
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const p2 = (y * w + x) * 4, a = y > 0 ? p2 - w * 4 : p2, b = x < w - 1 ? p2 + 4 : p2, c = x > 0 ? p2 - 4 : p2, e = y < h - 1 ? p2 + w * 4 : p2;
+    const ca = same(d, c, a), ab = same(d, a, b), dc = same(d, e, c), bd = same(d, b, e);
+    put(x * 2, y * 2, ca && !dc && !ab ? a : p2);
+    put(x * 2 + 1, y * 2, ab && !ca && !bd ? b : p2);
+    put(x * 2, y * 2 + 1, dc && !bd && !ca ? c : p2);
+    put(x * 2 + 1, y * 2 + 1, bd && !ab && !dc ? e : p2);
+  }
+  return out;
+}
+function inverse(w, h, deg, pivot, shift = [0, 0]) {
+  const [px, py] = pivot ?? [(w - 1) / 2, (h - 1) / 2], q = quarter(deg), r = norm(deg) * Math.PI / 180;
+  const c = q < 0 ? Math.cos(r) : [1, 0, -1, 0][q], s2 = q < 0 ? Math.sin(r) : [0, 1, 0, -1][q];
+  return (ox, oy) => {
+    const dx = ox - shift[0] - px, dy = oy - shift[1] - py;
+    return [px + c * dx + s2 * dy + 0.5, py - s2 * dx + c * dy + 0.5];
+  };
+}
+function rotsprite(g, deg, o = {}) {
+  const [ow, oh] = o.size ?? [g.w, g.h], out = new Grid(ow, oh);
+  const shift = [Math.floor((ow - g.w) / 2), Math.floor((oh - g.h) / 2)];
+  const inv = inverse(g.w, g.h, deg, o.pivot, shift);
+  const exact = quarter(deg) >= 0;
+  let src = g, k = 1;
+  if (!exact) {
+    src = scale2x(scale2x(scale2x(g)));
+    k = 8;
+  }
+  const { w, h, d } = src;
+  for (let y = 0; y < oh; y++) for (let x = 0; x < ow; x++) {
+    const [u, v] = inv(x, y), sx = Math.floor(u * k + EPS), sy = Math.floor(v * k + EPS);
+    if (sx < 0 || sy < 0 || sx >= w || sy >= h) continue;
+    const i = (sy * w + sx) * 4, j = (y * ow + x) * 4;
+    if (d[i + 3]) {
+      out.d[j] = d[i];
+      out.d[j + 1] = d[i + 1];
+      out.d[j + 2] = d[i + 2];
+      out.d[j + 3] = d[i + 3];
+    }
+  }
+  return out;
+}
+function rotateNormals(n, deg, o = {}) {
+  const [ow, oh] = o.size ?? [n.w, n.h], out = new Grid(ow, oh);
+  const shift = [Math.floor((ow - n.w) / 2), Math.floor((oh - n.h) / 2)];
+  const inv = inverse(n.w, n.h, deg, o.pivot, shift), q = quarter(deg), r = norm(deg) * Math.PI / 180;
+  const c = q < 0 ? Math.cos(r) : [1, 0, -1, 0][q], s2 = q < 0 ? Math.sin(r) : [0, 1, 0, -1][q];
+  for (let y = 0; y < oh; y++) for (let x = 0; x < ow; x++) {
+    const [u, v] = inv(x, y), nv = getNormal(n, Math.floor(u + EPS), Math.floor(v + EPS));
+    if (nv) putNormal(out, x, y, [c * nv[0] - s2 * nv[1], s2 * nv[0] + c * nv[1], nv[2]]);
+  }
+  return out;
+}
+function rotateMask(m, w, h, deg, o = {}) {
+  const out = new Uint8Array(w * h), inv = inverse(w, h, deg, o.pivot);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const [u, v] = inv(x, y), sx = Math.floor(u + EPS), sy = Math.floor(v + EPS);
+    if (sx >= 0 && sy >= 0 && sx < w && sy < h) out[y * w + x] = m[sy * w + sx];
+  }
+  return out;
+}
+function rotatePoint(p2, deg, w, h, o = {}) {
+  const [px, py] = o.pivot ?? [(w - 1) / 2, (h - 1) / 2], q = quarter(deg), r = norm(deg) * Math.PI / 180;
+  const c = q < 0 ? Math.cos(r) : [1, 0, -1, 0][q], s2 = q < 0 ? Math.sin(r) : [0, 1, 0, -1][q];
+  const dx = p2[0] - px, dy = p2[1] - py;
+  return [Math.round(px + c * dx - s2 * dy), Math.round(py + s2 * dx + c * dy)];
+}
+var EPS, norm, quarter;
+var init_rotsprite = __esm({
+  "../artgen-primitives/src/lib/rotsprite.ts"() {
+    "use strict";
+    init_grid();
+    init_normals();
+    EPS = 1e-9;
+    norm = (deg) => (deg % 360 + 360) % 360;
+    quarter = (deg) => {
+      const q = norm(deg) / 90, r = Math.round(q);
+      return Math.abs(q - r) < EPS ? r % 4 : -1;
+    };
+  }
+});
+
 // ../artgen-primitives/src/lib/noise.ts
 function pValue(x, y, o) {
   const oct = o.octaves ?? 1, g = o.gain ?? 0.5, seed = o.seed ?? 1;
-  let sum2 = 0, amp = 1, norm2 = 0, cx = o.cells ?? 4, cy = o.cellsY ?? cx;
+  let sum2 = 0, amp = 1, norm3 = 0, cx = o.cells ?? 4, cy = o.cellsY ?? cx;
   for (let k = 0; k < oct; k++) {
     const fx2 = x / o.w * cx, fy = y / o.h * cy, i = Math.floor(fx2), j = Math.floor(fy), u = smooth(fx2 - i), v = smooth(fy - j);
     const at4 = (a2, b2) => hash2(mod(a2, cx), mod(b2, cy), seed + k * 1013);
     const a = at4(i, j), b = at4(i + 1, j), c = at4(i, j + 1), d = at4(i + 1, j + 1);
     sum2 += amp * (a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v);
-    norm2 += amp;
+    norm3 += amp;
     amp *= g;
     cx *= 2;
     cy *= 2;
   }
-  return sum2 / norm2;
+  return sum2 / norm3;
 }
 function pGradient(x, y, o) {
   const oct = o.octaves ?? 1, g = o.gain ?? 0.5, seed = o.seed ?? 1;
-  let sum2 = 0, amp = 1, norm2 = 0, cx = o.cells ?? 4, cy = o.cellsY ?? cx;
+  let sum2 = 0, amp = 1, norm3 = 0, cx = o.cells ?? 4, cy = o.cellsY ?? cx;
   for (let k = 0; k < oct; k++) {
     const fx2 = x / o.w * cx, fy = y / o.h * cy, i = Math.floor(fx2), j = Math.floor(fy), tx = fx2 - i, ty = fy - j, u = smooth(tx), v = smooth(ty);
     const grad = (a, b, dx, dy) => {
@@ -2745,12 +2845,12 @@ function pGradient(x, y, o) {
     const n00 = grad(i, j, tx, ty), n10 = grad(i + 1, j, tx - 1, ty), n01 = grad(i, j + 1, tx, ty - 1), n11 = grad(i + 1, j + 1, tx - 1, ty - 1);
     const nx0 = n00 + (n10 - n00) * u, nx1 = n01 + (n11 - n01) * u;
     sum2 += amp * (nx0 + (nx1 - nx0) * v);
-    norm2 += amp;
+    norm3 += amp;
     amp *= g;
     cx *= 2;
     cy *= 2;
   }
-  return Math.max(0, Math.min(1, 0.5 + sum2 / norm2 * 0.75));
+  return Math.max(0, Math.min(1, 0.5 + sum2 / norm3 * 0.75));
 }
 function pWorley(x, y, o) {
   const cx = o.cells ?? 4, cy = o.cellsY ?? cx, seed = o.seed ?? 1, jit = o.jitter ?? 0.9;
@@ -2960,10 +3060,10 @@ function capsulePts(a, b, r0, r13 = r0, tol = 0.25) {
   const off = Math.asin(Math.max(-1, Math.min(1, (r0 - r13) / len))) * 180 / Math.PI;
   return [...ellipsePts(b[0], b[1], r13, r13, tol, ang - 90 + off, ang + 90 - off), ...ellipsePts(a[0], a[1], r0, r0, tol, ang + 90 - off, ang + 270 + off)];
 }
-function starPts(cx, cy, r, r23, n, rotDeg = -90) {
+function starPts(cx, cy, r, r24, n, rotDeg = -90) {
   const out = [];
   for (let k = 0; k < n * 2; k++) {
-    const t = (rotDeg + k * 180 / n) * Math.PI / 180, rr = k % 2 ? r23 : r;
+    const t = (rotDeg + k * 180 / n) * Math.PI / 180, rr = k % 2 ? r24 : r;
     out.push([cx + rr * Math.cos(t), cy + rr * Math.sin(t)]);
   }
   return out;
@@ -2990,8 +3090,8 @@ function fillPolygons(m, rings, rule = "nonzero") {
     let wind = 0;
     for (let k = 0; k < xs.length - 1; k++) {
       wind += rule === "evenodd" ? 1 : xs[k][1];
-      const inside = rule === "evenodd" ? wind % 2 === 1 : wind !== 0;
-      if (!inside) continue;
+      const inside2 = rule === "evenodd" ? wind % 2 === 1 : wind !== 0;
+      if (!inside2) continue;
       const xa = Math.max(0, Math.ceil(xs[k][0] - 0.5)), xb = Math.min(m.w - 1, Math.ceil(xs[k + 1][0] - 0.5) - 1);
       for (let x = xa; x <= xb; x++) m.d[y * m.w + x] = 1;
     }
@@ -3126,9 +3226,9 @@ var init_geom = __esm({
       }
       /** Grow by `r` samples (Euclidean). */
       dilate(r) {
-        const out = new _Mask(this.w, this.h, this.s), e = this.windowEdt(Math.ceil(r), 1, false), r23 = r * r + 1e-6;
+        const out = new _Mask(this.w, this.h, this.s), e = this.windowEdt(Math.ceil(r), 1, false), r24 = r * r + 1e-6;
         if (e) {
-          for (let y = 0; y < e.wh; y++) for (let x = 0; x < e.ww; x++) if (e.dist[y * e.ww + x] <= r23) out.d[(y + e.y0) * this.w + x + e.x0] = 1;
+          for (let y = 0; y < e.wh; y++) for (let x = 0; x < e.ww; x++) if (e.dist[y * e.ww + x] <= r24) out.d[(y + e.y0) * this.w + x + e.x0] = 1;
         }
         return out;
       }
@@ -3151,14 +3251,56 @@ function bandIndices(len, bands2) {
   if (bands2 === 1) return [len >> 1];
   return Array.from({ length: bands2 }, (_, i) => Math.round(i * (len - 1) / (bands2 - 1)));
 }
-var INK, Raster;
+function decalCoverage(shapes, w, h) {
+  const S3 = 4, m = new Mask(w * S3, h * S3, S3), tol = 0.5 / S3;
+  for (const s2 of [].concat(shapes)) {
+    const num5 = (v, name) => {
+      if (typeof v !== "number" || !Number.isFinite(v)) throw new Error(`decal ${s2.type}: ${name} must be a number`);
+      return v;
+    };
+    switch (s2.type) {
+      case "rect":
+        fillPolygons(m, [rectPts(num5(s2.x ?? 0, "x"), num5(s2.y ?? 0, "y"), num5(s2.w, "w"), num5(s2.h, "h"), s2.r ?? 0, tol)]);
+        break;
+      case "ellipse":
+        fillPolygons(m, [ellipsePts(num5(s2.cx, "cx"), num5(s2.cy, "cy"), num5(s2.rx, "rx"), num5(s2.ry ?? s2.rx, "ry"), tol)]);
+        break;
+      case "circle":
+        fillPolygons(m, [ellipsePts(num5(s2.cx, "cx"), num5(s2.cy, "cy"), num5(s2.r, "r"), s2.r, tol)]);
+        break;
+      case "poly":
+        fillPolygons(m, [s2.pts ?? []], s2.fillRule);
+        break;
+      case "path":
+        fillPolygons(m, parsePath(s2.d ?? "", tol), s2.fillRule);
+        break;
+      default:
+        throw new Error(`decal shape type ${JSON.stringify(s2.type)} is not one of ${DECAL_SHAPES.join(", ")}`);
+    }
+  }
+  const out = new Uint8Array(w * h), half = S3 * S3 / 2;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    let n = 0;
+    for (let j = 0; j < S3; j++) for (let i = 0; i < S3; i++) n += m.d[(y * S3 + j) * m.w + x * S3 + i];
+    if (n > half) out[y * w + x] = 1;
+  }
+  return out;
+}
+function flipMaskX(m, w) {
+  const out = new Uint8Array(m.length);
+  for (let i = 0; i < m.length; i++) out[i] = m[(i / w | 0) * w + (w - 1 - i % w)];
+  return out;
+}
+var INK, DECAL_SHAPES, Raster;
 var init_raster = __esm({
   "../artgen-primitives/src/raster.ts"() {
     "use strict";
     init_color();
     init_grid();
     init_normals();
+    init_geom();
     INK = 1;
+    DECAL_SHAPES = ["rect", "ellipse", "circle", "poly", "path"];
     Raster = class _Raster {
       w;
       h;
@@ -3172,6 +3314,9 @@ var init_raster = __esm({
       ink;
       /** Screen-space normal per pixel (x right, y down, z toward the viewer), when the scene computed them. */
       normal;
+      /** Decal index per pixel (-1 none), once a decal layer ran (STAGES.md §7.1). */
+      decal;
+      decals = [];
       constructor(w, h, items, ink) {
         this.w = w;
         this.h = h;
@@ -3217,8 +3362,31 @@ var init_raster = __esm({
         const id2 = this.id[i];
         if (id2 < 0) return null;
         if (this.flag[i] & INK) return this.ink;
+        const d = this.decal && this.decal[i] >= 0 ? this.decals[this.decal[i]] : null;
+        if (d) return d.ramp[Math.max(0, Math.min(d.ramp.length - 1, d.band ?? this.band[i]))];
         const it = this.items[id2];
         return it.fixed ?? it.ramp[this.band[i]];
+      }
+      /** Start a decal layer: the index to write into `decal`. The caller sets pixels and counts `inside` / `total`. */
+      addDecal(d) {
+        this.decal ??= new Int16Array(this.id.length).fill(-1);
+        const full = { ...d, inside: 0, total: 0 };
+        this.decals.push(full);
+        return full;
+      }
+      /** Per-pixel masks (1 = the decal's colour shows) by decal name, or undefined when no decal landed. Later decals cover earlier ones. */
+      decalMasks() {
+        if (!this.decal || !this.decals.length) return void 0;
+        const out = {};
+        this.decals.forEach((d) => {
+          out[d.name] = new Uint8Array(this.id.length);
+        });
+        for (let i = 0; i < this.decal.length; i++) if (this.decal[i] >= 0 && this.id[i] >= 0 && !(this.flag[i] & INK)) out[this.decals[this.decal[i]].name][i] = 1;
+        return out;
+      }
+      /** Per decal: shape pixels in the frame and those on the target part (the `decal-inside` check). */
+      decalStats() {
+        return this.decals.length ? Object.fromEntries(this.decals.map((d) => [d.name, { inside: d.inside, total: d.total }])) : void 0;
       }
       /** Normal map of the filled pixels (ink pixels face the viewer), or undefined without normals. */
       normalMap() {
@@ -3315,6 +3483,7 @@ var init_src = __esm({
     init_voxel();
     init_svg();
     init_normals();
+    init_rotsprite();
     init_noise();
     init_geom();
     init_raster();
@@ -3492,7 +3661,7 @@ function camera(view, o = {}) {
   const sc = (m) => [m[0].map((v) => v * s2), m[1].map((v) => v * s2)];
   switch (view) {
     case "iso":
-      return { view, M: sc([[2, -2, 0], [1, 1, -2]]), dv: [1, 1, 1], R: norm([1, -1, 0]), D: norm([1, 1, -2]), V: norm([1, 1, 1]) };
+      return { view, M: sc([[2, -2, 0], [1, 1, -2]]), dv: [1, 1, 1], R: norm2([1, -1, 0]), D: norm2([1, 1, -2]), V: norm2([1, 1, 1]) };
     case "topdown":
     case "stack":
       return { view, M: sc([[2, 0, 0], [0, 2, 0]]), dv: [0, 0, 1], R: [1, 0, 0], D: [0, 1, 0], V: [0, 0, 1] };
@@ -3502,7 +3671,7 @@ function camera(view, o = {}) {
     case "billboard":
     case "fp": {
       const g = view === "oblique" ? 1 / Math.min(0.95, Math.max(0.05, o.frontRatio ?? 0.5)) - 1 : Math.tan((o.elevation ?? 15) * Math.PI / 180);
-      return { view, M: sc([[2, 0, 0], [0, 2 * g, -2]]), dv: [0, 1, g], R: [1, 0, 0], D: norm([0, g, -1]), V: norm([0, 1, g]), ref: [0, 1, 0] };
+      return { view, M: sc([[2, 0, 0], [0, 2 * g, -2]]), dv: [0, 1, g], R: [1, 0, 0], D: norm2([0, g, -1]), V: norm2([0, 1, g]), ref: [0, 1, 0] };
     }
     default:
       throw new Error(`no camera for view ${JSON.stringify(view)} (have: ${CAMERA_VIEWS.join(", ")})`);
@@ -3517,13 +3686,13 @@ function facingYaw(facing) {
 function lightIn(cam, light) {
   const [lx, ly, lz] = light, l = [0, 0, 0];
   for (let i = 0; i < 3; i++) l[i] = lx * cam.R[i] + ly * cam.D[i] + lz * cam.V[i];
-  return norm(l);
+  return norm2(l);
 }
-var norm, dot3, cross3, CAMERA_VIEWS, toScreen;
+var norm2, dot3, cross3, CAMERA_VIEWS, toScreen;
 var init_camera = __esm({
   "../artgen-scene/src/views/camera.ts"() {
     "use strict";
-    norm = (v) => {
+    norm2 = (v) => {
       const l = Math.hypot(...v) || 1;
       return [v[0] / l, v[1] / l, v[2] / l];
     };
@@ -3734,13 +3903,13 @@ var init_materials = __esm({
         return { role: "base", tone: 0.15 + 0.35 * own + 0.25 * (1 - dome) + 0.1 * pValue(x, y, { w: c.w, h: c.h, cells: across(c.w, 3), seed: c.seed + 3 }), height: 0.3 + 0.7 * dome };
       },
       wood(x, y, c) {
-        const rows2 = across(c.h, 8 * c.s), ph = c.h / rows2, row = Math.floor(y / ph), v = (y - row * ph) / ph;
+        const rows3 = across(c.h, 8 * c.s), ph = c.h / rows3, row = Math.floor(y / ph), v = (y - row * ph) / ph;
         const np = Math.max(1, Math.round(c.p.planks ?? 1)), joint = c.rnd(row, 1) * c.w, len = c.w / np;
         const u = mod2(x - joint, len), plank = row * 31 + Math.floor(mod2(x - joint, c.w) / len);
         const seam = v < 1 / ph || u < 1 ? 1 : 0, own = np > 1 ? c.rnd(plank, 3) : c.rnd(row, 3), ga = c.p.grain ?? 0.3;
-        const warp = pGradient(x, y, { w: c.w, h: c.h, cells: across(c.w, 16), cellsY: rows2 * 2, seed: c.seed + row });
+        const warp = pGradient(x, y, { w: c.w, h: c.h, cells: across(c.w, 16), cellsY: rows3 * 2, seed: c.seed + row });
         const grain = 0.5 + 0.5 * Math.sin((v * 6 + warp * 5 + c.rnd(row, 2) * 6) * Math.PI);
-        const kw = pWorley(x, y, { w: c.w, h: c.h, cells: across(c.w, 12 * c.s), cellsY: rows2, seed: c.seed + 77 }), knot = c.rnd(kw.id, 9) > 0.7 && kw.f1 < 0.09 ? 0.3 : 0;
+        const kw = pWorley(x, y, { w: c.w, h: c.h, cells: across(c.w, 12 * c.s), cellsY: rows3, seed: c.seed + 77 }), knot = c.rnd(kw.id, 9) > 0.7 && kw.f1 < 0.09 ? 0.3 : 0;
         return { role: "base", tone: seam ? 1 : 0.22 + ga * grain + 0.1 * own + knot, height: seam ? 0 : 0.6 + 0.1 * grain - (v < 0.2 ? 0 : 0.05 * v) };
       },
       metal(x, y, c) {
@@ -3817,7 +3986,7 @@ var init_materials = __esm({
         return { role: "base", tone: (d < 0.2 ? 0.2 : 0.5) + weave + (wear > 0.65 ? 0.25 : 0), height: 0.5 };
       },
       brick(x, y, c) {
-        const rows2 = across(c.h, (c.p.course ?? 8) * c.s), ph = c.h / rows2, row = Math.floor(y / ph), v = y - row * ph;
+        const rows3 = across(c.h, (c.p.course ?? 8) * c.s), ph = c.h / rows3, row = Math.floor(y / ph), v = y - row * ph;
         const per = across(c.w, ph * 2.2), pw = c.w / per, u = mod2(x - (row % 2 ? pw / 2 : 0), pw), id2 = row * 97 + Math.floor(mod2(x - (row % 2 ? pw / 2 : 0), c.w) / pw);
         if (v < 1 || u < 1) return { role: "mortar", tone: 0.55 + 0.25 * pValue(x, y, { w: c.w, h: c.h, cells: across(c.w, 3), seed: c.seed + 9 }), height: 0 };
         const own = c.rnd(id2, 5), pit = pValue(x, y, { w: c.w, h: c.h, cells: across(c.w, 2), seed: c.seed + 4 });
@@ -4300,7 +4469,7 @@ function stepper2(dir) {
   };
 }
 function autotileSheet(tiles, cols = 8) {
-  const s2 = tiles[0].w, rows2 = Math.ceil(tiles.length / cols), g = new Grid(cols * (s2 + 1) - 1, rows2 * (s2 + 1) - 1);
+  const s2 = tiles[0].w, rows3 = Math.ceil(tiles.length / cols), g = new Grid(cols * (s2 + 1) - 1, rows3 * (s2 + 1) - 1);
   tiles.forEach((t, i) => g.blit(t, i % cols * (s2 + 1), Math.floor(i / cols) * (s2 + 1)));
   return g;
 }
@@ -4350,8 +4519,8 @@ var init_autotile = __esm({
 function inv3(m) {
   const [a, b, c] = m, det = dot3(a, cross3(b, c));
   if (Math.abs(det) < 1e-12) throw new Error("voxel raster: degenerate camera");
-  const r0 = cross3(b, c), r13 = cross3(c, a), r23 = cross3(a, b);
-  return [[r0[0] / det, r13[0] / det, r23[0] / det], [r0[1] / det, r13[1] / det, r23[1] / det], [r0[2] / det, r13[2] / det, r23[2] / det]];
+  const r0 = cross3(b, c), r13 = cross3(c, a), r24 = cross3(a, b);
+  return [[r0[0] / det, r13[0] / det, r24[0] / det], [r0[1] / det, r13[1] / det, r24[1] / det], [r0[2] / det, r13[2] / det, r24[2] / det]];
 }
 function smoothNormal(g, v, r) {
   let x = 0, y = 0, z = 0;
@@ -5330,9 +5499,9 @@ var init_scene3d = __esm({
       /** Fine-voxel cells of one primitive (local coordinates). */
       cells(s2) {
         const k = this.k, out = [];
-        const scan = (x0, y0, z0, x1, y1, z1, inside) => {
+        const scan = (x0, y0, z0, x1, y1, z1, inside2) => {
           for (let z = Math.floor(z0 * k); z < Math.ceil(z1 * k); z++) for (let y = Math.floor(y0 * k); y < Math.ceil(y1 * k); y++)
-            for (let x = Math.floor(x0 * k); x < Math.ceil(x1 * k); x++) if (inside((x + 0.5) / k, (y + 0.5) / k, (z + 0.5) / k)) out.push([x, y, z]);
+            for (let x = Math.floor(x0 * k); x < Math.ceil(x1 * k); x++) if (inside2((x + 0.5) / k, (y + 0.5) / k, (z + 0.5) / k)) out.push([x, y, z]);
         };
         const n = (v, name) => {
           if (typeof v !== "number") throw new Error(`3D ${s2.type}${s2.name ? ` ${s2.name}` : ""}: ${name} required`);
@@ -5570,17 +5739,30 @@ function valueNoise(seed, x, y, scale2, octaves = 2) {
     h = Math.imul(h ^ h >>> 13, 1274126177);
     return ((h ^ h >>> 16) >>> 0) / 4294967296;
   };
-  let sum2 = 0, amp = 1, norm2 = 0, f = 1 / Math.max(0.5, scale2);
+  let sum2 = 0, amp = 1, norm3 = 0, f = 1 / Math.max(0.5, scale2);
   for (let o = 0; o < octaves; o++) {
     const fx2 = x * f, fy = y * f, i = Math.floor(fx2), j = Math.floor(fy), u = fx2 - i, v = fy - j;
     const su = u * u * (3 - 2 * u), sv = v * v * (3 - 2 * v);
     const a = hash3(i, j), b = hash3(i + 1, j), c = hash3(i, j + 1), d = hash3(i + 1, j + 1);
     sum2 += amp * (a + (b - a) * su + (c - a) * sv + (a - b - c + d) * su * sv);
-    norm2 += amp;
+    norm3 += amp;
     amp *= 0.5;
     f *= 2;
   }
-  return sum2 / norm2;
+  return sum2 / norm3;
+}
+function withDecals(g, r) {
+  const masks = r.decalMasks();
+  if (masks) {
+    g.decals = masks;
+    g.decalStats = r.decalStats();
+  }
+  return g;
+}
+function decalImage(r) {
+  const g = new Grid(r.w, r.h), masks = r.decalMasks() ?? {};
+  for (const m of Object.values(masks)) for (let i = 0; i < m.length; i++) if (m[i]) g.set(i % r.w, i / r.w | 0, r.color(i));
+  return g;
 }
 function autoGround(r) {
   let x0 = r.w, x1 = -1, y1 = -1;
@@ -5665,8 +5847,8 @@ var init_proc = __esm({
        * Vary `seed` per variant (`seed: ctx.variant`) for different markings on every variant.
        */
       detail(r, env, o) {
-        const hit = matcher(r, env, o), rows2 = o.mask;
-        if (!Array.isArray(rows2) || !rows2.length) throw new Error("detail: mask (array of rows) is required");
+        const hit = matcher(r, env, o), rows3 = o.mask;
+        if (!Array.isArray(rows3) || !rows3.length) throw new Error("detail: mask (array of rows) is required");
         const mirror = o.mirror ?? "x", density = o.density ?? 0.5, step = o.step ?? 1;
         let seed = env.seed * 2654435761 + (o.seed ?? 0) * 40503 + 7 >>> 0;
         const rand = () => {
@@ -5676,7 +5858,7 @@ var init_proc = __esm({
           t ^= t + Math.imul(t ^ t >>> 7, t | 61);
           return ((t ^ t >>> 14) >>> 0) / 4294967296;
         };
-        const half = rows2.map((row) => [...row].map((ch) => ch === "#" ? 1 : ch === "-" ? 2 : ch === "1" ? rand() < density ? 1 : 0 : ch === "2" ? rand() < density ? 1 : 2 : 0));
+        const half = rows3.map((row) => [...row].map((ch) => ch === "#" ? 1 : ch === "-" ? 2 : ch === "1" ? rand() < density ? 1 : 0 : ch === "2" ? rand() < density ? 1 : 2 : 0));
         let cells = half;
         if (mirror === "x") cells = half.map((row) => [...row, ...[...row].reverse()]);
         else if (mirror === "y") cells = [...half, ...[...half].reverse()];
@@ -5775,6 +5957,39 @@ var init_proc = __esm({
       },
       dropShadow(_r, _env, o, st) {
         st.shadow = [o.dx ?? 1, o.dy ?? 1];
+      },
+      /**
+       * A mark placed on a surface and kept as its own layer (damage, dirt, an emblem, team colours). Options: part (required,
+       * the target as other layers' `part`), shape (one primitive or a list: rect, ellipse, circle, poly, path, in frame
+       * pixels; required), mat (the decal's ramp, default `accent`; a team swap changes it like any other colour), band
+       * (`'keep'`, the default, takes the band of the pixel under it so the decal is shaded with the surface; or a fixed ramp
+       * index), opacity (0 to 1, default 1: below 1 it covers that share of its pixels in an ordered 4 x 4 Bayer pattern, so it
+       * stays pixel art), name (default `decal`, then `decal2`...). The decal covers its shape where it meets the target; lines
+       * are never covered. Later layers still see the surface under it.
+       */
+      decal(r, env, o) {
+        if (o.part === void 0) throw new Error("decal: part is required (the surface it lands on)");
+        const shapes = [].concat(o.shape ?? []);
+        if (!shapes.length) throw new Error("decal: shape is required (a rect, ellipse, circle, poly or path, or a list of them)");
+        for (const s2 of shapes) if (!s2 || !DECAL_SHAPES.includes(s2.type)) throw new Error(`decal: shape type ${JSON.stringify(s2?.type)} is not one of ${DECAL_SHAPES.join(", ")}`);
+        const matName = o.mat ?? "accent", ramp2 = env.dir.pal[matName] ?? env.dir.pal[env.dir.palette.materials[matName]];
+        if (!ramp2) throw new Error(`decal: unknown material ${JSON.stringify(matName)} (not a ramp or direction material)`);
+        const band = o.band === void 0 || o.band === "keep" ? void 0 : o.band;
+        if (band !== void 0 && !(Number.isInteger(band) && band >= 0 && band < ramp2.length)) throw new Error(`decal: band must be 'keep' or a ramp index 0..${ramp2.length - 1}`);
+        const opacity = o.opacity ?? 1;
+        if (!(opacity >= 0 && opacity <= 1)) throw new Error("decal: opacity must be between 0 and 1");
+        const taken = new Set(r.decals.map((d2) => d2.name)), base = o.name ?? "decal";
+        let name = base;
+        for (let n = 2; taken.has(name); n++) name = `${base}${n}`;
+        const cover = decalCoverage(shapes, r.w, r.h), onTarget = matcher(r, env, { part: o.part }), bayer = BAYER2.bayer4;
+        const d = r.addDecal({ name, ramp: ramp2.map((c) => c), ...band !== void 0 && { band } }), idx = r.decals.length - 1;
+        for (let p2 = 0; p2 < cover.length; p2++) {
+          if (!cover[p2]) continue;
+          d.total++;
+          if (!onTarget(p2)) continue;
+          d.inside++;
+          if (bayer[(p2 / r.w | 0) % 4][p2 % r.w % 4] < opacity) r.decal[p2] = idx;
+        }
       }
     };
     Proc = class {
@@ -5814,16 +6029,17 @@ var init_proc = __esm({
           LAYERS[name](r, this.env, o, st);
           this.stage?.(`proc-${name}`, r.toGrid());
         }
+        if (r.decals.length) this.stage?.("decal", decalImage(r));
         if (isScene) {
           const ground2 = st.ground === "auto" ? autoGround(r) : st.ground;
-          return this.source.finalize(r, { ...st.shadow && { shadow: st.shadow }, ...ground2 && { groundShadow: ground2 } });
+          return withDecals(this.source.finalize(r, { ...st.shadow && { shadow: st.shadow }, ...ground2 && { groundShadow: ground2 } }), r);
         }
         let g = r.toGrid();
         const src = this.source;
         for (let i = 0; i < src.w * src.h; i++) if (src.d[i * 4 + 3] && src.d[i * 4 + 3] < 255) g.d.set(src.d.subarray(i * 4, i * 4 + 4), i * 4);
         if (st.shadow || st.ground) g = shadowsUnder(g, st, this.env, r);
         if (src.normal) g.normal = src.normal;
-        return g;
+        return withDecals(g, r);
       }
     };
   }
@@ -6051,6 +6267,309 @@ var init_anim = __esm({
   }
 });
 
+// ../artgen-scene/src/anim/rigs.ts
+function facingYaw2(facing) {
+  if (facing in YAW8) return YAW8[facing];
+  const d = YAW16[facing];
+  return d === void 0 ? 0 : Math.sign(d) * Math.round(Math.abs(d) / 45) * 45;
+}
+function bodyRig(plan, o) {
+  const set2 = plan, pl = plan === "large" ? "quadruped" : plan;
+  const [w, h] = o.size, cx = w / 2, ground2 = o.ground ?? Math.round(h * 0.95), tilt = o.tilt ?? 0.3;
+  const H = o.height ?? Math.round(h * ({ biped: 0.89, quadruped: 0.375, flyer: 0.25, serpent: 0.22, turret: 0.4 }[pl] * (plan === "large" ? 1.15 : 1)));
+  const base = PROPORTIONS[set2], user = o.proportions ?? {};
+  const prop2 = (name, generic = name.replace(/^(leg|arm)[FB]?[LR]_/, "$1_")) => user[name] ?? user[generic] ?? base[name] ?? base[generic] ?? 0;
+  const len = (name, generic) => H * prop2(name, generic);
+  const yaw = facingYaw2(o.facing) * RAD2, sx = Math.sin(yaw), front = Math.cos(yaw), side = Math.abs(sx);
+  const spec = SPECS[pl]({ H, len, prop: prop2, given: (n) => n in user });
+  const rigs = spec.groups.map((g) => rig({ root: [0, 0], bones: g.bones }));
+  const lengths = {};
+  for (const g of spec.groups) for (const [n, b] of Object.entries(g.bones)) lengths[n] = b.len;
+  const solve = (state, t, ov) => {
+    const clip = spec.clip(STATE_ALIAS[state] ?? state, t);
+    const angles = { ...clip.angles, ...ov?.angles }, ik = { ...clip.ik, ...ov?.ik };
+    const p3 = {}, rel3 = {};
+    spec.groups.forEach((g, gi) => {
+      const names = Object.keys(g.bones), gik = Object.fromEntries(Object.entries(ik).filter(([n]) => names.includes(n)));
+      const pose = rigs[gi].pose(angles, { ...gi === 0 && clip.root && { root: clip.root }, ik: gik });
+      let origin;
+      if ("host" in g.origin) {
+        const [a, b] = p3[g.origin.host], u = g.origin.u, d = g.origin.delta;
+        origin = [a[0] + (b[0] - a[0]) * u + d[0], a[1] + (b[1] - a[1]) * u + d[1], a[2] + (b[2] - a[2]) * u + d[2]];
+      } else origin = g.origin;
+      const map = (p2, name, end) => {
+        const lift = clip.lift?.[name]?.[end] ?? 0, z = g.z[name] ?? 0;
+        return g.plane === "side" ? [origin[0] + p2[0], origin[1] - p2[1] + lift, origin[2] + z] : g.plane === "front" ? [origin[0], origin[1] - p2[1] + lift, origin[2] + g.sign * p2[0] + z] : [origin[0] + p2[0], origin[1] + lift, origin[2] + p2[1] + z];
+      };
+      for (const n of names) {
+        const b = pose.bone(n);
+        p3[n] = [map(b.a, n, 0), map(b.b, n, 1)];
+        rel3[n] = pose.angles[n];
+      }
+    });
+    return { p3, rel: rel3 };
+  };
+  let fc = 0;
+  if (pl !== "biped") {
+    const { p3 } = solve("idle", 0), fs = Object.values(p3).flatMap(([a, b]) => [a[0], b[0]]);
+    fc = (Math.min(...fs) + Math.max(...fs)) / 2;
+  }
+  const proj = (p2) => {
+    const f = p2[0] - fc;
+    return [cx + f * sx - p2[2] * front, ground2 - p2[1] + tilt * (f * front + p2[2] * sx)];
+  };
+  const depthOf = (p2) => (p2[0] - fc) * front + p2[2] * sx;
+  const posed = (state, t, ov) => {
+    const { p3, rel: rel3 } = solve(state, t, ov), bones = {}, dep = {};
+    for (const [n, [a3, b3]] of Object.entries(p3)) {
+      const a = proj(a3), b = proj(b3);
+      bones[n] = { name: n, a, b, angle: angOf2(b[0] - a[0], b[1] - a[1]), len: Math.hypot(b[0] - a[0], b[1] - a[1]) };
+      dep[n] = (depthOf(a3) + depthOf(b3)) / 2;
+    }
+    const get = (n) => {
+      const b = bones[n];
+      if (!b) throw new Error(`rig: no bone ${n}`);
+      return b;
+    };
+    return {
+      bones,
+      angles: rel3,
+      bone: get,
+      end: (n) => get(n).b,
+      start: (n) => get(n).a,
+      along(n, u, s2 = 0) {
+        const b = get(n), dx = b.b[0] - b.a[0], dy = b.b[1] - b.a[1], l = Math.hypot(dx, dy) || 1;
+        return [b.a[0] + dx * u + -dy / l * s2, b.a[1] + dy * u + dx / l * s2];
+      },
+      depth: (n) => {
+        get(n);
+        return dep[n];
+      },
+      far: (names) => [...names].sort((a, b) => dep[a] - dep[b]),
+      at(n, u = 0.5, fwd = 0, s2 = 0, up = 0) {
+        get(n);
+        const [a, b] = p3[n];
+        return proj([a[0] + (b[0] - a[0]) * u + fwd, a[1] + (b[1] - a[1]) * u + up, a[2] + (b[2] - a[2]) * u + s2]);
+      }
+    };
+  };
+  const anchors2 = (pose) => {
+    const out = { ground: [Math.round(cx), ground2] };
+    for (const [name, [bone, u]] of Object.entries(spec.anchorBones)) {
+      const b = pose.bones[bone], p2 = [b.a[0] + (b.b[0] - b.a[0]) * u, b.a[1] + (b.b[1] - b.a[1]) * u];
+      out[name] = [Math.round(p2[0]), Math.round(p2[1])];
+    }
+    return out;
+  };
+  return { plan: pl, set: set2, lengths, yaw, sx, front, side, height: H, ground: ground2, pose: posed, anchors: anchors2 };
+}
+var RIG_PLANS, BODY_PLAN, PROPORTIONS, YAW8, YAW16, RAD2, TAU, angOf2, sin, cos, hold, foot, sag, STATE_ALIAS, SPECS;
+var init_rigs = __esm({
+  "../artgen-scene/src/anim/rigs.ts"() {
+    "use strict";
+    init_anim();
+    RIG_PLANS = ["biped", "quadruped", "flyer", "serpent", "turret"];
+    BODY_PLAN = { humanoid: "biped", biped: "biped", quadruped: "quadruped", large: "quadruped", flyer: "flyer", serpent: "serpent", turret: "turret" };
+    PROPORTIONS = {
+      biped: { hip: 0.02, spine: 0.36, neck: 0.04, head: 0.38, arm_up: 0.16, arm_lo: 0.17, leg_up: 0.1, leg_lo: 0.1, shoulder: 0.9, legSep: 0.075, armSep: 0.205 },
+      quadruped: { spine: 1.25, neck: 0.4, head: 0.5, tail: 0.5, leg_up: 0.19, leg_lo: 0.19, barrel: 0.66, legSep: 0.2, hindAt: 0.08, foreAt: 0.92 },
+      large: { spine: 1, neck: 0.55, head: 0.34, tail: 0.55, leg_up: 0.17, leg_lo: 0.17, barrel: 0.64, legSep: 0.24, hindAt: 0.1, foreAt: 0.9 },
+      flyer: { body: 0.8, head: 0.5, tail: 0.5, wing: 0.75, wing_tip: 0.75, hover: 1.5, wingUp: 0.2, wingSep: 0.15 },
+      serpent: { seg: 0.39, rear: 1 },
+      turret: { hull: 1.6, turret: 0.45, barrel: 1, hullH: 0.25, turretAt: 0.5 }
+    };
+    YAW8 = { s: 0, se: 45, e: 90, ne: 135, n: 180, nw: -135, w: -90, sw: -45 };
+    YAW16 = { ssw: -22.5, wsw: -67.5, wnw: -112.5, nnw: -157.5, nne: 157.5, ene: 112.5, ese: 67.5, sse: 22.5 };
+    RAD2 = Math.PI / 180;
+    TAU = Math.PI * 2;
+    angOf2 = (dx, dy) => Math.atan2(dx, dy) / RAD2;
+    sin = (t, off = 0) => Math.sin((t + off) * TAU);
+    cos = (t, off = 0) => Math.cos((t + off) * TAU);
+    hold = (keys, t) => track(keys, t, { ease: "inOut" });
+    foot = (t, off, x0, ground2, stride, lift) => [x0 + stride * sin(t, off), ground2 - lift * Math.max(0, cos(t, off))];
+    sag = (L2, s2) => L2 - Math.sqrt(Math.max(0, L2 * L2 - s2 * s2));
+    STATE_ALIAS = { run: "walk", move: "walk", fly: "walk", hover: "idle", stand: "idle", strike: "attack", hit: "hurt" };
+    SPECS = {
+      biped({ H, len, prop: prop2, given }) {
+        const g = (n) => len(n), legUp = g("leg_up"), legLo = g("leg_lo"), leg = legUp + legLo;
+        const hip = g("hip"), neck = g("neck"), head = g("head");
+        const spine = given("spine") ? len("spine") : H * (1 - prop2("hip") - prop2("neck") - prop2("head") - prop2("leg_up") - prop2("leg_lo"));
+        const legSep = H * prop2("legSep"), armSep = H * prop2("armSep"), shoulder = prop2("shoulder");
+        const bones = { hip: { len: hip, angle: 180 }, spine: { parent: "hip", len: Math.max(0.1, spine), angle: 0 }, neck: { parent: "spine", len: neck, angle: 0 }, head: { parent: "neck", len: head, angle: 0 } };
+        const z = {};
+        for (const [s2, k] of [["L", -1], ["R", 1]]) {
+          bones[`arm${s2}_up`] = { parent: "spine", at: shoulder, len: len(`arm${s2}_up`), angle: 180 };
+          bones[`arm${s2}_lo`] = { parent: `arm${s2}_up`, len: len(`arm${s2}_lo`), angle: 0 };
+          bones[`leg${s2}_up`] = { parent: "hip", at: 0, len: len(`leg${s2}_up`), angle: 180 };
+          bones[`leg${s2}_lo`] = { parent: `leg${s2}_up`, len: len(`leg${s2}_lo`), angle: 0 };
+          for (const n of ["arm", "leg"]) for (const p2 of ["up", "lo"]) z[`${n}${s2}_${p2}`] = k * (n === "arm" ? armSep : legSep);
+        }
+        const stride = H * 0.11, lift = H * 0.03, armSwing = 12;
+        const clip = (state, t) => {
+          const rel3 = {}, ik = {};
+          let root = [0, 0];
+          const arms = (swing, elbow = (_) => 4) => {
+            for (const s2 of ["L", "R"]) {
+              rel3[`arm${s2}_up`] = 180 + swing(s2);
+              rel3[`arm${s2}_lo`] = elbow(s2);
+            }
+          };
+          if (state === "walk") {
+            const off = { L: 0, R: 0.5 }, feet = ["L", "R"].map((s2) => foot(t, off[s2], 0, leg, stride, lift));
+            for (const [i, s2] of ["L", "R"].entries()) ik[`leg${s2}_lo`] = { target: feet[i], bend: 1 };
+            root = [0, Math.round(Math.max(...feet.map((f) => sag(leg, f[0]))) * 1.6)];
+            arms((s2) => -armSwing * sin(t, off[s2]), (s2) => 8 + 14 * Math.max(0, -sin(t, off[s2])));
+          } else if (state === "attack") {
+            const a = hold([[0, 150], [0.3, 160], [0.55, 45], [0.8, 20], [1, 150]], t), lo = hold([[0, 30], [0.3, 40], [0.55, 6], [0.8, 10], [1, 30]], t);
+            arms((s2) => s2 === "R" ? a : -12, (s2) => s2 === "R" ? lo : 10);
+            rel3.spine = hold([[0, -4], [0.3, 6], [0.55, -10], [0.8, -3], [1, -4]], t);
+            root = [0, 0];
+          } else if (state === "hurt") {
+            const k = Math.sin(Math.PI * Math.min(1, t * 1.6));
+            rel3.spine = 12 * k;
+            rel3.head = -8 * k;
+            rel3.neck = 4 * k;
+            arms((s2) => (s2 === "R" ? -48 : 44) * k, () => 14 * k);
+            root = [-0.06 * H * k, 0];
+          } else {
+            const b = pingpong(t);
+            rel3.spine = -2.5 * b;
+            rel3.neck = 2.5 * b;
+            arms((s2) => (s2 === "L" ? 1 : -1) * 2 * b);
+          }
+          return { angles: rel3, ik, root };
+        };
+        return {
+          groups: [{ plane: "side", sign: 1, bones, z, origin: [0, leg, 0] }],
+          clip,
+          anchorBones: { head: ["head", 0.5], hand: ["armR_lo", 1] }
+        };
+      },
+      quadruped({ H, len, prop: prop2 }) {
+        const spine = len("spine"), legUp = len("leg_up"), legLo = len("leg_lo"), leg = legUp + legLo, barrel = H * prop2("barrel"), legSep = H * prop2("legSep");
+        const bones = {
+          spine: { len: spine, angle: 90 },
+          neck: { parent: "spine", len: len("neck"), angle: 50 },
+          head: { parent: "neck", len: len("head"), angle: -42 },
+          tail: { parent: "spine", at: 0, len: len("tail"), angle: 155 }
+        };
+        const z = {}, legs = [];
+        for (const [e, at4, off] of [["B", prop2("hindAt"), 0.5], ["F", prop2("foreAt"), 0]]) for (const [s2, k] of [["L", -1], ["R", 1]]) {
+          const n = `leg${e}${s2}`;
+          bones[`${n}_up`] = { parent: "spine", at: at4, offset: [0, barrel / 2], len: len(`${n}_up`, "leg_up"), angle: -90 };
+          bones[`${n}_lo`] = { parent: `${n}_up`, len: len(`${n}_lo`, "leg_lo"), angle: 0 };
+          z[`${n}_up`] = z[`${n}_lo`] = k * legSep;
+          legs.push([n, at4 * spine, (off + (s2 === "R" ? 0.5 : 0)) % 1]);
+        }
+        const down = leg + barrel / 2, stride = H * 0.15, lift = H * 0.09;
+        const clip = (state, t) => {
+          const rel3 = {}, ik = {};
+          let root = [0, 0];
+          if (state === "walk") {
+            const fs = legs.map(([n, x0, off]) => ({ n, f: foot(t, off, x0, down, stride, lift), bend: n[3] === "F" ? -1 : 1 }));
+            for (const { n, f, bend } of fs) ik[`${n}_lo`] = { target: f, bend };
+            root = [0, Math.max(...fs.map((x) => sag(leg, x.f[0] - legs.find((l) => l[0] === x.n)[1]))) * 1.6];
+            rel3.neck = 50 + 4 * sin(t, 0.25);
+            rel3.head = -42 - 5 * sin(t, 0.25);
+            rel3.tail = 155 + 14 * sin(t, 0.1);
+          } else if (state === "attack") {
+            const k = hold([[0, 0], [0.3, -0.5], [0.55, 1], [0.85, 0.2], [1, 0]], t);
+            root = [H * 0.22 * k, 0];
+            rel3.neck = 50 - 28 * Math.max(0, k);
+            rel3.head = -42 + 14 * Math.max(0, k) + 10 * Math.min(0, k);
+          } else if (state === "hurt") {
+            const k = Math.sin(Math.PI * Math.min(1, t * 1.6));
+            root = [-H * 0.14 * k, 0];
+            rel3.neck = 50 + 22 * k;
+            rel3.head = -42 + 18 * k;
+            rel3.tail = 155 + 25 * k;
+          } else {
+            const b = pingpong(t);
+            rel3.neck = 50 - 4 * b;
+            rel3.head = -42 + 3 * b;
+            rel3.tail = 155 + 8 * b;
+          }
+          return { angles: rel3, ik, root };
+        };
+        return { groups: [{ plane: "side", sign: 1, bones, z, origin: [0, down, 0] }], clip, anchorBones: { head: ["head", 0.4], tail: ["tail", 1] } };
+      },
+      flyer({ H, len, prop: prop2 }) {
+        const bodyLen = len("body"), hover = H * prop2("hover");
+        const side = {
+          plane: "side",
+          sign: 1,
+          z: {},
+          origin: [0, hover, 0],
+          bones: { body: { len: bodyLen, angle: 90 }, head: { parent: "body", len: len("head"), angle: -15 }, tail: { parent: "body", at: 0, len: len("tail"), angle: 200 } }
+        };
+        const wing = (s2) => ({
+          plane: "front",
+          sign: s2 === "L" ? -1 : 1,
+          z: {},
+          bones: { [`wing${s2}`]: { len: len("wing"), angle: 90 }, [`wing${s2}_tip`]: { parent: `wing${s2}`, len: len("wing_tip"), angle: 0 } },
+          origin: { host: "body", u: 0.45, delta: [0, H * prop2("wingUp"), (s2 === "L" ? -1 : 1) * H * prop2("wingSep")] }
+        });
+        const clip = (state, t) => {
+          const hovering = !["walk", "attack", "hurt"].includes(state), amp = hovering ? 38 : 58, beat = sin(t), lag = sin(t, -0.18);
+          const rel3 = {}, bob = Math.round(-beat * (hovering ? 0.6 : 0.9));
+          for (const s2 of ["L", "R"]) {
+            rel3[`wing${s2}`] = 90 + amp * beat;
+            rel3[`wing${s2}_tip`] = -0.55 * amp * lag - 10;
+          }
+          let root = [0, bob * (H / 8)];
+          if (state === "attack") {
+            const k = hold([[0, 0], [0.3, -0.5], [0.55, 1], [0.85, 0.2], [1, 0]], t);
+            root = [H * 0.35 * k, root[1]];
+            rel3.head = -15 - 25 * Math.max(0, k);
+          } else if (state === "hurt") {
+            const k = Math.sin(Math.PI * Math.min(1, t * 1.6));
+            root = [-H * 0.25 * k, root[1] + H * 0.12 * k];
+            rel3.head = -15 + 25 * k;
+          }
+          return { angles: rel3, root };
+        };
+        return { groups: [side, wing("L"), wing("R")], clip, anchorBones: { head: ["head", 0.4] } };
+      },
+      serpent({ H, len, prop: prop2 }) {
+        const n = 8, seg = len("seg"), bones = {};
+        for (let i = 0; i < n; i++) bones[`seg${i}`] = i ? { parent: `seg${i - 1}`, len: seg, angle: 0 } : { len: seg, angle: -90 };
+        const rear = H * prop2("rear"), A = 34;
+        const clip = (state, t) => {
+          const moving = state === "walk", amp = moving ? A : state === "attack" || state === "hurt" ? A * 0.5 : A * 0.35;
+          const heading = (i) => -90 + amp * (moving ? sin(t, -i / 7 * 1.15) : sin(t, -i / 7 * 0.5) * (i / 7));
+          const rel3 = {};
+          for (let i = 0; i < n; i++) rel3[`seg${i}`] = heading(i) - (i ? heading(i - 1) : 0);
+          let k = 1, root = [0, 0];
+          if (state === "attack") {
+            const s2 = hold([[0, 0], [0.3, -0.4], [0.55, 1], [0.85, 0.3], [1, 0]], t);
+            k = 1 + 0.5 * Math.max(0, s2);
+            root = [H * 0.5 * s2, 0];
+          } else if (state === "hurt") {
+            const s2 = Math.sin(Math.PI * Math.min(1, t * 1.6));
+            k = 1 - 0.5 * s2;
+            root = [-H * 0.3 * s2, 0];
+          } else if (moving) k = 1 + 0.08 * sin(t);
+          const up = (j) => rear * k * Math.max(0, 1 - j / 2.4) ** 1.5;
+          const lift = {};
+          for (let i = 0; i < n; i++) lift[`seg${i}`] = [up(i), up(i + 1)];
+          return { angles: rel3, root, lift };
+        };
+        return { groups: [{ plane: "ground", sign: 1, bones, z: {}, origin: [0, 0, 0] }], clip, anchorBones: { head: ["seg0", 0], tail: [`seg${n - 1}`, 1] } };
+      },
+      turret({ H, len, prop: prop2 }) {
+        const hullH = H * prop2("hullH"), at4 = prop2("turretAt");
+        const bones = { hull: { len: len("hull"), angle: 90 }, turret: { parent: "hull", at: at4, len: len("turret"), angle: 90 }, barrel: { parent: "turret", len: len("barrel"), angle: -90 } };
+        const clip = (state, t) => {
+          if (state !== "attack") return {};
+          const k = hold([[0, 0], [0.15, 1], [1, 0]], t);
+          return { angles: { barrel: -90 + 6 * k } };
+        };
+        return { groups: [{ plane: "side", sign: 1, bones, z: {}, origin: [0, hullH, 0] }], clip, anchorBones: { muzzle: ["barrel", 1] } };
+      }
+    };
+  }
+});
+
 // ../artgen-scene/src/fx/particles.ts
 function colorRun(dir, colors) {
   const names = colors?.length ? colors : dir.effects.palette.length ? dir.effects.palette : ["accent"];
@@ -6100,8 +6619,8 @@ function simulate(dir, o) {
         }
       } else if (T2 - birth0 >= 0 && T2 - birth0 < life) ages.push(T2 - birth0);
       for (const age of ages) {
-        let x = sx, y = sy, vx = Math.sin(ang * RAD2) * sp, vy = Math.cos(ang * RAD2) * sp;
-        const n = Math.round(age / step), dt = step / 1e3, keep = Math.exp(-(L2.drag ?? 0) * dt), sw = (L2.swirl ?? 0) * RAD2 * dt;
+        let x = sx, y = sy, vx = Math.sin(ang * RAD3) * sp, vy = Math.cos(ang * RAD3) * sp;
+        const n = Math.round(age / step), dt = step / 1e3, keep = Math.exp(-(L2.drag ?? 0) * dt), sw = (L2.swirl ?? 0) * RAD3 * dt;
         const back = L2.streakPath ? Math.round((L2.streak ?? 0.08) * 1e3 / step) : -1;
         let pathTail = [x, y];
         for (let s2 = 0; s2 < n; s2++) {
@@ -6187,8 +6706,8 @@ function drawParticles(g, ps) {
     }
     for (let py = Math.floor(y - r - 1); py <= y + r + 1; py++) for (let px = Math.floor(x - r - 1); px <= x + r + 1; px++) {
       const dx = px + 0.5 - x, dy = py + 0.5 - y;
-      const inside = p2.shape === "diamond" ? Math.abs(dx) + Math.abs(dy) <= r : dx * dx + dy * dy <= r * r;
-      if (!inside) continue;
+      const inside2 = p2.shape === "diamond" ? Math.abs(dx) + Math.abs(dy) <= r : dx * dx + dy * dy <= r * r;
+      if (!inside2) continue;
       if (p2.shape === "ring" && dx * dx + dy * dy < (r - 1.2) * (r - 1.2)) continue;
       g.set(px, py, c);
     }
@@ -6235,14 +6754,14 @@ function flame(dir, o) {
   }
   return g;
 }
-var RAD2, pick, PRESETS, PRESET_NAMES;
+var RAD3, pick, PRESETS, PRESET_NAMES;
 var init_particles = __esm({
   "../artgen-scene/src/fx/particles.ts"() {
     "use strict";
     init_grid();
     init_rng();
     init_noise();
-    RAD2 = Math.PI / 180;
+    RAD3 = Math.PI / 180;
     pick = (r, v, d) => v === void 0 ? d : typeof v === "number" ? v : v[0] + r() * (v[1] - v[0]);
     PRESETS = {
       explosion(o) {
@@ -6347,6 +6866,7 @@ var init_src2 = __esm({
     init_proc();
     init_params();
     init_anim();
+    init_rigs();
     init_particles();
   }
 });
@@ -6712,15 +7232,15 @@ ${r.assets} assets. Price basis: $${PRICE.inPerM}/M input (review images, measur
   md += "\n## Per asset\n\n| Asset | Kind | r1 | Best revision | Final | From revisions | From finish | Passes | Output tok | Review tok | Est. cost |\n|---|---|---|---|---|---|---|---|---|---|---|\n";
   for (const a of r.perAsset) md += `| ${a.id} | ${a.kind} | ${s(a.r1)} | ${s(a.best)} | ${s(a.final)} | ${s(a.fromRevisions, true)} | ${s(a.fromFinish, true)} | ${a.passes} | ${a.outTokens} | ${a.imageTokens} | $${a.cost.toFixed(4)} |
 `;
-  for (const [k, rows2] of Object.entries(r.byGroup)) {
-    if (rows2.length < 2 && rows2[0]?.key === "-") continue;
+  for (const [k, rows3] of Object.entries(r.byGroup)) {
+    if (rows3.length < 2 && rows3[0]?.key === "-") continue;
     md += `
 ## Cost by ${k}
 
 | ${k} | n | Mean final | Mean cost | Mean passes |
 |---|---|---|---|---|
 `;
-    for (const g of rows2) md += `| ${g.key} | ${g.n} | ${s(g.meanFinal)} | ${g.meanCost === void 0 ? "-" : `$${g.meanCost.toFixed(4)}`} | ${s(g.meanPasses)} |
+    for (const g of rows3) md += `| ${g.key} | ${g.n} | ${s(g.meanFinal)} | ${g.meanCost === void 0 ? "-" : `$${g.meanCost.toFixed(4)}`} | ${s(g.meanPasses)} |
 `;
   }
   md += "\n## First-pass quality by template\n\n| Template | n | Mean r1 |\n|---|---|---|\n";
@@ -6785,10 +7305,19 @@ function latestScores(entries) {
 function metricsFor(generator, keys, byKey) {
   const art = generator === "art";
   let started = 0, final = 0, approved = 0, untouched = 0, feedback2 = 0, imageTokens2 = 0, outTokens = 0, wallMs = 0, passes = 0;
-  const checkFailures = {};
+  const checkFailures = {}, gates = {}, toGame = [];
   for (const key2 of keys) {
     const es = byKey.get(key2) ?? [], scores = latestScores(es);
-    const approves = es.some((e) => e.type === "approve"), fb = es.filter((e) => e.type === "feedback" && e.by !== "agent").length;
+    const approves = es.some((e) => e.type === "approve"), fb = es.filter((e) => e.type === "feedback" && e.by !== "agent" || art && e.type === "stage" && e.verdict === "reject" && e.by === "user").length;
+    if (art) {
+      for (const e of es) if (e.type === "stage" && (e.verdict === "approve" || e.verdict === "reject") && typeof e.stage === "string") {
+        const g = gates[e.stage] ??= { approved: 0, rejected: 0 };
+        if (e.verdict === "approve") g.approved++;
+        else g.rejected++;
+      }
+      const first = Date.parse(es[0]?.ts ?? ""), exp = es.find((e) => e.type === "export"), at4 = Date.parse(exp?.ts ?? "");
+      if (exp && Number.isFinite(first) && Number.isFinite(at4)) toGame.push(Math.max(0, at4 - first) / 6e4);
+    }
     if (art ? scores.length : es.some((e) => e.type === "version")) started++;
     if (approves || (art ? es.some((e) => e.type === "status" && e.status === "final") : subjectStatus({ entries: es }).status === "final")) final++;
     feedback2 += fb;
@@ -6821,7 +7350,9 @@ function metricsFor(generator, keys, byKey) {
     imageTokens: imageTokens2,
     outTokens,
     wallMinutes: round2(wallMs / 6e4, 1),
-    checkFailures
+    checkFailures,
+    ...Object.keys(gates).length && { gates },
+    ...toGame.length && { firstInGameMinutes: round2([...toGame].sort((a, b) => a - b)[toGame.length >> 1], 1) }
   };
 }
 function generatorMetrics(ledger, subjects) {
@@ -7115,6 +7646,42 @@ var init_decide = __esm({
   }
 });
 
+// ../artgen-workflow/src/stages.ts
+function gatesFor(cfg, brief) {
+  return brief.gates ?? cfg?.[brief.kind] ?? cfg?.["*"] ?? [];
+}
+function stageVerdicts(ledger, stage) {
+  const out = [];
+  for (const e of ledger) {
+    if (e.type !== "stage" || e.verdict !== "approve" && e.verdict !== "reject" || !isGateStage(e.stage) || stage && e.stage !== stage) continue;
+    out.push({
+      stage: e.stage,
+      verdict: e.verdict,
+      key: typeof e.key === "string" ? e.key : "",
+      ...e.version && { version: e.version },
+      ...typeof e.note === "string" && e.note && { note: e.note },
+      ...e.ts && { ts: e.ts }
+    });
+  }
+  return out;
+}
+function stageState(ledger, stage) {
+  const latest = stageVerdicts(ledger, stage).pop();
+  return { ...latest && { latest }, ...latest?.verdict === "approve" && { approvedKey: latest.key } };
+}
+function diffStageKeys(a, b) {
+  return Object.fromEntries(STAGES.map((s2) => [s2, a[s2] === void 0 ? b[s2] === void 0 ? "n/a" : "added" : b[s2] === void 0 ? "removed" : a[s2] === b[s2] ? "same" : "changed"]));
+}
+var STAGES, GATEABLE, isGateStage;
+var init_stages = __esm({
+  "../artgen-workflow/src/stages.ts"() {
+    "use strict";
+    STAGES = ["placeholder", "shape", "rig", "decorate", "decal", "lighting", "rotation", "animation"];
+    GATEABLE = ["placeholder", "shape"];
+    isGateStage = (s2) => GATEABLE.includes(s2);
+  }
+});
+
 // ../artgen-workflow/src/index.ts
 var init_src3 = __esm({
   "../artgen-workflow/src/index.ts"() {
@@ -7129,6 +7696,7 @@ var init_src3 = __esm({
     init_sheet();
     init_brief();
     init_decide();
+    init_stages();
   }
 });
 
@@ -7355,11 +7923,11 @@ function coverage(s2, x, y, soft = false) {
   if ("circle" in s2) return fall(Math.hypot(x - s2.circle[0], y - s2.circle[1]), s2.circle[2]);
   if ("poly" in s2) {
     const p2 = s2.poly;
-    let inside = false;
+    let inside2 = false;
     for (let i = 0, j = p2.length - 2; i < p2.length; j = i, i += 2) {
-      if (p2[i + 1] > y !== p2[j + 1] > y && x < (p2[j] - p2[i]) * (y - p2[i + 1]) / (p2[j + 1] - p2[i + 1]) + p2[i]) inside = !inside;
+      if (p2[i + 1] > y !== p2[j + 1] > y && x < (p2[j] - p2[i]) * (y - p2[i + 1]) / (p2[j + 1] - p2[i + 1]) + p2[i]) inside2 = !inside2;
     }
-    return inside ? 1 : 0;
+    return inside2 ? 1 : 0;
   }
   return fall(distToPolyline(s2.stroke, x, y), s2.width / 2);
 }
@@ -7396,12 +7964,12 @@ function eachCovered(f, s2, soft, fn) {
       if (c > 0) fn(j * f.w + i, c);
     }
 }
-function distanceTo(f, s2, reach, inside = false) {
-  const out = new Float32Array(f.w * f.h).fill(inside ? 0 : reach), r = f.res, pad = Math.ceil(reach * r) + 1;
+function distanceTo(f, s2, reach, inside2 = false) {
+  const out = new Float32Array(f.w * f.h).fill(inside2 ? 0 : reach), r = f.res, pad = Math.ceil(reach * r) + 1;
   const [bx0, by0, bx1, by1] = bbox(s2);
   const x0 = Math.max(0, Math.floor(bx0 * r) - pad), y0 = Math.max(0, Math.floor(by0 * r) - pad), x1 = Math.min(f.w - 1, Math.ceil(bx1 * r) + pad), y1 = Math.min(f.h - 1, Math.ceil(by1 * r) + pad);
   const ww = x1 - x0 + 1, hh = y1 - y0 + 1, big = 1e9, d = new Float32Array(ww * hh).fill(big);
-  for (let j = 0; j < hh; j++) for (let i = 0; i < ww; i++) if (coverage(s2, (x0 + i + 0.5) / r, (y0 + j + 0.5) / r) > 0 !== inside) d[j * ww + i] = 0;
+  for (let j = 0; j < hh; j++) for (let i = 0; i < ww; i++) if (coverage(s2, (x0 + i + 0.5) / r, (y0 + j + 0.5) / r) > 0 !== inside2) d[j * ww + i] = 0;
   const D = Math.SQRT2;
   for (let j = 0; j < hh; j++) for (let i = 0; i < ww; i++) {
     let v = d[j * ww + i];
@@ -7423,7 +7991,7 @@ function distanceTo(f, s2, reach, inside = false) {
     }
     d[j * ww + i] = v;
   }
-  for (let j = 0; j < hh; j++) for (let i = 0; i < ww; i++) out[(y0 + j) * f.w + x0 + i] = Math.min(reach, d[j * ww + i] / r) * (inside && d[j * ww + i] === 0 ? 0 : 1);
+  for (let j = 0; j < hh; j++) for (let i = 0; i < ww; i++) out[(y0 + j) * f.w + x0 + i] = Math.min(reach, d[j * ww + i] / r) * (inside2 && d[j * ww + i] === 0 ? 0 : 1);
   return out;
 }
 var init_geometry = __esm({
@@ -7555,12 +8123,12 @@ function shapeGround(spec, f, raw, seaLevel, margin) {
   const moist = [], ground2 = [];
   const terrains = list6.flatMap((r) => r.kind === "terrain" ? [{ r, w: weights(spec, f, r.area, blendOf(r), WET_EDGE.has(r.terrain) ? "wet" : "land"), b: bands(r.terrain, local) }] : []);
   const within = (a, b) => {
-    let inside = 0, total = 0;
+    let inside2 = 0, total = 0;
     for (let n = 0; n < N3; n++) if (a[n] === 1) {
       total++;
-      if (b[n] === 1) inside++;
+      if (b[n] === 1) inside2++;
     }
-    return total ? inside / total : 0;
+    return total ? inside2 / total : 0;
   };
   const heightBand = new Map(heights.map((h) => [h, toBand(h)]));
   for (const t of terrains) {
@@ -8365,13 +8933,13 @@ var init_theme = __esm({
 });
 
 // ../artgen-primitives/src/lib/view.ts
-function clampCrop(c, cols, rows2) {
-  const x0 = Math.max(0, c[0]), y0 = Math.max(0, c[1]), x1 = Math.min(cols, c[0] + c[2]), y1 = Math.min(rows2, c[1] + c[3]);
-  if (!(x1 > x0 && y1 > y0)) throw new Error(`crop ${c.join(",")} is outside the sheet (0,0,${cols},${rows2})`);
+function clampCrop(c, cols, rows3) {
+  const x0 = Math.max(0, c[0]), y0 = Math.max(0, c[1]), x1 = Math.min(cols, c[0] + c[2]), y1 = Math.min(rows3, c[1] + c[3]);
+  if (!(x1 > x0 && y1 > y0)) throw new Error(`crop ${c.join(",")} is outside the sheet (0,0,${cols},${rows3})`);
   return [r3(x0), r3(y0), r3(x1 - x0), r3(y1 - y0)];
 }
-function frameOf(crop3, cols, rows2, k) {
-  const [x, y, w, h] = crop3 ? clampCrop(crop3, cols, rows2) : [0, 0, cols, rows2];
+function frameOf(crop3, cols, rows3, k) {
+  const [x, y, w, h] = crop3 ? clampCrop(crop3, cols, rows3) : [0, 0, cols, rows3];
   return { x: x * k, y: y * k, w: w * k, h: h * k, r: (x + w) * k, b: (y + h) * k };
 }
 function parseCrop(v, perCell = 1) {
@@ -8411,8 +8979,8 @@ function textBox(text2, cx, baseline, size2, o = {}) {
 }
 function placeLabels(labels, obstacles, bounds, gap = 0) {
   const taken = obstacles.slice(), out = [];
-  const inside = (b) => !bounds || b.x >= bounds.x - 1e-6 && b.y >= bounds.y - 1e-6 && b.x + b.w <= bounds.x + bounds.w + 1e-6 && b.y + b.h <= bounds.y + bounds.h + 1e-6;
-  const free = (b) => inside(b) && !taken.some((t) => overlaps(b, t, gap));
+  const inside2 = (b) => !bounds || b.x >= bounds.x - 1e-6 && b.y >= bounds.y - 1e-6 && b.x + b.w <= bounds.x + bounds.w + 1e-6 && b.y + b.h <= bounds.y + bounds.h + 1e-6;
+  const free = (b) => inside2(b) && !taken.some((t) => overlaps(b, t, gap));
   for (const l of labels) {
     const at4 = (dx, dy) => ({ ...l.box, x: l.box.x + dx, y: l.box.y + dy });
     if (free(l.box)) {
@@ -8629,13 +9197,13 @@ function renderMapSvg(spec, o = {}) {
   const box2 = (x, y, w, h) => `<rect x="${n1(x)}" y="${n1(y)}" width="${n1(w)}" height="${n1(h)}" rx="${n1(4 * u)}" fill="${th.paper}" fill-opacity="0.92" stroke="${th.ink}" stroke-width="${n1(u)}"/>`;
   const pad = 12 * u;
   if (on.legend) {
-    const rows2 = used.map((t) => [t, TERRAIN_NAMES[t]]);
-    if (f.rivers.length) rows2.push(["river", "River"]);
-    if (f.roads.length) rows2.push(["road", "Road"]);
-    for (const kind of LEGEND_SYMBOLS) if (on.symbols && spec.overlay.symbols.some((s2) => s2.kind === kind)) rows2.push([`symbol:${kind}`, SYMBOLS[kind].name.split(" (")[0]]);
-    const rh = 18 * u, fs = 12 * u, bw = 150 * u, bh = rows2.length * rh + 12 * u, x = fr.r - bw - pad, y = fr.b - bh - pad;
+    const rows3 = used.map((t) => [t, TERRAIN_NAMES[t]]);
+    if (f.rivers.length) rows3.push(["river", "River"]);
+    if (f.roads.length) rows3.push(["road", "Road"]);
+    for (const kind of LEGEND_SYMBOLS) if (on.symbols && spec.overlay.symbols.some((s2) => s2.kind === kind)) rows3.push([`symbol:${kind}`, SYMBOLS[kind].name.split(" (")[0]]);
+    const rh = 18 * u, fs = 12 * u, bw = 150 * u, bh = rows3.length * rh + 12 * u, x = fr.r - bw - pad, y = fr.b - bh - pad;
     let g = box2(x, y, bw, bh);
-    rows2.forEach(([t, name], i) => {
+    rows3.forEach(([t, name], i) => {
       const sx = x + 8 * u, sy = y + 6 * u + i * rh + 2 * u, sw = 24 * u, sh = rh - 5 * u;
       if (t === "river") g += `<path d="M${n1(sx)} ${n1(sy + sh / 2)}h${n1(sw)}" stroke="${th.riverBank}" stroke-width="${n1(5 * u)}"/><path d="M${n1(sx + th.riverBankWidth * u)} ${n1(sy + sh / 2)}h${n1(sw - 2 * th.riverBankWidth * u)}" stroke="${th.terrain.water.fill}" stroke-width="${n1(5 * u - 2 * th.riverBankWidth * u)}"/>`;
       else if (t.startsWith("symbol:")) g += symbolSvg(t.slice(7), sx + sw / 2, sy + sh / 2, 15 * u, th);
@@ -8802,7 +9370,7 @@ function extremes(g, f, spec, ids) {
   return { lowest: at4(lo), highest: at4(hi) };
 }
 function crossings(pts2, poly) {
-  const inside = (x, y) => coverage({ poly }, x, y) > 0;
+  const inside2 = (x, y) => coverage({ poly }, x, y) > 0;
   const runs = [];
   let cur = null;
   for (let i = 2; i < pts2.length; i += 2) {
@@ -8819,7 +9387,7 @@ function crossings(pts2, poly) {
     for (let k = 1; k < ts.length; k++) {
       const t0 = ts[k - 1], t1 = ts[k];
       if (t1 - t0 < 1e-9) continue;
-      const mid = (t0 + t1) / 2, here = inside(ax + dx * mid, ay + dy * mid);
+      const mid = (t0 + t1) / 2, here = inside2(ax + dx * mid, ay + dy * mid);
       if (here && !cur) {
         cur = { enters: i === 2 && t0 === 0 ? null : [ax + dx * t0, ay + dy * t0], leaves: null, length: 0 };
         runs.push(cur);
@@ -8863,9 +9431,9 @@ function prominences(v, cols) {
   return out;
 }
 function summits(g, f, spec) {
-  const { cols, rows: rows2 } = spec, N3 = cols * rows2, r = g.res, step = spec.topo.interval, need2 = RULES.prominence * step;
+  const { cols, rows: rows3 } = spec, N3 = cols * rows3, r = g.res, step = spec.topo.interval, need2 = RULES.prominence * step;
   const cell3 = new Float64Array(N3), flip = new Float64Array(N3);
-  for (let cj = 0; cj < rows2; cj++) for (let ci = 0; ci < cols; ci++) {
+  for (let cj = 0; cj < rows3; cj++) for (let ci = 0; ci < cols; ci++) {
     let s2 = 0;
     for (let j = cj * r; j < (cj + 1) * r; j++) for (let i = ci * r; i < (ci + 1) * r; i++) s2 += f.elevation[j * f.w + i];
     cell3[cj * cols + ci] = s2 / (r * r) * spec.topo.maxElevation;
@@ -9021,11 +9589,11 @@ function measure(spec, f, r) {
   }
   if (r.kind === "height") {
     const ids = samplesOf(f, r.area), top = spec.topo.maxElevation, eps = top * 1e-6, need2 = r.share ?? 0.9;
-    const inside = ids.filter((n) => {
+    const inside2 = ids.filter((n) => {
       const h = f.elevation[n] * top;
       return h >= r.low - eps && h <= r.high + eps;
     }).length;
-    const measured = ids.length ? Math.round(inside / ids.length * 100) / 100 : 0;
+    const measured = ids.length ? Math.round(inside2 / ids.length * 100) / 100 : 0;
     return { what: `${r.low}-${r.high} ${spec.topo.unit}`, measured, needed: need2, op: ">=", met: measured >= need2 - 1e-9 };
   }
   if (r.kind === "path") {
@@ -9736,8 +10304,8 @@ function tidy(pts2) {
   }
   return out;
 }
-function routeAround(a, b, width, avoid, cols, rows2) {
-  const o = Math.round(width) % 2 ? 0.5 : 0, x0 = -1, y0 = -1, W3 = cols + 3, H = rows2 + 3;
+function routeAround(a, b, width, avoid, cols, rows3) {
+  const o = Math.round(width) % 2 ? 0.5 : 0, x0 = -1, y0 = -1, W3 = cols + 3, H = rows3 + 3;
   const node = (x, y) => [Math.round(x - o) - x0, Math.round(y - o) - y0];
   const [sx, sy] = node(a[0], a[1]), [gx, gy] = node(b[0], b[1]);
   if (sx < 0 || sy < 0 || sx >= W3 || sy >= H || gx < 0 || gy < 0 || gx >= W3 || gy >= H) return null;
@@ -10000,12 +10568,12 @@ function roomOutline(r) {
   return chaikin({ pts: out, closed: true }, 2).pts;
 }
 function inPolygon(p2, x, y) {
-  let inside = false;
+  let inside2 = false;
   for (let i = 0, j = p2.length - 2; i < p2.length; j = i, i += 2) {
     const xi = p2[i], yi = p2[i + 1], xj = p2[j], yj = p2[j + 1];
-    if (yi > y !== yj > y && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+    if (yi > y !== yj > y && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside2 = !inside2;
   }
-  return inside;
+  return inside2;
 }
 function edgeDistance(p2, x, y) {
   let d = Infinity;
@@ -10322,14 +10890,14 @@ function clipToRect(poly, [x0, y0, x1, y1]) {
     [(p2) => p2[1] >= y0, (a, b) => [a[0] + (b[0] - a[0]) * (y0 - a[1]) / (b[1] - a[1]), y0]],
     [(p2) => p2[1] <= y1, (a, b) => [a[0] + (b[0] - a[0]) * (y1 - a[1]) / (b[1] - a[1]), y1]]
   ];
-  for (const [inside, cut2] of edges2) {
+  for (const [inside2, cut2] of edges2) {
     const out = [];
     pts2.forEach((p2, i) => {
       const prev = pts2[(i + pts2.length - 1) % pts2.length];
-      if (inside(p2)) {
-        if (!inside(prev)) out.push(cut2(prev, p2));
+      if (inside2(p2)) {
+        if (!inside2(prev)) out.push(cut2(prev, p2));
         out.push(p2);
-      } else if (inside(prev)) out.push(cut2(prev, p2));
+      } else if (inside2(prev)) out.push(cut2(prev, p2));
     });
     pts2 = out;
     if (!pts2.length) return [];
@@ -10760,16 +11328,16 @@ function pointAt(path, d) {
   }
   return [path[path.length - 2], path[path.length - 1]];
 }
-function onSheet(path, cols, rows2) {
-  const inside = (x, y) => x >= 0 && y >= 0 && x <= cols && y <= rows2;
-  if (inside(path[0], path[1])) return 0;
+function onSheet(path, cols, rows3) {
+  const inside2 = (x, y) => x >= 0 && y >= 0 && x <= cols && y <= rows3;
+  if (inside2(path[0], path[1])) return 0;
   let at4 = 0;
   for (let i = 0; i + 3 < path.length; i += 2) {
     const x0 = path[i], y0 = path[i + 1], x1 = path[i + 2], y1 = path[i + 3], len = Math.hypot(x1 - x0, y1 - y0);
-    if (inside(x1, y1)) {
+    if (inside2(x1, y1)) {
       const dx = x1 - x0, dy = y1 - y0;
       let t = 0;
-      for (const [p2, q] of [[-dx, x0], [dx, cols - x0], [-dy, y0], [dy, rows2 - y0]]) if (p2 < 0) t = Math.max(t, q / p2);
+      for (const [p2, q] of [[-dx, x0], [dx, cols - x0], [-dy, y0], [dy, rows3 - y0]]) if (p2 < 0) t = Math.max(t, q / p2);
       return at4 + len * t;
     }
     at4 += len;
@@ -11424,8 +11992,8 @@ function lintDungeon(spec, l = layoutDungeon(spec)) {
       const e = sc[side];
       if ("room" in e && !c.ends[k]) add2("warning", `${at4}.${side}`, `the corridor never leaves ${e.room} (it ends inside it)${sc.doors?.[k] ? `, so its ${sc.doors[k]} is not drawn` : ""}`);
       if ("at" in e) {
-        const inside = l.rooms.find((g) => inPolygon(g.outline, e.at[0], e.at[1]));
-        if (inside) add2("warning", `${at4}.${side}`, `ends at ${e.at.join(",")}, inside ${inside.room.id}; link to the room instead`);
+        const inside2 = l.rooms.find((g) => inPolygon(g.outline, e.at[0], e.at[1]));
+        if (inside2) add2("warning", `${at4}.${side}`, `ends at ${e.at.join(",")}, inside ${inside2.room.id}; link to the room instead`);
       }
     });
     if (lineLength2(c.pts) < 1e-9) add2("warning", at4, "the corridor has no length (both ends at one point), so nothing is drawn");
@@ -13567,10 +14135,10 @@ function groundFromMap(spec, field) {
     }
   };
 }
-function route2(a, b, cols, rows2, cost2) {
-  const W3 = cols + 1, H = rows2 + 1, key2 = (x, y) => y * W3 + x, N3 = W3 * H;
+function route2(a, b, cols, rows3, cost2) {
+  const W3 = cols + 1, H = rows3 + 1, key2 = (x, y) => y * W3 + x, N3 = W3 * H;
   const g = new Float64Array(N3).fill(Infinity), from = new Int32Array(N3).fill(-1), done = new Uint8Array(N3);
-  const ax = Math.max(0, Math.min(cols, Math.round(a[0]))), ay = Math.max(0, Math.min(rows2, Math.round(a[1]))), bx = Math.max(0, Math.min(cols, Math.round(b[0]))), by = Math.max(0, Math.min(rows2, Math.round(b[1])));
+  const ax = Math.max(0, Math.min(cols, Math.round(a[0]))), ay = Math.max(0, Math.min(rows3, Math.round(a[1]))), bx = Math.max(0, Math.min(cols, Math.round(b[0]))), by = Math.max(0, Math.min(rows3, Math.round(b[1])));
   const h = (x, y) => Math.hypot(x - bx, y - by);
   const heap2 = [], push = (f, n) => {
     heap2.push([f, n]);
@@ -13624,9 +14192,9 @@ function route2(a, b, cols, rows2, cost2) {
   out.reverse();
   return out.length ? out : [a, b];
 }
-function edgePoint(c, angle, cols, rows2) {
+function edgePoint(c, angle, cols, rows3) {
   const dx = Math.cos(angle), dy = Math.sin(angle);
-  const t = Math.min(dx > 0 ? (cols - c[0]) / dx : dx < 0 ? -c[0] / dx : Infinity, dy > 0 ? (rows2 - c[1]) / dy : dy < 0 ? -c[1] / dy : Infinity);
+  const t = Math.min(dx > 0 ? (cols - c[0]) / dx : dx < 0 ? -c[0] / dx : Infinity, dy > 0 ? (rows3 - c[1]) / dy : dy < 0 ? -c[1] / dy : Infinity);
   return [c[0] + dx * t, c[1] + dy * t];
 }
 function blob(c, rx, ry, n, wobble, rand) {
@@ -13642,8 +14210,8 @@ function mapWater(spec, field) {
   for (const r of field.rivers) {
     const pts2 = [];
     for (let i = 0; i < r.pts.length; i += 2) pts2.push(toSheet(r.pts[i], r.pts[i + 1]));
-    const inside = pts2.map(([x, y]) => x > -2 && y > -2 && x < spec.cols + 2 && y < spec.rows + 2);
-    const first = inside.indexOf(true), last = inside.lastIndexOf(true);
+    const inside2 = pts2.map(([x, y]) => x > -2 && y > -2 && x < spec.cols + 2 && y < spec.rows + 2);
+    const first = inside2.indexOf(true), last = inside2.lastIndexOf(true);
     if (first < 0) continue;
     const run2 = pts2.slice(Math.max(0, first - 1), last + 2), width = r.widths.reduce((s2, v) => s2 + v, 0) / r.widths.length / u.scale;
     if (run2.length >= 2) out.push({ kind: width > 3 ? "river" : "stream", points: flat(simplifyLine({ pts: run2.flat(), closed: false }, 0.3).pts.reduce((a, v, i, s2) => i % 2 ? a : [...a, [v, s2[i + 1]]], [])), width: r22(Math.max(0.6, width)), origin: ORIGIN2 });
@@ -13679,7 +14247,7 @@ function crossings2(line2, ringPts) {
   return out;
 }
 function generateSettlement(spec, ctx = {}) {
-  const s2 = structuredClone(spec), g = s2.gen, rand = rng(s2.seed * 7919 + 29), cols = s2.cols, rows2 = s2.rows, per = s2.scale.perCell, ft = (v) => v / per;
+  const s2 = structuredClone(spec), g = s2.gen, rand = rng(s2.seed * 7919 + 29), cols = s2.cols, rows3 = s2.rows, per = s2.scale.perCell, ft = (v) => v / per;
   const hand = (xs) => xs.filter((x) => x.origin !== ORIGIN2);
   s2.roads = hand(s2.roads);
   s2.water = hand(s2.water);
@@ -13695,34 +14263,34 @@ function generateSettlement(spec, ctx = {}) {
     s2.water.push(...mapWater(s2, ctx.field));
     s2.areas.push(...mapWoods(s2, ground2));
   } else if (g.water === "river") {
-    const vertical = rand() < 0.5, n2 = 7, pts2 = [], off = (vertical ? cols : rows2) * (0.62 + rand() * 0.2);
+    const vertical = rand() < 0.5, n2 = 7, pts2 = [], off = (vertical ? cols : rows3) * (0.62 + rand() * 0.2);
     for (let i = 0; i <= n2; i++) {
-      const t = i / n2, wob = Math.sin(t * Math.PI * (1.5 + rand()) + rand() * 6) * (vertical ? cols : rows2) * 0.06;
-      pts2.push(vertical ? [off + wob, -1 + t * (rows2 + 2)] : [-1 + t * (cols + 2), off + wob]);
+      const t = i / n2, wob = Math.sin(t * Math.PI * (1.5 + rand()) + rand() * 6) * (vertical ? cols : rows3) * 0.06;
+      pts2.push(vertical ? [off + wob, -1 + t * (rows3 + 2)] : [-1 + t * (cols + 2), off + wob]);
     }
     const width = ft(s2.kind === "hamlet" ? 10 : s2.kind === "village" ? 25 : 45);
     s2.water.push({ kind: s2.kind === "hamlet" ? "stream" : "river", points: flat(pts2), width: r22(width), origin: ORIGIN2 });
   } else if (g.water === "lake") {
-    const c = [cols * (rand() < 0.5 ? 0.2 : 0.8), rows2 * (rand() < 0.5 ? 0.22 : 0.78)];
-    s2.water.push({ kind: "lake", points: flat(blob(c, cols * 0.14, rows2 * 0.14, 10, 0.4, rand)), origin: ORIGIN2 });
+    const c = [cols * (rand() < 0.5 ? 0.2 : 0.8), rows3 * (rand() < 0.5 ? 0.22 : 0.78)];
+    s2.water.push({ kind: "lake", points: flat(blob(c, cols * 0.14, rows3 * 0.14, 10, 0.4, rand)), origin: ORIGIN2 });
   } else if (g.water === "coast") {
     const side = Math.floor(rand() * 4), depth = 0.16 + rand() * 0.06, pts2 = [], n2 = 10;
     for (let i = 0; i <= n2; i++) {
       const t = i / n2, w = Math.sin(t * 7 + rand() * 3) * 0.03 + depth;
-      pts2.push(side === 0 ? [t * cols, rows2 * w] : side === 1 ? [cols * (1 - w), t * rows2] : side === 2 ? [t * cols, rows2 * (1 - w)] : [cols * w, t * rows2]);
+      pts2.push(side === 0 ? [t * cols, rows3 * w] : side === 1 ? [cols * (1 - w), t * rows3] : side === 2 ? [t * cols, rows3 * (1 - w)] : [cols * w, t * rows3]);
     }
-    const corner2 = side === 0 ? [[cols + 1, -1], [-1, -1]] : side === 1 ? [[cols + 1, rows2 + 1], [cols + 1, -1]] : side === 2 ? [[cols + 1, rows2 + 1], [-1, rows2 + 1]] : [[-1, rows2 + 1], [-1, -1]];
+    const corner2 = side === 0 ? [[cols + 1, -1], [-1, -1]] : side === 1 ? [[cols + 1, rows3 + 1], [cols + 1, -1]] : side === 2 ? [[cols + 1, rows3 + 1], [-1, rows3 + 1]] : [[-1, rows3 + 1], [-1, -1]];
     const ring2 = side === 0 || side === 3 ? [...pts2, ...side === 0 ? corner2 : corner2.reverse()] : [...pts2, ...corner2];
     s2.water.push({ kind: "sea", points: flat(ring2), origin: ORIGIN2 });
   }
   let lay = layoutSettlement(s2);
   const wet = (x, y, pad = 0) => ground2.water(x, y) || lay.water.some((w) => w.area ? inPolygon(w.pts, x, y) || pad > 0 && nearestOnLine([...w.pts, w.pts[0], w.pts[1]], x, y).d < pad : nearestOnLine(w.pts, x, y).d < w.width / 2 + pad);
-  let C3 = [cols * (0.42 + rand() * 0.16), rows2 * (0.42 + rand() * 0.16)];
-  for (let r = 0; r < Math.max(cols, rows2) && wet(C3[0], C3[1], 4); r += 1) C3 = [C3[0] + (rand() - 0.5) * r * 0.8, C3[1] + (rand() - 0.5) * r * 0.8].map((v, i) => Math.max(4, Math.min((i ? rows2 : cols) - 4, v)));
-  const occ = new Grid2(cols, rows2);
-  for (let y = 0.25; y < rows2; y += 0.5) for (let x = 0.25; x < cols; x += 0.5) if (wet(x, y, 0.3)) occ.mark(x, y);
+  let C3 = [cols * (0.42 + rand() * 0.16), rows3 * (0.42 + rand() * 0.16)];
+  for (let r = 0; r < Math.max(cols, rows3) && wet(C3[0], C3[1], 4); r += 1) C3 = [C3[0] + (rand() - 0.5) * r * 0.8, C3[1] + (rand() - 0.5) * r * 0.8].map((v, i) => Math.max(4, Math.min((i ? rows3 : cols) - 4, v)));
+  const occ = new Grid2(cols, rows3);
+  for (let y = 0.25; y < rows3; y += 0.5) for (let x = 0.25; x < cols; x += 0.5) if (wet(x, y, 0.3)) occ.mark(x, y);
   for (const b of s2.buildings) occ.poly(rotatePts(footprint(b), b.angle ?? 0, b.x + b.w / 2, b.y + b.h / 2), 0.3, false);
-  const roadCost = (x, y) => (wet(x, y) ? 14 : 1) + ground2.slope(x, y) * 40 + (x <= 0 || y <= 0 || x >= cols || y >= rows2 ? 3 : 0);
+  const roadCost = (x, y) => (wet(x, y) ? 14 : 1) + ground2.slope(x, y) * 40 + (x <= 0 || y <= 0 || x >= cols || y >= rows3 ? 3 : 0);
   const addRoad = (kind, pts2, label4) => {
     const r = { kind, points: pts2, curve: "smooth", ...label4 && { label: label4 }, origin: ORIGIN2 };
     s2.roads.push(r);
@@ -13730,18 +14298,18 @@ function generateSettlement(spec, ctx = {}) {
     return r;
   };
   const lotFt = big ? 25 * 30 : 30 * 40, coreR = Math.max(ft(60), Math.sqrt(g.buildings * ft(Math.sqrt(lotFt)) ** 2 / (Math.PI * (0.25 + g.density * 0.35))));
-  const Rcore = Math.min(coreR, Math.min(cols, rows2) * 0.42);
+  const Rcore = Math.min(coreR, Math.min(cols, rows3) * 0.42);
   const through = [];
   const nThrough = castleOnly ? 1 : s2.kind === "hamlet" ? 1 : s2.kind === "village" ? 2 : big ? 4 : 2;
   const a0 = rand() * Math.PI * 2;
   for (let i = 0; i < nThrough; i++) {
-    const a = a0 + i * Math.PI * 2 / nThrough + (rand() - 0.5) * 0.5, e = edgePoint(C3, a, cols, rows2);
+    const a = a0 + i * Math.PI * 2 / nThrough + (rand() - 0.5) * 0.5, e = edgePoint(C3, a, cols, rows3);
     const kind = big ? "highway" : castleOnly ? "lane" : "street";
-    through.push(addRoad(kind, calm(route2(e, C3, cols, rows2, roadCost))));
+    through.push(addRoad(kind, calm(route2(e, C3, cols, rows3, roadCost))));
   }
   if (s2.kind === "hamlet" || s2.kind === "village") {
-    const e = edgePoint(C3, a0 + Math.PI + (rand() - 0.5) * 0.6, cols, rows2);
-    through.push(addRoad(s2.kind === "hamlet" ? "lane" : "street", calm(route2(C3, e, cols, rows2, roadCost))));
+    const e = edgePoint(C3, a0 + Math.PI + (rand() - 0.5) * 0.6, cols, rows3);
+    through.push(addRoad(s2.kind === "hamlet" ? "lane" : "street", calm(route2(C3, e, cols, rows3, roadCost))));
   }
   if (g.market && !castleOnly) {
     const half = ft(big ? 45 : 30);
@@ -13756,7 +14324,7 @@ function generateSettlement(spec, ctx = {}) {
     let ring2 = blob(C3, Rcore + ft(25), (Rcore + ft(25)) * (0.8 + rand() * 0.3), big ? 12 : 9, 0.18, rand);
     ring2 = ring2.map(([x, y]) => {
       let p2 = [x, y];
-      for (let k = 0; k < 20 && (wet(p2[0], p2[1], 1) || p2[0] < 2 || p2[1] < 2 || p2[0] > cols - 2 || p2[1] > rows2 - 2); k++) p2 = [p2[0] + (C3[0] - p2[0]) * 0.1, p2[1] + (C3[1] - p2[1]) * 0.1];
+      for (let k = 0; k < 20 && (wet(p2[0], p2[1], 1) || p2[0] < 2 || p2[1] < 2 || p2[0] > cols - 2 || p2[1] > rows3 - 2); k++) p2 = [p2[0] + (C3[0] - p2[0]) * 0.1, p2[1] + (C3[1] - p2[1]) * 0.1];
       return p2;
     });
     wallRing = ring2;
@@ -13782,9 +14350,9 @@ function generateSettlement(spec, ctx = {}) {
         const len = Rcore * (0.35 + rand() * 0.45);
         let end = [sx + Math.cos(a) * len, sy + Math.sin(a) * len];
         for (let k = 0; k < 12 && (Math.hypot(end[0] - C3[0], end[1] - C3[1]) > Rcore * 0.95 || wallRing && !inPolygon(flat(wallRing), end[0], end[1])); k++) end = [end[0] + (sx - end[0]) * 0.15, end[1] + (sy - end[1]) * 0.15];
-        end = [Math.max(1, Math.min(cols - 1, end[0])), Math.max(1, Math.min(rows2 - 1, end[1]))];
+        end = [Math.max(1, Math.min(cols - 1, end[0])), Math.max(1, Math.min(rows3 - 1, end[1]))];
         if (wet(end[0], end[1], 1) || Math.hypot(end[0] - sx, end[1] - sy) < Rcore * 0.2) continue;
-        const pts2 = calm(route2([sx, sy], end, cols, rows2, roadCost));
+        const pts2 = calm(route2([sx, sy], end, cols, rows3, roadCost));
         const along2 = [];
         for (let j = 2; j < pts2.length; j += 2) along2.push([pts2[j], pts2[j + 1]]);
         const doubled = along2.filter(([x, y]) => s2.roads.some((r) => nearestOnLine(r.points, x, y).d < roadWidth(s2, r) / 2 + ft(20))).length;
@@ -13804,7 +14372,7 @@ function generateSettlement(spec, ctx = {}) {
   const fit2 = (kind, long, short, cands, extra = {}) => {
     for (const { p: p2, vertical } of cands) {
       const w = vertical ? short : long, h = vertical ? long : short, box2 = flat(castleRect(p2[0], p2[1], w, h));
-      if (box2.some((v, i) => v < 0.5 || v > (i % 2 ? rows2 : cols) - 0.5) || occ.poly(box2, ft(2), true)) continue;
+      if (box2.some((v, i) => v < 0.5 || v > (i % 2 ? rows3 : cols) - 0.5) || occ.poly(box2, ft(2), true)) continue;
       return put(kind, p2[0], p2[1], w, h, extra);
     }
     return null;
@@ -13821,7 +14389,7 @@ function generateSettlement(spec, ctx = {}) {
   if (g.castle) {
     const cw = ft(castleOnly ? 150 : 130), ch = ft(castleOnly ? 120 : 110);
     const dir = a0 + Math.PI / nThrough;
-    const cc = castleOnly ? C3 : [Math.max(cw / 2 + 4, Math.min(cols - cw / 2 - 4, C3[0] + Math.cos(dir) * Rcore * 0.75)), Math.max(ch / 2 + 4, Math.min(rows2 - ch / 2 - 4, C3[1] + Math.sin(dir) * Rcore * 0.75))];
+    const cc = castleOnly ? C3 : [Math.max(cw / 2 + 4, Math.min(cols - cw / 2 - 4, C3[0] + Math.cos(dir) * Rcore * 0.75)), Math.max(ch / 2 + 4, Math.min(rows3 - ch / 2 - 4, C3[1] + Math.sin(dir) * Rcore * 0.75))];
     const inner = castleRect(cc[0], cc[1], cw, ch), road2 = through[0], gateAt = crossings2(road2.points, inner)[0] ?? [cc[0], cc[1] + ch / 2];
     const tower = ft(28), curtain = { kind: "curtain", points: flat(inner), closed: true, towers: { shape: rand() < 0.6 ? "round" : "square", at: "corners", size: r22(tower) }, gates: [{ at: [r22(gateAt[0]), r22(gateAt[1])], kind: "gatehouse", ...(castleOnly || g.water === "moat") && { drawbridge: true } }], origin: ORIGIN2 };
     s2.walls.push(curtain);
@@ -13838,7 +14406,7 @@ function generateSettlement(spec, ctx = {}) {
     s2.props.push({ kind: "well", x: r22(cc[0] + (gateAt[0] - cc[0]) * 0.3), y: r22(cc[1] + (gateAt[1] - cc[1]) * 0.3), origin: ORIGIN2 });
     occ.poly(flat(inner), ft(6), false);
     if (castleOnly) {
-      const outer = blob(cc, Math.min(cw * 1.2, cc[0] - 3, cols - cc[0] - 3), Math.min(ch * 1.3, cc[1] - 3, rows2 - cc[1] - 3), 10, 0.1, rand);
+      const outer = blob(cc, Math.min(cw * 1.2, cc[0] - 3, cols - cc[0] - 3), Math.min(ch * 1.3, cc[1] - 3, rows3 - cc[1] - 3), 10, 0.1, rand);
       const og = crossings2(road2.points, outer)[0];
       s2.walls.push({ kind: "stone", points: flat(outer), closed: true, towers: { shape: "round", at: "corners" }, gates: og ? [{ at: [r22(og[0]), r22(og[1])], kind: "gatehouse" }] : [], origin: ORIGIN2 });
       occ.line([...flat(outer), outer[0][0], outer[0][1]], ft(14));
@@ -13904,7 +14472,7 @@ function generateSettlement(spec, ctx = {}) {
         if (facing < 0) c.angle = r22(sp.angle + 180);
       }
       const out = rotatePts(footprint(c), c.angle ?? 0, cx, cy);
-      if (out.some((v, i) => v < 0.5 || v > (i % 2 ? rows2 : cols) - 0.5) || occ.poly(out, ft(2 + (1 - g.density) * 6), true)) {
+      if (out.some((v, i) => v < 0.5 || v > (i % 2 ? rows3 : cols) - 0.5) || occ.poly(out, ft(2 + (1 - g.density) * 6), true)) {
         if (k === first) retry(k);
         continue;
       }
@@ -13920,7 +14488,7 @@ function generateSettlement(spec, ctx = {}) {
     const behind = (depth, kindA) => {
       const bx = sp.x + sp.nx * (sp.off + dh + 0.3), by = sp.y + sp.ny * (sp.off + dh + 0.3), ux = Math.cos(sp.angle * Math.PI / 180), uy = Math.sin(sp.angle * Math.PI / 180), hw = fw / 2;
       const poly = [[bx - ux * hw, by - uy * hw], [bx + ux * hw, by + uy * hw], [bx + ux * hw + sp.nx * depth, by + uy * hw + sp.ny * depth], [bx - ux * hw + sp.nx * depth, by - uy * hw + sp.ny * depth]];
-      if (poly.some(([x, y]) => x < 0 || y < 0 || x > cols || y > rows2) || occ.poly(flat(poly), 0, true)) return;
+      if (poly.some(([x, y]) => x < 0 || y < 0 || x > cols || y > rows3) || occ.poly(flat(poly), 0, true)) return;
       occ.poly(flat(poly), 0.2, false);
       s2.areas.push({ kind: kindA, points: flat(poly), origin: ORIGIN2 });
     };
@@ -13948,7 +14516,7 @@ function generateSettlement(spec, ctx = {}) {
       const [f0, f1, d0, d1] = SIZE_FT[kind], fw = ft(f0 + rand() * (f1 - f0)), dh = ft(d0 + rand() * (d1 - d0));
       const b = { id: "", kind, shape: SHAPE_OF[kind] ?? "rect", x: r22(x - fw / 2), y: r22(y - dh / 2), w: r22(fw), h: r22(dh), angle: r22(best.angle), stories: kind === "house" || kind === "shop" ? 2 : storiesOf(kind), origin: ORIGIN2 };
       const out = rotatePts(footprint(b), b.angle, x, y);
-      if (out.some((v, i) => v < 0.5 || v > (i % 2 ? rows2 : cols) - 0.5) || occ.poly(out, ft(3), true)) continue;
+      if (out.some((v, i) => v < 0.5 || v > (i % 2 ? rows3 : cols) - 0.5) || occ.poly(out, ft(3), true)) continue;
       occ.poly(out, ft(1), false);
       s2.buildings.push(b);
       placed++;
@@ -13963,25 +14531,25 @@ function generateSettlement(spec, ctx = {}) {
     const a = rand() * Math.PI * 2, d = Rcore * (1.3 + rand() * 1.2), cx = C3[0] + Math.cos(a) * d, cy = C3[1] + Math.sin(a) * d;
     const w = ft(60 + rand() * 120), h = ft(40 + rand() * 80), ang = rand() * 40 - 20;
     const poly = rotatePts([cx - w / 2, cy - h / 2, cx + w / 2, cy - h / 2, cx + w / 2, cy + h / 2, cx - w / 2, cy + h / 2], ang, cx, cy);
-    if (poly.some((v, j) => v < 0 || v > (j % 2 ? rows2 : cols)) || occ.poly(poly, 0.5, true)) continue;
+    if (poly.some((v, j) => v < 0 || v > (j % 2 ? rows3 : cols)) || occ.poly(poly, 0.5, true)) continue;
     occ.poly(poly, 0.3, false);
     const kindA = rand() < 0.65 ? "field" : rand() < 0.5 ? "paddock" : "orchard";
     s2.areas.push({ kind: kindA, points: poly.map(r22), origin: ORIGIN2 });
     i++;
   }
   if (g.trees > 0.35 && !s2.areas.some((a) => a.kind === "wood")) {
-    const corners = [[0, 0], [cols, 0], [0, rows2], [cols, rows2]].sort((p2, q) => Math.hypot(q[0] - C3[0], q[1] - C3[1]) - Math.hypot(p2[0] - C3[0], p2[1] - C3[1]));
+    const corners = [[0, 0], [cols, 0], [0, rows3], [cols, rows3]].sort((p2, q) => Math.hypot(q[0] - C3[0], q[1] - C3[1]) - Math.hypot(p2[0] - C3[0], p2[1] - C3[1]));
     for (const cn of corners) {
-      const c = [cn[0] ? cols - cols * 0.12 : cols * 0.12, cn[1] ? rows2 - rows2 * 0.12 : rows2 * 0.12], ring2 = blob(c, cols * 0.13, rows2 * 0.13, 9, 0.35, rand).map(([x, y]) => [Math.max(0, Math.min(cols, x)), Math.max(0, Math.min(rows2, y))]);
+      const c = [cn[0] ? cols - cols * 0.12 : cols * 0.12, cn[1] ? rows3 - rows3 * 0.12 : rows3 * 0.12], ring2 = blob(c, cols * 0.13, rows3 * 0.13, 9, 0.35, rand).map(([x, y]) => [Math.max(0, Math.min(cols, x)), Math.max(0, Math.min(rows3, y))]);
       if (occ.poly(flat(ring2), 0, true)) continue;
       occ.poly(flat(ring2), 0, false);
       s2.areas.push({ kind: "wood", points: flat(ring2), origin: ORIGIN2 });
       break;
     }
   }
-  const treeN = Math.round(g.trees * cols * rows2 * 0.012), sizes = { tree: ft(15), conifer: ft(12), bush: ft(5) };
+  const treeN = Math.round(g.trees * cols * rows3 * 0.012), sizes = { tree: ft(15), conifer: ft(12), bush: ft(5) };
   for (let i = 0, tries2 = 0; i < treeN && tries2 < treeN * 6; tries2++) {
-    const x = rand() * cols, y = rand() * rows2;
+    const x = rand() * cols, y = rand() * rows3;
     if (occ.taken(x, y) || s2.areas.some((a) => a.kind !== "paddock" && a.kind !== "garden" && inPolygon(a.points, x, y))) continue;
     const t = rand(), kind = ground2.forest(x, y) || t < 0.62 ? "tree" : t < 0.78 ? "conifer" : t < 0.95 ? "bush" : "boulder";
     const size2 = kind === "boulder" ? ft(8) : sizes[kind] * (0.8 + rand() * 0.4);
@@ -14063,9 +14631,9 @@ var init_generate3 = __esm({
       w;
       h;
       used;
-      constructor(cols, rows2) {
+      constructor(cols, rows3) {
         this.w = cols * 2;
-        this.h = rows2 * 2;
+        this.h = rows3 * 2;
         this.used = new Uint8Array(this.w * this.h);
       }
       idx(x, y) {
@@ -14084,8 +14652,8 @@ var init_generate3 = __esm({
       poly(p2, pad, test) {
         const xs = p2.filter((_, i) => i % 2 === 0), ys = p2.filter((_, i) => i % 2 === 1), s2 = 1 / this.res;
         for (let y = Math.min(...ys) - pad; y <= Math.max(...ys) + pad; y += s2) for (let x = Math.min(...xs) - pad; x <= Math.max(...xs) + pad; x += s2) {
-          const inside = inPolygon(p2, x, y) || pad > 0 && nearestOnLine([...p2, p2[0], p2[1]], x, y).d <= pad;
-          if (!inside) continue;
+          const inside2 = inPolygon(p2, x, y) || pad > 0 && nearestOnLine([...p2, p2[0], p2[1]], x, y).d <= pad;
+          if (!inside2) continue;
           if (test) {
             if (this.taken(x, y)) return true;
           } else this.mark(x, y);
@@ -14924,7 +15492,7 @@ var init_src4 = __esm({
 });
 
 // ../artgen-core/src/render.ts
-function makeLib(dir, kind, stage, seed = 1, onScene) {
+function makeLib(dir, kind, stage, seed = 1, onScene, onRig) {
   const rampList = Object.values(dir.pal);
   const line2 = (g) => dir.line.outer === "none" ? g : dir.line.outer === "selout" ? selout(g, rampList, dir.outline) : outline(g, dir.outline);
   const sceneOpts = { light: dir.camera.light, bands: dir.shading.bands, outlineColor: dir.outline, shadowColor: dir.shadow, applyLine: line2 };
@@ -15014,6 +15582,21 @@ function makeLib(dir, kind, stage, seed = 1, onScene) {
     /** Animation (P6c): keyframe tracks over t, the pose rig with 2-bone IK, spring chains, swept paths for trails. */
     anim: { ease, track, blend, pingpong, rig, solveTwoBone, spring, sweep },
     /**
+     * Shared body rigs (R6b): `body('biped', ctx, { height })` is a skeleton with clips, foot IK and the facing's projection;
+     * its bone lengths are reported to the render, and the `rig-lengths` stage check fails a template whose limbs change length
+     * between cells. `bodyPlan` maps `brief.body` to a plan, `proportions` are the preset bone lengths.
+     */
+    rigs: {
+      plans: RIG_PLANS,
+      bodyPlan: BODY_PLAN,
+      proportions: PROPORTIONS,
+      body: (plan, ctx, o = {}) => {
+        const r = bodyRig(plan, { ...ctx, ...o });
+        onRig?.({ plan: r.plan, set: r.set, lengths: r.lengths });
+        return r;
+      }
+    },
+    /**
      * Effects (P6c): particle emitters and presets drawn on the direction's effect colours (outer line from the
      * direction), palette cycling. `particles(layers, { w, h, t, duration })`; `preset(name, { w, h, duration })`.
      */
@@ -15032,6 +15615,8 @@ function makeLib(dir, kind, stage, seed = 1, onScene) {
     },
     /** Procedural pass (S2) over a T2+ scene or a finished grid. */
     proc: (source) => new Proc(source, { dir, seed, line: line2 }, stage),
+    /** RotSprite (R6d): a copy of `g` turned `deg` degrees clockwise about `o.pivot` (default the centre); `o.size` makes a larger frame. Colours stay the input's. */
+    rotsprite: (g, deg, o) => rotsprite(g, deg, o),
     palette: palette_exports,
     rng
   };
@@ -15048,7 +15633,10 @@ function renderAsset(mod4, { dir, brief, seed = 1, variant = 0, params = {}, sta
     timing[s2] = { n, sub: sub2, durations: a?.durations?.length === n ? a.durations : Array.from({ length: n }, () => Math.round(1e3 / fps)) };
     frames[s2] = n * sub2;
   }
-  const mirror = mod4.meta?.mirror !== false, cells = [], cache2 = /* @__PURE__ */ new Map(), lint = /* @__PURE__ */ new Set();
+  if (brief.rotate !== void 0 && brief.rotate !== "rotsprite") throw new Error(`brief ${brief.id}: rotate must be rotsprite`);
+  const from = brief.rotate ? brief.rotateFrom ?? "e" : void 0;
+  if (from && !facings.includes(from)) throw new Error(`brief ${brief.id}: rotateFrom ${from} is not one of its ${facings.length} facings (${facings.join(", ")})`);
+  const mirror = mod4.meta?.mirror !== false && !from, cells = [], cache2 = /* @__PURE__ */ new Map(), lint = /* @__PURE__ */ new Set(), rigs = {};
   const allParams = resolveParams(mod4.params, variant, params);
   const renderCell = (state, facing, frame) => {
     const key2 = `${state}/${facing}/${frame}`;
@@ -15056,7 +15644,7 @@ function renderAsset(mod4, { dir, brief, seed = 1, variant = 0, params = {}, sta
     const stage = stages ? (name, g) => {
       stages.set(`${key2}/${n++}-${name}`, g.clone());
     } : void 0;
-    const scenes = [];
+    const scenes = [], built = [];
     const tm = timing[state], ct = cellTiming(frame, tm.n, tm.sub, tm.durations);
     const ctx = {
       dir: dc,
@@ -15074,29 +15662,68 @@ function renderAsset(mod4, { dir, brief, seed = 1, variant = 0, params = {}, sta
       sub: ct.sub,
       ms: ct.ms,
       duration: ct.duration,
-      lib: makeLib(dc, brief.kind, stage, seed, (sc) => scenes.push(sc)),
+      lib: makeLib(dc, brief.kind, stage, seed, (sc) => scenes.push(sc), (r) => built.push(r)),
       palette: (names) => names ? restrict(dc.pal, names, [dc.outline]) : kindPalette(dir, brief.kind),
       stage: stage ?? (() => {
       })
     };
     const grid5 = mod4.render(ctx);
+    const anchors2 = mod4.anchors?.(ctx);
     for (const sc of scenes) {
       for (const m of sc.lint()) lint.add(m);
       onScene?.(key2, sc);
     }
     if (grid5.w !== size2[0] || grid5.h !== size2[1]) throw new Error(`${brief.id} ${key2}: rendered ${grid5.w}x${grid5.h}, brief size is ${size2.join("x")}`);
+    const seen = /* @__PURE__ */ new Set(), mine = built.filter((r) => {
+      const k = JSON.stringify(r);
+      return !seen.has(k) && !!seen.add(k);
+    });
+    if (mine.length) rigs[key2] = mine;
     return {
       state,
       facing,
       frame,
       grid: grid5,
       mirrored: false,
-      anchors: mod4.anchors?.(ctx),
+      anchors: anchors2,
       ...grid5.normal && { normal: fitNormalMap(grid5, grid5.normal) },
+      ...grid5.decals && { decals: grid5.decals, ...grid5.decalStats && { decalStats: grid5.decalStats } },
       ...tm.sub > 1 && { logical: ct.logical, sub: ct.sub }
     };
   };
+  const rotateCell = (e, facing, deg) => {
+    const [w, h] = size2, grid5 = rotsprite(e.grid, deg);
+    const anchors2 = e.anchors && Object.fromEntries(Object.entries(e.anchors).map(([k, p2]) => [k, rotatePoint(p2, deg, w, h)]));
+    const decals = e.decals && Object.fromEntries(Object.entries(e.decals).map(([k, m]) => [k, rotateMask(m, w, h, deg)]));
+    const decalStats = decals && e.decalStats && Object.fromEntries(Object.entries(e.decalStats).map(([k, st]) => {
+      const was = e.decals[k].reduce((a, v) => a + v, 0), now = decals[k].reduce((a, v) => a + v, 0), f = was ? Math.min(1, now / was) : 1;
+      return [k, { inside: Math.round(st.inside * f), total: Math.round(st.total * f) }];
+    }));
+    return {
+      state: e.state,
+      facing,
+      frame: e.frame,
+      grid: grid5,
+      mirrored: false,
+      anchors: anchors2,
+      ...e.normal && { normal: fitNormalMap(grid5, rotateNormals(e.normal, deg)) },
+      ...decals && { decals, ...decalStats && { decalStats } },
+      ...e.logical !== void 0 && { logical: e.logical, sub: e.sub },
+      rotated: { from, deg }
+    };
+  };
   for (const state of states2) for (const facing of facings) for (let frame = 0; frame < frames[state]; frame++) {
+    if (from && facing !== from) {
+      const key2 = `${state}/${from}/${frame}`;
+      let e = cache2.get(key2);
+      if (!e) {
+        e = renderCell(state, from, frame);
+        cache2.set(key2, e);
+      }
+      if (rigs[key2]) rigs[`${state}/${facing}/${frame}`] = rigs[key2];
+      cells.push(rotateCell(e, facing, ((FACING_DEG[facing] - FACING_DEG[from]) % 360 + 360) % 360));
+      continue;
+    }
     const src = mirrorFacing(facing);
     if (mirror && facing.includes("w") && facings.includes(src)) {
       const key2 = `${state}/${src}/${frame}`;
@@ -15105,8 +15732,19 @@ function renderAsset(mod4, { dir, brief, seed = 1, variant = 0, params = {}, sta
         e = renderCell(state, src, frame);
         cache2.set(key2, e);
       }
+      if (rigs[key2]) rigs[`${state}/${facing}/${frame}`] = rigs[key2];
       const anchors2 = e.anchors && Object.fromEntries(Object.entries(e.anchors).map(([k, [x, y]]) => [k, [size2[0] - 1 - x, y]]));
-      cells.push({ state, facing, frame, grid: e.grid.flip("x"), mirrored: true, anchors: anchors2, ...e.normal && { normal: flipNormalMap(e.normal) }, ...e.logical !== void 0 && { logical: e.logical, sub: e.sub } });
+      cells.push({
+        state,
+        facing,
+        frame,
+        grid: e.grid.flip("x"),
+        mirrored: true,
+        anchors: anchors2,
+        ...e.normal && { normal: flipNormalMap(e.normal) },
+        ...e.decals && { decals: Object.fromEntries(Object.entries(e.decals).map(([k, m]) => [k, flipMaskX(m, size2[0])])), ...e.decalStats && { decalStats: e.decalStats } },
+        ...e.logical !== void 0 && { logical: e.logical, sub: e.sub }
+      });
     } else {
       const key2 = `${state}/${facing}/${frame}`;
       let c = cache2.get(key2);
@@ -15117,11 +15755,11 @@ function renderAsset(mod4, { dir, brief, seed = 1, variant = 0, params = {}, sta
       cells.push(c);
     }
   }
-  return { brief, size: size2, states: states2, facings, frames, cells, lint: [...lint] };
+  return { brief, size: size2, states: states2, facings, frames, cells, lint: [...lint], ...Object.keys(rigs).length && { rigs } };
 }
 function assembleSheet(r, gap = 0) {
-  const [w, h] = r.size, cols = Math.max(...Object.values(r.frames)), rows2 = r.states.length * r.facings.length;
-  const grid5 = new Grid(cols * w + (cols - 1) * gap, rows2 * h + (rows2 - 1) * gap), rects = [];
+  const [w, h] = r.size, cols = Math.max(...Object.values(r.frames)), rows3 = r.states.length * r.facings.length;
+  const grid5 = new Grid(cols * w + (cols - 1) * gap, rows3 * h + (rows3 - 1) * gap), rects = [];
   for (const c of r.cells) {
     const row = r.states.indexOf(c.state) * r.facings.length + r.facings.indexOf(c.facing);
     const x = c.frame * (w + gap), y = row * (h + gap);
@@ -15130,7 +15768,7 @@ function assembleSheet(r, gap = 0) {
   }
   return { grid: grid5, rects };
 }
-var FACINGS, mirrorFacing;
+var FACINGS, FACING_DEG, mirrorFacing;
 var init_render4 = __esm({
   "../artgen-core/src/render.ts"() {
     "use strict";
@@ -15138,9 +15776,11 @@ var init_render4 = __esm({
     init_blit();
     init_grid();
     init_normals();
+    init_raster();
     init_iso();
     init_palette();
     init_post();
+    init_rotsprite();
     init_prim();
     init_rng();
     init_svg();
@@ -15155,6 +15795,7 @@ var init_render4 = __esm({
     init_proc();
     init_fp();
     init_anim();
+    init_rigs();
     init_particles();
     init_scene();
     init_scene3d();
@@ -15164,6 +15805,9 @@ var init_render4 = __esm({
       8: ["s", "sw", "w", "nw", "n", "ne", "e", "se"],
       16: ["s", "ssw", "sw", "wsw", "w", "wnw", "nw", "nnw", "n", "nne", "ne", "ene", "e", "ese", "se", "sse"]
     };
+    FACING_DEG = Object.fromEntries(
+      ["e", "ese", "se", "sse", "s", "ssw", "sw", "wsw", "w", "wnw", "nw", "nnw", "n", "nne", "ne", "ene"].map((f, i) => [f, i * 22.5])
+    );
     mirrorFacing = (f) => f.replace(/[we]/g, (c) => c === "w" ? "e" : "w");
   }
 });
@@ -15415,8 +16059,8 @@ function seamMetric(g) {
     const s2 = [...a].sort((x, y) => x - y);
     return s2[Math.min(s2.length - 1, Math.floor(s2.length * 0.9))] ?? 0;
   };
-  const rows2 = Array.from({ length: h - 1 }, (_, j) => rowStep(j)), cols = Array.from({ length: w - 1 }, (_, i) => colStep(i));
-  const rw = rowStep(h - 1), cw = colStep(w - 1), ri = p90(rows2), ci = p90(cols);
+  const rows3 = Array.from({ length: h - 1 }, (_, j) => rowStep(j)), cols = Array.from({ length: w - 1 }, (_, i) => colStep(i));
+  const rw = rowStep(h - 1), cw = colStep(w - 1), ri = p90(rows3), ci = p90(cols);
   const ratio = Math.max(rw / Math.max(1, ri), cw / Math.max(1, ci));
   return { ratio: +ratio.toFixed(2), edge: +Math.max(rw, cw).toFixed(1), interior: +Math.max(ri, ci).toFixed(1) };
 }
@@ -15757,7 +16401,7 @@ function checker(g, x, y, w, h, s2 = 8) {
 }
 function layout(o, k) {
   let W3 = PAD2 * 2 + textWidth(o.title, TXT2), H = PAD2 + LAB + PAD2 / 2;
-  const rows2 = o.rows.map((r) => {
+  const rows3 = o.rows.map((r) => {
     const s2 = Math.max(1, Math.round(r.scale * k)), sw = r.grid.w * s2, sh = r.grid.h * s2;
     const sil = r.silhouette === false ? 0 : PAD2 + r.grid.w * silScale(s2);
     W3 = Math.max(W3, PAD2 * 4 + r.grid.w + sw * 2 + sil, PAD2 * 2 + textWidth(r.label, TXT2));
@@ -15780,7 +16424,7 @@ function layout(o, k) {
     W3 = Math.max(W3, refs.reduce((n, r) => n + Math.max(r.grid.w, textWidth(r.label, TXT2)) + PAD2, PAD2));
     H += LAB + Math.max(...refs.map((r) => r.grid.h)) + LAB + PAD2;
   }
-  return { W: W3, H, rows: rows2, as, ay, refs, ry };
+  return { W: W3, H, rows: rows3, as, ay, refs, ry };
 }
 function reviewSheet(o) {
   const maxEdge = o.maxEdge ?? 1568;
@@ -15882,6 +16526,799 @@ var init_sheet2 = __esm({
   }
 });
 
+// ../artgen-core/src/w2/pack.ts
+function packRects(sizes, opts = {}) {
+  const max2 = opts.maxSize ?? 2048, pad = opts.padding ?? 1;
+  const order = sizes.map((s2, id2) => ({ ...s2, id: id2 })).sort((a, b) => b.h - a.h || b.w - a.w || a.id - b.id);
+  for (const s2 of order) if (s2.w > max2 || s2.h > max2) throw new Error(`frame ${s2.w}x${s2.h} is larger than the max atlas size ${max2}`);
+  const tryPack = (items, W3, H) => {
+    let free = [{ x: 0, y: 0, w: W3 + pad, h: H + pad }];
+    const out = [], rest = [];
+    for (const it of items) {
+      const w = it.w + pad, h = it.h + pad;
+      let best = null, bs = Infinity, bl = Infinity;
+      for (const f of free) if (f.w >= w && f.h >= h) {
+        const s2 = Math.min(f.w - w, f.h - h), l = Math.max(f.w - w, f.h - h);
+        if (s2 < bs || s2 === bs && l < bl) {
+          best = f;
+          bs = s2;
+          bl = l;
+        }
+      }
+      if (!best) {
+        rest.push(it);
+        continue;
+      }
+      const r = { x: best.x, y: best.y, w, h };
+      out.push({ id: it.id, bin: 0, x: r.x, y: r.y, w: it.w, h: it.h });
+      const next4 = [];
+      for (const f of free) {
+        if (r.x >= f.x + f.w || r.x + r.w <= f.x || r.y >= f.y + f.h || r.y + r.h <= f.y) {
+          next4.push(f);
+          continue;
+        }
+        if (r.x > f.x) next4.push({ x: f.x, y: f.y, w: r.x - f.x, h: f.h });
+        if (r.x + r.w < f.x + f.w) next4.push({ x: r.x + r.w, y: f.y, w: f.x + f.w - r.x - r.w, h: f.h });
+        if (r.y > f.y) next4.push({ x: f.x, y: f.y, w: f.w, h: r.y - f.y });
+        if (r.y + r.h < f.y + f.h) next4.push({ x: f.x, y: r.y + r.h, w: f.w, h: f.y + f.h - r.y - r.h });
+      }
+      free = next4.filter((a, i) => !next4.some((b, j) => j !== i && a.x >= b.x && a.y >= b.y && a.x + a.w <= b.x + b.w && a.y + a.h <= b.y + b.h && (j < i || a.w !== b.w || a.h !== b.h || a.x !== b.x || a.y !== b.y)));
+    }
+    return { out, rest };
+  };
+  const placed = [], bins = [];
+  let todo = order;
+  while (todo.length) {
+    const area3 = todo.reduce((n, s2) => n + (s2.w + pad) * (s2.h + pad), 0);
+    let done = false;
+    for (let side = 16; side <= max2 && !done; side *= 2) for (const [W3, H] of [[side, side / 2], [side, side]]) {
+      if (W3 * H < area3 || H < 1) continue;
+      const r4 = tryPack(todo, W3, H);
+      if (!r4.rest.length) {
+        const b2 = bins.length;
+        placed.push(...r4.out.map((p2) => ({ ...p2, bin: b2 })));
+        bins.push(fitBin(r4.out, W3, H));
+        todo = [];
+        done = true;
+        break;
+      }
+    }
+    if (done) break;
+    const r = tryPack(todo, max2, max2), b = bins.length;
+    if (!r.out.length) throw new Error("packRects: nothing fits");
+    placed.push(...r.out.map((p2) => ({ ...p2, bin: b })));
+    bins.push([max2, max2]);
+    todo = r.rest;
+  }
+  return { placed: placed.sort((a, b) => a.id - b.id), bins };
+}
+function fitBin(out, W3, H) {
+  const uw = Math.max(1, ...out.map((p2) => p2.x + p2.w)), uh = Math.max(1, ...out.map((p2) => p2.y + p2.h));
+  let w = W3, h = H;
+  while (w / 2 >= uw && w > 16) w /= 2;
+  while (h / 2 >= uh && h > 16) h /= 2;
+  return [w, h];
+}
+function defaultAnchor(b, view, size2) {
+  if (b.anchor) return b.anchor;
+  return view === "topdown" || TILE_KINDS2.has(b.kind) || b.kind === "effect" ? [size2[0] >> 1, size2[1] >> 1] : [size2[0] >> 1, size2[1] - 1];
+}
+function stateDefs(b, dir, frames) {
+  const out = {};
+  for (const [s2, n] of Object.entries(frames)) {
+    const a = b.anims?.[s2], sub2 = Math.max(1, Math.floor(a?.sub ?? 1));
+    out[s2] = {
+      frames: n,
+      fps: a?.fps ?? (b.kind === "effect" ? dir.effects.fps : 8),
+      loop: a?.loop ?? (b.kind !== "effect" && (n === 1 || LOOPING2.test(s2))),
+      ...a?.durations?.length === n && { durations: [...a.durations] },
+      ...sub2 > 1 && { sub: sub2 }
+    };
+  }
+  return out;
+}
+function displayDurations(st) {
+  const k = st.sub ?? 1;
+  return frameDurations(st).flatMap((d) => Array.from({ length: k }, (_, i) => Math.round((i + 1) * d / k) - Math.round(i * d / k)));
+}
+function swapMaps(dir, swaps = {}) {
+  const R3 = dir.palette.ramps, M = dir.palette.materials, ramp2 = (n) => R3[n] ?? R3[M[n]];
+  const out = {};
+  for (const [name, m] of Object.entries(swaps)) {
+    const map = {};
+    for (const [from, to] of Object.entries(m)) {
+      const a = ramp2(from), b = ramp2(to);
+      if (!a || !b) throw new Error(`swap ${name}: unknown ramp ${!a ? from : to}`);
+      a.forEach((c, i) => {
+        map[c] = b[Math.min(i, b.length - 1)];
+      });
+    }
+    out[name] = map;
+  }
+  return out;
+}
+function buildPack(pack, dir, inputs, opts = {}) {
+  const uniq = [], uniqN = [], byHash = /* @__PURE__ */ new Map();
+  const refs = [];
+  const withNormals = inputs.some((i) => i.renders.some((r) => r.cells.some((c) => c.normal)));
+  for (const inp of inputs) inp.renders.forEach((r, variant) => {
+    for (const cell3 of r.cells) {
+      const h = cell3.grid.hash() + (withNormals && cell3.normal ? cell3.normal.hash() : "");
+      let img = byHash.get(h);
+      if (img === void 0) {
+        img = uniq.length;
+        uniq.push(cell3.grid);
+        uniqN.push(cell3.normal);
+        byHash.set(h, img);
+      }
+      refs.push({ asset: inp.brief.id, cell: cell3, variant, img, fi: r.facings.indexOf(cell3.facing), si: cell3.state });
+    }
+  });
+  const { placed, bins } = packRects(uniq.map((g) => ({ w: g.w, h: g.h })), opts);
+  const atlases = bins.map(([w, h]) => new Grid(w, h));
+  placed.forEach((p2) => atlases[p2.bin].blit(uniq[p2.id], p2.x, p2.y));
+  const names = atlases.map((_, i) => `${pack}-${i}.png`);
+  let normals;
+  if (withNormals) {
+    normals = bins.map(([w, h]) => new Grid(w, h));
+    placed.forEach((p2) => normals[p2.bin].blit(fitNormalMap(uniq[p2.id], uniqN[p2.id]), p2.x, p2.y));
+  }
+  const assets = {};
+  for (const inp of inputs) {
+    const b = inp.brief, r = inp.renders[0], mine = refs.filter((x) => x.asset === b.id);
+    const states2 = stateDefs(b, dir, Object.fromEntries(r.states.map((s2) => [s2, r.frames[s2] / Math.max(1, Math.floor(b.anims?.[s2]?.sub ?? 1))])));
+    const names2 = [...new Set(mine.flatMap((x) => Object.keys(x.cell.anchors ?? {})))].sort();
+    const anchors2 = names2.length ? Object.fromEntries(names2.map((n) => [n, mine.map((x) => {
+      const a = x.cell.anchors?.[n];
+      return a ? [Math.round(a[0]), Math.round(a[1])] : null;
+    })])) : void 0;
+    const swaps = b.swaps && Object.keys(b.swaps).length ? swapMaps(dir, b.swaps) : void 0;
+    assets[b.id] = {
+      kind: b.kind,
+      view: inp.view,
+      size: r.size,
+      anchor: defaultAnchor(b, inp.view, r.size),
+      directions: r.facings.length,
+      facings: r.facings,
+      states: states2,
+      frames: mine.map((x) => {
+        const p2 = placed[x.img];
+        return [p2.bin, p2.x, p2.y, p2.w, p2.h, x.fi, x.si, x.cell.frame, x.variant];
+      }),
+      ...anchors2 && { anchors: anchors2 },
+      variants: ["base", ...inp.renders.slice(1).map((_, i) => `v${i + 1}`), ...Object.keys(swaps ?? {})],
+      ...swaps && { swaps },
+      version: inp.version,
+      sourceHash: inp.sourceHash,
+      ...(TILE_KINDS2.has(b.kind) || LAYER_KINDS2.has(b.kind)) && { tile: r.size[0] },
+      ...b.autotile && { autotile: b.autotile },
+      ...inp.renders.some((x) => x.cells.some((c) => c.normal)) && { normals: true },
+      ...b.blend === "add" && { blend: "add" },
+      ...inp.draft && { draft: true },
+      ...inp.placeholder && { placeholder: true }
+    };
+  }
+  const drafts = inputs.filter((i) => i.draft).map((i) => i.brief.id), placeholders = inputs.filter((i) => i.placeholder).map((i) => i.brief.id).sort();
+  const manifest = {
+    format: 1,
+    pack,
+    generator: opts.generator ?? "artgen",
+    direction: { id: dir.id, version: dir.version },
+    runtime: opts.runtime ?? null,
+    atlases: names,
+    ...normals && { normals: names.map((n) => n.replace(/\.png$/, ".n.png")) },
+    assets,
+    ...drafts.length && { drafts },
+    ...placeholders.length && { placeholders }
+  };
+  const aseprite = atlases.map((g, bin) => asepriteJson(manifest, bin, g, names[bin]));
+  return { manifest, atlases, aseprite, ...normals && { normals } };
+}
+function asepriteJson(m, bin, g, image2) {
+  const frames = [], tags = [];
+  for (const [id2, a] of Object.entries(m.assets)) {
+    let tag;
+    for (const [at4, x, y, w, h, fi, state, frame, variant] of a.frames) {
+      if (at4 !== bin) continue;
+      const strip2 = `${id2}/${state}/${a.facings[fi]}${variant ? `#${a.variants[variant]}` : ""}`;
+      if (!tag || tag.name !== strip2) {
+        tag = { name: strip2, from: frames.length, to: frames.length, direction: "forward" };
+        tags.push(tag);
+      } else tag.to = frames.length;
+      frames.push({
+        filename: `${id2}/${state}/${a.facings[fi]}/${frame}${variant ? `#${a.variants[variant]}` : ""}`,
+        frame: { x, y, w, h },
+        rotated: false,
+        trimmed: false,
+        spriteSourceSize: { x: 0, y: 0, w, h },
+        sourceSize: { w, h },
+        duration: displayDurations(a.states[state])[frame] ?? Math.round(1e3 / a.states[state].fps)
+      });
+    }
+  }
+  return { frames, meta: { app: "artgen", version: m.generator, image: image2, format: "RGBA8888", size: { w: g.w, h: g.h }, scale: "1", frameTags: tags } };
+}
+function assetsTs(packs) {
+  let out = "// Generated by `artgen export` \u2014 do not edit. Typed ids for the exported art packs.\n\n";
+  const rooted = packs.some((p2) => p2.url.startsWith("/"));
+  if (rooted) out += "// The site base: Vite's BASE_URL when the game is served from a sub-path (e.g. GitHub Pages), else '/'.\nconst base: string = (import.meta as unknown as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? '/';\n\n";
+  const url = (u) => u.startsWith("/") ? `\`\${base}${u.slice(1).replace(/[`\\$]/g, "\\$&")}\`` : JSON.stringify(u);
+  out += `export const Packs = {
+${packs.map((p2) => `  ${ident(p2.manifest.pack)}: ${url(p2.url)},`).join("\n")}
+} as const;
+
+`;
+  out += "export const Assets = {\n";
+  for (const { manifest: m } of packs) for (const [id2, a] of Object.entries(m.assets))
+    out += `  ${ident(id2)}: { id: ${JSON.stringify(id2)}, pack: ${JSON.stringify(m.pack)}, kind: ${JSON.stringify(a.kind)}, states: ${JSON.stringify(Object.keys(a.states))}, facings: ${JSON.stringify(a.facings)}, variants: ${JSON.stringify(a.variants)}, anchors: ${JSON.stringify(Object.keys(a.anchors ?? {}))} },
+`;
+  out += "} as const;\n\nexport type AssetId = keyof typeof Assets;\nexport type StateOf<K extends AssetId> = (typeof Assets)[K]['states'][number];\nexport type VariantOf<K extends AssetId> = (typeof Assets)[K]['variants'][number];\nexport type AnchorOf<K extends AssetId> = (typeof Assets)[K]['anchors'][number];\n";
+  return out;
+}
+var TILE_KINDS2, LAYER_KINDS2, LOOPING2, frameDurations, ident;
+var init_pack = __esm({
+  "../artgen-core/src/w2/pack.ts"() {
+    "use strict";
+    init_grid();
+    init_normals();
+    TILE_KINDS2 = /* @__PURE__ */ new Set(["tile", "tileset", "texture"]);
+    LAYER_KINDS2 = /* @__PURE__ */ new Set(["layer"]);
+    LOOPING2 = /^(idle|walk|run|fly|swim|loop|burn|glow|flicker)/;
+    frameDurations = (st) => st.durations ?? Array.from({ length: st.frames }, () => Math.round(1e3 / st.fps));
+    ident = (s2) => /^[A-Za-z_$][\w$]*$/.test(s2) ? s2 : JSON.stringify(s2);
+  }
+});
+
+// ../artgen-core/src/w2/contract.ts
+function contractOf(id2, a) {
+  return { format: 1, asset: id2, facings: [...a.facings], states: states(a.states), anchors: Object.keys(a.anchors ?? {}).sort() };
+}
+function briefContract(b, dir, old) {
+  const names = b.states?.length ? b.states : ["idle"];
+  const frames = Object.fromEntries(names.map((s2) => [s2, b.anims?.[s2]?.frames ?? 1]));
+  return { format: 1, asset: b.id, facings: [...FACINGS[b.directions ?? 1] ?? []], states: states(stateDefs(b, dir, frames)), anchors: old?.anchors ?? [] };
+}
+function diffContract(old, next4) {
+  const breaking = [], added = [];
+  for (const [s2, o] of Object.entries(old.states)) {
+    const n = next4.states[s2];
+    if (!n) {
+      breaking.push(`state "${s2}" removed`);
+      continue;
+    }
+    if (n.frames !== o.frames) breaking.push(`state "${s2}": ${o.frames} \u2192 ${n.frames} logical frames`);
+    else if (n.durations.some((d, i) => d !== o.durations[i])) breaking.push(`state "${s2}": frame durations ${o.durations.join(",")} \u2192 ${n.durations.join(",")} ms`);
+    if (n.loop !== o.loop) breaking.push(`state "${s2}": loop ${o.loop} \u2192 ${n.loop}`);
+  }
+  for (const s2 of Object.keys(next4.states)) if (!old.states[s2]) added.push(`state "${s2}"`);
+  for (const f of old.facings) if (!next4.facings.includes(f)) breaking.push(`facing "${f}" removed`);
+  for (const f of next4.facings) if (!old.facings.includes(f)) added.push(`facing "${f}"`);
+  for (const a of old.anchors) if (!next4.anchors.includes(a)) breaking.push(`anchor "${a}" removed`);
+  for (const a of next4.anchors) if (!old.anchors.includes(a)) added.push(`anchor "${a}"`);
+  return { breaking, added };
+}
+var states;
+var init_contract = __esm({
+  "../artgen-core/src/w2/contract.ts"() {
+    "use strict";
+    init_render4();
+    init_pack();
+    states = (defs) => Object.fromEntries(Object.entries(defs).map(([s2, d]) => [s2, { frames: d.frames, durations: frameDurations(d), loop: d.loop }]));
+  }
+});
+
+// ../artgen-core/src/w2/placeholder.ts
+function defaultRamp(kind, dir) {
+  const R3 = dir.palette.ramps, want = RAMP_FOR[kind];
+  if (want) {
+    if (R3[want]) return want;
+    const m = dir.palette.materials[want];
+    if (m && R3[m]) return m;
+  }
+  return (dir.palette.perKind[kind] ?? Object.keys(R3)).find((n) => R3[n]) ?? Object.keys(R3)[0];
+}
+function defaultPlaceholder(brief, dir) {
+  const size2 = resolveSize(dir, brief.size, brief.kind), [w, h] = size2, view = brief.view ?? dir.camera.view;
+  const pivot = defaultAnchor(brief, view, size2), ramp2 = defaultRamp(brief.kind, dir);
+  const out = { format: 1, size: size2, pivot, body: { x: 0, y: 0, w, h }, ramp: ramp2, anchors: {} };
+  if (FILLS_FRAME.has(brief.kind)) {
+    if (brief.kind === "tile" || brief.kind === "tileset") out.collision = { x: 0, y: 0, w, h };
+    return out;
+  }
+  if (!isStanding(brief)) {
+    const bw2 = Math.max(1, Math.round(w * 0.6)), bh2 = Math.max(1, Math.round(h * 0.6));
+    out.body = { x: w - bw2 >> 1, y: h - bh2 >> 1, w: bw2, h: bh2 };
+    return out;
+  }
+  const ground2 = groundY(pivot, size2), body3 = brief.body ?? "humanoid", flyer = body3 === "flyer";
+  const bottom = flyer ? ground2 - Math.round(h * 0.15) : ground2;
+  let bh = brief.height ? Math.round(brief.height * pxPerMetre(dir)) : Math.round(h * 0.88), bw;
+  if (brief.kind === "prop") bw = Math.round(w * 0.6);
+  else if (body3 === "quadruped" || body3 === "serpent") {
+    bw = Math.round(w * 0.8);
+    bh = Math.min(bh, Math.round(h * 0.5));
+  } else if (flyer) bw = Math.round(w * 0.6);
+  else if (body3 === "large") bw = Math.round(w * 0.9);
+  else bw = Math.round(bh * 0.45);
+  bh = Math.max(1, Math.min(bh, bottom + 1));
+  bw = Math.max(2, Math.min(bw, w));
+  out.body = { x: Math.max(0, Math.min(w - bw, pivot[0] - (bw >> 1))), y: bottom - bh + 1, w: bw, h: bh };
+  if (view !== "side") {
+    const cx0 = Math.max(1, Math.min(w - 1, pivot[0])), rx = Math.max(1, Math.min(Math.round(bw / 2) + 1, cx0, w - cx0)), ry = Math.max(1, Math.round(rx / 2)), cx = cx0, cy = Math.min(ground2, h - ry);
+    out.footprint = { cx, cy, rx, ry };
+    out.collision = { x: cx - rx, y: cy - ry, w: 2 * rx, h: 2 * ry };
+  } else out.collision = { ...out.body };
+  const b = out.body;
+  if (brief.kind === "character" || brief.kind === "creature" && (!brief.body || brief.body === "humanoid"))
+    out.anchors = { head: [b.x + (b.w >> 1), b.y + Math.round(b.h * 0.15)], hand: [b.x, b.y + Math.round(b.h * 0.6)] };
+  else if (brief.kind === "creature") out.anchors = { ground: [pivot[0], pivot[1]], head: [b.x + (b.w >> 1), b.y + Math.round(b.h * 0.15)] };
+  return out;
+}
+function parsePlaceholder(raw, brief, dir) {
+  if (!isObj3(raw)) throw new Error("placeholder.json: must be an object");
+  if (raw.format !== 1) throw new Error("placeholder.json: format must be 1");
+  const d = defaultPlaceholder(brief, dir), bad = (m) => {
+    throw new Error(`placeholder.json: ${m}`);
+  };
+  const box2 = (v, name) => {
+    if (!isObj3(v) || !["x", "y", "w", "h"].every((k) => isInt(v[k])) || v.w < 1 || v.h < 1) bad(`${name} must be { x, y, w, h } in whole pixels (w, h > 0)`);
+    const b = v;
+    return { x: b.x, y: b.y, w: b.w, h: b.h };
+  };
+  if (raw.size !== void 0 && !(pair(raw.size) && raw.size[0] > 0 && raw.size[1] > 0)) bad("size must be [w, h] in whole pixels");
+  if (raw.pivot !== void 0 && !pair(raw.pivot)) bad("pivot must be [x, y] in whole pixels");
+  if (raw.ramp !== void 0 && typeof raw.ramp !== "string") bad("ramp must be a ramp name");
+  let footprint2;
+  if (raw.footprint !== void 0) {
+    const f = raw.footprint;
+    if (!isObj3(f) || !["cx", "cy", "rx", "ry"].every((k) => isInt(f[k])) || f.rx < 1 || f.ry < 1) bad("footprint must be { cx, cy, rx, ry } in whole pixels (rx, ry > 0)");
+    const e = f;
+    footprint2 = { cx: e.cx, cy: e.cy, rx: e.rx, ry: e.ry };
+  }
+  const anchors2 = {};
+  if (raw.anchors !== void 0) {
+    if (!isObj3(raw.anchors)) bad("anchors must map a name to [x, y]");
+    for (const [k, v] of Object.entries(raw.anchors)) {
+      if (!pair(v)) bad(`anchor ${k} must be [x, y] in whole pixels`);
+      anchors2[k] = v;
+    }
+  }
+  return {
+    format: 1,
+    size: raw.size ?? d.size,
+    pivot: raw.pivot ?? d.pivot,
+    body: raw.body !== void 0 ? box2(raw.body, "body") : d.body,
+    ...footprint2 && { footprint: footprint2 },
+    ...raw.collision !== void 0 && { collision: box2(raw.collision, "collision") },
+    ramp: raw.ramp ?? d.ramp,
+    anchors: raw.anchors !== void 0 ? anchors2 : d.anchors
+  };
+}
+function placeholderChecks(ph, brief, dir) {
+  const c = (id2, status2, detail) => ({ id: id2, status: status2, detail, stage: "placeholder" });
+  const want = resolveSize(dir, brief.size, brief.kind), [w, h] = ph.size, out = [];
+  out.push(ph.size[0] === want[0] && ph.size[1] === want[1] ? c("ph-size", "pass", `${w}x${h}`) : c("ph-size", "fail", `${w}x${h}, the brief's size is ${want.join("x")}`));
+  out.push(ph.pivot[0] >= 0 && ph.pivot[1] >= 0 && ph.pivot[0] < w && ph.pivot[1] < h ? c("ph-pivot", "pass", `pivot ${ph.pivot.join(",")}`) : c("ph-pivot", "fail", `pivot ${ph.pivot.join(",")} is outside the ${w}x${h} frame`));
+  const out2 = [];
+  if (!inside(ph.body, ph.size)) out2.push("body");
+  if (ph.footprint && !inside({ x: ph.footprint.cx - ph.footprint.rx, y: ph.footprint.cy - ph.footprint.ry, w: 2 * ph.footprint.rx, h: 2 * ph.footprint.ry }, ph.size)) out2.push("footprint");
+  if (ph.collision && !inside(ph.collision, ph.size)) out2.push("collision");
+  if (out2.length) out.push(c("ph-box", "fail", `${out2.join(", ")} outside the ${w}x${h} frame`));
+  else if (brief.height && isStanding(brief) && !LOW.has(brief.body ?? "")) {
+    const want2 = brief.height * pxPerMetre(dir), dev = Math.abs(ph.body.h - want2) / want2;
+    out.push(dev > 0.2 ? c("ph-box", "flag", `body ${ph.body.h} px tall, ${Math.round(want2)} px for ${brief.height} m (${Math.round(dev * 100)}% off)`) : c("ph-box", "pass", `body ${ph.body.h} px tall`));
+  } else out.push(c("ph-box", "pass", "body, footprint and collision inside the frame"));
+  out.push(dir.palette.ramps[ph.ramp] ? c("ph-ramp", "pass", ph.ramp) : c("ph-ramp", "fail", `${ph.ramp} is not a ramp of the direction (${Object.keys(dir.palette.ramps).join(", ")})`));
+  return out;
+}
+function facing8(f) {
+  const F8 = FACINGS[8];
+  if (F8.includes(f)) return f;
+  const i = FACINGS[16].indexOf(f);
+  return i < 0 ? "s" : F8[Math.round(i / 2) % 8];
+}
+function placeholderModule(ph) {
+  return {
+    meta: { notes: "placeholder", mirror: false },
+    render(ctx) {
+      const [w, h] = ctx.size, g = new Grid(w, h), ramp2 = ctx.dir.pal[ph.ramp] ?? Object.values(ctx.dir.pal)[0], top = ramp2.length - 1;
+      const k = Math.max(0, ctx.brief.states?.indexOf(ctx.state) ?? 0), off = k === 0 ? 0 : Math.ceil(k / 2) * (k % 2 ? -1 : 1);
+      const step = (i) => ramp2[Math.max(0, Math.min(top, i))], mid = ramp2.length >> 1;
+      const bob = ctx.frame % 2 && ph.body.y > 0 ? -1 : 0;
+      if (ph.footprint) {
+        const f = ph.footprint;
+        for (let y = f.cy - f.ry; y < f.cy + f.ry; y++) for (let x = f.cx - f.rx; x < f.cx + f.rx; x++) {
+          const dx = (x + 0.5 - f.cx) / f.rx, dy = (y + 0.5 - f.cy) / f.ry;
+          if (dx * dx + dy * dy <= 1) g.set(x, y, ctx.dir.shadow);
+        }
+      }
+      const b = ph.body, by = b.y + bob, layer = new Grid(w, h), round6 = b.w > 6 && b.h > 6;
+      for (let y = by; y < by + b.h; y++) for (let x = b.x; x < b.x + b.w; x++) {
+        if (round6 && (x === b.x || x === b.x + b.w - 1) && (y === by || y === by + b.h - 1)) continue;
+        layer.set(x, y, step(mid + off));
+      }
+      const tk = TICK[facing8(ctx.facing)] ?? TICK.s;
+      const tx = b.x + (tk[0] < 0 ? 0 : tk[0] > 0 ? b.w - 2 : b.w - 2 >> 1), ty = by + (tk[1] < 0 ? 0 : tk[1] > 0 ? b.h - 2 : b.h - 2 >> 1);
+      layer.fill(tx, ty, 2, 2, ramp2[0]);
+      g.blit(ctx.lib.line(layer), 0, 0);
+      return g;
+    },
+    anchors(ctx) {
+      const bob = ctx.frame % 2 && ph.body.y > 0 ? -1 : 0;
+      return Object.fromEntries(Object.entries(ph.anchors).map(([k, [x, y]]) => [k, [x, y + bob]]));
+    }
+  };
+}
+var STANDING, isStanding, groundY, RAMP_FOR, LOW, FILLS_FRAME, isInt, isObj3, pair, inside, TICK;
+var init_placeholder = __esm({
+  "../artgen-core/src/w2/placeholder.ts"() {
+    "use strict";
+    init_direction();
+    init_grid();
+    init_render4();
+    init_pack();
+    STANDING = /* @__PURE__ */ new Set(["character", "creature", "prop", "vehicle"]);
+    isStanding = (b) => STANDING.has(b.kind);
+    groundY = (pivot, size2) => pivot[1] >= size2[1] * 0.6 ? pivot[1] : Math.round(size2[1] * 0.95);
+    RAMP_FOR = { character: "cloth", creature: "skin", prop: "wood", vehicle: "wood", tile: "stone", tileset: "stone", texture: "stone", effect: "glow" };
+    LOW = /* @__PURE__ */ new Set(["quadruped", "serpent", "flyer"]);
+    FILLS_FRAME = /* @__PURE__ */ new Set(["tile", "tileset", "texture", "layer"]);
+    isInt = (n) => typeof n === "number" && Number.isInteger(n);
+    isObj3 = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
+    pair = (v) => Array.isArray(v) && v.length === 2 && v.every(isInt);
+    inside = (b, [w, h]) => b.x >= 0 && b.y >= 0 && b.x + b.w <= w && b.y + b.h <= h;
+    TICK = { s: [0, 1], n: [0, -1], e: [1, 0], w: [-1, 0], se: [1, 1], sw: [-1, 1], ne: [1, -1], nw: [-1, -1] };
+  }
+});
+
+// ../artgen-core/src/qa/stages.ts
+function canonicalJson(x) {
+  if (Array.isArray(x)) return `[${x.map(canonicalJson).join(",")}]`;
+  if (x && typeof x === "object") return `{${Object.entries(x).filter(([, v]) => v !== void 0).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([k, v]) => `${JSON.stringify(k)}:${canonicalJson(v)}`).join(",")}}`;
+  return JSON.stringify(x) ?? "null";
+}
+function shapeMask(g, dir) {
+  const line2 = /* @__PURE__ */ new Set();
+  if (dir.line.outer !== "none") {
+    line2.add(normHex(dir.palette.outline));
+    if (dir.line.outer === "selout") {
+      for (const r of Object.values(dir.palette.ramps)) if (r.length) line2.add(normHex(r[r.length - 1]));
+    }
+  }
+  const { w, h } = g, m = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (g.alpha(x, y) !== 255) continue;
+    if (line2.size && N46.some(([dx, dy]) => g.inb(x + dx, y + dy) && g.alpha(x + dx, y + dy) !== 255) && line2.has(g.get(x, y))) continue;
+    m[y * w + x] = 1;
+  }
+  return m;
+}
+function stageKeys(r, dir, o = {}) {
+  const keys = {};
+  if (o.placeholder) keys.placeholder = new Digest().str(canonicalJson(o.placeholder)).hex();
+  const shape = new Digest().str(r.size.join("x")), look = new Digest(), anim2 = new Digest(), light = new Digest();
+  let lit = false;
+  for (const c of r.cells) {
+    shape.str(cellId(c)).bytes(shapeMask(c.grid, dir));
+    look.str(c.grid.hash());
+    anim2.str(cellId(c));
+    for (const [k, [x, y]] of Object.entries(c.anchors ?? {}).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)) anim2.str(`${k}=${r23(x)},${r23(y)}`);
+    if (c.normal) {
+      lit = true;
+      light.str(c.normal.hash());
+    } else light.str("-");
+  }
+  keys.shape = shape.hex();
+  const rig2 = rigKey(r);
+  if (rig2) keys.rig = rig2;
+  keys.decorate = look.hex();
+  const decal = decalKey(r);
+  if (decal) keys.decal = decal;
+  if (lit) keys.lighting = light.str(dir.camera.light.map(r23).join(",")).hex();
+  const rotate3 = o.rotate ?? r.brief.rotate;
+  if (rotate3) keys.rotation = new Digest().str(`${r.facings.join(",")}|${rotate3}|${r.brief.rotateFrom ?? "e"}`).hex();
+  keys.animation = anim2.str(canonicalJson({ ...briefContract(r.brief, dir), anchors: [] })).hex();
+  return keys;
+}
+function rigKey(r) {
+  if (!r.rigs) return void 0;
+  const seen = /* @__PURE__ */ new Set(), d = new Digest();
+  for (const c of r.cells) for (const g of r.rigs[cellId(c)] ?? []) {
+    const s2 = `${g.plan}|${Object.keys(g.lengths).sort().map((b) => `${b}=${r23(g.lengths[b])}`).join(",")}`;
+    if (!seen.has(s2)) {
+      seen.add(s2);
+      d.str(s2);
+    }
+  }
+  return seen.size ? d.hex() : void 0;
+}
+function decalKey(r) {
+  const d = new Digest();
+  let any = false;
+  for (const c of r.cells) {
+    d.str(cellId(c));
+    for (const k of Object.keys(c.decals ?? {}).sort()) {
+      any = true;
+      d.str(k).bytes(c.decals[k]);
+    }
+  }
+  return any ? d.hex() : void 0;
+}
+function decalChecks(r) {
+  const c = (status2, detail) => ({ id: "decal-inside", status: status2, detail, stage: "decal" });
+  const nothing = [], mostly = [];
+  let n = 0, seen = false;
+  for (const cell3 of r.cells) for (const [name, { inside: inside2, total }] of Object.entries(cell3.decalStats ?? {})) {
+    seen = true;
+    if (!total) continue;
+    n++;
+    if (!inside2) nothing.push(`decal ${name} landed on nothing in ${cellId(cell3)}`);
+    else if (inside2 / total < 0.5) mostly.push(`decal ${name} is mostly off its part in ${cellId(cell3)} (${inside2} of ${total} px)`);
+  }
+  if (!seen) return [];
+  const list6 = (a) => `${a.slice(0, 3).join("; ")}${a.length > 3 ? `; +${a.length - 3} more` : ""}`;
+  if (nothing.length) return [c("fail", list6(nothing))];
+  if (mostly.length) return [c("flag", list6(mostly))];
+  return [c(n ? "pass" : "skip", n ? `${n} decal placement${n > 1 ? "s" : ""} land on their part` : "no decal has pixels inside the frame")];
+}
+function rigChecks(r) {
+  const c = (status2, detail) => ({ id: "rig-lengths", status: status2, detail, stage: "rig" });
+  if (!r.rigs) return [];
+  const lo = /* @__PURE__ */ new Map(), hi = /* @__PURE__ */ new Map();
+  let n = 0;
+  for (const cell3 of r.cells) for (const [i, g] of (r.rigs[cellId(cell3)] ?? []).entries()) for (const [b2, v] of Object.entries(g.lengths)) {
+    const k = `${i}:${g.plan}:${b2}`, id2 = cellId(cell3);
+    if (!lo.has(k) || v < lo.get(k)[0]) lo.set(k, [v, id2]);
+    if (!hi.has(k) || v > hi.get(k)[0]) hi.set(k, [v, id2]);
+    n++;
+  }
+  const bad = [...lo.keys()].map((k) => ({ k, d: hi.get(k)[0] - lo.get(k)[0] })).filter((x) => x.d > RIG_LENGTH_TOL).sort((a2, b2) => b2.d - a2.d);
+  if (!bad.length) return [c("pass", `${lo.size} bone lengths the same in every cell (within ${RIG_LENGTH_TOL} px)`)];
+  const w = bad[0].k.split(":"), [a, ia] = lo.get(bad[0].k), [b, ib] = hi.get(bad[0].k);
+  return [c("fail", `${w[1]} bone ${w[2]} is ${r23(a)} px in ${ia} and ${r23(b)} px in ${ib}${bad.length > 1 ? ` (and ${bad.length - 1} more bone${bad.length > 2 ? "s" : ""})` : ""}: build the rig once per cell from fixed proportions`)];
+}
+function pieceCount(g) {
+  const { w, h } = g, seen = new Uint8Array(w * h), st = [];
+  let n = 0;
+  for (let i = 0; i < w * h; i++) {
+    if (seen[i] || !g.d[i * 4 + 3]) continue;
+    n++;
+    seen[i] = 1;
+    st.push(i);
+    while (st.length) {
+      const j = st.pop(), x = j % w, y = (j - x) / w;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx, ny = y + dy, k = ny * w + nx;
+        if (nx >= 0 && ny >= 0 && nx < w && ny < h && !seen[k] && g.d[k * 4 + 3]) {
+          seen[k] = 1;
+          st.push(k);
+        }
+      }
+    }
+  }
+  return n;
+}
+function lostToEdge(g, deg) {
+  const rad = deg * Math.PI / 180, c = Math.cos(rad), s2 = Math.sin(rad), px = (g.w - 1) / 2, py = (g.h - 1) / 2, e = 1e-9;
+  let n = 0;
+  for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) {
+    if (!g.d[(y * g.w + x) * 4 + 3]) continue;
+    const dx = x - px, dy = y - py, u = px + c * dx - s2 * dy, v = py + s2 * dx + c * dy;
+    if (u < -0.5 + e || v < -0.5 + e || u > g.w - 0.5 - e || v > g.h - 0.5 - e) n++;
+  }
+  return n;
+}
+function rotationChecks(r) {
+  if (!r.brief.rotate) return [];
+  const src = new Map(r.cells.filter((c) => !c.rotated).map((c) => [`${c.state}/${c.facing}/${c.frame}`, c]));
+  let clip = { v: 0, id: "" }, area3 = { v: 0, id: "" }, pieces2 = { v: 0, id: "", from: 0 }, n = 0, empty = 0;
+  for (const c of r.cells) {
+    const from = c.rotated && src.get(`${c.state}/${c.rotated.from}/${c.frame}`);
+    if (!from || !c.rotated) continue;
+    const a = countOpaque(from.grid);
+    if (!a) {
+      empty++;
+      continue;
+    }
+    n++;
+    const lost = lostToEdge(from.grid, c.rotated.deg) / a, change = Math.abs(countOpaque(c.grid) - a) / a, p2 = pieceCount(c.grid), p0 = pieceCount(from.grid);
+    if (lost > clip.v) clip = { v: lost, id: cellId(c) };
+    if (change > area3.v) area3 = { v: change, id: cellId(c) };
+    if (p2 - p0 > pieces2.v) pieces2 = { v: p2 - p0, id: cellId(c), from: p0 };
+  }
+  const mk = (id2, status2, detail) => ({ id: id2, status: status2, detail, stage: "rotation" });
+  const pc = (v) => `${(v * 100).toFixed(1)} %`;
+  if (!n) return ["rotation-clip", "rotation-area", "rotation-pieces"].map((id2) => mk(id2, "skip", empty ? "the drawn facing is empty" : "no rotated facing"));
+  return [
+    clip.v > ROTATION_CLIP_MAX ? mk("rotation-clip", "fail", `${pc(clip.v)} of the drawn facing's pixels leave the frame in ${clip.id} (limit ${pc(ROTATION_CLIP_MAX)}): make the frame larger or draw the part nearer the centre`) : mk("rotation-clip", "pass", `at most ${pc(clip.v)} of the pixels leave the frame (limit ${pc(ROTATION_CLIP_MAX)})`),
+    area3.v > ROTATION_AREA_MAX ? mk("rotation-area", "flag", `the opaque area of ${area3.id} is ${pc(area3.v)} from the drawn facing's (limit ${pc(ROTATION_AREA_MAX)})`) : mk("rotation-area", "pass", `the opaque area stays within ${pc(area3.v)} of the drawn facing's`),
+    pieces2.v > 0 ? mk("rotation-pieces", "flag", `${pieces2.id} has ${pieces2.v} more piece${pieces2.v > 1 ? "s" : ""} than the drawn facing (${pieces2.from}): a thin part broke apart`) : mk("rotation-pieces", "pass", "no rotated facing has more pieces than the drawn one")
+  ];
+}
+function compactness(m, w, h) {
+  let area3 = 0, perim = 0;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (!m[y * w + x]) continue;
+    area3++;
+    for (const [dx, dy] of N46) {
+      const nx = x + dx, ny = y + dy;
+      if (nx < 0 || ny < 0 || nx >= w || ny >= h || !m[ny * w + nx]) perim++;
+    }
+  }
+  return perim ? 4 * Math.PI * area3 / (perim * perim) : 0;
+}
+function rows2(m, w, h) {
+  let top = -1, bottom = -1;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (m[y * w + x]) {
+    if (top < 0) top = y;
+    bottom = y;
+    break;
+  }
+  return top < 0 ? null : [top, bottom];
+}
+function iou(a, b) {
+  let i = 0, u = 0;
+  for (let k = 0; k < a.length; k++) {
+    if (a[k] && b[k]) i++;
+    if (a[k] || b[k]) u++;
+  }
+  return u ? i / u : 1;
+}
+function shapeChecks(r, dir, o) {
+  const [w, h] = r.size, c = (id2, status2, detail) => ({ id: id2, status: status2, detail, stage: "shape" });
+  const masks = new Map(r.cells.map((x) => [x, shapeMask(x.grid, dir)]));
+  const out = [];
+  const empty = r.cells.filter((x) => !masks.get(x).some(Boolean));
+  out.push(empty.length ? c("shape-empty", "fail", `${empty.length} cell${empty.length > 1 ? "s" : ""} with no shape: ${empty.slice(0, 3).map(cellId).join(", ")}`) : c("shape-empty", "pass", "every cell has a shape"));
+  const stand = r.cells.filter((x) => x.state === r.states[0] && x.facing === r.facings[0]), cells0 = stand.length ? stand : r.cells.slice(0, 1);
+  const ph = o.placeholder ?? safeDefault(o.brief, dir);
+  const standing = isStanding(o.brief) && !!ph && ph.pivot[1] >= h * 0.6, flyer = o.brief.body === "flyer", firm = !!o.placeholder || !!o.brief.height;
+  if (!standing) {
+    out.push(c("shape-pivot", "skip", isStanding(o.brief) ? "the pivot is the frame centre (top-down)" : "not a standing kind"), c("shape-box", "skip", isStanding(o.brief) ? "the pivot is the frame centre (top-down)" : "not a standing kind"));
+  } else {
+    const ground2 = groundY(ph.pivot, r.size), spans = cells0.map((x) => rows2(masks.get(x), w, h)).filter((x) => !!x);
+    if (!spans.length) out.push(c("shape-pivot", "skip", "no shape"), c("shape-box", "skip", "no shape"));
+    else {
+      const low = Math.max(...spans.map((s2) => s2[1])), d = Math.abs(low - ground2);
+      out.push(flyer ? c("shape-pivot", "skip", "flyers hover above the pivot") : c("shape-pivot", d > 2 && o.placeholder ? "fail" : d >= 2 ? "flag" : "pass", `lowest shape row ${low}, pivot row ${ground2}${d > 2 && !o.placeholder ? " (default pivot: write placeholder.json to make this firm)" : ""}`));
+      const hs = Math.max(...spans.map((s2) => s2[1] - s2[0] + 1)), hb = ph.body.h, dev = Math.abs(hs - hb) / hb;
+      out.push(c("shape-box", dev > 0.3 ? firm ? "fail" : "flag" : dev > 0.15 ? "flag" : "pass", `shape ${hs} px tall, placeholder body ${hb} px (${dev >= 5e-3 ? `${hs >= hb ? "+" : "-"}${Math.round(dev * 100)}%` : "same"})`));
+    }
+  }
+  const comp = cells0.map((x) => compactness(masks.get(x), w, h)).filter((v) => v > 0);
+  out.push(!comp.length || FILLS.has(o.brief.kind) ? c("shape-read", "skip", FILLS.has(o.brief.kind) ? "fills its frame on purpose" : "no shape") : c("shape-read", Math.max(...comp) > SHAPE_READ_MAX ? "flag" : "pass", `compactness ${Math.max(...comp).toFixed(2)} (a blob reads above ${SHAPE_READ_MAX})`));
+  if (r.facings.length < 2) out.push(c("shape-facings", "skip", "one facing"));
+  else {
+    const first = /* @__PURE__ */ new Map();
+    for (const x of r.cells) if (x.state === r.states[0] && x.frame === 0 && !first.has(x.facing)) first.set(x.facing, masks.get(x));
+    const same2 = [];
+    for (const [i, a] of r.facings.entries()) for (const b of r.facings.slice(i + 1)) {
+      const ma = first.get(a), mb = first.get(b);
+      if (!ma || !mb || mirrorFacing(a) === b) continue;
+      if (iou(ma, mb) >= 0.97 && ma.some(Boolean)) same2.push(`${a}/${b}`);
+    }
+    out.push(same2.length ? c("shape-facings", "flag", `${same2.slice(0, 4).join(", ")}${same2.length > 4 ? ` +${same2.length - 4}` : ""}: not mirrors, yet the silhouettes match (they read the same)`) : c("shape-facings", "pass", "every facing has its own silhouette"));
+  }
+  return out;
+}
+function safeDefault(brief, dir) {
+  try {
+    return defaultPlaceholder(brief, dir);
+  } catch {
+    return void 0;
+  }
+}
+function stageReport(r, dir, o) {
+  const ph = o.placeholder ?? safeDefault(o.brief, dir);
+  return {
+    keys: stageKeys(r, dir, { placeholder: ph, rotate: o.rotate }),
+    checks: [...o.placeholder ? placeholderChecks(o.placeholder, o.brief, dir) : [], ...shapeChecks(r, dir, { brief: o.brief, placeholder: ph }), ...rigChecks(r), ...decalChecks(r), ...rotationChecks(r)]
+  };
+}
+function shapeSheet(r, dir, o) {
+  const [w, h] = r.size, PAD5 = 12, TXT5 = 2, LAB3 = GLYPH_H * TXT5 + 6, K = 3, maxW = Math.min(o.maxEdge ?? 1568, 960);
+  const drawn = r.facings.filter((f) => r.cells.some((c) => c.state === r.states[0] && c.facing === f && c.frame === 0 && !c.mirrored));
+  const cells = drawn.map((f) => r.cells.find((c) => c.state === r.states[0] && c.facing === f && c.frame === 0));
+  const maskGrid = (c) => {
+    const m = shapeMask(c.grid, dir), g2 = new Grid(w, h);
+    g2.fill(0, 0, w, h, SHAPE_BG);
+    for (let i = 0; i < m.length; i++) if (m[i]) g2.set(i % w, i / w | 0, SHAPE_INK);
+    return g2;
+  };
+  const colW = w + PAD5 + w * K + PAD5 * 2, perRow = Math.max(1, Math.floor((maxW - PAD5) / colW)), nRows = Math.ceil(cells.length / perRow), rowH = LAB3 + h * K + PAD5;
+  const lines2 = o.checks.map((c) => `${c.id} ${c.status.toUpperCase()} ${c.detail}`);
+  const W3 = Math.max(PAD5 * 2 + textWidth(o.title, TXT5), PAD5 + Math.min(perRow, cells.length) * colW, ...lines2.map((l) => Math.min(PAD5 * 2 + textWidth(l, TXT5), maxW)));
+  const H = PAD5 + LAB3 + nRows * rowH + (lines2.length ? lines2.length * LAB3 + PAD5 : 0);
+  const g = new Grid(W3, H).fill(0, 0, W3, H, SHEET_BG);
+  drawText(g, PAD5, PAD5, o.title, "#ffffff", TXT5);
+  cells.forEach((c, i) => {
+    const x = PAD5 + i % perRow * colW, top = PAD5 + LAB3 + Math.floor(i / perRow) * rowH, y = top + LAB3, base = maskGrid(c), big = base.scale(K);
+    if (o.placeholder) {
+      const b = o.placeholder.body, [px, py] = o.placeholder.pivot;
+      for (let t = 0; t < b.w * K; t++) {
+        big.set(b.x * K + t, b.y * K, GUIDE);
+        big.set(b.x * K + t, (b.y + b.h) * K - 1, GUIDE);
+      }
+      for (let t = 0; t < b.h * K; t++) {
+        big.set(b.x * K, b.y * K + t, GUIDE);
+        big.set((b.x + b.w) * K - 1, b.y * K + t, GUIDE);
+      }
+      for (let t = -4; t <= 4; t++) {
+        big.set(px * K + 1 + t, py * K + 1, GUIDE);
+        big.set(px * K + 1, py * K + 1 + t, GUIDE);
+      }
+    }
+    drawText(g, x, top, `${r.states[0]}/${c.facing}`, SHEET_FG, TXT5);
+    g.blit(base, x, y);
+    g.blit(big, x + w + PAD5, y);
+  });
+  let ty = PAD5 + LAB3 + nRows * rowH;
+  for (const [i, l] of lines2.entries()) {
+    drawText(g, PAD5, ty + 2, l, o.checks[i].status === "fail" ? "#ff6b6b" : o.checks[i].status === "flag" ? "#ffc857" : SHEET_FG, TXT5);
+    ty += LAB3;
+  }
+  return g;
+}
+var Digest, N46, cellId, r23, RIG_LENGTH_TOL, ROTATION_CLIP_MAX, ROTATION_AREA_MAX, countOpaque, SHAPE_READ_MAX, FILLS, stageCheckLabels, placeholderKey, SHAPE_BG, SHAPE_INK, GUIDE, SHEET_BG, SHEET_FG;
+var init_stages2 = __esm({
+  "../artgen-core/src/qa/stages.ts"() {
+    "use strict";
+    init_color();
+    init_font();
+    init_grid();
+    init_render4();
+    init_contract();
+    init_placeholder();
+    Digest = class {
+      h1 = 3735928559;
+      h2 = 1103547991;
+      byte(c) {
+        this.h1 = Math.imul(this.h1 ^ c, 2654435761);
+        this.h2 = Math.imul(this.h2 ^ c, 1597334677);
+      }
+      str(s2) {
+        for (let i = 0; i < s2.length; i++) {
+          const c = s2.charCodeAt(i);
+          this.byte(c & 255);
+          if (c > 255) this.byte(c >> 8);
+        }
+        this.byte(10);
+        return this;
+      }
+      bytes(b) {
+        for (let i = 0; i < b.length; i++) this.byte(b[i]);
+        return this;
+      }
+      hex() {
+        let { h1, h2: h22 } = this;
+        h1 = Math.imul(h1 ^ h1 >>> 16, 2246822507) ^ Math.imul(h22 ^ h22 >>> 13, 3266489909);
+        h22 = Math.imul(h22 ^ h22 >>> 16, 2246822507) ^ Math.imul(h1 ^ h1 >>> 13, 3266489909);
+        return (4294967296 * (2097151 & h22) + (h1 >>> 0)).toString(16).padStart(14, "0").slice(0, 8);
+      }
+    };
+    N46 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    cellId = (c) => `${c.state}/${c.facing}/${c.frame}`;
+    r23 = (n) => (Math.round(n * 100) / 100).toFixed(2);
+    RIG_LENGTH_TOL = 0.5;
+    ROTATION_CLIP_MAX = 0.02;
+    ROTATION_AREA_MAX = 0.1;
+    countOpaque = (g) => {
+      let n = 0;
+      for (let i = 3; i < g.d.length; i += 4) if (g.d[i]) n++;
+      return n;
+    };
+    SHAPE_READ_MAX = 0.7;
+    FILLS = /* @__PURE__ */ new Set(["tile", "tileset", "texture", "layer"]);
+    stageCheckLabels = (checks) => checks.filter((x) => x.status === "fail" || x.status === "flag").map((x) => `${x.id}:${x.status}`);
+    placeholderKey = (ph) => new Digest().str(canonicalJson(ph)).hex();
+    SHAPE_BG = "#c8c8c8";
+    SHAPE_INK = "#23232b";
+    GUIDE = "#e0407a";
+    SHEET_BG = "#16161c";
+    SHEET_FG = "#dddddd";
+  }
+});
+
 // ../artgen-core/src/pipeline.ts
 function parseVersion(s2) {
   const m = s2.match(/^(base|finish)\.v(\d+)(?:\.js)?$/);
@@ -15924,39 +17361,78 @@ function rosterNotes(ledger, version) {
   return last?.issues ?? [];
 }
 function planPasses(input) {
-  const { asset, revisionPasses: N3, finishPass } = input;
+  const { asset, revisionPasses: N3, finishPass } = input, gates = input.gates ?? [];
   const vs = input.versions.map(parseVersion).filter((v) => !!v);
   const bases = vs.filter((v) => v.kind === "base").sort((a, b) => a.n - b.n), finishes = vs.filter((v) => v.kind === "finish").sort((a, b) => a.n - b.n);
   const scores = latestScores2(input.ledger), fb = input.feedback, userFb = fb?.filter((f) => f.by !== "agent"), userOpened = userFb?.map((f) => f.opens);
   const pid = (v) => passId(v, N3, userOpened);
   const isUserBase = (b) => b.n > N3 && (!fb || !!userFb?.some((f) => f.opens === b.name));
   const isAgentOpened = (v) => !!fb?.some((f) => f.by === "agent" && f.opens === v);
-  const rows2 = [...bases, ...finishes].map((v) => ({
+  const rows3 = [...bases, ...finishes].map((v) => ({
     version: v.name,
     pass: pid(v.name),
     score: scores.get(v.name)?.score,
     gate: scores.get(v.name)?.gate,
     ...v.kind === "finish" && input.finishBase?.[v.name] && { base: input.finishBase[v.name] }
   }));
+  const sh = gates.includes("shape") ? stageState(input.ledger, "shape") : void 0;
+  const rejectedShapes = new Set(sh ? stageVerdicts(input.ledger, "shape").filter((v) => v.verdict === "reject" && v.key !== sh.approvedKey).map((v) => v.key) : []);
+  const shapeRejected = (v) => {
+    const k = input.stageKeys?.[v]?.shape;
+    return k !== void 0 && rejectedShapes.has(k);
+  };
   const bestOf = (upTo) => {
     let best2;
+    const skip = bases.some((b) => b.n <= upTo && scores.has(b.name) && !shapeRejected(b.name));
     for (const b of bases) {
       if (b.n > upTo) break;
+      if (skip && shapeRejected(b.name)) continue;
       const s2 = scores.get(b.name)?.score;
       if (s2 !== void 0 && (!best2 || s2 >= best2.score)) best2 = { version: b.name, score: s2 };
     }
     return best2;
   };
-  const state = (next4) => ({ asset, rows: rows2, best: bestOf(Infinity), next: next4 });
+  const state = (next4) => ({ asset, rows: rows3, best: bestOf(Infinity), next: next4 });
   const roster3 = (v) => {
     const n = v ? rosterNotes(input.ledger, v) : [];
     return n.length ? `; the roster review of ${v} found: ${n.join("; ")}` : "";
+  };
+  if (gates.includes("placeholder") && !bases.length) {
+    const ph = stageState(input.ledger, "placeholder");
+    if (ph.approvedKey === void 0 || ph.approvedKey !== input.placeholderKey)
+      return state({
+        action: "stage-gate",
+        stage: "placeholder",
+        pass: "g",
+        ...input.placeholderKey && { key: input.placeholderKey },
+        why: `waiting for the user: write the placeholder with \`artgen placeholder ${asset}\` if it is missing, export it with \`artgen export --placeholders\` if the game wants it now, show the user out/placeholder.png and wait for \`artgen stage approve ${asset} placeholder\`${ph.latest?.verdict === "reject" ? `; the user rejected the last one${ph.latest.note ? `: "${ph.latest.note}"` : ""}` : ""}`
+      });
+  }
+  const shapeGate = (cand, next4, nextPass) => {
+    const sh2 = stageState(input.ledger, "shape"), key2 = input.stageKeys?.[cand]?.shape;
+    if (key2 !== void 0 && sh2.approvedKey === key2) return void 0;
+    const iReject = sh2.latest?.verdict === "reject" ? lastIdx(input.ledger, (e) => e.type === "stage" && e.stage === "shape" && e.verdict === "reject") : -1;
+    if (iReject >= 0 && iReject > lastIdx(input.ledger, (e) => e.type === "score" && !e.blind && e.version === cand))
+      return { action: "write-base", version: next4, pass: nextPass, from: cand, why: `the user rejected the shape of ${cand}${sh2.latest?.note ? `: "${sh2.latest.note}"` : ""} \u2014 redraw the silhouette and form before any decoration` };
+    const old = [...input.ledger].reverse().find((e) => e.type === "stage" && e.stage === "shape" && e.verdict === "approve");
+    return {
+      action: "stage-gate",
+      stage: "shape",
+      version: cand,
+      pass: "g",
+      ...key2 && { key: key2 },
+      why: `waiting for the user: shape gate on ${cand}: build the shape sheet (\`artgen review ${asset} --version ${cand} --stage shape\`), show it to the user, wait for \`artgen stage approve ${asset} shape\` or \`artgen stage reject ${asset} shape --note \u2026\`${old && key2 !== void 0 && old.key !== key2 ? `; the silhouette changed since the approved one (${String(old.version ?? "earlier version")})` : ""}`
+    };
   };
   const unscored = [...bases, ...finishes].find((v) => !scores.has(v.name));
   if (unscored) return state({ action: "review", version: unscored.name, pass: pid(unscored.name), why: "render it, build the review sheet (v(n\u22121) beside v(n)), score it" });
   for (let i = 1; i <= N3; i++) {
     if (bases.some((b) => b.n === i)) continue;
     const from = bestOf(i - 1);
+    if (from && gates.includes("shape") && i >= 2) {
+      const g = shapeGate(from.version, `base.v${i}`, `r${i}`);
+      if (g) return state(g);
+    }
     return state({
       action: "write-base",
       version: `base.v${i}`,
@@ -15982,6 +17458,10 @@ function planPasses(input) {
     return state({ action: "ready", final: approved, best: best.version, issues: a.gate === false ? a.failing ?? ["gate failed"] : [], why: "approved by the user; nothing newer since" });
   }
   const userBases = bases.filter(isUserBase), target = userBases.length ? { version: userBases[userBases.length - 1].name, score: scores.get(userBases[userBases.length - 1].name).score } : best;
+  if (gates.includes("shape")) {
+    const g = shapeGate(target.version, nextBase, pid(nextBase));
+    if (g) return state(g);
+  }
   const mode = !finishPass ? "never" : input.finish ?? "always", bar = input.approveMin ?? input.blind?.minScore ?? 6.5;
   const finishedTarget = finishes.some((f) => (input.finishBase?.[f.name] ?? target.version) === target.version);
   if (!finishedTarget && (mode === "always" || mode === "auto" && wantsFinish(scores.get(target.version).note, target.score, bar))) {
@@ -15994,6 +17474,7 @@ function planPasses(input) {
   if (lastUser && parseVersion(lastUser).kind === "base") cands = [lastUser, ...finishes.filter((f) => input.finishBase?.[f.name] === lastUser).map((f) => f.name)];
   else if (lastUser) cands = finishes.filter((f) => f.n >= parseVersion(lastUser).n && input.finishBase?.[f.name] === input.finishBase?.[lastUser]).map((f) => f.name);
   else cands = [...bases, ...finishes].map((v) => v.name);
+  if (cands.some((v) => !shapeRejected(v))) cands = cands.filter((v) => !shapeRejected(v));
   const passing = cands.filter((v) => scores.get(v).gate !== false), pool2 = passing.length ? passing : cands;
   const order = (v) => {
     const p2 = parseVersion(v);
@@ -16027,16 +17508,21 @@ function planPasses(input) {
     why: issues.length ? "pipeline complete with open issues: mark it final and list them for the user" : "pipeline complete: show the finished asset to the user (approve or give feedback)"
   });
 }
-var userWords, FINISH_WORDS;
+var userWords, FINISH_WORDS, lastIdx;
 var init_pipeline = __esm({
   "../artgen-core/src/pipeline.ts"() {
     "use strict";
+    init_stages();
     userWords = (f) => {
       if (!f.note) return "";
       const where = f.region ? ` (region x,y,w,h ${f.region.join(",")}${f.cell ? ` of ${f.cell}` : ""})` : f.cell ? ` (${f.cell})` : "";
       return ` \u2014 ${f.by === "agent" ? f.source ?? "agent" : "user"}: "${f.note}"${where}`;
     };
     FINISH_WORDS = /\b(outlines?|line weight|lines? (?:too )?(?:thick|thin|heavy|broken)|band(?:s|ing)?|clusters?|jagg(?:y|ies)|stair[- ]?steps?|orphans?|stray pixels?|speckles?|pillow(?:ed|ing)?|anti-?alias(?:ing|ed)?|aa|selout|rim ?light)\b/i;
+    lastIdx = (xs, f) => {
+      for (let i = xs.length - 1; i >= 0; i--) if (f(xs[i])) return i;
+      return -1;
+    };
   }
 });
 
@@ -16071,7 +17557,7 @@ function makePx(dc, record = () => {
   };
   const opaque = (g, x, y) => g.alpha(x, y) === 255;
   const selout2 = dc.line.outer === "selout";
-  const isLine = (g, x, y) => g.get(x, y) === outline2 || selout2 && opaque(g, x, y) && N46.some(([dx, dy]) => !opaque(g, x + dx, y + dy));
+  const isLine = (g, x, y) => g.get(x, y) === outline2 || selout2 && opaque(g, x, y) && N47.some(([dx, dy]) => !opaque(g, x + dx, y + dy));
   const fill2 = (g, x, y) => opaque(g, x, y) && !isLine(g, x, y);
   const open = (g, x, y) => !opaque(g, x, y) || isLine(g, x, y);
   const inScope = (o2, g, x, y) => {
@@ -16135,21 +17621,21 @@ function makePx(dc, record = () => {
      * Char-map patch (T1 `blit`): `rows` of characters, `.` transparent, `_` clears the pixel, others look up a
      * token in `key`. `anchor: 'center'` (default) centres the map on `at`; `'topleft'` puts its corner there.
      */
-    patch(g, at4, rows2, key2, o2 = {}) {
-      const h = rows2.length, w = Math.max(...rows2.map((r) => r.length));
+    patch(g, at4, rows3, key2, o2 = {}) {
+      const h = rows3.length, w = Math.max(...rows3.map((r) => r.length));
       const x0 = o2.anchor === "topleft" ? at4[0] : at4[0] - (w >> 1), y0 = o2.anchor === "topleft" ? at4[1] : at4[1] - (h >> 1);
       const under = [];
       for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) under.push(tokenOf(g.get(x0 + x, y0 + y)));
       const cols = {};
       for (const [ch, t] of Object.entries(key2)) cols[ch] = color(t);
-      rows2.forEach((r, y) => [...r].forEach((ch, x) => {
+      rows3.forEach((r, y) => [...r].forEach((ch, x) => {
         if (ch === ".") return;
         if (ch === "_") g.clear(x0 + x, y0 + y);
         else if (cols[ch]) g.set(x0 + x, y0 + y, cols[ch]);
         else throw new Error(`patch: no key for ${JSON.stringify(ch)}`);
         guard.add(`${x0 + x},${y0 + y}`);
       }));
-      record({ anchor: at4.anchor, x: x0, y: y0, w, h, under, rows: rows2, key: key2, mode: o2.anchor ?? "center" });
+      record({ anchor: at4.anchor, x: x0, y: y0, w, h, under, rows: rows3, key: key2, mode: o2.anchor ?? "center" });
       return g;
     },
     fix: {
@@ -16159,7 +17645,7 @@ function makePx(dc, record = () => {
         each(g, o2, (x, y) => {
           const c = g.get(x, y);
           if (!c || !opaque(g, x, y) || c === outline2) return;
-          const n = N46.map(([dx, dy]) => opaque(g, x + dx, y + dy) ? g.get(x + dx, y + dy) : null);
+          const n = N47.map(([dx, dy]) => opaque(g, x + dx, y + dy) ? g.get(x + dx, y + dy) : null);
           if (n.some((v) => v === c || v === null)) return;
           const counts = /* @__PURE__ */ new Map();
           for (const v of n) counts.set(v, (counts.get(v) ?? 0) + 1);
@@ -16176,9 +17662,9 @@ function makePx(dc, record = () => {
         const isO = (x, y) => opaque(g, x, y) && g.get(x, y) === outline2;
         each(g, op, (x, y) => {
           if (!isO(x, y)) return;
-          const n = N46.map(([dx, dy]) => isO(x + dx, y + dy));
-          if (N46.some(([dx, dy], i) => !n[i] && opaque(g, x + dx, y + dy))) return;
-          if (o.isoTile && N46.some(([dx, dy]) => g.alpha(x + dx, y + dy) === 0)) return;
+          const n = N47.map(([dx, dy]) => isO(x + dx, y + dy));
+          if (N47.some(([dx, dy], i) => !n[i] && opaque(g, x + dx, y + dy))) return;
+          if (o.isoTile && N47.some(([dx, dy]) => g.alpha(x + dx, y + dy) === 0)) return;
           const h = n[0] || n[1], v = n[2] || n[3];
           if (n.filter(Boolean).length === 2 && h && v) g.clear(x, y);
         });
@@ -16235,7 +17721,7 @@ function makePx(dc, record = () => {
         const base = g.get(at4[0], at4[1]), c = token ? color(token) : base ? step(base, -99) : null;
         if (!c) return g;
         plot(g, at4[0], at4[1], c);
-        const arms = o2.shape === "plus" ? N46 : o2.shape === "x" ? [[1, 1], [-1, -1], [1, -1], [-1, 1]] : [];
+        const arms = o2.shape === "plus" ? N47 : o2.shape === "x" ? [[1, 1], [-1, -1], [1, -1], [-1, 1]] : [];
         for (const [dx, dy] of arms) if (opaque(g, at4[0] + dx, at4[1] + dy) && g.get(at4[0] + dx, at4[1] + dy) !== outline2) plot(g, at4[0] + dx, at4[1] + dy, step(g.get(at4[0] + dx, at4[1] + dy), -1));
         return g;
       },
@@ -16243,7 +17729,7 @@ function makePx(dc, record = () => {
       spark(g, at4, token, r = 2) {
         const c = color(token);
         plot(g, at4[0], at4[1], c);
-        for (let k = 1; k <= r; k++) for (const [dx, dy] of N46) plot(g, at4[0] + dx * k, at4[1] + dy * k, c);
+        for (let k = 1; k <= r; k++) for (const [dx, dy] of N47) plot(g, at4[0] + dx * k, at4[1] + dy * k, c);
         return g;
       },
       /** Lighten fill pixels within radius r by one step. */
@@ -16295,7 +17781,7 @@ function makePx(dc, record = () => {
         const w = [];
         each(g, { region: o2.region }, (x, y) => {
           if (!opaque(g, x, y) || g.get(x, y) !== outline2) return;
-          const dirs = o2.side === "all" ? N46 : [[-lx, 0], [0, -ly]].filter(([a, b]) => a || b);
+          const dirs = o2.side === "all" ? N47 : [[-lx, 0], [0, -ly]].filter(([a, b]) => a || b);
           for (const [dx, dy] of dirs) {
             if (!fill2(g, x + dx, y + dy)) continue;
             const hit = rampOf.get(g.get(x + dx, y + dy));
@@ -16315,7 +17801,7 @@ function makePx(dc, record = () => {
         each(g, o2, (x, y) => {
           const c = g.get(x, y), hit = c && rampOf.get(c);
           if (!hit || hit[0] !== a || !fill2(g, x, y)) return;
-          if (N46.some(([dx, dy]) => {
+          if (N47.some(([dx, dy]) => {
             const n = g.get(x + dx, y + dy), hn = n && rampOf.get(n);
             return !!hn && hn[0] === b;
           }))
@@ -16332,7 +17818,7 @@ function makePx(dc, record = () => {
           const w = [];
           each(g, { region: o2.region }, (x, y) => {
             if (opaque(g, x, y)) return;
-            if (N46.some(([dx, dy]) => opaque(g, x + dx, y + dy) && g.get(x + dx, y + dy) === outline2)) w.push([x, y, outline2]);
+            if (N47.some(([dx, dy]) => opaque(g, x + dx, y + dy) && g.get(x + dx, y + dy) === outline2)) w.push([x, y, outline2]);
           });
           batch(g, w);
         }
@@ -16422,7 +17908,7 @@ function finishStale(snapshot, current, tolerance = 0.25) {
   });
   return out;
 }
-var N46, finishSnapshot;
+var N47, finishSnapshot;
 var init_finish = __esm({
   "../artgen-core/src/finish.ts"() {
     "use strict";
@@ -16432,7 +17918,7 @@ var init_finish = __esm({
     init_normals();
     init_post();
     init_conformance();
-    N46 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    N47 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
     finishSnapshot = (patches) => patches.map(({ cell: cell3, anchor, x, y, w, h, under, replay }) => ({ cell: cell3, anchor, x, y, w, h, under, ...replay && { replay } }));
   }
 });
@@ -16693,16 +18179,16 @@ function wrap2(text2, max2) {
   return out;
 }
 function swatches(g, x, y, dir, sw, names) {
-  const rows2 = [...Object.entries(dir.palette.ramps), ["outline", [dir.palette.outline]]];
-  const nameW = names ? Math.max(...rows2.map(([n]) => textWidth(n, TXT3))) + 8 : 0;
+  const rows3 = [...Object.entries(dir.palette.ramps), ["outline", [dir.palette.outline]]];
+  const nameW = names ? Math.max(...rows3.map(([n]) => textWidth(n, TXT3))) + 8 : 0;
   let w = 0;
-  rows2.forEach(([name, ramp2], i) => {
+  rows3.forEach(([name, ramp2], i) => {
     const yy = y + i * (sw + 2);
     if (g && names) drawText(g, x, yy + (sw - GLYPH_H * TXT3 >> 1), name, DIM2, TXT3);
     ramp2.forEach((c, k) => g?.fill(x + nameW + k * (sw + 2), yy, sw, sw, c));
     w = Math.max(w, nameW + ramp2.length * (sw + 2));
   });
-  return { w, h: rows2.length * (sw + 2) };
+  return { w, h: rows3.length * (sw + 2) };
 }
 function tiled(tile2, n) {
   const g = new Grid(tile2.w * n, tile2.h * n);
@@ -18734,8 +20220,8 @@ var require_Pair = __commonJS({
         return new _Pair(key2, value);
       }
       toJSON(_, ctx) {
-        const pair = ctx?.mapAsMap ? /* @__PURE__ */ new Map() : {};
-        return addPairToJSMap.addPairToJSMap(ctx, pair, this);
+        const pair2 = ctx?.mapAsMap ? /* @__PURE__ */ new Map() : {};
+        return addPairToJSMap.addPairToJSMap(ctx, pair2, this);
       }
       toString(ctx, onComment, onChompKeep) {
         return ctx?.doc ? stringifyPair.stringifyPair(this, ctx, onComment, onChompKeep) : JSON.stringify(this);
@@ -18960,14 +20446,14 @@ var require_YAMLMap = __commonJS({
        * @param overwrite - If not set `true`, using a key that is already in the
        *   collection will throw. Otherwise, overwrites the previous value.
        */
-      add(pair, overwrite) {
+      add(pair2, overwrite) {
         let _pair;
-        if (identity.isPair(pair))
-          _pair = pair;
-        else if (!pair || typeof pair !== "object" || !("key" in pair)) {
-          _pair = new Pair.Pair(pair, pair?.value);
+        if (identity.isPair(pair2))
+          _pair = pair2;
+        else if (!pair2 || typeof pair2 !== "object" || !("key" in pair2)) {
+          _pair = new Pair.Pair(pair2, pair2?.value);
         } else
-          _pair = new Pair.Pair(pair.key, pair.value);
+          _pair = new Pair.Pair(pair2.key, pair2.value);
         const prev = findPair(this.items, _pair.key);
         const sortEntries = this.schema?.sortMapEntries;
         if (prev) {
@@ -19558,16 +21044,16 @@ var require_pairs = __commonJS({
           else if (identity.isMap(item)) {
             if (item.items.length > 1)
               onError("Each pair must have its own sequence indicator");
-            const pair = item.items[0] || new Pair.Pair(new Scalar.Scalar(null));
+            const pair2 = item.items[0] || new Pair.Pair(new Scalar.Scalar(null));
             if (item.commentBefore)
-              pair.key.commentBefore = pair.key.commentBefore ? `${item.commentBefore}
-${pair.key.commentBefore}` : item.commentBefore;
+              pair2.key.commentBefore = pair2.key.commentBefore ? `${item.commentBefore}
+${pair2.key.commentBefore}` : item.commentBefore;
             if (item.comment) {
-              const cn = pair.value ?? pair.key;
+              const cn = pair2.value ?? pair2.key;
               cn.comment = cn.comment ? `${item.comment}
 ${cn.comment}` : item.comment;
             }
-            item = pair;
+            item = pair2;
           }
           seq.items[i] = identity.isPair(item) ? item : new Pair.Pair(item);
         }
@@ -19648,13 +21134,13 @@ var require_omap = __commonJS({
         const map = /* @__PURE__ */ new Map();
         if (ctx?.onCreate)
           ctx.onCreate(map);
-        for (const pair of this.items) {
+        for (const pair2 of this.items) {
           let key2, value;
-          if (identity.isPair(pair)) {
-            key2 = toJS.toJS(pair.key, "", ctx);
-            value = toJS.toJS(pair.value, key2, ctx);
+          if (identity.isPair(pair2)) {
+            key2 = toJS.toJS(pair2.key, "", ctx);
+            value = toJS.toJS(pair2.value, key2, ctx);
           } else {
-            key2 = toJS.toJS(pair, "", ctx);
+            key2 = toJS.toJS(pair2, "", ctx);
           }
           if (map.has(key2))
             throw new Error("Ordered maps must not include duplicate keys");
@@ -19870,24 +21356,24 @@ var require_set = __commonJS({
         this.tag = _YAMLSet.tag;
       }
       add(key2) {
-        let pair;
+        let pair2;
         if (identity.isPair(key2))
-          pair = key2;
+          pair2 = key2;
         else if (key2 && typeof key2 === "object" && "key" in key2 && "value" in key2 && key2.value === null)
-          pair = new Pair.Pair(key2.key, null);
+          pair2 = new Pair.Pair(key2.key, null);
         else
-          pair = new Pair.Pair(key2, null);
-        const prev = YAMLMap.findPair(this.items, pair.key);
+          pair2 = new Pair.Pair(key2, null);
+        const prev = YAMLMap.findPair(this.items, pair2.key);
         if (!prev)
-          this.items.push(pair);
+          this.items.push(pair2);
       }
       /**
        * If `keepPair` is `true`, returns the Pair matching `key`.
        * Otherwise, returns the value of that Pair's key.
        */
       get(key2, keepPair) {
-        const pair = YAMLMap.findPair(this.items, key2);
-        return !keepPair && identity.isPair(pair) ? identity.isScalar(pair.key) ? pair.key.value : pair.key : pair;
+        const pair2 = YAMLMap.findPair(this.items, key2);
+        return !keepPair && identity.isPair(pair2) ? identity.isScalar(pair2.key) ? pair2.key.value : pair2.key : pair2;
       }
       set(key2, value) {
         if (typeof value !== "boolean")
@@ -20862,7 +22348,7 @@ var require_util_map_includes = __commonJS({
       if (uniqueKeys === false)
         return false;
       const isEqual = typeof uniqueKeys === "function" ? uniqueKeys : (a, b) => a === b || identity.isScalar(a) && identity.isScalar(b) && a.value === b.value;
-      return items.some((pair) => isEqual(pair.key, search));
+      return items.some((pair2) => isEqual(pair2.key, search));
     }
     exports.mapIncludes = mapIncludes;
   }
@@ -20948,10 +22434,10 @@ var require_resolve_block_map = __commonJS({
           if (ctx.schema.compat)
             utilFlowIndentCheck.flowIndentCheck(bm.indent, value, onError);
           offset = valueNode.range[2];
-          const pair = new Pair.Pair(keyNode, valueNode);
+          const pair2 = new Pair.Pair(keyNode, valueNode);
           if (ctx.options.keepSourceTokens)
-            pair.srcToken = collItem;
-          map.items.push(pair);
+            pair2.srcToken = collItem;
+          map.items.push(pair2);
         } else {
           if (implicitKey)
             onError(keyNode.range, "MISSING_CHAR", "Implicit map keys need to be followed by map values");
@@ -20961,10 +22447,10 @@ var require_resolve_block_map = __commonJS({
             else
               keyNode.comment = valueProps.comment;
           }
-          const pair = new Pair.Pair(keyNode);
+          const pair2 = new Pair.Pair(keyNode);
           if (ctx.options.keepSourceTokens)
-            pair.srcToken = collItem;
-          map.items.push(pair);
+            pair2.srcToken = collItem;
+          map.items.push(pair2);
         }
       }
       if (commentEnd && commentEnd < offset)
@@ -21215,18 +22701,18 @@ var require_resolve_flow_collection = __commonJS({
             else
               keyNode.comment = valueProps.comment;
           }
-          const pair = new Pair.Pair(keyNode, valueNode);
+          const pair2 = new Pair.Pair(keyNode, valueNode);
           if (ctx.options.keepSourceTokens)
-            pair.srcToken = collItem;
+            pair2.srcToken = collItem;
           if (isMap2) {
             const map = coll;
             if (utilMapIncludes.mapIncludes(ctx, map.items, keyNode))
               onError(keyStart, "DUPLICATE_KEY", "Map keys must be unique");
-            map.items.push(pair);
+            map.items.push(pair2);
           } else {
             const map = new YAMLMap.YAMLMap(ctx.schema);
             map.flow = true;
-            map.items.push(pair);
+            map.items.push(pair2);
             const endRange = (valueNode ?? keyNode).range;
             map.range = [keyNode.range[0], endRange[1], endRange[2]];
             coll.items.push(map);
@@ -24279,7 +25765,7 @@ function briefMaterialIssues(b, dir) {
 }
 function validateBrief(b, where = "brief") {
   const e = [];
-  if (!isObj3(b)) return [`${where}: must be a mapping`];
+  if (!isObj4(b)) return [`${where}: must be a mapping`];
   const at4 = `${where} ${typeof b.id === "string" ? b.id : "?"}`;
   if (typeof b.id !== "string" || !ID.test(b.id)) e.push(`${at4}: id must be lowercase letters, digits, - or _ (starting with a letter)`);
   if (typeof b.kind !== "string" || !BRIEF_KINDS.includes(b.kind)) e.push(`${at4}: kind must be one of ${BRIEF_KINDS.join(", ")}`);
@@ -24288,9 +25774,9 @@ function validateBrief(b, where = "brief") {
   if (b.states !== void 0 && !(Array.isArray(b.states) && b.states.length && b.states.every((s2) => typeof s2 === "string" && ID.test(s2)))) e.push(`${at4}: states must be a non-empty list of names`);
   if (b.directions !== void 0 && ![1, 4, 8, 16].includes(b.directions)) e.push(`${at4}: directions must be 1, 4, 8 or 16`);
   if (b.anims !== void 0) {
-    if (!isObj3(b.anims)) e.push(`${at4}: anims must map state \u2192 { frames, fps, loop, durations }`);
+    if (!isObj4(b.anims)) e.push(`${at4}: anims must map state \u2192 { frames, fps, loop, durations }`);
     else for (const [s2, a] of Object.entries(b.anims)) {
-      if (!isObj3(a) || !Number.isInteger(a.frames) || a.frames < 1) e.push(`${at4}: anims.${s2}.frames must be a positive integer`);
+      if (!isObj4(a) || !Number.isInteger(a.frames) || a.frames < 1) e.push(`${at4}: anims.${s2}.frames must be a positive integer`);
       else if (Array.isArray(b.states) && !b.states.includes(s2)) e.push(`${at4}: anims.${s2} is not in states`);
       else if (a.durations !== void 0 && !(Array.isArray(a.durations) && a.durations.length === a.frames && a.durations.every((d) => Number.isInteger(d) && d > 0)))
         e.push(`${at4}: anims.${s2}.durations must list one positive whole number of ms per frame (${a.frames})`);
@@ -24316,9 +25802,16 @@ function validateBrief(b, where = "brief") {
   if (b.refs !== void 0) {
     if (!Array.isArray(b.refs) || !b.refs.every((r) => typeof r === "string" && /^refs\/[^\\]+$/.test(r) && !r.split("/").includes(".."))) e.push(`${at4}: refs must be a list of paths under refs/ (refs/goblin-1.png)`);
   }
+  if (b.gates !== void 0 && !(Array.isArray(b.gates) && b.gates.every((g) => GATEABLE.includes(g)))) e.push(`${at4}: gates must be a list of ${GATEABLE.join(", ")}`);
+  if (b.rotate !== void 0) {
+    const facings = FACINGS[b.directions ?? 1] ?? [];
+    if (b.rotate !== "rotsprite") e.push(`${at4}: rotate must be rotsprite`);
+    else if (facings.length < 2) e.push(`${at4}: rotate needs directions 4, 8 or 16 (the facings it makes)`);
+    else if (b.rotateFrom !== void 0 && !facings.includes(b.rotateFrom)) e.push(`${at4}: rotateFrom must be one of the facings (${facings.join(", ")})`);
+  } else if (b.rotateFrom !== void 0) e.push(`${at4}: rotateFrom needs rotate`);
   if (b.swaps !== void 0) {
-    if (!isObj3(b.swaps)) e.push(`${at4}: swaps must map variant name \u2192 { ramp: ramp }`);
-    else for (const [n, m] of Object.entries(b.swaps)) if (!isObj3(m) || !Object.values(m).every((v) => typeof v === "string" && !v.startsWith("#"))) e.push(`${at4}: swaps.${n} must map ramp names to ramp names (no hex, R11)`);
+    if (!isObj4(b.swaps)) e.push(`${at4}: swaps must map variant name \u2192 { ramp: ramp }`);
+    else for (const [n, m] of Object.entries(b.swaps)) if (!isObj4(m) || !Object.values(m).every((v) => typeof v === "string" && !v.startsWith("#"))) e.push(`${at4}: swaps.${n} must map ramp names to ramp names (no hex, R11)`);
   }
   return e;
 }
@@ -24330,7 +25823,7 @@ function parseBriefs(text2) {
   const errors = [], seen = /* @__PURE__ */ new Set();
   data.forEach((b, i) => {
     errors.push(...validateBrief(b, `brief #${i + 1}`));
-    if (isObj3(b) && typeof b.id === "string") {
+    if (isObj4(b) && typeof b.id === "string") {
       if (seen.has(b.id)) errors.push(`brief ${b.id}: duplicate id`);
       seen.add(b.id);
     }
@@ -24354,8 +25847,8 @@ function upsertBrief(text2, brief) {
   if (!(0, import_yaml.isSeq)(seq)) throw new Error("briefs.yaml: must be a list of briefs");
   const clean = JSON.parse(JSON.stringify(brief));
   const node = doc2.createNode(clean);
-  for (const pair of node.items) {
-    const v = pair.value;
+  for (const pair2 of node.items) {
+    const v = pair2.value;
     if (((0, import_yaml.isSeq)(v) || (0, import_yaml.isMap)(v)) && (v.items?.length ?? 0) <= 8) v.flow = true;
   }
   const items = seq.items;
@@ -24373,12 +25866,14 @@ function removeBrief(text2, id2) {
   items.splice(i, 1);
   return doc2.toString({ lineWidth: 120 });
 }
-var import_yaml, BRIEF_KINDS, IMPORTANCE, BODIES, ID, COLOUR_WORDS, MATERIAL_WORDS, isObj3, briefDir;
+var import_yaml, BRIEF_KINDS, IMPORTANCE, BODIES, ID, COLOUR_WORDS, MATERIAL_WORDS, isObj4, briefDir;
 var init_briefs = __esm({
   "../artgen-core/src/w2/briefs.ts"() {
     "use strict";
     import_yaml = __toESM(require_dist(), 1);
     init_direction();
+    init_stages();
+    init_render4();
     BRIEF_KINDS = ["character", "creature", "prop", "tile", "tileset", "texture", "effect", "viewmodel", "ui-icon", "layer"];
     IMPORTANCE = ["hero", "standard", "filler"];
     BODIES = ["humanoid", "quadruped", "serpent", "flyer", "large"];
@@ -24395,249 +25890,8 @@ var init_briefs = __esm({
       hair: ["hair", "fur", "mane", "beard", "furred"],
       grass: ["grass", "moss", "leaves", "leaf", "vine", "vines", "shrub", "hedge"]
     };
-    isObj3 = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
+    isObj4 = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
     briefDir = (b) => `assets/${b.kind}/${b.id}`;
-  }
-});
-
-// ../artgen-core/src/w2/pack.ts
-function packRects(sizes, opts = {}) {
-  const max2 = opts.maxSize ?? 2048, pad = opts.padding ?? 1;
-  const order = sizes.map((s2, id2) => ({ ...s2, id: id2 })).sort((a, b) => b.h - a.h || b.w - a.w || a.id - b.id);
-  for (const s2 of order) if (s2.w > max2 || s2.h > max2) throw new Error(`frame ${s2.w}x${s2.h} is larger than the max atlas size ${max2}`);
-  const tryPack = (items, W3, H) => {
-    let free = [{ x: 0, y: 0, w: W3 + pad, h: H + pad }];
-    const out = [], rest = [];
-    for (const it of items) {
-      const w = it.w + pad, h = it.h + pad;
-      let best = null, bs = Infinity, bl = Infinity;
-      for (const f of free) if (f.w >= w && f.h >= h) {
-        const s2 = Math.min(f.w - w, f.h - h), l = Math.max(f.w - w, f.h - h);
-        if (s2 < bs || s2 === bs && l < bl) {
-          best = f;
-          bs = s2;
-          bl = l;
-        }
-      }
-      if (!best) {
-        rest.push(it);
-        continue;
-      }
-      const r = { x: best.x, y: best.y, w, h };
-      out.push({ id: it.id, bin: 0, x: r.x, y: r.y, w: it.w, h: it.h });
-      const next4 = [];
-      for (const f of free) {
-        if (r.x >= f.x + f.w || r.x + r.w <= f.x || r.y >= f.y + f.h || r.y + r.h <= f.y) {
-          next4.push(f);
-          continue;
-        }
-        if (r.x > f.x) next4.push({ x: f.x, y: f.y, w: r.x - f.x, h: f.h });
-        if (r.x + r.w < f.x + f.w) next4.push({ x: r.x + r.w, y: f.y, w: f.x + f.w - r.x - r.w, h: f.h });
-        if (r.y > f.y) next4.push({ x: f.x, y: f.y, w: f.w, h: r.y - f.y });
-        if (r.y + r.h < f.y + f.h) next4.push({ x: f.x, y: r.y + r.h, w: f.w, h: f.y + f.h - r.y - r.h });
-      }
-      free = next4.filter((a, i) => !next4.some((b, j) => j !== i && a.x >= b.x && a.y >= b.y && a.x + a.w <= b.x + b.w && a.y + a.h <= b.y + b.h && (j < i || a.w !== b.w || a.h !== b.h || a.x !== b.x || a.y !== b.y)));
-    }
-    return { out, rest };
-  };
-  const placed = [], bins = [];
-  let todo = order;
-  while (todo.length) {
-    const area3 = todo.reduce((n, s2) => n + (s2.w + pad) * (s2.h + pad), 0);
-    let done = false;
-    for (let side = 16; side <= max2 && !done; side *= 2) for (const [W3, H] of [[side, side / 2], [side, side]]) {
-      if (W3 * H < area3 || H < 1) continue;
-      const r4 = tryPack(todo, W3, H);
-      if (!r4.rest.length) {
-        const b2 = bins.length;
-        placed.push(...r4.out.map((p2) => ({ ...p2, bin: b2 })));
-        bins.push(fitBin(r4.out, W3, H));
-        todo = [];
-        done = true;
-        break;
-      }
-    }
-    if (done) break;
-    const r = tryPack(todo, max2, max2), b = bins.length;
-    if (!r.out.length) throw new Error("packRects: nothing fits");
-    placed.push(...r.out.map((p2) => ({ ...p2, bin: b })));
-    bins.push([max2, max2]);
-    todo = r.rest;
-  }
-  return { placed: placed.sort((a, b) => a.id - b.id), bins };
-}
-function fitBin(out, W3, H) {
-  const uw = Math.max(1, ...out.map((p2) => p2.x + p2.w)), uh = Math.max(1, ...out.map((p2) => p2.y + p2.h));
-  let w = W3, h = H;
-  while (w / 2 >= uw && w > 16) w /= 2;
-  while (h / 2 >= uh && h > 16) h /= 2;
-  return [w, h];
-}
-function defaultAnchor(b, view, size2) {
-  if (b.anchor) return b.anchor;
-  return view === "topdown" || TILE_KINDS2.has(b.kind) || b.kind === "effect" ? [size2[0] >> 1, size2[1] >> 1] : [size2[0] >> 1, size2[1] - 1];
-}
-function stateDefs(b, dir, frames) {
-  const out = {};
-  for (const [s2, n] of Object.entries(frames)) {
-    const a = b.anims?.[s2], sub2 = Math.max(1, Math.floor(a?.sub ?? 1));
-    out[s2] = {
-      frames: n,
-      fps: a?.fps ?? (b.kind === "effect" ? dir.effects.fps : 8),
-      loop: a?.loop ?? (b.kind !== "effect" && (n === 1 || LOOPING2.test(s2))),
-      ...a?.durations?.length === n && { durations: [...a.durations] },
-      ...sub2 > 1 && { sub: sub2 }
-    };
-  }
-  return out;
-}
-function displayDurations(st) {
-  const k = st.sub ?? 1;
-  return frameDurations(st).flatMap((d) => Array.from({ length: k }, (_, i) => Math.round((i + 1) * d / k) - Math.round(i * d / k)));
-}
-function swapMaps(dir, swaps = {}) {
-  const R3 = dir.palette.ramps, M = dir.palette.materials, ramp2 = (n) => R3[n] ?? R3[M[n]];
-  const out = {};
-  for (const [name, m] of Object.entries(swaps)) {
-    const map = {};
-    for (const [from, to] of Object.entries(m)) {
-      const a = ramp2(from), b = ramp2(to);
-      if (!a || !b) throw new Error(`swap ${name}: unknown ramp ${!a ? from : to}`);
-      a.forEach((c, i) => {
-        map[c] = b[Math.min(i, b.length - 1)];
-      });
-    }
-    out[name] = map;
-  }
-  return out;
-}
-function buildPack(pack, dir, inputs, opts = {}) {
-  const uniq = [], uniqN = [], byHash = /* @__PURE__ */ new Map();
-  const refs = [];
-  const withNormals = inputs.some((i) => i.renders.some((r) => r.cells.some((c) => c.normal)));
-  for (const inp of inputs) inp.renders.forEach((r, variant) => {
-    for (const cell3 of r.cells) {
-      const h = cell3.grid.hash() + (withNormals && cell3.normal ? cell3.normal.hash() : "");
-      let img = byHash.get(h);
-      if (img === void 0) {
-        img = uniq.length;
-        uniq.push(cell3.grid);
-        uniqN.push(cell3.normal);
-        byHash.set(h, img);
-      }
-      refs.push({ asset: inp.brief.id, cell: cell3, variant, img, fi: r.facings.indexOf(cell3.facing), si: cell3.state });
-    }
-  });
-  const { placed, bins } = packRects(uniq.map((g) => ({ w: g.w, h: g.h })), opts);
-  const atlases = bins.map(([w, h]) => new Grid(w, h));
-  placed.forEach((p2) => atlases[p2.bin].blit(uniq[p2.id], p2.x, p2.y));
-  const names = atlases.map((_, i) => `${pack}-${i}.png`);
-  let normals;
-  if (withNormals) {
-    normals = bins.map(([w, h]) => new Grid(w, h));
-    placed.forEach((p2) => normals[p2.bin].blit(fitNormalMap(uniq[p2.id], uniqN[p2.id]), p2.x, p2.y));
-  }
-  const assets = {};
-  for (const inp of inputs) {
-    const b = inp.brief, r = inp.renders[0], mine = refs.filter((x) => x.asset === b.id);
-    const states2 = stateDefs(b, dir, Object.fromEntries(r.states.map((s2) => [s2, r.frames[s2] / Math.max(1, Math.floor(b.anims?.[s2]?.sub ?? 1))])));
-    const names2 = [...new Set(mine.flatMap((x) => Object.keys(x.cell.anchors ?? {})))].sort();
-    const anchors2 = names2.length ? Object.fromEntries(names2.map((n) => [n, mine.map((x) => {
-      const a = x.cell.anchors?.[n];
-      return a ? [Math.round(a[0]), Math.round(a[1])] : null;
-    })])) : void 0;
-    const swaps = b.swaps && Object.keys(b.swaps).length ? swapMaps(dir, b.swaps) : void 0;
-    assets[b.id] = {
-      kind: b.kind,
-      view: inp.view,
-      size: r.size,
-      anchor: defaultAnchor(b, inp.view, r.size),
-      directions: r.facings.length,
-      facings: r.facings,
-      states: states2,
-      frames: mine.map((x) => {
-        const p2 = placed[x.img];
-        return [p2.bin, p2.x, p2.y, p2.w, p2.h, x.fi, x.si, x.cell.frame, x.variant];
-      }),
-      ...anchors2 && { anchors: anchors2 },
-      variants: ["base", ...inp.renders.slice(1).map((_, i) => `v${i + 1}`), ...Object.keys(swaps ?? {})],
-      ...swaps && { swaps },
-      version: inp.version,
-      sourceHash: inp.sourceHash,
-      ...(TILE_KINDS2.has(b.kind) || LAYER_KINDS2.has(b.kind)) && { tile: r.size[0] },
-      ...b.autotile && { autotile: b.autotile },
-      ...inp.renders.some((x) => x.cells.some((c) => c.normal)) && { normals: true },
-      ...b.blend === "add" && { blend: "add" },
-      ...inp.draft && { draft: true }
-    };
-  }
-  const drafts = inputs.filter((i) => i.draft).map((i) => i.brief.id);
-  const manifest = {
-    format: 1,
-    pack,
-    generator: opts.generator ?? "artgen",
-    direction: { id: dir.id, version: dir.version },
-    runtime: opts.runtime ?? null,
-    atlases: names,
-    ...normals && { normals: names.map((n) => n.replace(/\.png$/, ".n.png")) },
-    assets,
-    ...drafts.length && { drafts }
-  };
-  const aseprite = atlases.map((g, bin) => asepriteJson(manifest, bin, g, names[bin]));
-  return { manifest, atlases, aseprite, ...normals && { normals } };
-}
-function asepriteJson(m, bin, g, image2) {
-  const frames = [], tags = [];
-  for (const [id2, a] of Object.entries(m.assets)) {
-    let tag;
-    for (const [at4, x, y, w, h, fi, state, frame, variant] of a.frames) {
-      if (at4 !== bin) continue;
-      const strip2 = `${id2}/${state}/${a.facings[fi]}${variant ? `#${a.variants[variant]}` : ""}`;
-      if (!tag || tag.name !== strip2) {
-        tag = { name: strip2, from: frames.length, to: frames.length, direction: "forward" };
-        tags.push(tag);
-      } else tag.to = frames.length;
-      frames.push({
-        filename: `${id2}/${state}/${a.facings[fi]}/${frame}${variant ? `#${a.variants[variant]}` : ""}`,
-        frame: { x, y, w, h },
-        rotated: false,
-        trimmed: false,
-        spriteSourceSize: { x: 0, y: 0, w, h },
-        sourceSize: { w, h },
-        duration: displayDurations(a.states[state])[frame] ?? Math.round(1e3 / a.states[state].fps)
-      });
-    }
-  }
-  return { frames, meta: { app: "artgen", version: m.generator, image: image2, format: "RGBA8888", size: { w: g.w, h: g.h }, scale: "1", frameTags: tags } };
-}
-function assetsTs(packs) {
-  let out = "// Generated by `artgen export` \u2014 do not edit. Typed ids for the exported art packs.\n\n";
-  const rooted = packs.some((p2) => p2.url.startsWith("/"));
-  if (rooted) out += "// The site base: Vite's BASE_URL when the game is served from a sub-path (e.g. GitHub Pages), else '/'.\nconst base: string = (import.meta as unknown as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? '/';\n\n";
-  const url = (u) => u.startsWith("/") ? `\`\${base}${u.slice(1).replace(/[`\\$]/g, "\\$&")}\`` : JSON.stringify(u);
-  out += `export const Packs = {
-${packs.map((p2) => `  ${ident(p2.manifest.pack)}: ${url(p2.url)},`).join("\n")}
-} as const;
-
-`;
-  out += "export const Assets = {\n";
-  for (const { manifest: m } of packs) for (const [id2, a] of Object.entries(m.assets))
-    out += `  ${ident(id2)}: { id: ${JSON.stringify(id2)}, pack: ${JSON.stringify(m.pack)}, kind: ${JSON.stringify(a.kind)}, states: ${JSON.stringify(Object.keys(a.states))}, facings: ${JSON.stringify(a.facings)}, variants: ${JSON.stringify(a.variants)}, anchors: ${JSON.stringify(Object.keys(a.anchors ?? {}))} },
-`;
-  out += "} as const;\n\nexport type AssetId = keyof typeof Assets;\nexport type StateOf<K extends AssetId> = (typeof Assets)[K]['states'][number];\nexport type VariantOf<K extends AssetId> = (typeof Assets)[K]['variants'][number];\nexport type AnchorOf<K extends AssetId> = (typeof Assets)[K]['anchors'][number];\n";
-  return out;
-}
-var TILE_KINDS2, LAYER_KINDS2, LOOPING2, frameDurations, ident;
-var init_pack = __esm({
-  "../artgen-core/src/w2/pack.ts"() {
-    "use strict";
-    init_grid();
-    init_normals();
-    TILE_KINDS2 = /* @__PURE__ */ new Set(["tile", "tileset", "texture"]);
-    LAYER_KINDS2 = /* @__PURE__ */ new Set(["layer"]);
-    LOOPING2 = /^(idle|walk|run|fly|swim|loop|burn|glow|flicker)/;
-    frameDurations = (st) => st.durations ?? Array.from({ length: st.frames }, () => Math.round(1e3 / st.fps));
-    ident = (s2) => /^[A-Za-z_$][\w$]*$/.test(s2) ? s2 : JSON.stringify(s2);
   }
 });
 
@@ -24679,44 +25933,6 @@ var init_sheet3 = __esm({
     init_render4();
     init_pack();
     NOTE_WORDS = 60;
-  }
-});
-
-// ../artgen-core/src/w2/contract.ts
-function contractOf(id2, a) {
-  return { format: 1, asset: id2, facings: [...a.facings], states: states(a.states), anchors: Object.keys(a.anchors ?? {}).sort() };
-}
-function briefContract(b, dir, old) {
-  const names = b.states?.length ? b.states : ["idle"];
-  const frames = Object.fromEntries(names.map((s2) => [s2, b.anims?.[s2]?.frames ?? 1]));
-  return { format: 1, asset: b.id, facings: [...FACINGS[b.directions ?? 1] ?? []], states: states(stateDefs(b, dir, frames)), anchors: old?.anchors ?? [] };
-}
-function diffContract(old, next4) {
-  const breaking = [], added = [];
-  for (const [s2, o] of Object.entries(old.states)) {
-    const n = next4.states[s2];
-    if (!n) {
-      breaking.push(`state "${s2}" removed`);
-      continue;
-    }
-    if (n.frames !== o.frames) breaking.push(`state "${s2}": ${o.frames} \u2192 ${n.frames} logical frames`);
-    else if (n.durations.some((d, i) => d !== o.durations[i])) breaking.push(`state "${s2}": frame durations ${o.durations.join(",")} \u2192 ${n.durations.join(",")} ms`);
-    if (n.loop !== o.loop) breaking.push(`state "${s2}": loop ${o.loop} \u2192 ${n.loop}`);
-  }
-  for (const s2 of Object.keys(next4.states)) if (!old.states[s2]) added.push(`state "${s2}"`);
-  for (const f of old.facings) if (!next4.facings.includes(f)) breaking.push(`facing "${f}" removed`);
-  for (const f of next4.facings) if (!old.facings.includes(f)) added.push(`facing "${f}"`);
-  for (const a of old.anchors) if (!next4.anchors.includes(a)) breaking.push(`anchor "${a}" removed`);
-  for (const a of next4.anchors) if (!old.anchors.includes(a)) added.push(`anchor "${a}"`);
-  return { breaking, added };
-}
-var states;
-var init_contract = __esm({
-  "../artgen-core/src/w2/contract.ts"() {
-    "use strict";
-    init_render4();
-    init_pack();
-    states = (defs) => Object.fromEntries(Object.entries(defs).map(([s2, d]) => [s2, { frames: d.frames, durations: frameDurations(d), loop: d.loop }]));
   }
 });
 
@@ -24766,8 +25982,8 @@ function page(items, bodies, o, key2) {
     const j = Math.floor(r() * (i + 1));
     [order[i], order[j]] = [order[j], order[i]];
   }
-  const S3 = 5, cell3 = Math.max(8, ...bodies.map((b) => Math.max(b.w, b.h))) * S3 + 16, cols = Math.min(5, Math.max(1, items.length)), rows2 = Math.ceil(items.length / cols);
-  const silhouettes = new Grid(cols * cell3, Math.max(1, rows2) * (cell3 + 12)).fill(0, 0, cols * cell3, Math.max(1, rows2) * (cell3 + 12), "#d8d8d8");
+  const S3 = 5, cell3 = Math.max(8, ...bodies.map((b) => Math.max(b.w, b.h))) * S3 + 16, cols = Math.min(5, Math.max(1, items.length)), rows3 = Math.ceil(items.length / cols);
+  const silhouettes = new Grid(cols * cell3, Math.max(1, rows3) * (cell3 + 12)).fill(0, 0, cols * cell3, Math.max(1, rows3) * (cell3 + 12), "#d8d8d8");
   order.forEach((ix, n) => {
     const b = bodies[ix], cx = n % cols * cell3, cy = Math.floor(n / cols) * (cell3 + 12), L2 = rosterLabel(o.from + n);
     key2[L2] = items[ix].id;
@@ -25062,19 +26278,19 @@ function nearestToken(dir, hex) {
 function restyleDiff(before, after, from, to) {
   if (before.w !== after.w || before.h !== after.h) throw new Error(`restyle diff: size changed ${before.w}x${before.h} \u2192 ${after.w}x${after.h}`);
   const ta = tokenizer(from), tb = tokenizer(to), map = /* @__PURE__ */ new Map();
-  let changed = 0, opaque = 0, same = 0;
+  let changed = 0, opaque = 0, same2 = 0;
   for (let y = 0; y < before.h; y++) for (let x = 0; x < before.w; x++) {
     const a = before.get(x, y), b = after.get(x, y);
     if (a !== b || before.alpha(x, y) !== after.alpha(x, y)) changed++;
     if (before.alpha(x, y) === 255 || after.alpha(x, y) === 255) {
       opaque++;
-      if (ta(before, x, y) === tb(after, x, y)) same++;
+      if (ta(before, x, y) === tb(after, x, y)) same2++;
       const k = a ?? "none";
       map.set(k, (map.get(k) ?? /* @__PURE__ */ new Set()).add(b ?? "none"));
     }
   }
   const mapping = Object.fromEntries([...map].map(([k, v]) => [k, [...v]]));
-  return { changedPct: Math.round(1e3 * changed / (before.w * before.h)) / 10, tokenSame: opaque ? Math.round(1e3 * same / opaque) / 1e3 : 1, consistent: [...map.values()].every((s2) => s2.size === 1), mapping };
+  return { changedPct: Math.round(1e3 * changed / (before.w * before.h)) / 10, tokenSame: opaque ? Math.round(1e3 * same2 / opaque) / 1e3 : 1, consistent: [...map.values()].every((s2) => s2.size === 1), mapping };
 }
 function tokenDiffMask(before, after, from, to) {
   const ta = tokenizer(from), tb = tokenizer(to), g = new Grid(after.w, after.h);
@@ -25084,11 +26300,11 @@ function tokenDiffMask(before, after, from, to) {
   }
   return g;
 }
-function restyleSheet(title, rows2, scale2 = 3, maxEdge = 1568) {
+function restyleSheet(title, rows3, scale2 = 3, maxEdge = 1568) {
   const size2 = (s3) => {
-    const cw = Math.max(...rows2.map((r) => r.after.w * s3), textWidth("token diff", TXT4)) + PAD4;
-    const W3 = Math.max(PAD4 + cw * 3, PAD4 * 2 + textWidth(title, TXT4), ...rows2.map((r) => PAD4 * 2 + textWidth(r.label, TXT4)));
-    const H = PAD4 + LAB2 * 2 + rows2.reduce((n, r) => n + LAB2 + r.after.h * s3 + PAD4, 0);
+    const cw = Math.max(...rows3.map((r) => r.after.w * s3), textWidth("token diff", TXT4)) + PAD4;
+    const W3 = Math.max(PAD4 + cw * 3, PAD4 * 2 + textWidth(title, TXT4), ...rows3.map((r) => PAD4 * 2 + textWidth(r.label, TXT4)));
+    const H = PAD4 + LAB2 * 2 + rows3.reduce((n, r) => n + LAB2 + r.after.h * s3 + PAD4, 0);
     return { cw, W: W3, H };
   };
   let s2 = scale2, L2 = size2(s2);
@@ -25100,7 +26316,7 @@ function restyleSheet(title, rows2, scale2 = 3, maxEdge = 1568) {
   drawText(g, PAD4, PAD4, title, "#ffffff", TXT4);
   ["before", "after", "token diff"].forEach((h, i) => drawText(g, PAD4 + i * L2.cw, PAD4 + LAB2, h, FG4, TXT4));
   let y = PAD4 + LAB2 * 2;
-  for (const r of rows2) {
+  for (const r of rows3) {
     drawText(g, PAD4, y, r.label, FG4, TXT4);
     const top = y + LAB2;
     [r.before, r.after, r.mask].forEach((im, i) => {
@@ -25177,12 +26393,14 @@ var init_config = __esm({
       packs: { main: { include: ["*"] } },
       budget: { revisionPasses: 3, maxSheetEdge: 1568, maxUserIterations: 3, extraAutonomousRevisions: 1, tiers: { hero: { revisionPasses: 4 }, filler: { revisionPasses: 2 } } },
       models: { base: "default", revise: "default", finish: "default", review: "default" },
-      review: { blind: true, approveMin: 6.5, blindMaxGap: 1, blindRevisions: 1, finish: "auto", earlyRoster: true, rosterRevisions: 1, heightFail: 0.15, sheetDetail: { r1: "low" } },
+      review: { blind: true, approveMin: 6.5, blindMaxGap: 1, blindRevisions: 1, finish: "auto", earlyRoster: true, rosterRevisions: 1, heightFail: 0.15, sheetDetail: { r1: "low" }, gates: {} },
       gate: {}
     };
     INIT_CONFIG = {
       ...DEFAULT_CONFIG,
-      budget: { ...DEFAULT_CONFIG.budget, perKind: { texture: { revisionPasses: 2 }, prop: { revisionPasses: 4 } } }
+      budget: { ...DEFAULT_CONFIG.budget, perKind: { texture: { revisionPasses: 2 }, prop: { revisionPasses: 4 } } },
+      // new projects gate the shape of figures: v1 is a silhouette draft the user approves before decoration (STAGES.md §3)
+      review: { ...DEFAULT_CONFIG.review, gates: { character: ["shape"], creature: ["shape"] } }
     };
     isPlaceholderDirection = (d) => typeof d === "object" && d !== null && d.status === "draft" && !d.palette;
     finishBaseOf = (src) => src.match(/export\s+const\s+base\s*=\s*['"]([^'"]+)['"]/)?.[1];
@@ -25203,6 +26421,7 @@ var init_src5 = __esm({
     init_sheet2();
     init_tiles();
     init_anim2();
+    init_stages2();
     init_pipeline();
     init_finish();
     init_candidates();
@@ -25210,6 +26429,7 @@ var init_src5 = __esm({
     init_briefs();
     init_sheet3();
     init_pack();
+    init_placeholder();
     init_contract();
     init_roster();
     init_recommend();
@@ -26679,7 +27899,7 @@ async function writeBench(dir, outDir2, { stages = false, ledger } = {}) {
     writeGrid(join7(root, `${asset.id}.png`), r.strip);
     writeGrid(join7(root, `${asset.id}@${A.scale}x.png`), r.strip.scale(A.scale));
     writeGrid(join7(root, `${asset.id}-sheet.png`), assembleSheet(r.render).grid);
-    const m = r.report.metrics, rows2 = [{
+    const m = r.report.metrics, rows3 = [{
       label: `${asset.id} ${dir.id} | hyg ${m.hygiene} col ${m.colors} orph ${m.orphanPct}% outl ${m.outlinePct}% | gate ${r.report.pass ? "pass" : "FAIL"}`,
       grid: r.strip,
       scale: A.scale,
@@ -26687,8 +27907,8 @@ async function writeBench(dir, outDir2, { stages = false, ledger } = {}) {
       context
     }];
     const refPath = join7(BENCH_ROOT, "reference", `${asset.id}.png`);
-    if (existsSync7(refPath)) rows2.unshift({ label: `artlab ${asset.artlab.tech} ${asset.artlab.ver} (scored ${asset.artlab.score})`, grid: readGrid(refPath), scale: A.scale, bg: A.bg, context });
-    const sheet = reviewSheet({ title: A.label, rows: rows2 });
+    if (existsSync7(refPath)) rows3.unshift({ label: `artlab ${asset.artlab.tech} ${asset.artlab.ver} (scored ${asset.artlab.score})`, grid: readGrid(refPath), scale: A.scale, bg: A.bg, context });
+    const sheet = reviewSheet({ title: A.label, rows: rows3 });
     const sheetPath = join7(root, `review-${asset.id}.png`);
     writeGrid(sheetPath, sheet);
     if (ledger) appendLedger(ledger, {
@@ -26855,6 +28075,10 @@ function openAsset(path, opts = {}) {
   const cfg = project2 ? projectConfig(project2) : void 0;
   return { path, brief, dir, ledgerPath: ledgerPath3, ...project2 && { project: project2 }, budget: budgetFor(cfg, brief, dir) };
 }
+function readPlaceholder(a) {
+  const f = placeholderPath(a);
+  return existsSync9(f) ? parsePlaceholder(JSON.parse(readFileSync9(f, "utf8")), a.brief, a.dir) : void 0;
+}
 function ledgerFor(a) {
   return existsSync9(a.ledgerPath) ? parseLedger(readFileSync9(a.ledgerPath, "utf8")).filter((e) => e.asset === a.brief.id) : [];
 }
@@ -26897,7 +28121,13 @@ async function renderVersion(a, version, opts = {}) {
     anim: animInput(render11),
     ...a.project && { thresholds: { heightFail: projectConfig(a.project).review.heightFail } }
   });
-  return { version: v.name, render: render11, strip: s2, grid: grid5, report: report2, source, base, patches, stale };
+  let placeholder;
+  try {
+    placeholder = readPlaceholder(a);
+  } catch {
+  }
+  const stages = stageReport(render11, a.dir, { brief: a.brief, placeholder });
+  return { version: v.name, render: render11, strip: s2, grid: grid5, report: report2, stages, source, base, patches, stale };
 }
 function contextFor(a, g) {
   if (a.brief.review?.iso) return iso_exports.isoFloor(g.w, g.h);
@@ -26914,11 +28144,11 @@ function reviewGrid(r, dir) {
   const special = r.brief.kind === "layer" || r.brief.view === "stack" || !!r.brief.autotile || TILE_KINDS.has(r.brief.kind);
   const f = r.facings[0], moving = special ? [] : r.states.filter((s2) => r.frames[s2] > 1);
   if (!moving.length) return g;
-  const rows2 = moving.map((s2) => onionSkin(r.cells.filter((c) => c.state === s2 && c.facing === f).sort((a, b) => a.frame - b.frame).map((c) => c.grid)));
-  const out = new Grid(Math.max(g.w, ...rows2.map((x) => x.w)), g.h + rows2.reduce((n, x) => n + x.h + 2, 0));
+  const rows3 = moving.map((s2) => onionSkin(r.cells.filter((c) => c.state === s2 && c.facing === f).sort((a, b) => a.frame - b.frame).map((c) => c.grid)));
+  const out = new Grid(Math.max(g.w, ...rows3.map((x) => x.w)), g.h + rows3.reduce((n, x) => n + x.h + 2, 0));
   out.blit(g, 0, 0);
   let y = g.h + 2;
-  for (const row of rows2) {
+  for (const row of rows3) {
     out.blit(row, 0, y);
     y += row.h + 2;
   }
@@ -27019,22 +28249,22 @@ async function reviewVersion(a, version, o = {}) {
   }
   const scores = new Map(ledgerFor(a).filter((e) => e.type === "score" && !e.blind && e.version).map((e) => [e.version, e.score]));
   const ctx = (g) => contextFor(a, g);
-  const rows2 = [];
+  const rows3 = [];
   if (a.brief.reference) {
     const ref = readGrid(resolve6(a.path, a.brief.reference));
-    rows2.push({ label: `reference${a.brief.target !== void 0 ? ` (target ${a.brief.target})` : ""}`, grid: ref, scale: sc, bg: R3.bg, context: ctx(ref) });
+    rows3.push({ label: `reference${a.brief.target !== void 0 ? ` (target ${a.brief.target})` : ""}`, grid: ref, scale: sc, bg: R3.bg, context: ctx(ref) });
   }
   const v = parseVersion(version), prev = v.kind === "finish" ? cur.base : vs.filter((x) => parseVersion(x).kind === "base" && parseVersion(x).n < v.n).pop();
   const best = [...scores].filter(([k]) => parseVersion(k)?.kind === "base" && k !== prev && k !== version).sort((x, y) => y[1] - x[1])[0]?.[0];
   const big = cur.render.cells.length > 8 || low;
   for (const other of low ? [prev] : [best, prev]) if (other) {
     const r = await renderVersion(a, other), grid5 = big ? firstFacing(r.render) : r.grid;
-    rows2.push({ label: rowLabel(r, scores.get(other)) + (big ? " | first facing" : ""), grid: grid5, scale: sc, bg: R3.bg ?? a.dir.background, context: ctx(grid5), silhouette: sil });
+    rows3.push({ label: rowLabel(r, scores.get(other)) + (big ? " | first facing" : ""), grid: grid5, scale: sc, bg: R3.bg ?? a.dir.background, context: ctx(grid5), silhouette: sil });
   }
   const curGrid = low && multi ? firstFacing(cur.render) : cur.grid;
-  rows2.push({ label: `>> ${rowLabel(cur)}${low && multi ? " | first facing (low detail)" : ""}`, grid: curGrid, scale: sc, bg: R3.bg ?? a.dir.background, context: ctx(curGrid), silhouette: sil }, ...scene);
+  rows3.push({ label: `>> ${rowLabel(cur)}${low && multi ? " | first facing (low detail)" : ""}`, grid: curGrid, scale: sc, bg: R3.bg ?? a.dir.background, context: ctx(curGrid), silhouette: sil }, ...scene);
   const refs = a.project && a.brief.refs?.length ? loadRefs(a.project, a.brief.refs) : { refs: [], warnings: [] };
-  const sheet = reviewSheet({ title: `${R3.label ?? a.brief.id} - ${version} (${pass})`, rows: rows2, anchors: anchorsFor(a), ...refs.refs.length && { refs: refs.refs }, maxEdge: cfg?.budget?.maxSheetEdge });
+  const sheet = reviewSheet({ title: `${R3.label ?? a.brief.id} - ${version} (${pass})`, rows: rows3, anchors: anchorsFor(a), ...refs.refs.length && { refs: refs.refs }, maxEdge: cfg?.budget?.maxSheetEdge });
   const path = join9(outDir(a), `review-${version}.png`);
   writeGrid(path, sheet);
   writeRender(a, cur);
@@ -27059,7 +28289,7 @@ async function scoreVersion(a, version, score2, note = "", extra = {}) {
   const r = await renderVersion(a, version), v = parseVersion(version), pass = extra.blind === true ? "b" : passOf(a, version);
   const vs = versionsIn(a).filter((x) => parseVersion(x).kind === v.kind && parseVersion(x).n < v.n);
   const prevSrc = v.kind === "finish" ? void 0 : vs.length ? sourceOf(a, vs[vs.length - 1]) : void 0;
-  const blind = extra.blind === true, reviews = ledgerFor(a).filter((e) => e.type === "review" && e.version === version && !!e.blind === blind);
+  const blind = extra.blind === true, reviews = ledgerFor(a).filter((e) => e.type === "review" && e.version === version && !!e.blind === blind && !e.stage);
   if (blind && !reviews.length) throw new Error(`${a.brief.id} ${version}: no blind sheet yet \u2014 artgen review ${a.brief.id} --version ${version} --blind, and give only that sheet to the reviewer`);
   if (v.kind === "finish" && r.patches) {
     const snap2 = join9(a.path, `${version}.snapshot.json`);
@@ -27081,6 +28311,8 @@ async function scoreVersion(a, version, score2, note = "", extra = {}) {
     direction: { id: a.dir.id, version: a.dir.version },
     metrics: r.report.metrics,
     conformance: { pass: r.report.pass, checks: r.report.checks },
+    stages: r.stages.keys,
+    stageChecks: stageCheckLabels(r.stages.checks),
     ...r.base && { base: r.base },
     tokens: { code: codeTokens(r.source), edit: editTokens(prevSrc, r.source), ...extra.measured },
     imageTokens: reviews.length ? reviews[reviews.length - 1].imageTokens : void 0,
@@ -27100,14 +28332,16 @@ async function passState(a) {
     const b = finishBaseOf(sourceOf(a, v));
     if (b) finishBase[v] = b;
   }
+  const gates = gatesOf(a), ledger = ledgerFor(a);
   const st = planPasses({
     asset: a.brief.id,
     versions,
-    ledger: ledgerFor(a),
+    ledger,
     revisionPasses: revisionPasses(a),
     finishPass: a.dir.pipeline.finishPass,
     finishBase,
-    ...a.project && { feedback: feedbackOf(a), extraRevisions: a.budget?.extraRevisions ?? 0, ...blindConfig(a.project) }
+    ...a.project && { feedback: feedbackOf(a), extraRevisions: a.budget?.extraRevisions ?? 0, ...blindConfig(a.project) },
+    ...gates.length && { gates, ...await gateInputs(a, gates, versions, ledger) }
   });
   const lastFinish = versions.filter((v) => v.startsWith("finish.")).pop();
   if (lastFinish && existsSync9(join9(a.path, `${lastFinish}.snapshot.json`))) {
@@ -27115,6 +28349,22 @@ async function passState(a) {
     if (stale?.length) return { ...st, stale };
   }
   return st;
+}
+async function gateInputs(a, gates, versions, ledger) {
+  const out = {};
+  if (gates.includes("shape")) {
+    const keys = {};
+    for (const e of ledger) if (e.type === "score" && !e.blind && e.version && e.stages && typeof e.stages === "object") keys[e.version] = e.stages;
+    for (const v of versions) if (parseVersion(v).kind === "base" && !keys[v] && ledger.some((e) => e.type === "score" && !e.blind && e.version === v)) keys[v] = (await renderVersion(a, v)).stages.keys;
+    out.stageKeys = keys;
+  }
+  if (gates.includes("placeholder")) {
+    try {
+      out.placeholderKey = placeholderKey(effectivePlaceholder(a));
+    } catch {
+    }
+  }
+  return out;
 }
 function blindConfig(p2) {
   const r = projectConfig(p2).review;
@@ -27145,8 +28395,8 @@ function stageModel(a, pass) {
 function anchorsFor(a) {
   if (!a.project || !a.dir.anchors?.length) return [];
   const all = a.dir.anchors.map((f) => ({ label: basename2(f, ".png"), file: resolve6(a.project.art, f) })).filter((x) => existsSync9(x.file));
-  const same = all.filter((x) => x.label === a.brief.kind || a.brief.kind === "creature" && x.label === "character" || ["tileset", "texture"].includes(a.brief.kind) && x.label === "tile");
-  return (same.length ? same : all).map((x) => ({ label: `anchor ${x.label}`, grid: readGrid(x.file) }));
+  const same2 = all.filter((x) => x.label === a.brief.kind || a.brief.kind === "creature" && x.label === "character" || ["tileset", "texture"].includes(a.brief.kind) && x.label === "tile");
+  return (same2.length ? same2 : all).map((x) => ({ label: `anchor ${x.label}`, grid: readGrid(x.file) }));
 }
 function finalHash(a, version) {
   const v = parseVersion(version);
@@ -27154,7 +28404,7 @@ function finalHash(a, version) {
   const src = sourceOf(a, version), base = finishBaseOf(src);
   return sourceHash((base ? sourceOf(a, base) + "\n" : "") + src);
 }
-var CHARS_PER_TOKEN, codeTokens, revisionPasses, feedbackOf, passOf, versionsIn, sourceOf, rowLabel, relPath, stageKey, reviewKey;
+var CHARS_PER_TOKEN, codeTokens, revisionPasses, feedbackOf, passOf, versionsIn, placeholderPath, effectivePlaceholder, gatesOf, sourceOf, rowLabel, relPath, stageKey, reviewKey;
 var init_asset = __esm({
   "../artgen-cli/src/asset.ts"() {
     "use strict";
@@ -27177,10 +28427,13 @@ var init_asset = __esm({
       ...typeof e.cell === "string" && { cell: e.cell }
     }));
     passOf = (a, version) => passId(version, revisionPasses(a), a.project ? feedbackOf(a).filter((f) => f.by !== "agent").map((f) => f.opens) : void 0);
-    versionsIn = (a) => readdirSync5(a.path).map((f) => parseVersion(f)?.name).filter((v) => !!v).sort((x, y) => {
+    versionsIn = (a) => (existsSync9(a.path) ? readdirSync5(a.path) : []).map((f) => parseVersion(f)?.name).filter((v) => !!v).sort((x, y) => {
       const a1 = parseVersion(x), b1 = parseVersion(y);
       return a1.kind === b1.kind ? a1.n - b1.n : a1.kind === "base" ? -1 : 1;
     });
+    placeholderPath = (a) => join9(a.path, "placeholder.json");
+    effectivePlaceholder = (a) => readPlaceholder(a) ?? defaultPlaceholder(a.brief, a.dir);
+    gatesOf = (a) => gatesFor(a.project ? projectConfig(a.project).review.gates : void 0, a.brief);
     sourceOf = (a, version) => readFileSync9(join9(a.path, `${version}.js`), "utf8");
     rowLabel = (r, score2) => `${r.version}${score2 !== void 0 ? ` (${score2})` : ""} | hyg ${r.report.metrics.hygiene} col ${r.report.metrics.colors} orph ${r.report.metrics.orphanPct}% | gate ${r.report.pass ? "pass" : "FAIL"}${r.stale?.length ? " | FINISH-STALE" : ""}`;
     relPath = (a, p2) => relative5(dirname8(resolve6(a.ledgerPath)), resolve6(p2)).split("\\").join("/");
@@ -27216,11 +28469,11 @@ var init_autotile2 = __esm({
 });
 
 // ../artgen-runtime/src/facing.ts
-var TAU;
+var TAU2;
 var init_facing = __esm({
   "../artgen-runtime/src/facing.ts"() {
     "use strict";
-    TAU = Math.PI * 2;
+    TAU2 = Math.PI * 2;
   }
 });
 
@@ -27239,7 +28492,14 @@ var init_pack2 = __esm({
     init_autotile2();
     init_facing();
     init_stack();
-    RUNTIME_VERSION = "1.2.1";
+    RUNTIME_VERSION = "1.4.0";
+  }
+});
+
+// ../artgen-runtime/src/light.ts
+var init_light = __esm({
+  "../artgen-runtime/src/light.ts"() {
+    "use strict";
   }
 });
 
@@ -27257,6 +28517,7 @@ var init_src6 = __esm({
     init_pack2();
     init_facing();
     init_autotile2();
+    init_light();
     init_stack();
     init_coords();
   }
@@ -27630,19 +28891,29 @@ function briefWarnings(b, dir) {
   if (t.view !== view) out.push(`no ${view} template for it: it starts from ${t.view}/${t.kind} \u2014 check the review sheets for the ${view} camera`);
   return out;
 }
+function ensureAssetDir(p2, b, dir) {
+  const path = assetPathOf(p2, b), t = templateFor(b, dir), template = `${t.view}/${t.kind}`;
+  mkdirSync10(path, { recursive: true });
+  if (!existsSync13(join13(path, "brief.json"))) writeJson(join13(path, "brief.json"), { id: b.id, template, review: readJson(join13(t.dir, "brief.json")).review ?? {} });
+  return { path, template, t };
+}
 function scaffoldAsset(p2, b, dir) {
   const path = assetPathOf(p2, b), t = templateFor(b, dir), template = `${t.view}/${t.kind}`;
   if (existsSync13(join13(path, "base.v1.js"))) return { path, created: false, template };
-  mkdirSync10(path, { recursive: true });
-  const tb = readJson(join13(t.dir, "brief.json"));
-  if (!existsSync13(join13(path, "brief.json"))) writeJson(join13(path, "brief.json"), { id: b.id, template, review: tb.review ?? {} });
+  ensureAssetDir(p2, b, dir);
   writeFileSync12(join13(path, "base.v1.js"), readFileSync13(join13(t.dir, "base.js"), "utf8").replace(/\{\{ID\}\}/g, b.id));
   return { path, created: true, template };
 }
 async function assetRow(p2, b) {
   const path = assetPathOf(p2, b);
   const base = { id: b.id, kind: b.kind, path: rel2(p2, path), issues: effectObjectIssues(b).map((x) => `brief: ${x}`), imageTokens: 0 };
-  if (!existsSync13(join13(path, "base.v1.js")) && !versionsInPath(path).length) return { ...base, status: "brief", why: "not started" };
+  if (!existsSync13(join13(path, "base.v1.js")) && !versionsInPath(path).length) {
+    if (gatesFor(projectConfig(p2).review.gates, b).includes("placeholder")) {
+      const a2 = openAsset(path), st2 = await passState(a2);
+      if (st2.next.action === "stage-gate") return { ...base, status: "in-pipeline", next: st2.next, why: st2.next.why, imageTokens: 0 };
+    }
+    return { ...base, status: "brief", why: "not started" };
+  }
   const a = openAsset(path), st = await passState(a), ledger = ledgerFor(a);
   const imageTokens2 = ledger.filter((e) => e.type === "review").reduce((n, e) => n + (e.imageTokens ?? 0), 0);
   if (!ledger.length && st.next.action === "review" && st.next.version === "base.v1") return { ...base, status: "in-pipeline", next: st.next, why: "base.v1 from the template: adapt it to the brief, then review", imageTokens: imageTokens2 };
@@ -27661,7 +28932,7 @@ async function assetRow(p2, b) {
     gate: sc?.conformance?.pass,
     issues,
     next: st.next,
-    why: s2.why,
+    why: st.next.action === "stage-gate" ? st.next.why : s2.why,
     imageTokens: imageTokens2,
     stale: st.stale,
     ...blind !== void 0 && { blind },
@@ -27671,9 +28942,9 @@ async function assetRow(p2, b) {
 }
 async function projectStatus(p2, ids) {
   requireLocked(p2);
-  const rows2 = [];
-  for (const b of briefOrder(readBriefs(p2))) if (!ids?.length || ids.includes(b.id)) rows2.push(await assetRow(p2, b));
-  return rows2;
+  const rows3 = [];
+  for (const b of briefOrder(readBriefs(p2))) if (!ids?.length || ids.includes(b.id)) rows3.push(await assetRow(p2, b));
+  return rows3;
 }
 function requireLocked(p2) {
   const d = lockedDirection(p2);
@@ -27694,15 +28965,16 @@ async function make(p2, ids, o = {}) {
   if (ids?.length && !ids.includes("all")) {
     for (const id2 of ids) if (!briefs.some((b) => b.id === id2)) throw new Error(`no brief ${id2} in art/briefs.yaml`);
   }
-  const scaffolded = [], finals = [], overBudget = [], rows2 = [], reviewed = /* @__PURE__ */ new Map();
+  const scaffolded = [], finals = [], overBudget = [], rows3 = [], reviewed = /* @__PURE__ */ new Map();
   for (const b of briefs) {
-    const sc = scaffoldAsset(p2, b, dir);
+    const gateOpen = !existsSync13(join13(assetPathOf(p2, b), "base.v1.js")) && (await assetRow(p2, b)).next?.action === "stage-gate";
+    const sc = gateOpen ? { path: assetPathOf(p2, b), created: false, template: "" } : scaffoldAsset(p2, b, dir);
     if (sc.created) scaffolded.push(rel2(p2, join13(sc.path, "base.v1.js")));
     let row = await assetRow(p2, b);
     const a = openAsset(sc.path), ledger = ledgerFor(a);
     if (row.next?.action === "review") {
       const v = row.next.version;
-      reviewed.set(b.id, ledger.some((e) => e.type === "review" && e.version === v && !e.blind));
+      reviewed.set(b.id, ledger.some((e) => e.type === "review" && e.version === v && !e.blind && !e.stage));
     }
     if (row.next?.action === "ready") {
       const fin = row.next.final;
@@ -27718,22 +28990,22 @@ async function make(p2, ids, o = {}) {
       }
       row = { ...row, why: `over budget (${row.imageTokens} image tokens); left at ${best?.version ?? "nothing scored"}` };
     }
-    rows2.push(row);
+    rows3.push(row);
   }
-  const live = rows2.filter((r) => !DONE.includes(r.status) && !r.why.startsWith("over budget")), active = new Set((o.wave ? live.slice(0, o.wave) : live).map((r) => r.id));
-  const roster3 = earlyRoster(p2, rows2.filter((r) => active.has(r.id)));
-  const held = new Set(roster3?.ids ?? []), pending = rows2.filter((r) => active.has(r.id) && r.next && r.next.action !== "ready" && !held.has(r.id));
-  const n0 = pending[0], next4 = n0 && { id: n0.id, path: n0.path, step: n0.next };
-  const finalRoster = rows2.filter((r) => r.status === "final" && !TILE_KINDS.has(r.kind) && !ledgerFor(openAsset(join13(p2.root, r.path))).some((e) => e.type === "roster" && e.version === r.final && Array.isArray(e.issues))).map((r) => r.id);
-  const res = { rows: rows2, ...next4 && { next: next4 }, scaffolded, finals, overBudget, ...roster3 && { roster: roster3 }, ...finalRoster.length >= 2 && { finalRoster } };
+  const live = rows3.filter((r) => !DONE.includes(r.status) && !r.why.startsWith("over budget")), active = new Set((o.wave ? live.slice(0, o.wave) : live).map((r) => r.id));
+  const roster3 = earlyRoster(p2, rows3.filter((r) => active.has(r.id)));
+  const held = new Set(roster3?.ids ?? []), pending = rows3.filter((r) => active.has(r.id) && r.next && r.next.action !== "ready" && !held.has(r.id));
+  const n0 = pending.find((r) => r.next.action !== "stage-gate") ?? pending[0], next4 = n0 && { id: n0.id, path: n0.path, step: n0.next };
+  const finalRoster = rows3.filter((r) => r.status === "final" && !TILE_KINDS.has(r.kind) && !ledgerFor(openAsset(join13(p2.root, r.path))).some((e) => e.type === "roster" && e.version === r.final && Array.isArray(e.issues))).map((r) => r.id);
+  const res = { rows: rows3, ...next4 && { next: next4 }, scaffolded, finals, overBudget, ...roster3 && { roster: roster3 }, ...finalRoster.length >= 2 && { finalRoster } };
   if (!o.parallel) return res;
   const packets = pending.map((r) => workPacket(r, reviewed.get(r.id) ?? true)).filter((x) => !!x), makers = packets.filter((x) => x.role === "maker");
-  const waiting = rows2.filter((r) => !active.has(r.id) && !DONE.includes(r.status) && !r.why.startsWith("over budget")).map((r) => workPacket(r, reviewed.get(r.id) ?? true)).filter((x) => !!x && x.role === "maker");
+  const waiting = rows3.filter((r) => !active.has(r.id) && !DONE.includes(r.status) && !r.why.startsWith("over budget")).map((r) => workPacket(r, reviewed.get(r.id) ?? true)).filter((x) => !!x && x.role === "maker");
   return { ...res, work: { makers: makers.slice(0, o.parallel), queued: [...makers.slice(o.parallel), ...waiting], main: packets.filter((x) => x.role === "main") } };
 }
-function earlyRoster(p2, rows2) {
+function earlyRoster(p2, rows3) {
   if (!projectConfig(p2).review.earlyRoster) return void 0;
-  const figures = rows2.filter((r) => !TILE_KINDS.has(r.kind) && r.status !== "brief");
+  const figures = rows3.filter((r) => !TILE_KINDS.has(r.kind) && r.status !== "brief");
   if (figures.length < 2) return void 0;
   const atV1 = v1Rows(p2, figures), ready2 = new Set(atV1.map((r) => r.id));
   const beforeV1 = figures.filter((r) => !ready2.has(r.id) && r.next?.action !== "ready" && (r.next?.action === "review" || r.next?.action === "write-base") && "version" in r.next && r.next.version === "base.v1");
@@ -27751,9 +29023,9 @@ function reviewOf(a, final) {
   return { reviewer: typeof own?.reviewer === "string" ? own.reviewer : void 0, blind: blindScores(ledger).get(final)?.score };
 }
 async function gallery(p2, opts = {}) {
-  const dir = requireLocked(p2), want = opts.statuses ?? ["final"], rows2 = (await projectStatus(p2, opts.ids)).filter((r) => r.final && (opts.ids?.length || want.includes(r.status)));
+  const dir = requireLocked(p2), want = opts.statuses ?? ["final"], rows3 = (await projectStatus(p2, opts.ids)).filter((r) => r.final && (opts.ids?.length || want.includes(r.status)));
   const items = [], assets = [];
-  for (const r of rows2) {
+  for (const r of rows3) {
     const a = openAsset(join13(p2.root, r.path)), v = await renderVersion(a, r.final);
     const rv = reviewOf(a, r.final);
     const tag = `${r.id} ${r.final} ${r.score ?? "-"}${rv.blind !== void 0 ? ` b${rv.blind}` : rv.reviewer === "self" ? " SELF" : ""}${r.gate === false ? " GATE" : ""}${r.belowBar ? " BELOW BAR" : ""}${r.top ? ` final\u2260best ${r.top.version} ${r.top.score}` : ""}${r.issues.length ? ` !${r.issues.length}` : ""}`;
@@ -27774,9 +29046,9 @@ async function gallery(p2, opts = {}) {
   appendLedger(ledgerFile(p2), { type: "review", asset: "gallery", sheet: sheets.join(","), imageTokens: tokens, assets: assets.map((x) => x.id), by: "agent" });
   return { sheets, tokens, assets };
 }
-function v1Rows(p2, rows2) {
+function v1Rows(p2, rows3) {
   const out = [];
-  for (const r of rows2) {
+  for (const r of rows3) {
     if (TILE_KINDS.has(r.kind) || r.status === "brief") continue;
     const a = openAsset(join13(p2.root, r.path)), vs = versionsIn(a);
     if (!vs.includes("base.v1") || vs.includes("base.v2") || (a.budget?.revisionPasses ?? 3) < 2) continue;
@@ -27787,9 +29059,9 @@ function v1Rows(p2, rows2) {
 async function rosterRun(p2, o = {}) {
   const dir = requireLocked(p2), briefs = readBriefs(p2), ledgerAll = parseLedger(existsSync13(ledgerFile(p2)) ? readFileSync13(ledgerFile(p2), "utf8") : ""), stage = o.stage ?? "final";
   const ids = o.ids?.length ? o.ids : void 0;
-  const all = await projectStatus(p2, ids), rows2 = stage === "v1" ? v1Rows(p2, all) : all.filter((r) => r.final);
+  const all = await projectStatus(p2, ids), rows3 = stage === "v1" ? v1Rows(p2, all) : all.filter((r) => r.final);
   const items = [], versions = {}, skipped = [];
-  for (const r of rows2) {
+  for (const r of rows3) {
     const b = briefs.find((x) => x.id === r.id), version = stage === "v1" ? "base.v1" : r.final;
     if (TILE_KINDS.has(b.kind)) {
       skipped.push(`${r.id} (${b.kind})`);
@@ -27854,7 +29126,7 @@ async function approve(p2, id2, note = "", via) {
   if (row.status !== "final") throw new Error(`${id2} is ${row.status}: only a final asset can be approved${row.status === "stale" ? " (run restyle first)" : ""}`);
   const a = openAsset(assetPathOf(p2, b)), r = await renderVersion(a, row.final);
   if (!r.report.pass) throw new Error(`${id2} ${row.final}: the gate fails (${r.report.checks.filter((c) => c.status === "fail").map((c) => c.id).join(", ")}) \u2014 give feedback instead (R6)`);
-  const sheet = [...ledgerFor(a)].reverse().find((e2) => e2.type === "review" && e2.version === row.final)?.sheet;
+  const sheet = [...ledgerFor(a)].reverse().find((e2) => e2.type === "review" && e2.version === row.final && !e2.stage)?.sheet;
   if (!sheet) throw new Error(`${id2} ${row.final}: no review sheet yet \u2014 artgen review first (R6)`);
   const kept = join13(p2.art, "sheets", "approved", `${id2}-${row.final}.png`), src = resolve8(dirname11(ledgerFile(p2)), String(sheet));
   if (existsSync13(src)) {
@@ -27865,7 +29137,8 @@ async function approve(p2, id2, note = "", via) {
   if (rv.blind === void 0) warnings.push(rv.reviewer === "self" || !rv.reviewer ? "scored only by the agent that made it, with no blind re-score" : "no blind re-score of the final");
   warnings.push(...row.issues.filter((x) => x.startsWith("blind re-score")));
   if (rv.blind !== void 0 && rv.blind < cfg.approveMin && !warnings.some((x) => x.startsWith("blind re-score"))) warnings.push(`blind re-score ${rv.blind} is under ${cfg.approveMin}`);
-  const e = { type: "approve", asset: id2, version: row.final, sourceHash: finalHash(a, row.final), outputHash: r.strip.hash(), sheet: existsSync13(kept) ? relative8(p2.art, kept).split("\\").join("/") : sheet, direction: { id: dir.id, version: dir.version }, note, ...warnings.length && { warnings }, by: "user", ...via && { via } };
+  const stages = [...ledgerFor(a)].reverse().find((x) => x.type === "score" && !x.blind && x.version === row.final)?.stages;
+  const e = { type: "approve", asset: id2, version: row.final, sourceHash: finalHash(a, row.final), outputHash: r.strip.hash(), ...stages && typeof stages === "object" ? { stages } : {}, sheet: existsSync13(kept) ? relative8(p2.art, kept).split("\\").join("/") : sheet, direction: { id: dir.id, version: dir.version }, note, ...warnings.length && { warnings }, by: "user", ...via && { via } };
   appendLedger(ledgerFile(p2), e);
   return { ts: (/* @__PURE__ */ new Date()).toISOString(), ...e };
 }
@@ -27897,17 +29170,24 @@ function inPack(b, pack, include) {
   return include.some((pat) => pat.startsWith("kind:") ? b.kind === pat.slice(5) : new RegExp(`^${pat.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*")}$`).test(b.id));
 }
 async function exportPacks(p2, o = {}) {
-  const dir = requireLocked(p2), cfg = projectConfig(p2), rows2 = await projectStatus(p2), briefs = readBriefs(p2);
+  const dir = requireLocked(p2), cfg = projectConfig(p2), rows3 = await projectStatus(p2), briefs = readBriefs(p2);
   const ok = (s2) => s2 === "approved" || s2 === "exported" || o.includeDrafts && s2 === "final";
-  const skipped = rows2.filter((r) => !ok(r.status)).map((r) => ({ id: r.id, status: r.status }));
+  const everExported = new Set(parseAll(ledgerFile(p2)).filter((e) => e.type === "export" && e.version !== "placeholder").map((e) => e.asset));
+  const standIn = (r) => !!o.placeholders && !ok(r.status) && !everExported.has(r.id);
+  const skipped = rows3.filter((r) => !ok(r.status) && !standIn(r)).map((r) => ({ id: r.id, status: r.status }));
   const out = [], forTs = [];
   const builds = [];
   for (const [pack, def] of Object.entries(cfg.packs)) {
     if (o.packs?.length && !o.packs.includes(pack)) continue;
     const inputs = [];
-    for (const r of rows2) {
+    for (const r of rows3) {
       const b = briefs.find((x) => x.id === r.id);
-      if (!ok(r.status) || !inPack(b, pack, def.include)) continue;
+      if (!(ok(r.status) || standIn(r)) || !inPack(b, pack, def.include)) continue;
+      if (!ok(r.status)) {
+        const a2 = openAsset(join13(p2.root, r.path)), ph = effectivePlaceholder(a2), key2 = placeholderKey(ph);
+        inputs.push({ brief: a2.brief, view: a2.brief.view ?? dir.camera.view, renders: [renderAsset(placeholderModule(ph), { dir: a2.dir, brief: a2.brief })], version: "placeholder", sourceHash: key2, placeholder: true });
+        continue;
+      }
       const a = openAsset(join13(p2.root, r.path)), n = Math.max(1, b.variants ?? 1), renders = [];
       for (let k = 0; k < n; k++) renders.push((await renderVersion(a, r.final, { variant: k })).render);
       inputs.push({ brief: a.brief, view: a.brief.view ?? dir.camera.view, renders, version: r.final, sourceHash: finalHash(a, r.final), draft: r.status === "final" });
@@ -27939,8 +29219,8 @@ game code indexes these states and frames (art/contracts/<id>.json). Restore the
     });
     built.normals?.forEach((g, i) => writeGrid(join13(pdir, built.manifest.normals[i]), g));
     writeJson(join13(pdir, "pack.json"), built.manifest);
-    for (const inp of inputs) appendLedger(ledgerFile(p2), { type: "export", asset: inp.brief.id, version: inp.version, sourceHash: inp.sourceHash, pack, direction: { id: dir.id, version: dir.version }, ...inp.draft && { draft: true }, by: "agent" });
-    out.push({ pack, dir: rel2(p2, pdir), atlases: built.manifest.atlases.map((f) => rel2(p2, join13(pdir, f))), assets: inputs.map((i) => i.brief.id), drafts: built.manifest.drafts ?? [] });
+    for (const inp of inputs) appendLedger(ledgerFile(p2), { type: "export", asset: inp.brief.id, version: inp.version, sourceHash: inp.sourceHash, pack, direction: { id: dir.id, version: dir.version }, ...inp.draft && { draft: true }, ...inp.placeholder && { placeholder: true }, by: "agent" });
+    out.push({ pack, dir: rel2(p2, pdir), atlases: built.manifest.atlases.map((f) => rel2(p2, join13(pdir, f))), assets: inputs.map((i) => i.brief.id), drafts: built.manifest.drafts ?? [], ...built.manifest.placeholders && { placeholders: built.manifest.placeholders } });
     const pub = cfg.export.packDir.replace(/\\/g, "/").replace(/^\.?\/?/, "");
     forTs.push({ manifest: built.manifest, url: pub.startsWith("public/") || pub === "public" ? `/${pub.slice(7)}${pub.length > 7 ? "/" : ""}${pack}/pack.json`.replace(/\/+/g, "/") : `${pub}/${pack}/pack.json` });
   }
@@ -27959,16 +29239,18 @@ game code indexes these states and frames (art/contracts/<id>.json). Restore the
 async function restyle(p2, o = {}) {
   const to = requireLocked(p2), from = directionVersion(p2, o.from ?? to.version - 1);
   if (from.version === to.version) throw new Error(`nothing to restyle: direction is v${to.version}`);
-  const rows2 = (await projectStatus(p2)).filter((r) => r.final), sheetRows = [], assets = [];
+  const rows3 = (await projectStatus(p2)).filter((r) => r.final), sheetRows = [], assets = [];
   const fromFile = join13(p2.art, "directions", `v${from.version}.json`);
-  for (const r of rows2) {
+  for (const r of rows3) {
     const path = join13(p2.root, r.path), a = openAsset(path), old = openAsset(path, { direction: existsSync13(fromFile) ? fromFile : void 0 });
     if (!existsSync13(fromFile)) old.dir = from;
     const [before, after] = [await renderVersion(old, r.final), await renderVersion(a, r.final)];
     const d = restyleDiff(before.strip, after.strip, from, to);
-    sheetRows.push({ label: `${r.id} ${r.final}: ${d.changedPct}% px changed, tokens kept ${Math.round(d.tokenSame * 100)}%${after.report.pass ? "" : " GATE FAIL"}${after.stale?.length ? " FINISH-STALE" : ""}`, before: thumb(before.render), after: thumb(after.render), mask: tokenDiffMask(thumb(before.render), thumb(after.render), from, to), bg: to.background });
-    assets.push({ id: r.id, final: r.final, changedPct: d.changedPct, tokenSame: d.tokenSame, consistent: d.consistent, gate: after.report.pass, stale: after.stale ?? [] });
-    appendLedger(ledgerFile(p2), { type: "restyle", asset: r.id, version: r.final, from: { id: from.id, version: from.version }, direction: { id: to.id, version: to.version }, changedPct: d.changedPct, tokenSame: d.tokenSame, consistent: d.consistent, gate: after.report.pass, outputHash: after.strip.hash(), ...after.stale?.length && { stale: after.stale }, by: "agent" });
+    const diff2 = diffStageKeys(before.stages.keys, after.stages.keys), stages = { same: STAGES.filter((k) => diff2[k] === "same"), changed: STAGES.filter((k) => diff2[k] !== "same" && diff2[k] !== "n/a") };
+    const gated = gatesOf(a).includes("shape");
+    sheetRows.push({ label: `${r.id} ${r.final}: ${d.changedPct}% px changed, tokens kept ${Math.round(d.tokenSame * 100)}%${gated ? diff2.shape === "same" ? " shape kept" : " SHAPE CHANGED" : ""}${after.report.pass ? "" : " GATE FAIL"}${after.stale?.length ? " FINISH-STALE" : ""}`, before: thumb(before.render), after: thumb(after.render), mask: tokenDiffMask(thumb(before.render), thumb(after.render), from, to), bg: to.background });
+    assets.push({ id: r.id, final: r.final, changedPct: d.changedPct, tokenSame: d.tokenSame, consistent: d.consistent, gate: after.report.pass, stale: after.stale ?? [], stages });
+    appendLedger(ledgerFile(p2), { type: "restyle", asset: r.id, version: r.final, from: { id: from.id, version: from.version }, direction: { id: to.id, version: to.version }, changedPct: d.changedPct, tokenSame: d.tokenSame, consistent: d.consistent, gate: after.report.pass, outputHash: after.strip.hash(), stages, ...after.stale?.length && { stale: after.stale }, by: "agent" });
   }
   const sheet = restyleSheet(`restyle ${from.id} v${from.version} -> ${to.id} v${to.version}`, sheetRows);
   const f = join13(p2.art, "sheets", `restyle-v${from.version}-v${to.version}.png`);
@@ -28124,12 +29406,12 @@ function artMetricsOf(p2) {
   const set2 = ledgerSet(p2.root), ledger = set2.ledger, report2 = analytics(ledger, set2.metas);
   const ids = new Set(set2.metas.map((m) => m.id));
   const approved = new Set(ledger.filter((e) => e.type === "approve" && ids.has(e.asset)).map((e) => e.asset));
-  const userFeedback = new Set(ledger.filter((e) => e.type === "feedback" && e.by !== "agent").map((e) => e.asset));
+  const userFeedback = new Set(ledger.filter((e) => e.type === "feedback" && e.by !== "agent" || e.type === "stage" && e.verdict === "reject" && e.by === "user").map((e) => e.asset));
   const untouched = [...approved].filter((a) => !userFeedback.has(a)).length;
   const finals = report2.perAsset.filter((a) => a.final !== void 0).length;
   const gateFailures = {};
   for (const e of ledger) for (const c of e.conformance?.checks ?? []) if (c.status === "fail") gateFailures[c.id] = (gateFailures[c.id] ?? 0) + 1;
-  const recs = passRecords(ledger);
+  const recs = passRecords(ledger), gen4 = generatorMetrics(ledger, set2.metas.map((m) => ({ generator: "art", key: m.id }))), art = gen4.art;
   const wall2 = (rs) => round4(rs.reduce((n, r) => n + (r.wallMs ?? 0), 0) / 6e4, 1);
   return {
     assets: { total: set2.metas.length, final: finals, approved: approved.size },
@@ -28140,7 +29422,9 @@ function artMetricsOf(p2) {
     userRevisionRate: report2.userRevisionRate.rate,
     gateFailures,
     blind: { n: report2.review.blind.n, meanGap: report2.review.blind.meanGap },
-    generators: generatorMetrics(ledger, set2.metas.map((m) => ({ generator: "art", key: m.id })))
+    ...art?.gates && { gates: art.gates },
+    ...art?.firstInGameMinutes !== void 0 && { firstInGameMinutes: art.firstInGameMinutes },
+    generators: gen4
   };
 }
 var round4;
@@ -28162,7 +29446,7 @@ function opHelp(op) {
   const words = wordsOf(op).join(" "), params = Object.entries(op.params).filter(([, par]) => par.cli !== false);
   const pos = params.filter(([, par]) => par.positional).map(([k, par]) => (par.required ? `<${k}>` : `[${k}]`) + (par.positional === "rest" ? "\u2026" : ""));
   const own = usageLines(op);
-  const rows2 = params.map(([k, par]) => {
+  const rows3 = params.map(([k, par]) => {
     const name = par.positional ? `<${k}>` : flagOf(k, par), what = par.positional ? "" : par.kind === "enum" ? par.values.join("|") : par.kind === "boolean" ? par.style === "onoff" ? "on|off" : par.style === "either" ? "[on|off]" : "" : KIND_WORD[par.kind];
     return `  ${[name, what].filter(Boolean).join(" ").padEnd(30)} ${par.doc ?? ""}${par.repeat ? " (repeatable)" : ""}`.trimEnd();
   });
@@ -28171,7 +29455,7 @@ function opHelp(op) {
     "",
     op.summary,
     "",
-    ...rows2,
+    ...rows3,
     "",
     `  --json                         print machine-readable output`,
     `  --root <dir>                   the game repo (default: found from here upward)`
@@ -28497,7 +29781,7 @@ async function writeBundle(p2, target, o = {}) {
       } catch {
         return {};
       }
-    }).find((e) => e.type === "review" && typeof e.sheet === "string")?.sheet;
+    }).find((e) => e.type === "review" && !e.stage && typeof e.sheet === "string")?.sheet;
     const sheetFile = p2 && sheet ? resolve9(p2.art, sheet.split(",")[0]) : void 0;
     if (!o.noRender && sheetFile && existsSync14(sheetFile)) {
       mkdirSync11(join14(dir, "render"), { recursive: true });
@@ -28617,7 +29901,7 @@ function metricsOf(p2, o = {}) {
     exported: (o.now ?? /* @__PURE__ */ new Date()).toISOString().slice(0, 10),
     ...artFields.assets && { assets: artFields.assets },
     maps: { map: count("map"), dungeon: count("dungeon"), settlement: count("settlement") },
-    ...artFields.assets && { byKind: artFields.byKind, passes: artFields.passes, totals: artFields.totals, firstPassApproval: artFields.firstPassApproval, userRevisionRate: artFields.userRevisionRate, gateFailures: artFields.gateFailures, blind: artFields.blind },
+    ...artFields.assets && { byKind: artFields.byKind, passes: artFields.passes, totals: artFields.totals, firstPassApproval: artFields.firstPassApproval, userRevisionRate: artFields.userRevisionRate, gateFailures: artFields.gateFailures, blind: artFields.blind, ...artFields.gates && { gates: artFields.gates }, ...artFields.firstInGameMinutes !== void 0 && { firstInGameMinutes: artFields.firstInGameMinutes } },
     generators
   };
 }
@@ -29621,7 +30905,7 @@ function snapToPalette(img, colors, o = {}) {
   return { w: g.w, h: g.h, d: g.d };
 }
 function formatGpl(colors, name = "artgen") {
-  const rows2 = colors.map((c, i) => {
+  const rows3 = colors.map((c, i) => {
     const h = normHex(c), v = [1, 3, 5].map((k) => parseInt(h.slice(k, k + 2), 16));
     return `${String(v[0]).padStart(3)} ${String(v[1]).padStart(3)} ${String(v[2]).padStart(3)} ${h} (${i + 1})`;
   });
@@ -29629,7 +30913,7 @@ function formatGpl(colors, name = "artgen") {
 Name: ${name}
 Columns: 8
 #
-${rows2.join("\n")}
+${rows3.join("\n")}
 `;
 }
 var grid, formatHex, parsePaletteText;
@@ -29649,17 +30933,17 @@ var init_palette2 = __esm({
 // ../artgen-imagekit/src/slice.ts
 function sliceGrid(img, o) {
   const margin = o.margin ?? 0, spacing = o.spacing ?? 0, usableW = img.w - 2 * margin, usableH = img.h - 2 * margin;
-  let cols = o.cols, rows2 = o.rows, cw = o.cellW, ch = o.cellH;
+  let cols = o.cols, rows3 = o.rows, cw = o.cellW, ch = o.cellH;
   if (cw && ch) {
     cols = Math.floor((usableW + spacing) / (cw + spacing));
-    rows2 = Math.floor((usableH + spacing) / (ch + spacing));
-  } else if (cols && rows2) {
+    rows3 = Math.floor((usableH + spacing) / (ch + spacing));
+  } else if (cols && rows3) {
     cw = Math.floor((usableW - spacing * (cols - 1)) / cols);
-    ch = Math.floor((usableH - spacing * (rows2 - 1)) / rows2);
+    ch = Math.floor((usableH - spacing * (rows3 - 1)) / rows3);
   } else throw new Error("slice: give the columns and rows (cols, rows) or the cell size (cellW, cellH)");
-  if (!cols || !rows2 || !cw || !ch || cols < 1 || rows2 < 1 || cw < 1 || ch < 1) throw new Error(`slice: no room for a cell in a ${img.w}x${img.h} picture with those numbers`);
+  if (!cols || !rows3 || !cw || !ch || cols < 1 || rows3 < 1 || cw < 1 || ch < 1) throw new Error(`slice: no room for a cell in a ${img.w}x${img.h} picture with those numbers`);
   const out = [];
-  for (let row = 0; row < rows2; row++) for (let col = 0; col < cols; col++) {
+  for (let row = 0; row < rows3; row++) for (let col = 0; col < cols; col++) {
     let box2 = { x: margin + col * (cw + spacing), y: margin + row * (ch + spacing), w: cw, h: ch };
     if (o.skipEmpty || o.trim) {
       const b = alphaBounds(crop2(img, box2));
@@ -29809,7 +31093,7 @@ function paletteColors(src, n) {
   if (/^#?([0-9a-f]{3}|[0-9a-f]{6})(,#?([0-9a-f]{3}|[0-9a-f]{6}))*$/i.test(src)) return src.split(",").map((c) => normHex("#" + c.replace("#", "")));
   throw new Error(`${src}: not found (a .hex, .gpl or .png file, or colours like #ff0000,#00aa11)`);
 }
-var stemOf2, traceParams, traceSummary, BY_PATH, trace, slice, quantize2, IMAGE_OPS;
+var stemOf2, traceParams, traceSummary, BY_PATH, trace, slice, quantize2, rotate2, IMAGE_OPS;
 var init_image = __esm({
   "../artgen-cli/src/ops/image.ts"() {
     "use strict";
@@ -29923,7 +31207,38 @@ next: artgen trace-base <asset> <image> turns it into an asset's base; artgen ma
       mcp: { exclude: BY_PATH },
       python: {}
     });
-    IMAGE_OPS = [trace, slice, quantize2];
+    rotate2 = defineOp({
+      name: "rotate",
+      module: "core",
+      effect: "write",
+      summary: "Rotate pixel art without blurring it (RotSprite): one angle, or a strip of evenly spaced rotations.",
+      params: {
+        image: p.str("the picture (PNG)", { positional: true, required: "rotate: <image.png> is required" }),
+        deg: p.num("degrees, clockwise on screen (required unless --steps; with --steps, the angle of the first frame, default 0)"),
+        steps: p.int("write a strip of this many rotations, evenly spaced over 360\xB0 (each frame as wide as the picture)"),
+        pivot: p.list("number", "the point to turn about, x,y in pixels (default: the centre)"),
+        out: p.str("the PNG to write (default: <image>.rotated.png)")
+      },
+      run(i) {
+        const file = resolve13(i.image), img = readPicture(file), out = resolve13(i.out ?? `${stemOf2(file)}.rotated.png`), pv = i.pivot;
+        if (pv && pv.length !== 2) throw new Error("rotate: --pivot is x,y (two numbers)");
+        if (i.steps === void 0 && i.deg === void 0) throw new Error("rotate: give --deg <degrees> or --steps <n>");
+        if (i.steps !== void 0 && (!Number.isInteger(i.steps) || i.steps < 1 || i.steps > 360)) throw new Error("rotate: --steps is a whole number from 1 to 360");
+        const pivot = pv && [pv[0], pv[1]], n = i.steps ?? 1, start = i.deg ?? 0;
+        const degs = Array.from({ length: n }, (_, k) => start + (i.steps === void 0 ? 0 : 360 * k / n));
+        const strip2 = new Grid(img.w * n, img.h);
+        degs.forEach((d, k) => strip2.blit(rotsprite(img, d, { pivot }), k * img.w, 0));
+        writePicture(out, strip2);
+        return { out, width: strip2.w, height: strip2.h, frames: n, degrees: degs, frameWidth: img.w };
+      },
+      cli: {
+        usage: "       artgen rotate <image.png> --deg n | --steps k [--deg start] [--pivot x,y] [--out file.png]",
+        text: (r) => `${r.out}: ${r.frames === 1 ? `rotated ${r.degrees[0]}\xB0` : `${r.frames} rotations of ${r.frameWidth}px, ${r.degrees.map((d) => `${+d.toFixed(2)}\xB0`).join(" ")}`} (${r.width}x${r.height})`
+      },
+      mcp: { exclude: BY_PATH },
+      python: {}
+    });
+    IMAGE_OPS = [trace, slice, quantize2, rotate2];
   }
 });
 
@@ -31139,11 +32454,11 @@ var init_maps_map = __esm({
         const P2 = projectOf(i, ctx), preset2 = i.preset ?? "regional";
         const sz = typeof i.size === "string" ? i.size.match(/^(\d+)x(\d+)$/) : null;
         if (i.size && !sz) throw new Error("--size: COLSxROWS, e.g. 30x22");
-        const cols = sz ? +sz[1] : typeof i.cols === "number" ? i.cols : void 0, rows2 = sz ? +sz[2] : typeof i.rows === "number" ? i.rows : void 0;
+        const cols = sz ? +sz[1] : typeof i.cols === "number" ? i.cols : void 0, rows3 = sz ? +sz[2] : typeof i.rows === "number" ? i.rows : void 0;
         return createMap(P2, i.path ? i.id ?? fileId(i.path) : i.id, preset2, {
           seed: typeof i.seed === "number" ? i.seed : Math.floor(Math.random() * 1e6),
           ...cols !== void 0 && { cols },
-          ...rows2 !== void 0 && { rows: rows2 },
+          ...rows3 !== void 0 && { rows: rows3 },
           ...i.title && { title: i.title },
           ...typeof i.grid === "string" && { grid: { ...map_exports.PRESET_DEFAULTS[preset2].grid, type: i.grid } }
         }, i.force === true, i.path ? { file: i.path } : void 0);
@@ -31771,8 +33086,8 @@ note for the user: ${e.warnings.join("; ")}` : ""}`
     description: `Status of every ${N3} in the project (or the ids given): in-pipeline, revision, final (waiting for the user), approved or stale, with the latest version and why. With one id, also its history: versions with notes, reviews, scores, feedback and approvals.`,
     params: { ids: p.str(`${N3} ids; default all`, { positional: "rest", schema: STR_LIST }) },
     run(i, ctx) {
-      const P2 = ctx.project(), ids = Array.isArray(i.ids) ? i.ids : void 0, rows2 = statusRows(P2, k, ids);
-      return { rows: rows2, ...ids?.length === 1 && { history: history(P2, k, ids[0]) } };
+      const P2 = ctx.project(), ids = Array.isArray(i.ids) ? i.ids : void 0, rows3 = statusRows(P2, k, ids);
+      return { rows: rows3, ...ids?.length === 1 && { history: history(P2, k, ids[0]) } };
     },
     cli: {
       usage: `       artgen ${k} status [ids]   status of each ${N3}; with one id, its history (versions, reviews, feedback, approvals)`,
@@ -32821,9 +34136,118 @@ var init_report = __esm({
   }
 });
 
+// ../artgen-cli/src/stages.ts
+import { existsSync as existsSync21, mkdirSync as mkdirSync17, writeFileSync as writeFileSync21 } from "node:fs";
+import { dirname as dirname18, join as join25 } from "node:path";
+function placeholderRun(a, o = {}) {
+  const file = placeholderPath(a);
+  if (existsSync21(file) && !o.force) throw new Error(`${a.brief.id}: ${file} exists \u2014 pass --force to write the defaults over it`);
+  if (a.project) ensureAssetDir(a.project, a.brief, a.dir);
+  else mkdirSync17(a.path, { recursive: true });
+  const ph = { ...defaultPlaceholder(a.brief, a.dir), ...o.size && { size: o.size }, ...o.pivot && { pivot: o.pivot }, ...o.ramp && { ramp: o.ramp } };
+  writeFileSync21(file, JSON.stringify(ph, null, 2) + "\n");
+  const r = renderAsset(placeholderModule(ph), { dir: a.dir, brief: a.brief }), png = join25(outDir(a), "placeholder.png"), sc = a.brief.review?.scale ?? 4;
+  writeGrid(png, strip(r).scale(sc));
+  const key2 = placeholderKey(ph);
+  appendLedger(a.ledgerPath, { type: "stage", asset: a.brief.id, stage: "placeholder", event: "written", key: key2, by: "agent" });
+  return { file, png, key: key2, placeholder: ph, checks: placeholderChecks(ph, a.brief, a.dir) };
+}
+async function stagesRun(a, version) {
+  const r = await renderVersion(a, version), ledger = ledgerFor(a), keys = r.stages.keys;
+  const approval = [...ledger].reverse().find((e) => e.type === "approve" && e.by === "user" && e.stages && typeof e.stages === "object");
+  const states2 = Object.fromEntries(STAGES.map((s2) => {
+    const key2 = keys[s2];
+    if (key2 === void 0) return [s2, "n/a"];
+    if (s2 === "placeholder" || s2 === "shape") {
+      const sv = stageState(ledger, s2);
+      if (sv.latest?.key === key2) return [s2, sv.latest.verdict === "approve" ? "approved" : "rejected"];
+      return [s2, stageVerdicts(ledger, s2).some((v) => v.verdict === "approve") ? "changed" : "new"];
+    }
+    const was = approval?.stages?.[s2];
+    return [s2, was === void 0 ? "new" : was === key2 ? "approved" : "changed"];
+  }));
+  return { id: a.brief.id, version, keys, states: states2, checks: r.stages.checks, gates: gatesOf(a) };
+}
+async function stageVerdict(a, stage, verdict2, o = {}) {
+  let version = o.version, key2, checks;
+  if (stage === "placeholder") {
+    const ph = effectivePlaceholder(a);
+    key2 = placeholderKey(ph);
+    checks = placeholderChecks(ph, a.brief, a.dir);
+    version = void 0;
+  } else {
+    if (!version) {
+      const next4 = (await passState(a)).next;
+      version = next4.action === "stage-gate" && next4.stage === stage ? next4.version : void 0;
+      if (!version) {
+        const scored = ledgerFor(a).filter((e) => e.type === "score" && !e.blind && e.version && parseVersion(e.version)?.kind === "base").map((e) => parseVersion(e.version));
+        version = scored.sort((x, y) => x.n - y.n).pop()?.name;
+      }
+      if (!version) throw new Error(`${a.brief.id}: no scored base to ${verdict2} the ${stage} of \u2014 pass --version`);
+    }
+    const r = await renderVersion(a, version);
+    key2 = r.stages.keys.shape;
+    checks = r.stages.checks.filter((c) => c.stage === "shape");
+  }
+  const failing = checks.filter((c) => c.status === "fail");
+  if (verdict2 === "approve" && failing.length && !o.force) throw new Error(`${a.brief.id}: the ${stage} checks fail (${failing.map((c) => `${c.id}: ${c.detail}`).join("; ")}) \u2014 fix it, or pass --force to approve it as it is`);
+  const entry = {
+    type: "stage",
+    asset: a.brief.id,
+    stage,
+    verdict: verdict2,
+    key: key2,
+    ...version && { version },
+    ...o.note && { note: o.note },
+    ...verdict2 === "approve" && failing.length && { forced: true },
+    by: "user",
+    ...o.via && { via: o.via }
+  };
+  appendLedger(a.ledgerPath, entry);
+  return { entry, checks };
+}
+async function shapeReview(a, version) {
+  const cur = await renderVersion(a, version), cfg = a.project ? projectConfig(a.project) : void 0;
+  let placeholder;
+  try {
+    placeholder = readPlaceholder(a);
+  } catch {
+  }
+  const checks = cur.stages.checks.filter((c) => c.stage === "shape"), R3 = a.brief.review ?? {};
+  const sheet = shapeSheet(cur.render, a.dir, { title: `${R3.label ?? a.brief.id} - ${version} shape`, placeholder, checks, maxEdge: cfg?.budget?.maxSheetEdge });
+  const path = join25(outDir(a), `shape-${version}.png`), tokens = imageTokens(sheet.w, sheet.h);
+  mkdirSync17(dirname18(path), { recursive: true });
+  writeGrid(path, sheet);
+  appendLedger(a.ledgerPath, { type: "review", asset: a.brief.id, version, pass: passOf(a, version), stage: "shape", sheet: relPath(a, path), imageTokens: tokens, by: "agent" });
+  return { path, tokens, render: cur, stage: "shape", checks };
+}
+var WHY_NA, whyNotApplicable;
+var init_stages3 = __esm({
+  "../artgen-cli/src/stages.ts"() {
+    "use strict";
+    init_src5();
+    init_asset();
+    init_bench2();
+    init_node();
+    init_project();
+    init_w2();
+    WHY_NA = {
+      placeholder: "no placeholder",
+      shape: "no shape",
+      rig: "not rigged",
+      decorate: "",
+      decal: "no decals",
+      lighting: "no normal maps",
+      rotation: "not rotated",
+      animation: ""
+    };
+    whyNotApplicable = (s2) => WHY_NA[s2];
+  }
+});
+
 // ../artgen-cli/src/ops/art-shared.ts
-import { existsSync as existsSync21 } from "node:fs";
-import { join as join25 } from "node:path";
+import { existsSync as existsSync22 } from "node:fs";
+import { join as join26 } from "node:path";
 function versionOf(ctx, a, i, mcpEmpty) {
   if (typeof i.version === "string") return i.version;
   const vs = versionsIn(a);
@@ -32832,17 +34256,17 @@ function versionOf(ctx, a, i, mcpEmpty) {
   return vs[vs.length - 1];
 }
 function toolDirection(cmd, project2, override) {
-  const file = override ?? (project2 ? join25(project2.art, "direction.json") : void 0);
+  const file = override ?? (project2 ? join26(project2.art, "direction.json") : void 0);
   const fix = "lock one first (artgen direction candidates \u2192 tile \u2192 lock, or /artgen-direction in Claude Code), or pass --direction <file|benchmark>";
-  if (override && !existsSync21(override) && ["benchmark", "alt"].includes(override)) return { p: project2, dir: resolveDirection(override) };
-  if (override && !existsSync21(override)) throw new Error(`${cmd}: --direction ${override}: no such file (or bench direction: benchmark, alt)`);
-  if (!file || !existsSync21(file)) throw new Error(`${cmd}: no art direction found \u2014 ${fix}`);
+  if (override && !existsSync22(override) && ["benchmark", "alt"].includes(override)) return { p: project2, dir: resolveDirection(override) };
+  if (override && !existsSync22(override)) throw new Error(`${cmd}: --direction ${override}: no such file (or bench direction: benchmark, alt)`);
+  if (!file || !existsSync22(file)) throw new Error(`${cmd}: no art direction found \u2014 ${fix}`);
   const raw = readJson(file), v = validateDirection(raw);
   if (!v.ok) throw new Error(raw?.status === "draft" && !override ? `${cmd}: the art direction is still a draft \u2014 ${fix}` : `${cmd}: ${file} is not a valid direction:
   ${v.errors.join("\n  ")}`);
   return { p: project2, dir: parseDirection(raw) };
 }
-var image, W1, BY_PATH2, STR_LIST2, assetParam, directionParam, ledgerParam, idsParam, versionParam, assetOpts, assetOf, sizeOf2, sizeKey, statusTable, packetLine, projectPng;
+var image, W1, BY_PATH2, STR_LIST2, assetParam, directionParam, ledgerParam, idsParam, versionParam, assetOpts, assetOf, sizeOf2, sizeKey, stepName, statusTable, packetLine, projectPng;
 var init_art_shared = __esm({
   "../artgen-cli/src/ops/art-shared.ts"() {
     "use strict";
@@ -32872,15 +34296,16 @@ var init_art_shared = __esm({
       const m = s2?.match(/^(\d+)x(\d+)$/);
       return m ? [+m[1], +m[2]] : s2;
     };
-    statusTable = (rows2) => rows2.map((r) => `  ${r.id.padEnd(16)} ${r.status.padEnd(11)} ${r.final ? `${r.final} ${r.score ?? "-"}${r.blind !== void 0 ? ` b${r.blind}` : ""}${r.gate === false ? " GATE FAIL" : ""}${r.belowBar ? " BELOW BAR" : ""}${r.top ? ` final\u2260best (${r.top.version} ${r.top.score})` : ""}` : r.next ? `${r.next.action} ${"version" in r.next ? r.next.version : ""}` : ""}${r.issues.length ? `
+    stepName = (s2) => s2.action === "stage-gate" ? `${s2.action} ${s2.stage}${s2.version ? ` ${s2.version}` : ""}` : `${s2.action} ${s2.version ?? ""}`;
+    statusTable = (rows3) => rows3.map((r) => `  ${r.id.padEnd(16)} ${r.status.padEnd(11)} ${r.final ? `${r.final} ${r.score ?? "-"}${r.blind !== void 0 ? ` b${r.blind}` : ""}${r.gate === false ? " GATE FAIL" : ""}${r.belowBar ? " BELOW BAR" : ""}${r.top ? ` final\u2260best (${r.top.version} ${r.top.score})` : ""}` : r.next ? stepName(r.next) : ""}${r.issues.length ? `
 ${r.issues.map((i) => `      issue: ${i}`).join("\n")}` : ""}`).join("\n");
-    packetLine = (x) => `  ${x.id.padEnd(16)} ${x.step.action} ${"version" in x.step ? x.step.version : ""}${x.writes.length ? ` \u2192 writes ${x.writes.join(", ")}` : ""}${x.resume ? " (resume: written, never reviewed \u2014 check it, complete it, review it)" : ""}`;
-    projectPng = (ctx, f) => pngFile(join25(ctx.project().root, f));
+    packetLine = (x) => `  ${x.id.padEnd(16)} ${stepName(x.step)}${x.writes.length ? ` \u2192 writes ${x.writes.join(", ")}` : ""}${x.resume ? " (resume: written, never reviewed \u2014 check it, complete it, review it)" : ""}`;
+    projectPng = (ctx, f) => pngFile(join26(ctx.project().root, f));
   }
 });
 
 // ../artgen-cli/src/ops/art-asset.ts
-import { join as join26 } from "node:path";
+import { join as join27 } from "node:path";
 var PASS_NEXT, passRows, nextLine, passStatus, passNext, render10, review, conformance2, score, variants, reportOp2, voxel, anim, texture, fx, bench;
 var init_art_asset = __esm({
   "../artgen-cli/src/ops/art-asset.ts"() {
@@ -32892,11 +34317,12 @@ var init_art_asset = __esm({
     init_p6();
     init_report();
     init_w2();
+    init_stages3();
     init_art_shared();
     init_registry();
     PASS_NEXT = "pass_status includes the next step";
     passRows = (st) => st.rows.map((r) => `  ${r.pass.padEnd(4)} ${r.version.padEnd(10)} ${r.score === void 0 ? "unscored" : `score ${r.score}`}${r.gate === void 0 ? "" : r.gate ? " gate pass" : " gate FAIL"}${r.base ? ` (on ${r.base})` : ""}`);
-    nextLine = (n) => `${n.action} ${"version" in n ? n.version : ""} \u2014 ${n.why}`;
+    nextLine = (n) => `${stepName(n)} \u2014 ${n.why}`;
     passStatus = defineOp({
       name: "pass.status",
       module: "art",
@@ -32944,8 +34370,8 @@ var init_art_asset = __esm({
         const r = await renderVersion(a, version, { variant, stages });
         let files = [];
         if (ctx.surface === "cli") {
-          files = writeRender(a, r, variant ? join26(a.path, "out", `variant-${variant}`) : void 0);
-          if (stages) for (const [k, g] of stages) writeGrid(join26(a.path, "out", "stages", version, `${k.replace(/\//g, "_")}.png`), g);
+          files = writeRender(a, r, variant ? join27(a.path, "out", `variant-${variant}`) : void 0);
+          if (stages) for (const [k, g] of stages) writeGrid(join27(a.path, "out", "stages", version, `${k.replace(/\//g, "_")}.png`), g);
         }
         return { id: a.brief.id, version, r, files };
       },
@@ -32965,29 +34391,33 @@ var init_art_asset = __esm({
       module: "art",
       effect: "render",
       summary: "Build the review sheet for a version and log it to the ledger.",
-      description: "Build the review sheet for a version (best so far, v(n-1), v(n), checker + scaled + in context + silhouette), log it to the ledger and return it. blind: the version alone (no earlier versions, scores or notes) for a fresh reviewer's blind re-score of a version. detail: low = the first facing at 3x beside the previous version only (about half the image tokens; the default for r1), full = every facing and the best so far. scene: add the sprite at game zoom on the background, a floor and beside a wall (contrast check).",
+      description: "Build the review sheet for a version (best so far, v(n-1), v(n), checker + scaled + in context + silhouette), log it to the ledger and return it. blind: the version alone (no earlier versions, scores or notes) for a fresh reviewer's blind re-score of a version. detail: low = the first facing at 3x beside the previous version only (about half the image tokens; the default for r1), full = every facing and the best so far. scene: add the sprite at game zoom on the background, a floor and beside a wall (contrast check). stage: shape = a small sheet of the silhouettes (1x and 3x, with the placeholder box and pivot) and the shape checks, for the shape gate.",
       params: {
         asset: assetParam("the asset: a brief id or an asset directory"),
         version: versionParam("the version to review; default the latest"),
         blind: p.bool("the version alone, for a fresh reviewer's blind re-score"),
         detail: p.str("low (first facing at 3\xD7, previous version only) or full (every facing, the best so far)", { schema: { type: "string", enum: ["low", "full"] } }),
         scene: p.bool("add the sprite on a floor and beside a wall (contrast check)"),
+        stage: p.str("shape: a small sheet of the silhouettes and the shape checks, for the shape gate, instead of the full review sheet", { schema: { type: "string", enum: ["shape"] } }),
         direction: directionParam(),
         ledger: ledgerParam()
       },
       async run(i, ctx) {
         const detail = i.detail;
+        if (i.stage !== void 0 && i.stage !== "shape") throw new Error("review --stage shape: the silhouettes and the shape checks (the only stage with a sheet)");
+        if (i.stage === "shape") return shapeReview(assetOf(ctx, i), versionOf(ctx, assetOf(ctx, i), i));
         if (ctx.surface === "cli" && detail !== void 0 && detail !== "low" && detail !== "full") throw new Error("review --detail low (first facing at 3\xD7, previous version only) | full (every facing, the best so far)");
         const a = assetOf(ctx, i), version = versionOf(ctx, a, i);
         return reviewVersion(a, version, { blind: i.blind === true, ...(detail === "low" || detail === "full") && { detail }, scene: i.scene === true });
       },
       cli: {
-        usage: "       artgen review <assetDir> [--version v] [--blind] [--detail low|full] [--scene]",
-        text: (r) => `review sheet ${r.path} (~${r.tokens} image tokens); gate ${r.render.report.pass ? "pass" : "FAIL"}${(r.warnings ?? []).map((w) => `
-  warning: ${w}`).join("")}`,
-        json: (r) => ({ sheet: r.path, tokens: r.tokens, pass: r.render.report.pass, checks: r.render.report.checks, ...r.warnings && { warnings: r.warnings } })
+        usage: "       artgen review <assetDir> [--version v] [--blind] [--detail low|full] [--scene] [--stage shape]",
+        text: (r) => `${r.stage ? "shape sheet" : "review sheet"} ${r.path} (~${r.tokens} image tokens); gate ${r.render.report.pass ? "pass" : "FAIL"}${(r.warnings ?? []).map((w) => `
+  warning: ${w}`).join("")}${(r.checks ?? []).map((c) => `
+  ${c.id} ${c.status}: ${c.detail}`).join("")}`,
+        json: (r) => ({ sheet: r.path, tokens: r.tokens, pass: r.render.report.pass, checks: r.render.report.checks, ...r.warnings && { warnings: r.warnings }, ...r.stage && { stage: r.stage, stageChecks: r.checks } })
       },
-      mcp: { content: (r, _i, ctx) => [text({ sheet: ctx.rel(r.path), imageTokens: r.tokens, pass: r.render.report.pass, checks: r.render.report.checks, ...r.warnings && { warnings: r.warnings } }), pngFile(r.path)] },
+      mcp: { content: (r, _i, ctx) => [text({ sheet: ctx.rel(r.path), imageTokens: r.tokens, pass: r.render.report.pass, checks: r.render.report.checks, ...r.warnings && { warnings: r.warnings }, ...r.stage && { stage: r.stage, stageChecks: r.checks } }), pngFile(r.path)] },
       python: {}
     });
     conformance2 = defineOp({
@@ -33144,7 +34574,7 @@ var init_art_asset = __esm({
           m[k] = v;
           return m;
         }, {}) : i.ramps;
-        const out = mcp ? join26(pr.art, "sheets", "textures") : i.out ?? (pr ? join26(pr.art, "sheets", "textures") : "artgen-out");
+        const out = mcp ? join27(pr.art, "sheets", "textures") : i.out ?? (pr ? join27(pr.art, "sheets", "textures") : "artgen-out");
         return { material: i.material, size: size2, r: textureRun(dir, i.material, { size: size2, seed: typeof i.seed === "number" ? i.seed : void 0, ramps, scale: typeof i.scale === "number" ? i.scale : void 0, out }) };
       },
       cli: {
@@ -33186,7 +34616,7 @@ var init_art_asset = __esm({
         if (i.list === true || mcp && !i.preset) return { list: PRESET_NAMES };
         if (!i.preset) throw new Error("fx: name a preset (artgen fx --list)");
         const { p: pr, dir } = mcp ? { p: ctx.project(), dir: typeof i.direction === "string" ? resolveDirection(ctx.direction(i.direction)) : requireLocked(ctx.project()) } : toolDirection("fx", ctx.findProject(), i.direction);
-        const size2 = sizeOf2(i.size), out = mcp ? join26(pr.art, "sheets", "fx") : i.out ?? (pr ? join26(pr.art, "sheets", "fx") : "artgen-out");
+        const size2 = sizeOf2(i.size), out = mcp ? join27(pr.art, "sheets", "fx") : i.out ?? (pr ? join27(pr.art, "sheets", "fx") : "artgen-out");
         return { preset: i.preset, size: size2, r: fxRun(dir, i.preset, { size: size2, frames: typeof i.frames === "number" ? i.frames : 8, seed: typeof i.seed === "number" ? i.seed : void 0, scale: typeof i.scale === "number" ? i.scale : void 0, out }) };
       },
       cli: {
@@ -33235,11 +34665,11 @@ var init_art_asset = __esm({
 });
 
 // ../artgen-cli/src/ops/art-direction.ts
-import { existsSync as existsSync22, readFileSync as readFileSync21 } from "node:fs";
-import { join as join27 } from "node:path";
+import { existsSync as existsSync23, readFileSync as readFileSync21 } from "node:fs";
+import { join as join28 } from "node:path";
 function readColors(src, n = 16) {
   if (/^#?[0-9a-f]{6}(,#?[0-9a-f]{6})*$/i.test(src)) return src.split(",").map((c) => "#" + c.replace("#", "").toLowerCase());
-  if (!existsSync22(src)) throw new Error(`${src}: not found`);
+  if (!existsSync23(src)) throw new Error(`${src}: not found`);
   if (src.endsWith(".png")) return extractPalette(readGrid(src), n).colors;
   const t = readFileSync21(src, "utf8");
   return src.endsWith(".gpl") ? parseGpl(t) : parseHexPalette(t);
@@ -33291,7 +34721,7 @@ var init_art_direction = __esm({
         from: p.str("an interview file (default art/interview.json)")
       },
       run(i, ctx) {
-        const pr = ctx.project(), base = i.from ? readInterview(i.from) : existsSync22(join27(pr.art, "interview.json")) ? readJson(join27(pr.art, "interview.json")) : {};
+        const pr = ctx.project(), base = i.from ? readInterview(i.from) : existsSync23(join28(pr.art, "interview.json")) ? readJson(join28(pr.art, "interview.json")) : {};
         const iv = {
           ...base,
           pitch: i.pitch ?? base.pitch ?? "",
@@ -33465,7 +34895,7 @@ style sheet: ${r.sheet}`
       run(i, ctx) {
         const colors = readColors(i.file, i.n ?? 16), ramps = rampsFromColors(colors);
         if (i.interview) {
-          const f = join27(ctx.project().art, "interview.json"), iv = existsSync22(f) ? readJson(f) : { pitch: "" };
+          const f = join28(ctx.project().art, "interview.json"), iv = existsSync23(f) ? readJson(f) : { pitch: "" };
           writeJson(f, { ...iv, colors });
         }
         if (i.swatch) swatch(colors, i.swatch);
@@ -33511,12 +34941,12 @@ ${Object.entries(r.ramps).map(([k, x]) => `  ${k}: ${x.join(" ")}`).join("\n")}$
       run(i, ctx) {
         const pr = ctx.findProject(), view = i.view ?? (pr && (() => {
           try {
-            return readJson(join27(pr.art, "direction.json")).camera?.view;
+            return readJson(join28(pr.art, "direction.json")).camera?.view;
           } catch {
             return void 0;
           }
         })()) ?? "topdown";
-        const path = i.dir ?? (pr ? join27(pr.art, "assets", i.kind, i.id) : i.id);
+        const path = i.dir ?? (pr ? join28(pr.art, "assets", i.kind, i.id) : i.id);
         return { id: i.id, path, ...newAsset(path, { id: i.id, kind: i.kind, view, size: sizeKey(i.size), states: i.states, directions: i.directions, notes: i.notes }) };
       },
       cli: {
@@ -33544,7 +34974,7 @@ next: edit base.v1.js for the brief, then artgen review ${r.path}`,
 });
 
 // ../artgen-cli/src/ops/art-production.ts
-import { writeFileSync as writeFileSync21 } from "node:fs";
+import { writeFileSync as writeFileSync22 } from "node:fs";
 var ROSTER_SKILL, briefAdd, briefList, briefRm, briefLint, makeOp, status, galleryOp, sheetOp, feedbackOp, approveOp, roster2, rosterRecordOp, exportOp, restyleOp, importEditOp, analytics2;
 var init_art_production = __esm({
   "../artgen-cli/src/ops/art-production.ts"() {
@@ -33579,6 +35009,9 @@ var init_art_production = __esm({
         body: p.str("quadruped, serpent, flyer or large (non-humanoid rigs)"),
         object: p.str('the drawable thing, for an effect: "ice lance", "ring of fire"'),
         notes: p.str("notes for the maker"),
+        gates: p.list("string", "stages the user approves before the pipeline goes on: placeholder, shape (replaces review.gates for this brief)"),
+        rotate: p.oneOf(["rotsprite"], "make the facings by rotating one drawn facing with RotSprite (vehicles, ships, turrets, projectiles); needs directions 4 or 8", { error: "rotsprite" }),
+        rotate_from: p.str("the facing a rotated asset draws (default e)"),
         break_contract: p.bool("allow changing an exported animation's contract")
       },
       run(i, ctx) {
@@ -33596,7 +35029,7 @@ var init_art_production = __esm({
           })) },
           ...i.variants !== void 0 && { variants: i.variants },
           ...swaps && { swaps: swaps.reduce((m, x) => {
-            const [n, pair] = x.split(":"), [from, to] = pair.split("=");
+            const [n, pair2] = x.split(":"), [from, to] = pair2.split("=");
             (m[n] ??= {})[from] = to;
             return m;
           }, {}) },
@@ -33605,7 +35038,10 @@ var init_art_production = __esm({
           ...i.notes && { notes: i.notes },
           ...i.height !== void 0 && { height: i.height },
           ...i.object && { object: i.object },
-          ...i.body && { body: i.body }
+          ...i.body && { body: i.body },
+          ...i.gates && { gates: i.gates },
+          ...i.rotate && { rotate: i.rotate },
+          ...i.rotate_from && { rotateFrom: i.rotate_from }
         };
         for (const d of i.durations ?? []) {
           const [s2, ms] = d.split("="), a = b.anims?.[s2];
@@ -33619,7 +35055,7 @@ var init_art_production = __esm({
       },
       cli: {
         usage: [
-          '       artgen brief add <id> --kind k [--view v] [--size key|WxH] [--states a,b] [--directions n] [--anims walk:4] [--durations attack=80/80/200/80] [--variants n] [--swaps red:cloth=accent] [--importance t] [--priority n] [--height metres] [--body quadruped|serpent|flyer|large] [--object "ice lance"] [--notes "..."] [--break-contract]'
+          '       artgen brief add <id> --kind k [--view v] [--size key|WxH] [--states a,b] [--directions n] [--anims walk:4] [--durations attack=80/80/200/80] [--variants n] [--swaps red:cloth=accent] [--importance t] [--priority n] [--height metres] [--body quadruped|serpent|flyer|large] [--object "ice lance"] [--gates shape,placeholder] [--rotate rotsprite [--rotate-from e]] [--notes "..."] [--break-contract]'
         ],
         text: (r) => `brief ${r.brief.id} (${r.brief.kind}) in art/briefs.yaml \u2014 ${r.count} briefs${r.warnings.map((w) => `
   warning: ${w}`).join("")}
@@ -33667,9 +35103,9 @@ next: artgen make ${r.brief.id}`
         const want = Array.isArray(i.ids) ? i.ids : void 0;
         return readBriefs(pr).filter((b) => !want?.length || want.includes(b.id)).map((b) => ({ id: b.id, warnings: briefWarnings(b, dir) })).filter((r) => r.warnings.length);
       },
-      cli: { usage: [], text: (rows2) => rows2.length ? rows2.map((r) => `${r.id}:
+      cli: { usage: [], text: (rows3) => rows3.length ? rows3.map((r) => `${r.id}:
 ${r.warnings.map((w) => `  ${w}`).join("\n")}`).join("\n") : "no brief warnings" },
-      mcp: { content: (rows2) => [text(rows2.length ? rows2 : "no brief warnings")] },
+      mcp: { content: (rows3) => [text(rows3.length ? rows3 : "no brief warnings")] },
       python: {}
     });
     makeOp = defineOp({
@@ -33713,7 +35149,7 @@ ${r.warnings.map((w) => `  ${w}`).join("\n")}`).join("\n") : "no brief warnings"
               ...r.work.main.length ? ["main agent (reviews, blind re-scores \u2014 fresh art-reviewer per sheet):", ...r.work.main.map((x) => pk(x))] : []
             ] : [],
             ...r.roster ? [`v1 roster: ${r.roster.ids.join(", ")} wait for it \u2014 ${r.roster.why}`] : [],
-            r.next ? `next: ${r.next.id} \u2014 ${r.next.step.action} ${"version" in r.next.step ? r.next.step.version : ""} (${r.next.path}) \u2014 ${r.next.step.why}` : r.roster ? "next: artgen roster --stage v1, a fresh art-reviewer in roster mode, then artgen roster record <its json> --reviewer art-reviewer" : r.finalRoster?.length ? `next: the final roster (${r.finalRoster.length} finals have no roster review): artgen roster, a fresh art-reviewer, artgen roster record \u2014 then the gallery` : "next: nothing left in the pipeline \u2014 show the gallery to the user (artgen gallery)"
+            r.next ? `next: ${r.next.id} \u2014 ${stepName(r.next.step)} (${r.next.path}) \u2014 ${r.next.step.why}` : r.roster ? "next: artgen roster --stage v1, a fresh art-reviewer in roster mode, then artgen roster record <its json> --reviewer art-reviewer" : r.finalRoster?.length ? `next: the final roster (${r.finalRoster.length} finals have no roster review): artgen roster, a fresh art-reviewer, artgen roster record \u2014 then the gallery` : "next: nothing left in the pipeline \u2014 show the gallery to the user (artgen gallery)"
           ].join("\n");
         }
       },
@@ -33728,7 +35164,7 @@ ${r.warnings.map((w) => `  ${w}`).join("\n")}`).join("\n") : "no brief warnings"
       description: "Production status of every brief in art/briefs.yaml (brief, in-pipeline, final, approved, exported, revision, stale), with the final version, score, open issues and the next pipeline step.",
       params: { ids: idsParam() },
       run: (i, ctx) => projectStatus(ctx.project(), Array.isArray(i.ids) ? i.ids : void 0),
-      cli: { usage: "       artgen status [ids]", text: (rows2) => statusTable(rows2) || "no briefs yet" },
+      cli: { usage: "       artgen status [ids]", text: (rows3) => statusTable(rows3) || "no briefs yet" },
       mcp: {},
       python: {}
     });
@@ -33873,25 +35309,26 @@ note for the user: ${warn.join("; ")}` : ""}`;
       module: "art",
       effect: "write",
       summary: "Export approved assets into the configured packs: atlases, pack.json, Aseprite JSON, typed assets.ts.",
-      description: "Export approved assets into the configured packs (atlases, pack.json, Aseprite JSON, typed assets.ts); include_drafts adds finals; runtime vendors the artgen runtime + adapters. Animation contracts are enforced unless break_contract names the asset (or *).",
+      description: "Export approved assets into the configured packs (atlases, pack.json, Aseprite JSON, typed assets.ts); include_drafts adds finals; runtime vendors the artgen runtime + adapters. placeholders adds every asset that is not approved, exported from its placeholder (marked placeholder in the manifest; its status does not move). Animation contracts are enforced unless break_contract names the asset (or *).",
       params: {
         packs: p.list("string", "pack names; default all", { flag: "--pack" }),
         include_drafts: p.bool("export finals that are not approved yet"),
         runtime: p.bool("vendor the artgen runtime and the adapters into the runtime folder"),
         force: p.bool("overwrite locally edited runtime files"),
-        break_contract: p.list("string", "asset ids (or *) whose animation contract may change")
+        break_contract: p.list("string", "asset ids (or *) whose animation contract may change"),
+        placeholders: p.bool("also export every asset that is not approved from its placeholder (marked placeholder in the manifest), so the game runs with it from day one")
       },
       async run(i, ctx) {
-        return exportPacks(ctx.project(), { packs: i.packs, includeDrafts: i.include_drafts === true, generator: `artgen ${VERSION}${ctx.surface === "mcp" ? " (mcp)" : ""}`, runtime: i.runtime === true, force: i.force === true, breakContract: i.break_contract });
+        return exportPacks(ctx.project(), { packs: i.packs, includeDrafts: i.include_drafts === true, generator: `artgen ${VERSION}${ctx.surface === "mcp" ? " (mcp)" : ""}`, runtime: i.runtime === true, force: i.force === true, breakContract: i.break_contract, placeholders: i.placeholders === true });
       },
       cli: {
         usage: [
-          "       artgen export [--pack name] [--include-drafts] [--runtime [--force]] [--break-contract id,\u2026|*]"
+          "       artgen export [--pack name] [--include-drafts] [--placeholders] [--runtime [--force]] [--break-contract id,\u2026|*]"
         ],
         text: (r) => {
           const rt = r.runtime;
           return [
-            ...r.packs.map((x) => `pack ${x.pack}: ${x.assets.length} assets \u2192 ${x.atlases.join(", ")} + ${x.dir}/pack.json${x.drafts.length ? ` (drafts: ${x.drafts.join(", ")})` : ""}`),
+            ...r.packs.map((x) => `pack ${x.pack}: ${x.assets.length} assets \u2192 ${x.atlases.join(", ")} + ${x.dir}/pack.json${x.drafts.length ? ` (drafts: ${x.drafts.join(", ")})` : ""}${x.placeholders?.length ? ` (placeholders: ${x.placeholders.join(", ")})` : ""}`),
             r.assetsTs ? `typed ids: ${r.assetsTs}` : "nothing approved to export yet",
             ...r.skipped.length ? [`not exported: ${r.skipped.map((s2) => `${s2.id} (${s2.status})`).join(", ")}`] : [],
             ...r.contracts.map((c) => `contract ${c.id}: ${c.change}${c.notes.length ? ` (${c.notes.join("; ")})` : ""} \u2192 art/contracts/${c.id}.json`),
@@ -33956,12 +35393,12 @@ next: artgen review ${id2}`,
         if (across2) {
           if (!across2.length) throw new Error("analytics --across <project root>[,<root>\u2026]: the projects (or bench folders with a ledger.jsonl) to pool");
           const r4 = pooledAnalytics(across2, { apply: i.apply ? ctx.project() : void 0, minAssets: i.min_assets });
-          if (i.out) writeFileSync21(i.out, r4.markdown);
+          if (i.out) writeFileSync22(i.out, r4.markdown);
           return { markdown: r4.markdown + (r4.applied ? `
 applied to ${r4.applied}` : ""), data: { ...r4.report, ...r4.applied && { applied: r4.applied } } };
         }
         const r = projectAnalytics(ctx.project());
-        if (i.out) writeFileSync21(i.out, r.markdown);
+        if (i.out) writeFileSync22(i.out, r.markdown);
         return { markdown: r.markdown, data: r.report };
       },
       cli: {
@@ -33975,9 +35412,135 @@ applied to ${r4.applied}` : ""), data: { ...r4.report, ...r4.applied && { applie
   }
 });
 
+// ../artgen-cli/src/ops/art-stages.ts
+var checkLines, placeholderOp, stagesOp, stageParam, stageApprove, stageReject, STAGE_OPS;
+var init_art_stages = __esm({
+  "../artgen-cli/src/ops/art-stages.ts"() {
+    "use strict";
+    init_src5();
+    init_stages3();
+    init_art_shared();
+    init_registry();
+    checkLines = (cs) => cs.map((c) => `  ${c.id.padEnd(14)} ${c.status.padEnd(5)} ${c.detail}`);
+    placeholderOp = defineOp({
+      name: "placeholder",
+      module: "art",
+      effect: "write",
+      summary: "Write the asset's placeholder (flat shapes at the right size, pivot and footprint), render it and check it.",
+      description: "Write the asset's placeholder.json from the brief's defaults (size, pivot, collision box, footprint, ramp, anchors), render it to out/placeholder.png and check it. Works on a brief with no versions yet. Refuses to overwrite a placeholder.json unless force. size, pivot and ramp override single fields. Export it with export placeholders so the game runs with it from day one.",
+      params: {
+        asset: assetParam("the asset: a brief id or an asset directory"),
+        force: p.bool("write the defaults over an existing placeholder.json"),
+        size: p.size("the frame size, WxH (default: the brief's)", { schema: { type: "array", items: { type: "number" }, description: "[w, h] (default: the brief's size)" } }),
+        pivot: p.points("the pivot, x,y in frame pixels", { schema: { type: "array", items: { type: "number" }, description: "[x, y] in frame pixels" } }),
+        ramp: p.str("the ramp the body is drawn in (default: the kind's usual one)"),
+        direction: directionParam(),
+        ledger: ledgerParam()
+      },
+      run(i, ctx) {
+        const pivot = Array.isArray(i.pivot) ? i.pivot : void 0, size2 = Array.isArray(i.size) ? i.size : void 0;
+        if (pivot && pivot.length !== 2) throw new Error("placeholder --pivot x,y: two numbers");
+        if (size2 && size2.length !== 2) throw new Error("placeholder --size WxH: width and height");
+        const a = assetOf(ctx, i);
+        return { id: a.brief.id, r: placeholderRun(a, { force: i.force === true, ...size2 && { size: size2 }, ...pivot && { pivot }, ...typeof i.ramp === "string" && { ramp: i.ramp } }) };
+      },
+      cli: {
+        usage: "       artgen placeholder <id> [--force] [--size WxH] [--pivot x,y] [--ramp name]   write, render and check the placeholder",
+        text: ({ id: id2, r }, i) => [`${id2}: ${r.file} (key ${r.key})`, `  ${r.png}`, ...checkLines(r.checks), `next: artgen export --placeholders to put it in the game; ${i.force ? "" : "show the user out/placeholder.png, then "}artgen stage approve ${id2} placeholder`].join("\n"),
+        json: ({ r }) => ({ file: r.file, png: r.png, key: r.key, placeholder: r.placeholder, checks: r.checks }),
+        exit: ({ r }) => r.checks.some((c) => c.status === "fail") ? 1 : 0
+      },
+      mcp: { content: ({ id: id2, r }, _i, ctx) => [text({ id: id2, file: ctx.rel(r.file), png: ctx.rel(r.png), key: r.key, placeholder: r.placeholder, checks: r.checks }), projectPng(ctx, ctx.rel(r.png))] },
+      python: {}
+    });
+    stagesOp = defineOp({
+      name: "stages",
+      module: "art",
+      effect: "read",
+      summary: "The stages of a version: each key, whether the user approved it as it is, and the stage checks.",
+      description: "The stages of a version (placeholder, shape, rig, decorate, decal, lighting, rotation, animation): each stage's key (a digest of its result) and its state (approved, changed since the approval, new, n/a), the stage checks (placeholder and shape) and the asset's gates.",
+      params: { asset: assetParam("the asset: a brief id or an asset directory"), version: versionParam(), direction: directionParam(), ledger: ledgerParam() },
+      async run(i, ctx) {
+        const a = assetOf(ctx, i);
+        return stagesRun(a, versionOf(ctx, a, i));
+      },
+      cli: {
+        usage: "       artgen stages <id> [--version v]   the stage keys of a version, what the user approved, the shape checks",
+        text: (r) => [
+          `${r.id} ${r.version}${r.gates.length ? ` (gates: ${r.gates.join(", ")})` : " (no gates)"}`,
+          ...STAGES.map((s2, n) => `  ${n} ${s2.padEnd(12)} ${(r.keys[s2] ?? "\u2014").padEnd(9)} ${r.keys[s2] === void 0 ? `n/a${whyNotApplicable(s2) ? ` (${whyNotApplicable(s2)})` : ""}` : r.states[s2]}`),
+          ...r.checks.length ? ["checks:", ...checkLines(r.checks)] : []
+        ].join("\n")
+      },
+      mcp: { content: (r) => [text(r)] },
+      python: {}
+    });
+    stageParam = () => p.oneOf(GATEABLE, "the stage: placeholder or shape", { positional: true, required: true, error: GATEABLE.join(" | ") });
+    stageApprove = defineOp({
+      name: "stage.approve",
+      module: "art",
+      effect: "write",
+      summary: "Record the user's approval of a stage (placeholder or shape) as it is now.",
+      description: "Record the USER's approval of a stage gate (placeholder or shape) as it is now: the stage key is recorded, so a later revision that keeps it passes the gate without asking again. Call only after the user said so in this conversation; user_approved must be true and note should quote them. Refused while a check of that stage fails, unless force.",
+      params: {
+        asset: assetParam("the asset: a brief id or an asset directory"),
+        stage: stageParam(),
+        version: versionParam("the version approved; default the one the gate names, else the latest scored base"),
+        note: p.str("the user's words"),
+        force: p.bool("approve although a check of the stage fails (recorded as forced)"),
+        user_approved: p.bool("true only when the user explicitly approved this stage", { required: true, cli: false }),
+        via: p.str("where the approval came from, recorded in the ledger (pr: a pull request comment)", { mcp: false }),
+        direction: directionParam(),
+        ledger: ledgerParam()
+      },
+      async run(i, ctx) {
+        if (ctx.surface === "mcp" && i.user_approved !== true) throw new Error("stage_approve: only the user approves a stage \u2014 show them the sheet and ask; pass user_approved: true once they say so");
+        return stageVerdict(assetOf(ctx, i), i.stage, "approve", { version: i.version, note: i.note, via: i.via, force: i.force === true });
+      },
+      cli: {
+        usage: '       artgen stage approve <id> <placeholder|shape> [--version v] [--note "..."] [--via pr] [--force]   user approval of a gate',
+        text: ({ entry }) => `approved the ${entry.stage} of ${entry.asset}${entry.version ? ` ${entry.version}` : ""} (key ${entry.key})${entry.forced ? " - forced past failing checks" : ""}`,
+        json: ({ entry }) => entry
+      },
+      mcp: { name: "stage_approve", content: ({ entry }) => [text(entry)] },
+      python: {}
+    });
+    stageReject = defineOp({
+      name: "stage.reject",
+      module: "art",
+      effect: "write",
+      summary: "Record the user's rejection of a stage (placeholder or shape), with what to change.",
+      description: "Record the USER's rejection of a stage gate (placeholder or shape), with their words. The pass machine then asks for a new base that redraws the silhouette and form (shape) before any decoration. Call only after the user said so in this conversation; user_approved must be true and note must be their words.",
+      params: {
+        asset: assetParam("the asset: a brief id or an asset directory"),
+        stage: stageParam(),
+        version: versionParam("the version rejected; default the one the gate names, else the latest scored base"),
+        note: p.str("what the user asked for", { required: 'stage reject: --note "<what the user asked for>" is required' }),
+        user_approved: p.bool("true only when the user explicitly rejected this stage", { required: true, cli: false }),
+        via: p.str("where the rejection came from, recorded in the ledger (pr: a pull request comment)", { mcp: false }),
+        direction: directionParam(),
+        ledger: ledgerParam()
+      },
+      async run(i, ctx) {
+        if (ctx.surface === "mcp" && i.user_approved !== true) throw new Error("stage_reject: only the user rejects a stage \u2014 pass user_approved: true once they said so, and note their words");
+        if (typeof i.note !== "string" || !i.note) throw new Error(ctx.surface === "mcp" ? "note: the user's words are required" : 'stage reject: --note "<what the user asked for>" is required');
+        return stageVerdict(assetOf(ctx, i), i.stage, "reject", { version: i.version, note: i.note, via: i.via });
+      },
+      cli: {
+        usage: '       artgen stage reject <id> <placeholder|shape> --note "..." [--version v] [--via pr]   user rejection of a gate',
+        text: ({ entry }) => `rejected the ${entry.stage} of ${entry.asset}${entry.version ? ` ${entry.version}` : ""}: ${entry.note}`,
+        json: ({ entry }) => entry
+      },
+      mcp: { name: "stage_reject", content: ({ entry }) => [text(entry)] },
+      python: {}
+    });
+    STAGE_OPS = [placeholderOp, stagesOp, stageApprove, stageReject];
+  }
+});
+
 // ../artgen-cli/src/ops/art-image.ts
-import { existsSync as existsSync23, writeFileSync as writeFileSync22 } from "node:fs";
-import { join as join28, resolve as resolve16 } from "node:path";
+import { existsSync as existsSync24, writeFileSync as writeFileSync23 } from "node:fs";
+import { join as join29, resolve as resolve16 } from "node:path";
 function nearestRole(ramps, roles, rgb) {
   let best = "", bd = Infinity;
   for (const role of roles) {
@@ -34048,7 +35611,7 @@ var init_art_image = __esm({
         const ox = (W3 - bw * scale2) / 2 - x0 * scale2, oy = (i.anchor === "bottom" ? H - margin - bh * scale2 : (H - bh * scale2) / 2) - y0 * scale2;
         const ring2 = (r) => `[${Array.from(r.points, (v, k) => num4(k % 2 ? (v * scale2 + oy) / H : (v * scale2 + ox) / W3)).join(",")}]`;
         const n = Math.max(0, ...versionsIn(a).map((v) => parseVersion(v)).filter((v) => v?.kind === "base").map((v) => v.n)) + 1, version = `base.v${n}`;
-        const file = join28(a.path, `${version}.js`), holes = t.shapes.reduce((c, s2) => c + s2.holes.length, 0), from = String(i.image).split(/[\\/]/).pop().replace(/[^\w.\- ]/g, "_");
+        const file = join29(a.path, `${version}.js`), holes = t.shapes.reduce((c, s2) => c + s2.holes.length, 0), from = String(i.image).split(/[\\/]/).pop().replace(/[^\w.\- ]/g, "_");
         const source = [
           `// ${a.brief.id} ${version} (${passOf(a, version)}) \u2014 traced from ${from} by \`artgen trace-base\`: ${t.shapes.length} shape${t.shapes.length === 1 ? "" : "s"}${holes ? `, ${holes} hole${holes === 1 ? "" : "s"}` : ""}, fitted to the ${W3}x${H} frame.`,
           "// This is the silhouette and nothing more. Shape it (split it into parts, set the materials, add the details and the face) in the next pass.",
@@ -34067,7 +35630,7 @@ var init_art_image = __esm({
           "}",
           ""
         ].join("\n");
-        writeFileSync22(file, source);
+        writeFileSync23(file, source);
         return { asset: a.brief.id, file, version, mat: role, trace: traceSummary(t), size: [W3, H] };
       },
       cli: {
@@ -34079,7 +35642,7 @@ next: artgen render ${r.asset} --version ${r.version}, then review it`,
       mcp: { exclude: PLACE },
       python: {}
     });
-    isPicture = (s2) => typeof s2 === "string" && /\.png$/i.test(s2) && existsSync23(s2);
+    isPicture = (s2) => typeof s2 === "string" && /\.png$/i.test(s2) && existsSync24(s2);
     cut = defineOp({
       name: "cut",
       module: "art",
@@ -34109,7 +35672,7 @@ next: artgen render ${r.asset} --version ${r.version}, then review it`,
         if (i.threshold !== void 0 && i.threshold !== "otsu" && !(Number.isFinite(+i.threshold) && +i.threshold >= 0 && +i.threshold <= 255)) throw new Error("--threshold: otsu or a grey level from 0 to 255");
         if (i.scale !== void 0 && !(i.scale >= 1 && i.scale <= 32)) throw new Error("--scale: a whole number from 1 to 32");
         let img, mask, out, id2, source;
-        if (/\.png$/i.test(i.target) && !existsSync23(i.target)) throw new Error(`${i.target}: not found`);
+        if (/\.png$/i.test(i.target) && !existsSync24(i.target)) throw new Error(`${i.target}: not found`);
         if (isPicture(i.target)) {
           const file = resolve16(i.target);
           img = readPicture(file);
@@ -34133,7 +35696,7 @@ next: artgen render ${r.asset} --version ${r.version}, then review it`,
           if (!cell3) throw new Error(`${a.brief.id} ${version}: no cell ${i.state ?? r.states[0]}/${i.facing ?? r.facings[0]}/${i.frame ?? 0} (states ${r.states.join(", ")}; facings ${r.facings.join(", ")}; frames 0\u2013${Math.max(...Object.values(r.frames)) - 1})`);
           img = cell3.grid;
           mask = alphaMask(img);
-          out = resolve16(i.out ?? join28(a.project?.art ?? a.path, a.project ? "tokens" : "", `${a.brief.id}.png`));
+          out = resolve16(i.out ?? join29(a.project?.art ?? a.path, a.project ? "tokens" : "", `${a.brief.id}.png`));
           id2 = a.brief.id;
           source = `${a.brief.id} ${version}`;
         }
@@ -34155,36 +35718,50 @@ next: artgen render ${r.asset} --version ${r.version}, then review it`,
 });
 
 // ../artgen-cli/src/loop/pr-review.ts
-import { copyFileSync as copyFileSync4, existsSync as existsSync24, mkdirSync as mkdirSync17, readdirSync as readdirSync13, rmSync as rmSync2, writeFileSync as writeFileSync23 } from "node:fs";
-import { join as join29, resolve as resolve17 } from "node:path";
+import { copyFileSync as copyFileSync4, existsSync as existsSync25, mkdirSync as mkdirSync18, readdirSync as readdirSync13, rmSync as rmSync2, writeFileSync as writeFileSync24 } from "node:fs";
+import { join as join30, resolve as resolve17 } from "node:path";
 function sheetFor(p2, row, version) {
-  const a = openAsset(join29(p2.root, row.path)), s2 = [...ledgerFor(a)].reverse().find((e) => e.type === "review" && e.version === version && typeof e.sheet === "string")?.sheet;
+  const a = openAsset(join30(p2.root, row.path)), s2 = [...ledgerFor(a)].reverse().find((e) => e.type === "review" && e.version === version && !e.stage && typeof e.sheet === "string")?.sheet;
   if (!s2) return void 0;
   const f = resolve17(p2.art, String(s2).split(",")[0]);
-  return existsSync24(f) ? f : void 0;
+  return existsSync25(f) ? f : void 0;
 }
 async function prepareReview(p2, o = {}) {
-  const rows2 = (await projectStatus(p2, o.ids)).filter((r) => r.final && (o.ids?.length || r.status === "final"));
-  const dir = join29(p2.art, "review");
-  if (existsSync24(dir)) {
-    for (const f of readdirSync13(dir)) if (/^[\w-]+-(base|finish)\.v\d+\.png$|^REVIEW\.md$/.test(f)) rmSync2(join29(dir, f));
+  const all = await projectStatus(p2, o.ids), rows3 = all.filter((r) => r.final && (o.ids?.length || r.status === "final"));
+  const dir = join30(p2.art, "review");
+  if (existsSync25(dir)) {
+    for (const f of readdirSync13(dir)) if (/^[\w-]+-(base|finish)\.v\d+(-shape)?\.png$|^[\w-]+-placeholder\.png$|^REVIEW\.md$/.test(f)) rmSync2(join30(dir, f));
   }
-  mkdirSync17(dir, { recursive: true });
-  const items = [], missing = [];
-  for (const r of rows2) {
+  mkdirSync18(dir, { recursive: true });
+  const items = [], missing = [], gates = [];
+  for (const r of all) if (r.next?.action === "stage-gate") {
+    const g = r.next, id2 = r.id, item = { id: id2, stage: g.stage, ...g.version && { version: g.version }, answer: g.stage === "shape" ? `approve ${id2} shape, or ${id2}: shape: <what to change>` : `approve ${id2} placeholder, or ${id2}: placeholder: <what to change>` };
+    const a = openAsset(join30(p2.root, r.path));
+    const src = g.stage === "shape" ? (() => {
+      const s2 = [...ledgerFor(a)].reverse().find((e) => e.type === "review" && e.stage === "shape" && e.version === g.version && typeof e.sheet === "string")?.sheet;
+      return s2 ? resolve17(p2.art, String(s2)) : void 0;
+    })() : join30(outDir(a), "placeholder.png");
+    if (src && existsSync25(src)) {
+      const name = g.stage === "shape" ? `${id2}-${g.version}-shape.png` : `${id2}-placeholder.png`;
+      copyFileSync4(src, join30(dir, name));
+      item.sheet = name;
+    }
+    gates.push(item);
+  }
+  for (const r of rows3) {
     const item = { id: r.id, version: r.final, score: r.score, blind: r.blind, issues: r.issues, ...r.belowBar && { belowBar: true } };
     const sheet = sheetFor(p2, r, r.final);
     if (sheet) {
       const name = `${r.id}-${r.final}.png`;
-      copyFileSync4(sheet, join29(dir, name));
+      copyFileSync4(sheet, join30(dir, name));
       item.sheet = name;
     } else missing.push(r.id);
-    const fb = [...ledgerFor(openAsset(join29(p2.root, r.path)))].reverse().find((e) => e.type === "feedback" && typeof e.on === "string" && e.on !== r.final);
+    const fb = [...ledgerFor(openAsset(join30(p2.root, r.path)))].reverse().find((e) => e.type === "feedback" && typeof e.on === "string" && e.on !== r.final);
     if (fb) {
       const prev = sheetFor(p2, r, fb.on);
       if (prev) {
         const name = `${r.id}-${fb.on}.png`;
-        copyFileSync4(prev, join29(dir, name));
+        copyFileSync4(prev, join30(dir, name));
         item.before = name;
         item.beforeVersion = fb.on;
       }
@@ -34207,10 +35784,20 @@ async function prepareReview(p2, o = {}) {
     items.length ? "| Asset | Version | Score | Blind | Open issues | Before | Now |\n|---|---|---|---|---|---|---|" : "No finished assets are waiting for review.",
     ...items.map((i) => `| **${i.id}**${i.belowBar ? " (below bar)" : ""} | ${i.version} | ${i.score ?? "\u2014"} | ${i.blind ?? "\u2014"} | ${i.issues.length ? cell2(i.issues.join("; ")) : "\u2014"} | ${i.beforeVersion ? `${i.beforeVersion}<br>${img(i.before, `${i.id} ${i.beforeVersion}`)}` : "\u2014"} | ${img(i.sheet, `${i.id} ${i.version}`)} |`),
     ...missing.length ? ["", `No review sheet yet for ${missing.join(", ")}: run \`artgen review <id>\` first.`] : [],
+    ...gates.length ? [
+      "",
+      "## Waiting for your answer on a gate",
+      "",
+      "These assets stop at a gate until you answer: `approve <id> shape` keeps the silhouette as it is, `<id>: shape: <what to change>` sends it back (the same with `placeholder`).",
+      "",
+      "| Asset | Gate | Version | Sheet | Answer |",
+      "|---|---|---|---|---|",
+      ...gates.map((g) => `| **${g.id}** | ${g.stage} | ${g.version ?? "\u2014"} | ${g.sheet ? img(g.sheet, `${g.id} ${g.stage}`) : `none yet: run \`artgen ${g.stage === "shape" ? `review ${g.id} --stage shape` : `placeholder ${g.id}`}\``} | \`${g.answer}\` |`)
+    ] : [],
     ""
   ].join("\n");
-  writeFileSync23(join29(dir, "REVIEW.md"), table);
-  return { dir, table, items, missing };
+  writeFileSync24(join30(dir, "REVIEW.md"), table);
+  return { dir, table, items, missing, gates };
 }
 function parseReviewComment(text2, ids) {
   const known = new Set(ids), actions = [], unknown = [], ignored = [];
@@ -34221,7 +35808,12 @@ function parseReviewComment(text2, ids) {
     }
     const line2 = raw.replace(/^[\s*\-+]+(?=\S)/, "").replace(/^\d+[.)]\s+/, "").replace(/[`*]/g, "").trim();
     if (!line2) continue;
-    const ap = line2.match(/^approve\s+(.+)$/i), fb = line2.match(/^([\w-]+)\s*:\s*(?:(base|finish)\s*:\s*)?(.+)$/i);
+    const ap = line2.match(/^approve\s+(.+)$/i), fb = line2.match(/^([\w-]+)\s*:\s*(?:(base|finish|shape|placeholder)\s*:\s*)?(.+)$/i);
+    const st = ap?.[1].trim().match(/^([\w-]+)\s+(shape|placeholder)(?:\s+(?:[—–-]\s+|#\s+)(.*))?$/i);
+    if (st && known.has(st[1]) && !known.has(st[2].toLowerCase())) {
+      actions.push({ type: "stage-approve", id: st[1], stage: st[2].toLowerCase(), note: (st[3] ?? "").trim() });
+      continue;
+    }
     if (ap) {
       const [list6, ...rest] = ap[1].split(/\s+[—–-]\s+|\s+#\s+/), words = list6.split(/[\s,]+/).filter(Boolean);
       const named = words.filter((w) => known.has(w)), note = rest.join(" - ").trim();
@@ -34237,7 +35829,8 @@ function parseReviewComment(text2, ids) {
         else unknown.push(raw.trim());
         continue;
       }
-      actions.push({ type: "feedback", id: fb[1], note: fb[3].trim(), ...fb[2] && { route: fb[2].toLowerCase() } });
+      if (fb[2] && GATEABLE.includes(fb[2].toLowerCase())) actions.push({ type: "stage-reject", id: fb[1], stage: fb[2].toLowerCase(), note: fb[3].trim() });
+      else actions.push({ type: "feedback", id: fb[1], note: fb[3].trim(), ...fb[2] && { route: fb[2].toLowerCase() } });
     } else ignored.push(raw.trim());
   }
   return { actions, unknown, ignored };
@@ -34246,6 +35839,7 @@ var cell2;
 var init_pr_review = __esm({
   "../artgen-cli/src/loop/pr-review.ts"() {
     "use strict";
+    init_src5();
     init_asset();
     init_w1();
     init_w2();
@@ -34272,13 +35866,14 @@ var init_art_loop = __esm({
       params: { ids: idsParam("brief ids; default every final asset"), base: p.str("make the image links absolute, e.g. https://github.com/<owner>/<repo>/blob/<branch>/art/review (for a pull request comment)", { mcp: false }) },
       async run(i, ctx) {
         const r = await prepareReview(ctx.project(), { ids: Array.isArray(i.ids) ? i.ids : void 0, base: i.base });
-        return { dir: ctx.rel(r.dir), table: r.table, assets: r.items.map((x) => x.id), missing: r.missing };
+        return { dir: ctx.rel(r.dir), table: r.table, assets: r.items.map((x) => x.id), missing: r.missing, ...r.gates.length && { gates: r.gates.map((g) => g.id) } };
       },
       cli: {
         usage: "       artgen pr prepare [ids] [--base url]   review sheets and REVIEW.md in art/review/ to commit to the pull request",
         text: (r) => `${r.assets.length} assets in ${r.dir}/REVIEW.md${r.missing.length ? `
 no review sheet yet: ${r.missing.join(", ")} (artgen review <id>)` : ""}
-commit art/review/ to the pull request, then ask the user to reply there: approve <id>, or <id>: <what to change>`
+commit art/review/ to the pull request, then ask the user to reply there: approve <id>, or <id>: <what to change>${r.gates?.length ? `
+${r.gates.join(", ")} wait at a gate: the reply is approve <id> shape, or <id>: shape: <what to change>` : ""}`
       },
       mcp: { content: (r) => [text(r.table)] },
       python: {}
@@ -34288,7 +35883,7 @@ commit art/review/ to the pull request, then ask the user to reply there: approv
       module: "art",
       effect: "read",
       summary: "Read a pull request comment into the approve and feedback calls it asks for (one line per asset).",
-      description: `Read the user's pull request comment ("approve goblin", "goblin: arms too long", "goblin: finish: eyes too dark") into actions: approve and feedback calls, with lines naming no brief listed apart. Parse only: the session makes the calls with via: pr, after checking the comment is the user's.`,
+      description: `Read the user's pull request comment ("approve goblin", "goblin: arms too long", "goblin: finish: eyes too dark", "approve goblin shape", "goblin: shape: arms too long") into actions: approve, feedback and stage approve / reject calls, with lines naming no brief listed apart. Parse only: the session makes the calls with via: pr, after checking the comment is the user's.`,
       params: { comment: p.str("the comment text; or a file with --file", { positional: true }), file: p.str("read the comment from this file (- for standard input)", { mcp: false }), ids: idsParam("brief ids that count; default every brief") },
       run(i, ctx) {
         const body3 = typeof i.file === "string" ? readFileSync22(i.file === "-" ? 0 : i.file, "utf8") : typeof i.comment === "string" ? i.comment : void 0;
@@ -34299,7 +35894,7 @@ commit art/review/ to the pull request, then ask the user to reply there: approv
       cli: {
         usage: "       artgen pr parse <comment text> | --file <path|-> [ids]   a pull request comment as approve / feedback calls",
         text: (r) => [
-          ...r.actions.map((a) => a.type === "approve" ? `approve ${a.id}${a.note ? ` --note ${JSON.stringify(a.note)}` : ""} --via pr` : `feedback ${a.id} ${a.route ? `--route ${a.route}` : "--route <base|finish>"} --note ${JSON.stringify(a.note)} --via pr`),
+          ...r.actions.map((a) => a.type === "stage-approve" ? `stage approve ${a.id} ${a.stage}${a.note ? ` --note ${JSON.stringify(a.note)}` : ""} --via pr` : a.type === "stage-reject" ? `stage reject ${a.id} ${a.stage} --note ${JSON.stringify(a.note)} --via pr` : a.type === "approve" ? `approve ${a.id}${a.note ? ` --note ${JSON.stringify(a.note)}` : ""} --via pr` : `feedback ${a.id} ${a.route ? `--route ${a.route}` : "--route <base|finish>"} --note ${JSON.stringify(a.note)} --via pr`),
           ...r.unknown.map((u) => `unknown asset: ${u}`),
           ...r.ignored.map((u) => `ignored: ${u}`)
         ].join("\n") || "nothing to do"
@@ -34319,6 +35914,7 @@ var init_art = __esm({
     init_art_asset();
     init_art_direction();
     init_art_production();
+    init_art_stages();
     init_art_image();
     init_art_loop();
     init_registry();
@@ -34355,6 +35951,7 @@ var init_art = __esm({
       sheetOp,
       feedbackOp,
       approveOp,
+      ...STAGE_OPS,
       roster2,
       rosterRecordOp,
       texture,

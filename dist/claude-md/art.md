@@ -14,6 +14,9 @@
   repo's `art/` and writes the same files: ledger lines with `"via": "image-tools"` are the user's own approvals and
   feedback (feedback may pin a `region` / `cell`), drafts land in `art/candidates/`, and a direction locked there bumps
   the version — run `/artgen-restyle`. Re-read files every run; `node tools/artgen/artgen.js status` shows where things stand.
+- Gates: `artgen init` gates the **shape** of characters and creatures (`review.gates`; a brief's `gates` replace them). v1 is then a
+  silhouette draft and the pipeline waits for the user's `artgen stage approve|reject <id> shape` before decorating; `artgen placeholder <id>` and
+  `artgen export --placeholders` put a stand-in in the game from day one. `artgen stages <id>` shows what the user has approved.
 - Never hard-code palette colours, the outline colour, light or sizes in asset code: read them from `ctx.dir` (R11).
 - Never edit a version that has a score; write the next `base.vN.js` / `finish.vM.js` (R10).
 - CLI: `node tools/artgen/artgen.js <command>` (no npm install needed); the `artgen` MCP server exposes the same tools (images come back

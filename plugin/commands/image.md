@@ -1,5 +1,5 @@
 ---
-description: Trace a sketch, cut a token, slice a sprite sheet or snap a picture to a palette (the image tools)
+description: Trace a sketch, cut a token, slice a sprite sheet, snap a picture to a palette or rotate pixel art (the image tools)
 argument-hint: <what to do with which picture>
 ---
 The image tools work on pictures (PNG files), so they need no project. Pick the one that fits what the user asked for:
@@ -17,6 +17,8 @@ The image tools work on pictures (PNG files), so they need no project. Pick the 
   `slices.json` to a folder beside the sheet.
 - **Palette**: `node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" quantize <image.png> --palette file.hex|#hex,#hex` snaps a picture to a palette (`--n 16` takes the picture's own
   colours, `--save out.gpl` keeps them); `node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" palette extract <image.png>` (art module) reads the colours into the art direction's interview.
+- **Rotate** pixel art without blurring it: `node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" rotate <image.png> --deg 30` writes `<image>.rotated.png` (RotSprite: no new colours, clockwise on screen, `--pivot x,y`);
+  `--steps 8` writes a strip of 8 evenly spaced rotations instead. Quarter turns are exact.
 
 The same tools are in the web app (Image tools: SVG Tracer, VTT Token Cutter, Palette, Sprite Slicer). Show the user the result file and what it holds
 before building on it.

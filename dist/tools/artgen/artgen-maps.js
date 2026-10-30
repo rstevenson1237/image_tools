@@ -527,7 +527,7 @@ var mod = (a, b) => (a % b + b) % b;
 var smooth = (t) => t * t * t * (t * (t * 6 - 15) + 10);
 function pGradient(x, y, o) {
   const oct = o.octaves ?? 1, g = o.gain ?? 0.5, seed = o.seed ?? 1;
-  let sum = 0, amp = 1, norm = 0, cx = o.cells ?? 4, cy = o.cellsY ?? cx;
+  let sum = 0, amp = 1, norm2 = 0, cx = o.cells ?? 4, cy = o.cellsY ?? cx;
   for (let k = 0; k < oct; k++) {
     const fx = x / o.w * cx, fy = y / o.h * cy, i = Math.floor(fx), j = Math.floor(fy), tx = fx - i, ty = fy - j, u = smooth(tx), v = smooth(ty);
     const grad = (a, b, dx, dy) => {
@@ -537,12 +537,12 @@ function pGradient(x, y, o) {
     const n00 = grad(i, j, tx, ty), n10 = grad(i + 1, j, tx - 1, ty), n01 = grad(i, j + 1, tx, ty - 1), n11 = grad(i + 1, j + 1, tx - 1, ty - 1);
     const nx0 = n00 + (n10 - n00) * u, nx1 = n01 + (n11 - n01) * u;
     sum += amp * (nx0 + (nx1 - nx0) * v);
-    norm += amp;
+    norm2 += amp;
     amp *= g;
     cx *= 2;
     cy *= 2;
   }
-  return Math.max(0, Math.min(1, 0.5 + sum / norm * 0.75));
+  return Math.max(0, Math.min(1, 0.5 + sum / norm2 * 0.75));
 }
 
 // ../artgen-mapgen/src/map/geometry.ts
@@ -8145,6 +8145,10 @@ var Grid2 = class _Grid {
   d;
   /** Normal map of this image (same size; RGB = normal, OpenGL convention), when the renderer produced one. */
   normal;
+  /** Decal masks by layer name (one byte per pixel, 1 = the decal shows), when the procedural pass placed decals. */
+  decals;
+  /** Per decal: shape pixels in the frame and those that landed on the target part. */
+  decalStats;
   constructor(w, h, data) {
     this.w = w;
     this.h = h;
@@ -9418,10 +9422,19 @@ function latestScores(entries) {
 function metricsFor(generator, keys, byKey) {
   const art = generator === "art";
   let started = 0, final = 0, approved = 0, untouched = 0, feedback = 0, imageTokens2 = 0, outTokens = 0, wallMs = 0, passes = 0;
-  const checkFailures = {};
+  const checkFailures = {}, gates = {}, toGame = [];
   for (const key of keys) {
     const es = byKey.get(key) ?? [], scores = latestScores(es);
-    const approves = es.some((e) => e.type === "approve"), fb = es.filter((e) => e.type === "feedback" && e.by !== "agent").length;
+    const approves = es.some((e) => e.type === "approve"), fb = es.filter((e) => e.type === "feedback" && e.by !== "agent" || art && e.type === "stage" && e.verdict === "reject" && e.by === "user").length;
+    if (art) {
+      for (const e of es) if (e.type === "stage" && (e.verdict === "approve" || e.verdict === "reject") && typeof e.stage === "string") {
+        const g = gates[e.stage] ??= { approved: 0, rejected: 0 };
+        if (e.verdict === "approve") g.approved++;
+        else g.rejected++;
+      }
+      const first = Date.parse(es[0]?.ts ?? ""), exp = es.find((e) => e.type === "export"), at4 = Date.parse(exp?.ts ?? "");
+      if (exp && Number.isFinite(first) && Number.isFinite(at4)) toGame.push(Math.max(0, at4 - first) / 6e4);
+    }
     if (art ? scores.length : es.some((e) => e.type === "version")) started++;
     if (approves || (art ? es.some((e) => e.type === "status" && e.status === "final") : subjectStatus({ entries: es }).status === "final")) final++;
     feedback += fb;
@@ -9454,7 +9467,9 @@ function metricsFor(generator, keys, byKey) {
     imageTokens: imageTokens2,
     outTokens,
     wallMinutes: round(wallMs / 6e4, 1),
-    checkFailures
+    checkFailures,
+    ...Object.keys(gates).length && { gates },
+    ...toGame.length && { firstInGameMinutes: round([...toGame].sort((a, b) => a - b)[toGame.length >> 1], 1) }
   };
 }
 function generatorMetrics(ledger, subjects) {
@@ -10451,7 +10466,7 @@ async function writeBundle(p2, target, o = {}) {
       } catch {
         return {};
       }
-    }).find((e) => e.type === "review" && typeof e.sheet === "string")?.sheet;
+    }).find((e) => e.type === "review" && !e.stage && typeof e.sheet === "string")?.sheet;
     const sheetFile = p2 && sheet ? resolve5(p2.art, sheet.split(",")[0]) : void 0;
     if (!o.noRender && sheetFile && existsSync6(sheetFile)) {
       mkdirSync5(join6(dir, "render"), { recursive: true });
@@ -10745,7 +10760,7 @@ function metricsOf(p2, o = {}) {
     exported: (o.now ?? /* @__PURE__ */ new Date()).toISOString().slice(0, 10),
     ...artFields.assets && { assets: artFields.assets },
     maps: { map: count("map"), dungeon: count("dungeon"), settlement: count("settlement") },
-    ...artFields.assets && { byKind: artFields.byKind, passes: artFields.passes, totals: artFields.totals, firstPassApproval: artFields.firstPassApproval, userRevisionRate: artFields.userRevisionRate, gateFailures: artFields.gateFailures, blind: artFields.blind },
+    ...artFields.assets && { byKind: artFields.byKind, passes: artFields.passes, totals: artFields.totals, firstPassApproval: artFields.firstPassApproval, userRevisionRate: artFields.userRevisionRate, gateFailures: artFields.gateFailures, blind: artFields.blind, ...artFields.gates && { gates: artFields.gates }, ...artFields.firstInGameMinutes !== void 0 && { firstInGameMinutes: artFields.firstInGameMinutes } },
     generators
   };
 }
@@ -11748,6 +11763,69 @@ function traceToSvg(t, o = {}) {
   return lines2.join("\n");
 }
 
+// ../artgen-primitives/src/lib/rotsprite.ts
+function same(d, i, j) {
+  if (d[i + 3] !== d[j + 3]) return false;
+  return d[i + 3] === 0 || d[i] === d[j] && d[i + 1] === d[j + 1] && d[i + 2] === d[j + 2];
+}
+function scale2x(g) {
+  const { w, h, d } = g, out = new Grid2(w * 2, h * 2), o = out.d;
+  const put = (x, y, i) => {
+    const k = (y * w * 2 + x) * 4;
+    o[k] = d[i];
+    o[k + 1] = d[i + 1];
+    o[k + 2] = d[i + 2];
+    o[k + 3] = d[i + 3];
+  };
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const p2 = (y * w + x) * 4, a = y > 0 ? p2 - w * 4 : p2, b = x < w - 1 ? p2 + 4 : p2, c = x > 0 ? p2 - 4 : p2, e = y < h - 1 ? p2 + w * 4 : p2;
+    const ca = same(d, c, a), ab = same(d, a, b), dc = same(d, e, c), bd = same(d, b, e);
+    put(x * 2, y * 2, ca && !dc && !ab ? a : p2);
+    put(x * 2 + 1, y * 2, ab && !ca && !bd ? b : p2);
+    put(x * 2, y * 2 + 1, dc && !bd && !ca ? c : p2);
+    put(x * 2 + 1, y * 2 + 1, bd && !ab && !dc ? e : p2);
+  }
+  return out;
+}
+var EPS = 1e-9;
+var norm = (deg) => (deg % 360 + 360) % 360;
+var quarter = (deg) => {
+  const q = norm(deg) / 90, r = Math.round(q);
+  return Math.abs(q - r) < EPS ? r % 4 : -1;
+};
+function inverse(w, h, deg, pivot, shift = [0, 0]) {
+  const [px, py] = pivot ?? [(w - 1) / 2, (h - 1) / 2], q = quarter(deg), r = norm(deg) * Math.PI / 180;
+  const c = q < 0 ? Math.cos(r) : [1, 0, -1, 0][q], s = q < 0 ? Math.sin(r) : [0, 1, 0, -1][q];
+  return (ox, oy) => {
+    const dx = ox - shift[0] - px, dy = oy - shift[1] - py;
+    return [px + c * dx + s * dy + 0.5, py - s * dx + c * dy + 0.5];
+  };
+}
+function rotsprite(g, deg, o = {}) {
+  const [ow, oh] = o.size ?? [g.w, g.h], out = new Grid2(ow, oh);
+  const shift = [Math.floor((ow - g.w) / 2), Math.floor((oh - g.h) / 2)];
+  const inv = inverse(g.w, g.h, deg, o.pivot, shift);
+  const exact = quarter(deg) >= 0;
+  let src = g, k = 1;
+  if (!exact) {
+    src = scale2x(scale2x(scale2x(g)));
+    k = 8;
+  }
+  const { w, h, d } = src;
+  for (let y = 0; y < oh; y++) for (let x = 0; x < ow; x++) {
+    const [u, v] = inv(x, y), sx = Math.floor(u * k + EPS), sy = Math.floor(v * k + EPS);
+    if (sx < 0 || sy < 0 || sx >= w || sy >= h) continue;
+    const i = (sy * w + sx) * 4, j = (y * ow + x) * 4;
+    if (d[i + 3]) {
+      out.d[j] = d[i];
+      out.d[j + 1] = d[i + 1];
+      out.d[j + 2] = d[i + 2];
+      out.d[j + 3] = d[i + 3];
+    }
+  }
+  return out;
+}
+
 // ../artgen-cli/src/ops/image.ts
 function readPicture(file) {
   if (!existsSync11(file)) throw new Error(`${file}: not found`);
@@ -11893,7 +11971,38 @@ var quantize2 = defineOp({
   mcp: { exclude: BY_PATH },
   python: {}
 });
-var IMAGE_OPS = [trace, slice, quantize2];
+var rotate = defineOp({
+  name: "rotate",
+  module: "core",
+  effect: "write",
+  summary: "Rotate pixel art without blurring it (RotSprite): one angle, or a strip of evenly spaced rotations.",
+  params: {
+    image: p.str("the picture (PNG)", { positional: true, required: "rotate: <image.png> is required" }),
+    deg: p.num("degrees, clockwise on screen (required unless --steps; with --steps, the angle of the first frame, default 0)"),
+    steps: p.int("write a strip of this many rotations, evenly spaced over 360\xB0 (each frame as wide as the picture)"),
+    pivot: p.list("number", "the point to turn about, x,y in pixels (default: the centre)"),
+    out: p.str("the PNG to write (default: <image>.rotated.png)")
+  },
+  run(i) {
+    const file = resolve10(i.image), img = readPicture(file), out = resolve10(i.out ?? `${stemOf2(file)}.rotated.png`), pv = i.pivot;
+    if (pv && pv.length !== 2) throw new Error("rotate: --pivot is x,y (two numbers)");
+    if (i.steps === void 0 && i.deg === void 0) throw new Error("rotate: give --deg <degrees> or --steps <n>");
+    if (i.steps !== void 0 && (!Number.isInteger(i.steps) || i.steps < 1 || i.steps > 360)) throw new Error("rotate: --steps is a whole number from 1 to 360");
+    const pivot = pv && [pv[0], pv[1]], n = i.steps ?? 1, start = i.deg ?? 0;
+    const degs = Array.from({ length: n }, (_, k) => start + (i.steps === void 0 ? 0 : 360 * k / n));
+    const strip = new Grid2(img.w * n, img.h);
+    degs.forEach((d, k) => strip.blit(rotsprite(img, d, { pivot }), k * img.w, 0));
+    writePicture(out, strip);
+    return { out, width: strip.w, height: strip.h, frames: n, degrees: degs, frameWidth: img.w };
+  },
+  cli: {
+    usage: "       artgen rotate <image.png> --deg n | --steps k [--deg start] [--pivot x,y] [--out file.png]",
+    text: (r) => `${r.out}: ${r.frames === 1 ? `rotated ${r.degrees[0]}\xB0` : `${r.frames} rotations of ${r.frameWidth}px, ${r.degrees.map((d) => `${+d.toFixed(2)}\xB0`).join(" ")}`} (${r.width}x${r.height})`
+  },
+  mcp: { exclude: BY_PATH },
+  python: {}
+});
+var IMAGE_OPS = [trace, slice, quantize2, rotate];
 
 // ../artgen-cli/src/ops/core.ts
 function openBrowser(url) {
@@ -14544,7 +14653,7 @@ ${MAPS_BUNDLE_USAGE}
   if (cmd === "formats" || cmd === "map" || cmd === "dungeon" || cmd === "settlement" || core2.includes(cmd)) return dispatch([cmd, ...args]);
   throw new Error(`artgen-maps: ${cmd}: not a command here; this bundle has map, dungeon, settlement, formats, ${core2.join(", ")} (--help)`);
 }
-var MAPS_VERSION = `${true ? "0.11.0" : "dev"} (${true ? "64dec09" : "unknown"})`;
+var MAPS_VERSION = `${true ? "0.11.0" : "dev"} (${true ? "a2cf076" : "unknown"})`;
 
 // ../artgen-cli/src/maps-bin.ts
 mapsMain(process.argv.slice(2)).then((code) => process.exit(code), (e) => {

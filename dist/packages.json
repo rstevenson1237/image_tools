@@ -3,8 +3,8 @@
   "repo": "rstevenson1237/image_tools",
   "packages": {
     "artgen-runtime": {
-      "version": "1.2.1",
-      "file": "artgen-runtime-1.2.1.tgz"
+      "version": "1.4.0",
+      "file": "artgen-runtime-1.4.0.tgz"
     },
     "artgen-primitives": {
       "version": "0.11.0",

@@ -13,7 +13,11 @@ floor). `artgen make` starts characters and creatures that have more than one fa
 it; other brief kinds without a template of their own borrow a related one (creature → character, tileset/texture →
 tile, viewmodel/ui-icon → prop).
 
-The character templates compute their geometry once in `layout(ctx)`, shared by `render` and `anchors`, so the
+The character and creature templates are built on the shared body rigs (`ctx.lib.rigs.body(plan, ctx, { height })`, from
+`artgen-scene/src/anim/rigs.ts`: plans biped, quadruped (and `large`), flyer, serpent, turret). The rig owns the skeleton,
+the clips (idle, walk, attack, hurt; flyers beat their wings in every state), foot IK and the facing's projection; a template
+only draws primitives along its bones (`pose.start/end/at`) and must not change bone lengths between cells (the `rig-lengths`
+stage check). They compute their geometry once in `layout(ctx)`, shared by `render` and `anchors`, so the
 anchors land on the drawn pixels: `head`, `hand` (exported in `pack.json`, for effects and held props) and the face
 anchors `eye`, `eye2`, `mouth` (only on facings where the face is visible).
 

@@ -7,7 +7,7 @@ import { angleOf, chooseFacing } from './facing.js';
 import { StackSprite, type StackOptions } from './stack.js';
 import type { AnchorOf, AssetRef, AtlasImage, FrameRect, PackAsset, PackManifest, PackStateDef, RuntimeAdapter, StateOf, VariantOf } from './types.js';
 
-export const RUNTIME_VERSION = '1.2.1';
+export const RUNTIME_VERSION = '1.4.0';
 
 export interface DecodedImage { width: number; height: number; data: Uint8ClampedArray | Uint8Array }
 
@@ -116,6 +116,12 @@ export class Pack<Tex = unknown, Node = unknown, Parent = unknown> {
 
   /** Was this asset exported before approval (`--include-drafts`)? */
   isDraft(ref: AssetRef): boolean { return !!this.asset(ref).draft; }
+
+  /** Is this asset a placeholder (`artgen export --placeholders`)? The real art replaces it on a later export. */
+  isPlaceholder(ref: AssetRef): boolean { return !!this.asset(ref).placeholder; }
+
+  /** Ids of the placeholder assets in the pack (empty when there are none). */
+  get placeholders(): readonly string[] { return this.manifest.placeholders ?? []; }
 
   /** Number of param variants (the rest of `variants` are palette swaps over variant 0). */
   paramVariants(ref: AssetRef): number {
