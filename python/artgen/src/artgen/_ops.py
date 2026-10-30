@@ -38,7 +38,7 @@ _OPS: dict[str, tuple[tuple[str, ...], tuple[str, ...], dict[str, tuple[str, str
     "finish": (("finish",), ("asset",), {"base": ("--base", "value"), "direction": ("--direction", "value"), "ledger": ("--ledger", "value")}),
     "make": (("make",), ("*ids",), {"parallel": ("--parallel", "value"), "wave": ("--wave", "value")}),
     "brief.lint": (("brief", "lint"), ("*ids",), {}),
-    "brief.add": (("brief", "add"), ("id",), {"kind": ("--kind", "value"), "view": ("--view", "value"), "size": ("--size", "value"), "states": ("--states", "list"), "directions": ("--directions", "value"), "anims": ("--anims", "list"), "durations": ("--durations", "list"), "variants": ("--variants", "value"), "swaps": ("--swaps", "list"), "importance": ("--importance", "value"), "priority": ("--priority", "value"), "height": ("--height", "value"), "body": ("--body", "value"), "object": ("--object", "value"), "notes": ("--notes", "value"), "gates": ("--gates", "list"), "break_contract": ("--break-contract", "switch")}),
+    "brief.add": (("brief", "add"), ("id",), {"kind": ("--kind", "value"), "view": ("--view", "value"), "size": ("--size", "value"), "states": ("--states", "list"), "directions": ("--directions", "value"), "anims": ("--anims", "list"), "durations": ("--durations", "list"), "variants": ("--variants", "value"), "swaps": ("--swaps", "list"), "importance": ("--importance", "value"), "priority": ("--priority", "value"), "height": ("--height", "value"), "body": ("--body", "value"), "object": ("--object", "value"), "notes": ("--notes", "value"), "gates": ("--gates", "list"), "rotate": ("--rotate", "value"), "rotate_from": ("--rotate-from", "value"), "break_contract": ("--break-contract", "switch")}),
     "brief.list": (("brief", "list"), (), {}),
     "brief.rm": (("brief", "rm"), ("id",), {}),
     "status": (("status",), ("*ids",), {}),
@@ -169,6 +169,7 @@ _OPS: dict[str, tuple[tuple[str, ...], tuple[str, ...], dict[str, tuple[str, str
     "trace": (("trace",), ("image",), {"out": ("--out", "value"), "fill": ("--fill", "value"), "background": ("--background", "value"), "threshold": ("--threshold", "value"), "invert": ("--invert", "switch"), "blur": ("--blur", "value"), "smoothing": ("--smoothing", "value"), "simplify": ("--simplify", "value"), "min_area": ("--min-area", "value"), "holes": ("--holes", "onoff"), "max_paths": ("--max-paths", "value"), "alpha": ("--alpha", "onoff")}),
     "slice": (("slice",), ("image",), {"cols": ("--cols", "value"), "rows": ("--rows", "value"), "cell": ("--cell", "size"), "auto": ("--auto", "switch"), "gap": ("--gap", "value"), "min_size": ("--min-size", "value"), "margin": ("--margin", "value"), "spacing": ("--spacing", "value"), "skip_empty": ("--skip-empty", "switch"), "trim": ("--trim", "switch"), "out": ("--out", "value")}),
     "quantize": (("quantize",), ("image",), {"palette": ("--palette", "value"), "n": ("--n", "value"), "dither": ("--dither", "value"), "out": ("--out", "value"), "save": ("--save", "value")}),
+    "rotate": (("rotate",), ("image",), {"deg": ("--deg", "value"), "steps": ("--steps", "value"), "pivot": ("--pivot", "list"), "out": ("--out", "value")}),
 }
 
 
@@ -274,9 +275,9 @@ class Ops:
         """Warnings for briefs before any drawing starts: materials their kind's ramps leave out, views with no template. (artgen brief lint)"""
         return self._op("brief.lint", [*ids], {})
 
-    def brief_add(self, id: str, *, kind: Optional[str] = None, view: Optional[str] = None, size: Optional[str] = None, states: Optional[Sequence[str]] = None, directions: Optional[float] = None, anims: Optional[Sequence[str]] = None, durations: Optional[Sequence[str]] = None, variants: Optional[float] = None, swaps: Optional[Sequence[str]] = None, importance: Optional[Literal["hero", "standard", "filler"]] = None, priority: Optional[float] = None, height: Optional[float] = None, body: Optional[str] = None, object: Optional[str] = None, notes: Optional[str] = None, gates: Optional[Sequence[str]] = None, break_contract: Optional[bool] = None) -> "Result":
+    def brief_add(self, id: str, *, kind: Optional[str] = None, view: Optional[str] = None, size: Optional[str] = None, states: Optional[Sequence[str]] = None, directions: Optional[float] = None, anims: Optional[Sequence[str]] = None, durations: Optional[Sequence[str]] = None, variants: Optional[float] = None, swaps: Optional[Sequence[str]] = None, importance: Optional[Literal["hero", "standard", "filler"]] = None, priority: Optional[float] = None, height: Optional[float] = None, body: Optional[str] = None, object: Optional[str] = None, notes: Optional[str] = None, gates: Optional[Sequence[str]] = None, rotate: Optional[Literal["rotsprite"]] = None, rotate_from: Optional[str] = None, break_contract: Optional[bool] = None) -> "Result":
         """Add a brief to art/briefs.yaml: the asset to make (id, kind, view, size, states, animations, …). (artgen brief add)"""
-        return self._op("brief.add", [id], {"kind": kind, "view": view, "size": size, "states": states, "directions": directions, "anims": anims, "durations": durations, "variants": variants, "swaps": swaps, "importance": importance, "priority": priority, "height": height, "body": body, "object": object, "notes": notes, "gates": gates, "break_contract": break_contract})
+        return self._op("brief.add", [id], {"kind": kind, "view": view, "size": size, "states": states, "directions": directions, "anims": anims, "durations": durations, "variants": variants, "swaps": swaps, "importance": importance, "priority": priority, "height": height, "body": body, "object": object, "notes": notes, "gates": gates, "rotate": rotate, "rotate_from": rotate_from, "break_contract": break_contract})
 
     def brief_list(self) -> "Result":
         """List the briefs in art/briefs.yaml. (artgen brief list)"""
@@ -797,3 +798,7 @@ class Ops:
     def quantize(self, image: str, *, palette: Optional[str] = None, n: Optional[int] = None, dither: Optional[Literal["none", "bayer2", "bayer4", "noise"]] = None, out: Optional[str] = None, save: Optional[str] = None) -> "Result":
         """Snap a picture to a palette (a .hex, .gpl or .png file, a list of colours, or the picture's own n dominant colours). (artgen quantize)"""
         return self._op("quantize", [image], {"palette": palette, "n": n, "dither": dither, "out": out, "save": save})
+
+    def rotate(self, image: str, *, deg: Optional[float] = None, steps: Optional[int] = None, pivot: Optional[Sequence[float]] = None, out: Optional[str] = None) -> "Result":
+        """Rotate pixel art without blurring it (RotSprite): one angle, or a strip of evenly spaced rotations. (artgen rotate)"""
+        return self._op("rotate", [image], {"deg": deg, "steps": steps, "pivot": pivot, "out": out})

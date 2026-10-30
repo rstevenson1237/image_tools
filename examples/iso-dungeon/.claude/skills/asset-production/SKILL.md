@@ -139,6 +139,10 @@ gated, so the user sees the cheap thing before the expensive one is built on it.
 - **Decals** (stage 4). Damage, dirt, emblems and team colours go in as `decal` proc layers (`.add('decal', { name, part, mat, shape })`), not as extra body shapes: each is
   its own mask on its own ramp, shaded with the surface, and `artgen stages <id>` shows the `decal` key and the `decal-inside` check (a decal that lands on nothing fails).
   A decal on `accent` follows the brief's `swaps`, so a team colour is one layer.
+- **Rotated assets** (stage 6). A vehicle, ship, turret or projectile that turns freely is drawn once: `brief add <id> --kind prop --directions 8 --rotate rotsprite [--rotate-from e]`.
+  The module draws only the `rotate-from` facing (default `e`, pointing east) and every other facing is that cell turned by RotSprite (anchors, normals and decals turn with it, nothing
+  is mirrored). Keep the part near the middle of the frame: `node tools/artgen/artgen.js stages <id>` fails `rotation-clip` when a turn pushes more than 2 % of its pixels out, and flags `rotation-area` and
+  `rotation-pieces` (a thin part that broke apart). `ctx.lib.rotsprite(grid, deg)` turns a part inside a drawing (a held weapon at an angle).
 - On a pull request the user answers `approve goblin shape` or `goblin: shape: arms too long`; `pr prepare` puts the pending shape sheets in `art/review/`.
 
 ### Parallel make (many assets)

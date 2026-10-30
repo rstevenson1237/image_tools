@@ -5,7 +5,7 @@
 import { isMap, isSeq, parseDocument, stringify, type Document, type YAMLMap, YAMLSeq } from 'yaml';
 import { VIEWS, type Direction, type Size, type View } from 'artgen-scene/direction.ts';
 import { GATEABLE, type GateStage } from 'artgen-workflow/stages.ts';
-import type { Brief } from '../render.ts';
+import { FACINGS, type Brief } from '../render.ts';
 
 export const BRIEF_KINDS = ['character', 'creature', 'prop', 'tile', 'tileset', 'texture', 'effect', 'viewmodel', 'ui-icon', 'layer'] as const;
 /** Importance tier (D19): hero assets may get more passes, filler fewer (`budget.tiers` in artgen.config.json). */
@@ -127,6 +127,12 @@ export function validateBrief(b: unknown, where = 'brief'): string[] {
     if (!Array.isArray(b.refs) || !b.refs.every(r => typeof r === 'string' && /^refs\/[^\\]+$/.test(r) && !r.split('/').includes('..'))) e.push(`${at}: refs must be a list of paths under refs/ (refs/goblin-1.png)`);
   }
   if (b.gates !== undefined && !(Array.isArray(b.gates) && b.gates.every(g => (GATEABLE as readonly string[]).includes(g as string)))) e.push(`${at}: gates must be a list of ${GATEABLE.join(', ')}`);
+  if (b.rotate !== undefined) {
+    const facings = FACINGS[(b.directions as number | undefined) ?? 1] ?? [];
+    if (b.rotate !== 'rotsprite') e.push(`${at}: rotate must be rotsprite`);
+    else if (facings.length < 2) e.push(`${at}: rotate needs directions 4, 8 or 16 (the facings it makes)`);
+    else if (b.rotateFrom !== undefined && !facings.includes(b.rotateFrom as string)) e.push(`${at}: rotateFrom must be one of the facings (${facings.join(', ')})`);
+  } else if (b.rotateFrom !== undefined) e.push(`${at}: rotateFrom needs rotate`);
   if (b.swaps !== undefined) {
     if (!isObj(b.swaps)) e.push(`${at}: swaps must map variant name → { ramp: ramp }`);
     else for (const [n, m] of Object.entries(b.swaps)) if (!isObj(m) || !Object.values(m).every(v => typeof v === 'string' && !v.startsWith('#'))) e.push(`${at}: swaps.${n} must map ramp names to ramp names (no hex, R11)`);

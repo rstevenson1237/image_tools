@@ -92,7 +92,8 @@ export function stageKeys(r: RenderResult, dir: Direction, o: { placeholder?: Pl
   const decal = decalKey(r);
   if (decal) keys.decal = decal;
   if (lit) keys.lighting = light.str(dir.camera.light.map(r2).join(',')).hex();
-  if (o.rotate) keys.rotation = new Digest().str(`${r.facings.join(',')}|${o.rotate}`).hex();
+  const rotate = o.rotate ?? r.brief.rotate;
+  if (rotate) keys.rotation = new Digest().str(`${r.facings.join(',')}|${rotate}|${r.brief.rotateFrom ?? 'e'}`).hex();
   keys.animation = anim.str(canonicalJson({ ...briefContract(r.brief as BriefEntry, dir), anchors: [] })).hex();
   return keys;
 }
@@ -169,6 +170,80 @@ export function rigChecks(r: RenderResult): StageCheck[] {
   if (!bad.length) return [c('pass', `${lo.size} bone lengths the same in every cell (within ${RIG_LENGTH_TOL} px)`)];
   const w = bad[0].k.split(':'), [a, ia] = lo.get(bad[0].k)!, [b, ib] = hi.get(bad[0].k)!;
   return [c('fail', `${w[1]} bone ${w[2]} is ${r2(a)} px in ${ia} and ${r2(b)} px in ${ib}${bad.length > 1 ? ` (and ${bad.length - 1} more bone${bad.length > 2 ? 's' : ''})` : ''}: build the rig once per cell from fixed proportions`)];
+}
+
+// ---- rotation checks (§8.2)
+
+/** Most of the source's opaque pixels a turn may push out of the frame (fail above), and the area change that flags. */
+export const ROTATION_CLIP_MAX = 0.02;
+export const ROTATION_AREA_MAX = 0.1;
+
+const countOpaque = (g: Grid): number => { let n = 0; for (let i = 3; i < g.d.length; i += 4) if (g.d[i]) n++; return n; };
+/** 8-connected pieces of non-transparent pixels. */
+function pieceCount(g: Grid): number {
+  const { w, h } = g, seen = new Uint8Array(w * h), st: number[] = [];
+  let n = 0;
+  for (let i = 0; i < w * h; i++) {
+    if (seen[i] || !g.d[i * 4 + 3]) continue;
+    n++; seen[i] = 1; st.push(i);
+    while (st.length) {
+      const j = st.pop()!, x = j % w, y = (j - x) / w;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx, ny = y + dy, k = ny * w + nx;
+        if (nx >= 0 && ny >= 0 && nx < w && ny < h && !seen[k] && g.d[k * 4 + 3]) { seen[k] = 1; st.push(k); }
+      }
+    }
+  }
+  return n;
+}
+/** Opaque pixels of `g` whose centre lands outside the frame when turned `deg` about the frame centre. */
+function lostToEdge(g: Grid, deg: number): number {
+  const rad = (deg * Math.PI) / 180, c = Math.cos(rad), s = Math.sin(rad), px = (g.w - 1) / 2, py = (g.h - 1) / 2, e = 1e-9;
+  let n = 0;
+  for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) {
+    if (!g.d[(y * g.w + x) * 4 + 3]) continue;
+    const dx = x - px, dy = y - py, u = px + c * dx - s * dy, v = py + s * dx + c * dy;
+    if (u < -0.5 + e || v < -0.5 + e || u > g.w - 0.5 - e || v > g.h - 0.5 - e) n++;
+  }
+  return n;
+}
+
+/**
+ * The checks of a rotated asset (`brief.rotate`, stage `rotation`), each cell made by RotSprite against the cell it was
+ * turned from. `rotation-clip`: opaque pixels pushed out of the frame, over 2 % of the source's → fail (make the frame
+ * larger). `rotation-area`: the opaque count more than 10 % from the source's → flag. `rotation-pieces`: more 8-connected
+ * pieces than the source → flag (a thin part broke apart). The worst cell is named. Assets that are not rotated have no
+ * entries, so their stage report stays as it was.
+ */
+export function rotationChecks(r: RenderResult): StageCheck[] {
+  if (!r.brief.rotate) return [];
+  const src = new Map<string, Cell>(r.cells.filter(c => !c.rotated).map(c => [`${c.state}/${c.facing}/${c.frame}`, c]));
+  let clip = { v: 0, id: '' }, area = { v: 0, id: '' }, pieces = { v: 0, id: '', from: 0 }, n = 0, empty = 0;
+  for (const c of r.cells) {
+    const from = c.rotated && src.get(`${c.state}/${c.rotated.from}/${c.frame}`);
+    if (!from || !c.rotated) continue;
+    const a = countOpaque(from.grid);
+    if (!a) { empty++; continue; }
+    n++;
+    const lost = lostToEdge(from.grid, c.rotated.deg) / a, change = Math.abs(countOpaque(c.grid) - a) / a, p = pieceCount(c.grid), p0 = pieceCount(from.grid);
+    if (lost > clip.v) clip = { v: lost, id: cellId(c) };
+    if (change > area.v) area = { v: change, id: cellId(c) };
+    if (p - p0 > pieces.v) pieces = { v: p - p0, id: cellId(c), from: p0 };
+  }
+  const mk = (id: string, status: Check['status'], detail: string): StageCheck => ({ id, status, detail, stage: 'rotation' });
+  const pc = (v: number) => `${(v * 100).toFixed(1)} %`;
+  if (!n) return ['rotation-clip', 'rotation-area', 'rotation-pieces'].map(id => mk(id, 'skip', empty ? 'the drawn facing is empty' : 'no rotated facing'));
+  return [
+    clip.v > ROTATION_CLIP_MAX
+      ? mk('rotation-clip', 'fail', `${pc(clip.v)} of the drawn facing's pixels leave the frame in ${clip.id} (limit ${pc(ROTATION_CLIP_MAX)}): make the frame larger or draw the part nearer the centre`)
+      : mk('rotation-clip', 'pass', `at most ${pc(clip.v)} of the pixels leave the frame (limit ${pc(ROTATION_CLIP_MAX)})`),
+    area.v > ROTATION_AREA_MAX
+      ? mk('rotation-area', 'flag', `the opaque area of ${area.id} is ${pc(area.v)} from the drawn facing's (limit ${pc(ROTATION_AREA_MAX)})`)
+      : mk('rotation-area', 'pass', `the opaque area stays within ${pc(area.v)} of the drawn facing's`),
+    pieces.v > 0
+      ? mk('rotation-pieces', 'flag', `${pieces.id} has ${pieces.v} more piece${pieces.v > 1 ? 's' : ''} than the drawn facing (${pieces.from}): a thin part broke apart`)
+      : mk('rotation-pieces', 'pass', 'no rotated facing has more pieces than the drawn one'),
+  ];
 }
 
 // ---- shape checks (§5.3)
@@ -259,7 +334,7 @@ export function stageReport(r: RenderResult, dir: Direction, o: { brief: BriefEn
   const ph = o.placeholder ?? safeDefault(o.brief, dir);
   return {
     keys: stageKeys(r, dir, { placeholder: ph, rotate: o.rotate }),
-    checks: [...(o.placeholder ? placeholderChecks(o.placeholder, o.brief, dir) : []), ...shapeChecks(r, dir, { brief: o.brief, placeholder: ph }), ...rigChecks(r), ...decalChecks(r)],
+    checks: [...(o.placeholder ? placeholderChecks(o.placeholder, o.brief, dir) : []), ...shapeChecks(r, dir, { brief: o.brief, placeholder: ph }), ...rigChecks(r), ...decalChecks(r), ...rotationChecks(r)],
   };
 }
 

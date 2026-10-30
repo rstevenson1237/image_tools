@@ -9,7 +9,7 @@
 - Counts and ratios from the ledger (`node tools/artgen/artgen.js metrics export`, art module) go to `art/metrics/`; nothing else leaves the repo.
 
 ## Image tools
-- Pictures to shapes, tokens, cells and palettes need no project: `node tools/artgen/artgen.js trace|slice <image.png>`, `node tools/artgen/artgen.js quantize <image.png>`
+- Pictures to shapes, tokens, cells and palettes need no project: `node tools/artgen/artgen.js trace|slice <image.png>`, `node tools/artgen/artgen.js quantize <image.png>`, `node tools/artgen/artgen.js rotate <image.png> --deg n`
   (`/artgen-image` says when to use which). A traced sketch becomes an asset's base with `trace-base <asset> <image.png>` (art module) or paint edits on a map
   with `map trace <id> <image.png>`; `cut <asset|image.png>` makes a token from an approved asset (art module).
 

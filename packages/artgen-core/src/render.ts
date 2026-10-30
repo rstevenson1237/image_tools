@@ -10,6 +10,7 @@ import { flipMaskX } from 'artgen-primitives/raster.ts';
 import * as iso from 'artgen-primitives/lib/iso.ts';
 import * as palette from 'artgen-primitives/lib/palette.ts';
 import * as post from 'artgen-primitives/lib/post.ts';
+import { rotsprite, rotateMask, rotateNormals, rotatePoint } from 'artgen-primitives/lib/rotsprite.ts';
 import { Scene, R, mirrorSpec, type SceneOptions } from 'artgen-primitives/lib/prim.ts';
 import { rng } from 'artgen-primitives/lib/rng.ts';
 import { doc, rasterizeSvg, svgToGrid, type SvgToGridOptions } from 'artgen-primitives/lib/svg.ts';
@@ -61,6 +62,13 @@ export interface Brief {
   blend?: 'normal' | 'add';
   /** First-person textures (P6d): which surface of the corridor the texture is (default wall; layers are skies). */
   surface?: 'wall' | 'floor' | 'ceiling' | 'sky';
+  /**
+   * Rotated sprites (R6d): `rotsprite` renders only the `rotateFrom` facing and makes every other facing by rotating it
+   * (vehicles, ships, turrets, projectiles). Needs `directions` > 1; no facing is mirrored.
+   */
+  rotate?: 'rotsprite';
+  /** The facing a rotated asset's module draws (default `e`). */
+  rotateFrom?: string;
 }
 
 export type Anchors = Record<string, [number, number]>;
@@ -212,6 +220,8 @@ export function makeLib(dir: DirContext, kind?: string, stage?: (name: string, g
     },
     /** Procedural pass (S2) over a T2+ scene or a finished grid. */
     proc: (source: Scene2D | Grid) => new Proc(source, { dir, seed, line }, stage),
+    /** RotSprite (R6d): a copy of `g` turned `deg` degrees clockwise about `o.pivot` (default the centre); `o.size` makes a larger frame. Colours stay the input's. */
+    rotsprite: (g: Grid, deg: number, o?: { pivot?: [number, number]; size?: [number, number] }) => rotsprite(g, deg, o),
     palette,
     rng,
   };
@@ -223,6 +233,10 @@ export const FACINGS: Record<number, string[]> = {
   8: ['s', 'sw', 'w', 'nw', 'n', 'ne', 'e', 'se'],
   16: ['s', 'ssw', 'sw', 'wsw', 'w', 'wnw', 'nw', 'nnw', 'n', 'nne', 'ne', 'ene', 'e', 'ese', 'se', 'sse'],
 };
+
+/** Screen angle of each compass facing in degrees, clockwise (y down): `e` = 0, `s` = 90, as the runtime's `facingAngle`. */
+export const FACING_DEG: Record<string, number> = Object.fromEntries(
+  ['e', 'ese', 'se', 'sse', 's', 'ssw', 'sw', 'wsw', 'w', 'wnw', 'nw', 'nnw', 'n', 'nne', 'ne', 'ene'].map((f, i) => [f, i * 22.5]));
 
 /** East-west mirror of a facing name (`sw` ↔ `se`; `n`/`s` unchanged). */
 export const mirrorFacing = (f: string): string => f.replace(/[we]/g, c => (c === 'w' ? 'e' : 'w'));
@@ -244,6 +258,8 @@ export interface Cell {
   decals?: Record<string, Uint8Array>;
   /** Per decal: shape pixels in the frame and those that landed on the target part (the `decal-inside` check). */
   decalStats?: Record<string, { inside: number; total: number }>;
+  /** Made by RotSprite (R6d) from the `from` facing, turned `deg` degrees clockwise; absent on the drawn facing and on every cell of an unrotated asset. */
+  rotated?: { from: string; deg: number };
 }
 
 export interface RenderOptions {
@@ -285,7 +301,11 @@ export function renderAsset(mod: AssetModule, { dir, brief, seed = 1, variant = 
     timing[s] = { n, sub, durations: a?.durations?.length === n ? a.durations : Array.from({ length: n }, () => Math.round(1000 / fps)) };
     frames[s] = n * sub;
   }
-  const mirror = mod.meta?.mirror !== false, cells: Cell[] = [], cache = new Map<string, Cell>(), lint = new Set<string>(), rigs: Record<string, RigReport[]> = {};
+  // RotSprite (R6d): only `rotateFrom` is drawn, the other facings are turned copies of it, and nothing is mirrored
+  if (brief.rotate !== undefined && brief.rotate !== 'rotsprite') throw new Error(`brief ${brief.id}: rotate must be rotsprite`);
+  const from = brief.rotate ? brief.rotateFrom ?? 'e' : undefined;
+  if (from && !facings.includes(from)) throw new Error(`brief ${brief.id}: rotateFrom ${from} is not one of its ${facings.length} facings (${facings.join(', ')})`);
+  const mirror = mod.meta?.mirror !== false && !from, cells: Cell[] = [], cache = new Map<string, Cell>(), lint = new Set<string>(), rigs: Record<string, RigReport[]> = {};
   const allParams = resolveParams(mod.params, variant, params);
 
   const renderCell = (state: string, facing: string, frame: number): Cell => {
@@ -315,7 +335,31 @@ export function renderAsset(mod: AssetModule, { dir, brief, seed = 1, variant = 
     };
   };
 
+  /** The cell of `facing` made by turning the drawn one by `deg` (anchors about the frame centre, rounded; normals, decal masks and their stats with the pixels). */
+  const rotateCell = (e: Cell, facing: string, deg: number): Cell => {
+    const [w, h] = size, grid = rotsprite(e.grid, deg);
+    const anchors = e.anchors && Object.fromEntries(Object.entries(e.anchors).map(([k, p]) => [k, rotatePoint(p, deg, w, h)]));
+    const decals = e.decals && Object.fromEntries(Object.entries(e.decals).map(([k, m]) => [k, rotateMask(m, w, h, deg)]));
+    // a turned mask can lose pixels to the frame edge: its stats shrink with it, so a decal turned out of the frame is skipped, not "landed on nothing"
+    const decalStats = decals && e.decalStats && Object.fromEntries(Object.entries(e.decalStats).map(([k, st]) => {
+      const was = e.decals![k].reduce((a, v) => a + v, 0), now = decals[k].reduce((a, v) => a + v, 0), f = was ? Math.min(1, now / was) : 1;
+      return [k, { inside: Math.round(st.inside * f), total: Math.round(st.total * f) }];
+    }));
+    return {
+      state: e.state, facing, frame: e.frame, grid, mirrored: false, anchors, ...(e.normal && { normal: fitNormalMap(grid, rotateNormals(e.normal, deg)) }),
+      ...(decals && { decals, ...(decalStats && { decalStats }) }), ...(e.logical !== undefined && { logical: e.logical, sub: e.sub }), rotated: { from: from!, deg },
+    };
+  };
+
   for (const state of states) for (const facing of facings) for (let frame = 0; frame < frames[state]; frame++) {
+    if (from && facing !== from) {
+      const key = `${state}/${from}/${frame}`;
+      let e = cache.get(key);
+      if (!e) { e = renderCell(state, from, frame); cache.set(key, e); }
+      if (rigs[key]) rigs[`${state}/${facing}/${frame}`] = rigs[key];
+      cells.push(rotateCell(e, facing, (((FACING_DEG[facing] - FACING_DEG[from]) % 360) + 360) % 360));
+      continue;
+    }
     const src = mirrorFacing(facing);
     if (mirror && facing.includes('w') && facings.includes(src)) {
       const key = `${state}/${src}/${frame}`;

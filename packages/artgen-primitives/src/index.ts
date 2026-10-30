@@ -14,6 +14,7 @@ export * as iso from './lib/iso.ts';
 export * as voxel from './lib/voxel.ts';
 export { initSvg, svgReady, rasterizeSvg, setSvgFonts, svgToGrid, doc } from './lib/svg.ts';
 export * from './lib/normals.ts';
+export { scale2x, rotsprite, rotateNormals, rotateMask, rotatePoint } from './lib/rotsprite.ts';
 export * from './lib/noise.ts';
 export * as geom from './geom.ts';
 export { Raster, bandIndices, decalCoverage, flipMaskX, DECAL_SHAPES, type RasterItem, type RasterDecal, type DecalShape } from './raster.ts';

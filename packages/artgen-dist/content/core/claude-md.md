@@ -8,6 +8,6 @@
 - Counts and ratios from the ledger (`{{ARTGEN}} metrics export`, art module) go to `art/metrics/`; nothing else leaves the repo.
 
 ## Image tools
-- Pictures to shapes, tokens, cells and palettes need no project: `{{ARTGEN}} trace|slice <image.png>`, `{{ARTGEN}} quantize <image.png>`
+- Pictures to shapes, tokens, cells and palettes need no project: `{{ARTGEN}} trace|slice <image.png>`, `{{ARTGEN}} quantize <image.png>`, `{{ARTGEN}} rotate <image.png> --deg n`
   (`{{CMD}}image` says when to use which). A traced sketch becomes an asset's base with `trace-base <asset> <image.png>` (art module) or paint edits on a map
   with `map trace <id> <image.png>`; `cut <asset|image.png>` makes a token from an approved asset (art module).

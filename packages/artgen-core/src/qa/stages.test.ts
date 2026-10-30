@@ -311,3 +311,106 @@ describe('the decal stage (R6c, §7.1)', () => {
     expect(c.status).toBe('flag'); expect(c.detail).toContain('mostly off its part');
   });
 });
+
+describe('rotated assets (R6d, §8.2)', () => {
+  const dir = mkDir({ view: 'topdown', outer: 'dark' });
+  /** A 24 × 24 vehicle drawn facing east: a hull, a cab and an emblem decal on the hull, a `muzzle` anchor at the nose. The module counts its calls. */
+  const calls: string[] = [];
+  const vehicle = (o: { wide?: boolean } = {}): AssetModule => ({
+    render(ctx) {
+      calls.push(ctx.facing);
+      const s = ctx.lib.t2.scene(24, 24, { mode: 'direct' }).add(
+        { type: 'rect', name: 'hull', x: o.wide ? 0 : 5, y: o.wide ? 0 : 8, w: o.wide ? 24 : 14, h: o.wide ? 24 : 8, mat: 'cloth', shade: 'flat', band: 1 },
+        { type: 'rect', name: 'cab', x: 8, y: 10, w: 4, h: 4, mat: 'stone', shade: 'flat', band: 1 },
+      );
+      return ctx.lib.proc(s).noDefaults().add('decal', { name: 'emblem', part: 'hull', mat: 'glow', shape: { type: 'rect', x: 13, y: 9, w: 3, h: 3 } }).render();
+    },
+    anchors: () => ({ muzzle: [19, 12] }),
+  });
+  const b = brief({ id: 'tank', kind: 'prop', states: ['idle', 'move'], anims: { move: { frames: 2 } }, directions: 8, rotate: 'rotsprite', size: [24, 24] });
+  const r = render(dir, vehicle(), b);
+  const cell = (f: string, state = 'idle', frame = 0) => r.cells.find(c => c.state === state && c.facing === f && c.frame === frame)!;
+  const opaque = (g: Grid) => { let n = 0; for (let i = 3; i < g.d.length; i += 4) if (g.d[i]) n++; return n; };
+
+  test('only the source facing is drawn, every facing is present, nothing is mirrored', () => {
+    expect(new Set(calls)).toEqual(new Set(['e']));
+    expect(r.facings).toEqual(FACINGS[8]); expect(r.cells).toHaveLength(8 * 3);                 // idle × 1 frame, move × 2, in 8 facings
+    expect(r.cells.some(c => c.mirrored)).toBe(false);
+    expect(cell('e').rotated).toBeUndefined();
+    expect(cell('s').rotated).toEqual({ from: 'e', deg: 90 }); expect(cell('w').rotated).toEqual({ from: 'e', deg: 180 }); expect(cell('ne').rotated).toEqual({ from: 'e', deg: 315 });
+  });
+
+  test('a quarter turn is the exact rotation of the drawn cell; the area of any facing stays close', () => {
+    const e = cell('e'), s = cell('s'), w = cell('w');
+    expect(w.grid.d).toEqual(e.grid.flip('x').flip('y').d);
+    for (let y = 0; y < 24; y++) for (let x = 0; x < 24; x++) expect(s.grid.get(23 - y, x)).toBe(e.grid.get(x, y));
+    for (const c of r.cells) if (c.state === 'idle') expect(Math.abs(opaque(c.grid) - opaque(e.grid)) / opaque(e.grid)).toBeLessThan(0.12);
+  });
+
+  test('anchors, normals and decal masks turn with the pixels', () => {
+    expect(cell('e').anchors!.muzzle).toEqual([19, 12]);
+    expect(cell('s').anchors!.muzzle).toEqual([11, 19]);   // east of the centre → south of it
+    expect(cell('w').anchors!.muzzle).toEqual([4, 11]);
+    const e = cell('e'), s = cell('s');
+    expect(e.normal).toBeDefined(); expect(s.normal).toBeDefined();
+    for (let y = 0; y < 24; y++) for (let x = 0; x < 24; x++) expect(s.normal!.alpha(x, y) > 0).toBe(s.grid.alpha(x, y) === 255);
+    expect(e.decals!.emblem[10 * 24 + 14]).toBe(1);
+    expect(s.decals!.emblem[14 * 24 + (23 - 10)]).toBe(1);
+    expect(s.decals!.emblem.reduce((a, v) => a + v, 0)).toBe(e.decals!.emblem.reduce((a, v) => a + v, 0));
+    expect(s.decalStats).toEqual(e.decalStats);
+  });
+
+  test('the same render is deterministic; a brief without rotate renders as before and has no rotation key or checks', () => {
+    expect(render(dir, vehicle(), b).cells.map(c => c.grid.hash())).toEqual(r.cells.map(c => c.grid.hash()));
+    const plain = brief({ id: 'tank', kind: 'prop', directions: 8, states: ['idle'], anims: undefined, size: [24, 24] }), pr = render(dir, vehicle(), plain), rep = stageReport(pr, dir, { brief: plain });
+    expect(pr.cells.every(c => c.rotated === undefined)).toBe(true);
+    expect(rep.keys.rotation).toBeUndefined(); expect(rep.checks.some(c => c.stage === 'rotation')).toBe(false);
+  });
+
+  test('the rotation key digests facings, mode and source; other keys do not depend on the mode name', () => {
+    const k = (br: BriefEntry) => stageReport(render(dir, vehicle(), br), dir, { brief: br }).keys;
+    const a = k(b), from = k({ ...b, rotateFrom: 's' });
+    expect(a.rotation).toMatch(/^[0-9a-f]{8}$/); expect(a.rotation).toBe(k(b).rotation);
+    expect(from.rotation).not.toBe(a.rotation);
+    expect(k({ ...b, rotateFrom: 'e' }).rotation).toBe(a.rotation);        // e is the default
+    expect(k({ ...b, directions: 4 }).rotation).not.toBe(a.rotation);       // the facings are part of it
+  });
+
+  test('rotation checks: a clean vehicle passes all three; a hull that fills the frame fails clip; a broken-off part flags', () => {
+    const checks = (m: AssetModule, br = b) => Object.fromEntries(stageReport(render(dir, m, br), dir, { brief: br }).checks.filter(c => c.stage === 'rotation').map(c => [c.id, c]));
+    const ok = checks(vehicle());
+    expect(Object.keys(ok)).toEqual(['rotation-clip', 'rotation-area', 'rotation-pieces']);
+    expect(ok['rotation-clip'].status).toBe('pass');
+    const wide = checks(vehicle({ wide: true }));
+    expect(wide['rotation-clip'].status).toBe('fail'); expect(wide['rotation-clip'].detail).toContain('leave the frame');
+  });
+
+  test('rotation-pieces and rotation-area flag a facing that fell apart or lost its body', () => {
+    const edit = (f: (g: Grid) => void): RenderResult => ({ ...r, cells: r.cells.map(c => { if (c.state !== 'idle' || c.facing !== 'se') return c; const g = c.grid.clone(); f(g); return { ...c, grid: g }; }) });
+    const get = (rr: RenderResult) => Object.fromEntries(stageReport(rr, dir, { brief: b }).checks.filter(c => c.stage === 'rotation').map(c => [c.id, c]));
+    const gap = get(edit(g => { for (let y = 0; y < 24; y++) g.clear(11, y); }));
+    expect(gap['rotation-pieces'].status).toBe('flag'); expect(gap['rotation-pieces'].detail).toContain('idle/se/0 has 1 more piece');
+    expect(gap['rotation-area'].status).toBe('pass');
+    const gone = get(edit(g => { for (let y = 0; y < 24; y++) for (let x = 0; x < 13; x++) g.clear(x, y); }));
+    expect(gone['rotation-area'].status).toBe('flag'); expect(gone['rotation-area'].detail).toContain('idle/se/0');
+    expect(get(r)['rotation-pieces'].status).toBe('pass');
+  });
+
+  test('validation: rotate needs directions above 1, a known mode and a rotateFrom that is one of the facings', () => {
+    const v = (x: Record<string, unknown>) => validateBrief({ id: 'a', kind: 'prop', ...x });
+    expect(v({ rotate: 'rotsprite', directions: 8 })).toEqual([]);
+    expect(v({ rotate: 'rotsprite', directions: 8, rotateFrom: 'n' })).toEqual([]);
+    expect(v({ rotate: 'rotsprite' }).join()).toContain('directions');
+    expect(v({ rotate: 'spin', directions: 8 }).join()).toContain('rotate must be rotsprite');
+    expect(v({ rotate: 'rotsprite', directions: 4, rotateFrom: 'ne' }).join()).toContain('rotateFrom');
+    expect(v({ rotateFrom: 'e', directions: 8 }).join()).toContain('needs rotate');
+    expect(() => render(dir, vehicle(), { ...b, rotateFrom: 'ssw' })).toThrow(/rotateFrom/);
+  });
+
+  test('the pack keeps every facing and mirrors none; the placeholder module renders as a rotated asset', () => {
+    const pack = buildPack('p', dir, [{ brief: b, view: 'topdown', renders: [r], version: 'final', sourceHash: 'x' }]);
+    expect(pack.manifest.assets.tank.facings).toEqual(FACINGS[8]);
+    const ph = renderAsset(placeholderModule(defaultPlaceholder(b, dir)), { dir, brief: b });
+    expect(ph.cells).toHaveLength(r.cells.length); expect(ph.cells.some(c => c.mirrored)).toBe(false);
+  });
+});
