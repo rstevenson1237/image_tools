@@ -41,12 +41,13 @@ const LAYERS = [
   ['primitives', ['packages/artgen-primitives/']],
   ['scene', ['packages/artgen-scene/']],
   ['mapgen', ['packages/artgen-mapgen/']],
+  ['imagekit', ['packages/artgen-imagekit/']],
   ['workflow', ['packages/artgen-workflow/']],
   ['artgen', [CORE]],
   ['interface', ['packages/artgen-cli/', 'packages/artgen-mcp/', 'packages/artgen-dist/', 'src/', 'python/']],
 ];
 /** The layer a bare package specifier belongs to. `artgen-core` is the facade: a layer must not import it. */
-const PACKAGE_LAYER = { 'artgen-primitives': 'primitives', 'artgen-scene': 'scene', 'artgen-mapgen': 'mapgen', 'artgen-workflow': 'workflow', 'artgen-runtime': 'runtime' };
+const PACKAGE_LAYER = { 'artgen-primitives': 'primitives', 'artgen-scene': 'scene', 'artgen-mapgen': 'mapgen', 'artgen-imagekit': 'imagekit', 'artgen-workflow': 'workflow', 'artgen-runtime': 'runtime' };
 
 /** Test files that import the facade on purpose. */
 const FACADE_TESTS = [

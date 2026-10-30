@@ -1,7 +1,7 @@
 import type { Component } from 'svelte';
 import { BUNDLED } from '../bundle';
 
-export type WorkerKind = 'opencv' | 'artgen' | 'ffmpeg' | 'native';
+export type WorkerKind = 'imagekit' | 'artgen' | 'ffmpeg' | 'native';
 
 /** Sidebar sections. Tools without a group sit under the first one. */
 export const toolGroups = [
@@ -34,7 +34,7 @@ export interface ToolDefinition {
 
 type Loaded = Promise<{ default: Component<Record<string, never>> }>;
 
-/** The OpenCV image tools. The review UI that `artgen ui` serves leaves them out (BUNDLED is a build-time constant, so their chunks are not built). */
+/** The image tools (`artgen-imagekit`). The review UI that `artgen ui` serves leaves them out: they work on pictures, not on a repo's `art/` (BUNDLED is a build-time constant, so their chunks are not built). */
 const imageTools: ToolDefinition[] = BUNDLED ? [] : [
   {
     id: 'token-cutter',
@@ -43,7 +43,7 @@ const imageTools: ToolDefinition[] = BUNDLED ? [] : [
     icon: '⬤',
     group: 'image',
     load: () => import('../../tools/TokenCutter/index.svelte') as Loaded,
-    requiredWorkers: ['opencv'],
+    requiredWorkers: ['imagekit'],
   },
   {
     id: 'svg-tracer',
@@ -52,7 +52,25 @@ const imageTools: ToolDefinition[] = BUNDLED ? [] : [
     icon: '✧',
     group: 'image',
     load: () => import('../../tools/SvgTracer/index.svelte') as Loaded,
-    requiredWorkers: ['opencv'],
+    requiredWorkers: ['imagekit'],
+  },
+  {
+    id: 'palette',
+    name: 'Palette',
+    blurb: 'Pull the dominant colours out of a picture, snap it to a palette, save .hex or .gpl.',
+    icon: '◧',
+    group: 'image',
+    load: () => import('../../tools/Palette/index.svelte') as Loaded,
+    requiredWorkers: ['imagekit'],
+  },
+  {
+    id: 'slice',
+    name: 'Sprite Slicer',
+    blurb: 'Cut a sprite sheet into its sprites: a grid, or loose sprites found by their pixels.',
+    icon: '▤',
+    group: 'image',
+    load: () => import('../../tools/Slice/index.svelte') as Loaded,
+    requiredWorkers: ['imagekit'],
   },
 ];
 

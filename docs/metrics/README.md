@@ -7,7 +7,7 @@
 |---|---|---|
 | `ledgerKpis` | passes, tokens and minutes per scored asset (by kind), first-pass approval rate, blind-score gap, gate failures by check. Per ledger, for the bench, for the example game repos, and pooled | yes |
 | `timings` | seconds for each CI step and for each package's tests (one run, 4 CPUs) | no: expect tens of percent of variation |
-| `sizes` | bytes of the dist bundles and the web build (the 10 MB OpenCV asset is listed apart) | yes, for a given build |
+| `sizes` | bytes of the dist bundles and the web build (the 10 MB OpenCV asset the web tools used before R5b is listed apart in the baseline; the build no longer has one) | yes, for a given build |
 | `boundaries` | imports that break the layer rules in `scripts/check-boundaries.mjs` | yes |
 | `fixtures`, `interfaces` | consumer fixture cases; MCP tool count | yes |
 | `notReportedYet` | KPIs that need a later phase before they can be measured | — |

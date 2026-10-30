@@ -28,8 +28,6 @@ jobs:
           node-version: 22
           cache: npm
 
-      # postinstall copies opencv.js into public/vendor, which is gitignored —
-      # so the asset is produced here rather than committed.
       - run: npm ci
 
       - run: npm run check

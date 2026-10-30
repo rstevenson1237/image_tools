@@ -4,7 +4,7 @@
   import CanvasStage from '../../core/canvas/CanvasStage.svelte';
   import type { LoadedImage } from '../../core/canvas/types';
   import { acquire, type WorkerLease } from '../../workers/workerRegistry';
-  import type { OpenCvApi } from '../../workers/opencv.worker';
+  import type { ImagekitApi } from '../../workers/imagekit.worker';
   import { sceneToImage, type Point } from '../../core/utils/geometry';
   import { attachSelection, type SelectionController } from './canvas';
   import { createTokenCutterStore } from './store.svelte';
@@ -15,16 +15,11 @@
 
   let stage = $state<CanvasStage>();
   let previewEl = $state<HTMLDivElement>();
-  let lease: WorkerLease<OpenCvApi> | undefined;
+  let lease: WorkerLease<ImagekitApi> | undefined;
   let selection: SelectionController | undefined;
 
   onMount(() => {
-    lease = acquire<OpenCvApi>('opencv');
-    // Boot the WASM runtime in the background so the first extraction isn't
-    // stalled behind a 10MB download.
-    void lease.api.preload().catch(() => {
-      /* Surfaced on first real use instead. */
-    });
+    lease = acquire<ImagekitApi>('imagekit');
 
     window.addEventListener('keydown', onKeyDown);
   });

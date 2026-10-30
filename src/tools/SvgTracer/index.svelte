@@ -4,7 +4,7 @@
   import CanvasStage from '../../core/canvas/CanvasStage.svelte';
   import type { LoadedImage } from '../../core/canvas/types';
   import { acquire, type WorkerLease } from '../../workers/workerRegistry';
-  import type { OpenCvApi } from '../../workers/opencv.worker';
+  import type { ImagekitApi } from '../../workers/imagekit.worker';
   import { attachNodeEditor, type EditorTool, type NodeEditorController } from './canvas';
   import { createSvgTracerStore } from './store.svelte';
   import { copySvgToClipboard, exportSvg } from './export';
@@ -13,18 +13,13 @@
   const store = createSvgTracerStore();
 
   let stage = $state<CanvasStage>();
-  let lease: WorkerLease<OpenCvApi> | undefined;
+  let lease: WorkerLease<ImagekitApi> | undefined;
   let editor: NodeEditorController | undefined;
   /** Set on unmount so an in-flight trace cannot write into a dead store. */
   let disposed = false;
 
   onMount(() => {
-    lease = acquire<OpenCvApi>('opencv');
-    // Boot the WASM runtime in the background so the first trace isn't stalled
-    // behind a 10MB download.
-    void lease.api.preload().catch(() => {
-      /* Surfaced on first real use instead. */
-    });
+    lease = acquire<ImagekitApi>('imagekit');
 
     window.addEventListener('keydown', onKeyDown);
   });

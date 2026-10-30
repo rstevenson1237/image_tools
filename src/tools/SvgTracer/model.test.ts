@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { TraceResult } from '../../workers/opencv.worker';
+import type { TraceResult } from '../../workers/imagekit.worker';
 import {
   canRemoveNode,
   createPathId,

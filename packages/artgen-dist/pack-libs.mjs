@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 /**
- * The library package files of a release (docs/TOOLING-PLAN.md §4, R3): `artgen-runtime`, `artgen-primitives`, `artgen-scene`
- * and `artgen-mapgen` built to JavaScript with type declarations and packed with `npm pack`, so code can install them from the
+ * The library package files of a release (docs/TOOLING-PLAN.md §4, R3): `artgen-runtime`, `artgen-primitives`, `artgen-scene`,
+ * `artgen-workflow`, `artgen-imagekit` and `artgen-mapgen` built to JavaScript with type declarations and packed with `npm pack`, so code can install them from the
  * GitHub release without an npm account or registry:
  *
  *   npm install https://github.com/rstevenson1237/image_tools/releases/download/artgen-v0.12.0/artgen-mapgen-0.11.0.tgz
  *
  * The workspace packages export TypeScript source (`"." → ./src/index.ts`). Here the TypeScript compiler emits their `.js` and
  * `.d.ts` (relative `.ts` imports rewritten to `.js`), each package gets a `package.json` that points at the build, and the
- * packages that need another one (`scene` and `mapgen` need `primitives`) name its file on the same release.
+ * packages that need another one (`scene`, `imagekit` and `mapgen` need `primitives`) name its file on the same release.
  * Deep imports into another package (`artgen-primitives/lib/color.ts`, as the packages write them to each other) become
  * `…/lib/color.js` in the build, and `"./*.js"` maps them to it.
  *

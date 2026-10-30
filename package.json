@@ -7,11 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "vendor:opencv": "node scripts/vendor-opencv.mjs",
-    "postinstall": "node scripts/vendor-opencv.mjs",
-    "predev": "node scripts/vendor-opencv.mjs",
     "dev": "vite",
-    "prebuild": "node scripts/vendor-opencv.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",
@@ -27,6 +23,7 @@
     "build:dist": "npm run build -w artgen-dist",
     "pack:libs": "node packages/artgen-dist/pack-libs.mjs lib-dist",
     "accept:ui": "node scripts/artgen-ui-bundle-accept.mjs",
+    "accept:images": "node scripts/artgen-image-tools-accept.mjs",
     "accept:release": "node scripts/artgen-release-acceptance.mjs",
     "fixtures:install": "npm run build -w artgen-dist && node scripts/artgen-fixtures.mjs"
   },
@@ -43,8 +40,8 @@
   },
   "dependencies": {
     "@resvg/resvg-wasm": "^2.6.2",
-    "@techstark/opencv-js": "^4.10.0-release.1",
     "artgen-core": "0.0.0",
+    "artgen-imagekit": "0.0.0",
     "artgen-runtime": "1.2.1",
     "comlink": "^4.4.2",
     "fabric": "^7.4.0",

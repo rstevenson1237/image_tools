@@ -1,5 +1,5 @@
 import type { Point } from '../../core/utils/geometry';
-import type { TraceResult } from '../../workers/opencv.worker';
+import type { TraceResult } from '../../workers/imagekit.worker';
 
 /**
  * The SVG Tracer's vector document.

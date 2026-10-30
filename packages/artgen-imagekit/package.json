@@ -1,0 +1,18 @@
+{
+  "name": "artgen-imagekit",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Imagekit layer: the image tools as plain TypeScript operations on a pixel Grid (trace, cut, palette, slice). Depends on primitives only. TS, ESM, no Node or DOM imports.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "artgen-primitives": "0.0.0"
+  }
+}

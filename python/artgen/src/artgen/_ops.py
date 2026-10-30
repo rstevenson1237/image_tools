@@ -50,6 +50,8 @@ _OPS: dict[str, tuple[tuple[str, ...], tuple[str, ...], dict[str, tuple[str, str
     "roster.record": (("roster", "record"), ("file",), {"reviewer": ("--reviewer", "value")}),
     "texture": (("texture",), ("material",), {"size": ("--size", "value"), "seed": ("--seed", "value"), "ramps": ("--ramps", "list"), "scale": ("--scale", "value"), "list": ("--list", "switch"), "out": ("--out", "value"), "direction": ("--direction", "value")}),
     "fx": (("fx",), ("preset",), {"size": ("--size", "value"), "frames": ("--frames", "value"), "seed": ("--seed", "value"), "scale": ("--scale", "value"), "list": ("--list", "switch"), "out": ("--out", "value"), "direction": ("--direction", "value")}),
+    "trace-base": (("trace-base",), ("asset", "image"), {"mat": ("--mat", "value"), "margin": ("--margin", "value"), "anchor": ("--anchor", "value"), "threshold": ("--threshold", "value"), "invert": ("--invert", "switch"), "blur": ("--blur", "value"), "smoothing": ("--smoothing", "value"), "simplify": ("--simplify", "value"), "min_area": ("--min-area", "value"), "holes": ("--holes", "onoff"), "max_paths": ("--max-paths", "value"), "alpha": ("--alpha", "onoff"), "direction": ("--direction", "value"), "ledger": ("--ledger", "value")}),
+    "cut": (("cut",), ("target",), {"out": ("--out", "value"), "fill": ("--fill", "value"), "color": ("--color", "value"), "padding": ("--padding", "value"), "square": ("--square", "switch"), "scale": ("--scale", "value"), "version": ("--version", "value"), "draft": ("--draft", "switch"), "state": ("--state", "value"), "facing": ("--facing", "value"), "frame": ("--frame", "value"), "threshold": ("--threshold", "value"), "invert": ("--invert", "switch"), "smoothing": ("--smoothing", "value"), "keep_all": ("--keep-all", "switch"), "direction": ("--direction", "value"), "ledger": ("--ledger", "value")}),
     "export": (("export",), (), {"pack": ("--pack", "list"), "include_drafts": ("--include-drafts", "switch"), "runtime": ("--runtime", "switch"), "force": ("--force", "switch"), "break_contract": ("--break-contract", "list")}),
     "restyle": (("restyle",), (), {"from_": ("--from", "value")}),
     "analytics": (("analytics",), (), {"across": ("--across", "list"), "apply": ("--apply", "switch"), "min_assets": ("--min-assets", "value"), "out": ("--out", "value")}),
@@ -74,6 +76,7 @@ _OPS: dict[str, tuple[tuple[str, ...], tuple[str, ...], dict[str, tuple[str, str
     "map.facts": (("map", "facts"), ("id",), {"file": ("--file", "value"), "at": ("--at", "multi"), "area": ("--area", "repeat"), "above": ("--above", "value"), "radius": ("--radius", "value")}),
     "map.check": (("map", "check"), ("id",), {"file": ("--file", "value")}),
     "map.sync": (("map", "sync"), ("id",), {"origin": ("--origin", "value"), "from_": ("--from", "value"), "file": ("--file", "value")}),
+    "map.trace": (("map", "trace"), ("id", "image"), {"file": ("--file", "value"), "terrain": ("--terrain", "value"), "hole_terrain": ("--hole-terrain", "value"), "origin": ("--origin", "value"), "replace": ("--replace", "switch"), "threshold": ("--threshold", "value"), "invert": ("--invert", "switch"), "blur": ("--blur", "value"), "smoothing": ("--smoothing", "value"), "simplify": ("--simplify", "value"), "min_area": ("--min-area", "value"), "holes": ("--holes", "onoff"), "max_paths": ("--max-paths", "value"), "alpha": ("--alpha", "onoff")}),
     "dungeon.list": (("dungeon", "list"), (), {"file": ("--file", "value")}),
     "dungeon.symbols": (("dungeon", "symbols"), (), {}),
     "dungeon.show": (("dungeon", "show"), ("id",), {"file": ("--file", "value")}),
@@ -159,6 +162,9 @@ _OPS: dict[str, tuple[tuple[str, ...], tuple[str, ...], dict[str, tuple[str, str
     "upstream": (("upstream",), (), {"base": ("--base", "value"), "out": ("--out", "value"), "repo": ("--repo", "value")}),
     "metrics.export": (("metrics", "export"), (), {"name": ("--name", "value"), "out": ("--out", "value")}),
     "metrics.pool": (("metrics", "pool"), ("*paths",), {"out": ("--out", "value")}),
+    "trace": (("trace",), ("image",), {"out": ("--out", "value"), "fill": ("--fill", "value"), "background": ("--background", "value"), "threshold": ("--threshold", "value"), "invert": ("--invert", "switch"), "blur": ("--blur", "value"), "smoothing": ("--smoothing", "value"), "simplify": ("--simplify", "value"), "min_area": ("--min-area", "value"), "holes": ("--holes", "onoff"), "max_paths": ("--max-paths", "value"), "alpha": ("--alpha", "onoff")}),
+    "slice": (("slice",), ("image",), {"cols": ("--cols", "value"), "rows": ("--rows", "value"), "cell": ("--cell", "size"), "auto": ("--auto", "switch"), "gap": ("--gap", "value"), "min_size": ("--min-size", "value"), "margin": ("--margin", "value"), "spacing": ("--spacing", "value"), "skip_empty": ("--skip-empty", "switch"), "trim": ("--trim", "switch"), "out": ("--out", "value")}),
+    "quantize": (("quantize",), ("image",), {"palette": ("--palette", "value"), "n": ("--n", "value"), "dither": ("--dither", "value"), "out": ("--out", "value"), "save": ("--save", "value")}),
 }
 
 
@@ -312,6 +318,14 @@ class Ops:
         """Quick look at a particle preset: a frame strip, an onion-skin sheet and GIF/APNG files. (artgen fx)"""
         return self._op("fx", [preset], {"size": size, "frames": frames, "seed": seed, "scale": scale, "list": list, "out": out, "direction": direction})
 
+    def trace_base(self, asset: str, image: str, *, mat: Optional[str] = None, margin: Optional[float] = None, anchor: Optional[Literal["center", "bottom"]] = None, threshold: Optional[str] = None, invert: Optional[bool] = None, blur: Optional[int] = None, smoothing: Optional[int] = None, simplify: Optional[float] = None, min_area: Optional[float] = None, holes: Optional[bool] = None, max_paths: Optional[int] = None, alpha: Optional[bool] = None, direction: Optional[str] = None, ledger: Optional[str] = None) -> "Result":
+        """Write an asset's next base.vN.js from a traced sketch or reference picture: its shapes as path primitives, fitted to the asset's frame. (artgen trace-base)"""
+        return self._op("trace-base", [asset, image], {"mat": mat, "margin": margin, "anchor": anchor, "threshold": threshold, "invert": invert, "blur": blur, "smoothing": smoothing, "simplify": simplify, "min_area": min_area, "holes": holes, "max_paths": max_paths, "alpha": alpha, "direction": direction, "ledger": ledger})
+
+    def cut(self, target: str, *, out: Optional[str] = None, fill: Optional[Literal["art", "flat"]] = None, color: Optional[str] = None, padding: Optional[int] = None, square: Optional[bool] = None, scale: Optional[int] = None, version: Optional[str] = None, draft: Optional[bool] = None, state: Optional[str] = None, facing: Optional[str] = None, frame: Optional[int] = None, threshold: Optional[str] = None, invert: Optional[bool] = None, smoothing: Optional[int] = None, keep_all: Optional[bool] = None, direction: Optional[str] = None, ledger: Optional[str] = None) -> "Result":
+        """Cut a token (or the flat silhouette the Shape gate reads) from an approved asset's render, or from a picture. (artgen cut)"""
+        return self._op("cut", [target], {"out": out, "fill": fill, "color": color, "padding": padding, "square": square, "scale": scale, "version": version, "draft": draft, "state": state, "facing": facing, "frame": frame, "threshold": threshold, "invert": invert, "smoothing": smoothing, "keep_all": keep_all, "direction": direction, "ledger": ledger})
+
     def export(self, *, pack: Optional[Sequence[str]] = None, include_drafts: Optional[bool] = None, runtime: Optional[bool] = None, force: Optional[bool] = None, break_contract: Optional[Sequence[str]] = None) -> "Result":
         """Export approved assets into the configured packs: atlases, pack.json, Aseprite JSON, typed assets.ts. (artgen export)"""
         return self._op("export", [], {"pack": pack, "include_drafts": include_drafts, "runtime": runtime, "force": force, "break_contract": break_contract})
@@ -407,6 +421,10 @@ class Ops:
     def map_sync(self, id: Optional[str] = None, *, origin: Optional[str] = None, from_: Optional[str] = None, file: Optional[str] = None) -> "Result":
         """Replace the entries of one origin from a regenerated file, keeping every other. (artgen map sync)"""
         return self._op("map.sync", [id], {"origin": origin, "from_": from_, "file": file})
+
+    def map_trace(self, id: Optional[str] = None, image: Optional[str] = None, *, file: Optional[str] = None, terrain: Optional[Literal["deep", "water", "marsh", "sand", "desert", "grass", "scrub", "forest", "rock", "snow"]] = None, hole_terrain: Optional[Literal["deep", "water", "marsh", "sand", "desert", "grass", "scrub", "forest", "rock", "snow"]] = None, origin: Optional[str] = None, replace: Optional[bool] = None, threshold: Optional[str] = None, invert: Optional[bool] = None, blur: Optional[int] = None, smoothing: Optional[int] = None, simplify: Optional[float] = None, min_area: Optional[float] = None, holes: Optional[bool] = None, max_paths: Optional[int] = None, alpha: Optional[bool] = None) -> "Result":
+        """Trace a picture's outline onto a terrain map as paint edits (the dark shapes become land, their holes water). (artgen map trace)"""
+        return self._op("map.trace", [id, image], {"file": file, "terrain": terrain, "hole_terrain": hole_terrain, "origin": origin, "replace": replace, "threshold": threshold, "invert": invert, "blur": blur, "smoothing": smoothing, "simplify": simplify, "min_area": min_area, "holes": holes, "max_paths": max_paths, "alpha": alpha})
 
     def dungeon_list(self, *, file: Optional[str] = None) -> "Result":
         """List the dungeons in the project (or the one named by --file). (artgen dungeon list)"""
@@ -747,3 +765,15 @@ class Ops:
     def metrics_pool(self, *paths: str, out: Optional[str] = None) -> "Result":
         """Put exported metrics from several repos side by side per artgen version (tokens and minutes per approved asset, first-pass approval, gate failures; per generator). (artgen metrics pool)"""
         return self._op("metrics.pool", [*paths], {"out": out})
+
+    def trace(self, image: str, *, out: Optional[str] = None, fill: Optional[str] = None, background: Optional[str] = None, threshold: Optional[str] = None, invert: Optional[bool] = None, blur: Optional[int] = None, smoothing: Optional[int] = None, simplify: Optional[float] = None, min_area: Optional[float] = None, holes: Optional[bool] = None, max_paths: Optional[int] = None, alpha: Optional[bool] = None) -> "Result":
+        """Trace a picture or sketch to an SVG of closed shapes (outlines and their holes). (artgen trace)"""
+        return self._op("trace", [image], {"out": out, "fill": fill, "background": background, "threshold": threshold, "invert": invert, "blur": blur, "smoothing": smoothing, "simplify": simplify, "min_area": min_area, "holes": holes, "max_paths": max_paths, "alpha": alpha})
+
+    def slice(self, image: str, *, cols: Optional[int] = None, rows: Optional[int] = None, cell: Optional[Union[str, Sequence[float]]] = None, auto: Optional[bool] = None, gap: Optional[int] = None, min_size: Optional[int] = None, margin: Optional[int] = None, spacing: Optional[int] = None, skip_empty: Optional[bool] = None, trim: Optional[bool] = None, out: Optional[str] = None) -> "Result":
+        """Cut an outside sprite sheet into its sprites (a regular grid, or loose sprites found by their pixels). (artgen slice)"""
+        return self._op("slice", [image], {"cols": cols, "rows": rows, "cell": cell, "auto": auto, "gap": gap, "min_size": min_size, "margin": margin, "spacing": spacing, "skip_empty": skip_empty, "trim": trim, "out": out})
+
+    def quantize(self, image: str, *, palette: Optional[str] = None, n: Optional[int] = None, dither: Optional[Literal["none", "bayer2", "bayer4", "noise"]] = None, out: Optional[str] = None, save: Optional[str] = None) -> "Result":
+        """Snap a picture to a palette (a .hex, .gpl or .png file, a list of colours, or the picture's own n dominant colours). (artgen quantize)"""
+        return self._op("quantize", [image], {"palette": palette, "n": n, "dither": dither, "out": out, "save": save})

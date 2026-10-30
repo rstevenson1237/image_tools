@@ -7,15 +7,15 @@ import type { WorkerKind } from '../core/tools/registry';
  *
  * Tools `acquire` in onMount and `release` in onDestroy. The underlying Worker
  * is created on the first acquire and terminated once the last lease is
- * released, so switching away from a CV-backed tool actually reclaims the WASM
- * heap instead of leaving a multi-megabyte worker parked in the background.
+ * released, so switching away from a tool reclaims its memory instead of
+ * leaving a worker parked in the background.
  */
 
 type WorkerFactory = () => Worker;
 
 const factories: Partial<Record<WorkerKind, WorkerFactory>> = {
-  // the review UI served by `artgen ui` has no OpenCV tools (BUNDLED is a build-time constant: the worker isn't built)
-  ...(BUNDLED ? {} : { opencv: () => new Worker(new URL('./opencv.worker.ts', import.meta.url), { type: 'module' }) }),
+  // the review UI served by `artgen ui` has no image tools (BUNDLED is a build-time constant: the worker isn't built)
+  ...(BUNDLED ? {} : { imagekit: () => new Worker(new URL('./imagekit.worker.ts', import.meta.url), { type: 'module' }) }),
   artgen: () =>
     new Worker(new URL('./artgen.worker.ts', import.meta.url), { type: 'module' }),
 };
