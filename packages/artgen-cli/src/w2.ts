@@ -17,11 +17,12 @@ import { dirname, join, relative, resolve } from 'node:path';
 import {
   analytics, analyticsMarkdown, assetDataSheet, budgetFor, dataSheetMarkdown, encodePNG, generatorMetrics, renderDataSheet, generatorsMarkdown, isSubjectKey, SUBJECT_KINDS, subjectKey, assetsTs, assetStatus, blindScores, briefContract, effectObjectIssues, briefDir, briefOrder, buildPack, contactSheet, contractOf, diffContract,
   editOps, Grid, imageTokens, mirrorFacing, pxPerMetre, roster, drawnHeight, standFrames, rosterIssues, TILE_KINDS, type RosterItem, type RosterPair, type RosterReview, type RosterSize, parseBriefs, parseLedger, parseVersion, removeBrief, restyleDiff, restyleSheet, tokenDiffMask, upsertBrief,
-  applyRecommendations, briefMaterialIssues, mergeConfig, recommend, recommendMarkdown, type LedgerSet,
+  applyRecommendations, briefMaterialIssues, gatesFor, mergeConfig, recommend, recommendMarkdown, type LedgerSet,
+  diffStageKeys, placeholderKey, placeholderModule, renderAsset, STAGES, type StageId,
   type AnimContract, type AssetMeta, type AssetStatus, type BriefEntry, type Direction, type LedgerEntry, type NextStep, type PackInput, type RenderResult,
 } from 'artgen-core';
 import {
-  feedbackOf, finalHash, ledgerFor, openAsset, passState, renderVersion, versionsIn, type AssetBrief, type AssetDir,
+  effectivePlaceholder, feedbackOf, finalHash, gatesOf, ledgerFor, openAsset, passState, renderVersion, versionsIn, type AssetBrief, type AssetDir,
 } from './asset.ts';
 import { strip } from './bench.ts';
 import { RUNTIME_VERSION } from 'artgen-runtime';
@@ -101,13 +102,19 @@ export function briefWarnings(b: BriefEntry, dir: Direction): string[] {
   return out;
 }
 
+/** Create the asset directory for a brief and its `brief.json` (template + review settings), without any version. */
+export function ensureAssetDir(p: Project, b: BriefEntry, dir: Direction): { path: string; template: string; t: TemplateRef } {
+  const path = assetPathOf(p, b), t = templateFor(b, dir), template = `${t.view}/${t.kind}`;
+  mkdirSync(path, { recursive: true });
+  if (!existsSync(join(path, 'brief.json'))) writeJson(join(path, 'brief.json'), { id: b.id, template, review: readJson<{ review?: unknown }>(join(t.dir, 'brief.json')).review ?? {} });
+  return { path, template, t };
+}
+
 /** Create the asset directory for a brief: `brief.json` (template + review settings) and `base.v1.js` from the template. */
 export function scaffoldAsset(p: Project, b: BriefEntry, dir: Direction): { path: string; created: boolean; template: string } {
   const path = assetPathOf(p, b), t = templateFor(b, dir), template = `${t.view}/${t.kind}`;
   if (existsSync(join(path, 'base.v1.js'))) return { path, created: false, template };
-  mkdirSync(path, { recursive: true });
-  const tb = readJson<{ review?: unknown }>(join(t.dir, 'brief.json'));
-  if (!existsSync(join(path, 'brief.json'))) writeJson(join(path, 'brief.json'), { id: b.id, template, review: tb.review ?? {} });
+  ensureAssetDir(p, b, dir);
   writeFileSync(join(path, 'base.v1.js'), readFileSync(join(t.dir, 'base.js'), 'utf8').replace(/\{\{ID\}\}/g, b.id));
   return { path, created: true, template };
 }
@@ -137,7 +144,14 @@ export interface AssetRow {
 export async function assetRow(p: Project, b: BriefEntry): Promise<AssetRow> {
   const path = assetPathOf(p, b);
   const base = { id: b.id, kind: b.kind, path: rel(p, path), issues: effectObjectIssues(b).map(x => `brief: ${x}`), imageTokens: 0 };
-  if (!existsSync(join(path, 'base.v1.js')) && !versionsInPath(path).length) return { ...base, status: 'brief', why: 'not started' };
+  if (!existsSync(join(path, 'base.v1.js')) && !versionsInPath(path).length) {
+    // a placeholder gate holds the first base until the user approves the placeholder (docs/STAGES.md §5.4)
+    if (gatesFor(projectConfig(p).review.gates, b).includes('placeholder')) {
+      const a = openAsset(path), st = await passState(a);
+      if (st.next.action === 'stage-gate') return { ...base, status: 'in-pipeline', next: st.next, why: st.next.why, imageTokens: 0 };
+    }
+    return { ...base, status: 'brief', why: 'not started' };
+  }
   const a = openAsset(path), st = await passState(a), ledger = ledgerFor(a);
   const imageTokens = ledger.filter(e => e.type === 'review').reduce((n, e) => n + ((e.imageTokens as number) ?? 0), 0);
   if (!ledger.length && st.next.action === 'review' && st.next.version === 'base.v1') return { ...base, status: 'in-pipeline', next: st.next, why: 'base.v1 from the template: adapt it to the brief, then review', imageTokens };
@@ -150,7 +164,7 @@ export async function assetRow(p: Project, b: BriefEntry): Promise<AssetRow> {
   const blind = s.final ? blindScores(ledger).get(s.final)?.score : undefined, score = sc?.score as number | undefined, eff = blind ?? score;
   const top = st.next.action === 'ready' ? st.next.top : undefined;
   return {
-    ...base, status: s.status, final: s.final, score, gate: sc?.conformance?.pass, issues, next: st.next, why: s.why, imageTokens, stale: st.stale,
+    ...base, status: s.status, final: s.final, score, gate: sc?.conformance?.pass, issues, next: st.next, why: st.next.action === 'stage-gate' ? st.next.why : s.why, imageTokens, stale: st.stale,
     ...(blind !== undefined && { blind }), ...(eff !== undefined && eff < projectConfig(p).review.approveMin && { belowBar: true }), ...(top && { top }),
   };
 }
@@ -225,11 +239,13 @@ export async function make(p: Project, ids?: string[], o: { parallel?: number; w
   if (ids?.length && !ids.includes('all')) for (const id of ids) if (!briefs.some(b => b.id === id)) throw new Error(`no brief ${id} in art/briefs.yaml`);
   const scaffolded: string[] = [], finals: string[] = [], overBudget: string[] = [], rows: AssetRow[] = [], reviewed = new Map<string, boolean>();
   for (const b of briefs) {
-    const sc = scaffoldAsset(p, b, dir);
+    // an open placeholder gate holds the asset's first base: nothing is scaffolded until the user approves the placeholder
+    const gateOpen = !existsSync(join(assetPathOf(p, b), 'base.v1.js')) && (await assetRow(p, b)).next?.action === 'stage-gate';
+    const sc = gateOpen ? { path: assetPathOf(p, b), created: false, template: '' } : scaffoldAsset(p, b, dir);
     if (sc.created) scaffolded.push(rel(p, join(sc.path, 'base.v1.js')));
     let row = await assetRow(p, b);
     const a = openAsset(sc.path), ledger = ledgerFor(a);
-    if (row.next?.action === 'review') { const v = row.next.version; reviewed.set(b.id, ledger.some(e => e.type === 'review' && e.version === v && !e.blind)); }
+    if (row.next?.action === 'review') { const v = row.next.version; reviewed.set(b.id, ledger.some(e => e.type === 'review' && e.version === v && !e.blind && !e.stage)); }
     if (row.next?.action === 'ready') {
       const fin = row.next.final;
       if (!ledger.some(e => e.type === 'status' && e.status === 'final' && e.version === fin && e.sourceHash === finalHash(a, fin))) {
@@ -251,7 +267,8 @@ export async function make(p: Project, ids?: string[], o: { parallel?: number; w
   const live = rows.filter(r => !DONE.includes(r.status) && !r.why.startsWith('over budget')), active = new Set((o.wave ? live.slice(0, o.wave) : live).map(r => r.id));
   const roster = earlyRoster(p, rows.filter(r => active.has(r.id)));
   const held = new Set(roster?.ids ?? []), pending = rows.filter(r => active.has(r.id) && r.next && r.next.action !== 'ready' && !held.has(r.id));
-  const n0 = pending[0], next = n0 && { id: n0.id, path: n0.path, step: n0.next! };
+  // an asset waiting for the user at a gate is named only when nothing else can move
+  const n0 = pending.find(r => r.next!.action !== 'stage-gate') ?? pending[0], next = n0 && { id: n0.id, path: n0.path, step: n0.next! };
   const finalRoster = rows.filter(r => r.status === 'final' && !TILE_KINDS.has(r.kind) && !ledgerFor(openAsset(join(p.root, r.path))).some(e => e.type === 'roster' && e.version === r.final && Array.isArray(e.issues))).map(r => r.id);
   const res: MakeResult = { rows, ...(next && { next }), scaffolded, finals, overBudget, ...(roster && { roster }), ...(finalRoster.length >= 2 && { finalRoster }) };
   if (!o.parallel) return res;
@@ -420,7 +437,7 @@ export async function approve(p: Project, id: string, note = '', via?: string): 
   if (row.status !== 'final') throw new Error(`${id} is ${row.status}: only a final asset can be approved${row.status === 'stale' ? ' (run restyle first)' : ''}`);
   const a = openAsset(assetPathOf(p, b)), r = await renderVersion(a, row.final!);
   if (!r.report.pass) throw new Error(`${id} ${row.final}: the gate fails (${r.report.checks.filter(c => c.status === 'fail').map(c => c.id).join(', ')}) — give feedback instead (R6)`);
-  const sheet = [...ledgerFor(a)].reverse().find(e => e.type === 'review' && e.version === row.final)?.sheet;
+  const sheet = [...ledgerFor(a)].reverse().find(e => e.type === 'review' && e.version === row.final && !e.stage)?.sheet;
   if (!sheet) throw new Error(`${id} ${row.final}: no review sheet yet — artgen review first (R6)`);
   // keep the sheet the user approved from (art/sheets/approved/ is the one sheets folder that is committed)
   const kept = join(p.art, 'sheets', 'approved', `${id}-${row.final}.png`), src = resolve(dirname(ledgerFile(p)), String(sheet));
@@ -430,7 +447,9 @@ export async function approve(p: Project, id: string, note = '', via?: string): 
   if (rv.blind === undefined) warnings.push(rv.reviewer === 'self' || !rv.reviewer ? 'scored only by the agent that made it, with no blind re-score' : 'no blind re-score of the final');
   warnings.push(...row.issues.filter(x => x.startsWith('blind re-score')));
   if (rv.blind !== undefined && rv.blind < cfg.approveMin && !warnings.some(x => x.startsWith('blind re-score'))) warnings.push(`blind re-score ${rv.blind} is under ${cfg.approveMin}`);
-  const e = { type: 'approve' as const, asset: id, version: row.final, sourceHash: finalHash(a, row.final!), outputHash: r.strip.hash(), sheet: existsSync(kept) ? relative(p.art, kept).split('\\').join('/') : sheet, direction: { id: dir.id, version: dir.version }, note, ...(warnings.length && { warnings }), by: 'user' as const, ...(via && { via }) };
+  // the keys of the stages the user approved: copied from the final's latest score entry (no new render)
+  const stages = [...ledgerFor(a)].reverse().find(x => x.type === 'score' && !x.blind && x.version === row.final)?.stages;
+  const e = { type: 'approve' as const, asset: id, version: row.final, sourceHash: finalHash(a, row.final!), outputHash: r.strip.hash(), ...(stages && typeof stages === 'object' ? { stages: stages as object } : {}), sheet: existsSync(kept) ? relative(p.art, kept).split('\\').join('/') : sheet, direction: { id: dir.id, version: dir.version }, note, ...(warnings.length && { warnings }), by: 'user' as const, ...(via && { via }) };
   appendLedger(ledgerFile(p), e);
   return { ts: new Date().toISOString(), ...e };
 }
@@ -459,7 +478,7 @@ export function inPack(b: BriefEntry, pack: string, include: string[]): boolean 
 }
 
 export interface ContractChange { id: string; change: 'created' | 'extended' | 'broken'; notes: string[] }
-export interface ExportResult { packs: { pack: string; dir: string; atlases: string[]; assets: string[]; drafts: string[] }[]; assetsTs: string; skipped: { id: string; status: AssetStatus }[]; contracts: ContractChange[]; runtime?: VendorResult }
+export interface ExportResult { packs: { pack: string; dir: string; atlases: string[]; assets: string[]; drafts: string[]; placeholders?: string[] }[]; assetsTs: string; skipped: { id: string; status: AssetStatus }[]; contracts: ContractChange[]; runtime?: VendorResult }
 
 /**
  * Export approved assets into the configured packs: atlases + pack.json + Aseprite JSON, and the typed `assets.ts`;
@@ -468,10 +487,13 @@ export interface ExportResult { packs: { pack: string; dir: string; atlases: str
  * if a redraw changed states, frame counts, durations, loop, facings or anchor names, nothing is written unless the
  * asset is listed in `breakContract` (`*` = all). Additions extend the contract.
  */
-export async function exportPacks(p: Project, o: { packs?: string[]; includeDrafts?: boolean; generator?: string; runtime?: boolean; force?: boolean; breakContract?: string[] } = {}): Promise<ExportResult> {
+export async function exportPacks(p: Project, o: { packs?: string[]; includeDrafts?: boolean; generator?: string; runtime?: boolean; force?: boolean; breakContract?: string[]; placeholders?: boolean } = {}): Promise<ExportResult> {
   const dir = requireLocked(p), cfg = projectConfig(p), rows = await projectStatus(p), briefs = readBriefs(p);
   const ok = (s: AssetStatus) => s === 'approved' || s === 'exported' || (o.includeDrafts && s === 'final');
-  const skipped = rows.filter(r => !ok(r.status)).map(r => ({ id: r.id, status: r.status }));
+  // `--placeholders` (docs/STAGES.md §5.2): what would not be exported is exported from its placeholder, unless real art of it was exported before
+  const everExported = new Set(parseAll(ledgerFile(p)).filter(e => e.type === 'export' && e.version !== 'placeholder').map(e => e.asset));
+  const standIn = (r: AssetRow) => !!o.placeholders && !ok(r.status) && !everExported.has(r.id);
+  const skipped = rows.filter(r => !ok(r.status) && !standIn(r)).map(r => ({ id: r.id, status: r.status }));
   const out: ExportResult['packs'] = [], forTs: { manifest: ReturnType<typeof buildPack>['manifest']; url: string }[] = [];
   const builds: { pack: string; built: ReturnType<typeof buildPack>; inputs: PackInput[] }[] = [];
   for (const [pack, def] of Object.entries(cfg.packs)) {
@@ -479,7 +501,12 @@ export async function exportPacks(p: Project, o: { packs?: string[]; includeDraf
     const inputs: PackInput[] = [];
     for (const r of rows) {
       const b = briefs.find(x => x.id === r.id)!;
-      if (!ok(r.status) || !inPack(b, pack, def.include)) continue;
+      if (!(ok(r.status) || standIn(r)) || !inPack(b, pack, def.include)) continue;
+      if (!ok(r.status)) {
+        const a = openAsset(join(p.root, r.path)), ph = effectivePlaceholder(a), key = placeholderKey(ph);
+        inputs.push({ brief: a.brief as AssetBrief, view: a.brief.view ?? dir.camera.view, renders: [renderAsset(placeholderModule(ph), { dir: a.dir, brief: a.brief })], version: 'placeholder', sourceHash: key, placeholder: true });
+        continue;
+      }
       const a = openAsset(join(p.root, r.path)), n = Math.max(1, b.variants ?? 1), renders: RenderResult[] = [];
       for (let k = 0; k < n; k++) renders.push((await renderVersion(a, r.final!, { variant: k })).render);
       inputs.push({ brief: a.brief as AssetBrief, view: a.brief.view ?? dir.camera.view, renders, version: r.final!, sourceHash: finalHash(a, r.final!), draft: r.status === 'final' });
@@ -504,8 +531,8 @@ export async function exportPacks(p: Project, o: { packs?: string[]; includeDraf
     built.atlases.forEach((g, i) => { writeGrid(join(pdir, built.manifest.atlases[i]), g); writeJson(join(pdir, built.manifest.atlases[i].replace(/\.png$/, '.aseprite.json')), built.aseprite[i]); });
     built.normals?.forEach((g, i) => writeGrid(join(pdir, built.manifest.normals![i]), g));
     writeJson(join(pdir, 'pack.json'), built.manifest);
-    for (const inp of inputs) appendLedger(ledgerFile(p), { type: 'export', asset: inp.brief.id, version: inp.version, sourceHash: inp.sourceHash, pack, direction: { id: dir.id, version: dir.version }, ...(inp.draft && { draft: true }), by: 'agent' });
-    out.push({ pack, dir: rel(p, pdir), atlases: built.manifest.atlases.map(f => rel(p, join(pdir, f))), assets: inputs.map(i => i.brief.id), drafts: built.manifest.drafts ?? [] });
+    for (const inp of inputs) appendLedger(ledgerFile(p), { type: 'export', asset: inp.brief.id, version: inp.version, sourceHash: inp.sourceHash, pack, direction: { id: dir.id, version: dir.version }, ...(inp.draft && { draft: true }), ...(inp.placeholder && { placeholder: true }), by: 'agent' });
+    out.push({ pack, dir: rel(p, pdir), atlases: built.manifest.atlases.map(f => rel(p, join(pdir, f))), assets: inputs.map(i => i.brief.id), drafts: built.manifest.drafts ?? [], ...(built.manifest.placeholders && { placeholders: built.manifest.placeholders }) });
     const pub = cfg.export.packDir.replace(/\\/g, '/').replace(/^\.?\/?/, '');
     forTs.push({ manifest: built.manifest, url: pub.startsWith('public/') || pub === 'public' ? `/${pub.slice(7)}${pub.length > 7 ? '/' : ''}${pack}/pack.json`.replace(/\/+/g, '/') : `${pub}/${pack}/pack.json` });
   }
@@ -519,7 +546,7 @@ export async function exportPacks(p: Project, o: { packs?: string[]; includeDraf
   return { packs: out, assetsTs: forTs.length ? rel(p, tsFile) : '', skipped, contracts: contracts.map(c => c.change), ...(runtime && { runtime }) };
 }
 
-export interface RestyleResult { from: number; to: number; sheet: string; tokens: number; assets: { id: string; final: string; changedPct: number; tokenSame: number; consistent: boolean; gate: boolean; stale: string[] }[] }
+export interface RestyleResult { from: number; to: number; sheet: string; tokens: number; assets: { id: string; final: string; changedPct: number; tokenSame: number; consistent: boolean; gate: boolean; stale: string[]; stages: { same: StageId[]; changed: StageId[] } }[] }
 
 /**
  * Restyle (SPEC §4.2 step 6): re-render every finished asset under the current direction and the one it was made
@@ -535,9 +562,12 @@ export async function restyle(p: Project, o: { from?: number } = {}): Promise<Re
     if (!existsSync(fromFile)) old.dir = from;
     const [before, after] = [await renderVersion(old, r.final!), await renderVersion(a, r.final!)];
     const d = restyleDiff(before.strip, after.strip, from, to);
-    sheetRows.push({ label: `${r.id} ${r.final}: ${d.changedPct}% px changed, tokens kept ${Math.round(d.tokenSame * 100)}%${after.report.pass ? '' : ' GATE FAIL'}${after.stale?.length ? ' FINISH-STALE' : ''}`, before: thumb(before.render), after: thumb(after.render), mask: tokenDiffMask(thumb(before.render), thumb(after.render), from, to), bg: to.background });
-    assets.push({ id: r.id, final: r.final!, changedPct: d.changedPct, tokenSame: d.tokenSame, consistent: d.consistent, gate: after.report.pass, stale: after.stale ?? [] });
-    appendLedger(ledgerFile(p), { type: 'restyle', asset: r.id, version: r.final, from: { id: from.id, version: from.version }, direction: { id: to.id, version: to.version }, changedPct: d.changedPct, tokenSame: d.tokenSame, consistent: d.consistent, gate: after.report.pass, outputHash: after.strip.hash(), ...(after.stale?.length && { stale: after.stale }), by: 'agent' });
+    // which stages' keys moved (docs/STAGES.md §5.6); the sheet says so only for assets that use gates, so other sheets stay as they were
+    const diff = diffStageKeys(before.stages.keys, after.stages.keys), stages = { same: STAGES.filter(k => diff[k] === 'same'), changed: STAGES.filter(k => diff[k] !== 'same' && diff[k] !== 'n/a') };
+    const gated = gatesOf(a).includes('shape');
+    sheetRows.push({ label: `${r.id} ${r.final}: ${d.changedPct}% px changed, tokens kept ${Math.round(d.tokenSame * 100)}%${gated ? (diff.shape === 'same' ? ' shape kept' : ' SHAPE CHANGED') : ''}${after.report.pass ? '' : ' GATE FAIL'}${after.stale?.length ? ' FINISH-STALE' : ''}`, before: thumb(before.render), after: thumb(after.render), mask: tokenDiffMask(thumb(before.render), thumb(after.render), from, to), bg: to.background });
+    assets.push({ id: r.id, final: r.final!, changedPct: d.changedPct, tokenSame: d.tokenSame, consistent: d.consistent, gate: after.report.pass, stale: after.stale ?? [], stages });
+    appendLedger(ledgerFile(p), { type: 'restyle', asset: r.id, version: r.final, from: { id: from.id, version: from.version }, direction: { id: to.id, version: to.version }, changedPct: d.changedPct, tokenSame: d.tokenSame, consistent: d.consistent, gate: after.report.pass, outputHash: after.strip.hash(), stages, ...(after.stale?.length && { stale: after.stale }), by: 'agent' });
   }
   const sheet = restyleSheet(`restyle ${from.id} v${from.version} -> ${to.id} v${to.version}`, sheetRows);
   const f = join(p.art, 'sheets', `restyle-v${from.version}-v${to.version}.png`);

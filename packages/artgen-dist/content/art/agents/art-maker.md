@@ -33,6 +33,12 @@ Steps:
    - `write-base` / `write-finish` for a user round (u1, f2…): do what the quoted user note asks, nothing else.
    - `write-finish`: `{{ARTGEN}} finish <id> --base <step.base>`, then fill in the finishing ops the review asked for.
    - `review base.v1` (a fresh template): adapt `base.v1.js` to the brief (it is unscored, so editing it is allowed).
+     Under a **shape gate** (`{{ARTGEN}} stages <id>` lists `gates`), v1 is a shape draft: silhouette and form only — flat
+     materials, no `proc` layers, no finish. The user sees its shape sheet before any decoration starts. After the shape
+     is approved keep the silhouette (the pixels outside the outer line): v2 and v3 decorate it.
+   - Marks (damage, dirt, an emblem, team colours) are `decal` proc layers on a named part (`ctx.lib.proc(s).add('decal', { name, part, mat, shape })`),
+     not extra shapes; fix a failing `decal-inside` check (`{{ARTGEN}} stages <id>`) by moving the shape onto its part.
+   - `stage-gate` is never a maker packet: it is the main agent's step with the user.
 3. `{{ARTGEN}} render <id> --version <version>` until the gate passes (fix the source, not the checks).
 4. `{{ARTGEN}} review <id> --version <version>` — this appends the review line to the ledger.
 

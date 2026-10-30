@@ -256,6 +256,21 @@ describe('manifest checks and loading', () => {
     } finally { warn.mockRestore(); }
   });
 
+  test('placeholders (1.3.0): a pack lists them, says which assets are one, and loads without a console message', async () => {
+    const { manifest, images } = synthPack(), [img] = images;
+    const load = (m: PackManifest) => loadPack('/p/pack.json', recAdapter(), { fetchJson: async () => m, decode: async () => img });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const plain = await load(manifest);
+      expect(plain.placeholders).toEqual([]); expect(plain.isPlaceholder('walker')).toBe(false);
+      const stand: PackManifest = { ...manifest, placeholders: ['walker'], assets: { ...manifest.assets, walker: { ...manifest.assets.walker, placeholder: true, version: 'placeholder' } } };
+      const pack = await load(stand);
+      expect(pack.placeholders).toEqual(['walker']); expect(pack.isPlaceholder('walker')).toBe(true);
+      expect(pack.sprite('walker')).toBeDefined(); // it draws like any asset
+      expect(warn).not.toHaveBeenCalled();
+    } finally { warn.mockRestore(); }
+  });
+
   const root = new URL('../../../examples/', import.meta.url);
   describe.each(['swamp-topdown', 'iso-dungeon', 'billboard-crawler'])('fixture pack %s', name => {
     test('loads with a custom decoder; every asset, state, facing and variant resolves to a frame inside its atlas', async () => {

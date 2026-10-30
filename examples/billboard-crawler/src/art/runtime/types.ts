@@ -1,4 +1,4 @@
-// Vendored by `artgen export --runtime` (artgen-runtime 1.2.1). Local edits are detected and kept;
+// Vendored by `artgen export --runtime` (artgen-runtime 1.4.0). Local edits are detected and kept;
 // re-export with --force to overwrite them. Source: packages/artgen-runtime in rstevenson1237/image_tools.
 /**
  * The exported pack format (written by `artgen export`) and the adapter interface. The runtime
@@ -44,6 +44,8 @@ export interface PackAsset {
   /** Additive blending (effects): sprites call the adapter's `setBlend(node, 'add')`. */
   blend?: 'add';
   draft?: true;
+  /** A stand-in exported before the asset has art (`artgen export --placeholders`). */
+  placeholder?: true;
 }
 
 export interface PackManifest {
@@ -58,6 +60,8 @@ export interface PackManifest {
   normals?: string[];
   assets: Record<string, PackAsset>;
   drafts?: string[];
+  /** Ids of the assets exported from their placeholder, sorted. */
+  placeholders?: string[];
 }
 
 /** Decoded atlas pixels (straight-alpha RGBA, rows top to bottom). `swap` names the palette swap it was recoloured with. */

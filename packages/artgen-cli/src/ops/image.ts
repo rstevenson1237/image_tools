@@ -1,5 +1,5 @@
 /**
- * The image tools' operations (docs/TOOLING-PLAN.md §6b, R5b): `trace`, `slice` and `quantize` read a picture by path and
+ * The image tools' operations (docs/TOOLING-PLAN.md §6b, R5b): `trace`, `slice`, `quantize` and `rotate` read a picture by path and
  * write files beside it, so no project is needed. They are the same functions the web tools run (`artgen-imagekit`), declared once for
  * the CLI and Python. They are in the core module, so the maps-only bundle has them too (a traced outline feeds `map trace`).
  * `cut` and `trace-base` need the asset pipeline and are in `art-image.ts`.
@@ -7,7 +7,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, extname, join, resolve } from 'node:path';
 import { crop, formatGpl, formatHex, paletteOf, parsePaletteText, sliceGrid, sliceSprites, snapToPalette, traceImage, traceToSvg, type TraceOptions, type TraceResult } from 'artgen-imagekit';
-import { decodePNG, encodePNG, Grid, normHex } from 'artgen-primitives';
+import { decodePNG, encodePNG, Grid, normHex, rotsprite } from 'artgen-primitives';
 import { defineOp, p } from './registry.ts';
 
 type Inp = Record<string, any>;
@@ -141,4 +141,33 @@ export const quantize = defineOp({
   mcp: { exclude: BY_PATH }, python: {},
 });
 
-export const IMAGE_OPS = [trace, slice, quantize];
+/** RotSprite (docs/STAGES.md §8.3): one rotation of a picture, or a strip of `steps` rotations evenly over 360°. */
+export const rotate = defineOp({
+  name: 'rotate', module: 'core', effect: 'write', summary: 'Rotate pixel art without blurring it (RotSprite): one angle, or a strip of evenly spaced rotations.',
+  params: {
+    image: p.str('the picture (PNG)', { positional: true, required: 'rotate: <image.png> is required' }),
+    deg: p.num('degrees, clockwise on screen (required unless --steps; with --steps, the angle of the first frame, default 0)'),
+    steps: p.int('write a strip of this many rotations, evenly spaced over 360° (each frame as wide as the picture)'),
+    pivot: p.list('number', 'the point to turn about, x,y in pixels (default: the centre)'),
+    out: p.str('the PNG to write (default: <image>.rotated.png)'),
+  },
+  run(i: Inp) {
+    const file = resolve(i.image), img = readPicture(file), out = resolve(i.out ?? `${stemOf(file)}.rotated.png`), pv = i.pivot as number[] | undefined;
+    if (pv && pv.length !== 2) throw new Error('rotate: --pivot is x,y (two numbers)');
+    if (i.steps === undefined && i.deg === undefined) throw new Error('rotate: give --deg <degrees> or --steps <n>');
+    if (i.steps !== undefined && (!Number.isInteger(i.steps) || i.steps < 1 || i.steps > 360)) throw new Error('rotate: --steps is a whole number from 1 to 360');
+    const pivot = pv && ([pv[0], pv[1]] as [number, number]), n = i.steps ?? 1, start = i.deg ?? 0;
+    const degs = Array.from({ length: n }, (_, k) => start + (i.steps === undefined ? 0 : (360 * k) / n));
+    const strip = new Grid(img.w * n, img.h);
+    degs.forEach((d, k) => strip.blit(rotsprite(img, d, { pivot }), k * img.w, 0));
+    writePicture(out, strip);
+    return { out, width: strip.w, height: strip.h, frames: n, degrees: degs, frameWidth: img.w };
+  },
+  cli: {
+    usage: '       artgen rotate <image.png> --deg n | --steps k [--deg start] [--pivot x,y] [--out file.png]',
+    text: r => `${r.out}: ${r.frames === 1 ? `rotated ${r.degrees[0]}°` : `${r.frames} rotations of ${r.frameWidth}px, ${r.degrees.map((d: number) => `${+d.toFixed(2)}°`).join(' ')}`} (${r.width}x${r.height})`,
+  },
+  mcp: { exclude: BY_PATH }, python: {},
+});
+
+export const IMAGE_OPS = [trace, slice, quantize, rotate];

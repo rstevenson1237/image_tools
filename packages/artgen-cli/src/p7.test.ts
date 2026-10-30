@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { afterEach, beforeAll, describe, expect, test, vi } from 'vitest';
 import { parseLedger } from 'artgen-core';
 import { main } from './cli.ts';
-import { readJson } from './project.ts';
+import { readJson, writeJson } from './project.ts';
 import { ledgerSet } from './w2.ts';
 
 const HERE = dirname(fileURLToPath(import.meta.url)), REPO = join(HERE, '..', '..', '..'), BIN = join(HERE, 'bin.ts');
@@ -30,6 +30,10 @@ describe('parallel make (P7)', () => {
 
   beforeAll(async () => {
     await run('init', ...R);
+    // the ungated pipeline: init now gates the shape of figures (gates are tested in stages.test.ts)
+    const cfgFile = join(root, 'art', 'artgen.config.json'), cfg = readJson<{ review: Record<string, unknown> }>(cfgFile);
+    cfg.review.gates = {};
+    writeJson(cfgFile, cfg);
     await run('direction', 'candidates', '--pitch', 'grim swamp roguelike with bog goblins', '--view', 'topdown', ...R);
     await run('direction', 'lock', 'a', ...R);
     await run('brief', 'add', 'goblin', '--kind', 'character', ...R);

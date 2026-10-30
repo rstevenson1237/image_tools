@@ -30,7 +30,7 @@ describe('artgen MCP server', () => {
   test('tools/list names the full tool set (SPEC §14) with input schemas', async () => {
     const r = (await handle({ jsonrpc: '2.0', id: 4, method: 'tools/list' }, root))!.result as { tools: { name: string; inputSchema: { type: string } }[] };
     expect(r.tools.map(t => t.name)).toEqual(['direction_get', 'direction_tile', 'pass_status', 'render', 'review', 'conformance', 'score', 'finish', 'make', 'brief_lint', 'brief_add', 'brief_list', 'status',
-      'gallery', 'sheet', 'feedback', 'approve', 'texture', 'fx', 'export', 'restyle', 'analytics', 'pr_prepare', 'pr_parse', 'map_list', 'map_get', 'map_new', 'map_update', 'map_edit', 'map_overlay', 'map_render', 'map_facts', 'map_check',
+      'gallery', 'sheet', 'feedback', 'approve', 'placeholder', 'stages', 'stage_approve', 'stage_reject', 'texture', 'fx', 'export', 'restyle', 'analytics', 'pr_prepare', 'pr_parse', 'map_list', 'map_get', 'map_new', 'map_update', 'map_edit', 'map_overlay', 'map_render', 'map_facts', 'map_check',
       'dungeon_list', 'dungeon_get', 'dungeon_new', 'dungeon_update', 'dungeon_generate', 'dungeon_edit', 'dungeon_check', 'dungeon_overlay', 'dungeon_render', 'dungeon_facts',
       'settlement_list', 'settlement_get', 'settlement_new', 'settlement_update', 'settlement_generate', 'settlement_edit', 'settlement_check', 'settlement_facts', 'settlement_render', 'formats', 'map_brief', 'map_version', 'map_diff', 'map_review', 'map_feedback', 'map_approve', 'map_status', 'map_sheet', 'map_direction', 'dungeon_brief', 'dungeon_version', 'dungeon_diff', 'dungeon_review', 'dungeon_feedback', 'dungeon_approve', 'dungeon_status', 'dungeon_sheet', 'settlement_brief', 'settlement_version', 'settlement_diff', 'settlement_review', 'settlement_feedback', 'settlement_approve', 'settlement_status', 'settlement_sheet', 'report', 'metrics_export']);
     expect(r.tools.every(t => t.inputSchema.type === 'object')).toBe(true);
@@ -137,6 +137,26 @@ describe('artgen MCP server on a locked project (W2 tools)', () => {
     expect(a.isError).toBe(true);
     expect(a.content[0].text).toMatch(/only the user approves/);
     expect((await call2('approve', { id: 'crate', user_approved: true })).content[0].text).toMatch(/crate is in-pipeline/);
+  });
+
+  test('placeholder writes under art/ and returns the picture; the stage tools need the user, as approve does', async () => {
+    const r = await call2('placeholder', { asset: 'goblin' });
+    expect(r.isError, r.content[0].text).toBeUndefined();
+    expect(r.content.map(c => c.type)).toEqual(['text', 'image']);
+    expect(JSON.parse(r.content[0].text!)).toMatchObject({ id: 'goblin', file: 'art/assets/character/goblin/placeholder.json', png: 'art/assets/character/goblin/out/placeholder.png' });
+    expect((await call2('placeholder', { asset: 'goblin' })).content[0].text).toMatch(/pass --force/);
+    for (const [tool, args] of [['stage_approve', {}], ['stage_reject', { note: 'too small' }]] as const) {
+      for (const user of [undefined, false]) {
+        const refused = await call2(tool, { asset: 'goblin', stage: 'placeholder', ...args, ...(user === false && { user_approved: false }) });
+        expect(refused.isError).toBe(true);
+        expect(refused.content[0].text).toMatch(/only the user/);
+      }
+    }
+    expect((await call2('stage_reject', { asset: 'goblin', stage: 'placeholder', user_approved: true })).content[0].text).toMatch(/note/);
+    const ok = await call2('stage_approve', { asset: 'goblin', stage: 'placeholder', user_approved: true, note: 'good size' });
+    expect(ok.isError, ok.content[0].text).toBeUndefined();
+    expect(JSON.parse(ok.content[0].text!)).toMatchObject({ type: 'stage', stage: 'placeholder', verdict: 'approve', by: 'user', note: 'good size' });
+    expect(JSON.parse((await call2('stages', { asset: 'goblin' })).content[0].text!)).toMatchObject({ id: 'goblin', gates: ['shape'], states: { placeholder: 'approved' } });
   });
 
   test('feedback on an unfinished asset is refused; analytics and gallery answer on an empty pipeline', async () => {

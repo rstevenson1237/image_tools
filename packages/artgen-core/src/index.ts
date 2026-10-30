@@ -11,6 +11,7 @@ export * from './qa/conformance.ts';
 export * from './qa/sheet.ts';
 export * from './qa/tiles.ts';
 export * from './qa/anim.ts';
+export * from './qa/stages.ts';
 export * from './pipeline.ts';
 export { applyFinish, finishSnapshot, finishStale, makePx, type FinishModule, type FinishContext, type PatchRecord, type Px } from './finish.ts';
 export * from './w1/candidates.ts';
@@ -18,6 +19,7 @@ export { styleTile, styleSheet, wrap, paletteLuma, type ProbeImages, type StyleT
 export * from './w2/briefs.ts';
 export * from './w2/sheet.ts';
 export * from './w2/pack.ts';
+export * from './w2/placeholder.ts';
 export * from './w2/contract.ts';
 export * from './w2/roster.ts';
 export * from './w2/recommend.ts';

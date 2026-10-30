@@ -82,3 +82,38 @@ describe('what the art readers see', () => {
     expect(md).toContain('Checks failing most: art palette x1.');
   });
 });
+
+describe('generatorMetrics: stage gates and time to the game (docs/STAGES.md §5.7)', () => {
+  const at = (asset: string, type: string, min: number, x: Record<string, unknown> = {}): LedgerEntry => ({ ts: new Date(Date.UTC(2026, 9, 30, 10, min)).toISOString(), type: type as LedgerEntry['type'], asset, ...x });
+  const subjects = ['goblin', 'orc', 'crate'].map(key => ({ generator: 'art', key }));
+  const ledger: LedgerEntry[] = [
+    at('goblin', 'stage', 0, { stage: 'placeholder', event: 'written', key: 'p' }),
+    at('goblin', 'export', 3, { version: 'placeholder', placeholder: true }),
+    at('goblin', 'score', 5, { version: 'base.v1', score: 6 }),
+    at('goblin', 'stage', 6, { stage: 'shape', verdict: 'reject', key: 's1', by: 'user' }),
+    at('goblin', 'score', 8, { version: 'base.v2', score: 7 }),
+    at('goblin', 'stage', 9, { stage: 'shape', verdict: 'approve', key: 's2', by: 'user' }),
+    at('goblin', 'approve', 20, { version: 'base.v2', by: 'user' }),
+    at('orc', 'score', 0, { version: 'base.v1', score: 7 }),
+    at('orc', 'stage', 2, { stage: 'shape', verdict: 'approve', key: 'o1', by: 'user' }),
+    at('orc', 'approve', 4, { version: 'base.v1', by: 'user' }),
+    at('orc', 'export', 11, { version: 'base.v1' }),
+    at('crate', 'score', 0, { version: 'base.v1', score: 5 }),
+  ];
+  const art = generatorMetrics(ledger, subjects).art;
+
+  test('gates counts the user\'s verdicts per stage; entries without a verdict are not counted', () => {
+    expect(art.gates).toEqual({ shape: { approved: 2, rejected: 1 } });
+  });
+  test('a stage reject is user feedback: the goblin was not approved untouched', () => {
+    expect(art.feedback).toBe(1);
+    expect(art.firstPassApproval).toEqual({ approved: 2, untouched: 1, rate: 0.5 });
+  });
+  test('firstInGameMinutes is the median over assets with an export, a placeholder export counting', () => {
+    expect(art.firstInGameMinutes).toBe(11); // goblin 3, orc 11: the median of two takes the upper
+  });
+  test('none of it appears without stage entries or exports', () => {
+    const plain = generatorMetrics(ledger.filter(x => x.asset === 'crate'), subjects).art;
+    expect(plain).not.toHaveProperty('gates'); expect(plain).not.toHaveProperty('firstInGameMinutes');
+  });
+});

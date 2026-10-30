@@ -26,6 +26,10 @@ export interface GeneratorMetrics {
   wallMinutes: number;
   /** Check id → count of failing checks on review, score and render entries. */
   checkFailures: Record<string, number>;
+  /** Art with stage gates (docs/STAGES.md §5.7): the user's approvals and rejections per gated stage. Absent until a verdict is recorded. */
+  gates?: Record<string, { approved: number; rejected: number }>;
+  /** Art: the median minutes from an asset's first ledger entry to its first export (a placeholder export counts), over assets with an export. */
+  firstInGameMinutes?: number;
 }
 
 const round = (v: number, d = 2): number => Math.round(v * 10 ** d) / 10 ** d;
@@ -42,10 +46,19 @@ function latestScores(entries: LedgerEntry[]): LedgerEntry[] {
 function metricsFor(generator: string, keys: string[], byKey: Map<string, LedgerEntry[]>): GeneratorMetrics {
   const art = generator === 'art';
   let started = 0, final = 0, approved = 0, untouched = 0, feedback = 0, imageTokens = 0, outTokens = 0, wallMs = 0, passes = 0;
-  const checkFailures: Record<string, number> = {};
+  const checkFailures: Record<string, number> = {}, gates: Record<string, { approved: number; rejected: number }> = {}, toGame: number[] = [];
   for (const key of keys) {
     const es = byKey.get(key) ?? [], scores = latestScores(es);
-    const approves = es.some(e => e.type === 'approve'), fb = es.filter(e => e.type === 'feedback' && e.by !== 'agent').length;
+    // a stage reject by the user is the user asking for a change: it counts as feedback (docs/STAGES.md §5.7)
+    const approves = es.some(e => e.type === 'approve'), fb = es.filter(e => (e.type === 'feedback' && e.by !== 'agent') || (art && e.type === 'stage' && e.verdict === 'reject' && e.by === 'user')).length;
+    if (art) {
+      for (const e of es) if (e.type === 'stage' && (e.verdict === 'approve' || e.verdict === 'reject') && typeof e.stage === 'string') {
+        const g = (gates[e.stage] ??= { approved: 0, rejected: 0 });
+        if (e.verdict === 'approve') g.approved++; else g.rejected++;
+      }
+      const first = Date.parse(es[0]?.ts ?? ''), exp = es.find(e => e.type === 'export'), at = Date.parse(exp?.ts ?? '');
+      if (exp && Number.isFinite(first) && Number.isFinite(at)) toGame.push(Math.max(0, at - first) / 60_000);
+    }
     if (art ? scores.length : es.some(e => e.type === 'version')) started++;
     if (approves || (art ? es.some(e => e.type === 'status' && e.status === 'final') : subjectStatus({ entries: es }).status === 'final')) final++;
     feedback += fb;
@@ -64,6 +77,7 @@ function metricsFor(generator: string, keys: string[], byKey: Map<string, Ledger
     subjects: keys.length, started, final, approved, ...(approved && { passesPerApproved: round(passes / approved) }),
     firstPassApproval: { approved, untouched, ...(approved && { rate: round(untouched / approved) }) },
     feedback, imageTokens, outTokens, wallMinutes: round(wallMs / 60_000, 1), checkFailures,
+    ...(Object.keys(gates).length && { gates }), ...(toGame.length && { firstInGameMinutes: round([...toGame].sort((a, b) => a - b)[toGame.length >> 1], 1) }),
   };
 }
 

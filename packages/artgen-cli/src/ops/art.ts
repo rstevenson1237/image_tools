@@ -7,6 +7,7 @@
 import { anim, bench, conformance, fx, passNext, passStatus, render, reportOp, review, score, texture, variants, voxel } from './art-asset.ts';
 import { anchors, candidates, directionShow, draft, finish, init, lockOp, mix, newOp, paletteExtract, paletteImport, ramp, tile, validate } from './art-direction.ts';
 import { analytics, approveOp, briefAdd, briefLint, briefList, briefRm, exportOp, feedbackOp, galleryOp, importEditOp, makeOp, restyleOp, roster, rosterRecordOp, sheetOp, status } from './art-production.ts';
+import { STAGE_OPS } from './art-stages.ts';
 import { IMAGE_ART_OPS } from './art-image.ts';
 import { LOOP_ART_OPS } from './art-loop.ts';
 import { usageLines, type OpDef } from './registry.ts';
@@ -14,7 +15,7 @@ import { usageLines, type OpDef } from './registry.ts';
 export const ART_OPS: OpDef[] = [
   init, candidates, directionShow, tile, mix, lockOp, anchors, draft, validate, paletteImport, paletteExtract, ramp, newOp,
   passStatus, passNext, render, review, conformance, score, variants, reportOp, finish,
-  makeOp, briefLint, briefAdd, briefList, briefRm, status, galleryOp, sheetOp, feedbackOp, approveOp, roster, rosterRecordOp,
+  makeOp, briefLint, briefAdd, briefList, briefRm, status, galleryOp, sheetOp, feedbackOp, approveOp, ...STAGE_OPS, roster, rosterRecordOp,
   texture, fx, ...IMAGE_ART_OPS, exportOp, restyleOp, analytics, ...LOOP_ART_OPS, importEditOp, voxel, anim, bench,
 ];
 

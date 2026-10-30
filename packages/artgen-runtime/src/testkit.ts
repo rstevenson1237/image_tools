@@ -52,3 +52,22 @@ export function synthPack(): { manifest: PackManifest; images: DecodedImage[] } 
 
 /** Index of the frame cell a rect points at (inverse of the layout above). */
 export const cellAt = (x: number, y: number): number => (y / H) * 16 + x / W;
+
+/**
+ * Normal-map atlases for the synthetic pack (same layout as its colour atlas) and the manifest fields that announce them:
+ * `walker` exports normals. Every frame is a dome tilted by its cell number, so frames, mirroring and lights all show.
+ * Encoded as the exporter does (RGB = normal, OpenGL convention: y up, alpha 255 inside the frame).
+ */
+export function synthNormals(manifest: PackManifest, images: DecodedImage[]): DecodedImage[] {
+  manifest.normals = images.map((_, i) => `synth-${i}.n.png`);
+  manifest.assets.walker.normals = true;
+  return images.map(img => {
+    const data = new Uint8ClampedArray(img.data.length), cols = img.width / W;
+    for (let y = 0; y < img.height; y++) for (let x = 0; x < img.width; x++) {
+      const cell = Math.floor(y / H) * cols + Math.floor(x / W), u = ((x % W) - (W - 1) / 2) / (W / 2) + ((cell % 5) - 2) * 0.15, v = ((y % H) - (H - 1) / 2) / (H / 2);
+      const z = Math.sqrt(Math.max(0.15, 1 - u * u - v * v)), l = Math.hypot(u, v, z), i = (y * img.width + x) * 4;
+      data[i] = Math.round((u / l * 0.5 + 0.5) * 255); data[i + 1] = Math.round((-v / l * 0.5 + 0.5) * 255); data[i + 2] = Math.round((z / l * 0.5 + 0.5) * 255); data[i + 3] = 255;
+    }
+    return { ...img, data };
+  });
+}

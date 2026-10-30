@@ -66,3 +66,17 @@ fields (`assets`, `byKind`, `passes`, `totals`, `firstPassApproval`, `userRevisi
 module is installed, so a maps-only repo exports `generators` and `maps` alone. `metrics export` and `metrics pool` belong to the
 `core` module for that reason. `metrics pool` reads schemas 1 and 2 together and adds a per-generator table for the schema 2 exports;
 the pool of schema 1 exports reads as before. `artgen analytics` shows the same table (Generators) once the ledger holds map work.
+
+### Stage gates and time to the game (R6a)
+
+With stage gates ([`../STAGES.md`](../STAGES.md)) the art numbers gain two optional fields, still schema 2. They are in the art
+fields and in `generators.art`, and are absent until the ledger holds something to count:
+
+- `gates`: per gated stage (`placeholder`, `shape`), how many times the user approved and rejected it (`{ "shape": { "approved": 5, "rejected": 2 } }`),
+  from the `stage` ledger entries that carry a verdict.
+- `firstInGameMinutes`: the median, over assets with any export, of the minutes from the asset's first ledger entry to its first `export`
+  entry. A placeholder export (`export --placeholders`) counts, so this is the KPI "time to the first placeholder in the game".
+  With an even number of assets the upper middle value is taken.
+
+A user's stage reject counts as user feedback: an asset the user sent back at the shape gate is not approved at the first pass
+(`firstPassApproval.untouched`, `feedback`).

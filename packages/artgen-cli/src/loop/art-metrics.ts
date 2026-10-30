@@ -14,12 +14,13 @@ export function artMetricsOf(p: Project): ArtMetrics {
   const set = ledgerSet(p.root), ledger = set.ledger, report = analytics(ledger, set.metas);
   const ids = new Set(set.metas.map(m => m.id));
   const approved = new Set(ledger.filter(e => e.type === 'approve' && ids.has(e.asset)).map(e => e.asset));
-  const userFeedback = new Set(ledger.filter(e => e.type === 'feedback' && e.by !== 'agent').map(e => e.asset));
+  // a stage reject by the user is the user asking for a change (docs/STAGES.md §5.7)
+  const userFeedback = new Set(ledger.filter(e => (e.type === 'feedback' && e.by !== 'agent') || (e.type === 'stage' && e.verdict === 'reject' && e.by === 'user')).map(e => e.asset));
   const untouched = [...approved].filter(a => !userFeedback.has(a)).length;
   const finals = report.perAsset.filter(a => a.final !== undefined).length;
   const gateFailures: Record<string, number> = {};
   for (const e of ledger as LedgerEntry[]) for (const c of e.conformance?.checks ?? []) if (c.status === 'fail') gateFailures[c.id] = (gateFailures[c.id] ?? 0) + 1;
-  const recs = passRecords(ledger);
+  const recs = passRecords(ledger), gen = generatorMetrics(ledger, set.metas.map(m => ({ generator: 'art', key: m.id }))), art = gen.art;
   const wall = (rs: typeof recs) => round(rs.reduce((n, r) => n + (r.wallMs ?? 0), 0) / 60_000, 1);
   return {
     assets: { total: set.metas.length, final: finals, approved: approved.size },
@@ -30,6 +31,7 @@ export function artMetricsOf(p: Project): ArtMetrics {
     userRevisionRate: report.userRevisionRate.rate,
     gateFailures,
     blind: { n: report.review.blind.n, meanGap: report.review.blind.meanGap },
-    generators: generatorMetrics(ledger, set.metas.map(m => ({ generator: 'art', key: m.id }))),
+    ...(art?.gates && { gates: art.gates }), ...(art?.firstInGameMinutes !== undefined && { firstInGameMinutes: art.firstInGameMinutes }),
+    generators: gen,
   };
 }

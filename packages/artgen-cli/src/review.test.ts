@@ -45,7 +45,7 @@ describe('rev 9: blind re-score, reviewer records, heights, roster', () => {
     const cfg = readJson<{ budget: { perKind?: unknown }; review?: Record<string, unknown> }>(art('artgen.config.json'));
     delete cfg.budget.perKind;
     // and one extra revision in all: the blind miss below spends the shared extra budget (no separate blind budget)
-    cfg.review = { ...cfg.review, blindRevisions: 0 };
+    cfg.review = { ...cfg.review, blindRevisions: 0, gates: {} }; // gates: the ungated pipeline (init gates the shape of figures)
     writeJson(art('artgen.config.json'), cfg);
     await run('direction', 'candidates', '--pitch', 'Damp crypt crawler: knights, barrels and torchlight.', ...R);
     await run('direction', 'lock', 'a', ...R);

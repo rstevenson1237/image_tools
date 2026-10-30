@@ -7,12 +7,13 @@ import { writeGrid } from '../node.ts';
 import { animPreview, fxRun, textureRun, voxelExport } from '../p6.ts';
 import { report } from '../report.ts';
 import { requireLocked } from '../w2.ts';
-import { assetOf, assetParam, directionParam, image, ledgerParam, pngFile, projectPng, sizeOf, text, toolDirection, versionOf, versionParam, type Inp } from './art-shared.ts';
+import { shapeReview } from '../stages.ts';
+import { assetOf, assetParam, directionParam, image, ledgerParam, pngFile, projectPng, sizeOf, stepName, text, toolDirection, versionOf, versionParam, type Inp } from './art-shared.ts';
 import { defineOp, p } from './registry.ts';
 
 const PASS_NEXT = 'pass_status includes the next step';
 const passRows = (st: any): string => st.rows.map((r: any) => `  ${r.pass.padEnd(4)} ${r.version.padEnd(10)} ${r.score === undefined ? 'unscored' : `score ${r.score}`}${r.gate === undefined ? '' : r.gate ? ' gate pass' : ' gate FAIL'}${r.base ? ` (on ${r.base})` : ''}`);
-const nextLine = (n: any): string => `${n.action} ${'version' in n ? n.version : ''} — ${n.why}`;
+const nextLine = (n: any): string => `${stepName(n)} — ${n.why}`;
 
 export const passStatus = defineOp({
   name: 'pass.status', module: 'art', effect: 'read', summary: 'Pipeline state of an asset: versions, scores, gate, best base and the next step.',
@@ -64,24 +65,28 @@ export const render = defineOp({
 
 export const review = defineOp({
   name: 'review', module: 'art', effect: 'render', summary: 'Build the review sheet for a version and log it to the ledger.',
-  description: 'Build the review sheet for a version (best so far, v(n-1), v(n), checker + scaled + in context + silhouette), log it to the ledger and return it. blind: the version alone (no earlier versions, scores or notes) for a fresh reviewer\'s blind re-score of a version. detail: low = the first facing at 3x beside the previous version only (about half the image tokens; the default for r1), full = every facing and the best so far. scene: add the sprite at game zoom on the background, a floor and beside a wall (contrast check).',
+  description: 'Build the review sheet for a version (best so far, v(n-1), v(n), checker + scaled + in context + silhouette), log it to the ledger and return it. blind: the version alone (no earlier versions, scores or notes) for a fresh reviewer\'s blind re-score of a version. detail: low = the first facing at 3x beside the previous version only (about half the image tokens; the default for r1), full = every facing and the best so far. scene: add the sprite at game zoom on the background, a floor and beside a wall (contrast check). stage: shape = a small sheet of the silhouettes (1x and 3x, with the placeholder box and pivot) and the shape checks, for the shape gate.',
   params: {
     asset: assetParam('the asset: a brief id or an asset directory'), version: versionParam('the version to review; default the latest'),
     blind: p.bool('the version alone, for a fresh reviewer\'s blind re-score'), detail: p.str('low (first facing at 3×, previous version only) or full (every facing, the best so far)', { schema: { type: 'string', enum: ['low', 'full'] } }),
-    scene: p.bool('add the sprite on a floor and beside a wall (contrast check)'), direction: directionParam(), ledger: ledgerParam(),
+    scene: p.bool('add the sprite on a floor and beside a wall (contrast check)'),
+    stage: p.str('shape: a small sheet of the silhouettes and the shape checks, for the shape gate, instead of the full review sheet', { schema: { type: 'string', enum: ['shape'] } }),
+    direction: directionParam(), ledger: ledgerParam(),
   },
-  async run(i: Inp, ctx) {
+  async run(i: Inp, ctx): Promise<any> {
     const detail = i.detail;
+    if (i.stage !== undefined && i.stage !== 'shape') throw new Error('review --stage shape: the silhouettes and the shape checks (the only stage with a sheet)');
+    if (i.stage === 'shape') return shapeReview(assetOf(ctx, i), versionOf(ctx, assetOf(ctx, i), i));
     if (ctx.surface === 'cli' && detail !== undefined && detail !== 'low' && detail !== 'full') throw new Error('review --detail low (first facing at 3×, previous version only) | full (every facing, the best so far)');
     const a = assetOf(ctx, i), version = versionOf(ctx, a, i);
     return reviewVersion(a, version, { blind: i.blind === true, ...((detail === 'low' || detail === 'full') && { detail }), scene: i.scene === true });
   },
   cli: {
-    usage: '       artgen review <assetDir> [--version v] [--blind] [--detail low|full] [--scene]',
-    text: r => `review sheet ${r.path} (~${r.tokens} image tokens); gate ${r.render.report.pass ? 'pass' : 'FAIL'}${(r.warnings ?? []).map((w: string) => `\n  warning: ${w}`).join('')}`,
-    json: r => ({ sheet: r.path, tokens: r.tokens, pass: r.render.report.pass, checks: r.render.report.checks, ...(r.warnings && { warnings: r.warnings }) }),
+    usage: '       artgen review <assetDir> [--version v] [--blind] [--detail low|full] [--scene] [--stage shape]',
+    text: r => `${r.stage ? 'shape sheet' : 'review sheet'} ${r.path} (~${r.tokens} image tokens); gate ${r.render.report.pass ? 'pass' : 'FAIL'}${(r.warnings ?? []).map((w: string) => `\n  warning: ${w}`).join('')}${(r.checks ?? []).map((c: { id: string; status: string; detail: string }) => `\n  ${c.id} ${c.status}: ${c.detail}`).join('')}`,
+    json: r => ({ sheet: r.path, tokens: r.tokens, pass: r.render.report.pass, checks: r.render.report.checks, ...(r.warnings && { warnings: r.warnings }), ...(r.stage && { stage: r.stage, stageChecks: r.checks }) }),
   },
-  mcp: { content: (r, _i, ctx) => [text({ sheet: ctx.rel(r.path), imageTokens: r.tokens, pass: r.render.report.pass, checks: r.render.report.checks, ...(r.warnings && { warnings: r.warnings }) }), pngFile(r.path)] }, python: {},
+  mcp: { content: (r, _i, ctx) => [text({ sheet: ctx.rel(r.path), imageTokens: r.tokens, pass: r.render.report.pass, checks: r.render.report.checks, ...(r.warnings && { warnings: r.warnings }), ...(r.stage && { stage: r.stage, stageChecks: r.checks }) }), pngFile(r.path)] }, python: {},
 });
 
 export const conformance = defineOp({

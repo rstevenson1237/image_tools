@@ -1491,6 +1491,15 @@ text: {
       }
     ]
   },
+  "stages": {
+    "placeholder": "171fda3f",
+    "shape": "16392f5c",
+    "decorate": "19728dce",
+    "animation": "07842618"
+  },
+  "stageChecks": [
+    "shape-pivot:flag"
+  ],
   "base": "base.v3",
   "tokens": {
     "code": 251,
@@ -1575,7 +1584,18 @@ text: {
       "tokenSame": 1,
       "consistent": true,
       "gate": true,
-      "stale": []
+      "stale": [],
+      "stages": {
+        "same": [
+          "placeholder",
+          "shape",
+          "lighting",
+          "animation"
+        ],
+        "changed": [
+          "decorate"
+        ]
+      }
     },
     {
       "id": "slime",
@@ -1584,7 +1604,17 @@ text: {
       "tokenSame": 1,
       "consistent": true,
       "gate": true,
-      "stale": []
+      "stale": [],
+      "stages": {
+        "same": [
+          "placeholder",
+          "shape",
+          "decorate",
+          "lighting",
+          "animation"
+        ],
+        "changed": []
+      }
     },
     {
       "id": "torch-flame",
@@ -1593,7 +1623,18 @@ text: {
       "tokenSame": 1,
       "consistent": true,
       "gate": true,
-      "stale": []
+      "stale": [],
+      "stages": {
+        "same": [
+          "placeholder",
+          "shape",
+          "lighting",
+          "animation"
+        ],
+        "changed": [
+          "decorate"
+        ]
+      }
     },
     {
       "id": "chest",
@@ -1602,7 +1643,17 @@ text: {
       "tokenSame": 1,
       "consistent": true,
       "gate": true,
-      "stale": []
+      "stale": [],
+      "stages": {
+        "same": [
+          "placeholder",
+          "shape",
+          "animation"
+        ],
+        "changed": [
+          "decorate"
+        ]
+      }
     },
     {
       "id": "pillar",
@@ -1611,7 +1662,17 @@ text: {
       "tokenSame": 1,
       "consistent": true,
       "gate": true,
-      "stale": []
+      "stale": [],
+      "stages": {
+        "same": [
+          "placeholder",
+          "shape",
+          "animation"
+        ],
+        "changed": [
+          "decorate"
+        ]
+      }
     },
     {
       "id": "brazier",
@@ -1620,7 +1681,17 @@ text: {
       "tokenSame": 1,
       "consistent": true,
       "gate": true,
-      "stale": []
+      "stale": [],
+      "stages": {
+        "same": [
+          "placeholder",
+          "shape",
+          "animation"
+        ],
+        "changed": [
+          "decorate"
+        ]
+      }
     },
     {
       "id": "rubble",
@@ -1629,7 +1700,17 @@ text: {
       "tokenSame": 1,
       "consistent": true,
       "gate": true,
-      "stale": []
+      "stale": [],
+      "stages": {
+        "same": [
+          "placeholder",
+          "shape",
+          "animation"
+        ],
+        "changed": [
+          "decorate"
+        ]
+      }
     },
     {
       "id": "floor",
@@ -1638,7 +1719,18 @@ text: {
       "tokenSame": 1,
       "consistent": true,
       "gate": true,
-      "stale": []
+      "stale": [],
+      "stages": {
+        "same": [
+          "placeholder",
+          "shape",
+          "lighting",
+          "animation"
+        ],
+        "changed": [
+          "decorate"
+        ]
+      }
     }
   ]
 }

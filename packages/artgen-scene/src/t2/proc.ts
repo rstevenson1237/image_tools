@@ -1,14 +1,14 @@
 /**
  * Procedural pass v1 (S2, SPEC §6.4): seeded layers applied to a T2+ raster before colours are fixed —
  * `materialNoise`, `pattern`, `detail` (mask-template variation), lighting (`rimLight`, `ao`, `castShadow`,
- * `groundShadow`, `dropShadow`) and `dither`.
+ * `groundShadow`, `dropShadow`), `dither` and `decal` (marks kept as their own layer, STAGES.md §7.1).
  * Layers move pixels along their own material ramp, so the output stays on the direction palette.
  * The direction's `pipeline.procedural` list supplies default layers; an asset layer with the same name replaces
  * the default's options.
  */
 import type { DirContext } from '../direction.ts';
 import { Grid } from 'artgen-primitives/lib/grid.ts';
-import { INK, Raster } from 'artgen-primitives/raster.ts';
+import { decalCoverage, DECAL_SHAPES, INK, Raster, type DecalShape } from 'artgen-primitives/raster.ts';
 import type { Scene2D } from './scene.ts';
 
 export interface ProcEnv {
@@ -207,6 +207,40 @@ export const LAYERS: Record<string, Layer> = {
   },
 
   dropShadow(_r, _env, o, st) { st.shadow = [(o.dx as number) ?? 1, (o.dy as number) ?? 1]; },
+
+  /**
+   * A mark placed on a surface and kept as its own layer (damage, dirt, an emblem, team colours). Options: part (required,
+   * the target as other layers' `part`), shape (one primitive or a list: rect, ellipse, circle, poly, path, in frame
+   * pixels; required), mat (the decal's ramp, default `accent`; a team swap changes it like any other colour), band
+   * (`'keep'`, the default, takes the band of the pixel under it so the decal is shaded with the surface; or a fixed ramp
+   * index), opacity (0 to 1, default 1: below 1 it covers that share of its pixels in an ordered 4 x 4 Bayer pattern, so it
+   * stays pixel art), name (default `decal`, then `decal2`...). The decal covers its shape where it meets the target; lines
+   * are never covered. Later layers still see the surface under it.
+   */
+  decal(r, env, o) {
+    if (o.part === undefined) throw new Error('decal: part is required (the surface it lands on)');
+    const shapes = ([] as DecalShape[]).concat((o.shape ?? []) as DecalShape | DecalShape[]);
+    if (!shapes.length) throw new Error('decal: shape is required (a rect, ellipse, circle, poly or path, or a list of them)');
+    for (const s of shapes) if (!s || !DECAL_SHAPES.includes(s.type)) throw new Error(`decal: shape type ${JSON.stringify(s?.type)} is not one of ${DECAL_SHAPES.join(', ')}`);
+    const matName = (o.mat as string) ?? 'accent', ramp = env.dir.pal[matName] ?? env.dir.pal[env.dir.palette.materials[matName]];
+    if (!ramp) throw new Error(`decal: unknown material ${JSON.stringify(matName)} (not a ramp or direction material)`);
+    const band = o.band === undefined || o.band === 'keep' ? undefined : (o.band as number);
+    if (band !== undefined && !(Number.isInteger(band) && band >= 0 && band < ramp.length)) throw new Error(`decal: band must be 'keep' or a ramp index 0..${ramp.length - 1}`);
+    const opacity = (o.opacity as number) ?? 1;
+    if (!(opacity >= 0 && opacity <= 1)) throw new Error('decal: opacity must be between 0 and 1');
+    const taken = new Set(r.decals.map(d => d.name)), base = (o.name as string) ?? 'decal';
+    let name = base;
+    for (let n = 2; taken.has(name); n++) name = `${base}${n}`;
+    const cover = decalCoverage(shapes, r.w, r.h), onTarget = matcher(r, env, { part: o.part as string | string[] }), bayer = BAYER.bayer4;
+    const d = r.addDecal({ name, ramp: ramp.map(c => c), ...(band !== undefined && { band }) }), idx = r.decals.length - 1;
+    for (let p = 0; p < cover.length; p++) {
+      if (!cover[p]) continue;
+      d.total++;
+      if (!onTarget(p)) continue;
+      d.inside++;
+      if (bayer[((p / r.w) | 0) % 4][(p % r.w) % 4] < opacity) r.decal![p] = idx;
+    }
+  },
 };
 
 export class Proc {
@@ -243,9 +277,10 @@ export class Proc {
     const isScene = !(this.source as Grid).d, st: LayerState = {};
     const r = isScene ? (this.source as Scene2D).raster() : Raster.fromGrid(this.source as Grid, this.env.dir.pal, this.env.dir.outline, this.env.dir.shading.bands);
     for (const [name, o] of this.plan()) { LAYERS[name](r, this.env, o, st); this.stage?.(`proc-${name}`, r.toGrid()); }
+    if (r.decals.length) this.stage?.('decal', decalImage(r));
     if (isScene) {
       const ground = st.ground === 'auto' ? autoGround(r) : st.ground;
-      return (this.source as Scene2D).finalize(r, { ...(st.shadow && { shadow: st.shadow }), ...(ground && { groundShadow: ground }) });
+      return withDecals((this.source as Scene2D).finalize(r, { ...(st.shadow && { shadow: st.shadow }), ...(ground && { groundShadow: ground }) }), r);
     }
     // grid source: colours change in place; shadows are added beneath like a scene's
     let g = r.toGrid();
@@ -253,8 +288,22 @@ export class Proc {
     for (let i = 0; i < src.w * src.h; i++) if (src.d[i * 4 + 3] && src.d[i * 4 + 3] < 255) g.d.set(src.d.subarray(i * 4, i * 4 + 4), i * 4);
     if (st.shadow || st.ground) g = shadowsUnder(g, st, this.env, r);
     if (src.normal) g.normal = src.normal;
-    return g;
+    return withDecals(g, r);
   }
+}
+
+/** Decal masks and stats travel with the grid, as the normal map does (`Cell.decals` in the render). */
+export function withDecals(g: Grid, r: Raster): Grid {
+  const masks = r.decalMasks();
+  if (masks) { g.decals = masks; g.decalStats = r.decalStats(); }
+  return g;
+}
+
+/** The `decal` stage image (`--stages`): only the decal pixels, in their own colours, on clear. */
+function decalImage(r: Raster): Grid {
+  const g = new Grid(r.w, r.h), masks = r.decalMasks() ?? {};
+  for (const m of Object.values(masks)) for (let i = 0; i < m.length; i++) if (m[i]) g.set(i % r.w, (i / r.w) | 0, r.color(i));
+  return g;
 }
 
 function autoGround(r: Raster): [number, number, number] {

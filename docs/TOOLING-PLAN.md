@@ -1,6 +1,6 @@
 # Tooling plan: separate, refactor, and build a feedback loop
 
-Status: proposal, 2026-10-27; decisions settled 2026-10-27 and revised 2026-10-29 (§12). R0, R1, R2, R3, R5 and R5b are built, and R4's code is built but its acceptance run is not (§10); the rest is not. It follows on from the finished artgen plan ([`archive/artgen/PLAN.md`](archive/artgen/PLAN.md)) and reuses its
+Status: proposal, 2026-10-27; decisions settled 2026-10-27 and revised 2026-10-29 (§12). R0, R1, R2, R3, R5, R5b and R6 are built, and R4's code is built but its acceptance run is not (§10); R6's production accept is not run either; the rest is not. It follows on from the finished artgen plan ([`archive/artgen/PLAN.md`](archive/artgen/PLAN.md)) and reuses its
 decisions (`Dn`) where they still hold.
 
 ## 1. Summary
@@ -665,7 +665,7 @@ faster for the phases after it.
     several materials is for the pass that follows); tracing into dungeon and settlement footprints (only terrain maps take `map trace`); a pixel-exact lasso edge; Firefox
     (not installed in this sandbox); the Shape gate itself (R6a) that reads `cut --fill flat`.
 
-### R6 — Stage graph (L; split into sub-phases ordered by R4's metrics)
+### R6 — Stage graph (L; split into sub-phases ordered by R4's metrics) — built 2026-10-30, production accept not run
 - R6a: the **Placeholder** stage and its export, so the runtime loads placeholder packs. Add gates and stage cache
   keys.
 - R6b: the **shared rig library**, used by the creature and character templates.
@@ -675,6 +675,34 @@ faster for the phases after it.
   instead of written per asset.
 - **Accept:** on the bench, tokens and passes per approved asset fall against the R0 baseline, with no drop in blind
   score; a restyle re-runs only stages 3 and later.
+- **Built:** the design and what was built are in [`STAGES.md`](STAGES.md) (§13 per sub-phase, and the review's fixes).
+  The order follows the metrics (STAGES §2): 8 of the 15 user notes in the example ledgers were about form, so R6a came first.
+  - **R6a.** Stage ids and keys (`artgen-workflow/stages.ts`; `artgen-core/qa/stages.ts`): a key is a digest of a stage's
+    *output* (the silhouette with the outer line removed, the bone lengths, the pixels, the normals, the contract and anchors), so a
+    revision that keeps the silhouette keeps the shape key. Stage checks are a second report beside conformance, so no recorded
+    output changed. `placeholder.json` (an asset module made from data: footprint, pivot, body, collision, facing tick, state shade,
+    frame bob), `artgen placeholder`, `export --placeholders` (runtime 1.3.0: `placeholder` / `placeholders` in the manifest, contracts
+    written, status unmoved). Gates (`review.gates` per kind, a brief's `gates`; new projects gate the shape of characters and
+    creatures): the pass machine stops at `stage-gate placeholder` before v1 and `stage-gate shape` before v2, the finish and ready,
+    passed by key; `stage approve` / `stage reject` (user only, MCP `user_approved`), PR lines `approve goblin shape`, the shape sheet
+    (`review --stage shape`), `artgen stages`. Restyle records which stage keys changed; metrics gain gate counts and `firstInGameMinutes`.
+  - **R6b.** `artgen-scene/anim/rigs.ts`: biped, quadruped, flyer, serpent and turret skeletons with proportions, facing projection,
+    clips (idle, walk with foot IK, attack, hurt, flight) and standard anchors; `ctx.lib.rigs`; the `rig` key and `rig-lengths` check.
+    The 12 character and creature templates are rebuilt on it.
+  - **R6c.** Decals as a procedural layer (`decal`: on a part, a ramp, the surface's band, ordered-dither opacity), kept as masks on
+    the cell, with the `decal` key and `decal-inside` check. Lit sprites in Pixi.js: the lighting model once in the runtime core
+    (`light.ts`, `shadeTexel`) and `pixiLitAdapter` (a WebGL mesh shader with the same maths); `npm run accept:lit` matches the shader
+    to the reference within 1/255 in headless Chromium. Runtime 1.4.0; the swamp example's lantern is a moving light.
+  - **R6d.** RotSprite (`artgen-primitives/lib/rotsprite.ts`: Scale2x ×3, nearest sample of the inverse rotation; quarter turns exact;
+    colours never invented), rotated assets (`rotate: rotsprite`, `rotateFrom`: one facing drawn, the rest turned with anchors,
+    normals and decals), the `rotation-*` checks and `artgen rotate`.
+  - **Measured (STAGES §12).** The shape sheet costs 11 % of the full review sheet's image tokens on the 25 non-tile example finals.
+    A palette-only restyle of the three examples changed `decorate` on all 30 finals and no stage before it. The 8 form notes in the
+    example ledgers came after 34 passes; 4 of them are on props and creatures a shape gate sees (16 passes, at most 12 saved), only
+    one on a kind `init` gates by default. The rebuilt templates are 18,501 → 19,065 code tokens (+3 %).
+  - **Not done.** The production accept (tokens, passes and blind scores per approved asset with gates on, time to first placeholder)
+    needs model runs and a person answering the gates. Gates on stages after shape; a shape sheet in the web UI (R8); 3D rigs (R7b);
+    WebGPU lit sprites; Firefox.
 
 ### R7 — Output and camera breadth (L, three sub-phases)
 - **R7a — true 3D meshes and the free camera.** Turn `Scene3D` primitives into meshes (polygon budget, smooth or

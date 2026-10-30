@@ -12,11 +12,11 @@ export const prPrepare = defineOp({
   params: { ids: idsParam('brief ids; default every final asset'), base: p.str('make the image links absolute, e.g. https://github.com/<owner>/<repo>/blob/<branch>/art/review (for a pull request comment)', { mcp: false }) },
   async run(i: Inp, ctx) {
     const r = await prepareReview(ctx.project(), { ids: Array.isArray(i.ids) ? (i.ids as string[]) : undefined, base: i.base });
-    return { dir: ctx.rel(r.dir), table: r.table, assets: r.items.map(x => x.id), missing: r.missing };
+    return { dir: ctx.rel(r.dir), table: r.table, assets: r.items.map(x => x.id), missing: r.missing, ...(r.gates.length && { gates: r.gates.map(g => g.id) }) };
   },
   cli: {
     usage: '       artgen pr prepare [ids] [--base url]   review sheets and REVIEW.md in art/review/ to commit to the pull request',
-    text: r => `${r.assets.length} assets in ${r.dir}/REVIEW.md${r.missing.length ? `\nno review sheet yet: ${r.missing.join(', ')} (artgen review <id>)` : ''}\ncommit art/review/ to the pull request, then ask the user to reply there: approve <id>, or <id>: <what to change>`,
+    text: r => `${r.assets.length} assets in ${r.dir}/REVIEW.md${r.missing.length ? `\nno review sheet yet: ${r.missing.join(', ')} (artgen review <id>)` : ''}\ncommit art/review/ to the pull request, then ask the user to reply there: approve <id>, or <id>: <what to change>${r.gates?.length ? `\n${r.gates.join(', ')} wait at a gate: the reply is approve <id> shape, or <id>: shape: <what to change>` : ''}`,
   },
   mcp: { content: r => [text(r.table)] }, python: {},
 });
@@ -24,7 +24,7 @@ export const prPrepare = defineOp({
 export const prParse = defineOp({
   name: 'pr.parse', module: 'art', effect: 'read',
   summary: 'Read a pull request comment into the approve and feedback calls it asks for (one line per asset).',
-  description: 'Read the user\'s pull request comment ("approve goblin", "goblin: arms too long", "goblin: finish: eyes too dark") into actions: approve and feedback calls, with lines naming no brief listed apart. Parse only: the session makes the calls with via: pr, after checking the comment is the user\'s.',
+  description: 'Read the user\'s pull request comment ("approve goblin", "goblin: arms too long", "goblin: finish: eyes too dark", "approve goblin shape", "goblin: shape: arms too long") into actions: approve, feedback and stage approve / reject calls, with lines naming no brief listed apart. Parse only: the session makes the calls with via: pr, after checking the comment is the user\'s.',
   params: { comment: p.str('the comment text; or a file with --file', { positional: true }), file: p.str('read the comment from this file (- for standard input)', { mcp: false }), ids: idsParam('brief ids that count; default every brief') },
   run(i: Inp, ctx) {
     const body = typeof i.file === 'string' ? readFileSync(i.file === '-' ? 0 : i.file, 'utf8') : typeof i.comment === 'string' ? i.comment : undefined;
@@ -35,7 +35,7 @@ export const prParse = defineOp({
   cli: {
     usage: '       artgen pr parse <comment text> | --file <path|-> [ids]   a pull request comment as approve / feedback calls',
     text: r => [
-      ...r.actions.map((a: { type: string; id: string; note: string; route?: string }) => a.type === 'approve' ? `approve ${a.id}${a.note ? ` --note ${JSON.stringify(a.note)}` : ''} --via pr` : `feedback ${a.id} ${a.route ? `--route ${a.route}` : '--route <base|finish>'} --note ${JSON.stringify(a.note)} --via pr`),
+      ...r.actions.map((a: { type: string; id: string; note: string; route?: string; stage?: string }) => a.type === 'stage-approve' ? `stage approve ${a.id} ${a.stage}${a.note ? ` --note ${JSON.stringify(a.note)}` : ''} --via pr` : a.type === 'stage-reject' ? `stage reject ${a.id} ${a.stage} --note ${JSON.stringify(a.note)} --via pr` : a.type === 'approve' ? `approve ${a.id}${a.note ? ` --note ${JSON.stringify(a.note)}` : ''} --via pr` : `feedback ${a.id} ${a.route ? `--route ${a.route}` : '--route <base|finish>'} --note ${JSON.stringify(a.note)} --via pr`),
       ...r.unknown.map((u: string) => `unknown asset: ${u}`), ...r.ignored.map((u: string) => `ignored: ${u}`),
     ].join('\n') || 'nothing to do',
   },

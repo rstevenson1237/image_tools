@@ -9,7 +9,7 @@
 - Counts and ratios from the ledger (`node tools/artgen/artgen.js metrics export`, art module) go to `art/metrics/`; nothing else leaves the repo.
 
 ## Image tools
-- Pictures to shapes, tokens, cells and palettes need no project: `node tools/artgen/artgen.js trace|slice <image.png>`, `node tools/artgen/artgen.js quantize <image.png>`
+- Pictures to shapes, tokens, cells and palettes need no project: `node tools/artgen/artgen.js trace|slice <image.png>`, `node tools/artgen/artgen.js quantize <image.png>`, `node tools/artgen/artgen.js rotate <image.png> --deg n`
   (`/artgen-image` says when to use which). A traced sketch becomes an asset's base with `trace-base <asset> <image.png>` (art module) or paint edits on a map
   with `map trace <id> <image.png>`; `cut <asset|image.png>` makes a token from an approved asset (art module).
 
@@ -29,6 +29,9 @@
   repo's `art/` and writes the same files: ledger lines with `"via": "image-tools"` are the user's own approvals and
   feedback (feedback may pin a `region` / `cell`), drafts land in `art/candidates/`, and a direction locked there bumps
   the version — run `/artgen-restyle`. Re-read files every run; `node tools/artgen/artgen.js status` shows where things stand.
+- Gates: `artgen init` gates the **shape** of characters and creatures (`review.gates`; a brief's `gates` replace them). v1 is then a
+  silhouette draft and the pipeline waits for the user's `artgen stage approve|reject <id> shape` before decorating; `artgen placeholder <id>` and
+  `artgen export --placeholders` put a stand-in in the game from day one. `artgen stages <id>` shows what the user has approved.
 - Never hard-code palette colours, the outline colour, light or sizes in asset code: read them from `ctx.dir` (R11).
 - Never edit a version that has a score; write the next `base.vN.js` / `finish.vM.js` (R10).
 - CLI: `node tools/artgen/artgen.js <command>` (no npm install needed); the `artgen` MCP server exposes the same tools (images come back

@@ -4,6 +4,7 @@
  * and the base a finish is bound to. Pure data; the CLI and the UI's project store do the I/O.
  */
 import type { Direction } from 'artgen-scene/direction.ts';
+import type { GateStage } from 'artgen-workflow/stages.ts';
 
 export interface BudgetCaps { revisionPasses?: number; extraAutonomousRevisions?: number; maxImageTokensPerAsset?: number }
 
@@ -20,6 +21,8 @@ export type SheetDetail = 'low' | 'full';
  * finish-level problem or it clears `approveMin`; `earlyRoster` holds v2 until a roster review of every v1;
  * `rosterRevisions` caps the revisions a roster note may open per asset (`feedback --by roster`); `heightFail` fails
  * characters and creatures drawn further than that from their brief height; `sheetDetail` per pass (`r1: low`).
+ * `gates` (R6a, docs/STAGES.md): per kind (or `*`) the stages the user approves before the pipeline goes on —
+ * `placeholder`, `shape`; a brief's own `gates` replace them. None by default: existing projects behave as before.
  */
 export interface ReviewPolicy {
   blind: boolean;
@@ -31,6 +34,7 @@ export interface ReviewPolicy {
   rosterRevisions: number;
   heightFail: number;
   sheetDetail: Record<string, SheetDetail>;
+  gates: Record<string, GateStage[]>;
 }
 
 export interface ProjectConfig {
@@ -65,7 +69,7 @@ export const DEFAULT_CONFIG: ProjectConfig = {
   packs: { main: { include: ['*'] } },
   budget: { revisionPasses: 3, maxSheetEdge: 1568, maxUserIterations: 3, extraAutonomousRevisions: 1, tiers: { hero: { revisionPasses: 4 }, filler: { revisionPasses: 2 } } },
   models: { base: 'default', revise: 'default', finish: 'default', review: 'default' },
-  review: { blind: true, approveMin: 6.5, blindMaxGap: 1, blindRevisions: 1, finish: 'auto', earlyRoster: true, rosterRevisions: 1, heightFail: 0.15, sheetDetail: { r1: 'low' } },
+  review: { blind: true, approveMin: 6.5, blindMaxGap: 1, blindRevisions: 1, finish: 'auto', earlyRoster: true, rosterRevisions: 1, heightFail: 0.15, sheetDetail: { r1: 'low' }, gates: {} },
   gate: {},
 };
 
@@ -78,6 +82,8 @@ export const DEFAULT_CONFIG: ProjectConfig = {
 export const INIT_CONFIG: ProjectConfig = {
   ...DEFAULT_CONFIG,
   budget: { ...DEFAULT_CONFIG.budget, perKind: { texture: { revisionPasses: 2 }, prop: { revisionPasses: 4 } } },
+  // new projects gate the shape of figures: v1 is a silhouette draft the user approves before decoration (STAGES.md §3)
+  review: { ...DEFAULT_CONFIG.review, gates: { character: ['shape'], creature: ['shape'] } },
 };
 
 /** A parsed `artgen.config.json` merged over the defaults (sections shallow-merged, so older configs keep working). */

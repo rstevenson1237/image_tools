@@ -4,7 +4,7 @@ import { IMPORTANCE, type BriefEntry, type Importance } from 'artgen-core';
 import { VERSION } from '../version.ts';
 import { lockedDirection } from '../w1.ts';
 import { addBrief, approve, briefWarnings, exportPacks, feedback, gallery, importEdit, make, pooledAnalytics, projectAnalytics, projectStatus, readBriefs, removeBriefFile, requireLocked, restyle, rosterRecord, rosterRun, writeAssetSheet, type WorkPacket } from '../w2.ts';
-import { idsParam, packetLine, projectPng, sizeKey, statusTable, text, type Inp } from './art-shared.ts';
+import { idsParam, packetLine, projectPng, sizeKey, statusTable, stepName, text, type Inp } from './art-shared.ts';
 import { defineOp, p } from './registry.ts';
 
 const ROSTER_SKILL = 'a roster review needs a fresh reviewer subagent; the CLI drives it';
@@ -18,7 +18,10 @@ export const briefAdd = defineOp({
     anims: p.list('string', 'animations as state:frames[:fps], walk:4,attack:3'), durations: p.list('string', 'frame durations as state=ms/ms/…, attack=80/80/200/80'), variants: p.num('how many variants to make'),
     swaps: p.list('string', 'colour swaps as name:from=to, red:cloth=accent'), importance: p.oneOf(IMPORTANCE, 'hero, standard or filler', { error: IMPORTANCE.join(' | ') }), priority: p.num('make order; lower is first'),
     height: p.num('the thing\'s height in metres (checked against the drawn size by the roster)'), body: p.str('quadruped, serpent, flyer or large (non-humanoid rigs)'), object: p.str('the drawable thing, for an effect: "ice lance", "ring of fire"'),
-    notes: p.str('notes for the maker'), break_contract: p.bool('allow changing an exported animation\'s contract'),
+    notes: p.str('notes for the maker'), gates: p.list('string', 'stages the user approves before the pipeline goes on: placeholder, shape (replaces review.gates for this brief)'),
+    rotate: p.oneOf(['rotsprite'] as const, 'make the facings by rotating one drawn facing with RotSprite (vehicles, ships, turrets, projectiles); needs directions 4 or 8', { error: 'rotsprite' }),
+    rotate_from: p.str('the facing a rotated asset draws (default e)'),
+    break_contract: p.bool('allow changing an exported animation\'s contract'),
   },
   run(i: Inp, ctx) {
     const pr = ctx.project(), anims = i.anims as string[] | undefined, swaps = i.swaps as string[] | undefined;
@@ -31,7 +34,8 @@ export const briefAdd = defineOp({
       ...(swaps && { swaps: swaps.reduce((m, x) => { const [n, pair] = x.split(':'), [from, to] = pair.split('='); (m[n] ??= {})[from] = to; return m; }, {} as Record<string, Record<string, string>>) }),
       ...(i.importance && { importance: i.importance as Importance }), ...(i.priority !== undefined && { priority: i.priority }),
       ...(i.notes && { notes: i.notes }), ...(i.height !== undefined && { height: i.height }),
-      ...(i.object && { object: i.object }), ...(i.body && { body: i.body as BriefEntry['body'] }),
+      ...(i.object && { object: i.object }), ...(i.body && { body: i.body as BriefEntry['body'] }), ...(i.gates && { gates: i.gates as BriefEntry['gates'] }),
+      ...(i.rotate && { rotate: i.rotate as BriefEntry['rotate'] }), ...(i.rotate_from && { rotateFrom: i.rotate_from }),
     };
     for (const d of (i.durations as string[] | undefined) ?? []) {
       const [s, ms] = d.split('='), a = b.anims?.[s];
@@ -46,7 +50,7 @@ export const briefAdd = defineOp({
   },
   cli: {
     usage: [
-      '       artgen brief add <id> --kind k [--view v] [--size key|WxH] [--states a,b] [--directions n] [--anims walk:4] [--durations attack=80/80/200/80] [--variants n] [--swaps red:cloth=accent] [--importance t] [--priority n] [--height metres] [--body quadruped|serpent|flyer|large] [--object "ice lance"] [--notes "..."] [--break-contract]',
+      '       artgen brief add <id> --kind k [--view v] [--size key|WxH] [--states a,b] [--directions n] [--anims walk:4] [--durations attack=80/80/200/80] [--variants n] [--swaps red:cloth=accent] [--importance t] [--priority n] [--height metres] [--body quadruped|serpent|flyer|large] [--object "ice lance"] [--gates shape,placeholder] [--rotate rotsprite [--rotate-from e]] [--notes "..."] [--break-contract]',
     ],
     text: r => `brief ${r.brief.id} (${r.brief.kind}) in art/briefs.yaml — ${r.count} briefs${r.warnings.map((w: string) => `\n  warning: ${w}`).join('')}\nnext: artgen make ${r.brief.id}`,
   },
@@ -117,7 +121,7 @@ export const makeOp = defineOp({
           ...(r.work.main.length ? ['main agent (reviews, blind re-scores — fresh art-reviewer per sheet):', ...r.work.main.map((x: WorkPacket) => pk(x))] : []),
         ] : []),
         ...(r.roster ? [`v1 roster: ${r.roster.ids.join(', ')} wait for it — ${r.roster.why}`] : []),
-        r.next ? `next: ${r.next.id} — ${r.next.step.action} ${'version' in r.next.step ? r.next.step.version : ''} (${r.next.path}) — ${r.next.step.why}`
+        r.next ? `next: ${r.next.id} — ${stepName(r.next.step)} (${r.next.path}) — ${r.next.step.why}`
           : r.roster ? 'next: artgen roster --stage v1, a fresh art-reviewer in roster mode, then artgen roster record <its json> --reviewer art-reviewer'
           : r.finalRoster?.length ? `next: the final roster (${r.finalRoster.length} finals have no roster review): artgen roster, a fresh art-reviewer, artgen roster record — then the gallery`
           : 'next: nothing left in the pipeline — show the gallery to the user (artgen gallery)',
@@ -241,22 +245,23 @@ export const rosterRecordOp = defineOp({
 
 export const exportOp = defineOp({
   name: 'export', module: 'art', effect: 'write', summary: 'Export approved assets into the configured packs: atlases, pack.json, Aseprite JSON, typed assets.ts.',
-  description: 'Export approved assets into the configured packs (atlases, pack.json, Aseprite JSON, typed assets.ts); include_drafts adds finals; runtime vendors the artgen runtime + adapters. Animation contracts are enforced unless break_contract names the asset (or *).',
+  description: 'Export approved assets into the configured packs (atlases, pack.json, Aseprite JSON, typed assets.ts); include_drafts adds finals; runtime vendors the artgen runtime + adapters. placeholders adds every asset that is not approved, exported from its placeholder (marked placeholder in the manifest; its status does not move). Animation contracts are enforced unless break_contract names the asset (or *).',
   params: {
     packs: p.list('string', 'pack names; default all', { flag: '--pack' }), include_drafts: p.bool('export finals that are not approved yet'), runtime: p.bool('vendor the artgen runtime and the adapters into the runtime folder'),
     force: p.bool('overwrite locally edited runtime files'), break_contract: p.list('string', 'asset ids (or *) whose animation contract may change'),
+    placeholders: p.bool('also export every asset that is not approved from its placeholder (marked placeholder in the manifest), so the game runs with it from day one'),
   },
   async run(i: Inp, ctx) {
-    return exportPacks(ctx.project(), { packs: i.packs, includeDrafts: i.include_drafts === true, generator: `artgen ${VERSION}${ctx.surface === 'mcp' ? ' (mcp)' : ''}`, runtime: i.runtime === true, force: i.force === true, breakContract: i.break_contract });
+    return exportPacks(ctx.project(), { packs: i.packs, includeDrafts: i.include_drafts === true, generator: `artgen ${VERSION}${ctx.surface === 'mcp' ? ' (mcp)' : ''}`, runtime: i.runtime === true, force: i.force === true, breakContract: i.break_contract, placeholders: i.placeholders === true });
   },
   cli: {
     usage: [
-      '       artgen export [--pack name] [--include-drafts] [--runtime [--force]] [--break-contract id,…|*]',
+      '       artgen export [--pack name] [--include-drafts] [--placeholders] [--runtime [--force]] [--break-contract id,…|*]',
     ],
     text: r => {
       const rt = r.runtime;
       return [
-        ...r.packs.map((x: any) => `pack ${x.pack}: ${x.assets.length} assets → ${x.atlases.join(', ')} + ${x.dir}/pack.json${x.drafts.length ? ` (drafts: ${x.drafts.join(', ')})` : ''}`),
+        ...r.packs.map((x: any) => `pack ${x.pack}: ${x.assets.length} assets → ${x.atlases.join(', ')} + ${x.dir}/pack.json${x.drafts.length ? ` (drafts: ${x.drafts.join(', ')})` : ''}${x.placeholders?.length ? ` (placeholders: ${x.placeholders.join(', ')})` : ''}`),
         r.assetsTs ? `typed ids: ${r.assetsTs}` : 'nothing approved to export yet',
         ...(r.skipped.length ? [`not exported: ${r.skipped.map((s: any) => `${s.id} (${s.status})`).join(', ')}`] : []),
         ...r.contracts.map((c: any) => `contract ${c.id}: ${c.change}${c.notes.length ? ` (${c.notes.join('; ')})` : ''} → art/contracts/${c.id}.json`),

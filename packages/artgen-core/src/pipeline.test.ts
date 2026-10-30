@@ -182,3 +182,79 @@ describe('megadungeon fixes (0.10.0): best final, auto finish, blind gating, app
     expect(go([...v, 'base.v4'], [...l, ok('base.v4', 7.5)], { feedback: fb, finish: 'never' })).toMatchObject({ action: 'ready', final: 'base.v4' });
   });
 });
+
+describe('stage gates (docs/STAGES.md §5.4)', () => {
+  const bases = ['base.v1', 'base.v2', 'base.v3'];
+  const stage = (stg: 'shape' | 'placeholder', verdict: 'approve' | 'reject', key: string, extra: Partial<LedgerEntry> = {}): LedgerEntry => ({ ts: 't', type: 'stage', asset: 'a', stage: stg, verdict, key, ...extra });
+  const gated = (versions: string[], ledger: LedgerEntry[], extra: Partial<PlanInput> = {}) =>
+    planPasses({ asset: 'a', versions, ledger, revisionPasses: 3, finishPass: true, gates: ['shape'], ...extra }).next;
+  const sc = (v: string, s: number) => score(v, s);
+
+  test('no gates, or an empty list: exactly the pass machine of before', () => {
+    const cases: [string[], [string, number][]][] = [[[], []], [['base.v1'], []], [['base.v1'], [['base.v1', 5]]], [bases, [['base.v1', 5], ['base.v2', 7], ['base.v3', 6]]], [[...bases, 'finish.v1'], [['base.v1', 5], ['base.v2', 7], ['base.v3', 6], ['finish.v1', 7.5]]]];
+    for (const [v, s] of cases) {
+      const ledger = s.map(([x, y]) => score(x, y));
+      expect(planPasses({ asset: 'a', versions: v, ledger, revisionPasses: 3, finishPass: true, gates: [] })).toEqual(planPasses({ asset: 'a', versions: v, ledger, revisionPasses: 3, finishPass: true }));
+    }
+  });
+
+  test('placeholder gate: before the first base, until the placeholder as it is now is approved', () => {
+    const g = (ledger: LedgerEntry[], versions: string[] = []) => planPasses({ asset: 'a', versions, ledger, revisionPasses: 3, finishPass: true, gates: ['placeholder'], placeholderKey: 'p1' }).next;
+    expect(g([])).toMatchObject({ action: 'stage-gate', stage: 'placeholder', pass: 'g', key: 'p1' });
+    expect((g([]) as { why: string }).why).toContain('artgen stage approve a placeholder');
+    expect(g([stage('placeholder', 'approve', 'p1')])).toMatchObject({ action: 'write-base', version: 'base.v1' });
+    expect(g([stage('placeholder', 'approve', 'p0')])).toMatchObject({ action: 'stage-gate', stage: 'placeholder' }); // the placeholder changed since
+    const rej = g([stage('placeholder', 'approve', 'p1'), stage('placeholder', 'reject', 'p1', { note: 'too small' })]) as { why: string };
+    expect(rej.why).toContain('too small');
+    expect(g([], ['base.v1'])).toMatchObject({ action: 'review', version: 'base.v1' }); // once a base exists the gate no longer applies
+  });
+
+  test('shape gate: v1 is a shape draft, the user sees it before v2', () => {
+    const l1 = [sc('base.v1', 5)];
+    expect(gated(['base.v1'], l1, { stageKeys: { 'base.v1': { shape: 's1' } } })).toMatchObject({ action: 'stage-gate', stage: 'shape', version: 'base.v1', pass: 'g', key: 's1' });
+    expect((gated(['base.v1'], l1, { stageKeys: { 'base.v1': { shape: 's1' } } }) as { why: string }).why).toContain('review a --version base.v1 --stage shape');
+    expect(gated(['base.v1'], [...l1, stage('shape', 'approve', 's1')], { stageKeys: { 'base.v1': { shape: 's1' } } })).toMatchObject({ action: 'write-base', version: 'base.v2', from: 'base.v1' });
+    expect(gated(['base.v1'], l1)).toMatchObject({ action: 'stage-gate' }); // a missing key is unknown: not passed
+    expect(gated(['base.v1'], l1, { gates: ['shape'], stageKeys: {} })).toMatchObject({ action: 'stage-gate' });
+    expect(gated(['base.v1'], [])).toMatchObject({ action: 'review', version: 'base.v1' }); // reviews come first
+  });
+
+  test('a reject after the version was scored: the next base redraws the silhouette from it', () => {
+    const l = [sc('base.v1', 5), stage('shape', 'reject', 's1', { note: 'arms too long' })], keys = { stageKeys: { 'base.v1': { shape: 's1' } } };
+    const n = gated(['base.v1'], l, keys) as { action: string; version: string; from: string; why: string };
+    expect(n).toMatchObject({ action: 'write-base', version: 'base.v2', from: 'base.v1' });
+    expect(n.why).toContain('arms too long'); expect(n.why).toContain('silhouette and form before any decoration');
+    // v2 scored after the reject: the gate asks again, naming the changed silhouette when an older approve exists
+    const l2 = [stage('shape', 'approve', 's0', { version: 'base.v0' }), sc('base.v1', 5), stage('shape', 'reject', 's1'), sc('base.v2', 6)];
+    const g2 = gated(['base.v1', 'base.v2'], l2, { stageKeys: { 'base.v1': { shape: 's1' }, 'base.v2': { shape: 's2' } } }) as { action: string; version: string; why: string };
+    expect(g2).toMatchObject({ action: 'stage-gate', version: 'base.v2' }); expect(g2.why).toContain('the silhouette changed since the approved one (base.v0)');
+    // the redraw scores lower than the rejected v1: the gate still asks about v2, never builds on v1 again
+    const l3 = [sc('base.v1', 7), stage('shape', 'reject', 's1'), sc('base.v2', 5)], k3 = { stageKeys: { 'base.v1': { shape: 's1' }, 'base.v2': { shape: 's2' } } };
+    expect(gated(['base.v1', 'base.v2'], l3, k3)).toMatchObject({ action: 'stage-gate', version: 'base.v2' });
+    expect(gated(['base.v1', 'base.v2'], [...l3, stage('shape', 'approve', 's2')], k3)).toMatchObject({ action: 'write-base', version: 'base.v3', from: 'base.v2' });
+    // nor is the rejected silhouette chosen as the final, whatever it scored
+    const l4 = [...l3, stage('shape', 'approve', 's2'), sc('base.v3', 5.5)], k4 = { stageKeys: { ...k3.stageKeys, 'base.v3': { shape: 's2' } }, finishPass: false };
+    expect(gated(bases, l4, k4)).toMatchObject({ action: 'ready', final: 'base.v3' });
+  });
+
+  test('a revision that keeps the silhouette passes the gate by key; the gate guards the finish and ready steps too', () => {
+    const s = [sc('base.v1', 5), sc('base.v2', 7), sc('base.v3', 6)], keys = { 'base.v1': { shape: 's1' }, 'base.v2': { shape: 's1' }, 'base.v3': { shape: 's1' } };
+    const approved = [stage('shape', 'approve', 's1'), ...s];
+    expect(gated(['base.v1', 'base.v2'], approved.slice(0, 3), { stageKeys: keys })).toMatchObject({ action: 'write-base', version: 'base.v3', from: 'base.v2' });
+    expect(gated(bases, approved, { stageKeys: keys })).toMatchObject({ action: 'write-finish', base: 'base.v2' });
+    expect(gated(bases, s, { stageKeys: keys })).toMatchObject({ action: 'stage-gate', stage: 'shape', version: 'base.v2' });
+    // the finishing pass off: the gate is still met before ready
+    expect(gated(bases, s, { stageKeys: keys, finishPass: false })).toMatchObject({ action: 'stage-gate' });
+    expect(gated(bases, approved, { stageKeys: keys, finishPass: false })).toMatchObject({ action: 'ready', final: 'base.v2' });
+    // the best base changed its silhouette after the approval: asked again, on that base
+    expect(gated(bases, approved, { stageKeys: { ...keys, 'base.v2': { shape: 's2' } } })).toMatchObject({ action: 'stage-gate', version: 'base.v2' });
+    // a reject at the end sends the base back: a new base from the target
+    const rej = [...s, stage('shape', 'reject', 's1', { note: 'no' })];
+    expect(gated(bases, rej, { stageKeys: keys })).toMatchObject({ action: 'write-base', version: 'base.v4', from: 'base.v2' });
+  });
+
+  test('a final the user approved stays final; a gate does not reopen it', () => {
+    const s = [sc('base.v1', 5), sc('base.v2', 7), sc('base.v3', 6), sc('finish.v1', 8), { ts: 't', type: 'approve', asset: 'a', version: 'finish.v1', by: 'user' } as LedgerEntry];
+    expect(gated([...bases, 'finish.v1'], s, { finishBase: { 'finish.v1': 'base.v2' } })).toMatchObject({ action: 'ready', final: 'finish.v1' });
+  });
+});

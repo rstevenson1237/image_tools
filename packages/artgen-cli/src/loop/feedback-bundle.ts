@@ -195,7 +195,7 @@ export async function writeBundle(p: Project | null, target: string | undefined,
     const ledger = p && existsSync(join(p.art, 'ledger.jsonl')) ? readFileSync(join(p.art, 'ledger.jsonl'), 'utf8').split('\n').filter(l => { try { return JSON.parse(l).asset === id; } catch { return false; } }) : [];
     put('ledger.jsonl', ledger.length ? ledger.join('\n') + '\n' : '');
     // the review sheet of the latest review, if it is still on disk
-    const sheet = [...ledger].reverse().map(l => { try { return JSON.parse(l); } catch { return {}; } }).find(e => e.type === 'review' && typeof e.sheet === 'string')?.sheet as string | undefined;
+    const sheet = [...ledger].reverse().map(l => { try { return JSON.parse(l); } catch { return {}; } }).find(e => e.type === 'review' && !e.stage && typeof e.sheet === 'string')?.sheet as string | undefined;
     const sheetFile = p && sheet ? resolve(p.art, sheet.split(',')[0]) : undefined;
     if (!o.noRender && sheetFile && existsSync(sheetFile)) { mkdirSync(join(dir, 'render'), { recursive: true }); copyFileSync(sheetFile, join(dir, 'render', basename(sheetFile))); files.push(`render/${basename(sheetFile)}`); }
     else if (!o.noRender) render = 'no review sheet on disk (run `artgen review`)';

@@ -6,9 +6,11 @@ import { dirContext, kindPalette, resolveSize, type DirContext, type Direction, 
 import * as blitLib from 'artgen-primitives/lib/blit.ts';
 import { Grid } from 'artgen-primitives/lib/grid.ts';
 import { fitNormalMap, flipNormalMap } from 'artgen-primitives/lib/normals.ts';
+import { flipMaskX } from 'artgen-primitives/raster.ts';
 import * as iso from 'artgen-primitives/lib/iso.ts';
 import * as palette from 'artgen-primitives/lib/palette.ts';
 import * as post from 'artgen-primitives/lib/post.ts';
+import { rotsprite, rotateMask, rotateNormals, rotatePoint } from 'artgen-primitives/lib/rotsprite.ts';
 import { Scene, R, mirrorSpec, type SceneOptions } from 'artgen-primitives/lib/prim.ts';
 import { rng } from 'artgen-primitives/lib/rng.ts';
 import { doc, rasterizeSvg, svgToGrid, type SvgToGridOptions } from 'artgen-primitives/lib/svg.ts';
@@ -23,6 +25,7 @@ import { wfc } from 'artgen-scene/tex/wfc.ts';
 import { Proc } from 'artgen-scene/t2/proc.ts';
 import { sky, type SkyOptions } from 'artgen-scene/views/fp.ts';
 import { blend, cellTiming, ease, pingpong, rig, solveTwoBone, spring, sweep, track } from 'artgen-scene/anim/anim.ts';
+import { BODY_PLAN, bodyRig, PROPORTIONS, RIG_PLANS, type BodyRigOptions, type RigPlan } from 'artgen-scene/anim/rigs.ts';
 import { colorRun, flame, paletteCycle, particles, preset, PRESET_NAMES, simulate, drawParticles, type Emitter, type FlameOptions, type PresetOptions } from 'artgen-scene/fx/particles.ts';
 import { Scene2D, type Scene2DOptions } from 'artgen-scene/t2/scene.ts';
 import { Scene3D, type Scene3DOptions } from 'artgen-scene/t2/scene3d.ts';
@@ -59,6 +62,13 @@ export interface Brief {
   blend?: 'normal' | 'add';
   /** First-person textures (P6d): which surface of the corridor the texture is (default wall; layers are skies). */
   surface?: 'wall' | 'floor' | 'ceiling' | 'sky';
+  /**
+   * Rotated sprites (R6d): `rotsprite` renders only the `rotateFrom` facing and makes every other facing by rotating it
+   * (vehicles, ships, turrets, projectiles). Needs `directions` > 1; no facing is mirrored.
+   */
+  rotate?: 'rotsprite';
+  /** The facing a rotated asset's module draws (default `e`). */
+  rotateFrom?: string;
 }
 
 export type Anchors = Record<string, [number, number]>;
@@ -100,8 +110,11 @@ export interface RenderContext {
 
 export type Lib = ReturnType<typeof makeLib>;
 
+/** A body rig a cell built (R6b): its plan and rig-space bone lengths, px. */
+export interface RigReport { plan: string; set?: string; lengths: Record<string, number> }
+
 /** Engine pieces bound to a direction: colours, light, bands and line style come from `dir`. */
-export function makeLib(dir: DirContext, kind?: string, stage?: (name: string, g: Grid) => void, seed = 1, onScene?: (s: { lint(): string[] }) => void) {
+export function makeLib(dir: DirContext, kind?: string, stage?: (name: string, g: Grid) => void, seed = 1, onScene?: (s: { lint(): string[] }) => void, onRig?: (r: RigReport) => void) {
   const rampList = Object.values(dir.pal);
   /** Outer-line pass per `line.outer`. */
   const line = (g: Grid): Grid =>
@@ -175,6 +188,19 @@ export function makeLib(dir: DirContext, kind?: string, stage?: (name: string, g
     /** Animation (P6c): keyframe tracks over t, the pose rig with 2-bone IK, spring chains, swept paths for trails. */
     anim: { ease, track, blend, pingpong, rig, solveTwoBone, spring, sweep },
     /**
+     * Shared body rigs (R6b): `body('biped', ctx, { height })` is a skeleton with clips, foot IK and the facing's projection;
+     * its bone lengths are reported to the render, and the `rig-lengths` stage check fails a template whose limbs change length
+     * between cells. `bodyPlan` maps `brief.body` to a plan, `proportions` are the preset bone lengths.
+     */
+    rigs: {
+      plans: RIG_PLANS, bodyPlan: BODY_PLAN, proportions: PROPORTIONS,
+      body: (plan: RigPlan | 'large', ctx: Pick<BodyRigOptions, 'size' | 'facing'> & Partial<BodyRigOptions>, o: Partial<BodyRigOptions> = {}) => {
+        const r = bodyRig(plan, { ...ctx, ...o });
+        onRig?.({ plan: r.plan, set: r.set, lengths: r.lengths });
+        return r;
+      },
+    },
+    /**
      * Effects (P6c): particle emitters and presets drawn on the direction's effect colours (outer line from the
      * direction), palette cycling. `particles(layers, { w, h, t, duration })`; `preset(name, { w, h, duration })`.
      */
@@ -194,6 +220,8 @@ export function makeLib(dir: DirContext, kind?: string, stage?: (name: string, g
     },
     /** Procedural pass (S2) over a T2+ scene or a finished grid. */
     proc: (source: Scene2D | Grid) => new Proc(source, { dir, seed, line }, stage),
+    /** RotSprite (R6d): a copy of `g` turned `deg` degrees clockwise about `o.pivot` (default the centre); `o.size` makes a larger frame. Colours stay the input's. */
+    rotsprite: (g: Grid, deg: number, o?: { pivot?: [number, number]; size?: [number, number] }) => rotsprite(g, deg, o),
     palette,
     rng,
   };
@@ -205,6 +233,10 @@ export const FACINGS: Record<number, string[]> = {
   8: ['s', 'sw', 'w', 'nw', 'n', 'ne', 'e', 'se'],
   16: ['s', 'ssw', 'sw', 'wsw', 'w', 'wnw', 'nw', 'nnw', 'n', 'nne', 'ne', 'ene', 'e', 'ese', 'se', 'sse'],
 };
+
+/** Screen angle of each compass facing in degrees, clockwise (y down): `e` = 0, `s` = 90, as the runtime's `facingAngle`. */
+export const FACING_DEG: Record<string, number> = Object.fromEntries(
+  ['e', 'ese', 'se', 'sse', 's', 'ssw', 'sw', 'wsw', 'w', 'wnw', 'nw', 'nnw', 'n', 'nne', 'ne', 'ene'].map((f, i) => [f, i * 22.5]));
 
 /** East-west mirror of a facing name (`sw` ↔ `se`; `n`/`s` unchanged). */
 export const mirrorFacing = (f: string): string => f.replace(/[we]/g, c => (c === 'w' ? 'e' : 'w'));
@@ -222,6 +254,12 @@ export interface Cell {
   anchors?: Anchors;
   /** Normal map (P6a): from the renderer's normals (2D shading, voxel raster), fitted to the cell's pixels. */
   normal?: Grid;
+  /** Decal masks by layer name (R6c, `decal` proc layer): one byte per pixel, 1 = the decal shows; flipped with a mirrored cell. */
+  decals?: Record<string, Uint8Array>;
+  /** Per decal: shape pixels in the frame and those that landed on the target part (the `decal-inside` check). */
+  decalStats?: Record<string, { inside: number; total: number }>;
+  /** Made by RotSprite (R6d) from the `from` facing, turned `deg` degrees clockwise; absent on the drawn facing and on every cell of an unrotated asset. */
+  rotated?: { from: string; deg: number };
 }
 
 export interface RenderOptions {
@@ -246,6 +284,8 @@ export interface RenderResult {
   cells: Cell[];
   /** T2+ scene lint over every cell (R4 strokes, R11 colours, R5 interpenetration, empty shapes), deduplicated. */
   lint: string[];
+  /** Body rigs per cell (R6b), keyed `state/facing/frame`, one entry per `lib.rigs.body` call; mirrored cells take their source's. Absent when no cell is rigged. */
+  rigs?: Record<string, RigReport[]>;
 }
 
 /** Render one asset over every state × facing × frame of its brief. West-side facings mirror east ones (2D). */
@@ -261,39 +301,74 @@ export function renderAsset(mod: AssetModule, { dir, brief, seed = 1, variant = 
     timing[s] = { n, sub, durations: a?.durations?.length === n ? a.durations : Array.from({ length: n }, () => Math.round(1000 / fps)) };
     frames[s] = n * sub;
   }
-  const mirror = mod.meta?.mirror !== false, cells: Cell[] = [], cache = new Map<string, Cell>(), lint = new Set<string>();
+  // RotSprite (R6d): only `rotateFrom` is drawn, the other facings are turned copies of it, and nothing is mirrored
+  if (brief.rotate !== undefined && brief.rotate !== 'rotsprite') throw new Error(`brief ${brief.id}: rotate must be rotsprite`);
+  const from = brief.rotate ? brief.rotateFrom ?? 'e' : undefined;
+  if (from && !facings.includes(from)) throw new Error(`brief ${brief.id}: rotateFrom ${from} is not one of its ${facings.length} facings (${facings.join(', ')})`);
+  const mirror = mod.meta?.mirror !== false && !from, cells: Cell[] = [], cache = new Map<string, Cell>(), lint = new Set<string>(), rigs: Record<string, RigReport[]> = {};
   const allParams = resolveParams(mod.params, variant, params);
 
   const renderCell = (state: string, facing: string, frame: number): Cell => {
     const key = `${state}/${facing}/${frame}`;
     let n = 0;
     const stage = stages ? (name: string, g: Grid) => { stages.set(`${key}/${n++}-${name}`, g.clone()); } : undefined;
-    const scenes: { lint(): string[] }[] = [];
+    const scenes: { lint(): string[] }[] = [], built: RigReport[] = [];
     const tm = timing[state], ct = cellTiming(frame, tm.n, tm.sub, tm.durations);
     const ctx: RenderContext = {
       dir: dc, brief, size, seed, variant, params: allParams, state, facing, frame, t: frame / frames[state], rng: rng(seed),
       logical: ct.logical, sub: ct.sub, ms: ct.ms, duration: ct.duration,
-      lib: makeLib(dc, brief.kind, stage, seed, sc => scenes.push(sc)),
+      lib: makeLib(dc, brief.kind, stage, seed, sc => scenes.push(sc), r => built.push(r)),
       palette: names => (names ? palette.restrict(dc.pal, names, [dc.outline]) : kindPalette(dir, brief.kind)),
       stage: stage ?? (() => {}),
     };
     const grid = mod.render(ctx);
+    const anchors = mod.anchors?.(ctx);
     for (const sc of scenes) { for (const m of sc.lint()) lint.add(m); onScene?.(key, sc); }
     if (grid.w !== size[0] || grid.h !== size[1]) throw new Error(`${brief.id} ${key}: rendered ${grid.w}x${grid.h}, brief size is ${size.join('x')}`);
+    // render and anchors both build the cell's rig: one report per distinct rig
+    const seen = new Set<string>(), mine = built.filter(r => { const k = JSON.stringify(r); return !seen.has(k) && !!seen.add(k); });
+    if (mine.length) rigs[key] = mine;
     return {
-      state, facing, frame, grid, mirrored: false, anchors: mod.anchors?.(ctx), ...(grid.normal && { normal: fitNormalMap(grid, grid.normal) }),
+      state, facing, frame, grid, mirrored: false, anchors, ...(grid.normal && { normal: fitNormalMap(grid, grid.normal) }),
+      ...(grid.decals && { decals: grid.decals, ...(grid.decalStats && { decalStats: grid.decalStats }) }),
       ...(tm.sub > 1 && { logical: ct.logical, sub: ct.sub }),
     };
   };
 
+  /** The cell of `facing` made by turning the drawn one by `deg` (anchors about the frame centre, rounded; normals, decal masks and their stats with the pixels). */
+  const rotateCell = (e: Cell, facing: string, deg: number): Cell => {
+    const [w, h] = size, grid = rotsprite(e.grid, deg);
+    const anchors = e.anchors && Object.fromEntries(Object.entries(e.anchors).map(([k, p]) => [k, rotatePoint(p, deg, w, h)]));
+    const decals = e.decals && Object.fromEntries(Object.entries(e.decals).map(([k, m]) => [k, rotateMask(m, w, h, deg)]));
+    // a turned mask can lose pixels to the frame edge: its stats shrink with it, so a decal turned out of the frame is skipped, not "landed on nothing"
+    const decalStats = decals && e.decalStats && Object.fromEntries(Object.entries(e.decalStats).map(([k, st]) => {
+      const was = e.decals![k].reduce((a, v) => a + v, 0), now = decals[k].reduce((a, v) => a + v, 0), f = was ? Math.min(1, now / was) : 1;
+      return [k, { inside: Math.round(st.inside * f), total: Math.round(st.total * f) }];
+    }));
+    return {
+      state: e.state, facing, frame: e.frame, grid, mirrored: false, anchors, ...(e.normal && { normal: fitNormalMap(grid, rotateNormals(e.normal, deg)) }),
+      ...(decals && { decals, ...(decalStats && { decalStats }) }), ...(e.logical !== undefined && { logical: e.logical, sub: e.sub }), rotated: { from: from!, deg },
+    };
+  };
+
   for (const state of states) for (const facing of facings) for (let frame = 0; frame < frames[state]; frame++) {
+    if (from && facing !== from) {
+      const key = `${state}/${from}/${frame}`;
+      let e = cache.get(key);
+      if (!e) { e = renderCell(state, from, frame); cache.set(key, e); }
+      if (rigs[key]) rigs[`${state}/${facing}/${frame}`] = rigs[key];
+      cells.push(rotateCell(e, facing, (((FACING_DEG[facing] - FACING_DEG[from]) % 360) + 360) % 360));
+      continue;
+    }
     const src = mirrorFacing(facing);
     if (mirror && facing.includes('w') && facings.includes(src)) {
       const key = `${state}/${src}/${frame}`;
       let e = cache.get(key);
       if (!e) { e = renderCell(state, src, frame); cache.set(key, e); }
+      if (rigs[key]) rigs[`${state}/${facing}/${frame}`] = rigs[key];
       const anchors = e.anchors && Object.fromEntries(Object.entries(e.anchors).map(([k, [x, y]]) => [k, [size[0] - 1 - x, y] as [number, number]]));
-      cells.push({ state, facing, frame, grid: e.grid.flip('x'), mirrored: true, anchors, ...(e.normal && { normal: flipNormalMap(e.normal) }), ...(e.logical !== undefined && { logical: e.logical, sub: e.sub }) });
+      cells.push({ state, facing, frame, grid: e.grid.flip('x'), mirrored: true, anchors, ...(e.normal && { normal: flipNormalMap(e.normal) }),
+        ...(e.decals && { decals: Object.fromEntries(Object.entries(e.decals).map(([k, m]) => [k, flipMaskX(m, size[0])])), ...(e.decalStats && { decalStats: e.decalStats }) }), ...(e.logical !== undefined && { logical: e.logical, sub: e.sub }) });
     } else {
       const key = `${state}/${facing}/${frame}`;
       let c = cache.get(key);
@@ -301,7 +376,7 @@ export function renderAsset(mod: AssetModule, { dir, brief, seed = 1, variant = 
       cells.push(c);
     }
   }
-  return { brief, size, states, facings, frames, cells, lint: [...lint] };
+  return { brief, size, states, facings, frames, cells, lint: [...lint], ...(Object.keys(rigs).length && { rigs }) };
 }
 
 export interface SheetRect { state: string; facing: string; frame: number; x: number; y: number; w: number; h: number; mirrored: boolean }

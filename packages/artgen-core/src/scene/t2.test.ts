@@ -7,7 +7,7 @@ import { makeLib, renderAsset, type AssetModule } from '../render.ts';
 import { applyFinish, finishSnapshot, finishStale, makePx, type FinishModule } from '../finish.ts';
 import { fillPolygons, Mask, parsePath } from 'artgen-primitives/geom.ts';
 import { resolveParams } from 'artgen-scene/t2/params.ts';
-import { INK, Raster } from 'artgen-primitives/raster.ts';
+import { decalCoverage, flipMaskX, INK, Raster } from 'artgen-primitives/raster.ts';
 import type { Spec } from 'artgen-scene/t2/scene.ts';
 
 const O = '#1a1423';
@@ -208,6 +208,85 @@ describe('procedural pass', () => {
     const withDefault = lib(make({ pipeline: { procedural: ['rimLight'] } })).proc(scene()).render();
     expect(withDefault.hash()).toBe(lib().proc(scene()).add('rimLight').render().hash());
     expect(() => lib().proc(scene()).add('nope')).toThrow('does not exist');
+  });
+});
+
+describe('decals (R6c)', () => {
+  const scene = () => lib().t2.scene(24, 24, { mode: 'direct' }).add(
+    { type: 'rect', name: 'slab', x: 2, y: 2, w: 20, h: 12, mat: 'stone', shade: 'flat', band: 1 },
+    { type: 'rect', name: 'foot', x: 2, y: 14, w: 20, h: 8, mat: 'moss', shade: 'flat', band: 1 },
+  );
+  const emblem = { name: 'emblem', part: 'slab', mat: 'gold', shape: { type: 'circle', cx: 8, cy: 8, r: 3 } };
+  const plain = () => lib().proc(scene()).render();
+
+  test('shape coverage uses the scene fill: a 4 px square covers 16 px, a circle is round, clipped at the frame', () => {
+    expect(decalCoverage({ type: 'rect', x: 2, y: 2, w: 4, h: 4 }, 10, 10).reduce((n, v) => n + v, 0)).toBe(16);
+    const c = decalCoverage({ type: 'circle', cx: 5, cy: 5, r: 3 }, 10, 10);
+    expect(c[5 * 10 + 5]).toBe(1); expect(c[2 * 10 + 2]).toBe(0);
+    expect(decalCoverage([{ type: 'rect', x: 8, y: 0, w: 6, h: 1 }, { type: 'poly', pts: [[0, 5], [2, 5], [0, 7]] }, { type: 'path', d: 'M0 9 H3 V10 H0 Z' }], 10, 10).reduce((n, v) => n + v, 0)).toBe(2 + 1 + 3); // clipped rect, half-covered triangle, path
+    expect(() => decalCoverage({ type: 'star' }, 4, 4)).toThrow(/not one of/);
+    expect(Array.from(flipMaskX(Uint8Array.from([1, 0, 0, 0, 1, 0]), 3))).toEqual([0, 0, 1, 0, 1, 0]);
+  });
+
+  test('a decal colours its shape where it meets the part, on its own ramp, band kept from the surface', () => {
+    const g = lib().proc(scene()).add('decal', emblem).render(), p = plain();
+    expect(g.hash()).not.toBe(p.hash());
+    expect(g.get(8, 8)).toBe(RAMPS.gold[1]);            // the surface band is 1: the gold ramp at 1
+    expect(g.get(8, 8)).not.toBe(p.get(8, 8));
+    expect(g.get(18, 8)).toBe(p.get(18, 8));             // outside the shape
+    for (const col of opaqueColours(g)) expect([...RAMPS.stone, ...RAMPS.moss, ...RAMPS.gold, O]).toContain(col);
+    expect(Object.keys(g.decals!)).toEqual(['emblem']);
+    expect(g.decals!.emblem[8 * 24 + 8]).toBe(1); expect(g.decals!.emblem[8 * 24 + 18]).toBe(0);
+    expect(g.decalStats!.emblem).toEqual({ inside: g.decalStats!.emblem.total, total: g.decalStats!.emblem.total });
+  });
+
+  test('a fixed band, the target part, and the lines: a decal never leaves its part or covers ink', () => {
+    const g = lib().proc(scene()).add('decal', { ...emblem, band: 0, shape: { type: 'rect', x: 0, y: 10, w: 24, h: 8 } }).render();
+    expect(g.get(10, 12)).toBe(RAMPS.gold[0]);
+    expect(g.get(10, 16)).toBe(plain().get(10, 16));     // the foot is another part
+    const st = g.decalStats!.emblem;
+    expect(st.total).toBe(24 * 8); expect(st.inside).toBe(20 * 4);
+    const ink = lib().t2.scene(24, 24, { mode: 'direct' }).add({ type: 'rect', name: 'slab', x: 2, y: 2, w: 20, h: 12, mat: 'stone', shade: 'flat', band: 1, underlay: true });
+    expect(() => lib().proc(ink).add('decal', emblem).render()).not.toThrow();
+  });
+
+  test('opacity covers that share of the pixels in a Bayer pattern; names are made unique', () => {
+    const half = lib().proc(scene()).add('decal', { ...emblem, opacity: 0.5, shape: { type: 'rect', x: 4, y: 4, w: 8, h: 8 } }).render();
+    expect(half.decals!.emblem.reduce((n, v) => n + v, 0)).toBe(32);
+    expect(lib().proc(scene()).add('decal', { ...emblem, opacity: 0 }).render().decals!.emblem.some(Boolean)).toBe(false);
+    const two = lib().proc(scene()).add('decal', emblem).add('decal', { part: 'foot', mat: 'gold', shape: [{ type: 'rect', x: 4, y: 16, w: 3, h: 3 }] }).add('decal', { part: 'foot', shape: { type: 'rect', x: 10, y: 16, w: 3, h: 3 }, mat: 'gold' }).add('decal', emblem).render();
+    expect(Object.keys(two.decals!)).toEqual(['emblem', 'decal', 'decal2', 'emblem2']);
+  });
+
+  test('a later decal covers an earlier one; later layers still shade the surface under a decal', () => {
+    const a = lib().proc(scene()).add('decal', { ...emblem, band: 0 }).add('decal', { name: 'top', part: 'slab', mat: 'moss', band: 2, shape: { type: 'rect', x: 8, y: 8, w: 2, h: 2 } }).render();
+    expect(a.get(8, 8)).toBe(RAMPS.moss[2]);
+    expect(a.decals!.emblem[8 * 24 + 8]).toBe(0); expect(a.decals!.top[8 * 24 + 8]).toBe(1);
+    const keep = lib().proc(scene()).add('decal', emblem).add('pattern', { type: 'stripes', axis: 'x', period: 4, step: 1, part: 'slab' }).render();
+    expect(keep.get(8, 8)).not.toBe(lib().proc(scene()).add('decal', emblem).render().get(8, 8)); // the stripe darkens the surface, the decal follows
+  });
+
+  test('works on finished grids, errors say what is missing, and a render with no decal is unchanged', () => {
+    const g = scene().render(), d = lib().proc(g).add('decal', { ...emblem, part: 'stone' }).render(); // a finished grid's parts are its ramps
+    expect(d.get(8, 8)).toBe(RAMPS.gold[1]); expect(d.decals!.emblem[8 * 24 + 8]).toBe(1);
+    expect(() => lib().proc(scene()).add('decal', { shape: emblem.shape }).render()).toThrow(/part is required/);
+    expect(() => lib().proc(scene()).add('decal', { part: 'slab' }).render()).toThrow(/shape is required/);
+    expect(() => lib().proc(scene()).add('decal', { part: 'slab', shape: { type: 'star' } }).render()).toThrow(/not one of/);
+    expect(() => lib().proc(scene()).add('decal', { ...emblem, mat: 'nope' }).render()).toThrow(/unknown material/);
+    expect(() => lib().proc(scene()).add('decal', { ...emblem, band: 9 }).render()).toThrow(/band/);
+    expect(() => lib().proc(scene()).add('decal', { ...emblem, opacity: 2 }).render()).toThrow(/opacity/);
+    expect(plain().decals).toBeUndefined();
+    expect(plain().hash()).toBe(scene().render().hash());
+  });
+
+  test('the --stages dump has a decal image only when a decal ran', () => {
+    const seen: string[] = [];
+    makeLib(dirContext(dir), 'prop', (n, g) => seen.push(`${n}:${g.d.reduce((k, v, i) => k + (i % 4 === 3 && v ? 1 : 0), 0)}`)).proc(scene()).add('decal', emblem).render();
+    const dump = seen.find(x => x.startsWith('decal:'))!;
+    expect(+dump.split(':')[1]).toBeGreaterThan(10);
+    const none: string[] = [];
+    makeLib(dirContext(dir), 'prop', n => none.push(n)).proc(scene()).render();
+    expect(none).not.toContain('decal');
   });
 });
 

@@ -17,6 +17,6 @@
     "artgen-core": "0.0.0",
     "artgen-imagekit": "0.0.0",
     "artgen-primitives": "0.0.0",
-    "artgen-runtime": "1.2.1"
+    "artgen-runtime": "1.4.0"
   }
 }
