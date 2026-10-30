@@ -17,4 +17,5 @@ export { Scene3D, type Spec3, type Render3DOptions } from './t2/scene3d.ts';
 export { Proc, LAYERS, valueNoise } from './t2/proc.ts';
 export { resolveParams, paramSchema, paramDefault, type ParamSpec } from './t2/params.ts';
 export { ease, track, blend, pingpong, rig, solveTwoBone, spring, sweep, cellTiming, type Ease, type BoneDef, type RigDef, type Rig, type Pose, type Bone, type SpringOptions, type SpringChain, type RootAt, type CellTiming } from './anim/anim.ts';
+export { RIG_PLANS, BODY_PLAN, PROPORTIONS, bodyRig, facingYaw, type RigPlan, type Proportions, type BodyRig, type BodyRigOptions, type BodyPose } from './anim/rigs.ts';
 export { flame, particles, simulate, drawParticles, colorRun, preset, PRESETS, PRESET_NAMES, paletteCycle, type Emitter, type Particle, type ParticleOptions, type PresetOptions, type FlameOptions } from './fx/particles.ts';

@@ -229,3 +229,25 @@ describe('the placeholder', () => {
     expect(foot(a)).toBe(foot(c)); expect(foot(a)).toBeGreaterThan(0);
   });
 });
+
+describe('the rig stage (R6b, §6.2)', () => {
+  const dir = mkDir(), cellAt = (frame: number): RenderResult['cells'][number] => ({ state: 'idle', facing: 's', frame, grid: body(dir), mirrored: false });
+  const withRigs = (len: (f: number) => number): RenderResult => ({
+    brief: { id: 'r', kind: 'character', states: ['idle'] } as never, size: [16, 16], states: ['idle'], facings: ['s'], frames: { idle: 3 }, cells: [0, 1, 2].map(cellAt), lint: [],
+    rigs: Object.fromEntries([0, 1, 2].map(f => [`idle/s/${f}`, [{ plan: 'biped', lengths: { spine: 10, legL_up: len(f) } }]])),
+  });
+  const brief = { id: 'r', kind: 'character', states: ['idle'] } as BriefEntry;
+  test('rig-lengths passes within 0.5 px and names the bone and cells when a length drifts', () => {
+    expect(stageReport(withRigs(() => 4), dir, { brief }).checks.find(c => c.id === 'rig-lengths')).toMatchObject({ stage: 'rig', status: 'pass' });
+    expect(stageReport(withRigs(f => 4 + f * 0.2), dir, { brief }).checks.find(c => c.id === 'rig-lengths')).toMatchObject({ status: 'pass' });
+    const bad = stageReport(withRigs(f => 4 + f), dir, { brief }).checks.find(c => c.id === 'rig-lengths')!;
+    expect(bad.status).toBe('fail');
+    expect(bad.detail).toContain('legL_up is 4.00 px in idle/s/0 and 6.00 px in idle/s/2');
+  });
+  test('the rig key digests plan, bones and lengths; unrigged renders have no key and no check', () => {
+    const k = (len: number) => stageReport(withRigs(() => len), dir, { brief }).keys.rig;
+    expect(k(4)).toMatch(/^[0-9a-f]{8}$/); expect(k(4)).toBe(k(4)); expect(k(4)).not.toBe(k(5)); expect(k(4)).toBe(k(4.004));
+    const plain = { ...withRigs(() => 4), rigs: undefined } as RenderResult, rep = stageReport(plain, dir, { brief });
+    expect(rep.keys.rig).toBeUndefined(); expect(rep.checks.some(c => c.stage === 'rig')).toBe(false);
+  });
+});

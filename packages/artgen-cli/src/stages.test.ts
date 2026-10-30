@@ -184,10 +184,10 @@ describe('stages in a scratch game repo', () => {
     // the stages of the final: the shape is approved as it is
     const final = fin.rows.find((r: { id: string }) => r.id === 'goblin').final;
     const stg = await json('stages', 'goblin', '--version', final, ...R);
-    expect(stg.states).toMatchObject({ placeholder: 'approved', shape: 'approved', decorate: 'new', rig: 'n/a', decal: 'n/a' });
+    expect(stg.states).toMatchObject({ placeholder: 'approved', shape: 'approved', decorate: 'new', rig: 'new', decal: 'n/a' });
     expect(stg.gates).toEqual(['placeholder', 'shape']);
     const text = (await run('stages', 'goblin', '--version', final, ...R)).out;
-    expect(text).toMatch(/1 shape\s+[0-9a-f]{8}\s+approved/); expect(text).toMatch(/2 rig\s+—\s+n\/a \(not rigged\)/); expect(text).toMatch(/shape-pivot/);
+    expect(text).toMatch(/1 shape\s+[0-9a-f]{8}\s+approved/); expect(text).toMatch(/2 rig\s+[0-9a-f]{8}\s+new/); expect(text).toMatch(/shape-pivot/);
     // approve copies the final's stage keys from its score entry
     await run('approve', 'goblin', '--note', 'good', ...R);
     const approve = ledger().filter(e => e.type === 'approve' && e.asset === 'goblin').pop()!;

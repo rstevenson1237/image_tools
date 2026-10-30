@@ -23,6 +23,7 @@ import { wfc } from 'artgen-scene/tex/wfc.ts';
 import { Proc } from 'artgen-scene/t2/proc.ts';
 import { sky, type SkyOptions } from 'artgen-scene/views/fp.ts';
 import { blend, cellTiming, ease, pingpong, rig, solveTwoBone, spring, sweep, track } from 'artgen-scene/anim/anim.ts';
+import { BODY_PLAN, bodyRig, PROPORTIONS, RIG_PLANS, type BodyRigOptions, type RigPlan } from 'artgen-scene/anim/rigs.ts';
 import { colorRun, flame, paletteCycle, particles, preset, PRESET_NAMES, simulate, drawParticles, type Emitter, type FlameOptions, type PresetOptions } from 'artgen-scene/fx/particles.ts';
 import { Scene2D, type Scene2DOptions } from 'artgen-scene/t2/scene.ts';
 import { Scene3D, type Scene3DOptions } from 'artgen-scene/t2/scene3d.ts';
@@ -100,8 +101,11 @@ export interface RenderContext {
 
 export type Lib = ReturnType<typeof makeLib>;
 
+/** A body rig a cell built (R6b): its plan and rig-space bone lengths, px. */
+export interface RigReport { plan: string; set?: string; lengths: Record<string, number> }
+
 /** Engine pieces bound to a direction: colours, light, bands and line style come from `dir`. */
-export function makeLib(dir: DirContext, kind?: string, stage?: (name: string, g: Grid) => void, seed = 1, onScene?: (s: { lint(): string[] }) => void) {
+export function makeLib(dir: DirContext, kind?: string, stage?: (name: string, g: Grid) => void, seed = 1, onScene?: (s: { lint(): string[] }) => void, onRig?: (r: RigReport) => void) {
   const rampList = Object.values(dir.pal);
   /** Outer-line pass per `line.outer`. */
   const line = (g: Grid): Grid =>
@@ -175,6 +179,19 @@ export function makeLib(dir: DirContext, kind?: string, stage?: (name: string, g
     /** Animation (P6c): keyframe tracks over t, the pose rig with 2-bone IK, spring chains, swept paths for trails. */
     anim: { ease, track, blend, pingpong, rig, solveTwoBone, spring, sweep },
     /**
+     * Shared body rigs (R6b): `body('biped', ctx, { height })` is a skeleton with clips, foot IK and the facing's projection;
+     * its bone lengths are reported to the render, and the `rig-lengths` stage check fails a template whose limbs change length
+     * between cells. `bodyPlan` maps `brief.body` to a plan, `proportions` are the preset bone lengths.
+     */
+    rigs: {
+      plans: RIG_PLANS, bodyPlan: BODY_PLAN, proportions: PROPORTIONS,
+      body: (plan: RigPlan | 'large', ctx: Pick<BodyRigOptions, 'size' | 'facing'> & Partial<BodyRigOptions>, o: Partial<BodyRigOptions> = {}) => {
+        const r = bodyRig(plan, { ...ctx, ...o });
+        onRig?.({ plan: r.plan, set: r.set, lengths: r.lengths });
+        return r;
+      },
+    },
+    /**
      * Effects (P6c): particle emitters and presets drawn on the direction's effect colours (outer line from the
      * direction), palette cycling. `particles(layers, { w, h, t, duration })`; `preset(name, { w, h, duration })`.
      */
@@ -246,6 +263,8 @@ export interface RenderResult {
   cells: Cell[];
   /** T2+ scene lint over every cell (R4 strokes, R11 colours, R5 interpenetration, empty shapes), deduplicated. */
   lint: string[];
+  /** Body rigs per cell (R6b), keyed `state/facing/frame`, one entry per `lib.rigs.body` call; mirrored cells take their source's. Absent when no cell is rigged. */
+  rigs?: Record<string, RigReport[]>;
 }
 
 /** Render one asset over every state × facing × frame of its brief. West-side facings mirror east ones (2D). */
@@ -261,27 +280,31 @@ export function renderAsset(mod: AssetModule, { dir, brief, seed = 1, variant = 
     timing[s] = { n, sub, durations: a?.durations?.length === n ? a.durations : Array.from({ length: n }, () => Math.round(1000 / fps)) };
     frames[s] = n * sub;
   }
-  const mirror = mod.meta?.mirror !== false, cells: Cell[] = [], cache = new Map<string, Cell>(), lint = new Set<string>();
+  const mirror = mod.meta?.mirror !== false, cells: Cell[] = [], cache = new Map<string, Cell>(), lint = new Set<string>(), rigs: Record<string, RigReport[]> = {};
   const allParams = resolveParams(mod.params, variant, params);
 
   const renderCell = (state: string, facing: string, frame: number): Cell => {
     const key = `${state}/${facing}/${frame}`;
     let n = 0;
     const stage = stages ? (name: string, g: Grid) => { stages.set(`${key}/${n++}-${name}`, g.clone()); } : undefined;
-    const scenes: { lint(): string[] }[] = [];
+    const scenes: { lint(): string[] }[] = [], built: RigReport[] = [];
     const tm = timing[state], ct = cellTiming(frame, tm.n, tm.sub, tm.durations);
     const ctx: RenderContext = {
       dir: dc, brief, size, seed, variant, params: allParams, state, facing, frame, t: frame / frames[state], rng: rng(seed),
       logical: ct.logical, sub: ct.sub, ms: ct.ms, duration: ct.duration,
-      lib: makeLib(dc, brief.kind, stage, seed, sc => scenes.push(sc)),
+      lib: makeLib(dc, brief.kind, stage, seed, sc => scenes.push(sc), r => built.push(r)),
       palette: names => (names ? palette.restrict(dc.pal, names, [dc.outline]) : kindPalette(dir, brief.kind)),
       stage: stage ?? (() => {}),
     };
     const grid = mod.render(ctx);
+    const anchors = mod.anchors?.(ctx);
     for (const sc of scenes) { for (const m of sc.lint()) lint.add(m); onScene?.(key, sc); }
     if (grid.w !== size[0] || grid.h !== size[1]) throw new Error(`${brief.id} ${key}: rendered ${grid.w}x${grid.h}, brief size is ${size.join('x')}`);
+    // render and anchors both build the cell's rig: one report per distinct rig
+    const seen = new Set<string>(), mine = built.filter(r => { const k = JSON.stringify(r); return !seen.has(k) && !!seen.add(k); });
+    if (mine.length) rigs[key] = mine;
     return {
-      state, facing, frame, grid, mirrored: false, anchors: mod.anchors?.(ctx), ...(grid.normal && { normal: fitNormalMap(grid, grid.normal) }),
+      state, facing, frame, grid, mirrored: false, anchors, ...(grid.normal && { normal: fitNormalMap(grid, grid.normal) }),
       ...(tm.sub > 1 && { logical: ct.logical, sub: ct.sub }),
     };
   };
@@ -292,6 +315,7 @@ export function renderAsset(mod: AssetModule, { dir, brief, seed = 1, variant = 
       const key = `${state}/${src}/${frame}`;
       let e = cache.get(key);
       if (!e) { e = renderCell(state, src, frame); cache.set(key, e); }
+      if (rigs[key]) rigs[`${state}/${facing}/${frame}`] = rigs[key];
       const anchors = e.anchors && Object.fromEntries(Object.entries(e.anchors).map(([k, [x, y]]) => [k, [size[0] - 1 - x, y] as [number, number]]));
       cells.push({ state, facing, frame, grid: e.grid.flip('x'), mirrored: true, anchors, ...(e.normal && { normal: flipNormalMap(e.normal) }), ...(e.logical !== undefined && { logical: e.logical, sub: e.sub }) });
     } else {
@@ -301,7 +325,7 @@ export function renderAsset(mod: AssetModule, { dir, brief, seed = 1, variant = 
       cells.push(c);
     }
   }
-  return { brief, size, states, facings, frames, cells, lint: [...lint] };
+  return { brief, size, states, facings, frames, cells, lint: [...lint], ...(Object.keys(rigs).length && { rigs }) };
 }
 
 export interface SheetRect { state: string; facing: string; frame: number; x: number; y: number; w: number; h: number; mirrored: boolean }

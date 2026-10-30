@@ -1,5 +1,6 @@
 // {{ID}} base.v1 (r1) — template: serpent (snake, eel, naga tail, worm) with four facings and a slither over ctx.t
-// (iso camera: a 2D sprite per facing on a 2:1 ground shadow). The body is a chain of discs along a travelling wave on the ground; the head rises from the
+// (iso camera: a 2D sprite per facing on a 2:1 ground shadow), on the shared serpent rig (`ctx.lib.rigs.body`: a chain of eight segments, a wave travelling headward
+// while it moves, the head end rearing). The body is a chain of discs along that wave on the ground; the head rises from the
 // front end — at the side in profile (e/w), towards the viewer (s), hidden behind the coils from the back (n). It lies
 // on the `ground` anchor: length and girth come from the brief (`height` is how high the head rears), not the frame.
 // For a naga, put a humanoid torso on the head end. Adapt the head, the frill or fins, the pattern; role ramps only (R11).
@@ -11,50 +12,44 @@ export const params = {
   belly: { type: 'toggle', default: true },
 };
 
-const YAW = { s: 0, se: 45, e: 90, ne: 135, n: 180, sw: -45, w: -90, nw: -135 };
-
+// Geometry shared by render() and anchors(): the rig's joints for this state and phase (joint j is the start of segment j,
+// joint 0 the head end), the discs resting on the ground and the head at the front end.
 function layout(ctx) {
-  const [w, h] = ctx.size, yaw = (YAW[ctx.facing] ?? 0) * Math.PI / 180, sx = Math.sin(yaw), front = Math.cos(yaw), side = Math.abs(sx);
-  const X = v => (v * w) / 32, cx = w / 2, ground = Math.round(h * 0.95), r = X(2.6) * (ctx.params?.girth ?? 1);
-  const ph = ctx.t * Math.PI * 2, moving = ctx.state === 'walk';
-  // the coil: n discs from the tail (i = 0) to the neck, a wave travelling headward while it moves
-  const n = 9, len = X(22) * (0.45 + 0.55 * side), depth = X(6) * (1 - 0.6 * side);
-  const pts = Array.from({ length: n }, (_, i) => {
-    const u = i / (n - 1), wave = Math.sin(u * Math.PI * 2.2 - (moving ? ph : 0)) * X(2.2);
-    // profile: along x; end-on: the body runs into the screen (up the frame), the wave goes sideways
-    const x = cx + (side > 0.5 ? sx * (u - 0.5) * len : wave), y = ground - r - (side > 0.5 ? wave * 0.35 + X(0.5) : (front > 0 ? 1 - u : u) * depth);
-    return [x, y];
-  });
-  const neck = pts[n - 1], rear = X(7) + (moving ? Math.sin(ph) * 0.5 : 0);
-  const headR = r * 1.25, headX = neck[0] + sx * X(2), headY = neck[1] - rear;
-  const showFace = front > -0.3;
-  const eyeY = Math.round(headY - headR * 0.1);
-  const eyes = !showFace ? [] : side > 0.9 ? [Math.round(headX + sx * headR * 0.35)] : [Math.round(headX - headR * 0.45), Math.round(headX + headR * 0.35)];
-  const mouth = showFace ? [Math.round(side > 0.9 ? headX + sx * headR * 0.7 : headX - 0.5), Math.round(headY + headR * 0.45)] : null;
-  return { w, h, X, cx, ground, sx, front, side, r, pts, neck, headR, headX, headY, showFace, eyes, eyeY, mouth };
+  const [w, h] = ctx.size, X = v => (v * w) / 32, rig = ctx.lib.rigs.body('serpent', ctx, { height: X(7) });
+  const { sx, front, side } = rig, P = rig.pose(ctx.state, ctx.t), r = X(2.6) * (ctx.params?.girth ?? 1), headR = r * 1.25;
+  const joint = j => (j < 8 ? P.start(`seg${j}`) : P.end('seg7')), head = P.at('seg0', 0, headR * 0.3, 0, headR * 0.1);
+  const showFace = front > -0.3, eyePts = !showFace ? [] : (side > 0.9 ? [Math.sign(sx)] : [-1, 1]).map(k => P.at('seg0', 0, headR * 0.65, k * headR * 0.45, headR * 0.15));
+  const eyes = eyePts.map(p => Math.round(p[0])).sort((a, b) => a - b), eyeY = Math.round(eyePts.length ? eyePts[0][1] : head[1]);
+  const mouth = showFace ? P.at('seg0', 0, headR * 0.6, 0, -headR * 0.4).map(Math.round) : null;
+  return { w, h, X, rig, P, sx, front, side, r, headR, joint, head, showFace, eyes, eyeY, mouth };
 }
 
 export function render(ctx) {
   const { pal } = ctx.dir, P = ctx.params, s = ctx.lib.t2.scene(...ctx.size), L = layout(ctx), skin = pal[P.scales];
-  const { X, front, r, pts, neck, headR, headX, headY, eyes, eyeY, sx } = L;
-  // coils back to front: the far end first (from behind, the head end is the far end)
-  const order = front < -0.2 ? [...pts.keys()].reverse() : [...pts.keys()];
-  const coil = order.map(i => ({ type: 'circle', name: 'coil', cx: pts[i][0], cy: pts[i][1], r: r * (0.6 + 0.4 * (i / (pts.length - 1))), mat: skin, shade: 'sphere' }));
-  const body = { type: 'group', name: 'body', underlay: true, children: [
-    ...coil,
-    ...(P.belly ? [{ type: 'ellipse', name: 'belly', cx: neck[0], cy: neck[1] + r * 0.35, rx: r * 0.7, ry: r * 0.3, mat: skin, shade: 'flat', band: 0 }] : []),
-  ] };
-  const head = { type: 'group', name: 'head', underlay: true, children: [
-    { type: 'capsule', name: 'neck', a: [neck[0], neck[1]], b: [headX, headY], r: r * 0.85, mat: skin, shade: 'cyl' },
-    { type: 'ellipse', name: 'skull', cx: headX + sx * headR * 0.2, cy: headY, rx: headR * (1 + 0.3 * Math.abs(sx)), ry: headR * 0.85, mat: skin, shade: 'sphere' },
-  ] };
-  if (front < -0.2) { s.add(head); s.add(body); } else { s.add(body); s.add(head); }
-  for (const ex of eyes) s.add({ type: 'rect', name: 'eye', x: ex, y: eyeY, w: 1, h: Math.max(1, Math.round(X(1.2))), color: 'outline' });
+  const { X, P: pose, sx, side, r, headR, joint, head } = L, rest = p => [p[0], p[1] - r];
+  const pieces = [];
+  // coils: discs on the joints from the tail end up to where the neck lifts, far to near
+  for (let j = 3; j <= 8; j++) {
+    const c = rest(joint(j));
+    pieces.push({ z: pose.depth(`seg${Math.min(j, 7)}`), g: { type: 'group', name: 'body', underlay: true, children: [{ type: 'circle', name: 'coil', cx: c[0], cy: c[1], r: r * (0.7 + 0.3 * (1 - (j - 3) / 5)), mat: skin, shade: 'sphere' }] } });
+  }
+  const n1 = rest(joint(1)), n2 = rest(joint(2)), n3 = rest(joint(3));
+  if (P.belly) pieces.push({ z: pose.depth('seg2'), g: { type: 'group', name: 'body', underlay: true, children: [{ type: 'ellipse', name: 'belly', cx: n3[0], cy: n3[1] + r * 0.35, rx: r * 0.7, ry: r * 0.3, mat: skin, shade: 'flat', band: 0 }] } });
+  pieces.push({ z: pose.depth('seg0') + 0.01, g: { type: 'group', name: 'head', underlay: true, children: [
+    { type: 'capsule', name: 'neck', a: n3, b: n2, r: r * 0.85, mat: skin, shade: 'cyl' },
+    { type: 'capsule', name: 'neck', a: n2, b: n1, r: r * 0.85, mat: skin, shade: 'cyl' },
+    { type: 'capsule', name: 'neck', a: n1, b: head, r: r * 0.85, mat: skin, shade: 'cyl' },
+    { type: 'ellipse', name: 'skull', cx: head[0] + sx * headR * 0.2, cy: head[1], rx: headR * (1 + 0.3 * side), ry: headR * 0.85, mat: skin, shade: 'sphere' },
+  ] } });
+  for (const p of pieces.sort((a, b) => a.z - b.z)) s.add(p.g);
+  for (const ex of L.eyes) s.add({ type: 'rect', name: 'eye', x: ex, y: L.eyeY, w: 1, h: Math.max(1, Math.round(X(1.2))), color: 'outline' });
   return ctx.lib.proc(s).add('materialNoise', { part: 'coil', amount: 0.2 }).add('groundShadow', {}).render();
 }
 
 export const anchors = ctx => {
-  const L = layout(ctx), a = { ground: [Math.round(L.cx), L.ground], head: [Math.round(L.headX), Math.round(L.headY)], hand: [Math.round(L.headX), Math.round(L.headY)] };
+  const L = layout(ctx), a = { ...L.rig.anchors(L.P), head: L.head.map(Math.round) };
+  delete a.tail;
+  a.hand = a.head;
   if (L.front > -0.2) L.eyes.forEach((x, i) => { a[i ? 'eye2' : 'eye'] = [x, L.eyeY]; });
   if (L.mouth && L.front > -0.2) a.mouth = L.mouth;
   return a;

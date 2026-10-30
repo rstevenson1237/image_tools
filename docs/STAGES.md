@@ -722,3 +722,38 @@ expectations, and what is not done.)
   The runtime core is 4,826 → 4,858 bytes min+gz (budget 8 KB).
 - **Not done.** Production runs with gates on (tokens and passes per approved asset on the bench, blind scores, time to the first placeholder) need a model and a person answering the gates. No gate for rig, decal, lighting or rotation
   (R6b–R6d). `shape-pivot` for top-down views (see 1). A shape sheet in the image tools' web UI (Asset Review shows the full sheet; the gate is answered by CLI, MCP or the pull request). Nothing is cached: keys save review and passes, not CPU (§3.1).
+
+### R6b — the shared rig library (built 2026-10-30)
+
+- **Built.**
+  - **`artgen-scene/src/anim/rigs.ts`** (§6.1, exported from the scene index): `RIG_PLANS`, `BODY_PLAN`, `PROPORTIONS` (biped, quadruped, `large`, flyer, serpent, turret), `bodyRig(plan, o)` and `facingYaw`. Bones live in
+    the side plane (a wing in the front plane, a serpent's wave in the ground plane) with a lateral offset per limb; the facing's yaw projects them to the frame with a depth tilt (default 0.3 px up per px away).
+    Clips: idle (a breath), walk (foot IK on the ground, the body sinking as far as the leg needs; diagonal pairs for quadrupeds, a travelling wave for the serpent, wing beats for the flyer), attack, hurt; unknown
+    states use idle. `BodyPose` extends `anim.Pose` with `depth`, `far` (sort far to near) and `at(bone, u, fwd, side, up)` (a point on a bone moved along the body's own axes, so eyes, horns and held items follow the facing).
+  - **`ctx.lib.rigs`** in `makeLib` (`{ plans, bodyPlan, proportions, body(plan, ctx, o) }`), the `onRig` callback, `RenderResult.rigs` (per cell, distinct rigs only; mirrored cells take their source's), the `rig` stage
+    key (plan, bone names and lengths to 0.01 px) and the `rig-lengths` check (`rigChecks`, tolerance 0.5 px) in `qa/stages.ts`.
+  - **The 12 templates** (`{topdown,iso}/{character,character-walk,creature-quadruped,creature-serpent,creature-flyer,creature-large}/base.js`) are rebuilt on `ctx.lib.rigs.body`, with the same params, anchor names (face anchors on the
+    drawn eyes, `hand`, `head`, `ground`), facings, header style and palette use. `templates/README.md`, and the `asset-production` and `artgen` skills (with `references/breadth.md`) say so, briefly.
+  - **Tests**: scene `rigs.test.ts` 17 (names, lengths fixed across facings/states/frames, projection, planted feet, loops, anchors, turret); core 2 (`rig-lengths`, the rig key); CLI `rig-templates.test.ts` 14 (every template:
+    `rig-lengths` passes over idle, walk, attack and hurt × every facing × frame, the placeholder's anchor names are covered, the rig key exists; a template that resizes its limbs per frame fails; no rig, no key and no check).
+- **Where the build differs from the design.**
+  1. **No `skip` row for unrigged assets.** §6.2 says `rig-lengths` skips when there is no rig; a skip row would have changed every recorded stage report (`artgen stages`, the shape sheet text, transcripts), so the check is simply absent.
+  2. **`body(plan, ctx, o)`** merges `ctx` (size, facing) with `o`; the rig's bone lengths are reported once per distinct rig per cell (render and anchors both build it).
+  3. **Biped spine** takes what the other bones leave of the height, so `proportions.head` (from `headRatio`) changes the torso, not the total height. Proportion keys are limb pairs (`arm_up`, `leg_lo`; `legFL_up` overrides one) plus
+     non-bone numbers (`legSep`, `barrel`, `hover`, `rear`…).
+  4. **Anchors** from `rig.anchors(pose)` are whole pixels; templates keep their old anchor names exactly (`ground` only on creatures, `hand` on creatures equals `head`); `tail` and `muzzle` exist in the library and are not exported by a template.
+  5. **Look.** Legs and arms are capsules (not bevelled rects); quadruped and large heads sit on a neck bone; flyers use a steeper tilt (0.55) so the wings show in profile; the humanoid blade turns with the arm in attack and hurt (held upright
+     in idle and walk, which keeps it clear of the finish's one-pixel clean-ups). In profile the quadruped and large no longer clip at the frame's left edge as sharply as before, but sprites still touch the edge in some profile cells (the old ones did).
+  6. Attack and hurt are now animated for every plan (the old templates drew them as idle).
+  7. **Tuning to the finish.** The finish's `orphans`/`jaggies` removed 1-3 pixels of the first walker draft, which re-opened an approved shape gate (`stages.test.ts` caught it); the blade width and guard, the foot lift (0.03 H), the profile leg radius and the arm separation (0.205 H) were tuned until the finish keeps every cell's shape for the iso walker.
+- **§12 item 2, template code tokens** (`codeTokens`, before → after): topdown character 1584 → 1825, character-walk 2026 → 2200, creature-quadruped 1619 → 1523, creature-serpent 1266 → 1223, creature-flyer 1112 → 1163,
+  creature-large 1574 → 1533; iso character 1617 → 1850, character-walk 2069 → 2244, creature-quadruped 1638 → 1542, creature-serpent 1285 → 1242, creature-flyer 1118 → 1168, creature-large 1593 → 1552. Total 18,501 → 19,065 (+3 %).
+  **Honest reading: the templates did not get shorter.** The skeleton, gait, IK and facing maths moved into the library (`rigs.ts` itself is about 6.7k tokens, not counted here, shared by all twelve), but the new dressing (depth-sorted limbs, `at()` placement, the blade, attack and hurt) costs
+  about what the old hand-written geometry did; quadruped, serpent and large fall 3–6 %, the flyer rises 5 % and the characters 9–14 %. What the maker saves is rewriting a skeleton and getting the walk, facings and stage check for free, which a token count of the template does not show.
+- **Changed expectations** (§10 allows template renders): every render that uses one of the 12 templates, hence the example games' installed copies of the templates, skills and bundles (`npm run fixtures:install`; the example assets are copies and
+  their art, atlases and ledgers are unchanged); the `stages.test.ts` gate-flow expectation `rig: 'n/a'` → `'new'` and the `artgen stages` text `2 rig — n/a (not rigged)` → `2 rig <key> new` for a template-made goblin. The direction-candidate probe
+  set (`generateCandidates` / `artgen direction candidates`) uses the probes in `art/probes`, not these templates: no recorded expectation changed. Bench golden hashes, the consumer fixtures, the CLI and MCP transcripts and every render without a template: unchanged.
+- **Test counts, before → after.** artgen-scene 21 → 38, artgen-core 189 → 191, artgen-cli 322 → 336, artgen-workflow 46, artgen-mcp 31, artgen-runtime 90, artgen-dist 73, imagekit 320, mapgen 133, primitives 41 (unchanged); root `npm test` 96; Python 16. Operations: 157 (no change; `gen:ops` leaves no diff).
+- **Bundles, before → after** (`node packages/artgen-dist/build.mjs`): `artgen.js` 1,707,688 → 1,727,040 bytes (+19 KB), `artgen-mcp.js` 1,705,909 → 1,725,261 (+19 KB), `artgen-maps.js` 770,238 (unchanged). Runtime core 4,858 bytes min+gz (unchanged).
+- **Not done.** No vehicle template on the `turret` plan (library only, as §6.4 says); no 3D skinning or retargeting from imported sprites; the humanoid has no run clip beyond walk; head and body ellipses stay axis-aligned (they do not tilt with a leaning spine);
+  the before/after PNG comparison was by eye on contact sheets (not stored in the repo). Production runs are as in R6a.

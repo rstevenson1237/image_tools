@@ -86,11 +86,51 @@ export function stageKeys(r: RenderResult, dir: Direction, o: { placeholder?: Pl
     if (c.normal) { lit = true; light.str(c.normal.hash()); } else light.str('-');
   }
   keys.shape = shape.hex();
+  const rig = rigKey(r);
+  if (rig) keys.rig = rig;
   keys.decorate = look.hex();
   if (lit) keys.lighting = light.str(dir.camera.light.map(r2).join(',')).hex();
   if (o.rotate) keys.rotation = new Digest().str(`${r.facings.join(',')}|${o.rotate}`).hex();
   keys.animation = anim.str(canonicalJson({ ...briefContract(r.brief as BriefEntry, dir), anchors: [] })).hex();
   return keys;
+}
+
+/** The rig stage key (§4.2): plan, bone names and rig-space lengths (0.01 px) of every distinct rig the cells report, in render order; absent when no cell is rigged. */
+function rigKey(r: RenderResult): string | undefined {
+  if (!r.rigs) return undefined;
+  const seen = new Set<string>(), d = new Digest();
+  for (const c of r.cells) for (const g of r.rigs[cellId(c)] ?? []) {
+    const s = `${g.plan}|${Object.keys(g.lengths).sort().map(b => `${b}=${r2(g.lengths[b])}`).join(',')}`;
+    if (!seen.has(s)) { seen.add(s); d.str(s); }
+  }
+  return seen.size ? d.hex() : undefined;
+}
+
+// ---- rig check (§6.2)
+
+/** The most a bone's rig-space length may differ between cells, px. */
+export const RIG_LENGTH_TOL = 0.5;
+
+/**
+ * `rig-lengths`: for each rig (the n-th body rig a cell builds) and bone, the largest minus the smallest length over all cells
+ * is at most 0.5 px. A template that recomputes its proportions per frame or facing makes limbs stretch between cells; this
+ * names the bone, the two lengths and the cells. Assets with no rig have no `rig-lengths` entry (the design says `skip`; a skip row would change every recorded stage report).
+ */
+export function rigChecks(r: RenderResult): StageCheck[] {
+  const c = (status: Check['status'], detail: string): StageCheck => ({ id: 'rig-lengths', status, detail, stage: 'rig' });
+  if (!r.rigs) return []; // no rig, no check: an unrigged asset's stage report stays as it was
+  const lo = new Map<string, [number, string]>(), hi = new Map<string, [number, string]>();
+  let n = 0;
+  for (const cell of r.cells) for (const [i, g] of (r.rigs[cellId(cell)] ?? []).entries()) for (const [b, v] of Object.entries(g.lengths)) {
+    const k = `${i}:${g.plan}:${b}`, id = cellId(cell);
+    if (!lo.has(k) || v < lo.get(k)![0]) lo.set(k, [v, id]);
+    if (!hi.has(k) || v > hi.get(k)![0]) hi.set(k, [v, id]);
+    n++;
+  }
+  const bad = [...lo.keys()].map(k => ({ k, d: hi.get(k)![0] - lo.get(k)![0] })).filter(x => x.d > RIG_LENGTH_TOL).sort((a, b) => b.d - a.d);
+  if (!bad.length) return [c('pass', `${lo.size} bone lengths the same in every cell (within ${RIG_LENGTH_TOL} px)`)];
+  const w = bad[0].k.split(':'), [a, ia] = lo.get(bad[0].k)!, [b, ib] = hi.get(bad[0].k)!;
+  return [c('fail', `${w[1]} bone ${w[2]} is ${r2(a)} px in ${ia} and ${r2(b)} px in ${ib}${bad.length > 1 ? ` (and ${bad.length - 1} more bone${bad.length > 2 ? 's' : ''})` : ''}: build the rig once per cell from fixed proportions`)];
 }
 
 // ---- shape checks (§5.3)
@@ -181,7 +221,7 @@ export function stageReport(r: RenderResult, dir: Direction, o: { brief: BriefEn
   const ph = o.placeholder ?? safeDefault(o.brief, dir);
   return {
     keys: stageKeys(r, dir, { placeholder: ph, rotate: o.rotate }),
-    checks: [...(o.placeholder ? placeholderChecks(o.placeholder, o.brief, dir) : []), ...shapeChecks(r, dir, { brief: o.brief, placeholder: ph })],
+    checks: [...(o.placeholder ? placeholderChecks(o.placeholder, o.brief, dir) : []), ...shapeChecks(r, dir, { brief: o.brief, placeholder: ph }), ...rigChecks(r)],
   };
 }
 
