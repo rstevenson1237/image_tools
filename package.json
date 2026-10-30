@@ -24,6 +24,7 @@
     "pack:libs": "node packages/artgen-dist/pack-libs.mjs lib-dist",
     "accept:ui": "node scripts/artgen-ui-bundle-accept.mjs",
     "accept:images": "node scripts/artgen-image-tools-accept.mjs",
+    "accept:lit": "node scripts/artgen-lit-accept.mjs",
     "accept:release": "node scripts/artgen-release-acceptance.mjs",
     "fixtures:install": "npm run build -w artgen-dist && node scripts/artgen-fixtures.mjs"
   },
@@ -42,7 +43,7 @@
     "@resvg/resvg-wasm": "^2.6.2",
     "artgen-core": "0.0.0",
     "artgen-imagekit": "0.0.0",
-    "artgen-runtime": "1.3.0",
+    "artgen-runtime": "1.4.0",
     "comlink": "^4.4.2",
     "fabric": "^7.4.0",
     "fflate": "^0.8.3"

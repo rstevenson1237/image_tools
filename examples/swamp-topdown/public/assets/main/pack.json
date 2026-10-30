@@ -6,7 +6,7 @@
     "id": "bogwatch",
     "version": 2
   },
-  "runtime": "1.3.0",
+  "runtime": "1.4.0",
   "atlases": [
     "main-0.png"
   ],

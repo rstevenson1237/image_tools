@@ -7,7 +7,7 @@ import { angleOf, chooseFacing } from './facing.js';
 import { StackSprite, type StackOptions } from './stack.js';
 import type { AnchorOf, AssetRef, AtlasImage, FrameRect, PackAsset, PackManifest, PackStateDef, RuntimeAdapter, StateOf, VariantOf } from './types.js';
 
-export const RUNTIME_VERSION = '1.3.0';
+export const RUNTIME_VERSION = '1.4.0';
 
 export interface DecodedImage { width: number; height: number; data: Uint8ClampedArray | Uint8Array }
 

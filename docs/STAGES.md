@@ -757,3 +757,35 @@ expectations, and what is not done.)
 - **Bundles, before → after** (`node packages/artgen-dist/build.mjs`): `artgen.js` 1,707,688 → 1,727,040 bytes (+19 KB), `artgen-mcp.js` 1,705,909 → 1,725,261 (+19 KB), `artgen-maps.js` 770,238 (unchanged). Runtime core 4,858 bytes min+gz (unchanged).
 - **Not done.** No vehicle template on the `turret` plan (library only, as §6.4 says); no 3D skinning or retargeting from imported sprites; the humanoid has no run clip beyond walk; head and body ellipses stay axis-aligned (they do not tilt with a leaning spine);
   the before/after PNG comparison was by eye on contact sheets (not stored in the repo). Production runs are as in R6a.
+
+### R6c — decals and lit sprites (built 2026-10-30)
+
+- **Built.**
+  - **Decals** (§7.1). `decal` proc layer in `artgen-scene/src/t2/proc.ts` (`part` and `shape` required; `mat` default `accent`, `band` `'keep'` or an index, `opacity` as a 4×4 Bayer share, `name` made unique: `decal`, `decal2`…; errors name the missing option).
+    `artgen-primitives/src/raster.ts`: `Raster.decal` / `decals`, `addDecal`, `decalMasks`, `decalStats`, colouring in `color()` / `toGrid()` (ink is never covered), `decalCoverage` (rect, ellipse, circle, poly, path through the scene's `fillPolygons` on a 4×4 `Mask`, a pixel
+    covered by more than half its samples, as the scene's `direct` mode) and `flipMaskX`; primitives import nothing from scene. `Grid.decals` / `Grid.decalStats` are set by the proc render (scene and grid sources), copied to `Cell.decals` / `Cell.decalStats` by `renderAsset` (flipped for
+    mirrored cells), `--stages` gets a `decal` image (only when a decal ran). `qa/stages.ts`: the `decal` key (each cell's masks by name, names sorted) and the `decal-inside` check (stage `decal`: fail when a decal landed on nothing, flag under half on its part, skip when no shape pixel is in the frame).
+    Skills: `artgen/references/t2.md`, `artgen/SKILL.md`, `asset-production`, `art-maker`.
+  - **Lit sprites** (§7.2). `artgen-runtime/src/light.ts` (core, exported from the index): `PointLight`, `LightRig`, `MAX_LIGHTS` (8), `decodeNormal`, `shadeTexel`. `pixiLitAdapter({ rig, scale? })` in `adapters/pixi.ts`: a quad `Mesh` (one shared unit-quad geometry) with a GLSL
+    `Shader` (WebGL1-style source, `highp`), per-node uniforms for frame, atlas size, anchor, flip, placement and "has normals", a shared `UniformGroup` for the rig that every node refreshes in `onRender`, so a game that mutates `rig` is seen on the next frame. Passes the adapter contract with an inspector.
+    `testkit.ts` gained `synthNormals` (a tilted dome per frame). **Acceptance**: `scripts/artgen-lit-accept.mjs` + `scripts/artgen-lit-accept.page.ts`, `npm run accept:lit` (esbuild bundle, headless Chromium with SwiftShader, readback): 7 light rigs (no light, light left, light right, each smooth and with 3 bands, two lights with 4 bands and smooth)
+    over four sprites (two frames, a mirrored one, one without normals), every opaque texel within ±3/255 of `shadeTexel` (measured max 1/255) and guards that a light, banding and the light's side change the picture. It passes.
+  - **Swamp example**: its pack already exports normals, so `examples/swamp-topdown/src/main.ts` uses `pixiLitAdapter` with `{ normals: true }`; the lantern is a point light that follows the bearer's `head` anchor (the bearer has no `hand` anchor). The screenshot was retaken.
+  - **Runtime 1.4.0** (new public API): `RUNTIME_VERSION`, the package versions, `package-lock.json`, the three example games reinstalled (`npm run fixtures:install`, then `export --runtime` in each, as for 1.3.0), runtime README (adapter row, usage snippet).
+  - **Tests**: primitives 6 (`raster.test.ts`), core 7 (`t2.test.ts` decals) + 5 (`stages.test.ts`: masks, mirror, key, check), CLI 1 (`stages` on a banner with a decal), runtime 25 (`light.test.ts` 10, lit adapter contract 9 + 6 extras).
+- **Where the build differs from the design.**
+  1. `Cell.decalStats` / `Grid.decalStats` carry each decal's `inside` and `total` beside the masks, since `decal-inside` needs `total`, which the masks do not hold.
+  2. As with `rig-lengths`, a render with no decal has no `decal-inside` entry (not a `skip` row), so no recorded stage report changes. A decal whose shapes are all outside the frame gives one `skip` row.
+  3. `decodeNormal` takes an optional alpha: 0 means "no normal", facing the viewer (translucent shadow pixels carry none in the atlas).
+  4. Flipped frames negate the normal's x in the shader (the pack holds only east-side facings), as `threeLitAdapter` does with `normalScale`.
+  5. Assets without normals are lit as flat faces toward the viewer rather than left unlit.
+  6. The lit adapter has no `setRotation` (like `threeLitAdapter`), and no `roundPixels`; quad bounds are kept in `boundsArea`.
+  7. The acceptance counts texels on a band edge (±0.002 px shift moves the result more than 3/255, where float32 and float64 may round to different steps) apart instead of comparing them; none occurred in the 7 rigs. It runs on one browser engine; CI does not run it (CI has no browser acceptance step).
+  8. Decal `opacity` pattern is anchored to frame pixels (x, y mod 4), not to the shape, so two decals of the same opacity dither alike.
+  9. The `decal` stage key and check are computed from masks at proc time; a later pixel-level finish that moves pixels does not move the masks (as the normal map is only fitted, not re-derived).
+  10. The swamp lantern sits at the `head` anchor, not `hand`.
+- **Changed expectations** (§10). Runtime version 1.3.0 → 1.4.0: `stages.test.ts` (`expect(RUNTIME_VERSION).toBe('1.4.0')`), package versions and lock, the three example games' installed skills, agents, vendored runtime (new `light.ts`, `pixi.ts` / `index.ts` / `pack.ts` / `runtime.json`), `pack.json` (`runtime`, `generator`), `*.aseprite.json` and appended `export` ledger lines; atlases byte-identical. `examples/swamp-topdown/src/main.ts` and `screenshot.png` (the lantern). Nothing else: bench hashes, consumer fixtures, transcripts, `gen:ops` and every render without a decal are unchanged.
+- **Test counts, before → after.** artgen-primitives 41 → 47, artgen-core 191 → 203, artgen-cli 336 → 337, artgen-runtime 90 → 115, artgen-scene 38, artgen-workflow 46, artgen-mcp 31, artgen-dist 73, imagekit 320, mapgen 133 (unchanged); root `npm test` 96; Python 16. Operations 157 (no change).
+- **Bundles, before → after** (`node packages/artgen-dist/build.mjs`): `artgen.js` 1,727,040 → 1,735,456 bytes, `artgen-mcp.js` 1,725,261 → 1,733,677, `artgen-maps.js` 770,238 → 770,468. Runtime core 4,858 → 5,209 bytes min+gz (budget 8 KB).
+- **Not done.** WebGPU for the lit adapter; lit sprites in three.js beyond the existing `threeLitAdapter`; a decal editor or decals on 3D / voxel assets; RotSprite (R6d); the acceptance runs in Chromium only and is not part of CI.
+

@@ -26,7 +26,7 @@ server exposes the same tools and returns images directly: `direction_get`, `dir
 | Stage | What you do | File |
 |---|---|---|
 | S1 base | T2+ primitive scene from the brief + direction tokens | `base.vN.js` |
-| S2 procedural | `ctx.lib.proc(scene).add(...)` layers: noise, patterns, rim light, AO, shadows, dither | same file |
+| S2 procedural | `ctx.lib.proc(scene).add(...)` layers: noise, patterns, rim light, AO, shadows, dither, decals (marks on a part) | same file |
 | v1–v3 revisions | v1 first build, then v2, v3 — each rendered, reviewed, scored; revise from the **best** so far (R12) | `base.v1..v3.js` |
 | F finish | one direct-pixel pass on the best base, stored as ops (R2) — in projects only when the review names a finish-level problem or the base clears the bar (`review.finish: auto`) | `finish.v1.js` |
 | U user | the user approves or gives feedback → `base.vN+1` (form/colour) or `finish.vM+1` (pixels) | |

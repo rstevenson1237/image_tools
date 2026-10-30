@@ -110,7 +110,7 @@ describe('stages in a scratch game repo', () => {
     expect(ex.skipped).toEqual([]);
     const m = readJson<PackManifest>(join(root, 'public/assets/main/pack.json'));
     expect(m.placeholders).toEqual(['crate', 'goblin', 'orc']);
-    expect(m.runtime).toBe(RUNTIME_VERSION); expect(RUNTIME_VERSION).toBe('1.3.0');
+    expect(m.runtime).toBe(RUNTIME_VERSION); expect(RUNTIME_VERSION).toBe('1.4.0');
     expect(m.assets.goblin).toMatchObject({ placeholder: true, version: 'placeholder', directions: 4, facings: ['s', 'w', 'n', 'e'] });
     expect(m.assets.goblin.sourceHash).toMatch(/^[0-9a-f]{8}$/);
     expect(Object.keys(m.assets.goblin.states)).toEqual(['idle', 'walk']);

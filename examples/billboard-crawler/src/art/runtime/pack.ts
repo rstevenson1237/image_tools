@@ -1,4 +1,4 @@
-// Vendored by `artgen export --runtime` (artgen-runtime 1.3.0). Local edits are detected and kept;
+// Vendored by `artgen export --runtime` (artgen-runtime 1.4.0). Local edits are detected and kept;
 // re-export with --force to overwrite them. Source: packages/artgen-runtime in rstevenson1237/image_tools.
 /**
  * A loaded pack: the manifest, its atlases uploaded through an adapter, and the objects game code uses — sprites
@@ -9,7 +9,7 @@ import { angleOf, chooseFacing } from './facing.js';
 import { StackSprite, type StackOptions } from './stack.js';
 import type { AnchorOf, AssetRef, AtlasImage, FrameRect, PackAsset, PackManifest, PackStateDef, RuntimeAdapter, StateOf, VariantOf } from './types.js';
 
-export const RUNTIME_VERSION = '1.3.0';
+export const RUNTIME_VERSION = '1.4.0';
 
 export interface DecodedImage { width: number; height: number; data: Uint8ClampedArray | Uint8Array }
 

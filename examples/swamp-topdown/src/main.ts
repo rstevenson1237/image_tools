@@ -2,8 +2,8 @@
 // vendored artgen runtime; the lines between `art` markers are all the art code the game needs.
 import { Application, Container } from 'pixi.js';
 // art
-import { loadPack } from './art/runtime/index.js';
-import { pixiAdapter } from './art/runtime/adapters/pixi.js';
+import { loadPack, type LightRig } from './art/runtime/index.js';
+import { pixiLitAdapter } from './art/runtime/adapters/pixi.js';
 import { Assets, Packs } from './art/assets';
 // /art
 
@@ -24,7 +24,9 @@ const scenery: [keyof typeof Assets, number, number, number][] = [
 const path = (t: number) => [11.5 * TILE + Math.cos(t) * 7.5 * TILE, 7.5 * TILE + Math.sin(2 * t) * 4.2 * TILE] as const;
 
 // art
-const pack = await loadPack(Packs.main, pixiAdapter());
+// dusk: a dim ambient light and the bearer's lantern, a point light the loop below moves (the pack's normal atlas shades the sprites)
+const rig: LightRig = { ambient: [0.5, 0.56, 0.62], bands: 4, lights: [{ x: 0, y: 0, z: 12, color: [1, 0.78, 0.45], intensity: 1.5, radius: 80 }] };
+const pack = await loadPack(Packs.main, pixiLitAdapter({ rig }), { normals: true });
 const mud = pack.tiles(Assets.mud), water = pack.tiles(Assets['bog-water']);
 for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) { const t = isWater(x, y) ? water : mud; t.node((x + 0.5) * TILE, (y + 0.5) * TILE, { parent: ground, variant: t.pick(x, y) }); }
 const props = scenery.map(([id, x, y, variant]) => pack.sprite(Assets[id], { variant, parent: world }).at((x + 0.5) * TILE, (y + 0.5) * TILE, y));
@@ -40,6 +42,8 @@ app.ticker.add(tick => {
   const [x, y] = path(t);
   // art
   hero.faceToward(x - x0, y - y0).at(x, y, y / TILE).update(dt);
+  const head = hero.anchor('head'); // the lantern hangs at the head anchor (the bearer has no hand anchor)
+  rig.lights[0].x = x + (head?.x ?? 0); rig.lights[0].y = y + (head?.y ?? 0);
   props.forEach(p => p.update(dt)); wisps.update(dt);
   // /art
 });

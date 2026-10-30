@@ -136,6 +136,9 @@ gated, so the user sees the cheap thing before the expensive one is built on it.
   `node tools/artgen/artgen.js stage approve <id> shape --note "<their words>"`, or `stage reject <id> shape --note "<what they asked for>"`, after which the next base
   redraws the silhouette and form before any decoration. Approve refuses while a shape check *fails* (`--force` only when the user says so). After the approval
   keep the approved silhouette: v2 and v3 decorate it, and `artgen stages <id>` shows whether the shape moved (`changed` asks the user again).
+- **Decals** (stage 4). Damage, dirt, emblems and team colours go in as `decal` proc layers (`.add('decal', { name, part, mat, shape })`), not as extra body shapes: each is
+  its own mask on its own ramp, shaded with the surface, and `artgen stages <id>` shows the `decal` key and the `decal-inside` check (a decal that lands on nothing fails).
+  A decal on `accent` follows the brief's `swaps`, so a team colour is one layer.
 - On a pull request the user answers `approve goblin shape` or `goblin: shape: arms too long`; `pr prepare` puts the pending shape sheets in `art/review/`.
 
 ### Parallel make (many assets)

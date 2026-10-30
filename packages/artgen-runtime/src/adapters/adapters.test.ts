@@ -1,12 +1,13 @@
 // Every adapter passes the same contract (contract.ts): canvas2d (reference), pixi, three — and a stub fourth adapter
 // written only against the public core API, which is all a new target needs (D3: no core changes).
-import { Container, type Sprite as PixiSprite, type TextureSource } from 'pixi.js';
+import { Container, DOMAdapter, type Sprite as PixiSprite, type TextureSource } from 'pixi.js';
 import { AdditiveBlending, DataTexture, NearestFilter, Object3D, PerspectiveCamera, type Sprite as ThreeSprite } from 'three';
 import { describe, expect, test } from 'vitest';
 import { createPack, type RuntimeAdapter } from '../index.js';
 import { synthPack } from '../testkit.js';
 import { canvas2dAdapter, Canvas2DLayer, drawNode, type Canvas2DNode, type CanvasLike } from './canvas2d.js';
-import { pixiAdapter, pixiStrip } from './pixi.js';
+import { pixiAdapter, pixiLitAdapter, pixiStrip, type PixiLitNode } from './pixi.js';
+import type { LightRig } from '../light.js';
 import { billboardAngle, threeAdapter, threeLitAdapter, tileTexture, type LitNode } from './three.js';
 import { adapterContract } from './contract.js';
 
@@ -40,6 +41,82 @@ adapterContract(pixiAdapter, {
   nearest: (t: TextureSource) => t.scaleMode === 'nearest' && !t.autoGenerateMipmaps,
   rotation: s => s.rotation,
   blend: s => (s.blendMode === 'add' ? 'add' : 'normal'),
+});
+
+// lit sprites in Pixi (R6c): Node has no WebGL, so the program's precision probe gets a stand-in canvas; the shader itself runs in
+// the browser acceptance (`npm run accept:lit`). The inspector reads the frame, flip and anchor back from the node's uniforms.
+DOMAdapter.set({ ...DOMAdapter.get(), createCanvas: (() => ({ getContext: () => ({ isContextLost: () => false, FRAGMENT_SHADER: 1, HIGH_FLOAT: 2, getShaderPrecisionFormat: () => ({ precision: 23 }) }) })) as never });
+const litRig = (): LightRig => ({ ambient: [0.2, 0.2, 0.2], lights: [{ x: 4, y: 2, z: 6, color: [1, 0.8, 0.5], intensity: 1.5, radius: 40 }], bands: 3 });
+const litUniforms = (m: PixiLitNode) => (m.shader!.resources as unknown as { node: { uniforms: { uFrame: Float32Array; uAnchor: Float32Array; uFlip: number; uHasNormal: number } } }).node.uniforms;
+const litSource = (m: PixiLitNode) => (m.shader!.resources as unknown as { uAlbedo: TextureSource }).uAlbedo;
+adapterContract(() => pixiLitAdapter({ rig: litRig() }), {
+  frame: m => { const f = litUniforms(m).uFrame; return { x: f[0], y: f[1], w: f[2], h: f[3], flipX: litUniforms(m).uFlip === 1 }; },
+  anchor: m => { const a = litUniforms(m).uAnchor; return [a[0], a[1]]; },
+  position: m => [m.position.x, m.position.y],
+  texture: litSource,
+  parent: () => new Container(),
+  children: c => c.children.length,
+  nearest: (t: TextureSource) => t.scaleMode === 'nearest' && !t.autoGenerateMipmaps,
+  blend: m => (m.blendMode === 'add' ? 'add' : 'normal'),
+});
+
+describe('pixi lit sprites (R6c)', () => {
+  const withNormals = async (rig: LightRig, scale?: number) => {
+    const { manifest, images } = synthPack();
+    manifest.normals = ['synth-0.n.png'];
+    manifest.assets.walker.normals = true;
+    const normals = images.map(i => ({ ...i, data: new Uint8ClampedArray(i.data.length).fill(128) }));
+    return createPack(manifest, images, pixiLitAdapter({ rig, scale }), normals);
+  };
+
+  test('a frame with normals samples the normal atlas rect; an asset without normals is lit as a flat face', async () => {
+    const p = await withNormals(litRig()), w = p.sprite('walker'), b = p.sprite('boom');
+    expect(litUniforms(w.node).uHasNormal).toBe(1);
+    expect((w.node.shader!.resources as unknown as { uNormals: TextureSource }).uNormals).toBe(p.normalTextures![0]);
+    expect(litUniforms(b.node).uHasNormal).toBe(0);
+    expect((b.node.shader!.resources as unknown as { uNormals: TextureSource }).uNormals).toBe(litSource(b.node));
+    const plain = await createPack(synthPack().manifest, synthPack().images, pixiLitAdapter({ rig: litRig() }));
+    expect(litUniforms(plain.sprite('walker').node).uHasNormal).toBe(0);
+  });
+
+  test('the shader code carries the lighting model: banded Lambert × squared falloff over the first MAX_LIGHTS lights', async () => {
+    const p = await withNormals(litRig()), prog = p.sprite('walker').node.shader!.glProgram!;
+    expect(prog.fragment).toMatch(/precision highp float/);
+    expect(prog.fragment).toContain('max(0.0, 1.0 - dist / uLightPos[i].w)');
+    expect(prog.fragment).toContain('floor(lam * uBands + 0.5) / uBands');
+    expect(prog.fragment).toContain('uLightPos[8]');
+  });
+
+  test('the rig is read on every render: the game mutates it and the next frame uses the new values', async () => {
+    const rig = litRig(), p = await withNormals(rig, 2), s = p.sprite('walker', { parent: new Container() }).at(5, 6, 1);
+    const sync = () => s.node.onRender!(undefined as never), group = (s.node.shader!.resources as unknown as { lights: { uniforms: Record<string, Float32Array & number> } }).lights.uniforms;
+    sync();
+    expect([group.uCount, group.uBands]).toEqual([1, 3]);
+    expect(Array.from(group.uLightPos.subarray(0, 4))).toEqual([4, 2, 6, 40]);
+    expect(Array.from(group.uLightCol.subarray(0, 3)).map(v => Math.round(v * 100) / 100)).toEqual([1.5, 1.2, 0.75]);
+    expect(Array.from(group.uAmbient).map(v => Math.round(v * 10) / 10)).toEqual([0.2, 0.2, 0.2]);
+    rig.lights[0].x = 30; rig.lights.push({ x: 1, y: 1, z: 1, color: [0, 0, 1], intensity: 1, radius: 5 }); rig.bands = 0; rig.ambient = [1, 1, 1];
+    sync();
+    expect([group.uCount, group.uBands, group.uLightPos[0], group.uLightPos[4], group.uLightCol[6]]).toEqual([2, 0, 30, 1, 1]);
+    expect(Array.from(group.uAmbient)).toEqual([1, 1, 1]);
+    for (let i = 0; i < 12; i++) rig.lights.push({ ...rig.lights[0] });
+    sync();
+    expect(group.uCount).toBe(8);
+  });
+
+  test('position, scale and depth: the node sits at (x, y) with the pixel zoom, the shader gets the same placement, z sorts', async () => {
+    const p = await withNormals(litRig(), 3), parent = new Container(), s = p.sprite('walker', { parent }).at(12, -4, 7);
+    expect(s.node.scale.x).toBe(3); expect(s.node.position.x).toBe(12); expect(s.node.zIndex).toBe(7); expect(parent.sortableChildren).toBe(true);
+    const node = (s.node.shader!.resources as unknown as { node: { uniforms: { uNode: Float32Array } } }).node.uniforms.uNode;
+    expect(Array.from(node)).toEqual([12, -4, 3]);
+  });
+
+  test('the bounds follow the quad: the frame around the anchor, mirrored about it', async () => {
+    const p = await withNormals(litRig()), s = p.sprite('walker');
+    expect(s.node.boundsArea).toMatchObject({ x: -3, y: -7, width: 8, height: 8 });
+    s.face(Math.PI);
+    expect(s.node.boundsArea).toMatchObject({ x: 3 - 8, y: -7, width: 8, height: 8 });
+  });
 });
 
 // lit billboards (P6d): the frame is read back from the map's UV transform, the anchor from the quad's vertices
