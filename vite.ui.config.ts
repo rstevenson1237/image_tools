@@ -4,8 +4,7 @@ import { svelte } from '@sveltejs/vite-plugin-svelte';
 /**
  * The review UI of the `ui` installer module (packages/artgen-dist/ui-build.mjs builds it into `tools/artgen/ui/`): the web
  * app in bundle mode (`src/core/bundle.ts`). `artgen ui` serves it and gives it the repo's `art/` over HTTP. It is served
- * from a local address, so assets are relative; the OpenCV copy in `public/` is not part of it (the image tools that load
- * it are left out, so the bundle is a few MB instead of 12).
+ * from a local address, so assets are relative; the image tools (pictures, not a repo's `art/`) are left out of it.
  *
  * The PNG rasteriser and the map label fonts are in the install already (`tools/artgen/resvg.wasm`, `fonts/`: the `core`
  * module), so the bundle doesn't carry a second copy: the imports that would emit them point at addresses `artgen ui`

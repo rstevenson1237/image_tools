@@ -13,6 +13,7 @@ import { BUNDLE_KINDS, DEFAULT_REPO, openIssue, writeBundle } from '../loop/feed
 import { exportMetrics, pool, poolMarkdown } from '../loop/metrics.ts';
 import { upstream } from '../loop/upstream.ts';
 import { startUiServer } from '../ui-server.ts';
+import { IMAGE_OPS } from './image.ts';
 import { defineOp, p, type OpDef } from './registry.ts';
 
 type Inp = Record<string, any>;
@@ -143,4 +144,4 @@ export const metricsPool = defineOp({
   mcp: { exclude: 'reads export files by path outside art/' }, python: {},
 });
 
-export const CORE_OPS: OpDef[] = [uiOp, reportOp, upstreamOp, metricsExport, metricsPool];
+export const CORE_OPS: OpDef[] = [uiOp, reportOp, upstreamOp, metricsExport, metricsPool, ...IMAGE_OPS];

@@ -1,7 +1,6 @@
 import type { Component } from 'svelte';
-import { BUNDLED } from '../bundle';
 
-export type WorkerKind = 'opencv' | 'artgen' | 'ffmpeg' | 'native';
+export type WorkerKind = 'imagekit' | 'artgen' | 'ffmpeg' | 'native';
 
 /** Sidebar sections. Tools without a group sit under the first one. */
 export const toolGroups = [
@@ -34,8 +33,10 @@ export interface ToolDefinition {
 
 type Loaded = Promise<{ default: Component<Record<string, never>> }>;
 
-/** The OpenCV image tools. The review UI that `artgen ui` serves leaves them out (BUNDLED is a build-time constant, so their chunks are not built). */
-const imageTools: ToolDefinition[] = BUNDLED ? [] : [
+/** The image tools (`artgen-imagekit`). The review UI that `artgen ui` serves leaves them out: they work on pictures, not on a repo's `art/` (`__ARTGEN_UI__` is a build-time constant, so their chunks, and the worker they register, are not built). */
+declare const __ARTGEN_UI__: boolean | undefined;
+// written inline, not through BUNDLED (src/core/bundle.ts): the build replaces `__ARTGEN_UI__` with a literal, and only a literal test lets it drop the tools' imports before it loads them
+const imageTools: ToolDefinition[] = typeof __ARTGEN_UI__ !== 'undefined' && __ARTGEN_UI__ ? [] : [
   {
     id: 'token-cutter',
     name: 'VTT Token Cutter',
@@ -43,7 +44,7 @@ const imageTools: ToolDefinition[] = BUNDLED ? [] : [
     icon: '⬤',
     group: 'image',
     load: () => import('../../tools/TokenCutter/index.svelte') as Loaded,
-    requiredWorkers: ['opencv'],
+    requiredWorkers: ['imagekit'],
   },
   {
     id: 'svg-tracer',
@@ -52,7 +53,25 @@ const imageTools: ToolDefinition[] = BUNDLED ? [] : [
     icon: '✧',
     group: 'image',
     load: () => import('../../tools/SvgTracer/index.svelte') as Loaded,
-    requiredWorkers: ['opencv'],
+    requiredWorkers: ['imagekit'],
+  },
+  {
+    id: 'palette',
+    name: 'Palette',
+    blurb: 'Pull the dominant colours out of a picture, snap it to a palette, save .hex or .gpl.',
+    icon: '◧',
+    group: 'image',
+    load: () => import('../../tools/Palette/index.svelte') as Loaded,
+    requiredWorkers: ['imagekit'],
+  },
+  {
+    id: 'slice',
+    name: 'Sprite Slicer',
+    blurb: 'Cut a sprite sheet into its sprites: a grid, or loose sprites found by their pixels.',
+    icon: '▤',
+    group: 'image',
+    load: () => import('../../tools/Slice/index.svelte') as Loaded,
+    requiredWorkers: ['imagekit'],
   },
 ];
 

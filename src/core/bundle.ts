@@ -1,7 +1,7 @@
 /**
  * Bundle mode: this build is the review UI that `artgen ui` serves from a game repo's `tools/artgen/ui/` (the `ui` module,
  * `vite.ui.config.ts`). It opens the repo's `art/` through the server instead of asking for a folder, and leaves out the
- * OpenCV image tools. The flag is a build-time constant, so the tools it leaves out are not in the bundle at all.
+ * image tools. The flag is a build-time constant, so the tools it leaves out are not in the bundle at all.
  */
 declare const __ARTGEN_UI__: boolean | undefined;
 

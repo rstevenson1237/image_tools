@@ -1,7 +1,7 @@
 import { createHistory, commandId, type Command } from '../../core/stores/history.svelte';
 import type { LoadedImage } from '../../core/canvas/types';
 import type { Point } from '../../core/utils/geometry';
-import type { TraceOptions, TraceResult } from '../../workers/opencv.worker';
+import type { TraceOptions, TraceResult } from '../../workers/imagekit.worker';
 import type { EditorTool } from './canvas';
 import {
   canRemoveNode,

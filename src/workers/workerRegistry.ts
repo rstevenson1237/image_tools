@@ -1,5 +1,4 @@
 import * as Comlink from 'comlink';
-import { BUNDLED } from '../core/bundle';
 import type { WorkerKind } from '../core/tools/registry';
 
 /**
@@ -7,15 +6,13 @@ import type { WorkerKind } from '../core/tools/registry';
  *
  * Tools `acquire` in onMount and `release` in onDestroy. The underlying Worker
  * is created on the first acquire and terminated once the last lease is
- * released, so switching away from a CV-backed tool actually reclaims the WASM
- * heap instead of leaving a multi-megabyte worker parked in the background.
+ * released, so switching away from a tool reclaims its memory instead of
+ * leaving a worker parked in the background.
  */
 
 type WorkerFactory = () => Worker;
 
 const factories: Partial<Record<WorkerKind, WorkerFactory>> = {
-  // the review UI served by `artgen ui` has no OpenCV tools (BUNDLED is a build-time constant: the worker isn't built)
-  ...(BUNDLED ? {} : { opencv: () => new Worker(new URL('./opencv.worker.ts', import.meta.url), { type: 'module' }) }),
   artgen: () =>
     new Worker(new URL('./artgen.worker.ts', import.meta.url), { type: 'module' }),
 };
@@ -35,6 +32,14 @@ export interface WorkerLease<T> {
   readonly api: Comlink.Remote<T>;
   /** Idempotent. Terminates the worker when the last lease is released. */
   release: () => void;
+}
+
+/**
+ * A tool that owns a worker registers it by importing a module that calls this (`registerImagekit.ts`), so a build that leaves the tool out
+ * (the review UI `artgen ui` serves) leaves its worker out too.
+ */
+export function register(kind: WorkerKind, factory: WorkerFactory): void {
+  factories[kind] = factory;
 }
 
 export function acquire<T>(kind: WorkerKind): WorkerLease<T> {

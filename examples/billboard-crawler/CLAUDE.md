@@ -8,6 +8,11 @@
   patch against their sources in the artgen repo, so the edit is not lost at the next `update`.
 - Counts and ratios from the ledger (`node tools/artgen/artgen.js metrics export`, art module) go to `art/metrics/`; nothing else leaves the repo.
 
+## Image tools
+- Pictures to shapes, tokens, cells and palettes need no project: `node tools/artgen/artgen.js trace|slice <image.png>`, `node tools/artgen/artgen.js quantize <image.png>`
+  (`/artgen-image` says when to use which). A traced sketch becomes an asset's base with `trace-base <asset> <image.png>` (art module) or paint edits on a map
+  with `map trace <id> <image.png>`; `cut <asset|image.png>` makes a token from an approved asset (art module).
+
 ## Art pipeline (artgen)
 - Game art lives in `art/`: `direction.json` (the locked style bible), `briefs.yaml`, `assets/` (asset sources as
   code), `anchors/`, `ledger.jsonl`. Renders under `out/` are rebuilt from sources.

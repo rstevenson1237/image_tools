@@ -16,7 +16,7 @@ import { packLibs } from '../pack-libs.mjs';
 const require = createRequire(import.meta.url);
 const REPO = fileURLToPath(new URL('../../../', import.meta.url));
 const tmp = mkdtempSync(join(tmpdir(), 'artgen-libs-')), packs = join(tmp, 'packs'), consumer = join(tmp, 'consumer');
-const NAMES = ['artgen-runtime', 'artgen-primitives', 'artgen-scene', 'artgen-workflow', 'artgen-mapgen'];
+const NAMES = ['artgen-runtime', 'artgen-primitives', 'artgen-scene', 'artgen-workflow', 'artgen-imagekit', 'artgen-mapgen'];
 const manifest = (name: string) => JSON.parse(readFileSync(join(consumer, 'node_modules', name, 'package.json'), 'utf8'));
 const node = (args: string[]) => spawnSync(process.execPath, args, { cwd: consumer, encoding: 'utf8' });
 
@@ -37,7 +37,7 @@ beforeAll(() => {
 afterAll(() => { rmSync(tmp, { recursive: true, force: true }); });
 
 describe('library packages', () => {
-  test('five files, each named for its own version line; the release lists them in packages.json', () => {
+  test('six files, each named for its own version line; the release lists them in packages.json', () => {
     const idx = packagesIndex(VERSION);
     expect(Object.keys(idx.packages)).toEqual(NAMES);
     expect(idx.packages['artgen-mapgen']).toEqual({ version: MAPGEN_VERSION, file: `artgen-mapgen-${MAPGEN_VERSION}.tgz` });
@@ -51,6 +51,7 @@ describe('library packages', () => {
     expect(manifest('artgen-mapgen').dependencies).toEqual({ 'artgen-primitives': releaseUrl(VERSION, `artgen-primitives-${VERSION}.tgz`), 'artgen-workflow': releaseUrl(VERSION, `artgen-workflow-${VERSION}.tgz`) });
     expect(manifest('artgen-workflow').dependencies).toEqual({ 'artgen-primitives': releaseUrl(VERSION, `artgen-primitives-${VERSION}.tgz`) });
     expect(manifest('artgen-scene').dependencies).toEqual({ 'artgen-primitives': releaseUrl(VERSION, `artgen-primitives-${VERSION}.tgz`) });
+    expect(manifest('artgen-imagekit').dependencies).toEqual({ 'artgen-primitives': releaseUrl(VERSION, `artgen-primitives-${VERSION}.tgz`) });
     expect(Object.keys(manifest('artgen-primitives').dependencies).sort()).toEqual(['@resvg/resvg-wasm', 'fflate']);
     expect(manifest('artgen-runtime').dependencies).toBeUndefined();
     expect(manifest('artgen-runtime').peerDependenciesMeta).toBeDefined();
@@ -73,20 +74,24 @@ describe('library packages', () => {
       import { dungeon, map, settlement } from 'artgen-mapgen';
       import * as scene from 'artgen-scene';
       import * as primitives from 'artgen-primitives';
+      import { traceImage } from 'artgen-imagekit';
       import { rng } from 'artgen-primitives/lib/rng.js';
       import * as runtime from 'artgen-runtime';
       import { canvas2dAdapter } from 'artgen-runtime/canvas2d';
+      const d = new Uint8ClampedArray(12 * 12 * 4).fill(255);
+      for (let y = 3; y < 9; y++) for (let x = 3; x < 9; x++) d.set([10, 10, 10, 255], (y * 12 + x) * 4);
+      const traced = traceImage({ w: 12, h: 12, d }, { minArea: 1 });
       const raw = JSON.parse(readFileSync(${JSON.stringify(fixture)}, 'utf8'));
       const checked = dungeon.checkDungeon(raw);
       const svg = dungeon.renderDungeonSvg(dungeon.parseDungeon(raw));
       console.log(JSON.stringify({
         errors: checked.errors.length, svg: svg.startsWith('<svg') || svg.includes('<svg'), maps: typeof map.generateMap, settlements: typeof settlement.generateSettlement,
-        scene: Object.keys(scene).length > 10, primitives: typeof primitives.Grid, rng: rng(3)() < 1, runtime: runtime.RUNTIME_VERSION, adapter: typeof canvas2dAdapter,
+        scene: Object.keys(scene).length > 10, primitives: typeof primitives.Grid, rng: rng(3)() < 1, traced: traced.shapes.length, runtime: runtime.RUNTIME_VERSION, adapter: typeof canvas2dAdapter,
       }));
     `);
     const r = node(['use.mjs']);
     expect(r.status, r.stderr).toBe(0);
-    expect(JSON.parse(r.stdout)).toEqual({ errors: 0, svg: true, maps: 'function', settlements: 'function', scene: true, primitives: 'function', rng: true, runtime: RUNTIME_VERSION, adapter: 'function' });
+    expect(JSON.parse(r.stdout)).toEqual({ errors: 0, svg: true, maps: 'function', settlements: 'function', scene: true, primitives: 'function', rng: true, traced: 1, runtime: RUNTIME_VERSION, adapter: 'function' });
   });
 
   test('a TypeScript consumer type-checks against the declarations, with the library check on', () => {

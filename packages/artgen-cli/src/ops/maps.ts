@@ -8,6 +8,7 @@
 import { dungeon, map, settlement } from 'artgen-core/maps';
 import { DUNGEON_OPS_LIST } from './maps-dungeon.ts';
 import { MAP_MAP_OPS } from './maps-map.ts';
+import { MAP_TRACE_OPS } from './maps-trace.ts';
 import { WORKFLOW_OPS } from './maps-workflow.ts';
 import { SETTLEMENT_OPS_LIST } from './maps-settlement.ts';
 import { defineOp, usageLines, type OpDef } from './registry.ts';
@@ -21,7 +22,7 @@ const formats = defineOp({
   mcp: {}, python: {},
 });
 
-export const MAP_OPS: OpDef[] = [...MAP_MAP_OPS, ...DUNGEON_OPS_LIST, ...SETTLEMENT_OPS_LIST, formats, ...WORKFLOW_OPS];
+export const MAP_OPS: OpDef[] = [...MAP_MAP_OPS, ...MAP_TRACE_OPS, ...DUNGEON_OPS_LIST, ...SETTLEMENT_OPS_LIST, formats, ...WORKFLOW_OPS];
 
 /** The note under the map operations' `--help` lines. */
 export const MAP_NOTE = '       (map, dungeon and settlement commands take --file <path> in place of <id>: no project needed; renders go beside the file or to --out)';

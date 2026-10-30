@@ -8,7 +8,7 @@ Two things for game developers live in this repo:
   effect is a small JavaScript module that draws itself from that direction, goes through a fixed make → review →
   revise loop, and waits for your approval. Approved art exports as atlas packs plus a tiny typed runtime for Pixi.js,
   three.js or Canvas 2D. Change the direction later and one command re-renders the whole set.
-- **The image tools** — a browser app (everything stays on your machine): a VTT token cutter, an SVG tracer, a terrain
+- **The image tools** — a browser app (everything stays on your machine): a VTT token cutter, an SVG tracer, a palette tool, a sprite slicer, a terrain
   map maker, a dungeon map maker and a settlement map maker for tabletop RPGs, and three tools that open an artgen game's `art/` folder to edit the direction, review
   and approve assets, and play them.
 
@@ -85,6 +85,7 @@ dungeon (Pixi.js) and a first-person billboard crawler (three.js).
 | [`packages/artgen-scene`](packages/artgen-scene) | engine layer 2: direction types, 2D/3D scenes, procedural layers, voxels, views, animation, effects, textures |
 | [`packages/artgen-workflow`](packages/artgen-workflow) | what pixel art and maps share once something is made: ledger, status, versions and diffs, analytics, metrics, the data sheet |
 | [`packages/artgen-mapgen`](packages/artgen-mapgen) | the terrain, dungeon and settlement map engines |
+| [`packages/artgen-imagekit`](packages/artgen-imagekit) | the image tools as plain TypeScript on pixels: trace, cut, palette, slice (the web tools, `artgen trace`, `cut`, `slice`, `quantize` and `map trace` all run it) |
 | [`packages/artgen-core`](packages/artgen-core) | the artgen pipeline (rendering, passes, checks, workflows, export) and the facade that re-exports the four above |
 | [`packages/artgen-cli`](packages/artgen-cli) | the `artgen` CLI the skills call |
 | [`packages/artgen-runtime`](packages/artgen-runtime) | the runtime vendored into games, with Pixi.js / three.js / Canvas 2D adapters |
@@ -102,6 +103,14 @@ What comes next (package split, modular install, the feedback loop, stages) is p
 - **VTT Token Cutter** — lasso a figure in a piece of artwork and extract a mono-colour
   silhouette as a transparent, tightly-cropped PNG.
 - **SVG Tracer** — trace artwork to vector paths, fix the trace node by node, and export SVG.
+- **Palette** — take the dominant colours of a picture, snap the picture to them (or to a `.hex` / `.gpl` file),
+  and save the palette.
+- **Sprite Slicer** — cut a sprite sheet into its sprites, by a grid or as loose sprites found by their pixels, and
+  download the cells with a `slices.json`.
+
+The same operations are on the command line, so Claude Code can use them: `artgen trace`, `trace-base` (a sketch becomes an
+asset's base), `map trace` (a sketch becomes a map's ground), `cut` (a token from an approved asset), `slice` and
+`quantize`.
 - **Terrain Map** — tabletop RPG maps: a regional hex crawl or a local battle map generated from a seed, then shaped
   with brushes (paint terrain, raise or lower ground, rivers, roads). Topographic contours over shaded terrain; add a
   square or hex grid, labels and symbols; export SVG or PNG in colour or black & white. Works on its own (open or
@@ -128,7 +137,7 @@ The art tools write the same files Claude Code reads, so changes made in either 
 ## Developing this repo
 
 ```bash
-npm install     # also copies opencv.js into public/vendor
+npm install
 npm run dev     # http://localhost:5173
 npm run check   # svelte-check
 npm test        # vitest — the vector model, SVG serializer, artgen project engine (vs the CLI)
@@ -140,12 +149,10 @@ npm run test:packages   # vitest in each artgen workspace package
 npm run build:dist      # build the artgen committed-install distribution (packages/artgen-dist/out), review UI included
 npm run pack:libs       # build the library package files a release attaches (lib-dist/)
 npm run accept:ui       # headless-browser run of `artgen ui` against a fixture game (needs Playwright)
+npm run accept:images   # headless-browser run of the four image tools against the production build (needs Playwright)
 npm run accept:release  # tag → `npx …#artgen-dist-v<B> update` for the full and the maps-only install
 npm run fixtures:install  # restore the generated tools in the examples/ fixture game repos
 ```
-
-`npm run dev` and `npm run build` both re-run `scripts/vendor-opencv.mjs` first, so the OpenCV
-asset is always in place.
 
 ## Architecture
 
@@ -163,6 +170,8 @@ src/
 ├── tools/
 │   ├── TokenCutter/        UI, selection capture, store, export
 │   ├── SvgTracer/          UI, node editor, vector model, SVG serializer, store
+│   ├── Palette/            colours of a picture, snap to a palette, .hex / .gpl
+│   ├── Slice/              sprite sheet to cells (grid or loose sprites), zip
 │   ├── TerrainMap/         map editor over the `map` engine (generator, contours, themes, SVG renderer)
 │   ├── DungeonMap/         dungeon editor over the `dungeon` engine
 │   ├── SettlementMap/      settlement editor (site and floor plans) over the `settlement` engine
@@ -171,7 +180,7 @@ src/
 │   └── AssetLab/           params + runtime playback
 └── workers/
     ├── workerRegistry.ts   Ref-counted Comlink worker pool
-    ├── opencv.worker.ts    OpenCV pipelines (silhouette extraction, contour tracing)
+    ├── imagekit.worker.ts  artgen-imagekit over the page's pictures (silhouette, trace, palette, slice)
     └── artgen.worker.ts    @artgen/core over the opened project (asset code runs here, never on the page)
 ```
 
@@ -182,21 +191,22 @@ once the last lease is gone.
 
 ### Processing pipeline
 
-`extractSilhouette` runs in a worker: build a polygon mask from the lasso → greyscale → blur →
-threshold (Otsu or manual) → morphological close → intersect with the source alpha and the lasso
-→ optionally keep the largest filled blob → emit RGBA where the subject takes the chosen colour
-and everything else is transparent. Every `cv.Mat` is tracked in a `MatScope` and released in a
-`finally`, so a mid-pipeline exception cannot leak the WASM heap.
+The processing is `packages/artgen-imagekit`: plain TypeScript on RGBA pixels, with no WASM to load. (Until R5b the tools ran
+on a 10 MB OpenCV build; imagekit reimplements the steps they used, and `packages/artgen-imagekit/fixtures/opencv/` holds
+what OpenCV gave on a set of pictures so the tests keep the TypeScript to it: masks pixel for pixel, traced rings point for
+point.) The worker `src/workers/imagekit.worker.ts` only moves pictures in and out, so a large one does not freeze the page.
+
+`extractSilhouette` builds a polygon mask from the lasso → greyscale → blur → threshold (Otsu or manual) → morphological
+close → intersects with the source alpha and the lasso → optionally keeps the largest filled blob → emits RGBA where the
+subject takes the chosen colour and everything else is transparent.
 
 ### Tracing pipeline
 
-`traceContours` shares `binarize` with the extractor, then runs `findContours` with `RETR_CCOMP`
-— a strict two-level hierarchy — so each outer contour is grouped with its own holes before
-anything crosses back to the main thread. Contours are simplified with `approxPolyDP`, dropped
-below `minArea`, sorted largest-first and capped at `maxPaths`, and returned as flat
-`Float32Array` rings that are *transferred* rather than cloned. `RETR_CCOMP` deliberately
-flattens deeper nesting: an island inside a hole comes back as its own top-level shape, which is
-what even-odd filling wants.
+`traceImage` shares `binarize` with the extractor, then finds the borders of the blobs (Suzuki and Abe's border following, as
+OpenCV's `findContours` does it) in a strict two-level hierarchy — each outer contour is grouped with its own holes. Contours
+are simplified (Douglas–Peucker, as `approxPolyDP`), dropped below `minArea`, sorted largest-first and capped at `maxPaths`, and
+returned as flat `Float32Array` rings that are *transferred* rather than cloned. The two-level hierarchy deliberately flattens
+deeper nesting: an island inside a hole comes back as its own top-level shape, which is what even-odd filling wants.
 
 The SVG Tracer keeps a plain TypeScript document (`SvgTracer/model.ts`) as its source of truth
 and treats Fabric as a renderer. Fabric has no per-vertex editing API, and its geometry setters
@@ -219,32 +229,12 @@ does — `engine.test.ts` checks it against the CLI on the fixture repos in `exa
 returns; the store re-reads the files first, refuses if Claude Code changed one meanwhile, and appends ledger lines rather
 than rewriting the file. `scripts/artgen-ui-accept.mjs` drives the whole loop in headless Chromium.
 
-## Two things worth knowing before you touch the worker
+## Cross-Origin isolation
 
-**Cross-Origin isolation is set in dev, but is not required.** `vite.config.ts` sends
-`Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp` on the
-dev and preview servers. The current OpenCV.js build is single-threaded and contains no
-`SharedArrayBuffer` reference, so the app runs correctly on hosts that cannot set headers at all
-(verified end-to-end with `crossOriginIsolated === false`). The headers stay in dev so that
-switching to a threaded WASM build — which *would* need them — fails locally instead of in
-production.
-
-**Loading OpenCV.js is genuinely awkward**, and the two obvious approaches both fail silently:
-
-- `import()`ing the npm package inside the worker wedges the thread outright.
-- `importScripts` only exists in classic workers, and Vite leaves ESM imports in classic workers
-  un-bundled in dev, so they fail to parse.
-
-So the worker fetches `public/vendor/opencv.js` and runs it through an **indirect** `eval`, which
-evaluates in global scope and lets the UMD's fallback branch assign `self.cv`. The file must be
-served from `public/` — Vite's dev server rewrites anything under `/node_modules` into an ES
-module, which would corrupt the UMD. `scripts/vendor-opencv.mjs` copies it there from the npm
-package (the copy is gitignored; npm stays the source of truth for the version).
-
-The Emscripten module is also **thenable and resolves with itself**. Awaiting it — or returning
-it from an `async` function, which is the easy one to miss — makes the promise machinery re-chain
-forever and hang the worker with no error. The loader boxes it during init and then deletes
-`then` outright.
+`vite.config.ts` sends `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp` on the dev
+and preview servers. Nothing in the app uses `SharedArrayBuffer`, so it runs correctly on hosts that cannot set headers at all
+(verified end-to-end with `crossOriginIsolated === false`). The headers stay in dev so that switching to a threaded WASM
+build — which *would* need them — fails locally instead of in production.
 
 ## Deploying to GitHub Pages
 
@@ -255,10 +245,9 @@ forever and hang the worker with no error. The loader boxes it during init and t
 Two details make this work:
 
 - **Sub-path.** Pages serves from `/<repo>/`, not the domain root, so the workflow passes
-  `BASE_PATH` and Vite builds for it. The OpenCV worker resolves its asset through
-  `import.meta.env.BASE_URL`, so it follows automatically.
-- **The 10 MB OpenCV asset is gitignored**, and produced in CI — `npm ci` runs the `postinstall`
-  vendor script, so `public/vendor/opencv.js` exists before the build. Nothing large is committed.
+  `BASE_PATH` and Vite builds for it.
+- **Nothing large is fetched at run time.** The image tools are plain TypeScript in the bundle (the site is about 4.6 MB;
+  it was 15 MB with the OpenCV asset), so there is no vendor step before the build.
 
 Pages cannot set custom headers, so `crossOriginIsolated` is false there. That is fine — see the
 isolation note above. The whole pipeline was verified against a header-free static server on a

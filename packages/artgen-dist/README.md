@@ -32,7 +32,7 @@ because they were edited) that `artgen-update.yml` uses, and moves the release U
 | Path | What it is |
 |---|---|
 | `build.mjs` | esbuild bundles of `artgen-cli/src/bin.ts`, `maps-bin.ts` and `artgen-mcp/src/bin.ts`, wasm, templates, the review UI, content for both layouts; builds module by module and writes `dist/modules.json` |
-| `ui-build.mjs` | builds the review UI with `vite.ui.config.ts` (no OpenCV tools; the rasteriser and fonts are the `core` module's, served by `artgen ui`) |
+| `ui-build.mjs` | builds the review UI with `vite.ui.config.ts` (no image tools, which work on pictures, not on a repo's `art/`; the rasteriser and fonts are the `core` module's, served by `artgen ui`) |
 | `lib-packages.mjs`, `pack-libs.mjs` | the four library packages a release attaches: tsc output + declarations, `npm pack` |
 | `src/install.mjs` | the installer (plain Node, no deps): modules, copies, `.mcp.json` merge, managed `CLAUDE.md` section, `MANIFEST.json` hashes |
 | `content/<module>/` | each module's skills, agents, commands and `CLAUDE.md` fragment (`update-pr/` holds the workflow); `{{ARTGEN}}` and `{{CMD_DIRECTION}}` are filled per layout (the maps skills call `artgen-maps.js`) |

@@ -1,6 +1,6 @@
 # Tooling plan: separate, refactor, and build a feedback loop
 
-Status: proposal, 2026-10-27; decisions settled 2026-10-27 and revised 2026-10-29 (§12). R0, R1, R2, R3 and R5 are built, and R4's code is built but its acceptance run is not (§10); the rest is not. It follows on from the finished artgen plan ([`archive/artgen/PLAN.md`](archive/artgen/PLAN.md)) and reuses its
+Status: proposal, 2026-10-27; decisions settled 2026-10-27 and revised 2026-10-29 (§12). R0, R1, R2, R3, R5 and R5b are built, and R4's code is built but its acceptance run is not (§10); the rest is not. It follows on from the finished artgen plan ([`archive/artgen/PLAN.md`](archive/artgen/PLAN.md)) and reuses its
 decisions (`Dn`) where they still hold.
 
 ## 1. Summary
@@ -245,7 +245,7 @@ Notes pinned to a region of the sprite stay a UI-only feature; a pull request co
 | `artgen` | `direction.ts`, `w1/`, `w2/`, `qa/`, `pipeline.ts`, `render.ts` | scene, workflow |
 | `mapgen` | `map/`, `dungeon/`, `settlement/`, `maps.ts` | primitives (+ workflow from R5) |
 | `workflow` | new; ledger and status logic moved out of `qa/ledger.ts`, `w2/status.ts`, `pipeline.ts` | primitives |
-| `imagekit` | `src/tools/TokenCutter` and `SvgTracer` processing (now OpenCV in a browser worker), `lib/palette.ts` extract, `lib/trace.ts` | primitives |
+| `imagekit` | `src/tools/TokenCutter` and `SvgTracer` processing (OpenCV in a browser worker until R5b), `lib/palette.ts` extract, `lib/trace.ts` | primitives |
 
 `artgen-core` stays as a facade that re-exports everything, so the CLI, web app and examples keep working while
 imports move over. In the web app, `src/tools/` gets three groups: **image** (Token Cutter, SVG Tracer and the tools
@@ -616,7 +616,7 @@ faster for the phases after it.
   - **Not done here.** Firefox (not installed in this sandbox), a review on a real machine and the first use in a game repo. As designed: pull request review of maps (§12 of the
     design), region pins drawn on map renders, custom inks and fonts in the map direction, art assets as a subject.
 
-### R5b — Image tools join the pipeline (M)
+### R5b — Image tools join the pipeline (M) — built 2026-10-30
 - Rewrite the Token Cutter's and SVG Tracer's processing in TypeScript as `imagekit` operations (§6b), checked against
   today's OpenCV output on a set of test images. Then drop the 10 MB OpenCV asset.
 - Wire them in: Trace → `path` primitives and map outlines; Cut → VTT tokens from approved assets and the Shape-gate
@@ -625,6 +625,45 @@ faster for the phases after it.
   hand, and each new mid-level tool reaches every interface for free.
 - **Accept:** a traced sketch becomes a base that renders and passes the gate; `artgen cut` makes a token from an
   approved asset; the web tools give the same result as before, within tolerance.
+- **Built:**
+  - **The `artgen-imagekit` package** (`packages/artgen-imagekit`, the `imagekit` layer, depends on primitives only; the boundary lint knows it). Plain
+    TypeScript on RGBA pixels (`Grid`, or an `ImageData` as `{ w, h, d }`): `mask.ts` (grey, Gaussian blur, Otsu, threshold, ellipse dilate / erode / close,
+    alpha), `contours.ts` (Suzuki–Abe border following, `approxPolyDP`, polygon and border fills), `trace.ts` (`traceImage`), `cut.ts` (silhouette, token crop,
+    alpha mask), `palette.ts` (the primitives' median cut and snapping, `.hex` / `.gpl` files), `slice.ts` (grid and loose sprites), `svg.ts`.
+  - **Held to OpenCV.** `fixtures/opencv/generate.mjs` runs the old worker's pipeline on real OpenCV 4.10 for 21 pictures (14 synthetic, 7 sprites from the repo)
+    with 4 trace and 3 cut settings; `golden.json` is what it gave (257 KB) and `src/opencv.test.ts` holds the TypeScript to it. Result: every mask is the
+    same pixel for pixel, every traced ring the same point for point (start point, direction, order, areas, what was dropped, the level Otsu chose). The
+    one allowance is the edge of a lasso: `fillPoly` and the TypeScript fill a polygon with slightly different edge rules, so a hand-drawn selection differs by
+    a pixel or two along its line (never inside), and the test allows 0.5 % of the selected pixels. Matching OpenCV took five findings, all in the code now
+    and in its comments: the grey weights are 15-bit (9798, 19235, 3735), not 14-bit; the Gaussian kernel for sizes over 7 carries its rounding along the
+    kernel (each weight is the difference of two rounded running sums); the ellipse kernel rounds its row half-widths; `approxPolyDP` ends with a pass that drops
+    nearly collinear points; and `findContours` lists the last blob found first, each followed by its holes (it matters for ties when shapes are sorted by area).
+    The OpenCV generator is not a dependency any more; its header says how to run it.
+  - **Review fixes.** A review of the change found and fixed: the loose-sprite scan cost grew with `--gap` (it now grows each pixel right and down by the gap and joins the shapes that touch; a
+    test checks it against a brute-force pairing at every gap); `dilate` kept a full plane per kernel width (now one at a time); the flood fill allocated per pixel; `trace --fill red` fell back to
+    black silently (now an error); a mistyped picture path to `cut` read as a missing asset; the palette argument is a file first and a colour list second (3-digit colours work, any extension
+    case); the Palette tool's overlay could stay up after a slider change. Ring points are pixel indexes, as OpenCV gave them (the web SVG Tracer is unchanged); `trace` and `map trace` draw
+    through pixel centres, half a pixel in.
+  - **Speed.** 512² in about 0.1 s, 1500² in 0.5 s, 3000×2000 in 1–2 s, in a worker.
+  - **Command line, MCP, Python** (153 operations now, 6 more, all generated into `OPERATIONS.md` and the Python client). In the core module (so both bundles have them,
+    and the maps-only bundle's import graph now allows `artgen-imagekit`): `trace <image>` (an SVG of even-odd shapes), `slice <sheet>` (`--cols/--rows`, `--cell WxH`
+    or `--auto`; cells and `slices.json`) and `quantize <image>` (to a list, a `.hex` / `.gpl` / `.png`, or the picture's own colours; optional dither). In the maps
+    module: `map trace <id> <image>` (the dark shapes become `paint` edits in map cells, their holes water; `--origin` and `--replace` make it repeatable). In the art
+    module: `trace-base <asset> <image>` (the asset's next `base.vN.js`: the shapes as `path` primitives with `fillRule: evenodd`, fitted to the frame in the ramp nearest
+    the picture's colour among those the direction allows the kind) and `cut <asset|image>` (a token from an approved asset's render, or a picture's subject; `--fill flat`
+    is the flat silhouette the Shape gate will read; `--scale` for whole-number enlargement). None is an MCP tool, each with its reason (they read pictures by path outside
+    the `art/` sandbox). `/artgen-image` (core) says which to use.
+  - **Web.** `src/workers/opencv.worker.ts`, `scripts/vendor-opencv.mjs`, the `postinstall` / `prebuild` / `predev` hooks and the `@techstark/opencv-js` dependency are gone; Token Cutter
+    and SVG Tracer call `imagekit.worker.ts` (same calls and results). New tools: **Palette** and **Sprite Slicer**, in the image group. The production build is 14.9 MB → 4.6 MB
+    (the 10.4 MB vendor asset is gone; its JS is 1.28 → 1.36 MB for imagekit and the two tools). `npm run accept:images` drives all four tools in headless Chromium against the
+    build (no OpenCV file in `dist/`; trace → SVG; lasso → silhouette PNG; colours → `.hex`; sheet → zip).
+  - **Library packages.** `artgen-imagekit` is attached to each release beside the others (follows the release version; depends on the primitives file).
+  - **Accept.** A traced sketch becomes a base that renders and passes the gate (`image.test.ts`: `trace-base` then `render`, no failing check); `cut` makes a token from an
+    approved-or-chosen version and refuses an unapproved asset; the web tools give the same result as before (pixel for pixel, see above). Bundles grew: `artgen.js` 1.61 → 1.66 MB,
+    `artgen-mcp.js` 1.60 → 1.65 MB, `artgen-maps.js` 0.73 → 0.77 MB.
+  - **Not done here.** The other tools of §6b (Heightmap, Turntable, Print tiles); colour layers when tracing (a trace is one silhouette in one ramp; splitting a picture into
+    several materials is for the pass that follows); tracing into dungeon and settlement footprints (only terrain maps take `map trace`); a pixel-exact lasso edge; Firefox
+    (not installed in this sandbox); the Shape gate itself (R6a) that reads `cut --fill flat`.
 
 ### R6 — Stage graph (L; split into sub-phases ordered by R4's metrics)
 - R6a: the **Placeholder** stage and its export, so the runtime loads placeholder packs. Add gates and stage cache

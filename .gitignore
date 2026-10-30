@@ -3,7 +3,6 @@ dist/
 .DS_Store
 *.local
 .vite/
-public/vendor/
 artgen-out/
 packages/artgen-core/bench/pipeline/*/out/
 packages/artgen-core/bench/p6/*/out/

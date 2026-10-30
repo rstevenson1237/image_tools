@@ -84,9 +84,10 @@ describe('artgen-dist', () => {
     expect(readFileSync(join(OUT, 'dist/claude/skills/terrain-map/SKILL.md'), 'utf8')).toMatch(/node tools\/artgen\/artgen-maps\.js map /);
     expect(readFileSync(join(OUT, 'dist/claude/skills/terrain-map/SKILL.md'), 'utf8')).not.toMatch(/node tools\/artgen\/artgen\.js/);
     expect(JSON.parse(readFileSync(join(OUT, 'dist/packages.json'), 'utf8')).packages['artgen-mapgen']).toEqual({ version: MAPGEN_VERSION, file: `artgen-mapgen-${MAPGEN_VERSION}.tgz` });
-    // the review UI carries no OpenCV and no second copy of the rasteriser or the fonts (the core module has them)
+    // the review UI carries no image tools and no second copy of the rasteriser or the fonts (the core module has them)
     const ui = all.ui.files.filter(f => f.startsWith('tools/artgen/ui/'));
     expect(ui.filter(f => /\.(wasm|ttf)$/.test(f))).toEqual([]);
+    expect(ui.filter(f => /imagekit|opencv/i.test(f))).toEqual([]);
     expect(ui.reduce((n, f) => n + readFileSync(join(OUT, 'dist', f)).length, 0)).toBeLessThan(3 * 1024 * 1024);
   });
 
