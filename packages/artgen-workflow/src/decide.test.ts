@@ -27,6 +27,15 @@ describe('approvalEntry', () => {
   });
 });
 
+test('approved, then the map direction changed: the same version is approved again under the new one; an edit since is not', () => {
+  const a1: LedgerEntry = { ts: '2026-10-29T11:00:00Z', type: 'approve', asset: 'map:keep', version: 'v1', sourceHash: 'h1', by: 'user' }, dir = { id: 'maps', version: 1 };
+  const stale = subjectStatus({ entries: [v1, a1], workingHash: 'h1', direction: dir });
+  expect(stale.status).toBe('stale');
+  expect(approvalEntry({ ...D, status: stale, checks: ok, workingHash: 'h1', direction: dir })).toMatchObject({ type: 'approve', version: 'v1', direction: dir });
+  const edited = subjectStatus({ entries: [v1, a1], workingHash: 'h2', direction: dir });
+  expect(() => approvalEntry({ ...D, status: edited, checks: ok, workingHash: 'h2', direction: dir })).toThrow(/only a final map can be approved/);
+});
+
 describe('feedbackEntry', () => {
   test('on the latest version, with the words trimmed; refused with no version, no words or a bad region', () => {
     expect(feedbackEntry({ ...D, latest: 'v2' }, { note: ' move the gate ', region: [1, 2, 3, 4], via: 'pr' })).toEqual({ type: 'feedback', asset: 'map:keep', on: 'v2', note: 'move the gate', region: [1, 2, 3, 4], by: 'user', via: 'pr' });

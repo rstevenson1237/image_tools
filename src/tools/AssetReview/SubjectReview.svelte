@@ -3,7 +3,8 @@
    * Asset Review for a map, dungeon or settlement (docs/WORKFLOW.md §11): the latest version rendered by the same functions as
    * the map editors, the versions with any two side by side and what changed between them, the checks, the one-page data
    * sheet with its references, and the user's two calls: approve, or request changes (a note; a region is not drawn yet).
-   * The rules are the CLI's (`artgen map approve`): only a final version with no failing check can be approved.
+   * The rules are the CLI's (`artgen map approve`): only a final version with no failing check can be approved
+   * (or, after a map direction change, the same unchanged version again).
    */
   import { onDestroy } from 'svelte';
   import type { SubjectKind } from 'artgen-core';
@@ -33,7 +34,7 @@
 
   /** `working` is the file as it is now (when there are edits no version holds, or no version yet). */
   const choices = $derived(detail ? [...detail.versions.map(v => v.version), ...(detail.versions.length === 0 || row.status === 'in-pipeline' || row.status === 'stale' || row.status === 'revision' ? ['working'] : [])] : []);
-  const canApprove = $derived(row.status === 'final' && row.pass && !project.busy);
+  const canApprove = $derived(row.approvable && row.pass && !project.busy);
   const canGiveFeedback = $derived(!!row.version && !!note.trim() && !project.busy);
 
   const png_of = async (api: typeof lease.api, kind: SubjectKind, id: string, v: string) => png(await api.subjectPng(kind, id, v === 'working' ? undefined : v));
@@ -103,10 +104,12 @@
       <h3>Your call</h3>
       <label class="block">
         Approve note (optional)
-        <input type="text" bind:value={approveNote} placeholder="e.g. good to print" disabled={row.status !== 'final'} />
+        <input type="text" bind:value={approveNote} placeholder="e.g. good to print" disabled={!row.approvable} />
       </label>
       <button type="button" class="primary" onclick={approve} disabled={!canApprove}>Approve {row.version ?? ''}</button>
-      {#if row.status !== 'final'}
+      {#if row.status === 'approved'}
+        <p class="dim small">Approved {row.version}.</p>
+      {:else if !row.approvable}
         <p class="dim small">Only a final {row.kind} can be approved ({row.status}: {row.why}).</p>
       {:else if !row.pass}
         <p class="warn small">A check fails: fix it and record a new version, or request changes.</p>

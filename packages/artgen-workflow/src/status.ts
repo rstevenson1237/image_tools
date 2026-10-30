@@ -117,7 +117,7 @@ export function subjectStatus({ entries, key, workingHash, direction }: SubjectS
   if (approval) {
     if (edited) return { status: 'stale', version: v, approval, why: `edited since approved ${v}: record a version` };
     const d = approval.direction;
-    if (direction && (d?.id !== direction.id || d?.version !== direction.version)) return { status: 'stale', version: v, approval, why: d ? `approved under map direction v${d.version}, now v${direction.version}` : `approved with no map direction, now v${direction.version}` };
+    if (direction && (d?.id !== direction.id || d?.version !== direction.version)) return { status: 'stale', version: v, approval, why: `${d ? `approved under map direction v${d.version}` : 'approved with no map direction'}, now v${direction.version}: review and approve again` };
     return { status: 'approved', version: v, approval, why: `approved ${v}` };
   }
   if (edited) return { status: 'in-pipeline', version: v, why: `edited since ${v}: record a version` };

@@ -223,9 +223,12 @@ describe('maps, dungeons and settlements in Asset Review match the CLI (a maps-o
     await cli('map', 'direction', '--theme', 'map=bw', '--lock');
     const ui = (await engineFor(art())).project;
     expect(ui.mapDirection()).toMatchObject({ id: 'maps', version: 1, status: 'locked' });
-    expect(ui.subjects().find(r => r.id === 'keep')).toMatchObject({ status: 'stale', why: 'approved with no map direction, now v1' });
+    expect(ui.subjects().find(r => r.id === 'keep')).toMatchObject({ status: 'stale', why: 'approved with no map direction, now v1: review and approve again' });
     expect(ui.subjectDetail('map', 'keep').theme).toBe('bw');
     expect(ui.subjects().map(pickRow)).toEqual(cliRows().map(pickRow));
+    // the file is unchanged, so the same version can be approved again under the direction
+    expect(ui.subjects().find(r => r.id === 'keep')!.approvable).toBe(true);
+    expect(lineOf(ui.approveSubject('map', 'keep')[0])).toMatchObject({ type: 'approve', direction: { id: 'maps', version: 1 } });
     // the approval under the direction carries it
     const ops = (await engineFor(art())).project;
     await cli('map', 'feedback', 'keep', '--note', 'redo');

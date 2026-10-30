@@ -11,7 +11,7 @@
  * Asset modules are arbitrary code from the game repo (D17): the loader runs them in the worker, never on the page.
  */
 import {
-  analytics, applyFinish, approvalEntry, diffJson, diffLines, assetDataSheet, assetStatus, dataSheetMarkdown, feedbackEntry, generatorMetrics, isSubjectKey, mapDirection, parseSubjectBrief, subjectDataSheet, subjectKey, subjectStatus, subjects, SUBJECT_KINDS, versionFile, versionOfFile, blindScores, briefDir, briefOrder, budgetFor, conformance, describeDirection,
+  analytics, applyFinish, approvalEntry, isApprovable, diffJson, diffLines, assetDataSheet, assetStatus, dataSheetMarkdown, feedbackEntry, generatorMetrics, isSubjectKey, mapDirection, parseSubjectBrief, subjectDataSheet, subjectKey, subjectStatus, subjects, SUBJECT_KINDS, versionFile, versionOfFile, blindScores, briefDir, briefOrder, budgetFor, conformance, describeDirection,
   effectObjectIssues, encodePNG, finishBaseOf, finishStale, formatLedgerLine, Grid, isPlaceholderDirection, iso, lockDirection,
   mergeConfig, parseBriefs, parseDirection, parseLedger, parseVersion, passId, planPasses, PROBE_KINDS, pxPerMetre, animInput, standFrames,
   renderAsset, FACINGS, resolveSize, sourceHash, styleSheet, styleTile, TILE_KINDS, validateDirection, decodePNG, viewContext, stackStrip, parallaxStrip, fpRole, fpShots, autotileCount, autotileMap,
@@ -88,6 +88,8 @@ export interface SubjectRow {
   pass: boolean;
   fail: number;
   flag: number;
+  /** The user may approve the latest version now (final, or stale from a map direction change alone). */
+  approvable: boolean;
 }
 
 export interface SubjectVersion { version: string; ts?: string; note?: string; by?: string; sourceHash?: string; score?: number; reviewer?: string }
@@ -435,7 +437,7 @@ export class ArtProject {
     return SUBJECT_KINDS.flatMap(kind => this.subjectIds(kind).map((id): SubjectRow => {
       const st = this.subjectState(kind, id), v = st.status.version, checks = this.subjectChecks(kind, st.dir, (v && st.versionText(v)) || st.text, st.direction);
       const fail = checks.filter(c => c.status === 'fail').length;
-      return { key: st.key, kind, id, status: st.status.status, ...(v && { version: v }), why: st.status.why, pass: !fail, fail, flag: checks.filter(c => c.status === 'flag').length };
+      return { key: st.key, kind, id, status: st.status.status, ...(v && { version: v }), why: st.status.why, pass: !fail, fail, flag: checks.filter(c => c.status === 'flag').length, approvable: isApprovable(st.status, sourceHash(st.text)) };
     }));
   }
 
@@ -451,7 +453,7 @@ export class ArtProject {
     });
     const sheet = subjectDataSheet(st.sub.sheet(st.sub.parse(JSON.parse(text)), checks), { version: v, theme, directionVersion: mapDirection.lockedMapDirection(st.direction)?.version, brief });
     return {
-      row: { key: st.key, kind, id, status: st.status.status, ...(v && { version: v }), why: st.status.why, pass: !fail, fail, flag: checks.filter(c => c.status === 'flag').length },
+      row: { key: st.key, kind, id, status: st.status.status, ...(v && { version: v }), why: st.status.why, pass: !fail, fail, flag: checks.filter(c => c.status === 'flag').length, approvable: isApprovable(st.status, sourceHash(st.text)) },
       versions, checks, sheet, markdown: dataSheetMarkdown(sheet), ...(brief && { brief }), theme, direction: st.direction,
       feedback: st.entries.filter(e => e.type === 'feedback'), approvals: st.entries.filter(e => e.type === 'approve'), reviews: st.entries.filter(e => e.type === 'review'),
     };
@@ -478,7 +480,7 @@ export class ArtProject {
 
   /** Approve the latest version of a subject: the CLI's rules (it must be final, no check may fail). The ledger line is the plan to write. */
   approveSubject(kind: SubjectKind, id: string, note = ''): FileOp[] {
-    const st = this.subjectState(kind, id), v = st.status.version, checks = st.status.status === 'final' && v ? this.subjectChecks(kind, st.dir, st.versionText(v) ?? st.text, st.direction) : [];
+    const st = this.subjectState(kind, id), v = st.status.version, checks = v && isApprovable(st.status, sourceHash(st.text)) ? this.subjectChecks(kind, st.dir, st.versionText(v) ?? st.text, st.direction) : [];
     const entry = approvalEntry({ kind, id, key: st.key, status: st.status, checks, workingHash: sourceHash(st.text), direction: st.ref }, { note, via: 'image-tools' });
     return [{ op: 'append', path: LEDGER, data: ledgerLine(entry) }];
   }

@@ -196,6 +196,23 @@ async function mapsOnly(browserType, label) {
     if (!/\.png/.test(rendered) || !existsSync(join(s.repo, 'art/maps', saved[1], 'out', `${saved[1]}.color.png`))) throw new Error(`maps-only: artgen-maps.js could not render the saved map\n${rendered}`);
     await page.screenshot({ path: join(out, `${label}-maps-only.png`) });
     log(`[${label}] maps-only: the sidebar shows the map tools and Asset Review, no art tools; the map saved in the UI (${saved[1]}) renders with artgen-maps.js`);
+    // R5: the map's v1 (Claude Code's turn, in the CLI) → Asset Review lists it as final → the user approves it in the UI → the CLI sees it
+    const maps = (...a) => execFileSync(process.execPath, [join(s.repo, 'tools/artgen/artgen-maps.js'), ...a], { cwd: s.repo, encoding: 'utf8' });
+    maps('map', 'version', saved[1], '--note', 'first pass');
+    await page.getByRole('button', { name: /Asset Review/ }).click();
+    await page.getByRole('button', { name: 'Reload' }).click();
+    const item = page.locator(`[data-subject="map:${saved[1]}"]`);
+    await item.waitFor({ timeout: 60_000 });
+    await item.click();
+    await page.locator('.shots img').first().waitFor({ timeout: 60_000 });   // the render of v1, in the map direction's theme
+    await page.getByRole('button', { name: /^Approve v1/ }).click();
+    await page.getByRole('status').filter({ hasText: /approved/ }).waitFor({ timeout: 60_000 });
+    await page.getByText('Approved v1.').waitFor({ timeout: 60_000 });   // the page read the project again
+    const st = JSON.parse(maps('map', 'status', saved[1], '--json')), line = readFileSync(join(s.repo, 'art/ledger.jsonl'), 'utf8').trim().split('\n').map(l => JSON.parse(l)).filter(e => e.asset === `map:${saved[1]}` && e.type === 'approve');
+    const row = Array.isArray(st) ? st[0] : (st.rows?.[0] ?? st);
+    if (row?.status !== 'approved' || line.length !== 1 || line[0].via !== 'image-tools' || line[0].version !== 'v1') throw new Error(`maps-only: the approval in the UI did not reach the CLI\n${JSON.stringify(st)}\n${JSON.stringify(line)}`);
+    await page.screenshot({ path: join(out, `${label}-maps-only-review.png`) });
+    log(`[${label}] maps-only: ${saved[1]} v1 recorded in the CLI, approved in Asset Review, and \`map status\` shows it approved (via image-tools)`);
     if (errors.length) throw new Error(`maps-only: ${errors.join('; ')}`);
   } finally { await browser.close(); s.stop(); }
 }

@@ -8,7 +8,7 @@
 import { appendFileSync, copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, extname, join, relative, resolve } from 'node:path';
 import {
-  approvalEntry, dataSheetMarkdown, decodePNG, diffJson, encodePNG, feedbackEntry, formatLedgerLine, formatSubjectBrief, imageTokens, mapDirection, nextVersion, parseLedger, parseSubjectBrief, refOk,
+  approvalEntry, isApprovable, dataSheetMarkdown, decodePNG, diffJson, encodePNG, feedbackEntry, formatLedgerLine, formatSubjectBrief, imageTokens, mapDirection, nextVersion, parseLedger, parseSubjectBrief, refOk,
   renderDataSheet, sortVersions, sourceHash, stemOf, subjectDataSheet, subjectKey, subjectReviewSheet, subjectStatus, subjects, versionFile, versionOfFile,
   type Change, type Check, type DataSheet, type LedgerEntry, type SheetRef, type SubjectBrief, type SubjectKind,
 } from 'artgen-core/maps';
@@ -217,11 +217,11 @@ export function feedbackSubject(p: Project, kind: SubjectKind, id: string, o: { 
   return { on: entry.on as string, status: after.status, why: after.why };
 }
 
-/** The user's approval of the latest version: it must be final (no unrecorded edits, no feedback open) and no check may fail. Flags are copied into the entry. */
+/** The user's approval of the latest version: it must be final (no unrecorded edits, no feedback open), or stale from a map direction change alone, and no check may fail. Flags are copied into the entry. */
 export function approveSubject(p: Project, kind: SubjectKind, id: string, o: { note?: string; via?: string } = {}): LedgerEntry {
   const st = subjectState(p, kind, id), version = st.status.version;
-  // the checks of the version the user approves: the working file is it when the status is final
-  const checks = st.status.status === 'final' && version ? checksOf(p, kind, id, readFileSync(st.paths.version(version), 'utf8')) : [];
+  // the checks of the version the user approves: the working file is it when it can be approved
+  const checks = version && isApprovable(st.status, sourceHash(st.text)) ? checksOf(p, kind, id, readFileSync(st.paths.version(version), 'utf8')) : [];
   const entry = approvalEntry({ kind, id, key: st.paths.key, status: st.status, checks, workingHash: sourceHash(st.text), direction: mapDirection.directionRef(st.direction) }, o);
   appendLedger(ledgerPath(p), entry);
   return { ts: new Date().toISOString(), ...entry } as LedgerEntry;

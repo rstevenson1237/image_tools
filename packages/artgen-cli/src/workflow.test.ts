@@ -193,7 +193,7 @@ describe('the map direction', () => {
     await run('map', 'direction', '--lock', '--note', 'printed handouts: black and white');
     expect(JSON.parse(readFileSync(join(art, 'map-direction.json'), 'utf8'))).toMatchObject({ version: 1, status: 'locked' });
     expect(lines('maps:direction')).toEqual([expect.objectContaining({ type: 'approve', version: 'v1', note: 'printed handouts: black and white', by: 'user' })]);
-    expect(await status('map', 'peak')).toMatchObject({ status: 'stale', why: 'approved with no map direction, now v1' });
+    expect(await status('map', 'peak')).toMatchObject({ status: 'stale', why: 'approved with no map direction, now v1: review and approve again' });
     await expect(run('map', 'direction', '--lock')).rejects.toThrow(/already locked at v1/);
 
     // review now uses the direction's theme and the approval records its version
@@ -207,7 +207,11 @@ describe('the map direction', () => {
     expect(await status('map', 'peak')).toMatchObject({ status: 'approved', version: 'v2' });
 
     await run('map', 'direction', '--theme', 'map=color', '--lock');
-    expect(await status('map', 'peak')).toMatchObject({ status: 'stale', why: 'approved under map direction v1, now v2' });
+    expect(await status('map', 'peak')).toMatchObject({ status: 'stale', why: 'approved under map direction v1, now v2: review and approve again' });
+    // the file is unchanged, so the same version is approved again under the new direction (no new version is possible)
+    await run('map', 'approve', 'peak');
+    expect(lines('map:peak', 'approve')[2]).toMatchObject({ version: 'v2', direction: { id: 'maps', version: 2 } });
+    expect(await status('map', 'peak')).toMatchObject({ status: 'approved', version: 'v2' });
   }, 180_000);
 
   test('a symbol outside the direction\'s set is a warning, not a failure', async () => {

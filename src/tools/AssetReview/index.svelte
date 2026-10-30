@@ -195,7 +195,11 @@
     {#if loadError}<p class="error" role="alert">{loadError}</p>{/if}
     <div class="layout" class:wide={showAnalytics}>
       <aside class="gallery" aria-label="Assets by status">
-        {#if loading && !rows.length && !subjectRows.length}<p class="dim">reading the project…</p>{/if}
+        {#if loading && !rows.length && !subjectRows.length}<p class="dim">reading the project…</p>
+        {:else if !loadError && !rows.length && !subjectRows.length}
+          <p class="dim">Nothing to review yet. Assets show here once the art direction is locked (<code>/artgen-direction</code>) and
+            Claude Code has started them; maps, dungeons and settlements show once they exist in <code>art/</code>.</p>
+        {/if}
         {#each groups as g (g.status)}
           <h3><StatusBadge status={g.status} /> <span class="dim">{g.rows.length + g.subjects.length}</span></h3>
           <ul>

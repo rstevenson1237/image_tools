@@ -1,6 +1,6 @@
 # Tooling plan: separate, refactor, and build a feedback loop
 
-Status: proposal, 2026-10-27; decisions settled 2026-10-27 and revised 2026-10-29 (§12). R0, R1, R2 and R3 are built, and the code of R4 and R5 is built but their acceptance runs are not (§10); the rest is not. It follows on from the finished artgen plan ([`archive/artgen/PLAN.md`](archive/artgen/PLAN.md)) and reuses its
+Status: proposal, 2026-10-27; decisions settled 2026-10-27 and revised 2026-10-29 (§12). R0, R1, R2, R3 and R5 are built, and R4's code is built but its acceptance run is not (§10); the rest is not. It follows on from the finished artgen plan ([`archive/artgen/PLAN.md`](archive/artgen/PLAN.md)) and reuses its
 decisions (`Dn`) where they still hold.
 
 ## 1. Summary
@@ -564,7 +564,7 @@ faster for the phases after it.
     against a local folder; neither has talked to GitHub (the tag fetch needs the repository to be readable without a token). The
     intake workflow and the new CI steps have not run on GitHub.
 
-### R5 — One workflow for maps and assets (M–L) — built 2026-10-29, acceptance not run
+### R5 — One workflow for maps and assets (M–L) — built 2026-10-30
 - Build the `workflow` package (§7): versions, ledger, review and approval for maps; map briefs; map themes as a
   locked direction; the one-page data sheet for both maps and assets; references shown on review sheets.
 - Make metrics part of what every generator must provide, so terrain, dungeon and settlement maps report the same
@@ -585,7 +585,8 @@ faster for the phases after it.
     They write the shared `art/ledger.jsonl` under a subject key, so every art reader ignores them; a version is a byte copy beside the working file
     (`map.v1.json`, refused when nothing changed); `review` renders the version in the map direction's theme and puts the render, the data sheet and
     the references on one sheet. Only the user approves or gives feedback or locks the direction (MCP: `user_approved`); an approval needs status `final`
-    (the file equals a version, no feedback open) and no failing check. They need a project, so none takes `--file`.
+    (the file equals a version, no feedback open) and no failing check. A map whose approval went stale only because the
+    map direction changed (the file is unchanged) is approved again as the same version, since no new version can be recorded. They need a project, so none takes `--file`.
   - **The map direction** (`art/map-direction.json`): a theme for each kind and the symbols a kind may use, with a version and a lock. Only a locked one
     applies, to review sheets, checks and staleness; `map render` is unchanged. A dungeon's only theme is `bw`.
   - **Data sheets and references.** `artgen sheet <id>` writes an asset's one-page sheet (the same `assetDataSheet` Asset Review shows); briefs may
@@ -609,8 +610,10 @@ faster for the phases after it.
     37); `check`, `check:packages` and the strict boundary lint pass; the Python tests pass (16). Bundles grew: `artgen.js` 1.54 → 1.61 MB, `artgen-mcp.js`
     1.53 → 1.61 MB and `artgen-maps.js` 0.65 → 0.73 MB (the workflow code, the three subjects and the review sheet, every bundle holds the new usage text);
     the web build is 49 KB larger in JS (1.28 → 1.33 MB; the worker +32 KB).
-  - **Not done here.** The acceptance: a map through v1, review and approve in the web UI on a real machine, in Chromium and Firefox (no browser was available;
-    `npm run accept:ui` is updated for the new sidebar and has not run), and the first use in a game repo. As designed: pull request review of maps (§12 of the
+  - **Acceptance run.** In the CLI, `workflow.test.ts` takes a map, a dungeon and a settlement through version, review, feedback, a new version and approval.
+    In the web UI, `npm run accept:ui` (headless Chromium) now also records a map's v1 with `artgen-maps.js`, opens it in Asset Review in a maps-only
+    repo, sees its render, approves it there, and checks that `map status` shows it approved with `"via": "image-tools"`. The whole acceptance passes.
+  - **Not done here.** Firefox (not installed in this sandbox), a review on a real machine and the first use in a game repo. As designed: pull request review of maps (§12 of the
     design), region pins drawn on map renders, custom inks and fonts in the map direction, art assets as a subject.
 
 ### R5b — Image tools join the pipeline (M)

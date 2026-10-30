@@ -1,6 +1,6 @@
 # One workflow for maps and assets (R5)
 
-Status: built, 2026-10-29, acceptance in the web UI not run (§15 has what was built and where it differs from this design). This is phase R5 of [`TOOLING-PLAN.md`](TOOLING-PLAN.md) (§7, §10). It builds on the
+Status: built, 2026-10-30 (§15 has what was built and where it differs from this design). This is phase R5 of [`TOOLING-PLAN.md`](TOOLING-PLAN.md) (§7, §10). It builds on the
 operation registry ([`OPERATION-REGISTRY.md`](OPERATION-REGISTRY.md)) and the feedback loop (R4).
 
 ## 1. Goal
@@ -149,7 +149,7 @@ Let V be the latest `version` entry. Then, in order:
 |---|---|---|
 | `in-pipeline` | no version entry yet | `no version recorded yet: artgen map version keep` |
 | `revision` | a user `feedback` entry is newer than V (and no version came after it) | `feedback on v2: rework, then record v3` |
-| `stale` | an approval of V exists, and the working file has changed since, or the map direction version differs from the approval's | `edited since approved v2: record a version` / `approved under map direction v1, now v2` |
+| `stale` | an approval of V exists, and the working file has changed since, or the map direction version differs from the approval's | `edited since approved v2: record a version` / `approved under map direction v1, now v2: review and approve again` (approving the same version again is allowed when the file is unchanged) |
 | `approved` | the newest approval is of V, is newer than any feedback, and the working hash equals V's | `approved v2` |
 | `in-pipeline` | the working file differs from V (no approval involved) | `edited since v2: record a version` |
 | `final` | otherwise: V equals the working file and waits for the user | `v2 waiting for the user` |
@@ -419,7 +419,7 @@ its art fields are the ones schema 1 had. Pooling a schema 1 export and a schema
 markdown for the three example exports is unchanged.
 
 **Web (§11).** `ArtProject.status()` returns no rows when no art direction is locked (it used to throw), `analytics()` works without one,
-and `subjects()` lists the maps either way. A dungeon's `underlay` is not drawn in Asset Review (the web renderer for dungeons takes no
+and `subjects()` lists the maps either way. With nothing to list, the page says what makes assets and maps appear. A dungeon's `underlay` is not drawn in Asset Review (the web renderer for dungeons takes no
 underlay map); a settlement's is. The approval notice does not repeat the warnings the entry carries. The engine's subject code
 is checked against the CLI's on the same files (`src/core/project/engine.test.ts`).
 
@@ -429,6 +429,12 @@ changes were not additions, and each follows from the design: `metrics_export` m
 expect schema 2; the web tool registry test lists Asset Review for a maps-only install; the `libs` test lists `artgen-workflow` and
 its dependency on primitives, and mapgen's on both.
 
-**Not done or not run.** Acceptance in the web UI on a real machine (v1, review, approve of a map in a browser, Chromium and Firefox):
-no browser was available while this was built; `npm run accept:ui` has not run. The first real use in a game repo. The pull request flow
+**Approving again after a direction change (§6, §7.2).** A map approved and then made `stale` by a new map direction alone has an
+unchanged file, so no new version can be recorded. `isApprovable` lets the user approve the same version again under the new direction;
+a map edited since its approval still needs a new version. Rows carry `approvable`, which the page uses for its Approve button.
+
+**Acceptance.** `npm run accept:ui` (headless Chromium) records a map's v1 with `artgen-maps.js` in a maps-only repo, opens it in Asset
+Review, waits for its render, approves it there, and checks that `map status` shows it approved with `"via": "image-tools"`. It passes.
+
+**Not done or not run.** Firefox (not installed where this was built), a review on a real machine, and the first real use in a game repo. The pull request flow
 for maps (§12) and region pins on map renders (§12) are not built, as designed.

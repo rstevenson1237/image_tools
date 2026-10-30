@@ -70,9 +70,9 @@ function metricsFor(generator: string, keys: string[], byKey: Map<string, Ledger
 /** Metrics per generator. `subjects` lists every subject there is (including those with no ledger line yet). */
 export function generatorMetrics(ledger: LedgerEntry[], subjects: { generator: string; key: string }[]): Record<string, GeneratorMetrics> {
   const byKey = new Map<string, LedgerEntry[]>();
-  for (const e of ledger) byKey.set(e.asset, [...(byKey.get(e.asset) ?? []), e]);
+  for (const e of ledger) { const es = byKey.get(e.asset); if (es) es.push(e); else byKey.set(e.asset, [e]); }
   const gens = new Map<string, string[]>();
-  for (const s of subjects) gens.set(s.generator, [...(gens.get(s.generator) ?? []), s.key]);
+  for (const s of subjects) { const ks = gens.get(s.generator); if (ks) ks.push(s.key); else gens.set(s.generator, [s.key]); }
   return Object.fromEntries([...gens].map(([g, keys]) => [g, metricsFor(g, keys, byKey)]));
 }
 
