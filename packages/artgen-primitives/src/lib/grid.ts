@@ -7,6 +7,10 @@ export class Grid {
   readonly d: Uint8ClampedArray;
   /** Normal map of this image (same size; RGB = normal, OpenGL convention), when the renderer produced one. */
   normal?: Grid;
+  /** Decal masks by layer name (one byte per pixel, 1 = the decal shows), when the procedural pass placed decals. */
+  decals?: Record<string, Uint8Array>;
+  /** Per decal: shape pixels in the frame and those that landed on the target part. */
+  decalStats?: Record<string, { inside: number; total: number }>;
 
   constructor(w: number, h: number, data?: Uint8ClampedArray | Uint8Array) {
     this.w = w; this.h = h;

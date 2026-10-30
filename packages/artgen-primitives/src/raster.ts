@@ -6,6 +6,7 @@
 import { normHex } from './lib/color.ts';
 import { Grid } from './lib/grid.ts';
 import { putNormal } from './lib/normals.ts';
+import { ellipsePts, fillPolygons, Mask, parsePath, rectPts, type Pt } from './geom.ts';
 
 /** Indices of `bands` evenly spaced steps in a ramp of length `len` (all when the ramp is no longer). */
 export function bandIndices(len: number, bands: number): number[] {
@@ -31,6 +32,62 @@ export interface RasterItem {
 
 export const INK = 1;
 
+/** A decal layer (STAGES.md §7.1): its ramp, the band it uses, and how much of its shape landed on its target. */
+export interface RasterDecal {
+  name: string;
+  ramp: string[];
+  /** A fixed ramp index; absent = the band of the pixel under the decal (so it is shaded with the surface). */
+  band?: number;
+  /** Shape pixels inside the frame, and those of them on the target part. */
+  inside: number;
+  total: number;
+}
+
+/** A decal shape: the primitives of a scene spec that a mark needs, in frame pixels. */
+export interface DecalShape {
+  type: string;
+  x?: number; y?: number; w?: number; h?: number; r?: number;
+  cx?: number; cy?: number; rx?: number; ry?: number;
+  pts?: Pt[]; d?: string; fillRule?: 'nonzero' | 'evenodd';
+  [k: string]: unknown;
+}
+
+export const DECAL_SHAPES = ['rect', 'ellipse', 'circle', 'poly', 'path'];
+
+/**
+ * Pixels covered by decal shapes (one byte per pixel of a w × h frame, 1 = covered). The fill code is the scene's:
+ * `fillPolygons` into a 4 × 4 sampled `Mask`, and a pixel is covered when more than half of its samples are, as the
+ * scene's `direct` mode decides it. Shapes outside the frame are clipped.
+ */
+export function decalCoverage(shapes: DecalShape | DecalShape[], w: number, h: number): Uint8Array {
+  const S = 4, m = new Mask(w * S, h * S, S), tol = 0.5 / S;
+  for (const s of ([] as DecalShape[]).concat(shapes)) {
+    const num = (v: unknown, name: string): number => { if (typeof v !== 'number' || !Number.isFinite(v)) throw new Error(`decal ${s.type}: ${name} must be a number`); return v; };
+    switch (s.type) {
+      case 'rect': fillPolygons(m, [rectPts(num(s.x ?? 0, 'x'), num(s.y ?? 0, 'y'), num(s.w, 'w'), num(s.h, 'h'), s.r ?? 0, tol)]); break;
+      case 'ellipse': fillPolygons(m, [ellipsePts(num(s.cx, 'cx'), num(s.cy, 'cy'), num(s.rx, 'rx'), num(s.ry ?? s.rx, 'ry'), tol)]); break;
+      case 'circle': fillPolygons(m, [ellipsePts(num(s.cx, 'cx'), num(s.cy, 'cy'), num(s.r, 'r'), s.r!, tol)]); break;
+      case 'poly': fillPolygons(m, [s.pts ?? []], s.fillRule); break;
+      case 'path': fillPolygons(m, parsePath(s.d ?? '', tol), s.fillRule); break;
+      default: throw new Error(`decal shape type ${JSON.stringify(s.type)} is not one of ${DECAL_SHAPES.join(', ')}`);
+    }
+  }
+  const out = new Uint8Array(w * h), half = (S * S) / 2;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    let n = 0;
+    for (let j = 0; j < S; j++) for (let i = 0; i < S; i++) n += m.d[(y * S + j) * m.w + x * S + i];
+    if (n > half) out[y * w + x] = 1;
+  }
+  return out;
+}
+
+/** The same byte mask mirrored across x (a mirrored cell's decals). */
+export function flipMaskX(m: Uint8Array, w: number): Uint8Array {
+  const out = new Uint8Array(m.length);
+  for (let i = 0; i < m.length; i++) out[i] = m[((i / w) | 0) * w + (w - 1 - (i % w))];
+  return out;
+}
+
 export class Raster {
   readonly w: number;
   readonly h: number;
@@ -44,6 +101,9 @@ export class Raster {
   readonly ink: string;
   /** Screen-space normal per pixel (x right, y down, z toward the viewer), when the scene computed them. */
   normal?: Float32Array;
+  /** Decal index per pixel (-1 none), once a decal layer ran (STAGES.md §7.1). */
+  decal?: Int16Array;
+  readonly decals: RasterDecal[] = [];
 
   constructor(w: number, h: number, items: RasterItem[], ink: string) {
     this.w = w; this.h = h; this.items = items; this.ink = ink;
@@ -86,8 +146,32 @@ export class Raster {
     const id = this.id[i];
     if (id < 0) return null;
     if (this.flag[i] & INK) return this.ink;
+    const d = this.decal && this.decal[i] >= 0 ? this.decals[this.decal[i]] : null;
+    if (d) return d.ramp[Math.max(0, Math.min(d.ramp.length - 1, d.band ?? this.band[i]))];
     const it = this.items[id];
     return it.fixed ?? it.ramp![this.band[i]];
+  }
+
+  /** Start a decal layer: the index to write into `decal`. The caller sets pixels and counts `inside` / `total`. */
+  addDecal(d: Omit<RasterDecal, 'inside' | 'total'>): RasterDecal {
+    this.decal ??= new Int16Array(this.id.length).fill(-1);
+    const full: RasterDecal = { ...d, inside: 0, total: 0 };
+    this.decals.push(full);
+    return full;
+  }
+
+  /** Per-pixel masks (1 = the decal's colour shows) by decal name, or undefined when no decal landed. Later decals cover earlier ones. */
+  decalMasks(): Record<string, Uint8Array> | undefined {
+    if (!this.decal || !this.decals.length) return undefined;
+    const out: Record<string, Uint8Array> = {};
+    this.decals.forEach(d => { out[d.name] = new Uint8Array(this.id.length); });
+    for (let i = 0; i < this.decal.length; i++) if (this.decal[i] >= 0 && this.id[i] >= 0 && !(this.flag[i] & INK)) out[this.decals[this.decal[i]].name][i] = 1;
+    return out;
+  }
+
+  /** Per decal: shape pixels in the frame and those on the target part (the `decal-inside` check). */
+  decalStats(): Record<string, { inside: number; total: number }> | undefined {
+    return this.decals.length ? Object.fromEntries(this.decals.map(d => [d.name, { inside: d.inside, total: d.total }])) : undefined;
   }
 
   /** Normal map of the filled pixels (ink pixels face the viewer), or undefined without normals. */

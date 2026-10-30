@@ -288,3 +288,38 @@ describe('pull request comments name stages', () => {
     expect(parseReviewComment('approve goblin, orc', ids).actions.map(a => a.type)).toEqual(['approve', 'approve']);
   });
 });
+
+describe('decals through the CLI (R6c, §7.1)', () => {
+  const root = mkdtempSync(join(tmpdir(), 'artgen-decal-')), R = ['--root', root];
+  const asset = (v: string) => join(root, 'art', 'assets', 'prop', 'banner', `${v}.js`);
+  /** A banner whose emblem decal sits at `cy` (the cloth spans rows 4 to 19). */
+  const source = (cy: number) => `export function render(ctx) {
+  const s = ctx.lib.t2.scene(...ctx.size, { mode: 'direct' }).add({ type: 'rect', name: 'cloth', x: 6, y: 4, w: 12, h: 16, mat: 'cloth', shade: 'flat', band: 1 });
+  return ctx.lib.proc(s).noDefaults().add('decal', { name: 'emblem', part: 'cloth', mat: 'accent', shape: { type: 'circle', cx: 12, cy: ${cy}, r: 3 } }).render();
+}
+`;
+  beforeAll(async () => {
+    await run('init', ...R);
+    await run('direction', 'candidates', '--pitch', 'Grim swamp roguelike: bog goblins in the fog.', ...R);
+    await run('direction', 'lock', 'a', ...R);
+    await run('brief', 'add', 'banner', '--kind', 'prop', '--size', '24x24', ...R);
+  }, 60_000);
+
+  test('stages shows the decal key and the decal-inside check; a decal on nothing fails and the key follows the mask', async () => {
+    mkdirSync(join(root, 'art', 'assets', 'prop', 'banner'), { recursive: true });
+    writeFileSync(asset('base.v1'), source(10));
+    const ok = await json('stages', 'banner', '--version', 'base.v1', ...R);
+    expect(ok.keys.decal).toMatch(/^[0-9a-f]{8}$/);
+    expect(ok.states.decal).toBe('new');
+    expect(ok.checks.find((c: { id: string }) => c.id === 'decal-inside')).toMatchObject({ stage: 'decal', status: 'pass' });
+    expect((await run('stages', 'banner', '--version', 'base.v1', ...R)).out).toMatch(/4 decal\s+[0-9a-f]{8}\s+new/);
+    writeFileSync(asset('base.v2'), source(40));
+    const off = await json('stages', 'banner', '--version', 'base.v2', ...R);
+    expect(off.checks.find((c: { id: string }) => c.id === 'decal-inside')).toMatchObject({ status: 'skip' });   // outside the frame: nothing to judge
+    writeFileSync(asset('base.v3'), source(10).replace("part: 'cloth'", "part: 'nothing'"));
+    const gone = await json('stages', 'banner', '--version', 'base.v3', ...R);
+    expect(gone.checks.find((c: { id: string }) => c.id === 'decal-inside')).toMatchObject({ status: 'fail', detail: expect.stringContaining('decal emblem landed on nothing in idle/s/0') });
+    expect(gone.keys.decal).not.toBe(ok.keys.decal);
+    expect(ok.keys.shape).toBe(gone.keys.shape);
+  }, 60_000);
+});

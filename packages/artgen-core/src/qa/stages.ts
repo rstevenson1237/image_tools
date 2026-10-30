@@ -89,6 +89,8 @@ export function stageKeys(r: RenderResult, dir: Direction, o: { placeholder?: Pl
   const rig = rigKey(r);
   if (rig) keys.rig = rig;
   keys.decorate = look.hex();
+  const decal = decalKey(r);
+  if (decal) keys.decal = decal;
   if (lit) keys.lighting = light.str(dir.camera.light.map(r2).join(',')).hex();
   if (o.rotate) keys.rotation = new Digest().str(`${r.facings.join(',')}|${o.rotate}`).hex();
   keys.animation = anim.str(canonicalJson({ ...briefContract(r.brief as BriefEntry, dir), anchors: [] })).hex();
@@ -104,6 +106,42 @@ function rigKey(r: RenderResult): string | undefined {
     if (!seen.has(s)) { seen.add(s); d.str(s); }
   }
   return seen.size ? d.hex() : undefined;
+}
+
+/** The decal stage key (§4.2): each cell's decal masks by name, names sorted; absent when no cell has a decal. */
+function decalKey(r: RenderResult): string | undefined {
+  const d = new Digest();
+  let any = false;
+  for (const c of r.cells) {
+    d.str(cellId(c));
+    for (const k of Object.keys(c.decals ?? {}).sort()) { any = true; d.str(k).bytes(c.decals![k]); }
+  }
+  return any ? d.hex() : undefined;
+}
+
+// ---- decal check (§7.1)
+
+/**
+ * `decal-inside`: per decal and cell, a shape with no pixels in the frame is skipped; a decal with none on its part
+ * fails ("decal emblem landed on nothing in s/0"); one with under half of its pixels on the part flags (mostly off it).
+ * Assets without decals have no `decal-inside` entry, so their stage report stays as it was.
+ */
+export function decalChecks(r: RenderResult): StageCheck[] {
+  const c = (status: Check['status'], detail: string): StageCheck => ({ id: 'decal-inside', status, detail, stage: 'decal' });
+  const nothing: string[] = [], mostly: string[] = [];
+  let n = 0, seen = false;
+  for (const cell of r.cells) for (const [name, { inside, total }] of Object.entries(cell.decalStats ?? {})) {
+    seen = true;
+    if (!total) continue;
+    n++;
+    if (!inside) nothing.push(`decal ${name} landed on nothing in ${cellId(cell)}`);
+    else if (inside / total < 0.5) mostly.push(`decal ${name} is mostly off its part in ${cellId(cell)} (${inside} of ${total} px)`);
+  }
+  if (!seen) return [];
+  const list = (a: string[]) => `${a.slice(0, 3).join('; ')}${a.length > 3 ? `; +${a.length - 3} more` : ''}`;
+  if (nothing.length) return [c('fail', list(nothing))];
+  if (mostly.length) return [c('flag', list(mostly))];
+  return [c(n ? 'pass' : 'skip', n ? `${n} decal placement${n > 1 ? 's' : ''} land on their part` : 'no decal has pixels inside the frame')];
 }
 
 // ---- rig check (§6.2)
@@ -221,7 +259,7 @@ export function stageReport(r: RenderResult, dir: Direction, o: { brief: BriefEn
   const ph = o.placeholder ?? safeDefault(o.brief, dir);
   return {
     keys: stageKeys(r, dir, { placeholder: ph, rotate: o.rotate }),
-    checks: [...(o.placeholder ? placeholderChecks(o.placeholder, o.brief, dir) : []), ...shapeChecks(r, dir, { brief: o.brief, placeholder: ph }), ...rigChecks(r)],
+    checks: [...(o.placeholder ? placeholderChecks(o.placeholder, o.brief, dir) : []), ...shapeChecks(r, dir, { brief: o.brief, placeholder: ph }), ...rigChecks(r), ...decalChecks(r)],
   };
 }
 

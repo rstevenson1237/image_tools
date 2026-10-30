@@ -16,5 +16,5 @@ export { initSvg, svgReady, rasterizeSvg, setSvgFonts, svgToGrid, doc } from './
 export * from './lib/normals.ts';
 export * from './lib/noise.ts';
 export * as geom from './geom.ts';
-export { Raster, bandIndices, type RasterItem } from './raster.ts';
+export { Raster, bandIndices, decalCoverage, flipMaskX, DECAL_SHAPES, type RasterItem, type RasterDecal, type DecalShape } from './raster.ts';
 export { readFormat, type Migration } from './format.ts';

@@ -36,6 +36,8 @@ Steps:
      Under a **shape gate** (`{{ARTGEN}} stages <id>` lists `gates`), v1 is a shape draft: silhouette and form only — flat
      materials, no `proc` layers, no finish. The user sees its shape sheet before any decoration starts. After the shape
      is approved keep the silhouette (the pixels outside the outer line): v2 and v3 decorate it.
+   - Marks (damage, dirt, an emblem, team colours) are `decal` proc layers on a named part (`ctx.lib.proc(s).add('decal', { name, part, mat, shape })`),
+     not extra shapes; fix a failing `decal-inside` check (`{{ARTGEN}} stages <id>`) by moving the shape onto its part.
    - `stage-gate` is never a maker packet: it is the main agent's step with the user.
 3. `{{ARTGEN}} render <id> --version <version>` until the gate passes (fix the source, not the checks).
 4. `{{ARTGEN}} review <id> --version <version>` — this appends the review line to the ledger.

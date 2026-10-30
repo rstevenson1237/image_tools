@@ -6,6 +6,7 @@ import { dirContext, kindPalette, resolveSize, type DirContext, type Direction, 
 import * as blitLib from 'artgen-primitives/lib/blit.ts';
 import { Grid } from 'artgen-primitives/lib/grid.ts';
 import { fitNormalMap, flipNormalMap } from 'artgen-primitives/lib/normals.ts';
+import { flipMaskX } from 'artgen-primitives/raster.ts';
 import * as iso from 'artgen-primitives/lib/iso.ts';
 import * as palette from 'artgen-primitives/lib/palette.ts';
 import * as post from 'artgen-primitives/lib/post.ts';
@@ -239,6 +240,10 @@ export interface Cell {
   anchors?: Anchors;
   /** Normal map (P6a): from the renderer's normals (2D shading, voxel raster), fitted to the cell's pixels. */
   normal?: Grid;
+  /** Decal masks by layer name (R6c, `decal` proc layer): one byte per pixel, 1 = the decal shows; flipped with a mirrored cell. */
+  decals?: Record<string, Uint8Array>;
+  /** Per decal: shape pixels in the frame and those that landed on the target part (the `decal-inside` check). */
+  decalStats?: Record<string, { inside: number; total: number }>;
 }
 
 export interface RenderOptions {
@@ -305,6 +310,7 @@ export function renderAsset(mod: AssetModule, { dir, brief, seed = 1, variant = 
     if (mine.length) rigs[key] = mine;
     return {
       state, facing, frame, grid, mirrored: false, anchors, ...(grid.normal && { normal: fitNormalMap(grid, grid.normal) }),
+      ...(grid.decals && { decals: grid.decals, ...(grid.decalStats && { decalStats: grid.decalStats }) }),
       ...(tm.sub > 1 && { logical: ct.logical, sub: ct.sub }),
     };
   };
@@ -317,7 +323,8 @@ export function renderAsset(mod: AssetModule, { dir, brief, seed = 1, variant = 
       if (!e) { e = renderCell(state, src, frame); cache.set(key, e); }
       if (rigs[key]) rigs[`${state}/${facing}/${frame}`] = rigs[key];
       const anchors = e.anchors && Object.fromEntries(Object.entries(e.anchors).map(([k, [x, y]]) => [k, [size[0] - 1 - x, y] as [number, number]]));
-      cells.push({ state, facing, frame, grid: e.grid.flip('x'), mirrored: true, anchors, ...(e.normal && { normal: flipNormalMap(e.normal) }), ...(e.logical !== undefined && { logical: e.logical, sub: e.sub }) });
+      cells.push({ state, facing, frame, grid: e.grid.flip('x'), mirrored: true, anchors, ...(e.normal && { normal: flipNormalMap(e.normal) }),
+        ...(e.decals && { decals: Object.fromEntries(Object.entries(e.decals).map(([k, m]) => [k, flipMaskX(m, size[0])])), ...(e.decalStats && { decalStats: e.decalStats }) }), ...(e.logical !== undefined && { logical: e.logical, sub: e.sub }) });
     } else {
       const key = `${state}/${facing}/${frame}`;
       let c = cache.get(key);

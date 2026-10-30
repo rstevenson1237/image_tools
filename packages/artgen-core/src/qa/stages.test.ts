@@ -251,3 +251,63 @@ describe('the rig stage (R6b, §6.2)', () => {
     expect(rep.keys.rig).toBeUndefined(); expect(rep.checks.some(c => c.stage === 'rig')).toBe(false);
   });
 });
+
+describe('the decal stage (R6c, §7.1)', () => {
+  const dir = mkDir({ view: 'topdown', outer: 'dark' });
+  /** A 16 × 16 asset of two parts with an emblem decal on `torso` placed by `at`; mirrored west facings come from the east ones. */
+  const withDecal = (at: (ctx: { frame: number }) => { cx: number; cy: number; r: number } | null, o: { part?: string } = {}): AssetModule => ({
+    render(ctx) {
+      const s = ctx.lib.t2.scene(16, 16, { mode: 'direct' }).add(
+        { type: 'rect', name: 'torso', x: 3, y: 2, w: 10, h: 7, mat: 'cloth', shade: 'flat', band: 1 },
+        { type: 'rect', name: 'legs', x: 3, y: 9, w: 10, h: 5, mat: 'skin', shade: 'flat', band: 1 },
+      );
+      const p = ctx.lib.proc(s).noDefaults(), c = at(ctx);
+      if (c) p.add('decal', { name: 'emblem', part: o.part ?? 'torso', mat: 'glow', shape: { type: 'circle', ...c } });
+      return p.render();
+    },
+    meta: { mirror: true },
+  });
+  const fixed = { cx: 5, cy: 5, r: 2 };
+  const b = brief({ states: ['idle'], anims: undefined, directions: 4 });
+  const rr = (m: AssetModule, br = b) => render(dir, m, br);
+
+  test('cells carry the masks (flipped for mirrored cells) and the stats', () => {
+    const r = rr(withDecal(() => fixed));
+    const e = r.cells.find(c => c.facing === 'e')!, w = r.cells.find(c => c.facing === 'w')!;
+    expect(w.mirrored).toBe(true);
+    expect(e.decals!.emblem[5 * 16 + 5]).toBe(1);
+    expect(w.decals!.emblem[5 * 16 + (15 - 5)]).toBe(1); expect(w.decals!.emblem[5 * 16 + 5]).toBe(0);
+    expect(w.decalStats).toEqual(e.decalStats);
+    expect(e.decalStats!.emblem.inside).toBe(e.decalStats!.emblem.total);
+  });
+
+  test('no decal: no masks, no key, no check; a render that uses none is unchanged', () => {
+    const r = rr(withDecal(() => null)), rep = stageReport(r, dir, { brief: b });
+    expect(r.cells.every(c => c.decals === undefined && c.decalStats === undefined)).toBe(true);
+    expect(rep.keys.decal).toBeUndefined(); expect(rep.checks.some(c => c.stage === 'decal')).toBe(false);
+  });
+
+  test('the decal key digests the masks: it moves with the decal, not with the palette', () => {
+    const k = (m: AssetModule, d = dir) => stageReport(render(d, m, b), d, { brief: b }).keys;
+    const a = k(withDecal(() => fixed)), moved = k(withDecal(() => ({ ...fixed, cx: 6 })));
+    expect(a.decal).toMatch(/^[0-9a-f]{8}$/); expect(a.decal).toBe(k(withDecal(() => fixed)).decal);
+    expect(moved.decal).not.toBe(a.decal); expect(moved.shape).toBe(a.shape);
+    const d2 = mkDir({ view: 'topdown', ramps: { ...RAMPS, glow: ['#c0ffc0', '#40c040', '#006000'] } }), recoloured = k(withDecal(() => fixed), d2);
+    expect(recoloured.decal).toBe(a.decal); expect(recoloured.decorate).not.toBe(a.decorate);
+  });
+
+  test('decal-inside: pass on its part, flag when mostly off it, fail when it lands on nothing; the detail names decal and cell', () => {
+    const check = (m: AssetModule) => stageReport(rr(m), dir, { brief: b }).checks.find(c => c.id === 'decal-inside')!;
+    expect(check(withDecal(() => fixed))).toMatchObject({ stage: 'decal', status: 'pass' });
+    const off = check(withDecal(() => ({ cx: 8, cy: 12, r: 2 })));          // wholly on the legs, targeting the torso
+    expect(off.status).toBe('fail'); expect(off.detail).toContain('decal emblem landed on nothing in idle/');
+    const outside = check(withDecal(() => ({ cx: 40, cy: 40, r: 2 })));    // outside the frame: total 0, nothing to judge
+    expect(outside.status).toBe('skip');
+  });
+
+  test('a decal mostly off its part flags', () => {
+    const half = withDecal(() => ({ cx: 8, cy: 11, r: 4 }), { part: 'torso' });
+    const c = stageReport(rr(half), dir, { brief: b }).checks.find(x => x.id === 'decal-inside')!;
+    expect(c.status).toBe('flag'); expect(c.detail).toContain('mostly off its part');
+  });
+});
