@@ -34,7 +34,9 @@ Editing `briefs.yaml` by hand is fine; the CLI validates it.
 **Body.** `--body quadruped|serpent|flyer|large` starts a character or creature from its rig instead of the humanoid
 walker: wolves, rats, lizards and kobolds on all fours, snakes, eels and naga tails, bats, wasps and birds, dragons and
 other very large creatures (brief those on a large frame, `--size large`). Each rig has four facings, a walk and a
-`ground` anchor. Iso briefs start from the iso walker and iso rigs.
+`ground` anchor. Iso briefs start from the iso walker and iso rigs. The characters and creatures are built on the shared
+body rigs (`ctx.lib.rigs.body(plan, ctx, { height })`): the skeleton, gait and facing come from the library, so only dress it, and
+never resize its bones per frame (the `rig-lengths` stage check fails limbs that stretch between cells).
 
 **Materials.** `brief add` warns when a brief names a material its kind's ramps leave out (a lute or staff on a
 character without wood, steel on a creature without metal, lava on a tile without glow, rubble on a prop without dirt):

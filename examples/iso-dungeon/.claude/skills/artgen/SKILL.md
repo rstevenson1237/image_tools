@@ -85,7 +85,8 @@ Other artgen skills, agents and CLI messages cite these by number.
 - Turning figures (`--directions 8`) start from the walker template (top-down or iso): `ctx.facing` → yaw, `ctx.t`
   drives the walk. Draw s, se, e, ne, n; west facings are mirrors. Check every facing row on the sheet, not just the first.
 - Bodies the humanoid walker doesn't cover start from a rig (brief `body`): `creature-quadruped`, `-serpent`,
-  `-flyer`, `-large`, each with `layout(ctx)`, four facings, a walk and a `ground` anchor. Keep the rig's proportions
+  `-flyer`, `-large`, each with `layout(ctx)`, four facings, a walk and a `ground` anchor. The walker and these rigs call
+  `ctx.lib.rigs.body('biped'|'quadruped'|'large'|'serpent'|'flyer'|'turret', ctx, { height })` and draw along `pose.start/end/at(bone, u, fwd, side, up)`; bone lengths are fixed per asset. Keep the rig's proportions
   relative to the brief's `height`: an upright character or creature more than 15 % off its height fails the gate in
   a project (`review.heightFail`); low bodies (quadruped, serpent, flyer) and first-person billboards only flag.
 - Markings and variation: the `detail` procedural layer stamps a seeded mask template (Bollinger-style) onto a part;

@@ -1,8 +1,9 @@
 // {{ID}} base.v1 (r1) — template: flyer (bat, wasp, bird, imp, small drake) with four facings and a wingbeat over ctx.t
-// (3/4 top-down camera). A small body hovers above its ground shadow; two wings beat on every state (flyers never
-// stand still), a bob follows the beat. Seen from the front (s) or back (n) the wings spread to both sides; in profile
-// (e/w) the near wing sweeps over the body and the far one shows behind it. `ground` is the shadow under it, `head` the
-// head. For a swarm, draw three to five small bodies at offsets instead of one. Role ramps only (R11).
+// (3/4 top-down camera), on the shared flyer rig (`ctx.lib.rigs.body`: body, head, tail and two two-bone wings that beat on
+// every state). A small body hovers above its ground shadow; two wings beat on every state (flyers never stand still), a bob
+// follows the beat. Seen from the front (s) or back (n) the wings spread to both sides; in profile (e/w) the near wing
+// sweeps over the body and the far one shows behind it. `ground` is the shadow under it, `head` the head. For a swarm,
+// draw three to five small bodies at offsets instead of one. Role ramps only (R11).
 export const meta = { brief: '{{ID}}', pass: 'r1', notes: 'template flyer rig' };
 
 export const params = {
@@ -11,38 +12,40 @@ export const params = {
   span: { type: 'range', min: 0.7, max: 1.3, default: 1 },
 };
 
-const YAW = { s: 0, se: 45, e: 90, ne: 135, n: 180, sw: -45, w: -90, nw: -135 };
-
+// Geometry shared by render() and anchors(): the rig's pose for this phase of the beat, the head and the eyes on it.
 function layout(ctx) {
-  const [w, h] = ctx.size, yaw = (YAW[ctx.facing] ?? 0) * Math.PI / 180, sx = Math.sin(yaw), front = Math.cos(yaw), side = Math.abs(sx);
-  const X = v => (v * w) / 32, cx = w / 2, ground = Math.round(h * 0.95), ph = ctx.t * Math.PI * 2, beat = Math.sin(ph);
-  const lift = X(9) + Math.round(beat * X(1)), bodyR = X(3.2), cy = ground - lift - bodyR, span = X(12) * (ctx.params?.span ?? 1);
-  const headR = bodyR * 0.75, headX = cx + sx * bodyR * 0.9, headY = cy - bodyR * (side > 0.5 ? 0.4 : 0.9);
-  const showFace = front > -0.3, eyeY = Math.round(headY);
-  const eyes = !showFace ? [] : side > 0.9 ? [Math.round(headX + sx * headR * 0.35)] : [Math.round(headX - headR * 0.45), Math.round(headX + headR * 0.35)];
-  const mouth = showFace ? [Math.round(side > 0.9 ? headX + sx * headR * 0.6 : headX - 0.5), Math.round(headY + headR * 0.6)] : null;
-  return { w, h, X, cx, cy, ground, sx, front, side, beat, bodyR, span, headR, headX, headY, showFace, eyes, eyeY, mouth };
+  const [w, h] = ctx.size, X = v => (v * w) / 32, span = ctx.params?.span ?? 1;
+  const rig = ctx.lib.rigs.body('flyer', ctx, { height: X(8), tilt: 0.55, proportions: { wing: 0.75 * span, wing_tip: 0.75 * span } });
+  const { sx, front, side } = rig, P = rig.pose(ctx.state, ctx.t), bodyR = X(3.2), headR = bodyR * 0.75, head = P.at('head', 0.5), showFace = front > -0.3;
+  const eyePts = !showFace ? [] : (side > 0.9 ? [Math.sign(sx)] : [-1, 1]).map(k => P.at('head', 0.5, headR * 0.5, k * headR * 0.45, headR * 0.1));
+  const eyes = eyePts.map(p => Math.round(p[0])).sort((a, b) => a - b), eyeY = Math.round(eyePts.length ? eyePts[0][1] : head[1]);
+  const mouth = showFace ? P.at('head', 0.5, headR * 0.5, 0, -headR * 0.6).map(Math.round) : null;
+  return { w, h, X, rig, P, sx, front, side, bodyR, headR, head, showFace, eyes, eyeY, mouth };
 }
 
 export function render(ctx) {
   const { pal } = ctx.dir, P = ctx.params, s = ctx.lib.t2.scene(...ctx.size), L = layout(ctx);
-  const { X, cx, cy, sx, front, side, beat, bodyR, span, headR, headX, headY, eyes, eyeY } = L;
-  // wing tips swing from up (beat 1) to down (beat -1)
-  const tipY = cy - beat * X(6), wing = (k, reach) => ({ type: 'path', name: 'wing', d: `M${cx + k * bodyR * 0.4} ${cy - bodyR * 0.3} L${cx + k * reach} ${tipY} L${cx + k * reach * 0.7} ${cy + X(2)} L${cx + k * reach * 0.35} ${cy + X(0.5)} Z`, mat: pal[P.wing], shade: 'flat', band: 1 });
-  const wings = side > 0.5 ? [wing(-Math.sign(sx), span * 0.45), wing(Math.sign(sx) * -1, span * 0.25)] : [wing(-1, span), wing(1, span)];
-  s.add({ type: 'group', name: 'wings', underlay: true, children: side > 0.5 ? [wings[0]] : wings });
-  s.add({ type: 'group', name: 'body', underlay: true, children: [
-    { type: 'ellipse', name: 'torso', cx, cy, rx: bodyR * (1 + 0.3 * side), ry: bodyR, mat: pal[P.body], shade: 'sphere' },
-    ...(front > -0.6 ? [{ type: 'circle', name: 'head', cx: headX, cy: headY, r: headR, mat: pal[P.body], shade: 'sphere' }] : []),
-  ] });
-  if (side > 0.5) s.add({ type: 'group', name: 'near-wing', underlay: true, children: [wings[1]] });
-  for (const ex of eyes) s.add({ type: 'rect', name: 'eye', x: ex, y: eyeY, w: 1, h: 1, color: 'outline' });
+  const { X, rig, P: pose, side, bodyR, headR, head } = L, body = pose.at('body', 0.5);
+  const pieces = [];
+  // wings: shoulder, elbow, tip, and a trailing edge behind and below them
+  for (const k of ['L', 'R']) {
+    const a = pose.start(`wing${k}`), m = pose.end(`wing${k}`), t = pose.end(`wing${k}_tip`), wd = (k === 'L' ? 1 : -1) * X(2.6) * Math.abs(L.front), prof = side > 0.5;
+    const b = prof ? pose.at(`wing${k}_tip`, 0.5, -X(3.2), 0, -X(1)) : pose.along(`wing${k}_tip`, 0.5, wd), c = prof ? pose.at(`wing${k}`, 0.5, -X(2.4), 0, -X(0.6)) : pose.along(`wing${k}`, 0.5, wd);
+    pieces.push({ z: pose.depth(`wing${k}`), g: { type: 'group', name: 'wings', underlay: true, children: [{ type: 'path', name: 'wing', d: `M${a[0]} ${a[1]} L${m[0]} ${m[1]} L${t[0]} ${t[1]} L${b[0]} ${b[1]} L${c[0]} ${c[1]} Z`, mat: pal[P.wing], shade: 'flat', band: 1 }] } });
+  }
+  pieces.push({ z: 0, g: { type: 'group', name: 'body', underlay: true, children: [
+    { type: 'ellipse', name: 'torso', cx: body[0], cy: body[1], rx: bodyR * (1 + 0.3 * side), ry: bodyR, mat: pal[P.body], shade: 'sphere' },
+    ...(L.front > -0.6 ? [{ type: 'circle', name: 'head', cx: head[0], cy: head[1], r: headR, mat: pal[P.body], shade: 'sphere' }] : []),
+  ] } });
+  for (const p of pieces.sort((a, b) => a.z - b.z)) s.add(p.g);
+  for (const ex of L.eyes) s.add({ type: 'rect', name: 'eye', x: ex, y: L.eyeY, w: 1, h: 1, color: 'outline' });
   // the shadow on the ground under it says how high it flies
-  return ctx.lib.proc(s).add('groundShadow', { cx, cy: L.ground - 1, rx: Math.max(2, X(4)) }).render();
+  return ctx.lib.proc(s).add('groundShadow', { cx: ctx.size[0] / 2, cy: rig.ground - 1, rx: Math.max(2, X(4)) }).render();
 }
 
 export const anchors = ctx => {
-  const L = layout(ctx), a = { ground: [Math.round(L.cx), L.ground], head: [Math.round(L.headX), Math.round(L.headY)], hand: [Math.round(L.headX), Math.round(L.headY)] };
+  const L = layout(ctx), a = { ...L.rig.anchors(L.P), head: L.head.map(Math.round) };
+  a.hand = a.head;
   if (L.front > -0.6) L.eyes.forEach((x, i) => { a[i ? 'eye2' : 'eye'] = [x, L.eyeY]; });
   if (L.mouth && L.front > -0.6) a.mouth = L.mouth;
   return a;
