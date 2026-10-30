@@ -38,6 +38,9 @@ step `sprite.sub` through the frames in between; assets with `blend: 'add'` ask 
 It also has sprite stacks (`pack.stack`, `stack.ts`), `parallaxTiles` and normal atlases (`loadPack(…, { normals: true })`).
 Runtime 1.2.1: `loadPack` warns on the console when a pack carries unapproved drafts (`export --include-drafts`); pass
 `onDrafts` to handle them yourself, or `false` to silence it.
+Runtime 1.3.0: packs exported with `artgen export --placeholders` carry assets drawn from their placeholder
+(`manifest.placeholders`, `asset.placeholder`): `pack.placeholders` lists their ids and `pack.isPlaceholder(id)` tells one apart.
+Nothing is logged: a placeholder is intended, and the real art replaces it on a later export under the same animation contract.
 
 ## Adapters (`src/adapters/`)
 

@@ -7,6 +7,7 @@
  * does the I/O.
  */
 import type { LedgerEntry } from './qa/ledger.ts';
+import { stageState, type GateStage, type StageKeys } from 'artgen-workflow/stages.ts';
 
 export interface Version { name: string; kind: 'base' | 'finish'; n: number }
 
@@ -38,6 +39,8 @@ export type NextStep =
   | { action: 'write-finish'; version: string; pass: string; base: string; why: string }
   /** A fresh reviewer scores a version from a blind sheet (the version alone: no earlier versions, scores or notes). */
   | { action: 'blind-review'; version: string; pass: 'b'; why: string }
+  /** A stage gate (docs/STAGES.md §5.4): the user approves or rejects the stage's result before the pipeline goes on. */
+  | { action: 'stage-gate'; stage: GateStage; version?: string; pass: 'g'; key?: string; why: string }
   | {
       action: 'ready'; final: string; best: string; why: string;
       /** Failing gate checks and blind-score issues on the final (listed when it is marked final). */
@@ -116,6 +119,12 @@ export interface PlanInput {
   approveMin?: number;
   /** Extra autonomous revisions for a blind re-score that disagrees, on top of `extraRevisions` (`review.blindRevisions`). */
   blindRevisions?: number;
+  /** Stage gates of this asset (`gatesFor`). Absent or empty: the pass machine behaves exactly as without stages. */
+  gates?: GateStage[];
+  /** Stage keys per version name, as recorded on score entries (missing = unknown). */
+  stageKeys?: Record<string, StageKeys>;
+  /** Key of the current placeholder (the file, else the defaults). */
+  placeholderKey?: string;
 }
 
 /** Latest blind score per version (`score --blind` records). */
@@ -149,8 +158,10 @@ export function rosterNotes(ledger: LedgerEntry[], version: string): string[] {
   return (last?.issues as string[] | undefined) ?? [];
 }
 
+const lastIdx = <T>(xs: T[], f: (x: T) => boolean) => { for (let i = xs.length - 1; i >= 0; i--) if (f(xs[i])) return i; return -1; };
+
 export function planPasses(input: PlanInput): PassState {
-  const { asset, revisionPasses: N, finishPass } = input;
+  const { asset, revisionPasses: N, finishPass } = input, gates = input.gates ?? [];
   const vs = input.versions.map(parseVersion).filter((v): v is Version => !!v);
   const bases = vs.filter(v => v.kind === 'base').sort((a, b) => a.n - b.n), finishes = vs.filter(v => v.kind === 'finish').sort((a, b) => a.n - b.n);
   const scores = latestScores(input.ledger), fb = input.feedback, userFb = fb?.filter(f => f.by !== 'agent'), userOpened = userFb?.map(f => f.opens);
@@ -173,12 +184,36 @@ export function planPasses(input: PlanInput): PassState {
   const state = (next: NextStep): PassState => ({ asset, rows, best: bestOf(Infinity), next });
   const roster = (v: string | undefined) => { const n = v ? rosterNotes(input.ledger, v) : []; return n.length ? `; the roster review of ${v} found: ${n.join('; ')}` : ''; };
 
+  // placeholder gate: before the first base, the user approves the placeholder as it is now (§5.4 rule 1)
+  if (gates.includes('placeholder') && !bases.length) {
+    const ph = stageState(input.ledger, 'placeholder');
+    if (ph.approvedKey === undefined || ph.approvedKey !== input.placeholderKey)
+      return state({
+        action: 'stage-gate', stage: 'placeholder', pass: 'g', ...(input.placeholderKey && { key: input.placeholderKey }),
+        why: `waiting for the user: write the placeholder with \`artgen placeholder ${asset}\` if it is missing, export it with \`artgen export --placeholders\` if the game wants it now, show the user out/placeholder.png and wait for \`artgen stage approve ${asset} placeholder\`${ph.latest?.verdict === 'reject' ? `; the user rejected the last one${ph.latest.note ? `: "${ph.latest.note}"` : ''}` : ''}`,
+      });
+  }
+  // shape gate (§5.4 rule 3): `cand` is the base the next step builds on. Passed when the approved shape key is its key.
+  const shapeGate = (cand: string, next: string, nextPass: string): NextStep | undefined => {
+    const sh = stageState(input.ledger, 'shape'), key = input.stageKeys?.[cand]?.shape;
+    if (key !== undefined && sh.approvedKey === key) return undefined;
+    const iReject = sh.latest?.verdict === 'reject' ? lastIdx(input.ledger, e => e.type === 'stage' && e.stage === 'shape' && e.verdict === 'reject') : -1;
+    if (iReject >= 0 && iReject > lastIdx(input.ledger, e => e.type === 'score' && !e.blind && e.version === cand))
+      return { action: 'write-base', version: next, pass: nextPass, from: cand, why: `the user rejected the shape of ${cand}${sh.latest?.note ? `: "${sh.latest.note}"` : ''} — redraw the silhouette and form before any decoration` };
+    const old = [...input.ledger].reverse().find(e => e.type === 'stage' && e.stage === 'shape' && e.verdict === 'approve');
+    return {
+      action: 'stage-gate', stage: 'shape', version: cand, pass: 'g', ...(key && { key }),
+      why: `waiting for the user: shape gate on ${cand}: build the shape sheet (\`artgen review ${asset} --version ${cand} --stage shape\`), show it to the user, wait for \`artgen stage approve ${asset} shape\` or \`artgen stage reject ${asset} shape --note …\`${old && key !== undefined && old.key !== key ? `; the silhouette changed since the approved one (${String(old.version ?? 'earlier version')})` : ''}`,
+    };
+  };
+
   // any written but unscored version is reviewed first
   const unscored = [...bases, ...finishes].find(v => !scores.has(v.name));
   if (unscored) return state({ action: 'review', version: unscored.name, pass: pid(unscored.name), why: 'render it, build the review sheet (v(n−1) beside v(n)), score it' });
   for (let i = 1; i <= N; i++) {
     if (bases.some(b => b.n === i)) continue;
     const from = bestOf(i - 1);
+    if (from && gates.includes('shape') && i >= 2) { const g = shapeGate(from.version, `base.v${i}`, `r${i}`); if (g) return state(g); }
     return state({
       action: 'write-base', version: `base.v${i}`, pass: `r${i}`, from: from?.version,
       why: (from ? `revise from the best-scoring version so far, ${from.version} (${from.score}) — R12` : 'first build: T2+ base + procedural pass from the brief and direction') + roster(from?.version),
@@ -205,6 +240,7 @@ export function planPasses(input: PlanInput): PassState {
 
   // the base to finish: the latest user iteration (the user asked for it), else the best-scoring base (R12)
   const userBases = bases.filter(isUserBase), target = userBases.length ? { version: userBases[userBases.length - 1].name, score: scores.get(userBases[userBases.length - 1].name)!.score } : best;
+  if (gates.includes('shape')) { const g = shapeGate(target.version, nextBase, pid(nextBase)); if (g) return state(g); }
   const mode = !finishPass ? 'never' : input.finish ?? 'always', bar = input.approveMin ?? input.blind?.minScore ?? 6.5;
   // a finish whose base is unknown counts as finishing the target (older callers pass no bindings)
   const finishedTarget = finishes.some(f => (input.finishBase?.[f.name] ?? target.version) === target.version);

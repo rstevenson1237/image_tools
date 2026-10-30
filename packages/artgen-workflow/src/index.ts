@@ -9,3 +9,4 @@ export * from './metrics.ts';
 export * from './sheet.ts';
 export * from './brief.ts';
 export * from './decide.ts';
+export * from './stages.ts';

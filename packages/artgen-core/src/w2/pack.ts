@@ -87,6 +87,8 @@ export interface PackInput {
   version: string;
   sourceHash: string;
   draft?: boolean;
+  /** Exported from the placeholder (`export --placeholders`): `version` is `placeholder`, `sourceHash` the placeholder key. */
+  placeholder?: boolean;
 }
 
 export interface PackAsset {
@@ -117,6 +119,8 @@ export interface PackAsset {
   /** Effects (P6c): `add` = draw with additive blending (the runtime calls the adapter's `setBlend`). */
   blend?: 'add';
   draft?: true;
+  /** A stand-in exported before the asset has art (`export --placeholders`); the real export replaces it. */
+  placeholder?: true;
 }
 
 export interface PackManifest {
@@ -135,6 +139,8 @@ export interface PackManifest {
   assets: Record<string, PackAsset>;
   /** Assets exported before approval (`--include-drafts`, D10): `loadPack` warns on the console when it loads them. */
   drafts?: string[];
+  /** Assets exported from their placeholder (`export --placeholders`), sorted; no console message: a placeholder is intended. */
+  placeholders?: string[];
 }
 
 const TILE_KINDS = new Set(['tile', 'tileset', 'texture']);
@@ -232,14 +238,14 @@ export function buildPack(pack: string, dir: Direction, inputs: PackInput[], opt
       ...(swaps && { swaps }), version: inp.version, sourceHash: inp.sourceHash,
       ...((TILE_KINDS.has(b.kind) || LAYER_KINDS.has(b.kind)) && { tile: r.size[0] }), ...(b.autotile && { autotile: b.autotile }), ...(inp.renders.some(x => x.cells.some(c => c.normal)) && { normals: true as const }),
       ...(b.blend === 'add' && { blend: 'add' as const }),
-      ...(inp.draft && { draft: true as const }),
+      ...(inp.draft && { draft: true as const }), ...(inp.placeholder && { placeholder: true as const }),
     };
   }
-  const drafts = inputs.filter(i => i.draft).map(i => i.brief.id);
+  const drafts = inputs.filter(i => i.draft).map(i => i.brief.id), placeholders = inputs.filter(i => i.placeholder).map(i => i.brief.id).sort();
   const manifest: PackManifest = {
     format: 1, pack, generator: opts.generator ?? 'artgen', direction: { id: dir.id, version: dir.version }, runtime: opts.runtime ?? null, atlases: names,
     ...(normals && { normals: names.map(n => n.replace(/\.png$/, '.n.png')) }), assets,
-    ...(drafts.length && { drafts }),
+    ...(drafts.length && { drafts }), ...(placeholders.length && { placeholders }),
   };
   const aseprite = atlases.map((g, bin) => asepriteJson(manifest, bin, g, names[bin]));
   return { manifest, atlases, aseprite, ...(normals && { normals }) };

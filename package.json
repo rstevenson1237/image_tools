@@ -42,7 +42,7 @@
     "@resvg/resvg-wasm": "^2.6.2",
     "artgen-core": "0.0.0",
     "artgen-imagekit": "0.0.0",
-    "artgen-runtime": "1.2.1",
+    "artgen-runtime": "1.3.0",
     "comlink": "^4.4.2",
     "fabric": "^7.4.0",
     "fflate": "^0.8.3"

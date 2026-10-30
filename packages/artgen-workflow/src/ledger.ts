@@ -5,7 +5,7 @@
 import { hashString } from 'artgen-primitives/lib/rng.ts';
 import type { Check } from './check.ts';
 
-export type LedgerType = 'render' | 'review' | 'score' | 'conformance' | 'approve' | 'feedback' | 'note' | 'status' | 'export' | 'contract' | 'restyle' | 'import-edit' | 'roster' | 'version';
+export type LedgerType = 'render' | 'review' | 'score' | 'conformance' | 'approve' | 'feedback' | 'note' | 'status' | 'export' | 'contract' | 'restyle' | 'import-edit' | 'roster' | 'version' | 'stage';
 
 export interface LedgerEntry {
   /** ISO timestamp. */
