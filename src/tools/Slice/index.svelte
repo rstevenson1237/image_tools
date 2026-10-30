@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { zipSync, strToU8 } from 'fflate';
   import type { Cell } from 'artgen-imagekit';
+  import '../../workers/registerImagekit';
   import { acquire, type WorkerLease } from '../../workers/workerRegistry';
   import type { ImagekitApi } from '../../workers/imagekit.worker';
   import { loadImageFile, stemOf } from '../../core/utils/loadImage';

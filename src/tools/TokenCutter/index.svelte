@@ -3,6 +3,7 @@
   import type { Canvas } from 'fabric';
   import CanvasStage from '../../core/canvas/CanvasStage.svelte';
   import type { LoadedImage } from '../../core/canvas/types';
+  import '../../workers/registerImagekit';
   import { acquire, type WorkerLease } from '../../workers/workerRegistry';
   import type { ImagekitApi } from '../../workers/imagekit.worker';
   import { sceneToImage, type Point } from '../../core/utils/geometry';

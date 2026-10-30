@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { formatGpl, formatHex, parsePaletteText, type Dither } from 'artgen-imagekit';
+  import '../../workers/registerImagekit';
   import { acquire, type WorkerLease } from '../../workers/workerRegistry';
   import type { ImagekitApi } from '../../workers/imagekit.worker';
   import { loadImageFile, stemOf } from '../../core/utils/loadImage';
