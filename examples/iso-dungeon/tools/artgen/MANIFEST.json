@@ -6,7 +6,7 @@
     "maps": "0.11.0"
   },
   "files": {
-    ".claude/commands/artgen-image.md": "d2e6da2b4fee5bfb",
+    ".claude/commands/artgen-image.md": "50d9f138134b67be",
     ".claude/commands/artgen-report.md": "4bac505d34cc6762",
     ".claude/commands/artgen-upstream.md": "7e568ccf2f798957",
     "tools/artgen/VERSION": "795d6bc79574d2ae",
@@ -29,15 +29,15 @@
     ".claude/commands/artgen-restyle.md": "b6ac80f8d9f18931",
     ".claude/commands/artgen-review.md": "811625d2dad12d4a",
     ".claude/skills/art-direction/SKILL.md": "87fa26ddb33f0949",
-    ".claude/skills/artgen/SKILL.md": "edc39aa7090d901e",
-    ".claude/skills/artgen/references/breadth.md": "720b386ce30992d5",
+    ".claude/skills/artgen/SKILL.md": "a6076ed175fb850e",
+    ".claude/skills/artgen/references/breadth.md": "400111bff1be524b",
     ".claude/skills/artgen/references/direction.md": "44305c4f90c73d55",
     ".claude/skills/artgen/references/finishing.md": "097059227028fcfa",
     ".claude/skills/artgen/references/review.md": "a4bd63443013275b",
     ".claude/skills/artgen/references/t2.md": "8c0e8e95a7ab295d",
     ".claude/skills/asset-production/SKILL.md": "818e843def07f824",
-    "tools/artgen/artgen-mcp.js": "3551c41478d19f2b",
-    "tools/artgen/artgen.js": "852ff97b87254794",
+    "tools/artgen/artgen-mcp.js": "fcb352ae1ec82c52",
+    "tools/artgen/artgen.js": "d2cad62fba96b2c7",
     "tools/artgen/runtime/adapters/canvas2d.ts": "e3983c0406cc9757",
     "tools/artgen/runtime/adapters/pixi.ts": "93c562c2f0badb5a",
     "tools/artgen/runtime/adapters/three.ts": "25506ce756d8503a",
@@ -110,7 +110,7 @@
     ".claude/skills/dungeon-map/SKILL.md": "8c57b667606740a7",
     ".claude/skills/settlement-map/SKILL.md": "8d6a900bb89ec463",
     ".claude/skills/terrain-map/SKILL.md": "6d29db113805f2d2",
-    "tools/artgen/artgen-maps.js": "f234b43926fa2b27"
+    "tools/artgen/artgen-maps.js": "57925cc17375ffa7"
   },
   "sources": {
     ".claude/commands/artgen-image.md": "packages/artgen-dist/content/core/commands/image.md",
