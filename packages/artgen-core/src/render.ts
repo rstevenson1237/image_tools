@@ -29,6 +29,7 @@ import { BODY_PLAN, bodyRig, PROPORTIONS, RIG_PLANS, type BodyRigOptions, type R
 import { colorRun, flame, paletteCycle, particles, preset, PRESET_NAMES, simulate, drawParticles, type Emitter, type FlameOptions, type PresetOptions } from 'artgen-scene/fx/particles.ts';
 import { Scene2D, type Scene2DOptions } from 'artgen-scene/t2/scene.ts';
 import { Scene3D, type Scene3DOptions } from 'artgen-scene/t2/scene3d.ts';
+import { decodeVox } from 'artgen-scene/voxel/vox.ts';
 
 export interface Brief {
   id: string;
@@ -168,6 +169,8 @@ export function makeLib(dir: DirContext, kind?: string, stage?: (name: string, g
         onScene?.(s);
         return s;
       },
+      /** A MagicaVoxel `.vox` held as base64 in the asset's source (`artgen convert` and `extrude` write these): add it with `addVox`. */
+      vox: (base64: string) => decodeVox(Uint8Array.from(atob(base64), c => c.charCodeAt(0))),
     },
     /**
      * Textures and tiles (P6b): material recipes on the direction's ramps (seamless, with normal maps), autotile
