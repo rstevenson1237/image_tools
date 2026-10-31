@@ -90,6 +90,11 @@ export function voxelGlb(set: VoxelSet, o: { scale?: number; name?: string } = {
   });
   const bin = new Uint8Array(bins.flat());
   json.buffers.push({ byteLength: bin.length });
+  return glbBytes(json, bin);
+}
+
+/** The GLB container: header, the JSON chunk (padded with spaces) and the binary chunk (already 4-byte aligned). */
+export function glbBytes(json: unknown, bin: Uint8Array): Uint8Array {
   let text = JSON.stringify(json);
   while (text.length % 4) text += ' ';
   const jb = new TextEncoder().encode(text), total = 12 + 8 + jb.length + 8 + bin.length;

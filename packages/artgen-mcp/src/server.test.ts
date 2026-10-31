@@ -30,7 +30,7 @@ describe('artgen MCP server', () => {
   test('tools/list names the full tool set (SPEC §14) with input schemas', async () => {
     const r = (await handle({ jsonrpc: '2.0', id: 4, method: 'tools/list' }, root))!.result as { tools: { name: string; inputSchema: { type: string } }[] };
     expect(r.tools.map(t => t.name)).toEqual(['direction_get', 'direction_tile', 'pass_status', 'render', 'review', 'conformance', 'score', 'finish', 'make', 'brief_lint', 'brief_add', 'brief_list', 'status',
-      'gallery', 'sheet', 'feedback', 'approve', 'placeholder', 'stages', 'stage_approve', 'stage_reject', 'texture', 'fx', 'export', 'restyle', 'analytics', 'pr_prepare', 'pr_parse', 'map_list', 'map_get', 'map_new', 'map_update', 'map_edit', 'map_overlay', 'map_render', 'map_facts', 'map_check',
+      'gallery', 'sheet', 'feedback', 'approve', 'placeholder', 'stages', 'stage_approve', 'stage_reject', 'texture', 'fx', 'export', 'restyle', 'analytics', 'pr_prepare', 'pr_parse', 'turntable', 'map_list', 'map_get', 'map_new', 'map_update', 'map_edit', 'map_overlay', 'map_render', 'map_facts', 'map_check',
       'dungeon_list', 'dungeon_get', 'dungeon_new', 'dungeon_update', 'dungeon_generate', 'dungeon_edit', 'dungeon_check', 'dungeon_overlay', 'dungeon_render', 'dungeon_facts',
       'settlement_list', 'settlement_get', 'settlement_new', 'settlement_update', 'settlement_generate', 'settlement_edit', 'settlement_check', 'settlement_facts', 'settlement_render', 'formats', 'map_brief', 'map_version', 'map_diff', 'map_review', 'map_feedback', 'map_approve', 'map_status', 'map_sheet', 'map_direction', 'dungeon_brief', 'dungeon_version', 'dungeon_diff', 'dungeon_review', 'dungeon_feedback', 'dungeon_approve', 'dungeon_status', 'dungeon_sheet', 'settlement_brief', 'settlement_version', 'settlement_diff', 'settlement_review', 'settlement_feedback', 'settlement_approve', 'settlement_status', 'settlement_sheet', 'report', 'metrics_export']);
     expect(r.tools.every(t => t.inputSchema.type === 'object')).toBe(true);
@@ -79,6 +79,17 @@ describe('artgen MCP server', () => {
     const rv = await call('review', { asset: 'assets/character/hero', version: 'finish.v1', direction: 'benchmark' });
     expect(rv.content.map(c => c.type), rv.content[0].text).toEqual(['text', 'image']);
     expect(JSON.parse(rv.content[0].text!).sheet).toBe('art/assets/character/hero/out/review-finish.v1.png');
+  });
+
+  test('turntable returns a 3D-mode asset seen from round it, and writes nothing (R7a)', async () => {
+    cpSync(join(BENCH_ROOT, 'p6', 'car'), join(root, 'art', 'assets', 'prop', 'car'), { recursive: true, filter: f => !f.includes('/out') });
+    cpSync(join(BENCH_ROOT, 'p6', 'direction.json'), join(root, 'art', 'p6-direction.json'));
+    for (const source of ['voxel', 'mesh']) {
+      const r = await call('turntable', { asset: 'assets/prop/car', direction: 'art/p6-direction.json', source, angles: 4, size: 32 });
+      expect(r.isError, r.content[0]?.text).toBeUndefined();
+      expect(r.content.map(c => c.type)).toEqual(['image']);
+    }
+    expect(existsSync(join(root, 'art', 'assets', 'prop', 'car', 'out'))).toBe(false);
   });
 
   test('quick looks: texture and fx write under art/sheets and return images; list modes', async () => {

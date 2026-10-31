@@ -54,6 +54,11 @@ export interface Spec3 {
   hi?: string;
   /** raster renderer: `flat` lights cube faces, `toon` a smooth normal (organic forms). Inherited; default from the render. */
   shade?: 'flat' | 'toon';
+  /** Mesh textures (R7a, docs/MESHES.md §6): share of texels (0–1) the grain noise moves one ramp step; inherited. */
+  grain?: number;
+  /** Mesh textures: roughness and metal (0–1) in place of the material name's; inherited. */
+  rough?: number;
+  metal?: number;
   name?: string;
 }
 
@@ -107,6 +112,8 @@ export class Scene3D {
   readonly specs: Spec3[] = [];
   readonly k: number;
   readonly dir: DirContext;
+  /** How the scene was last drawn (R7a): the renderer and its scale, so a mesh is as large in metres as the sprite. */
+  rendered?: { renderer: 'cubes' | 'raster' | 'slices'; scale: number };
   private warnings: string[] = [];
 
   constructor(dir: DirContext, opts: Scene3DOptions = {}) { this.dir = dir; this.k = opts.k ?? 1; }
@@ -293,6 +300,7 @@ export class Scene3D {
   }
 
   render(w: number, h: number, o: Render3DOptions = {}, line?: (g: Grid) => Grid): Grid {
+    this.rendered = { renderer: o.renderer === 'raster' ? 'raster' : 'cubes', scale: o.scale ?? 1 };
     if (o.renderer === 'raster') {
       const r = this.raster(w, h, o, line);
       r.grid.normal = r.normal;
@@ -311,6 +319,7 @@ export class Scene3D {
    */
   slices(w: number, h: number, o: { scale?: number; shade?: 'flat' | 'toon'; smooth?: number; gain?: number; outline?: boolean; line?: (g: Grid) => Grid } = {}): Grid[] {
     const set = this.voxelSet(o.shade), s = o.scale ?? 1;
+    this.rendered = { renderer: 'slices', scale: s };
     if (!set.cells.length) return [];
     const g = new VoxelGrid(set), cam = camera('topdown'), Ls = toScreen(cam, lightIn(cam, this.dir.camera.light));
     const levels = set.mats.map(m => bandIndices(m.length, this.dir.shading.bands)), [cx, cy] = g.pivot();

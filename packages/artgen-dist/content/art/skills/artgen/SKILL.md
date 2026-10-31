@@ -97,6 +97,6 @@ Other artgen skills, agents and CLI messages cite these by number.
 - `references/finishing.md` — finishing ops (`px.fix/fx/light/outline/patch`), anchors, `finish-stale`.
 - `references/review.md` — review sheet anatomy, 0–10 rubric, what to write in a score note.
 - `references/direction.md` — direction.json fields and colour tokens.
-- `references/breadth.md` — views and voxel models, textures and tiles, effects (particles, flames, cycling),
-  animation (pose rig with IK, spring chains, attacks, sub-frames) and first-person assets (walls, skies, billboards,
-  view-models, lit billboards).
+- `references/breadth.md` — views and voxel models, true 3D meshes and converters (`mesh`, `turntable`, `convert`,
+  `extrude`), textures and tiles, effects (particles, flames, cycling), animation (pose rig with IK, spring chains,
+  attacks, sub-frames) and first-person assets (walls, skies, billboards, view-models, lit billboards).

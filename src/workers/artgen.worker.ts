@@ -11,7 +11,7 @@ import fontBold from '../../packages/artgen-core/assets/fonts/AlegreyaSans-Bold.
 import fontItalic from '../../packages/artgen-core/assets/fonts/AlegreyaSans-Italic.ttf?url';
 import {
   buildPack, dungeon, encodePNG, extractPalette, decodePNG, Grid, initSvg, map, parseDirection, rasterizeSvg, setSvgFonts, settlement, sourceHash, validateDirection,
-  mapDirection, type Direction, type LedgerEntry, type PackManifest, type SubjectKind,
+  mapDirection, buildMesh, meshBudget, viewOfMesh, voxelViewMesh, worldLight, type Direction, type LedgerEntry, type PackManifest, type SubjectKind, type ViewMesh,
 } from 'artgen-core';
 import { RUNTIME_VERSION } from 'artgen-runtime';
 import { ArtProject, img, strip, type FileOp, type Img, type Snapshot } from '../core/project/engine';
@@ -55,6 +55,9 @@ function current(): ArtProject {
   if (!project) throw new Error('no project loaded');
   return project;
 }
+
+/** A 3D model for the orbit view: the mesh to draw, the direction's key light (model frame) and the background. */
+export interface Model3D { mesh: ViewMesh; light: [number, number, number]; background: string; info: string }
 
 export interface CellPayload { state: string; facing: string; frame: number; mirrored: boolean; img: Img; anchors?: Record<string, [number, number]> }
 
@@ -206,6 +209,19 @@ const api = {
   },
 
   /** A one-asset pack for the Asset Lab: plays through the runtime's canvas2d adapter, downloads as a pack. */
+  /**
+   * Asset Lab's 3D view (R7a): the first cell's 3D-mode scene as a mesh the page's orbit camera draws (`rasterMesh`), its
+   * voxels or the true 3D mesh under the brief's settings; null when the version draws no 3D-mode scene.
+   */
+  async model3d(id: string, version: string, o: { source: 'mesh' | 'voxel'; variant?: number; seed?: number; params?: Record<string, unknown> }): Promise<Model3D | null> {
+    const p = current(), a = p.asset(id), scene = await p.scene3d(a, version, o);
+    if (!scene) return null;
+    const light = worldLight(a.dir).light, bg = a.brief.review?.bg ?? a.dir.background ?? '#202028';
+    if (o.source === 'voxel') { const set = scene.voxelSet(); return { mesh: voxelViewMesh(set, scene.k), light, background: bg, info: `${set.cells.length} voxels, k = ${scene.k}` }; }
+    const m = a.brief.mesh ?? {}, r = buildMesh(scene, { budget: m.budget ?? meshBudget(a.brief.kind), mode: m.mode, texels: m.texels, look: m.look });
+    return { mesh: viewOfMesh(r), light, background: bg, info: `${r.mesh.indices.length / 3} triangles (budget ${r.budget}), ${r.mode} ${r.look}, ${r.atlas.join('×')} atlas` };
+  },
+
   async labPack(id: string, version: string, o: { variant?: number; seed?: number; params?: Record<string, unknown> } = {}): Promise<{ manifest: PackManifest; atlases: Img[]; png: Uint8Array[] }> {
     const p = current(), a = p.asset(id), r = await p.renderVersion(a, version, o);
     const built = buildPack(id, a.dir, [{ brief: a.brief, view: a.brief.view ?? a.dir.camera.view, renders: [r.render], version, sourceHash: sourceHash(r.source) }], { generator: 'artgen image-tools (Asset Lab)', runtime: RUNTIME_VERSION });

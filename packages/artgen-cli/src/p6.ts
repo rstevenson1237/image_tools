@@ -11,27 +11,23 @@
  *       a particle preset under the project's direction: strip, onion skin, GIF, APNG and the solid-fill numbers
  *   artgen voxel <asset> [--version v] [--cell state/facing/frame] [--out dir] [--scale m]
  *       the 3D-mode model behind a render → <id>.vox (MagicaVoxel, one palette entry per material) and <id>.glb
- *       (greedy-meshed glTF, `scale` metres per voxel, default 0.1)
+ *       (greedy-meshed glTF, `scale` metres per voxel, default 0.1); `artgen mesh` (mesh.ts) makes the true 3D mesh
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import {
   dirContext, displayDurations, encodeAPNG, encodeGIF, encodeVox, fillQA, Grid, material, MATERIALS, onionSkin, particles, post, preset, repetitionIssues, repetitionMetric,
-  Scene3D, seamMetric, stateDefs, voxelGlb, voxFromSet, type Direction, type RepetitionMetric, type SeamMetric,
+  seamMetric, stateDefs, voxelGlb, voxFromSet, type Direction, type RepetitionMetric, type SeamMetric,
 } from 'artgen-core';
 import { writeGrid } from './node.ts';
 import { renderVersion, versionsIn, type AssetDir } from './asset.ts';
+import { scene3dOf } from './mesh.ts';
 
 export interface VoxelExport { vox: string; glb: string; voxels: number; materials: number; size: [number, number, number]; cell: string }
 
 /** Export the 3D-mode model a version renders for one cell (default: its first cell). */
 export async function voxelExport(a: AssetDir, o: { version?: string; cell?: string; out?: string; scale?: number } = {}): Promise<VoxelExport> {
-  const version = o.version ?? versionsIn(a).filter(v => v.startsWith('base.')).pop();
-  if (!version) throw new Error(`${a.brief.id}: no base version`);
-  const scenes = new Map<string, Scene3D>();
-  const r = await renderVersion(a, version, { onScene: (cell, sc) => { if (sc instanceof Scene3D && !scenes.has(cell)) scenes.set(cell, sc); } });
-  const first = r.render.cells[0], cell = o.cell ?? `${first.state}/${first.facing}/${first.frame}`, scene = scenes.get(cell);
-  if (!scene) throw new Error(`${a.brief.id} ${version}: ${scenes.size ? `no 3D scene for cell ${cell} (have ${[...scenes.keys()].join(', ')})` : 'renders no 3D-mode scene (ctx.lib.t2.scene3d)'}`);
+  const { scene, cell } = await scene3dOf(a, o);
   const set = scene.voxelSet(), vox = voxFromSet(set), out = o.out ?? join(a.path, 'out');
   mkdirSync(out, { recursive: true });
   const id = a.brief.id, voxFile = join(out, `${id}.vox`), glbFile = join(out, `${id}.glb`);

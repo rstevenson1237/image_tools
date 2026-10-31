@@ -1,6 +1,6 @@
 # Tooling plan: separate, refactor, and build a feedback loop
 
-Status: proposal, 2026-10-27; decisions settled 2026-10-27 and revised 2026-10-29 (§12). R0, R1, R2, R3, R5, R5b and R6 are built, and R4's code is built but its acceptance run is not (§10); R6's production accept is not run either; the rest is not. It follows on from the finished artgen plan ([`archive/artgen/PLAN.md`](archive/artgen/PLAN.md)) and reuses its
+Status: proposal, 2026-10-27; decisions settled 2026-10-27 and revised 2026-10-29 (§12). R0, R1, R2, R3, R5, R5b, R6 and R7a are built, and R4's code is built but its acceptance run is not (§10); R6's production accept is not run either; the rest is not. It follows on from the finished artgen plan ([`archive/artgen/PLAN.md`](archive/artgen/PLAN.md)) and reuses its
 decisions (`Dn`) where they still hold.
 
 ## 1. Summary
@@ -57,10 +57,10 @@ Coverage against the areas you listed (✅ have, ◐ partial, ✗ missing):
 | **Output** | 2D | ✅ | `Scene2D` primitives, tiles, textures, effects; SVG/PNG maps |
 | | 2.5D | ◐ | iso, 3/4 oblique, sprite stacks, parallax strips (D8). Lit sprites and sprite stacks are not in the Pixi.js runtime |
 | | Voxel | ✅ | `Scene3D` voxel mode, `.vox` and greedy-mesh `.glb` export |
-| | 3D | ◐ | Only voxel meshes. No low-poly/smooth meshes, UVs or PBR materials |
+| | 3D | ✅ | R7a: smooth or faceted meshes under a budget, UVs, baked colour / normal / roughness textures, `.glb` ([`MESHES.md`](MESHES.md)). Rigged meshes are R7b |
 | **Camera** | Top-down, side, iso | ✅ | `views/camera.ts`: affine pixel-art cameras |
 | | FPS | ◐ | billboards, wall/floor textures, view-models, raycaster preview (D9). No true perspective camera |
-| | Free camera | ✗ | Needs real 3D output and an orbit preview |
+| | Free camera | ✅ | R7a: a perspective orbit camera, turntables and the orbit view in Asset Lab |
 | **Stages** | Geometric placeholder | ✗ | `base.v1` is already a full build. Nothing ships a greybox to the game first |
 | | Shape | ✅ | S1 base: primitives, booleans, shading models |
 | | Rig | ◐ | `anim.rig`, `solveTwoBone`, `spring` exist, but templates don't use them. Each asset builds its own rig |
@@ -278,7 +278,7 @@ has marching squares (`lib/trace.ts`) for map contours.
 | Palette | extract and quantise from a reference (already in the engine, now a tool) |
 | Slice | split an outside sprite sheet into cells and import it as a reference or a placeholder |
 | Heightmap | an image → a terrain underlay for `mapgen` |
-| Turntable | any 3D or voxel asset → a strip of fixed angles for review sheets |
+| Turntable | any 3D or voxel asset → a strip of fixed angles for review sheets (`artgen turntable`, built in R7a) |
 | Print tiles | a map → page-sized tiles with overlap marks (the page layout exists for maps) |
 
 A new mid-level tool follows the same recipe: one registry operation in `imagekit` (or its own package), and the web
@@ -327,8 +327,8 @@ Output × camera targets. "Built" means it exists today; the phase number says w
 |---|---|---|---|---|---|
 | 2D | built | built | built | textures, built | — |
 | 2.5D | oblique, built | parallax, built | built | billboards, built | — |
-| Voxel | built | built | built | `.vox`/`.glb`, built | R7a orbit preview |
-| True 3D (glTF meshes) | R7a | R7a | R7a | R7a | R7a |
+| Voxel | built | built | built | `.vox`/`.glb`, built | orbit preview, built (R7a) |
+| True 3D (glTF meshes) | built (R7a) | built (R7a) | built (R7a) | built (R7a) | built (R7a) |
 
 Voxel and true 3D are both targets (§12), built from the same `Scene3D` primitives:
 
@@ -347,7 +347,7 @@ source is the primitive description, never a rendered output, so nothing is conv
 
 | From → to | How | Loss |
 |---|---|---|
-| `Scene3D` source → true 3D mesh, voxel, 2D/2.5D views | render, as today (mesh output from R7a) | none: each is a render of the source |
+| `Scene3D` source → true 3D mesh, voxel, 2D/2.5D views | render, as today (mesh output: `artgen mesh`, R7a) | none: each is a render of the source |
 | An outside mesh (`.glb`) → voxel | `artgen convert --to voxel`: voxelise at the direction's scale, snap colours to the palette | fine detail below one voxel |
 | Voxel → 2D/2.5D views | every view module, as today | none |
 | `.vox` (MagicaVoxel) → asset | read with the existing `.vox` decoder, then a `Scene3D` that wraps the cells | none |
@@ -704,13 +704,28 @@ faster for the phases after it.
     needs model runs and a person answering the gates. Gates on stages after shape; a shape sheet in the web UI (R8); 3D rigs (R7b);
     WebGPU lit sprites; Firefox.
 
-### R7 — Output and camera breadth (L, three sub-phases)
+### R7 — Output and camera breadth (L, three sub-phases) — R7a built 2026-10-31
 - **R7a — true 3D meshes and the free camera.** Turn `Scene3D` primitives into meshes (polygon budget, smooth or
   faceted), add UVs and bake textures (colour, normal, roughness) from the palette and proc layers, and export `.glb`.
   Add a perspective camera and an orbit preview in the web UI for both voxel and mesh assets (three.js is already a
   runtime adapter). Add mesh checks: closed (watertight) meshes, polygon budget, scale, UVs that don't overlap, and
   texel density. Add `artgen convert` and `extrude` (§8b): outside `.glb` and `.vox` files in, voxelising at the
   direction's scale.
+
+  **Built (2026-10-31):** the design and what was built are in [`MESHES.md`](MESHES.md) (§12).
+  - **Meshes from the source** (`artgen-scene/src/mesh/`): each `Scene3D` solid as a distance function that follows the
+    voxel rules (it agrees with the voxels at every voxel centre), dual contouring under a triangle budget by kind, smooth
+    or faceted per part, box-projected UV charts, and colour, normal and roughness-metal textures baked from the palette
+    (palette-exact; a `grain` noise layer; a `baked` unlit look). `.glb` out with nearest sampling; any binary glTF in.
+  - **Mesh checks:** `mesh-closed`, `mesh-budget`, `mesh-scale`, `uv-bounds`, `uv-overlap`, `texel-density`.
+  - **The free camera:** a perspective orbit camera and a software rasteriser shared by `artgen turntable` (also an MCP
+    tool) and Asset Lab's 3D panel (voxels or mesh, drag to turn).
+  - **Commands:** `mesh`, `turntable`, `convert` (`.glb` voxelised at its size or `--height`, `.vox` fitted to the frame,
+    colours snapped to the kind's ramps; into an asset's next base, recorded in the ledger) and `extrude` (a picture or a
+    2D asset as a slab).
+  - **Accept for R7a:** every 3D-mode bench asset meshes under its budget and passes the checks; the `.glb` reads back;
+    a `.glb`, a `.vox` and a picture come in as bases that render and pass the gate; the orbit view turns a mesh and a voxel
+    asset in headless Chromium. Not done: decimation (a box uses most of its budget), turntables on review sheets, rigs (R7b).
 - **R7b — rigged and animated 3D.** Skin meshes to the shared rig library (R6b), export animation clips and levels of
   detail, and load them through the three.js adapter.
 - **R7c — map and camera exports.** Add Tiled and LDtk export for maps and tilesets. Each new camera is a view module

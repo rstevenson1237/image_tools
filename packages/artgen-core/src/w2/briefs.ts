@@ -27,6 +27,8 @@ export interface BriefEntry extends Brief {
   refs?: string[];
   /** Stages the user approves before the pipeline goes on (`placeholder`, `shape`); replaces `review.gates` for this brief. */
   gates?: GateStage[];
+  /** True 3D output (R7a, docs/MESHES.md §4): `artgen mesh` defaults for this asset. */
+  mesh?: { budget?: number; mode?: 'auto' | 'smooth' | 'faceted'; texels?: number; look?: 'pbr' | 'baked' };
 }
 
 const ID = /^[a-z][a-z0-9_-]*$/;
@@ -127,6 +129,16 @@ export function validateBrief(b: unknown, where = 'brief'): string[] {
     if (!Array.isArray(b.refs) || !b.refs.every(r => typeof r === 'string' && /^refs\/[^\\]+$/.test(r) && !r.split('/').includes('..'))) e.push(`${at}: refs must be a list of paths under refs/ (refs/goblin-1.png)`);
   }
   if (b.gates !== undefined && !(Array.isArray(b.gates) && b.gates.every(g => (GATEABLE as readonly string[]).includes(g as string)))) e.push(`${at}: gates must be a list of ${GATEABLE.join(', ')}`);
+  if (b.mesh !== undefined) {
+    const m = b.mesh as Record<string, unknown>;
+    if (!isObj(m) || Object.keys(m).some(k => !['budget', 'mode', 'texels', 'look'].includes(k))) e.push(`${at}: mesh takes budget, mode, texels and look`);
+    else {
+      if (m.budget !== undefined && !(Number.isInteger(m.budget) && (m.budget as number) >= 12)) e.push(`${at}: mesh.budget must be a whole number of triangles (at least 12)`);
+      if (m.mode !== undefined && !['auto', 'smooth', 'faceted'].includes(m.mode as string)) e.push(`${at}: mesh.mode must be auto, smooth or faceted`);
+      if (m.texels !== undefined && !(typeof m.texels === 'number' && m.texels > 0 && m.texels <= 64)) e.push(`${at}: mesh.texels must be texels per model unit (0–64)`);
+      if (m.look !== undefined && !['pbr', 'baked'].includes(m.look as string)) e.push(`${at}: mesh.look must be pbr or baked`);
+    }
+  }
   if (b.rotate !== undefined) {
     const facings = FACINGS[(b.directions as number | undefined) ?? 1] ?? [];
     if (b.rotate !== 'rotsprite') e.push(`${at}: rotate must be rotsprite`);
