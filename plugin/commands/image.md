@@ -10,6 +10,8 @@ The image tools work on pictures (PNG files), so they need no project. Pick the 
     fitted to its frame, in the material nearest the picture's colour; `--mat` picks another). It is the silhouette only: render it, then shape it.
   - Into a map: `node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" map trace <id> <image.png>` paints the dark shapes as land and their holes as water (`--terrain`, `--hole-terrain`;
     `--replace` swaps the edits of an earlier trace of the same `--origin`).
+  - As a 3D slab (art module): `node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" extrude <image.png> --depth 4` stands the picture up as voxels (`--asset <id>` writes the asset's next
+    `base.vN.js`, `--to mesh` a mesh `.glb`); `node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" convert <model.glb|model.vox>` brings an outside model in the same way.
 - **Cut** a token: `node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" cut <asset|image.png>` crops an approved asset's render (or a picture's subject) to a PNG for a tabletop (`--padding`,
   `--square`, `--scale 4` for a whole-number enlargement). `--fill flat --color #000000` gives the flat silhouette the Shape gate reads. An asset must be
   approved first (`--draft` allows a final that is not approved yet; `--state`, `--facing`, `--frame` pick another cell).

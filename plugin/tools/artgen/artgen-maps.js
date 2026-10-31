@@ -14653,7 +14653,7 @@ ${MAPS_BUNDLE_USAGE}
   if (cmd === "formats" || cmd === "map" || cmd === "dungeon" || cmd === "settlement" || core2.includes(cmd)) return dispatch([cmd, ...args]);
   throw new Error(`artgen-maps: ${cmd}: not a command here; this bundle has map, dungeon, settlement, formats, ${core2.join(", ")} (--help)`);
 }
-var MAPS_VERSION = `${true ? "0.11.0" : "dev"} (${true ? "a2cf076" : "unknown"})`;
+var MAPS_VERSION = `${true ? "0.11.0" : "dev"} (${true ? "f00754a" : "unknown"})`;
 
 // ../artgen-cli/src/maps-bin.ts
 mapsMain(process.argv.slice(2)).then((code) => process.exit(code), (e) => {

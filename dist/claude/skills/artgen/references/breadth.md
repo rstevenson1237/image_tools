@@ -1,4 +1,4 @@
-# Breadth: views, voxels, textures, effects, animation, first-person
+# Breadth: views, voxels, meshes, textures, effects, animation, first-person
 
 Everything here goes through the same pipeline (base v1–v3 → finish → user) and the same gate. Pick the template for
 the view and kind (`artgen new <id> --kind … --view …`, or `make` from a brief) and adapt it.
@@ -13,6 +13,24 @@ the view and kind (`artgen new <id> --kind … --view …`, or `make` from a bri
   `m.screen(w, h, opts, [x, y, z])` projects a model point → anchor that follows every facing.
 - Normal maps travel with every cell (2D `normal` shading and the voxel normal buffer) and export beside the atlas
   (`pack.json` `normals`); `artgen voxel <asset>` writes `.vox` + greedy-meshed `.glb`.
+
+## True 3D meshes, the free camera and converters
+- `artgen mesh <asset>` turns the same 3D-mode scene into a true 3D mesh: `out/<id>.mesh.glb` (smooth or faceted triangles
+  under a budget, UVs, colour / normal / roughness textures baked from the palette, nearest sampling) and
+  `out/<id>-turntable.png` (8 views with the perspective camera). It prints the mesh checks (`mesh-closed`, `mesh-budget`,
+  `mesh-scale`, `uv-bounds`, `uv-overlap`, `texel-density`) and exits 1 when one fails. Budgets by kind (character 4000,
+  prop 1500, tile 500); a brief's `mesh: { budget, mode: auto|smooth|faceted, texels, look: pbr|baked }` sets its own.
+- The mesh follows the voxel rules: `toon` parts get smooth normals, `flat` parts facets; slabs colour the mesh as they
+  colour the voxels; `grain: 0–1` on a spec moves texels one ramp step (a 3D noise layer); `rough` / `metal` override the
+  material's (metal 0.35 / 1, stone 0.9, cloth 0.95, …).
+- `artgen turntable <asset> [--source mesh|voxel]` — the model from fixed angles, for review (also an MCP tool). Asset Lab
+  shows any 3D-mode version in 3D (voxels or mesh): drag to turn it.
+- In the game: three.js `GLTFLoader` loads the `.mesh.glb` as it is (textures already nearest-filtered).
+- Converters: `artgen convert <file.glb|file.vox> --asset <id>` voxelises an outside model at the direction's scale (a
+  `.glb` at its own size in metres or `--height m`; a `.vox` fitted to the frame), snaps its colours to the kind's ramps
+  and writes the asset's next `base.vN.js` (the voxels inline, read by `ctx.lib.t2.vox`); the ledger records the source.
+  `artgen extrude <image.png|asset> --depth px --asset <id>` stands a picture up as a slab (signs, weapons, flat props).
+  Without `--asset` both write a `.vox` (or `--to mesh` a mesh `.glb`). Shape and decorate the result in the next pass.
 
 ## Textures and tiles
 - `ctx.lib.tex.material(name, { size: ctx.size, scale, seed, ramps, range, params })` — `artgen texture --list`:
