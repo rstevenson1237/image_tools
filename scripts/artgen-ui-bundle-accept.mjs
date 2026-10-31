@@ -9,7 +9,8 @@
 //   3. Asset Review: Reload, approve a restyled final; request changes on another with a note pinned to a region.
 //      → `artgen status` shows the approval and the revision, `artgen make` quotes the pinned note, and the ledger lines
 //      carry `"via": "image-tools"`.
-//   4. Asset Lab: play an asset through the runtime's canvas2d adapter.
+//   4. Asset Lab: play an asset through the runtime's canvas2d adapter; then a 3D-mode prop in the 3D view (R7a), as its
+//      true 3D mesh and as voxels, turned by dragging the orbit camera.
 //   5. A maps-only repo (`init --with maps,ui`): the sidebar shows the map tools and Asset Review (which lists the maps); a terrain map saved in the UI is the
 //      file `artgen-maps.js map render` reads.
 //
@@ -168,6 +169,30 @@ async function artAndMaps(browserType, label) {
   await page.waitForTimeout(1200);
   await page.screenshot({ path: shot('asset-lab') });
   note('asset lab', await page.getByText(/played by artgen-runtime/).innerText());
+
+  // ---- 4b. The 3D view (R7a): a 3D-mode prop as its true 3D mesh and as voxels, turned with the orbit camera ----------
+  cli('brief', 'add', 'crate3d', '--kind', 'prop', '--view', 'iso', '--notes', 'a wooden crate with metal bands');
+  cli('new', 'crate3d', '--kind', 'prop', '--view', 'iso');
+  await page.getByRole('button', { name: 'Reload' }).click();
+  await page.getByLabel('asset').locator('option[value="crate3d"]').waitFor({ state: 'attached', timeout: 30_000 });
+  await page.getByLabel('asset').selectOption('crate3d');
+  await page.getByText(/crate3d .*played by artgen-runtime/).waitFor({ timeout: 60_000 });
+  const info = page.getByTestId('model3d-info'), orbit = page.getByLabel(/3D orbit view/);
+  const pixels = () => orbit.evaluate(c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let h = 0, n = 0; for (let i = 0; i < d.length; i += 4) { h = (h * 31 + d[i] + d[i + 1] * 7 + d[i + 2] * 13) >>> 0; if (d[i] + d[i + 1] + d[i + 2] > 0) n++; } return { h, n }; });
+  for (const [source, re] of [['mesh', /triangles \(budget 1500\)/], ['voxel', /voxels, k = /]]) {
+    await page.getByLabel(/show in 3D/).selectOption(source);
+    await info.filter({ hasText: re }).waitFor({ timeout: 60_000 });
+    await page.waitForTimeout(400);
+    const before = await pixels(), box = await orbit.boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down(); await page.mouse.move(box.x + box.width / 2 + 90, box.y + box.height / 2 + 20, { steps: 6 }); await page.mouse.up();
+    await page.waitForTimeout(400);
+    const after3d = await pixels();
+    if (before.n < 2000) throw new Error(`the ${source} orbit view drew almost nothing (${before.n} lit pixels)`);
+    if (before.h === after3d.h) throw new Error(`dragging the ${source} orbit view did not turn it`);
+    await page.screenshot({ path: shot(`asset-lab-3d-${source}`) });
+    note(`asset lab 3D ${source}`, `${await info.innerText()}; turned by a drag`);
+  }
 
     await ctx.close();
     note('console errors', errors.length ? errors : 'none');

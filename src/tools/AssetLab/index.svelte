@@ -4,6 +4,7 @@
    * swaps), seed and param variant, and play it through the W3 runtime's canvas2d adapter — exactly how a game would
    * show its exported pack — by state, facing (or a turning angle) and frame. Exports the asset alone as a pack.
    * Nothing here writes to the project: tweaks you like go back to Claude Code as a note or a new version.
+   * A version that draws a 3D-mode scene also shows in 3D (R7a): its voxels or its true 3D mesh, turned with the orbit camera.
    */
   import { onDestroy } from 'svelte';
   import { strToU8, zipSync } from 'fflate';
@@ -18,6 +19,8 @@
   import ProjectBar from '../../core/components/ProjectBar.svelte';
   import StatusBadge from '../../core/components/StatusBadge.svelte';
   import { drawChecker } from '../../core/components/pixels';
+  import OrbitView from '../../core/components/OrbitView.svelte';
+  import type { Model3D } from '../../workers/artgen.worker';
 
   const lease = acquire<ArtgenApi>('artgen');
   onDestroy(() => lease.release());
@@ -44,6 +47,9 @@
   let error = $state<string | null>(null);
   let rendering = $state(false);
   let canvas = $state<HTMLCanvasElement>();
+  let source3d = $state<'off' | 'mesh' | 'voxel'>('off');
+  let model3d = $state.raw<Model3D | null>(null);
+  let note3d = $state('');
 
   let pack: Pack<CanvasLike, Canvas2DNode, Canvas2DLayer> | null = null;
   let sprite: Sprite | null = null;
@@ -114,10 +120,24 @@
       sprite.setFacing(a.facings[facing]);
       frame = Math.min(frame, (a.states[anim]?.frames ?? 1) - 1);
       draw();
+      await load3d();
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
     } finally {
       rendering = false;
+    }
+  }
+
+  /** The 3D view of the version as it is now (params, seed and variant included). */
+  async function load3d() {
+    if (source3d === 'off' || !id || !version) { model3d = null; note3d = ''; return; }
+    note3d = 'building…';
+    try {
+      const api = await project.sync(lease.api);
+      model3d = await api.model3d(id, version, { source: source3d, seed, variant, params: $state.snapshot(values) as Record<string, unknown> });
+      note3d = model3d ? model3d.info : `${id} ${version} draws no 3D-mode scene (ctx.lib.t2.scene3d)`;
+    } catch (e) {
+      model3d = null; note3d = e instanceof Error ? e.message : String(e);
     }
   }
 
@@ -233,6 +253,13 @@
         </div>
         <button type="button" onclick={() => { values = {}; variant = 0; seed = 1; void rebuild(); }}>Reset params</button>
 
+        <h3>3D</h3>
+        <label>show in 3D (a version that draws a 3D-mode scene)
+          <select bind:value={source3d} onchange={() => void load3d()}>
+            <option value="off">off</option><option value="mesh">mesh (true 3D)</option><option value="voxel">voxels</option>
+          </select>
+        </label>
+
         {#if asset}
           <h3>Playback</h3>
           <label>state
@@ -267,6 +294,11 @@
         <p class="dim small">
           {rendering ? 'rendering…' : asset ? `${id} ${version} · ${asset.size.join('×')} · ${asset.facings.length} facing(s) · played by artgen-runtime (canvas2d adapter)` : ''}
         </p>
+        {#if source3d !== 'off'}
+          <h3>3D: {source3d === 'mesh' ? 'the true 3D mesh' : 'the voxels'}</h3>
+          {#if model3d}<OrbitView mesh={model3d.mesh} light={model3d.light} background={model3d.background} />{/if}
+          <p class="dim small" data-testid="model3d-info">{note3d}</p>
+        {/if}
       </section>
     </div>
   {/if}

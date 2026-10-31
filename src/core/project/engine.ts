@@ -14,7 +14,7 @@ import {
   analytics, applyFinish, approvalEntry, isApprovable, diffJson, diffLines, assetDataSheet, assetStatus, dataSheetMarkdown, feedbackEntry, generatorMetrics, isSubjectKey, mapDirection, parseSubjectBrief, subjectDataSheet, subjectKey, subjectStatus, subjects, SUBJECT_KINDS, versionFile, versionOfFile, blindScores, briefDir, briefOrder, budgetFor, conformance, describeDirection,
   effectObjectIssues, encodePNG, finishBaseOf, finishStale, formatLedgerLine, Grid, isPlaceholderDirection, iso, lockDirection,
   mergeConfig, parseBriefs, parseDirection, parseLedger, parseVersion, passId, planPasses, PROBE_KINDS, pxPerMetre, animInput, standFrames,
-  renderAsset, FACINGS, resolveSize, sourceHash, styleSheet, styleTile, TILE_KINDS, validateDirection, decodePNG, viewContext, stackStrip, parallaxStrip, fpRole, fpShots, autotileCount, autotileMap,
+  renderAsset, FACINGS, resolveSize, sourceHash, styleSheet, styleTile, TILE_KINDS, validateDirection, decodePNG, viewContext, stackStrip, parallaxStrip, fpRole, fpShots, autotileCount, autotileMap, Scene3D,
   type AnalyticsReport, type AnimContract, type Check, type DataSheet, type GeneratorMetrics, type SubjectBrief, type SubjectKind, type AssetBudget, type AssetMeta, type AssetModule, type AssetStatus, type BriefEntry,
   type ConformanceReport, type Direction, type FeedbackOpen, type FinishModule, type LedgerEntry, type NextStep,
   type PassRow, type PatchRecord, type ProbeImages, type ProjectConfig, type RenderResult, type StyleTileColumn,
@@ -255,6 +255,16 @@ export class ArtProject {
     const out = { version: v.name, render, report, source, base, patches, stale };
     this.renders.set(key, out);
     return out;
+  }
+
+  /** The 3D-mode scene a version draws for its first cell (a finish's base), or undefined when it draws none (R7a: the orbit preview). */
+  async scene3d(a: AssetCtx, version: string, o: { variant?: number; seed?: number; params?: Record<string, unknown> } = {}): Promise<Scene3D | undefined> {
+    const v = parseVersion(version);
+    if (!v) throw new Error(`bad version ${version}`);
+    const name = v.kind === 'base' ? v.name : (await this.module<FinishModule>(`${a.path}/${v.name}.js`)).base;
+    let first: Scene3D | undefined;
+    renderAsset(await this.module<AssetModule>(`${a.path}/${name}.js`), { dir: a.dir, brief: a.brief, variant: o.variant, seed: o.seed, params: o.params, onScene: (_, s) => { if (!first && s instanceof Scene3D) first = s; } });
+    return first;
   }
 
   async passState(a: AssetCtx) {
