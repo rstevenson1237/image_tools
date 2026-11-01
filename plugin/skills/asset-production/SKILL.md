@@ -38,6 +38,12 @@ other very large creatures (brief those on a large frame, `--size large`). Each 
 body rigs (`ctx.lib.rigs.body(plan, ctx, { height })`): the skeleton, gait and facing come from the library, so only dress it, and
 never resize its bones per frame (the `rig-lengths` stage check fails limbs that stretch between cells).
 
+**Rigged 3D figures.** `--rigged` (brief `rigged: true`) starts a humanoid from the rigged 3D template
+(`character-rigged`): a 3D-mode model built along the biped rig in 3D, so its sprites come from the rig's poses in every
+view and `node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" rig <id>` exports it as a skinned `.glb` for a 3D game (a clip per state, levels of detail). Brief it
+with its states, anims and `height`; the clips last as long as the sprite's states. See the artgen skill
+(`references/breadth.md`, *Rigged and animated meshes*).
+
 **Materials.** `brief add` warns when a brief names a material its kind's ramps leave out (a lute or staff on a
 character without wood, steel on a creature without metal, lava on a tile without glow, rubble on a prop without dirt):
 the maker would draw it in another material. `node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" brief lint` lists the warnings for every brief. Settle each
@@ -255,6 +261,9 @@ Sprites that should take the scene's lights (a torch, a lamp) load through `thre
 `loadPack(url, adapter, { normals: true })` — the exported normal maps shade them. Effects briefed with `blend: add`
 draw additively on their own. States exported with `sub` sub-frames keep `sprite.frame` logical (the contract); the
 runtime steps through the smoothing frames in between. Sprite stacks: `pack.stack(id)`; parallax: `parallaxTiles`.
+Rigged 3D figures (`node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" rig <id> --out public/assets/models`) load with three's `GLTFLoader` through the three adapter:
+`const w = await riggedModel(new GLTFLoader(), 'assets/models/<id>.rigged.glb')`, then `w.play('walk')`, `w.at(x, 0, z).face(heading)`
+and `w.update(dtMs, camera)` every frame (clips by state, one-shots hold with `w.done`, levels of detail by distance).
 Reference: `tools/artgen/runtime/` (the README-level docs are the comments at the top of each file).
 
 ## 6. Restyle (`/artgen:restyle`)

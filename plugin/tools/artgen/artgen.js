@@ -854,9 +854,9 @@ var init_esm = __esm({
         for (var it = 0; it < 2; ++it) {
           var clct = lcts[it];
           for (var i = 0; i < clct.length; ++i) {
-            var len = clct[i] & 31;
-            wbits(out, p2, llm[len]), p2 += lct[len];
-            if (len > 15)
+            var len3 = clct[i] & 31;
+            wbits(out, p2, llm[len3]), p2 += lct[len3];
+            if (len3 > 15)
               wbits(out, p2, clct[i] >> 5 & 127), p2 += clct[i] >> 12;
           }
         }
@@ -866,10 +866,10 @@ var init_esm = __esm({
       for (var i = 0; i < li; ++i) {
         var sym = syms[i];
         if (sym > 255) {
-          var len = sym >> 18 & 31;
-          wbits16(out, p2, lm[len + 257]), p2 += ll[len + 257];
-          if (len > 7)
-            wbits(out, p2, sym >> 23 & 31), p2 += fleb[len];
+          var len3 = sym >> 18 & 31;
+          wbits16(out, p2, lm[len3 + 257]), p2 += ll[len3 + 257];
+          if (len3 > 7)
+            wbits(out, p2, sym >> 23 & 31), p2 += fleb[len3];
           var dst = sym & 31;
           wbits16(out, p2, dm[dst]), p2 += dl[dst];
           if (dst > 3)
@@ -1085,7 +1085,7 @@ function decodePNG(bytes) {
   let w = 0, h = 0, depth = 0, type = 0, interlace = 0, plte = null, trns = null;
   const idat = [];
   for (let o = 8; o < bytes.length; ) {
-    const len = dv.getUint32(o), t = String.fromCharCode(...bytes.subarray(o + 4, o + 8)), data = bytes.subarray(o + 8, o + 8 + len);
+    const len3 = dv.getUint32(o), t = String.fromCharCode(...bytes.subarray(o + 4, o + 8)), data = bytes.subarray(o + 8, o + 8 + len3);
     if (t === "IHDR") {
       w = dv.getUint32(o + 8);
       h = dv.getUint32(o + 12);
@@ -1096,7 +1096,7 @@ function decodePNG(bytes) {
     else if (t === "tRNS") trns = data;
     else if (t === "IDAT") idat.push(data);
     else if (t === "IEND") break;
-    o += 12 + len;
+    o += 12 + len3;
   }
   if (depth !== 8 || interlace) throw new Error(`unsupported PNG: depth ${depth}, interlace ${interlace}`);
   const ch = { 0: 1, 2: 3, 3: 1, 4: 2, 6: 4 }[type];
@@ -2043,25 +2043,25 @@ function passStringToWasm0(arg, malloc, realloc) {
     WASM_VECTOR_LEN = buf.length;
     return ptr2;
   }
-  let len = arg.length;
-  let ptr = malloc(len, 1) >>> 0;
+  let len3 = arg.length;
+  let ptr = malloc(len3, 1) >>> 0;
   const mem = getUint8Memory0();
   let offset = 0;
-  for (; offset < len; offset++) {
+  for (; offset < len3; offset++) {
     const code = arg.charCodeAt(offset);
     if (code > 127)
       break;
     mem[ptr + offset] = code;
   }
-  if (offset !== len) {
+  if (offset !== len3) {
     if (offset !== 0) {
       arg = arg.slice(offset);
     }
-    ptr = realloc(ptr, len, len = offset + arg.length * 3, 1) >>> 0;
-    const view = getUint8Memory0().subarray(ptr + offset, ptr + len);
+    ptr = realloc(ptr, len3, len3 = offset + arg.length * 3, 1) >>> 0;
+    const view = getUint8Memory0().subarray(ptr + offset, ptr + len3);
     const ret = encodeString(arg, view);
     offset += ret.written;
-    ptr = realloc(ptr, len, offset, 1) >>> 0;
+    ptr = realloc(ptr, len3, offset, 1) >>> 0;
   }
   WASM_VECTOR_LEN = offset;
   return ptr;
@@ -2075,9 +2075,9 @@ function getInt32Memory0() {
   }
   return cachedInt32Memory0;
 }
-function getStringFromWasm0(ptr, len) {
+function getStringFromWasm0(ptr, len3) {
   ptr = ptr >>> 0;
-  return cachedTextDecoder.decode(getUint8Memory0().subarray(ptr, ptr + len));
+  return cachedTextDecoder.decode(getUint8Memory0().subarray(ptr, ptr + len3));
 }
 function _assertClass(instance, klass) {
   if (!(instance instanceof klass)) {
@@ -2927,7 +2927,7 @@ function specMatrix(t) {
 function parsePath(d, tol = 0.5) {
   const toks = d.match(/[MmLlHhVvCcSsQqTtAaZz]|-?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?/g) ?? [];
   const out = [];
-  let i = 0, cmd = "", cur = [0, 0], start = [0, 0], sub5 = null, lastCtrl = null, lastCmd = "";
+  let i = 0, cmd = "", cur = [0, 0], start = [0, 0], sub6 = null, lastCtrl = null, lastCmd = "";
   const num5 = () => {
     const t = toks[i++];
     if (t === void 0 || /^[a-zA-Z]$/.test(t)) throw new Error(`path: expected a number near token ${i} in "${d.slice(0, 40)}"`);
@@ -2938,11 +2938,11 @@ function parsePath(d, tol = 0.5) {
     return rel3 ? [cur[0] + x, cur[1] + y] : [x, y];
   };
   const lineTo = (p2) => {
-    if (!sub5) {
-      sub5 = [cur];
-      out.push(sub5);
+    if (!sub6) {
+      sub6 = [cur];
+      out.push(sub6);
     }
-    sub5.push(p2);
+    sub6.push(p2);
     cur = p2;
   };
   while (i < toks.length) {
@@ -2952,19 +2952,19 @@ function parsePath(d, tol = 0.5) {
     if (C3 === "M") {
       cur = pt3(rel3);
       start = cur;
-      sub5 = [cur];
-      out.push(sub5);
+      sub6 = [cur];
+      out.push(sub6);
       cmd = rel3 ? "l" : "L";
       lastCtrl = null;
       lastCmd = "M";
       continue;
     }
     if (C3 === "Z") {
-      if (sub5) {
-        sub5.push(start);
+      if (sub6) {
+        sub6.push(start);
       }
       cur = start;
-      sub5 = null;
+      sub6 = null;
       lastCtrl = null;
       lastCmd = "Z";
       continue;
@@ -3054,10 +3054,10 @@ function rectPts(x, y, w, h, r = 0, tol = 0.25) {
   ];
 }
 function capsulePts(a, b, r0, r13 = r0, tol = 0.25) {
-  const dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy);
-  if (len < 1e-6) return ellipsePts(a[0], a[1], Math.max(r0, r13), Math.max(r0, r13), tol);
+  const dx = b[0] - a[0], dy = b[1] - a[1], len3 = Math.hypot(dx, dy);
+  if (len3 < 1e-6) return ellipsePts(a[0], a[1], Math.max(r0, r13), Math.max(r0, r13), tol);
   const ang = Math.atan2(dy, dx) * 180 / Math.PI;
-  const off = Math.asin(Math.max(-1, Math.min(1, (r0 - r13) / len))) * 180 / Math.PI;
+  const off = Math.asin(Math.max(-1, Math.min(1, (r0 - r13) / len3))) * 180 / Math.PI;
   return [...ellipsePts(b[0], b[1], r13, r13, tol, ang - 90 + off, ang + 90 - off), ...ellipsePts(a[0], a[1], r0, r0, tol, ang + 90 - off, ang + 270 + off)];
 }
 function starPts(cx, cy, r, r24, n, rotDeg = -90) {
@@ -3100,13 +3100,13 @@ function fillPolygons(m, rings, rule = "nonzero") {
 }
 function edt(f, w, h, sqrt) {
   const n = Math.max(w, h), d = new Float64Array(n), v = new Int32Array(n), z = new Float64Array(n + 1), g = new Float64Array(n);
-  const pass = (len, get, set2) => {
-    for (let i = 0; i < len; i++) g[i] = get(i);
+  const pass = (len3, get, set2) => {
+    for (let i = 0; i < len3; i++) g[i] = get(i);
     let k = 0;
     v[0] = 0;
     z[0] = -Infinity;
     z[1] = Infinity;
-    for (let q = 1; q < len; q++) {
+    for (let q = 1; q < len3; q++) {
       let s2 = (g[q] + q * q - (g[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k]);
       while (s2 <= z[k]) {
         k--;
@@ -3118,11 +3118,11 @@ function edt(f, w, h, sqrt) {
       z[k + 1] = Infinity;
     }
     k = 0;
-    for (let q = 0; q < len; q++) {
+    for (let q = 0; q < len3; q++) {
       while (z[k + 1] < q) k++;
       d[q] = (q - v[k]) * (q - v[k]) + g[v[k]];
     }
-    for (let i = 0; i < len; i++) set2(i, d[i]);
+    for (let i = 0; i < len3; i++) set2(i, d[i]);
   };
   const out = Float32Array.from(f);
   for (let x = 0; x < w; x++) pass(h, (i) => out[i * w + x], (i, val) => {
@@ -3146,7 +3146,7 @@ var init_geom = __esm({
     mirrorY = (ay) => [1, 0, 0, -1, 0, 2 * ay];
     apply = (m, [x, y]) => [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]];
     matScale = (m) => Math.sqrt(Math.abs(m[0] * m[3] - m[1] * m[2])) || 1;
-    segs = (len, tol) => Math.max(4, Math.min(96, Math.ceil(len / tol)));
+    segs = (len3, tol) => Math.max(4, Math.min(96, Math.ceil(len3 / tol)));
     Mask = class _Mask {
       w;
       h;
@@ -3246,10 +3246,10 @@ var init_geom = __esm({
 });
 
 // ../artgen-primitives/src/raster.ts
-function bandIndices(len, bands2) {
-  if (bands2 >= len || bands2 < 1) return Array.from({ length: len }, (_, i) => i);
-  if (bands2 === 1) return [len >> 1];
-  return Array.from({ length: bands2 }, (_, i) => Math.round(i * (len - 1) / (bands2 - 1)));
+function bandIndices(len3, bands2) {
+  if (bands2 >= len3 || bands2 < 1) return Array.from({ length: len3 }, (_, i) => i);
+  if (bands2 === 1) return [len3 >> 1];
+  return Array.from({ length: bands2 }, (_, i) => Math.round(i * (len3 - 1) / (bands2 - 1)));
 }
 function decalCoverage(shapes, w, h) {
   const S3 = 4, m = new Mask(w * S3, h * S3, S3), tol = 0.5 / S3;
@@ -3904,8 +3904,8 @@ var init_materials = __esm({
       },
       wood(x, y, c) {
         const rows3 = across(c.h, 8 * c.s), ph = c.h / rows3, row = Math.floor(y / ph), v = (y - row * ph) / ph;
-        const np = Math.max(1, Math.round(c.p.planks ?? 1)), joint = c.rnd(row, 1) * c.w, len = c.w / np;
-        const u = mod2(x - joint, len), plank = row * 31 + Math.floor(mod2(x - joint, c.w) / len);
+        const np = Math.max(1, Math.round(c.p.planks ?? 1)), joint = c.rnd(row, 1) * c.w, len3 = c.w / np;
+        const u = mod2(x - joint, len3), plank = row * 31 + Math.floor(mod2(x - joint, c.w) / len3);
         const seam = v < 1 / ph || u < 1 ? 1 : 0, own = np > 1 ? c.rnd(plank, 3) : c.rnd(row, 3), ga = c.p.grain ?? 0.3;
         const warp = pGradient(x, y, { w: c.w, h: c.h, cells: across(c.w, 16), cellsY: rows3 * 2, seed: c.seed + row });
         const grain = 0.5 + 0.5 * Math.sin((v * 6 + warp * 5 + c.rnd(row, 2) * 6) * Math.PI);
@@ -4005,9 +4005,9 @@ function raycast(scene, o) {
   const fog = parseColor(o.fog ?? "#000000"), fogDist = o.fogDist ?? 7;
   const dx = Math.cos(ang), dy = Math.sin(ang), plane = Math.tan(fov / 2), qx = -dy * plane, qy = dx * plane;
   const solid = (x, y) => y < 0 || y >= map.length || x < 0 || x >= map[y].length || map[y][x] === "#";
-  const put = (x, y, c, dist, dim = 1) => {
+  const put = (x, y, c, dist3, dim = 1) => {
     if (c[3] < 128) return false;
-    const f = Math.min(1, dist / fogDist) ** 1.2, k = dim * (1 - f);
+    const f = Math.min(1, dist3 / fogDist) ** 1.2, k = dim * (1 - f);
     const i = (y * w + x) * 4;
     out.d[i] = Math.round(c[0] * k + fog[0] * f);
     out.d[i + 1] = Math.round(c[1] * k + fog[1] * f);
@@ -4047,13 +4047,13 @@ function raycast(scene, o) {
       }
       if (solid(mx, my)) break;
     }
-    const dist = side === 0 ? sdx - ddx : sdy - ddy;
-    zbuf[x] = dist;
-    let wx = side === 0 ? py + dist * ry : px + dist * rx;
+    const dist3 = side === 0 ? sdx - ddx : sdy - ddy;
+    zbuf[x] = dist3;
+    let wx = side === 0 ? py + dist3 * ry : px + dist3 * rx;
     wx -= Math.floor(wx);
     if (side === 0 && rx > 0 || side === 1 && ry < 0) wx = 1 - wx;
-    const lh = h / dist, top = horizon - lh / 2;
-    for (let y = Math.max(0, Math.floor(top)); y < Math.min(h, Math.ceil(top + lh)); y++) put(x, y, texel(scene.wall, wx, (y + 0.5 - top) / lh), dist, side ? 0.72 : 1);
+    const lh = h / dist3, top = horizon - lh / 2;
+    for (let y = Math.max(0, Math.floor(top)); y < Math.min(h, Math.ceil(top + lh)); y++) put(x, y, texel(scene.wall, wx, (y + 0.5 - top) / lh), dist3, side ? 0.72 : 1);
   }
   const sprites = [...scene.sprites ?? []].map((s2) => ({ s: s2, d: (s2.x - px) ** 2 + (s2.y - py) ** 2 })).sort((a, b) => b.d - a.d);
   const inv = 1 / (qx * dy - dx * qy);
@@ -4360,7 +4360,7 @@ function turtle(program, o) {
   const step = o.step ?? 2, shrink = o.shrink ?? 0.8, width = o.width ?? 1.5, taper = o.taper ?? 0.7, jit = o.jitter ?? 0;
   for (const ch of program) {
     if (ch === "F" || ch === "G" || ch === "f") {
-      const len = step * shrink ** d, nx = x + Math.cos(h * Math.PI / 180) * len, ny = y + Math.sin(h * Math.PI / 180) * len;
+      const len3 = step * shrink ** d, nx = x + Math.cos(h * Math.PI / 180) * len3, ny = y + Math.sin(h * Math.PI / 180) * len3;
       if (ch !== "f") out.push({ a: [x, y], b: [nx, ny], depth: d, width: Math.max(0.6, width * taper ** d) });
       x = nx;
       y = ny;
@@ -5132,7 +5132,7 @@ var init_scene = __esm({
           }
           case "line": {
             const a = [num5(s2.x0, "x0") + 0.5, num5(s2.y0, "y0") + 0.5], b = [num5(s2.x1, "x1") + 0.5, num5(s2.y1, "y1") + 0.5], hw = (s2.w ?? 1) / 2;
-            const dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len;
+            const dx = b[0] - a[0], dy = b[1] - a[1], len3 = Math.hypot(dx, dy) || 1, ux = dx / len3, uy = dy / len3;
             return fill2([[
               [a[0] - ux * hw - uy * hw, a[1] - uy * hw + ux * hw],
               [b[0] + ux * hw - uy * hw, b[1] + uy * hw + ux * hw],
@@ -5189,7 +5189,7 @@ var init_scene = __esm({
                 const c = this.shapeMask(s2.clip, mul(Mc, specMatrix(s2.clip)), S3);
                 clip = clip ? c.and(clip) : c;
               }
-              const reps = s2.repeat?.n ?? 1, sub5 = [];
+              const reps = s2.repeat?.n ?? 1, sub6 = [];
               for (let r = 0; r < reps; r++) {
                 let Mr = Mc;
                 if (s2.repeat) {
@@ -5197,10 +5197,10 @@ var init_scene = __esm({
                   Mr = mul(Mc, mul(translate((s2.repeat.dx ?? 0) * r, (s2.repeat.dy ?? 0) * r), mul(translate(o[0], o[1]), mul(rotate((s2.repeat.rotate ?? 0) * r), translate(-o[0], -o[1])))));
                 }
                 const kids = (s2.children ?? []).map((c, i) => ({ c, i })).sort((p2, q) => (p2.c.z ?? 0) - (q.c.z ?? 0) || p2.i - q.i);
-                kids.forEach(({ c, i }) => sub5.push(...walk(c, Mr, [...k, r, c.z ?? 0, i], { mat, shade, clip })));
+                kids.forEach(({ c, i }) => sub6.push(...walk(c, Mr, [...k, r, c.z ?? 0, i], { mat, shade, clip })));
               }
-              if (s2.underlay && inner && sub5.length) out.push(this.underlayItem(sub5, s2.underlay, S3, [...k, -1], s2.name));
-              out.push(...sub5);
+              if (s2.underlay && inner && sub6.length) out.push(this.underlayItem(sub6, s2.underlay, S3, [...k, -1], s2.name));
+              out.push(...sub6);
               return;
             }
             let mask = this.shapeMask(s2, Mc, S3);
@@ -5273,8 +5273,8 @@ var init_scene = __esm({
           const bb2 = m.bounds();
           let R3 = 0;
           if (it.shade === "normal") {
-            const dist = m.insideDistance();
-            for (let i = 0; i < dist.length; i++) if (dist[i] > R3) R3 = dist[i];
+            const dist3 = m.insideDistance();
+            for (let i = 0; i < dist3.length; i++) if (dist3[i] > R3) R3 = dist3[i];
           }
           geo = { bb: bb2, R: R3 };
           cache2.set(it, geo);
@@ -5288,8 +5288,8 @@ var init_scene = __esm({
           return L2[Math.max(0, Math.min(n - 1, Math.floor(t * it.gain * n)))];
         }
         const [nx, ny, nz] = this.curvedNormal(it, sx, sy, S3, geo);
-        const dot5 = nx * Lx + ny * Ly + nz * Lz;
-        const pos = Math.round(mid - (dot5 - Lz) * it.gain * (n - 1));
+        const dot6 = nx * Lx + ny * Ly + nz * Lz;
+        const pos = Math.round(mid - (dot6 - Lz) * it.gain * (n - 1));
         return L2[Math.max(0, Math.min(n - 1, pos))];
       }
       /** Surface normal of a `sphere` / `cyl` / `normal` shaded item at a working-resolution sample (screen terms, y down). */
@@ -5312,7 +5312,7 @@ var init_scene = __esm({
           }
           nz = Math.sqrt(Math.max(0, 1 - nx * nx - ny * ny));
         } else {
-          const dist = m.insideDistance(), W3 = m.w, at4 = (x, y) => x < 0 || y < 0 || x >= W3 || y >= m.h ? 0 : dist[y * W3 + x];
+          const dist3 = m.insideDistance(), W3 = m.w, at4 = (x, y) => x < 0 || y < 0 || x >= W3 || y >= m.h ? 0 : dist3[y * W3 + x];
           const R3 = Math.max(1e-3, it.round !== void 0 ? it.round * S3 : geo.R), d = at4(sx, sy), u = Math.min(1, d / R3);
           const gx = (at4(sx + 1, sy) - at4(sx - 1, sy)) / 2, gy = (at4(sx, sy + 1) - at4(sx, sy - 1)) / 2, gl2 = Math.hypot(gx, gy);
           if (gl2 > 1e-6 && u < 1) {
@@ -5496,10 +5496,13 @@ var init_scene3d = __esm({
       dir;
       /** How the scene was last drawn (R7a): the renderer and its scale, so a mesh is as large in metres as the sprite. */
       rendered;
+      /** The body-rig pose the parts were built along (R7b), when the model is rigged. */
+      pose;
       warnings = [];
       constructor(dir, opts = {}) {
         this.dir = dir;
         this.k = opts.k ?? 1;
+        this.pose = opts.pose;
       }
       add(...s2) {
         this.specs.push(...s2);
@@ -5851,7 +5854,7 @@ var init_proc = __esm({
        */
       pattern(r, env, o) {
         const hit = matcher(r, env, o), type = o.type ?? "stripes", P2 = o.period ?? 4, wd = o.width ?? 1;
-        const off = o.offset ?? 0, len = o.length ?? P2 * 3, step = o.step ?? 1, along2 = o.axis ?? "x";
+        const off = o.offset ?? 0, len3 = o.length ?? P2 * 3, step = o.step ?? 1, along2 = o.axis ?? "x";
         const mod4 = (a, b) => (a % b + b) % b;
         for (let p2 = 0; p2 < r.id.length; p2++) {
           if (!hit(p2)) continue;
@@ -5859,7 +5862,7 @@ var init_proc = __esm({
           const row = Math.floor((v - off) / P2), line2 = mod4(v - off, P2) < wd;
           let on = false;
           if (type === "stripes") on = line2;
-          else if (type === "planks" || type === "bricks") on = line2 || mod4(u - (row % 2 ? len / 2 : 0) - (o.joint ?? 0), len) < wd;
+          else if (type === "planks" || type === "bricks") on = line2 || mod4(u - (row % 2 ? len3 / 2 : 0) - (o.joint ?? 0), len3) < wd;
           else if (type === "grid") on = mod4(u - off, P2) < wd || line2;
           else if (type === "checker") on = (Math.floor((u - off) / P2) + row) % 2 === 0;
           else if (type === "rivets") on = mod4(u - off, P2) === 0 && mod4(v - off, P2) === 0;
@@ -5949,12 +5952,12 @@ var init_proc = __esm({
       },
       /** Every targeted shape casts `dist` px away from the light onto shapes beneath it. */
       castShadow(r, env, o) {
-        const hit = matcher(r, env, o), dist = o.dist ?? 1, [lx, ly] = env.dir.camera.light.map(Math.sign), done = new Uint8Array(r.id.length);
+        const hit = matcher(r, env, o), dist3 = o.dist ?? 1, [lx, ly] = env.dir.camera.light.map(Math.sign), done = new Uint8Array(r.id.length);
         const moves = [];
         for (let p2 = 0; p2 < r.id.length; p2++) {
           if (!hit(p2) && !(r.id[p2] >= 0 && r.flag[p2] & INK && o.part === void 0)) continue;
           const x = p2 % r.w, y = p2 / r.w | 0, rank = r.items[r.id[p2]].rank;
-          for (let k = 1; k <= dist; k++) {
+          for (let k = 1; k <= dist3; k++) {
             const q = r.idx(x - lx * k, y - ly * k);
             if (q < 0 || done[q] || r.id[q] < 0 || r.items[r.id[q]].rank >= rank || r.items[r.id[q]].underlay) continue;
             done[q] = 1;
@@ -6270,11 +6273,11 @@ function spring(o) {
 function sweep(fn, t, span, n = 6) {
   return Array.from({ length: n }, (_, i) => fn(t - span + span * i / Math.max(1, n - 1)));
 }
-function cellTiming(d, frames, sub5, durations) {
-  const logical = Math.floor(d / sub5), s2 = d % sub5;
+function cellTiming(d, frames, sub6, durations) {
+  const logical = Math.floor(d / sub6), s2 = d % sub6;
   let ms = 0;
   for (let i = 0; i < logical; i++) ms += durations[i];
-  ms += durations[logical] * s2 / sub5;
+  ms += durations[logical] * s2 / sub6;
   return { logical, sub: s2, ms, duration: durations.slice(0, frames).reduce((a, b) => a + b, 0) };
 }
 var blend, pingpong, RAD, dirOf, angOf, add, sub, len2;
@@ -6308,9 +6311,9 @@ function bodyRig(plan, o) {
   const H = o.height ?? Math.round(h * ({ biped: 0.89, quadruped: 0.375, flyer: 0.25, serpent: 0.22, turret: 0.4 }[pl] * (plan === "large" ? 1.15 : 1)));
   const base = PROPORTIONS[set2], user = o.proportions ?? {};
   const prop2 = (name, generic = name.replace(/^(leg|arm)[FB]?[LR]_/, "$1_")) => user[name] ?? user[generic] ?? base[name] ?? base[generic] ?? 0;
-  const len = (name, generic) => H * prop2(name, generic);
+  const len3 = (name, generic) => H * prop2(name, generic);
   const yaw = facingYaw2(o.facing) * RAD2, sx = Math.sin(yaw), front = Math.cos(yaw), side = Math.abs(sx);
-  const spec = SPECS[pl]({ H, len, prop: prop2, given: (n) => n in user });
+  const spec = SPECS[pl]({ H, len: len3, prop: prop2, given: (n) => n in user, round: o.continuous ? (v) => v : Math.round });
   const rigs = spec.groups.map((g) => rig({ root: [0, 0], bones: g.bones }));
   const lengths = {};
   for (const g of spec.groups) for (const [n, b] of Object.entries(g.bones)) lengths[n] = b.len;
@@ -6390,7 +6393,24 @@ function bodyRig(plan, o) {
     }
     return out;
   };
-  return { plan: pl, set: set2, lengths, yaw, sx, front, side, height: H, ground: ground2, pose: posed, anchors: anchors2 };
+  const parents = {}, order = [];
+  for (const g of spec.groups) for (const [n, b] of Object.entries(g.bones)) parents[n] = b.parent ?? ("host" in g.origin ? g.origin.host : void 0);
+  const visit = (n) => {
+    if (order.includes(n)) return;
+    const p2 = parents[n];
+    if (p2) visit(p2);
+    order.push(n);
+  };
+  Object.keys(parents).forEach(visit);
+  const skeleton = (state, t, ov) => {
+    const { p3 } = solve(state, t, ov), out = {};
+    for (const n of order) {
+      const [a, b] = p3[n];
+      out[n] = [[a[0] - fc, a[1], a[2]], [b[0] - fc, b[1], b[2]]];
+    }
+    return out;
+  };
+  return { plan: pl, set: set2, lengths, yaw, sx, front, side, height: H, ground: ground2, pose: posed, anchors: anchors2, bones: order, parents, skeleton };
 }
 var RIG_PLANS, BODY_PLAN, PROPORTIONS, YAW8, YAW16, RAD2, TAU, angOf2, sin, cos, hold, foot, sag, STATE_ALIAS, SPECS;
 var init_rigs = __esm({
@@ -6419,18 +6439,18 @@ var init_rigs = __esm({
     sag = (L2, s2) => L2 - Math.sqrt(Math.max(0, L2 * L2 - s2 * s2));
     STATE_ALIAS = { run: "walk", move: "walk", fly: "walk", hover: "idle", stand: "idle", strike: "attack", hit: "hurt" };
     SPECS = {
-      biped({ H, len, prop: prop2, given }) {
-        const g = (n) => len(n), legUp = g("leg_up"), legLo = g("leg_lo"), leg = legUp + legLo;
+      biped({ H, len: len3, prop: prop2, given, round: round6 }) {
+        const g = (n) => len3(n), legUp = g("leg_up"), legLo = g("leg_lo"), leg = legUp + legLo;
         const hip = g("hip"), neck = g("neck"), head = g("head");
-        const spine = given("spine") ? len("spine") : H * (1 - prop2("hip") - prop2("neck") - prop2("head") - prop2("leg_up") - prop2("leg_lo"));
+        const spine = given("spine") ? len3("spine") : H * (1 - prop2("hip") - prop2("neck") - prop2("head") - prop2("leg_up") - prop2("leg_lo"));
         const legSep = H * prop2("legSep"), armSep = H * prop2("armSep"), shoulder = prop2("shoulder");
         const bones = { hip: { len: hip, angle: 180 }, spine: { parent: "hip", len: Math.max(0.1, spine), angle: 0 }, neck: { parent: "spine", len: neck, angle: 0 }, head: { parent: "neck", len: head, angle: 0 } };
         const z = {};
         for (const [s2, k] of [["L", -1], ["R", 1]]) {
-          bones[`arm${s2}_up`] = { parent: "spine", at: shoulder, len: len(`arm${s2}_up`), angle: 180 };
-          bones[`arm${s2}_lo`] = { parent: `arm${s2}_up`, len: len(`arm${s2}_lo`), angle: 0 };
-          bones[`leg${s2}_up`] = { parent: "hip", at: 0, len: len(`leg${s2}_up`), angle: 180 };
-          bones[`leg${s2}_lo`] = { parent: `leg${s2}_up`, len: len(`leg${s2}_lo`), angle: 0 };
+          bones[`arm${s2}_up`] = { parent: "spine", at: shoulder, len: len3(`arm${s2}_up`), angle: 180 };
+          bones[`arm${s2}_lo`] = { parent: `arm${s2}_up`, len: len3(`arm${s2}_lo`), angle: 0 };
+          bones[`leg${s2}_up`] = { parent: "hip", at: 0, len: len3(`leg${s2}_up`), angle: 180 };
+          bones[`leg${s2}_lo`] = { parent: `leg${s2}_up`, len: len3(`leg${s2}_lo`), angle: 0 };
           for (const n of ["arm", "leg"]) for (const p2 of ["up", "lo"]) z[`${n}${s2}_${p2}`] = k * (n === "arm" ? armSep : legSep);
         }
         const stride = H * 0.11, lift = H * 0.03, armSwing = 12;
@@ -6446,7 +6466,7 @@ var init_rigs = __esm({
           if (state === "walk") {
             const off = { L: 0, R: 0.5 }, feet = ["L", "R"].map((s2) => foot(t, off[s2], 0, leg, stride, lift));
             for (const [i, s2] of ["L", "R"].entries()) ik[`leg${s2}_lo`] = { target: feet[i], bend: 1 };
-            root = [0, Math.round(Math.max(...feet.map((f) => sag(leg, f[0]))) * 1.6)];
+            root = [0, round6(Math.max(...feet.map((f) => sag(leg, f[0]))) * 1.6)];
             arms((s2) => -armSwing * sin(t, off[s2]), (s2) => 8 + 14 * Math.max(0, -sin(t, off[s2])));
           } else if (state === "attack") {
             const a = hold([[0, 150], [0.3, 160], [0.55, 45], [0.8, 20], [1, 150]], t), lo = hold([[0, 30], [0.3, 40], [0.55, 6], [0.8, 10], [1, 30]], t);
@@ -6474,19 +6494,19 @@ var init_rigs = __esm({
           anchorBones: { head: ["head", 0.5], hand: ["armR_lo", 1] }
         };
       },
-      quadruped({ H, len, prop: prop2 }) {
-        const spine = len("spine"), legUp = len("leg_up"), legLo = len("leg_lo"), leg = legUp + legLo, barrel = H * prop2("barrel"), legSep = H * prop2("legSep");
+      quadruped({ H, len: len3, prop: prop2 }) {
+        const spine = len3("spine"), legUp = len3("leg_up"), legLo = len3("leg_lo"), leg = legUp + legLo, barrel = H * prop2("barrel"), legSep = H * prop2("legSep");
         const bones = {
           spine: { len: spine, angle: 90 },
-          neck: { parent: "spine", len: len("neck"), angle: 50 },
-          head: { parent: "neck", len: len("head"), angle: -42 },
-          tail: { parent: "spine", at: 0, len: len("tail"), angle: 155 }
+          neck: { parent: "spine", len: len3("neck"), angle: 50 },
+          head: { parent: "neck", len: len3("head"), angle: -42 },
+          tail: { parent: "spine", at: 0, len: len3("tail"), angle: 155 }
         };
         const z = {}, legs = [];
         for (const [e, at4, off] of [["B", prop2("hindAt"), 0.5], ["F", prop2("foreAt"), 0]]) for (const [s2, k] of [["L", -1], ["R", 1]]) {
           const n = `leg${e}${s2}`;
-          bones[`${n}_up`] = { parent: "spine", at: at4, offset: [0, barrel / 2], len: len(`${n}_up`, "leg_up"), angle: -90 };
-          bones[`${n}_lo`] = { parent: `${n}_up`, len: len(`${n}_lo`, "leg_lo"), angle: 0 };
+          bones[`${n}_up`] = { parent: "spine", at: at4, offset: [0, barrel / 2], len: len3(`${n}_up`, "leg_up"), angle: -90 };
+          bones[`${n}_lo`] = { parent: `${n}_up`, len: len3(`${n}_lo`, "leg_lo"), angle: 0 };
           z[`${n}_up`] = z[`${n}_lo`] = k * legSep;
           legs.push([n, at4 * spine, (off + (s2 === "R" ? 0.5 : 0)) % 1]);
         }
@@ -6522,25 +6542,25 @@ var init_rigs = __esm({
         };
         return { groups: [{ plane: "side", sign: 1, bones, z, origin: [0, down, 0] }], clip, anchorBones: { head: ["head", 0.4], tail: ["tail", 1] } };
       },
-      flyer({ H, len, prop: prop2 }) {
-        const bodyLen = len("body"), hover = H * prop2("hover");
+      flyer({ H, len: len3, prop: prop2, round: round6 }) {
+        const bodyLen = len3("body"), hover = H * prop2("hover");
         const side = {
           plane: "side",
           sign: 1,
           z: {},
           origin: [0, hover, 0],
-          bones: { body: { len: bodyLen, angle: 90 }, head: { parent: "body", len: len("head"), angle: -15 }, tail: { parent: "body", at: 0, len: len("tail"), angle: 200 } }
+          bones: { body: { len: bodyLen, angle: 90 }, head: { parent: "body", len: len3("head"), angle: -15 }, tail: { parent: "body", at: 0, len: len3("tail"), angle: 200 } }
         };
         const wing = (s2) => ({
           plane: "front",
           sign: s2 === "L" ? -1 : 1,
           z: {},
-          bones: { [`wing${s2}`]: { len: len("wing"), angle: 90 }, [`wing${s2}_tip`]: { parent: `wing${s2}`, len: len("wing_tip"), angle: 0 } },
+          bones: { [`wing${s2}`]: { len: len3("wing"), angle: 90 }, [`wing${s2}_tip`]: { parent: `wing${s2}`, len: len3("wing_tip"), angle: 0 } },
           origin: { host: "body", u: 0.45, delta: [0, H * prop2("wingUp"), (s2 === "L" ? -1 : 1) * H * prop2("wingSep")] }
         });
         const clip = (state, t) => {
           const hovering = !["walk", "attack", "hurt"].includes(state), amp = hovering ? 38 : 58, beat = sin(t), lag = sin(t, -0.18);
-          const rel3 = {}, bob = Math.round(-beat * (hovering ? 0.6 : 0.9));
+          const rel3 = {}, bob = round6(-beat * (hovering ? 0.6 : 0.9));
           for (const s2 of ["L", "R"]) {
             rel3[`wing${s2}`] = 90 + amp * beat;
             rel3[`wing${s2}_tip`] = -0.55 * amp * lag - 10;
@@ -6559,8 +6579,8 @@ var init_rigs = __esm({
         };
         return { groups: [side, wing("L"), wing("R")], clip, anchorBones: { head: ["head", 0.4] } };
       },
-      serpent({ H, len, prop: prop2 }) {
-        const n = 8, seg = len("seg"), bones = {};
+      serpent({ H, len: len3, prop: prop2 }) {
+        const n = 8, seg = len3("seg"), bones = {};
         for (let i = 0; i < n; i++) bones[`seg${i}`] = i ? { parent: `seg${i - 1}`, len: seg, angle: 0 } : { len: seg, angle: -90 };
         const rear = H * prop2("rear"), A = 34;
         const clip = (state, t) => {
@@ -6585,9 +6605,9 @@ var init_rigs = __esm({
         };
         return { groups: [{ plane: "ground", sign: 1, bones, z: {}, origin: [0, 0, 0] }], clip, anchorBones: { head: ["seg0", 0], tail: [`seg${n - 1}`, 1] } };
       },
-      turret({ H, len, prop: prop2 }) {
+      turret({ H, len: len3, prop: prop2 }) {
         const hullH = H * prop2("hullH"), at4 = prop2("turretAt");
-        const bones = { hull: { len: len("hull"), angle: 90 }, turret: { parent: "hull", at: at4, len: len("turret"), angle: 90 }, barrel: { parent: "turret", len: len("barrel"), angle: -90 } };
+        const bones = { hull: { len: len3("hull"), angle: 90 }, turret: { parent: "hull", at: at4, len: len3("turret"), angle: 90 }, barrel: { parent: "turret", len: len3("barrel"), angle: -90 } };
         const clip = (state, t) => {
           if (state !== "attack") return {};
           const k = hold([[0, 0], [0.15, 1], [1, 0]], t);
@@ -6596,6 +6616,60 @@ var init_rigs = __esm({
         return { groups: [{ plane: "side", sign: 1, bones, z: {}, origin: [0, hullH, 0] }], clip, anchorBones: { muzzle: ["barrel", 1] } };
       }
     };
+  }
+});
+
+// ../artgen-scene/src/anim/rig3d.ts
+function bodyRig3d(plan, o) {
+  if (!(o.height > 0)) throw new Error("rigs.body3d: height (model units) must be positive");
+  const r = bodyRig(plan, { size: [64, 64], facing: "s", height: o.height, proportions: o.proportions, continuous: true });
+  const self = {
+    plan: r.plan,
+    set: r.set,
+    height: r.height,
+    lengths: { ...r.lengths },
+    bones: r.bones,
+    parents: r.parents,
+    options: { ...o },
+    pose(state, t, ov) {
+      const sk = r.skeleton(state, t, ov), bones = {};
+      for (const [n, [a, b]] of Object.entries(sk)) bones[n] = { a: bodyToModel(a), b: bodyToModel(b) };
+      const get = (n) => {
+        const b = bones[n];
+        if (!b) throw new Error(`rig: no bone ${n}`);
+        return b;
+      };
+      const along2 = (n, u = 0.5) => {
+        const { a, b } = get(n);
+        return [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u];
+      };
+      return {
+        rig: self,
+        state,
+        t,
+        bones,
+        bind: BIND_STATES.has(state) && t === 0 && !ov,
+        start: (n) => get(n).a,
+        end: (n) => get(n).b,
+        along: along2,
+        // forward is +y, the body's right −x, up +z
+        at: (n, u = 0.5, fwd = 0, side = 0, up = 0) => {
+          const p2 = along2(n, u);
+          return [p2[0] - side, p2[1] + fwd, p2[2] + up];
+        }
+      };
+    },
+    bind: () => self.pose("idle", 0)
+  };
+  return self;
+}
+var bodyToModel, BIND_STATES;
+var init_rig3d = __esm({
+  "../artgen-scene/src/anim/rig3d.ts"() {
+    "use strict";
+    init_rigs();
+    bodyToModel = (p2) => [-p2[2], p2[0], p2[1]];
+    BIND_STATES = /* @__PURE__ */ new Set(["idle", "stand", "hover"]);
   }
 });
 
@@ -6997,9 +7071,9 @@ function sceneField(scene) {
   const k = scene.k, solids = [];
   const walk = (s2, parents, inh) => {
     const mat = material2(scene.dir, s2.mat) ?? inh.mat, shade = s2.shade ?? inh.shade, label4 = s2.name ?? s2.type;
-    const grain = s2.grain ?? inh.grain, rough = s2.rough ?? inh.rough, metal = s2.metal ?? inh.metal;
+    const grain = s2.grain ?? inh.grain, rough = s2.rough ?? inh.rough, metal = s2.metal ?? inh.metal, bone = s2.bone ?? inh.bone;
     if (s2.type === "group") {
-      (s2.children ?? []).forEach((c) => walk(c, [s2, ...parents], { mat, shade, part: s2.name ?? inh.part, grain, rough, metal }));
+      (s2.children ?? []).forEach((c) => walk(c, [s2, ...parents], { mat, shade, part: s2.name ?? inh.part, grain, rough, metal, bone }));
       return;
     }
     if (!mat) throw new Error(`3D ${label4}: needs mat`);
@@ -7009,7 +7083,7 @@ function sceneField(scene) {
       for (const p2 of chain) q = invert(p2, k, q);
       return own(q[0], q[1], q[2]);
     } : own;
-    solids.push({ name: label4, sdf: sdf2, geometry: s2.type !== "slab" || s2.add === true, slab: s2.type === "slab", ramp: mat.ramp, role: mat.role, part: s2.name ?? inh.part ?? s2.type, shade, grain, rough, metal });
+    solids.push({ name: label4, sdf: sdf2, geometry: s2.type !== "slab" || s2.add === true, slab: s2.type === "slab", ramp: mat.ramp, role: mat.role, part: s2.name ?? inh.part ?? s2.type, shade, grain, rough, metal, ...bone !== void 0 && { bone } });
   };
   for (const s2 of scene.specs) walk(s2, [], {});
   const geo = solids.filter((s2) => s2.geometry);
@@ -7500,7 +7574,7 @@ function buildMesh(scene, o = {}) {
   const [x0, y0, z0, x1, y1, z1] = field.bounds, pad = 1 / scene.k;
   const normal = (x, y, z) => field.normal(x, y, z);
   const c = contourBudget(field.sdf, normal, [x0 - pad, y0 - pad, z0 - pad, x1 + pad, y1 + pad, z1 + pad], budget);
-  const P2 = c.positions, I = c.indices, tris = I.length / 3, part = new Uint16Array(tris), smooth3 = new Uint8Array(tris), parts = [], pi = /* @__PURE__ */ new Map();
+  const P2 = c.positions, I = c.indices, tris = I.length / 3, part = new Uint16Array(tris), smooth4 = new Uint8Array(tris), parts = [], pi = /* @__PURE__ */ new Map();
   for (let t = 0; t < tris; t++) {
     const v = [0, 1, 2].map((k) => I[t * 3 + k]), ctr = [0, 1, 2].map((a) => (P2[v[0] * 3 + a] + P2[v[1] * 3 + a] + P2[v[2] * 3 + a]) / 3);
     const s2 = field.paint(ctr, field.normal(...ctr));
@@ -7509,9 +7583,9 @@ function buildMesh(scene, o = {}) {
       parts.push(s2.part);
     }
     part[t] = pi.get(s2.part);
-    smooth3[t] = mode === "smooth" ? 1 : mode === "faceted" ? 0 : (s2.shade ?? o.shade ?? "flat") === "toon" ? 1 : 0;
+    smooth4[t] = mode === "smooth" ? 1 : mode === "faceted" ? 0 : (s2.shade ?? o.shade ?? "flat") === "toon" ? 1 : 0;
   }
-  const uv = layoutUvs({ positions: P2, indices: I, part, parts, smooth: smooth3, normal: (p2) => field.normal(p2[0], p2[1], p2[2]) }, texels);
+  const uv = layoutUvs({ positions: P2, indices: I, part, parts, smooth: smooth4, normal: (p2) => field.normal(p2[0], p2[1], p2[2]) }, texels);
   const textures = bakeTextures(uv.mesh, uv.width, uv.height, field, scene.dir, { look, seed: o.seed });
   const lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
   for (let i = 0; i < P2.length; i += 3) for (let a = 0; a < 3; a++) {
@@ -7555,10 +7629,209 @@ var init_build = __esm({
   }
 });
 
+// ../artgen-scene/src/mesh/skin.ts
+function skeletonOf(pose) {
+  const bones = pose.rig.bones, index = new Map(bones.map((b, i) => [b, i]));
+  return { bones, parent: bones.map((b) => {
+    const p2 = pose.rig.parents[b];
+    return p2 === void 0 ? -1 : index.get(p2);
+  }), bind: bones.map((b) => ({ a: [...pose.bones[b].a], b: [...pose.bones[b].b] })) };
+}
+function segDist(p2, a, b) {
+  const ab = sub3(b, a), l2 = dot2(ab, ab), t = l2 > 1e-12 ? Math.max(0, Math.min(1, dot2(sub3(p2, a), ab) / l2)) : 0;
+  return len([p2[0] - a[0] - ab[0] * t, p2[1] - a[1] - ab[1] * t, p2[2] - a[2] - ab[2] * t]);
+}
+function neighbours(sk, blend2) {
+  const L2 = sk.bind.map((b) => len(sub3(b.b, b.a))), kids = sk.bones.map((_, i) => sk.parent.map((p2, c) => p2 === i ? c : -1).filter((c) => c >= 0));
+  const short = (i) => kids[i].length > 0 && L2[i] < 0.25 * Math.min(...kids[i].map((c) => L2[c]));
+  const reach = L2.map((l, i) => short(i) ? Math.max(l, ...kids[i].map((c) => L2[c]), sk.parent[i] >= 0 ? L2[sk.parent[i]] : 0) : l);
+  const r = (a, b) => blend2 * Math.min(reach[a], reach[b]);
+  return sk.bones.map((_, i) => {
+    const out = [], p2 = sk.parent[i];
+    if (p2 >= 0) {
+      out.push({ j: p2, at: sk.bind[i].a, r: r(i, p2) });
+      if (short(p2)) {
+        for (const s2 of kids[p2]) if (s2 !== i) out.push({ j: s2, at: sk.bind[s2].a, r: r(i, s2) });
+      }
+    }
+    for (const c of kids[i]) out.push({ j: c, at: sk.bind[c].a, r: r(i, c) });
+    return out.filter((n) => n.r > 1e-9);
+  });
+}
+function skinWeights(mesh3, field, sk, o = {}) {
+  const n = mesh3.positions.length / 3, P2 = mesh3.positions, index = new Map(sk.bones.map((b, i) => [b, i])), geo = field.solids.filter((s2) => s2.geometry);
+  const joints = new Uint8Array(n * 4), weights2 = new Float32Array(n * 4), owner = new Uint16Array(n), near3 = neighbours(sk, o.blend ?? 0.5);
+  if (sk.bones.length > 255) throw new Error("skin: more than 255 bones");
+  const unboundParts = /* @__PURE__ */ new Set(), unknown = /* @__PURE__ */ new Set();
+  let unboundVerts = 0;
+  for (let v = 0; v < n; v++) {
+    const p2 = [P2[v * 3], P2[v * 3 + 1], P2[v * 3 + 2]];
+    let solid = geo[0], best = Infinity;
+    for (const s2 of geo) {
+      const d = s2.sdf(p2[0], p2[1], p2[2]);
+      if (d < best) {
+        best = d;
+        solid = s2;
+      }
+    }
+    let own = solid?.bone !== void 0 ? index.get(solid.bone) : void 0;
+    if (solid?.bone !== void 0 && own === void 0) unknown.add(solid.bone);
+    if (own === void 0) {
+      unboundParts.add(solid?.part ?? "?");
+      unboundVerts++;
+      let bd = Infinity;
+      sk.bind.forEach((b, i) => {
+        const d = segDist(p2, b.a, b.b);
+        if (d < bd) {
+          bd = d;
+          own = i;
+        }
+      });
+    }
+    owner[v] = own;
+    const ws = [[own, 1]];
+    for (const nb of near3[own]) {
+      const w = smooth2(len(sub3(p2, nb.at)) / nb.r);
+      if (w > 1e-4) ws.push([nb.j, w]);
+    }
+    ws.sort((a, b) => b[1] - a[1] || a[0] - b[0]);
+    const top = ws.slice(0, 4), total = top.reduce((s2, [, w]) => s2 + w, 0);
+    top.forEach(([j, w], k) => {
+      joints[v * 4 + k] = j;
+      weights2[v * 4 + k] = w / total;
+    });
+  }
+  return { joints, weights: weights2, owner, unbound: { parts: [...unboundParts].sort(), vertices: unboundVerts }, unknown: [...unknown].sort() };
+}
+function rotationBetween(a, b) {
+  const v = cross2(a, b), c = dot2(a, b);
+  if (c < -1 + 1e-9) {
+    const ax = unit2(cross2(a, Math.abs(a[0]) < 0.9 ? [1, 0, 0] : [0, 1, 0]));
+    return [2 * ax[0] * ax[0] - 1, 2 * ax[0] * ax[1], 2 * ax[0] * ax[2], 2 * ax[1] * ax[0], 2 * ax[1] * ax[1] - 1, 2 * ax[1] * ax[2], 2 * ax[2] * ax[0], 2 * ax[2] * ax[1], 2 * ax[2] * ax[2] - 1];
+  }
+  const k = 1 / (1 + c), [x, y, z] = v;
+  return [
+    1 - k * (y * y + z * z),
+    -z + k * x * y,
+    y + k * x * z,
+    z + k * x * y,
+    1 - k * (x * x + z * z),
+    -x + k * y * z,
+    -y + k * x * z,
+    x + k * y * z,
+    1 - k * (x * x + y * y)
+  ];
+}
+function jointPoses(sk, pose, map = (p2) => p2) {
+  return sk.bones.map((name, i) => {
+    const b0 = sk.bind[i], b1 = pose[name];
+    if (!b1) throw new Error(`skin: the pose has no bone ${name}`);
+    const a0 = map(b0.a), a1 = map(b1.a);
+    return { R: rotationBetween(unit2(sub3(map(b0.b), a0)), unit2(sub3(map(b1.b), a1))), t: a1, origin: a0 };
+  });
+}
+function skinPose(mesh3, skin, joints) {
+  const n = mesh3.positions.length / 3, P2 = mesh3.positions, N3 = mesh3.normals, T2 = mesh3.tangents;
+  const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), tan = new Float32Array(T2.length);
+  for (let v = 0; v < n; v++) {
+    const p2 = [P2[v * 3], P2[v * 3 + 1], P2[v * 3 + 2]], nn = [N3[v * 3], N3[v * 3 + 1], N3[v * 3 + 2]], tt = [T2[v * 4], T2[v * 4 + 1], T2[v * 4 + 2]];
+    const op = [0, 0, 0], on = [0, 0, 0], ot = [0, 0, 0];
+    for (let k = 0; k < 4; k++) {
+      const w = skin.weights[v * 4 + k];
+      if (!w) continue;
+      const J = joints[skin.joints[v * 4 + k]], q = applyR(J.R, sub3(p2, J.origin)), rn = applyR(J.R, nn), rt = applyR(J.R, tt);
+      for (let a = 0; a < 3; a++) {
+        op[a] += w * (J.t[a] + q[a]);
+        on[a] += w * rn[a];
+        ot[a] += w * rt[a];
+      }
+    }
+    pos.set(op, v * 3);
+    nor.set(unit2(on), v * 3);
+    tan.set([...unit2(ot), T2[v * 4 + 3]], v * 4);
+  }
+  return { positions: pos, normals: nor, tangents: tan };
+}
+var sub3, dot2, cross2, len, unit2, smooth2, applyR;
+var init_skin = __esm({
+  "../artgen-scene/src/mesh/skin.ts"() {
+    "use strict";
+    sub3 = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+    dot2 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    cross2 = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+    len = (a) => Math.hypot(a[0], a[1], a[2]);
+    unit2 = (a) => {
+      const l = len(a);
+      return l > 1e-12 ? [a[0] / l, a[1] / l, a[2] / l] : [0, 0, 1];
+    };
+    smooth2 = (x) => x <= 0 ? 1 : x >= 1 ? 0 : 1 - x * x * (3 - 2 * x);
+    applyR = (R3, p2) => [R3[0] * p2[0] + R3[1] * p2[1] + R3[2] * p2[2], R3[3] * p2[0] + R3[4] * p2[1] + R3[5] * p2[2], R3[6] * p2[0] + R3[7] * p2[1] + R3[8] * p2[2]];
+  }
+});
+
+// ../artgen-scene/src/mesh/checks.ts
+function meshChecks(m, o) {
+  const { positions: P2, uvs: U, indices: I } = m, tris = I.length / 3, out = [];
+  const key2 = (v) => `${P2[v * 3]},${P2[v * 3 + 1]},${P2[v * 3 + 2]}`, edges2 = /* @__PURE__ */ new Map();
+  for (let t = 0; t < tris; t++) for (let c = 0; c < 3; c++) {
+    const e = `${key2(I[t * 3 + c])}|${key2(I[t * 3 + (c + 1) % 3])}`;
+    edges2.set(e, (edges2.get(e) ?? 0) + 1);
+  }
+  let open = 0;
+  for (const [e, n] of edges2) {
+    const [a, b] = e.split("|");
+    if ((edges2.get(`${b}|${a}`) ?? 0) !== n) open += Math.abs(n - (edges2.get(`${b}|${a}`) ?? 0));
+  }
+  out.push({ id: "mesh-closed", status: tris && !open ? "pass" : "fail", detail: !tris ? "no triangles" : open ? `${open} unmatched edge${open === 1 ? "" : "s"} (a hole or a flipped triangle)` : `closed: ${edges2.size / 2} edges, each matched` });
+  out.push({ id: "mesh-budget", status: tris <= o.budget ? "pass" : "fail", detail: `${tris} triangles, budget ${o.budget}` });
+  if (o.height && o.metresPerUnit) {
+    let lo2 = Infinity, hi2 = -Infinity;
+    for (let i = 2; i < P2.length; i += 3) {
+      lo2 = Math.min(lo2, P2[i]);
+      hi2 = Math.max(hi2, P2[i]);
+    }
+    const h = (hi2 - lo2) * o.metresPerUnit, off = Math.abs(h - o.height) / o.height, limit = o.heightTolerance ?? 0.2;
+    out.push({ id: "mesh-scale", status: off <= limit ? "pass" : "flag", detail: `${f2(h)} m tall, the brief says ${o.height} m (${Math.round(off * 100)} % off; ${Math.round(limit * 100)} % allowed)` });
+  } else out.push({ id: "mesh-scale", status: "skip", detail: "the brief gives no height" });
+  let outside = 0;
+  for (const u of U) if (!(u >= 0 && u <= 1)) outside++;
+  out.push({ id: "uv-bounds", status: outside ? "fail" : "pass", detail: outside ? `${outside} UV coordinates outside 0\u20131` : "every UV inside 0\u20131" });
+  const [W3, H] = o.atlas, hit = new Uint8Array(W3 * H);
+  let twice = 0, lo = Infinity, hi = 0;
+  for (let t = 0; t < tris; t++) {
+    const [a, b, c] = [I[t * 3], I[t * 3 + 1], I[t * 3 + 2]], uv = (v) => [U[v * 2] * W3, U[v * 2 + 1] * H];
+    texelsIn(uv(a), uv(b), uv(c), (x, y) => {
+      if (x < 0 || y < 0 || x >= W3 || y >= H) return;
+      const i = y * W3 + x;
+      if (hit[i]) twice++;
+      hit[i] = 1;
+    });
+    const p2 = (v) => [P2[v * 3], P2[v * 3 + 1], P2[v * 3 + 2]], [A, B, C3] = [p2(a), p2(b), p2(c)];
+    const e1 = [B[0] - A[0], B[1] - A[1], B[2] - A[2]], e2 = [C3[0] - A[0], C3[1] - A[1], C3[2] - A[2]];
+    const area3 = Math.hypot(e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]) / 2;
+    const [ua, ub, uc] = [uv(a), uv(b), uv(c)], area23 = Math.abs((ub[0] - ua[0]) * (uc[1] - ua[1]) - (ub[1] - ua[1]) * (uc[0] - ua[0])) / 2;
+    if (area3 < 1e-9) continue;
+    const d = Math.sqrt(area23 / area3) / o.texels;
+    lo = Math.min(lo, d);
+    hi = Math.max(hi, d);
+  }
+  out.push({ id: "uv-overlap", status: twice ? "fail" : "pass", detail: twice ? `${twice} texels inside two triangles` : `no texel inside two triangles (${W3}x${H} atlas)` });
+  const ok = lo >= 0.7 && hi <= 1.3;
+  out.push({ id: "texel-density", status: !tris ? "skip" : ok ? "pass" : "fail", detail: !tris ? "no triangles" : `${f2(lo)}\u2013${f2(hi)} times the target ${o.texels} texels per unit (0.7\u20131.3 allowed)` });
+  return out;
+}
+var f2;
+var init_checks = __esm({
+  "../artgen-scene/src/mesh/checks.ts"() {
+    "use strict";
+    init_uv();
+    f2 = (n) => (Math.round(n * 100) / 100).toString();
+  }
+});
+
 // ../artgen-scene/src/mesh/gltf.ts
-function meshGlb(r, o) {
-  const { positions: P2, normals: N3, tangents: T2, uvs: U, indices: I } = r.mesh, s2 = o.metresPerUnit, n = P2.length / 3;
-  const cx = (r.bounds[0] + r.bounds[3]) / 2, cy = (r.bounds[1] + r.bounds[4]) / 2;
+function glMeshArrays(r, s2, origin) {
+  const { positions: P2, normals: N3, tangents: T2, uvs: U, indices: I } = r.mesh, n = P2.length / 3, [cx, cy] = origin;
   const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), tan = new Float32Array(n * 4), idx = new Uint32Array(I.length);
   const min = [Infinity, Infinity, Infinity], max2 = [-Infinity, -Infinity, -Infinity];
   for (let i = 0; i < n; i++) {
@@ -7576,21 +7849,39 @@ function meshGlb(r, o) {
     idx[t + 1] = I[t + 2];
     idx[t + 2] = I[t + 1];
   }
+  return { n, pos, nor, tan, uv: new Float32Array(U), idx, min, max: max2 };
+}
+function binWriter() {
   const chunks = [], views = [];
   let offset = 0;
-  const view = (bytes2, target) => {
-    const pad = (4 - bytes2.length % 4) % 4;
-    views.push({ buffer: 0, byteOffset: offset, byteLength: bytes2.length, ...target && { target } });
-    chunks.push(bytes2, new Uint8Array(pad));
-    offset += bytes2.length + pad;
+  const view = (bytes, target) => {
+    const pad = (4 - bytes.length % 4) % 4;
+    views.push({ buffer: 0, byteOffset: offset, byteLength: bytes.length, ...target && { target } });
+    chunks.push(bytes, new Uint8Array(pad));
+    offset += bytes.length + pad;
     return views.length - 1;
   };
-  const bytes = (a) => new Uint8Array(a.buffer, a.byteOffset, a.byteLength);
+  const bin = () => {
+    const out = new Uint8Array(offset);
+    let at4 = 0;
+    for (const c of chunks) {
+      out.set(c, at4);
+      at4 += c.length;
+    }
+    return out;
+  };
+  return { views, view, bin, get length() {
+    return offset;
+  } };
+}
+function meshGlb(r, o) {
+  const s2 = o.metresPerUnit, { n, pos, nor, tan, uv, idx, min, max: max2 } = glMeshArrays(r, s2, [(r.bounds[0] + r.bounds[3]) / 2, (r.bounds[1] + r.bounds[4]) / 2]);
+  const w = binWriter(), view = w.view, bytes = typedBytes;
   const accessors = [
     { bufferView: view(bytes(pos), ARRAY_BUFFER), componentType: 5126, count: n, type: "VEC3", min, max: max2 },
     { bufferView: view(bytes(nor), ARRAY_BUFFER), componentType: 5126, count: n, type: "VEC3" },
     { bufferView: view(bytes(tan), ARRAY_BUFFER), componentType: 5126, count: n, type: "VEC4" },
-    { bufferView: view(bytes(new Float32Array(U)), ARRAY_BUFFER), componentType: 5126, count: n, type: "VEC2" },
+    { bufferView: view(bytes(uv), ARRAY_BUFFER), componentType: 5126, count: n, type: "VEC2" },
     { bufferView: view(bytes(idx), ELEMENT_ARRAY_BUFFER), componentType: 5125, count: idx.length, type: "SCALAR" }
   ];
   const images = [r.textures.color, r.textures.normal, r.textures.orm].map((g) => ({ bufferView: view(encodePNG(g)), mimeType: "image/png" }));
@@ -7602,27 +7893,24 @@ function meshGlb(r, o) {
     scenes: [{ nodes: [0] }],
     nodes: [{ mesh: 0, name }],
     meshes: [{ name, primitives: [{ attributes: { POSITION: 0, NORMAL: 1, TANGENT: 2, TEXCOORD_0: 3 }, indices: 4, material: 0 }] }],
-    materials: [{
-      name,
-      pbrMetallicRoughness: { baseColorTexture: { index: 0 }, metallicRoughnessTexture: { index: 2 }, metallicFactor: 1, roughnessFactor: 1 },
-      normalTexture: { index: 1 },
-      ...unlit && { extensions: { KHR_materials_unlit: {} } }
-    }],
+    materials: [materialOf(name, r.look, 0)],
     samplers: [{ magFilter: NEAREST, minFilter: NEAREST, wrapS: CLAMP, wrapT: CLAMP }],
     textures: [0, 1, 2].map((source) => ({ sampler: 0, source })),
     images,
     accessors,
-    bufferViews: views,
-    buffers: [{ byteLength: offset }],
-    extras: { artgen: { budget: r.budget, triangles: I.length / 3, mode: r.mode, look: r.look, texelsPerUnit: r.texels, atlas: r.atlas, metresPerUnit: s2 } }
+    bufferViews: w.views,
+    buffers: [{ byteLength: w.length }],
+    extras: { artgen: { budget: r.budget, triangles: idx.length / 3, mode: r.mode, look: r.look, texelsPerUnit: r.texels, atlas: r.atlas, metresPerUnit: s2 } }
   };
-  const bin = new Uint8Array(offset);
-  let at4 = 0;
-  for (const c of chunks) {
-    bin.set(c, at4);
-    at4 += c.length;
-  }
-  return glbBytes(json, bin);
+  return glbBytes(json, w.bin());
+}
+function materialOf(name, look, first) {
+  return {
+    name,
+    pbrMetallicRoughness: { baseColorTexture: { index: first }, metallicRoughnessTexture: { index: first + 2 }, metallicFactor: 1, roughnessFactor: 1 },
+    normalTexture: { index: first + 1 },
+    ...look === "baked" && { extensions: { KHR_materials_unlit: {} } }
+  };
 }
 function readGlb(bytes) {
   const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -7749,7 +8037,7 @@ function glbTriangles(g) {
   for (const r of roots) visit(r, IDENTITY2);
   return { positions: new Float32Array(pos), colors: new Float32Array(col), textured, warnings };
 }
-var ARRAY_BUFFER, ELEMENT_ARRAY_BUFFER, NEAREST, CLAMP, COMPONENTS, WIDTH, IDENTITY2, mul2, toSrgb, toLinear;
+var ARRAY_BUFFER, ELEMENT_ARRAY_BUFFER, NEAREST, CLAMP, typedBytes, COMPONENTS, WIDTH, IDENTITY2, mul2, toSrgb, toLinear;
 var init_gltf2 = __esm({
   "../artgen-scene/src/mesh/gltf.ts"() {
     "use strict";
@@ -7759,6 +8047,7 @@ var init_gltf2 = __esm({
     ELEMENT_ARRAY_BUFFER = 34963;
     NEAREST = 9728;
     CLAMP = 33071;
+    typedBytes = (a) => new Uint8Array(a.buffer, a.byteOffset, a.byteLength);
     COMPONENTS = {
       5120: [1, (dv, o) => dv.getInt8(o), 127],
       5121: [1, (dv, o) => dv.getUint8(o), 255],
@@ -7782,66 +8071,6 @@ var init_gltf2 = __esm({
   }
 });
 
-// ../artgen-scene/src/mesh/checks.ts
-function meshChecks(m, o) {
-  const { positions: P2, uvs: U, indices: I } = m, tris = I.length / 3, out = [];
-  const key2 = (v) => `${P2[v * 3]},${P2[v * 3 + 1]},${P2[v * 3 + 2]}`, edges2 = /* @__PURE__ */ new Map();
-  for (let t = 0; t < tris; t++) for (let c = 0; c < 3; c++) {
-    const e = `${key2(I[t * 3 + c])}|${key2(I[t * 3 + (c + 1) % 3])}`;
-    edges2.set(e, (edges2.get(e) ?? 0) + 1);
-  }
-  let open = 0;
-  for (const [e, n] of edges2) {
-    const [a, b] = e.split("|");
-    if ((edges2.get(`${b}|${a}`) ?? 0) !== n) open += Math.abs(n - (edges2.get(`${b}|${a}`) ?? 0));
-  }
-  out.push({ id: "mesh-closed", status: tris && !open ? "pass" : "fail", detail: !tris ? "no triangles" : open ? `${open} unmatched edge${open === 1 ? "" : "s"} (a hole or a flipped triangle)` : `closed: ${edges2.size / 2} edges, each matched` });
-  out.push({ id: "mesh-budget", status: tris <= o.budget ? "pass" : "fail", detail: `${tris} triangles, budget ${o.budget}` });
-  if (o.height && o.metresPerUnit) {
-    let lo2 = Infinity, hi2 = -Infinity;
-    for (let i = 2; i < P2.length; i += 3) {
-      lo2 = Math.min(lo2, P2[i]);
-      hi2 = Math.max(hi2, P2[i]);
-    }
-    const h = (hi2 - lo2) * o.metresPerUnit, off = Math.abs(h - o.height) / o.height, limit = o.heightTolerance ?? 0.2;
-    out.push({ id: "mesh-scale", status: off <= limit ? "pass" : "flag", detail: `${f2(h)} m tall, the brief says ${o.height} m (${Math.round(off * 100)} % off; ${Math.round(limit * 100)} % allowed)` });
-  } else out.push({ id: "mesh-scale", status: "skip", detail: "the brief gives no height" });
-  let outside = 0;
-  for (const u of U) if (!(u >= 0 && u <= 1)) outside++;
-  out.push({ id: "uv-bounds", status: outside ? "fail" : "pass", detail: outside ? `${outside} UV coordinates outside 0\u20131` : "every UV inside 0\u20131" });
-  const [W3, H] = o.atlas, hit = new Uint8Array(W3 * H);
-  let twice = 0, lo = Infinity, hi = 0;
-  for (let t = 0; t < tris; t++) {
-    const [a, b, c] = [I[t * 3], I[t * 3 + 1], I[t * 3 + 2]], uv = (v) => [U[v * 2] * W3, U[v * 2 + 1] * H];
-    texelsIn(uv(a), uv(b), uv(c), (x, y) => {
-      if (x < 0 || y < 0 || x >= W3 || y >= H) return;
-      const i = y * W3 + x;
-      if (hit[i]) twice++;
-      hit[i] = 1;
-    });
-    const p2 = (v) => [P2[v * 3], P2[v * 3 + 1], P2[v * 3 + 2]], [A, B, C3] = [p2(a), p2(b), p2(c)];
-    const e1 = [B[0] - A[0], B[1] - A[1], B[2] - A[2]], e2 = [C3[0] - A[0], C3[1] - A[1], C3[2] - A[2]];
-    const area3 = Math.hypot(e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]) / 2;
-    const [ua, ub, uc] = [uv(a), uv(b), uv(c)], area23 = Math.abs((ub[0] - ua[0]) * (uc[1] - ua[1]) - (ub[1] - ua[1]) * (uc[0] - ua[0])) / 2;
-    if (area3 < 1e-9) continue;
-    const d = Math.sqrt(area23 / area3) / o.texels;
-    lo = Math.min(lo, d);
-    hi = Math.max(hi, d);
-  }
-  out.push({ id: "uv-overlap", status: twice ? "fail" : "pass", detail: twice ? `${twice} texels inside two triangles` : `no texel inside two triangles (${W3}x${H} atlas)` });
-  const ok = lo >= 0.7 && hi <= 1.3;
-  out.push({ id: "texel-density", status: !tris ? "skip" : ok ? "pass" : "fail", detail: !tris ? "no triangles" : `${f2(lo)}\u2013${f2(hi)} times the target ${o.texels} texels per unit (0.7\u20131.3 allowed)` });
-  return out;
-}
-var f2;
-var init_checks = __esm({
-  "../artgen-scene/src/mesh/checks.ts"() {
-    "use strict";
-    init_uv();
-    f2 = (n) => (Math.round(n * 100) / 100).toString();
-  }
-});
-
 // ../artgen-scene/src/mesh/view.ts
 function viewBounds(m) {
   const lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity], P2 = m.positions;
@@ -7857,17 +8086,17 @@ function orbitCamera(o, fit2 = 1) {
   const fov = (o.fov ?? 30) * Math.PI / 180, yaw = (o.yaw ?? 0) * Math.PI / 180, pitch = (o.pitch ?? 20) * Math.PI / 180;
   const half = Math.min(fov / 2, Math.atan(Math.tan(fov / 2) * o.w / o.h)), d = o.distance ?? fit2 / Math.sin(half) * 1.05;
   const t = gl(o.target ?? [0, 0, 0]), eye = [t[0] + d * Math.sin(yaw) * Math.cos(pitch), t[1] + d * Math.sin(pitch), t[2] + d * Math.cos(yaw) * Math.cos(pitch)];
-  const fwd = unit2(sub3(t, eye)), right = unit2(cross2(fwd, [0, 1, 0])), up = cross2(right, fwd);
+  const fwd = unit3(sub4(t, eye)), right = unit3(cross4(fwd, [0, 1, 0])), up = cross4(right, fwd);
   return { eye, right, up, fwd, focal: o.h / 2 / Math.tan(fov / 2), w: o.w, h: o.h, near: d * 0.05 };
 }
 function projectPoint(cam, p2) {
-  const q = sub3(gl(p2), cam.eye), z = dot2(q, cam.fwd);
+  const q = sub4(gl(p2), cam.eye), z = dot4(q, cam.fwd);
   if (z < cam.near) return void 0;
-  return [cam.w / 2 + dot2(q, cam.right) / z * cam.focal, cam.h / 2 - dot2(q, cam.up) / z * cam.focal, z];
+  return [cam.w / 2 + dot4(q, cam.right) / z * cam.focal, cam.h / 2 - dot4(q, cam.up) / z * cam.focal, z];
 }
 function rasterMesh(m, cam, o = {}) {
   const ss = o.ss ?? 2, W3 = cam.w * ss, H = cam.h * ss, depth = new Float32Array(W3 * H).fill(Infinity), rgb = new Float32Array(W3 * H * 3);
-  const L2 = unit2(o.light ?? [-0.4, 0.6, 0.7]), amb = o.ambient ?? 0.45, sc = { ...cam, w: W3, h: H, focal: cam.focal * ss };
+  const L2 = unit3(o.light ?? [-0.4, 0.6, 0.7]), amb = o.ambient ?? 0.45, sc = { ...cam, w: W3, h: H, focal: cam.focal * ss };
   const P2 = m.positions, N3 = m.normals, I = m.indices, T2 = m.tangents, U = m.uvs, C3 = m.colors, tex = m.color, nmap = m.normal;
   const proj = [];
   for (let i = 0; i < P2.length / 3; i++) proj.push(projectPoint(sc, [P2[i * 3], P2[i * 3 + 1], P2[i * 3 + 2]]));
@@ -7890,17 +8119,17 @@ function rasterMesh(m, cam, o = {}) {
       wb = ib * z;
       wc = ic * z;
       const at4 = (A, n2, k) => A[a * n2 + k] * wa + A[b * n2 + k] * wb + A[c * n2 + k] * wc;
-      let n = unit2([at4(N3, 3, 0), at4(N3, 3, 1), at4(N3, 3, 2)]), col = [200, 200, 200];
+      let n = unit3([at4(N3, 3, 0), at4(N3, 3, 1), at4(N3, 3, 2)]), col = [200, 200, 200];
       if (U && tex) {
         const u = at4(U, 2, 0), v = at4(U, 2, 1), tx = Math.min(tex.w - 1, Math.max(0, Math.floor(u * tex.w))), ty = Math.min(tex.h - 1, Math.max(0, Math.floor(v * tex.h))), ti = (ty * tex.w + tx) * 4;
         col = [tex.d[ti], tex.d[ti + 1], tex.d[ti + 2]];
         if (nmap && T2) {
-          const tg = unit2([at4(T2, 4, 0), at4(T2, 4, 1), at4(T2, 4, 2)]), w = T2[a * 4 + 3], bt = cross2(n, tg).map((v2) => v2 * w);
+          const tg = unit3([at4(T2, 4, 0), at4(T2, 4, 1), at4(T2, 4, 2)]), w = T2[a * 4 + 3], bt = cross4(n, tg).map((v2) => v2 * w);
           const ex = nmap.d[ti] / 127.5 - 1, ey = nmap.d[ti + 1] / 127.5 - 1, ez = nmap.d[ti + 2] / 127.5 - 1;
-          n = unit2([tg[0] * ex + bt[0] * ey + n[0] * ez, tg[1] * ex + bt[1] * ey + n[1] * ez, tg[2] * ex + bt[2] * ey + n[2] * ez]);
+          n = unit3([tg[0] * ex + bt[0] * ey + n[0] * ez, tg[1] * ex + bt[1] * ey + n[1] * ez, tg[2] * ex + bt[2] * ey + n[2] * ez]);
         }
       } else if (C3) col = [at4(C3, 3, 0), at4(C3, 3, 1), at4(C3, 3, 2)];
-      const lit = amb + (1 - amb) * Math.max(0, dot2(n, L2)) * 1.25;
+      const lit = amb + (1 - amb) * Math.max(0, dot4(n, L2)) * 1.25;
       rgb[q * 3] = col[0] * lit;
       rgb[q * 3 + 1] = col[1] * lit;
       rgb[q * 3 + 2] = col[2] * lit;
@@ -7954,7 +8183,7 @@ function turntable(m, o = {}) {
   }
   return out;
 }
-var gl, sub3, dot2, cross2, unit2, viewOfMesh;
+var gl, sub4, dot4, cross4, unit3, viewOfMesh;
 var init_view = __esm({
   "../artgen-scene/src/mesh/view.ts"() {
     "use strict";
@@ -7962,10 +8191,10 @@ var init_view = __esm({
     init_grid();
     init_gltf();
     gl = (p2) => [p2[0], p2[2], p2[1]];
-    sub3 = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
-    dot2 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-    cross2 = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
-    unit2 = (a) => {
+    sub4 = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+    dot4 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    cross4 = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+    unit3 = (a) => {
       const l = Math.hypot(a[0], a[1], a[2]) || 1;
       return [a[0] / l, a[1] / l, a[2] / l];
     };
@@ -7981,30 +8210,274 @@ var init_view = __esm({
   }
 });
 
+// ../artgen-scene/src/mesh/rigged.ts
+function buildRigged(scene, o) {
+  const pose = scene.pose;
+  if (!pose) throw new Error("rig: the scene has no pose (build it with ctx.lib.t2.scene3d({ k, pose }) from ctx.lib.rigs.body3d)");
+  if (!pose.bind) throw new Error(`rig: the scene was built in ${pose.state} at t = ${pose.t}, not the bind pose (idle at t = 0)`);
+  const skeleton = skeletonOf(pose), field = sceneField(scene), budget = o.budget ?? 2e3, texels = o.texels ?? 4, lods = [];
+  for (let i = 0; i < Math.max(1, Math.min(4, o.lods ?? 3)); i++) {
+    const b = Math.max(MIN_LOD, Math.floor(budget / 4 ** i));
+    if (i && b >= lods[i - 1].budget) break;
+    const result = buildMesh(scene, { ...o, budget: b, texels: Math.max(0.5, texels / 2 ** i) });
+    lods.push({ result, skin: skinWeights(result.mesh, field, skeleton, o), budget: b });
+  }
+  const keys = Math.max(2, o.keys ?? 16);
+  const clips = o.clips.map((c) => {
+    const times = [], poses = [];
+    for (let j = 0; j < keys; j++) {
+      const u = j / (keys - 1);
+      times.push(Math.round(u * c.duration * 1e6) / 1e6);
+      poses.push(pose.rig.pose(c.state, c.loop && j === keys - 1 ? 0 : u).bones);
+    }
+    return { ...c, times, poses };
+  });
+  return { rig: pose.rig, skeleton, lods, clips };
+}
+function riggedChecks(m, o) {
+  const lod0 = m.lods[0], out = meshChecks(lod0.result.mesh, { budget: o.budget, atlas: lod0.result.atlas, texels: lod0.result.texels, metresPerUnit: o.metresPerUnit, height: o.height });
+  let bad = 0;
+  for (const { skin } of m.lods) for (let v = 0; v < skin.owner.length; v++) {
+    let s2 = 0;
+    for (let k = 0; k < 4; k++) {
+      s2 += skin.weights[v * 4 + k];
+      if (skin.weights[v * 4 + k] > 0 && skin.joints[v * 4 + k] >= m.skeleton.bones.length) bad++;
+    }
+    if (Math.abs(s2 - 1) > 1e-3) bad++;
+  }
+  out.push({ id: "skin-weights", status: bad ? "fail" : "pass", detail: bad ? `${bad} vertices with weights that do not sum to 1 or name no bone` : `${m.lods.reduce((s2, l) => s2 + l.skin.owner.length, 0)} vertices, at most 4 bones each, weights sum to 1` });
+  const u = lod0.skin.unbound, unk = lod0.skin.unknown;
+  out.push({
+    id: "skin-bound",
+    status: unk.length ? "fail" : u.vertices ? "flag" : "pass",
+    detail: unk.length ? `parts name bones the rig has not: ${unk.join(", ")} (bones: ${m.skeleton.bones.join(", ")})` : u.vertices ? `${u.vertices} vertices follow the nearest bone (parts without a bone: ${u.parts.join(", ")})` : "every part names its bone"
+  });
+  let worst = 0, where = "";
+  for (const c of m.clips) c.poses.forEach((p2, j) => m.skeleton.bones.forEach((b, i) => {
+    const L0 = dist(m.skeleton.bind[i].a, m.skeleton.bind[i].b), L1 = dist(p2[b].a, p2[b].b), d = Math.abs(L1 - L0) / Math.max(1e-9, L0);
+    if (d > worst) {
+      worst = d;
+      where = `${c.state} key ${j} ${b}`;
+    }
+  }));
+  out.push({ id: "clip-lengths", status: worst > 0.01 ? "flag" : "pass", detail: worst > 0.01 ? `${where}: ${(worst * 100).toFixed(1)} % off its bind length` : `${m.skeleton.bones.length} bones keep their lengths through ${m.clips.length} clips` });
+  const limit = o.stretch ?? 2.5, I = lod0.result.mesh.indices, P2 = lod0.result.mesh.positions;
+  const edge = (a, b, X) => Math.hypot(X[a * 3] - X[b * 3], X[a * 3 + 1] - X[b * 3 + 1], X[a * 3 + 2] - X[b * 3 + 2]);
+  const lens = [];
+  for (let t = 0; t < I.length; t += 3) for (let e = 0; e < 3; e++) lens.push(edge(I[t + e], I[t + (e + 1) % 3], P2));
+  const floor3 = 0.5 * (lens.sort((x, y) => x - y)[lens.length >> 1] ?? 0);
+  let most = 1, at4 = "";
+  for (const c of m.clips) for (let j = 0; j < c.poses.length; j++) {
+    const q = skinPose(lod0.result.mesh, lod0.skin, jointPoses(m.skeleton, c.poses[j])).positions;
+    for (let t = 0; t < I.length; t += 3) for (let e = 0; e < 3; e++) {
+      const a = I[t + e], b = I[t + (e + 1) % 3], l0 = edge(a, b, P2);
+      if (l0 < Math.max(1e-6, floor3)) continue;
+      const r = edge(a, b, q) / l0;
+      if (r > most) {
+        most = r;
+        at4 = `${c.state} key ${j}, ${lod0.result.mesh.parts[lod0.result.mesh.part[t / 3]]}`;
+      }
+    }
+  }
+  out.push({ id: "skin-stretch", status: most > limit ? "flag" : "pass", detail: `an edge stretches at most ${most.toFixed(2)}\xD7${at4 ? ` (${at4})` : ""}${most > limit ? `, over ${limit}\xD7: blend the joint wider or split the part at it` : ""}` });
+  const over = m.lods.filter((l) => l.result.mesh.indices.length / 3 > l.budget);
+  out.push({ id: "lod-budget", status: over.length ? "fail" : "pass", detail: m.lods.map((l, i) => `LOD${i} ${l.result.mesh.indices.length / 3}/${l.budget}`).join(", ") });
+  return out;
+}
+function quatOf(R3) {
+  const [m00, m01, m02, m10, m11, m12, m20, m21, m22] = R3, tr = m00 + m11 + m22;
+  let q;
+  if (tr > 0) {
+    const s2 = Math.sqrt(tr + 1) * 2;
+    q = [(m21 - m12) / s2, (m02 - m20) / s2, (m10 - m01) / s2, s2 / 4];
+  } else if (m00 > m11 && m00 > m22) {
+    const s2 = Math.sqrt(1 + m00 - m11 - m22) * 2;
+    q = [s2 / 4, (m01 + m10) / s2, (m02 + m20) / s2, (m21 - m12) / s2];
+  } else if (m11 > m22) {
+    const s2 = Math.sqrt(1 + m11 - m00 - m22) * 2;
+    q = [(m01 + m10) / s2, s2 / 4, (m12 + m21) / s2, (m02 - m20) / s2];
+  } else {
+    const s2 = Math.sqrt(1 + m22 - m00 - m11) * 2;
+    q = [(m02 + m20) / s2, (m12 + m21) / s2, s2 / 4, (m10 - m01) / s2];
+  }
+  const l = Math.hypot(...q);
+  return q.map((v) => v / l);
+}
+function localTrs(sk, J) {
+  return J.map((j, i) => {
+    const p2 = sk.parent[i];
+    if (p2 < 0) return { r: quatOf(j.R), t: j.t };
+    const Rp = transpose(J[p2].R);
+    return { r: quatOf(mul3(Rp, j.R)), t: apply2(Rp, [j.t[0] - J[p2].t[0], j.t[1] - J[p2].t[1], j.t[2] - J[p2].t[2]]) };
+  });
+}
+function riggedGlb(m, o) {
+  const s2 = o.metresPerUnit, name = o.name ?? "rigged", sk = m.skeleton, nb = sk.bones.length;
+  const G = (p2) => [p2[0] * s2, p2[2] * s2, p2[1] * s2];
+  const w = binWriter(), accessors = [], acc = (a) => {
+    accessors.push(a);
+    return accessors.length - 1;
+  };
+  const nodes = [{ name, children: [] }], jointNode = sk.bones.map((_, i) => i + 1);
+  sk.bones.forEach((b, i) => {
+    const p2 = sk.parent[i], a = G(sk.bind[i].a), pa = p2 < 0 ? [0, 0, 0] : G(sk.bind[p2].a);
+    nodes.push({ name: b, translation: [a[0] - pa[0], a[1] - pa[1], a[2] - pa[2]], children: [] });
+  });
+  sk.bones.forEach((_, i) => {
+    const p2 = sk.parent[i];
+    (p2 < 0 ? nodes[0] : nodes[jointNode[p2]]).children.push(jointNode[i]);
+  });
+  for (const n of nodes) if (!n.children.length) delete n.children;
+  const ibm = new Float32Array(nb * 16);
+  sk.bones.forEach((_, i) => {
+    const a = G(sk.bind[i].a);
+    ibm.set([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -a[0], -a[1], -a[2], 1], i * 16);
+  });
+  const skins = [{ name, joints: jointNode, skeleton: 0, inverseBindMatrices: acc({ bufferView: w.view(typedBytes(ibm)), componentType: 5126, count: nb, type: "MAT4" }) }];
+  const meshes = [], materials = [], images = [], textures = [];
+  const height = (m.lods[0].result.bounds[5] - m.lods[0].result.bounds[2]) * s2, dists = o.distances ?? [0, 4, 12, 30].map((k) => Math.round(k * height * 100) / 100);
+  const lodInfo = m.lods.map((l, i) => {
+    const r = l.result, g = glMeshArrays(r, s2, [0, 0]), n = g.n, joints = new Uint8Array(n * 4), weights2 = new Float32Array(n * 4);
+    joints.set(l.skin.joints);
+    weights2.set(l.skin.weights);
+    const attributes = {
+      POSITION: acc({ bufferView: w.view(typedBytes(g.pos), ARRAY_BUFFER), componentType: 5126, count: n, type: "VEC3", min: g.min, max: g.max }),
+      NORMAL: acc({ bufferView: w.view(typedBytes(g.nor), ARRAY_BUFFER), componentType: 5126, count: n, type: "VEC3" }),
+      TANGENT: acc({ bufferView: w.view(typedBytes(g.tan), ARRAY_BUFFER), componentType: 5126, count: n, type: "VEC4" }),
+      TEXCOORD_0: acc({ bufferView: w.view(typedBytes(g.uv), ARRAY_BUFFER), componentType: 5126, count: n, type: "VEC2" }),
+      JOINTS_0: acc({ bufferView: w.view(typedBytes(joints), ARRAY_BUFFER), componentType: 5121, count: n, type: "VEC4" }),
+      WEIGHTS_0: acc({ bufferView: w.view(typedBytes(weights2), ARRAY_BUFFER), componentType: 5126, count: n, type: "VEC4" })
+    };
+    const indices = acc({ bufferView: w.view(typedBytes(g.idx), ELEMENT_ARRAY_BUFFER), componentType: 5125, count: g.idx.length, type: "SCALAR" });
+    const first = textures.length;
+    for (const img of [r.textures.color, r.textures.normal, r.textures.orm]) {
+      images.push({ bufferView: w.view(encodePNG(img)), mimeType: "image/png" });
+      textures.push({ sampler: 0, source: images.length - 1 });
+    }
+    materials.push(materialOf(`${name}_LOD${i}`, r.look, first));
+    meshes.push({ name: `${name}_LOD${i}`, primitives: [{ attributes, indices, material: i }] });
+    nodes.push({ name: `${name}_LOD${i}`, mesh: i, skin: 0 });
+    nodes[0].children.push(nodes.length - 1);
+    return { node: nodes.length - 1, name: `${name}_LOD${i}`, triangles: g.idx.length / 3, budget: l.budget, texelsPerUnit: r.texels, distance: dists[i] ?? dists[dists.length - 1] };
+  });
+  const animations = m.clips.map((c) => {
+    const input = acc({ bufferView: w.view(typedBytes(new Float32Array(c.times))), componentType: 5126, count: c.times.length, type: "SCALAR", min: [c.times[0]], max: [c.times[c.times.length - 1]] });
+    const trs = c.poses.map((p2) => localTrs(sk, jointPoses(sk, p2, G)));
+    const samplers = [], channels = [];
+    sk.bones.forEach((_, i) => {
+      const rot = new Float32Array(c.times.length * 4), tr = new Float32Array(c.times.length * 3);
+      let prev;
+      trs.forEach((k, j) => {
+        let q = k[i].r;
+        if (prev && q[0] * prev[0] + q[1] * prev[1] + q[2] * prev[2] + q[3] * prev[3] < 0) q = q.map((v) => -v);
+        rot.set(q, j * 4);
+        tr.set(k[i].t, j * 3);
+        prev = q;
+      });
+      for (const [path, data, type] of [["rotation", rot, "VEC4"], ["translation", tr, "VEC3"]]) {
+        samplers.push({ input, interpolation: "LINEAR", output: acc({ bufferView: w.view(typedBytes(data)), componentType: 5126, count: c.times.length, type }) });
+        channels.push({ sampler: samplers.length - 1, target: { node: jointNode[i], path } });
+      }
+    });
+    return { name: c.state, samplers, channels };
+  });
+  const unlit = m.lods[0].result.look === "baked";
+  const json = {
+    asset: { version: "2.0", generator: "artgen" },
+    ...unlit && { extensionsUsed: ["KHR_materials_unlit"] },
+    scene: 0,
+    scenes: [{ nodes: [0] }],
+    nodes,
+    skins,
+    meshes,
+    materials,
+    animations,
+    samplers: [{ magFilter: NEAREST, minFilter: NEAREST, wrapS: CLAMP, wrapT: CLAMP }],
+    textures,
+    images,
+    accessors,
+    bufferViews: w.views,
+    buffers: [{ byteLength: w.length }],
+    extras: {
+      artgen: {
+        rig: { plan: m.rig.plan, set: m.rig.set, height: m.rig.height, bones: sk.bones },
+        metresPerUnit: s2,
+        look: m.lods[0].result.look,
+        mode: m.lods[0].result.mode,
+        lods: lodInfo,
+        clips: Object.fromEntries(m.clips.map((c) => [c.state, { duration: c.duration, loop: c.loop, keys: c.times.length }]))
+      }
+    }
+  };
+  return glbBytes(json, w.bin());
+}
+function posedView(m, pose, lod = 0) {
+  const l = m.lods[Math.min(lod, m.lods.length - 1)], bones = "rig" in pose ? pose.bones : pose;
+  const q = skinPose(l.result.mesh, l.skin, jointPoses(m.skeleton, bones));
+  return { ...viewOfMesh(l.result), positions: q.positions, normals: q.normals, tangents: q.tangents };
+}
+function clipStrip(m, o = {}) {
+  const n = o.frames ?? 6, w = o.w ?? 72, h = o.h ?? 96, rows3 = m.clips.length || 1, out = new Grid(n * (w + 1) - 1, rows3 * (h + 1) - 1);
+  const [x0, y0, z0, x1, y1, z1] = m.lods[0].result.bounds, center = [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2], fov = 30, tv = Math.tan(fov * Math.PI / 360);
+  const tall = z1 - z0, halfW = Math.max(x1 - x0, y1 - y0) / 2 + 0.15 * tall, distance = Math.max(tall / 2 * 1.3 / tv, halfW / (tv * (w / h))) + (y1 - y0) / 2;
+  const cam = orbitCamera({ target: center, yaw: o.yaw ?? 30, pitch: o.pitch ?? 15, distance, fov, w, h });
+  m.clips.forEach((c, row) => {
+    for (let i = 0; i < n; i++) {
+      const u = c.loop ? i / n : i / Math.max(1, n - 1);
+      out.blit(rasterMesh(posedView(m, m.rig.pose(c.state, u)), cam, { light: o.light, background: o.background, ss: o.ss }), i * (w + 1), row * (h + 1));
+    }
+  });
+  return out;
+}
+var MIN_LOD, dist, transpose, mul3, apply2;
+var init_rigged = __esm({
+  "../artgen-scene/src/mesh/rigged.ts"() {
+    "use strict";
+    init_png();
+    init_grid();
+    init_gltf();
+    init_build();
+    init_checks();
+    init_field();
+    init_gltf2();
+    init_skin();
+    init_view();
+    MIN_LOD = 60;
+    dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+    transpose = (R3) => [R3[0], R3[3], R3[6], R3[1], R3[4], R3[7], R3[2], R3[5], R3[8]];
+    mul3 = (A, B) => {
+      const r = new Array(9).fill(0);
+      for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) for (let k = 0; k < 3; k++) r[i * 3 + j] += A[i * 3 + k] * B[k * 3 + j];
+      return r;
+    };
+    apply2 = (R3, p2) => [R3[0] * p2[0] + R3[1] * p2[1] + R3[2] * p2[2], R3[3] * p2[0] + R3[4] * p2[1] + R3[5] * p2[2], R3[6] * p2[0] + R3[7] * p2[1] + R3[8] * p2[2]];
+  }
+});
+
 // ../artgen-scene/src/mesh/voxelize.ts
 function triBoxOverlap(c, h, a, b, d) {
-  const v0 = sub4(a, c), v1 = sub4(b, c), v2 = sub4(d, c), e = [sub4(v1, v0), sub4(v2, v1), sub4(v0, v2)];
+  const v0 = sub5(a, c), v1 = sub5(b, c), v2 = sub5(d, c), e = [sub5(v1, v0), sub5(v2, v1), sub5(v0, v2)];
   for (const ed of e) for (let ax = 0; ax < 3; ax++) {
-    const axis = cross4([ax === 0 ? 1 : 0, ax === 1 ? 1 : 0, ax === 2 ? 1 : 0], ed);
+    const axis = cross5([ax === 0 ? 1 : 0, ax === 1 ? 1 : 0, ax === 2 ? 1 : 0], ed);
     if (Math.abs(axis[0]) + Math.abs(axis[1]) + Math.abs(axis[2]) < 1e-12) continue;
-    const p0 = dot4(v0, axis), p1 = dot4(v1, axis), p2 = dot4(v2, axis), r4 = h * (Math.abs(axis[0]) + Math.abs(axis[1]) + Math.abs(axis[2]));
+    const p0 = dot5(v0, axis), p1 = dot5(v1, axis), p2 = dot5(v2, axis), r4 = h * (Math.abs(axis[0]) + Math.abs(axis[1]) + Math.abs(axis[2]));
     if (Math.min(p0, p1, p2) > r4 || Math.max(p0, p1, p2) < -r4) return false;
   }
   for (let ax = 0; ax < 3; ax++) if (Math.min(v0[ax], v1[ax], v2[ax]) > h || Math.max(v0[ax], v1[ax], v2[ax]) < -h) return false;
-  const n = cross4(e[0], e[1]), r = h * (Math.abs(n[0]) + Math.abs(n[1]) + Math.abs(n[2]));
-  return Math.abs(dot4(n, v0)) <= r;
+  const n = cross5(e[0], e[1]), r = h * (Math.abs(n[0]) + Math.abs(n[1]) + Math.abs(n[2]));
+  return Math.abs(dot5(n, v0)) <= r;
 }
 function closestOnTriangle(p2, a, b, c) {
-  const ab = sub4(b, a), ac = sub4(c, a), ap = sub4(p2, a), d1 = dot4(ab, ap), d2 = dot4(ac, ap);
+  const ab = sub5(b, a), ac = sub5(c, a), ap = sub5(p2, a), d1 = dot5(ab, ap), d2 = dot5(ac, ap);
   if (d1 <= 0 && d2 <= 0) return [1, 0, 0];
-  const bp = sub4(p2, b), d3 = dot4(ab, bp), d4 = dot4(ac, bp);
+  const bp = sub5(p2, b), d3 = dot5(ab, bp), d4 = dot5(ac, bp);
   if (d3 >= 0 && d4 <= d3) return [0, 1, 0];
   const vc = d1 * d4 - d3 * d2;
   if (vc <= 0 && d1 >= 0 && d3 <= 0) {
     const v2 = d1 / (d1 - d3);
     return [1 - v2, v2, 0];
   }
-  const cp = sub4(p2, c), d5 = dot4(ab, cp), d6 = dot4(ac, cp);
+  const cp = sub5(p2, c), d5 = dot5(ab, cp), d6 = dot5(ac, cp);
   if (d6 >= 0 && d5 <= d6) return [0, 0, 1];
   const vb = d5 * d2 - d1 * d6;
   if (vb <= 0 && d2 >= 0 && d6 <= 0) {
@@ -8032,7 +8505,7 @@ function voxelizeTriangles(m, o) {
   const off = [(size2[0] - (hi[0] - lo[0]) * s2) / 2, (size2[1] - (hi[1] - lo[1]) * s2) / 2, 0];
   const V4 = (t, c) => [0, 1, 2].map((a) => (P2[t * 9 + c * 3 + a] - lo[a]) * s2 + off[a]);
   const [X, Y, Z] = [size2[0] + 2, size2[1] + 2, size2[2] + 2], idx = (x, y, z) => ((z + 1) * Y + (y + 1)) * X + (x + 1);
-  const surf = new Int32Array(X * Y * Z).fill(-1), dist = new Float32Array(X * Y * Z).fill(Infinity), bary = new Array(X * Y * Z);
+  const surf = new Int32Array(X * Y * Z).fill(-1), dist3 = new Float32Array(X * Y * Z).fill(Infinity), bary = new Array(X * Y * Z);
   for (let t = 0; t < n; t++) {
     const a = V4(t, 0), b = V4(t, 1), c = V4(t, 2);
     const x0 = Math.max(0, Math.floor(Math.min(a[0], b[0], c[0]))), x1 = Math.min(size2[0] - 1, Math.floor(Math.max(a[0], b[0], c[0])));
@@ -8043,8 +8516,8 @@ function voxelizeTriangles(m, o) {
       if (!triBoxOverlap(ctr, 0.5 + 1e-6, a, b, c)) continue;
       const w = closestOnTriangle(ctr, a, b, c), q = [0, 1, 2].map((k) => a[k] * w[0] + b[k] * w[1] + c[k] * w[2]), d = (q[0] - ctr[0]) ** 2 + (q[1] - ctr[1]) ** 2 + (q[2] - ctr[2]) ** 2;
       const i = idx(x, y, z);
-      if (d < dist[i]) {
-        dist[i] = d;
+      if (d < dist3[i]) {
+        dist3[i] = d;
         surf[i] = t;
         bary[i] = w;
       }
@@ -8086,14 +8559,14 @@ function voxelizeTriangles(m, o) {
   }
   return { size: size2, cells, metresPerVoxel: 1 / s2 };
 }
-var sub4, cross4, dot4;
+var sub5, cross5, dot5;
 var init_voxelize = __esm({
   "../artgen-scene/src/mesh/voxelize.ts"() {
     "use strict";
     init_gltf2();
-    sub4 = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
-    cross4 = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
-    dot4 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    sub5 = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+    cross5 = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+    dot5 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
   }
 });
 
@@ -8119,12 +8592,15 @@ var init_src2 = __esm({
     init_params();
     init_anim();
     init_rigs();
+    init_rig3d();
     init_particles();
     init_field();
     init_contour();
     init_uv();
     init_bake();
     init_build();
+    init_skin();
+    init_rigged();
     init_gltf2();
     init_checks();
     init_view();
@@ -9336,14 +9812,14 @@ function shapeGround(spec, f, raw, seaLevel, margin) {
     if (r.kind !== "path" || r.path !== "stream") continue;
     const p2 = streamCurve(r.points), valley = Math.min(feature * 0.5, 4), steps = [];
     for (let i = 0; i < p2.length - 2; i += 2) {
-      const len = Math.hypot(p2[i + 2] - p2[i], p2[i + 3] - p2[i + 1]), k = Math.max(1, Math.ceil(len * f.res));
+      const len3 = Math.hypot(p2[i + 2] - p2[i], p2[i + 3] - p2[i + 1]), k = Math.max(1, Math.ceil(len3 * f.res));
       for (let s2 = 0; s2 < k; s2++) steps.push([p2[i] + (p2[i + 2] - p2[i]) * s2 / k, p2[i + 1] + (p2[i + 3] - p2[i + 1]) * s2 / k]);
     }
     steps.push([p2[p2.length - 2], p2[p2.length - 1]]);
     const at4 = (x, y) => raw[Math.min(f.h - 1, Math.max(0, Math.floor(y * f.res))) * f.w + Math.min(f.w - 1, Math.max(0, Math.floor(x * f.res)))];
     const bed = steps.map(([x, y]) => at4(x, y)), floor3 = Math.max(seaLevel + 4e-3, 0);
     for (let i = 1; i < bed.length; i++) bed[i] = Math.min(bed[i], bed[i - 1]);
-    const win = Math.max(1, Math.round(f.res)), smooth3 = bed.map((_, i) => {
+    const win = Math.max(1, Math.round(f.res)), smooth4 = bed.map((_, i) => {
       let s2 = 0, c = 0;
       for (let k = Math.max(0, i - win); k <= Math.min(bed.length - 1, i + win); k++) {
         s2 += bed[k];
@@ -9359,7 +9835,7 @@ function shapeGround(spec, f, raw, seaLevel, margin) {
         const d = Math.hypot((i + 0.5) / f.res - sx, (j + 0.5) / f.res - sy), n = j * f.w + i;
         if (d < best[n]) {
           best[n] = d;
-          bedAt[n] = smooth3[k];
+          bedAt[n] = smooth4[k];
         }
       }
     }
@@ -9434,13 +9910,13 @@ function streamsOf(spec) {
   return (spec.require ?? []).flatMap((r) => r.kind === "path" && r.path === "stream" ? [{ id: r.id, points: r.points, width: r.width, delta: r.delta }] : []);
 }
 function routeRoad(points, f, elev, wet) {
-  const step = Math.max(1, Math.round(f.res / 2)), W3 = Math.ceil(f.w / step), H = Math.ceil(f.h / step), unit3 = step / f.res;
+  const step = Math.max(1, Math.round(f.res / 2)), W3 = Math.ceil(f.w / step), H = Math.ceil(f.h / step), unit4 = step / f.res;
   const at4 = (i, j) => Math.min(f.h - 1, j * step + (step >> 1)) * f.w + Math.min(f.w - 1, i * step + (step >> 1));
   const cell3 = (x, y) => [Math.max(0, Math.min(W3 - 1, Math.floor(x * f.res / step))), Math.max(0, Math.min(H - 1, Math.floor(y * f.res / step)))];
   const out = [points[0], points[1]];
   for (let p2 = 2; p2 < points.length; p2 += 2) {
     const [si, sj] = cell3(points[p2 - 2], points[p2 - 1]), [ti, tj] = cell3(points[p2], points[p2 + 1]);
-    const dist = new Float32Array(W3 * H).fill(Infinity), from = new Int32Array(W3 * H).fill(-1), done = new Uint8Array(W3 * H), heap2 = [], key2 = new Float32Array(W3 * H);
+    const dist3 = new Float32Array(W3 * H).fill(Infinity), from = new Int32Array(W3 * H).fill(-1), done = new Uint8Array(W3 * H), heap2 = [], key2 = new Float32Array(W3 * H);
     const less = (a, b) => key2[a] < key2[b];
     const push = (n) => {
       heap2.push(n);
@@ -9469,8 +9945,8 @@ function routeRoad(points, f, elev, wet) {
       }
       return top;
     };
-    const goal = tj * W3 + ti, h = (i, j) => Math.hypot(i - ti, j - tj) * unit3;
-    dist[sj * W3 + si] = 0;
+    const goal = tj * W3 + ti, h = (i, j) => Math.hypot(i - ti, j - tj) * unit4;
+    dist3[sj * W3 + si] = 0;
     key2[sj * W3 + si] = h(si, sj);
     push(sj * W3 + si);
     while (heap2.length) {
@@ -9482,10 +9958,10 @@ function routeRoad(points, f, elev, wet) {
       for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
         const x = i + di, y = j + dj, m = y * W3 + x;
         if (!di && !dj || x < 0 || y < 0 || x >= W3 || y >= H || done[m]) continue;
-        const len = Math.hypot(di, dj) * unit3, rise = Math.abs(elev[at4(x, y)] - elev[at4(i, j)]);
-        const c = dist[n] + len + rise * 40 + (wet[at4(x, y)] ? len * 3 : 0);
-        if (c < dist[m]) {
-          dist[m] = c;
+        const len3 = Math.hypot(di, dj) * unit4, rise = Math.abs(elev[at4(x, y)] - elev[at4(i, j)]);
+        const c = dist3[n] + len3 + rise * 40 + (wet[at4(x, y)] ? len3 * 3 : 0);
+        if (c < dist3[m]) {
+          dist3[m] = c;
           from[m] = n;
           key2[m] = c + h(x, y);
           push(m);
@@ -9635,10 +10111,10 @@ function simplifyLine(l, eps) {
   keep[0] = keep[n - 1] = 1;
   const stack = [[0, n - 1]];
   while (stack.length) {
-    const [a, b] = stack.pop(), ax = p2[a * 2], ay = p2[a * 2 + 1], dx = p2[b * 2] - ax, dy = p2[b * 2 + 1] - ay, len = Math.hypot(dx, dy) || 1;
+    const [a, b] = stack.pop(), ax = p2[a * 2], ay = p2[a * 2 + 1], dx = p2[b * 2] - ax, dy = p2[b * 2 + 1] - ay, len3 = Math.hypot(dx, dy) || 1;
     let best = -1, far = 0;
     for (let i = a + 1; i < b; i++) {
-      const d = Math.abs((p2[i * 2] - ax) * dy - (p2[i * 2 + 1] - ay) * dx) / len;
+      const d = Math.abs((p2[i * 2] - ax) * dy - (p2[i * 2 + 1] - ay) * dx) / len3;
       if (d > far) {
         far = d;
         best = i;
@@ -9815,11 +10291,11 @@ function toShore(pts2, water2) {
   while (k > 0 && Math.hypot(ex - pts2[k * 2], ey - pts2[k * 2 + 1]) < 0.5) k--;
   dx = ex - pts2[k * 2];
   dy = ey - pts2[k * 2 + 1];
-  const len = Math.hypot(dx, dy);
-  if (!len) return null;
+  const len3 = Math.hypot(dx, dy);
+  if (!len3) return null;
   for (let d = 0.1; d <= 3; d += 0.1) {
-    const x = ex + dx / len * d, y = ey + dy / len * d;
-    if (water2(x, y)) return [...pts2, ex + dx / len * (d + 0.15), ey + dy / len * (d + 0.15)];
+    const x = ex + dx / len3 * d, y = ey + dy / len3 * d;
+    if (water2(x, y)) return [...pts2, ex + dx / len3 * (d + 0.15), ey + dy / len3 * (d + 0.15)];
   }
   return null;
 }
@@ -9846,8 +10322,8 @@ function riverRibbon(line2, W3, mouth) {
     const n2 = p2.length / 2, ex = p2[n2 * 2 - 2], ey = p2[n2 * 2 - 1];
     let k = n2 - 2;
     while (k > 0 && Math.hypot(ex - p2[k * 2], ey - p2[k * 2 + 1]) < W3 * 2) k--;
-    const dx = ex - p2[k * 2], dy = ey - p2[k * 2 + 1], len = Math.hypot(dx, dy) || 1;
-    p2 = [...p2, ex + dx / len * W3 * FLARE_WATER, ey + dy / len * W3 * FLARE_WATER];
+    const dx = ex - p2[k * 2], dy = ey - p2[k * 2 + 1], len3 = Math.hypot(dx, dy) || 1;
+    p2 = [...p2, ex + dx / len3 * W3 * FLARE_WATER, ey + dy / len3 * W3 * FLARE_WATER];
   }
   const c = resample(p2, Math.min(0.1, W3 * 0.4)), n = c.length / 2, s2 = [0];
   for (let i = 1; i < n; i++) s2.push(s2[i - 1] + Math.hypot(c[i * 2] - c[i * 2 - 2], c[i * 2 + 1] - c[i * 2 - 1]));
@@ -10220,8 +10696,8 @@ function fitPpu(w, h, fit2) {
   const f = fit2.unit === "mm" ? PX_PER_MM : 1;
   return Math.min(fit2.w * f / w, fit2.h * f / h);
 }
-function sizeAttrs(f, unit3 = "px") {
-  const s2 = unit3 === "mm" ? (v) => `${Math.round(v / PX_PER_MM * 100) / 100}mm` : (v) => String(r3(v));
+function sizeAttrs(f, unit4 = "px") {
+  const s2 = unit4 === "mm" ? (v) => `${Math.round(v / PX_PER_MM * 100) / 100}mm` : (v) => String(r3(v));
   return `width="${s2(f.w)}" height="${s2(f.h)}" viewBox="${r3(f.x)} ${r3(f.y)} ${r3(f.w)} ${r3(f.h)}"`;
 }
 var PX_PER_MM, r3;
@@ -10479,12 +10955,12 @@ function renderMapSvg(spec, o = {}) {
     parts.push(`<g id="legend">${g}</g>`);
   }
   if (on.scale) {
-    const n = scaleCells(fr.w / k), len = n * k, fs = 11 * u, x = fr.x + pad + 8 * u, y = fr.b - pad - 20 * u, seg = 4;
-    let g = box2(fr.x + pad, y - 18 * u, len + 34 * u, 40 * u);
-    for (let i = 0; i < seg; i++) g += `<rect x="${n1(x + len / seg * i)}" y="${n1(y)}" width="${n1(len / seg)}" height="${n1(5 * u)}" fill="${i % 2 ? th.paper : th.ink}" stroke="${th.ink}" stroke-width="${n1(0.8 * u)}"/>`;
+    const n = scaleCells(fr.w / k), len3 = n * k, fs = 11 * u, x = fr.x + pad + 8 * u, y = fr.b - pad - 20 * u, seg = 4;
+    let g = box2(fr.x + pad, y - 18 * u, len3 + 34 * u, 40 * u);
+    for (let i = 0; i < seg; i++) g += `<rect x="${n1(x + len3 / seg * i)}" y="${n1(y)}" width="${n1(len3 / seg)}" height="${n1(5 * u)}" fill="${i % 2 ? th.paper : th.ink}" stroke="${th.ink}" stroke-width="${n1(0.8 * u)}"/>`;
     g += `<text x="${n1(x)}" y="${n1(y - 5 * u)}" font-size="${n1(fs)}" fill="${th.ink}" text-anchor="middle">0</text>`;
-    g += `<text x="${n1(x + len)}" y="${n1(y - 5 * u)}" font-size="${n1(fs)}" fill="${th.ink}" text-anchor="middle">${n * spec.scale.perCell} ${esc(spec.scale.unit)}</text>`;
-    g += `<text x="${n1(x + len / 2)}" y="${n1(y + 16 * u)}" font-size="${n1(fs * 0.85)}" fill="${th.ink}" text-anchor="middle">1 ${spec.grid.type === "hex" ? "hex" : "square"} = ${spec.scale.perCell} ${esc(spec.scale.unit)}</text>`;
+    g += `<text x="${n1(x + len3)}" y="${n1(y - 5 * u)}" font-size="${n1(fs)}" fill="${th.ink}" text-anchor="middle">${n * spec.scale.perCell} ${esc(spec.scale.unit)}</text>`;
+    g += `<text x="${n1(x + len3 / 2)}" y="${n1(y + 16 * u)}" font-size="${n1(fs * 0.85)}" fill="${th.ink}" text-anchor="middle">1 ${spec.grid.type === "hex" ? "hex" : "square"} = ${spec.scale.perCell} ${esc(spec.scale.unit)}</text>`;
     parts.push(`<g id="scale">${g}</g>`);
   }
   if (on.compass) parts.push(compassSvg(fr.r - pad - 18 * u - 4 * u, fr.y + pad + 18 * u + 14 * u, 18 * u, u, th));
@@ -10537,8 +11013,8 @@ var init_round = __esm({
 });
 
 // ../artgen-mapgen/src/map/facts.ts
-function feetIn(unit3) {
-  const u = unit3.trim().toLowerCase().replace(/\.$/, "").replace(/s$/, "");
+function feetIn(unit4) {
+  const u = unit4.trim().toLowerCase().replace(/\.$/, "").replace(/s$/, "");
   return LENGTH_IN_FEET[u] ?? LENGTH_IN_FEET[`${u}s`] ?? null;
 }
 function ground(spec, f) {
@@ -10635,8 +11111,8 @@ function crossings2(pts2, poly) {
   const runs = [];
   let cur = null;
   for (let i = 2; i < pts2.length; i += 2) {
-    const ax = pts2[i - 2], ay = pts2[i - 1], dx = pts2[i] - ax, dy = pts2[i + 1] - ay, len = Math.hypot(dx, dy);
-    if (!len) continue;
+    const ax = pts2[i - 2], ay = pts2[i - 1], dx = pts2[i] - ax, dy = pts2[i + 1] - ay, len3 = Math.hypot(dx, dy);
+    if (!len3) continue;
     const ts = [0, 1];
     for (let a = poly.length - 2, b = 0; b < poly.length; a = b, b += 2) {
       const ex = poly[b] - poly[a], ey = poly[b + 1] - poly[a + 1], den = dx * ey - dy * ex;
@@ -10653,7 +11129,7 @@ function crossings2(pts2, poly) {
         cur = { enters: i === 2 && t0 === 0 ? null : [ax + dx * t0, ay + dy * t0], leaves: null, length: 0 };
         runs.push(cur);
       }
-      if (here && cur) cur.length += len * (t1 - t0);
+      if (here && cur) cur.length += len3 * (t1 - t0);
       if (!here && cur) {
         cur.leaves = [ax + dx * t0, ay + dy * t0];
         cur = null;
@@ -10752,7 +11228,7 @@ function mapFacts(spec, q = {}, field = generateMap(spec)) {
     out.areas = q.areas.map((poly) => {
       const ids = samplesIn(field, poly);
       if (!ids.length) throw new Error(`area ${poly.join(",")}: holds no ground (inside the map and larger than a sample, ${(1 / field.res).toFixed(2)} cells)`);
-      const cross6 = (kind) => g.lines.filter((l) => l.kind === kind).flatMap((l) => crossings2(l.pts, poly).map((c) => ({
+      const cross7 = (kind) => g.lines.filter((l) => l.kind === kind).flatMap((l) => crossings2(l.pts, poly).map((c) => ({
         name: l.name,
         ...l.source && { source: l.source },
         enters: c.enters && g.pt(...c.enters),
@@ -10761,7 +11237,7 @@ function mapFacts(spec, q = {}, field = generateMap(spec)) {
       })));
       const pairs2 = [];
       for (let i = 0; i < poly.length; i += 2) pairs2.push(g.pt(poly[i], poly[i + 1]));
-      return { area: pairs2, terrain: shares(field, ids), ...extremes(g, field, spec, ids), rivers: cross6("river"), roads: cross6("road") };
+      return { area: pairs2, terrain: shares(field, ids), ...extremes(g, field, spec, ids), rivers: cross7("river"), roads: cross7("road") };
     });
   }
   if (!out.points && !out.areas) {
@@ -11441,8 +11917,8 @@ function area2(p2) {
   return s2;
 }
 function segmentCross(a, b, c, d, eps = 1e-9) {
-  const d1 = cross5(c[0], c[1], d[0], d[1], a[0], a[1]), d2 = cross5(c[0], c[1], d[0], d[1], b[0], b[1]);
-  const d3 = cross5(a[0], a[1], b[0], b[1], c[0], c[1]), d4 = cross5(a[0], a[1], b[0], b[1], d[0], d[1]);
+  const d1 = cross6(c[0], c[1], d[0], d[1], a[0], a[1]), d2 = cross6(c[0], c[1], d[0], d[1], b[0], b[1]);
+  const d3 = cross6(a[0], a[1], b[0], b[1], c[0], c[1]), d4 = cross6(a[0], a[1], b[0], b[1], d[0], d[1]);
   if (!((d1 > eps && d2 < -eps || d1 < -eps && d2 > eps) && (d3 > eps && d4 < -eps || d3 < -eps && d4 > eps))) return null;
   const t = d1 / (d1 - d2);
   return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
@@ -11463,10 +11939,10 @@ function segmentDistance(x, y, a, b) {
 function nearestOnLine(pts2, x, y) {
   let best = { x: pts2[0], y: pts2[1], d: Infinity, along: 0, seg: 0 }, at4 = 0;
   for (let i = 0; i + 3 < pts2.length; i += 2) {
-    const ax = pts2[i], ay = pts2[i + 1], bx = pts2[i + 2], by = pts2[i + 3], dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy, len = Math.sqrt(L2);
+    const ax = pts2[i], ay = pts2[i + 1], bx = pts2[i + 2], by = pts2[i + 3], dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy, len3 = Math.sqrt(L2);
     const t = L2 ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / L2)) : 0, px = ax + t * dx, py = ay + t * dy, d = Math.hypot(x - px, y - py);
-    if (d < best.d) best = { x: px, y: py, d, along: at4 + t * len, seg: i / 2 };
-    at4 += len;
+    if (d < best.d) best = { x: px, y: py, d, along: at4 + t * len3, seg: i / 2 };
+    at4 += len3;
   }
   return best;
 }
@@ -11478,7 +11954,7 @@ function lineLength2(pts2) {
 function samples(pts2, step) {
   const out = [[pts2[0], pts2[1]]];
   for (let i = 0; i + 3 < pts2.length; i += 2) {
-    const len = Math.hypot(pts2[i + 2] - pts2[i], pts2[i + 3] - pts2[i + 1]), n = Math.max(1, Math.ceil(len / step));
+    const len3 = Math.hypot(pts2[i + 2] - pts2[i], pts2[i + 3] - pts2[i + 1]), n = Math.max(1, Math.ceil(len3 / step));
     for (let k = 1; k <= n; k++) out.push([pts2[i] + (pts2[i + 2] - pts2[i]) * k / n, pts2[i + 1] + (pts2[i + 3] - pts2[i + 1]) * k / n]);
   }
   return out;
@@ -11502,12 +11978,12 @@ function sharedEdges(a, b, eps = 1e-6) {
   }
   return out;
 }
-var polygonArea, cross5;
+var polygonArea, cross6;
 var init_geom2 = __esm({
   "../artgen-mapgen/src/dungeon/geom.ts"() {
     "use strict";
     polygonArea = (p2) => Math.abs(area2(p2)) / 2;
-    cross5 = (ax, ay, bx, by, cx, cy) => (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+    cross6 = (ax, ay, bx, by, cx, cy) => (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
   }
 });
 
@@ -11583,7 +12059,7 @@ function routeAround(a, b, width, avoid, cols, rows3) {
   }
   blocked[sy * W3 + sx] = 0;
   blocked[gy * W3 + gx] = 0;
-  const DIRS = [[1, 0], [0, 1], [-1, 0], [0, -1]], N3 = W3 * H * 4, dist = new Float64Array(N3).fill(Infinity), prev = new Int32Array(N3).fill(-1);
+  const DIRS = [[1, 0], [0, 1], [-1, 0], [0, -1]], N3 = W3 * H * 4, dist3 = new Float64Array(N3).fill(Infinity), prev = new Int32Array(N3).fill(-1);
   const heap2 = [];
   const push = (d, s2) => {
     heap2.push([d, s2]);
@@ -11614,13 +12090,13 @@ function routeAround(a, b, width, avoid, cols, rows3) {
   };
   for (let d = 0; d < 4; d++) {
     const s2 = (sy * W3 + sx) * 4 + d;
-    dist[s2] = 0;
+    dist3[s2] = 0;
     push(0, s2);
   }
   let end = -1;
   while (heap2.length) {
     const [d, s2] = pop();
-    if (d > dist[s2]) continue;
+    if (d > dist3[s2]) continue;
     const c = s2 >> 2, h = s2 & 3, cx = c % W3, cy = (c - cx) / W3;
     if (cx === gx && cy === gy) {
       end = s2;
@@ -11631,8 +12107,8 @@ function routeAround(a, b, width, avoid, cols, rows3) {
       const nx = cx + DIRS[nh][0], ny = cy + DIRS[nh][1];
       if (nx < 0 || ny < 0 || nx >= W3 || ny >= H || blocked[ny * W3 + nx]) continue;
       const ns = (ny * W3 + nx) * 4 + nh, nd = d + 1 + (nh === h ? 0 : 4);
-      if (nd < dist[ns]) {
-        dist[ns] = nd;
+      if (nd < dist3[ns]) {
+        dist3[ns] = nd;
         prev[ns] = s2;
         push(nd, ns);
       }
@@ -11676,9 +12152,9 @@ function naturalOutline(pts2, width, seed) {
   const s2 = [];
   let at4 = 0;
   for (let i = 0; i + 3 < pts2.length; i += 2) {
-    const len = Math.hypot(pts2[i + 2] - pts2[i], pts2[i + 3] - pts2[i + 1]), n = Math.max(1, Math.ceil(len / 0.5));
-    for (let k = i ? 1 : 0; k <= n; k++) s2.push({ x: pts2[i] + (pts2[i + 2] - pts2[i]) * k / n, y: pts2[i + 1] + (pts2[i + 3] - pts2[i + 1]) * k / n, at: at4 + len * k / n });
-    at4 += len;
+    const len3 = Math.hypot(pts2[i + 2] - pts2[i], pts2[i + 3] - pts2[i + 1]), n = Math.max(1, Math.ceil(len3 / 0.5));
+    for (let k = i ? 1 : 0; k <= n; k++) s2.push({ x: pts2[i] + (pts2[i + 2] - pts2[i]) * k / n, y: pts2[i + 1] + (pts2[i + 3] - pts2[i + 1]) * k / n, at: at4 + len3 * k / n });
+    at4 += len3;
   }
   if (s2.length < 2) return [];
   const wall2 = (a, p2, q, r) => Math.max(0.3, 0.5 + 0.16 * Math.sin(a * 0.9 + p2) + 0.11 * Math.sin(a * 2.1 + q) + 0.06 * Math.sin(a * 4.3 + r));
@@ -11712,11 +12188,11 @@ function convexHull(pts2) {
   ps.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
   const uniq = ps.filter((p2, i) => !i || p2[0] !== ps[i - 1][0] || p2[1] !== ps[i - 1][1]);
   if (uniq.length < 3) return uniq;
-  const cross6 = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const cross7 = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
   const half = (list6) => {
     const h = [];
     for (const p2 of list6) {
-      while (h.length >= 2 && cross6(h[h.length - 2], h[h.length - 1], p2) <= 0) h.pop();
+      while (h.length >= 2 && cross7(h[h.length - 2], h[h.length - 1], p2) <= 0) h.pop();
       h.push(p2);
     }
     h.pop();
@@ -11970,17 +12446,17 @@ function layoutConnections(spec, rooms, byId2) {
       const [x2, y2] = c.at ?? [(A.cx + B.cx) / 2, (A.cy + B.cy) / 2];
       return { index, a: c.a, b: c.b, kind, x: x2, y: y2, angle: Math.atan2(B.cy - A.cy, B.cx - A.cx) * 180 / Math.PI, width, wall: null };
     }
-    const len = (g) => Math.hypot(g[1][0] - g[0][0], g[1][1] - g[0][1]);
+    const len3 = (g) => Math.hypot(g[1][0] - g[0][0], g[1][1] - g[0][1]);
     const proj = (g, p2) => {
-      const L3 = len(g) || 1, t = ((p2[0] - g[0][0]) * (g[1][0] - g[0][0]) + (p2[1] - g[0][1]) * (g[1][1] - g[0][1])) / (L3 * L3);
+      const L3 = len3(g) || 1, t = ((p2[0] - g[0][0]) * (g[1][0] - g[0][0]) + (p2[1] - g[0][1]) * (g[1][1] - g[0][1])) / (L3 * L3);
       return t * L3;
     };
-    const dist = (g, p2) => {
-      const t = Math.max(0, Math.min(len(g), proj(g, p2))) / (len(g) || 1);
+    const dist3 = (g, p2) => {
+      const t = Math.max(0, Math.min(len3(g), proj(g, p2))) / (len3(g) || 1);
       return Math.hypot(g[0][0] + (g[1][0] - g[0][0]) * t - p2[0], g[0][1] + (g[1][1] - g[0][1]) * t - p2[1]);
     };
-    const seg = c.at ? segs2.reduce((m, g) => dist(g, c.at) < dist(m, c.at) ? g : m) : segs2.reduce((m, g) => len(g) > len(m) ? g : m);
-    const L2 = len(seg), ux = (seg[1][0] - seg[0][0]) / L2, uy = (seg[1][1] - seg[0][1]) / L2;
+    const seg = c.at ? segs2.reduce((m, g) => dist3(g, c.at) < dist3(m, c.at) ? g : m) : segs2.reduce((m, g) => len3(g) > len3(m) ? g : m);
+    const L2 = len3(seg), ux = (seg[1][0] - seg[0][0]) / L2, uy = (seg[1][1] - seg[0][1]) / L2;
     let along2 = c.at ? proj(seg, c.at) : L2 / 2;
     if (!c.at) {
       const v = seg[0][0] * Math.abs(ux) + seg[0][1] * Math.abs(uy), sign = Math.abs(ux) > Math.abs(uy) ? Math.sign(ux) : Math.sign(uy);
@@ -12076,11 +12552,11 @@ function stretch(path, from, to) {
   let at4 = 0;
   const point = (i, t) => [path[i] + (path[i + 2] - path[i]) * t, path[i + 1] + (path[i + 3] - path[i + 1]) * t];
   for (let i = 0; i + 3 < path.length; i += 2) {
-    const len = Math.hypot(path[i + 2] - path[i], path[i + 3] - path[i + 1]);
-    if (len > 0 && at4 + len > from && at4 < to) {
-      out.push(...point(i, Math.max(0, (from - at4) / len)), ...point(i, Math.min(1, (to - at4) / len)));
+    const len3 = Math.hypot(path[i + 2] - path[i], path[i + 3] - path[i + 1]);
+    if (len3 > 0 && at4 + len3 > from && at4 < to) {
+      out.push(...point(i, Math.max(0, (from - at4) / len3)), ...point(i, Math.min(1, (to - at4) / len3)));
     }
-    at4 += len;
+    at4 += len3;
   }
   return out;
 }
@@ -12193,7 +12669,7 @@ function pieces(b, rand) {
       return;
     }
     const vertical = w < 2 * min ? false : h < 2 * min ? true : w / h > 1.25 ? true : h / w > 1.25 ? false : rand() < 0.5;
-    const len = vertical ? w : h, at4 = (vertical ? r[0] : r[1]) + min + Math.floor(rand() * (len - 2 * min + 1));
+    const len3 = vertical ? w : h, at4 = (vertical ? r[0] : r[1]) + min + Math.floor(rand() * (len3 - 2 * min + 1));
     if (vertical) {
       cut2([r[0], r[1], at4, r[3]], depth + 1);
       cut2([at4, r[1], r[2], r[3]], depth + 1);
@@ -12320,7 +12796,7 @@ function singleRoom(spec, o) {
   out.rooms = [room3];
   out.corridors = (o.exits ?? []).map((e) => {
     const w = spec.gen.corridorWidth, odd = Math.round(w) % 2 === 1;
-    const mid = (len) => e.at !== void 0 ? e.at : odd ? Math.floor(len / 2) + 0.5 : Math.round(len / 2);
+    const mid = (len3) => e.at !== void 0 ? e.at : odd ? Math.floor(len3 / 2) + 0.5 : Math.round(len3 / 2);
     const at4 = e.side === "n" ? [m + mid(o.w), -1] : e.side === "s" ? [m + mid(o.w), out.rows + 1] : e.side === "w" ? [-1, m + mid(o.h)] : [out.cols + 1, m + mid(o.h)];
     const via = e.side === "n" || e.side === "s" ? [at4[0], m + o.h / 2] : [m + o.w / 2, at4[1]];
     return { from: { room: "r1" }, to: { at: at4, ...e.text && { exit: { text: e.text } } }, via, width: w, doors: [e.door === void 0 ? "door" : e.door, null] };
@@ -12361,12 +12837,12 @@ function generateDungeon(spec) {
     p2.id = `r${i + 1}`;
   });
   const c = (p2) => [p2.x + p2.w / 2, p2.y + p2.h / 2];
-  const dist = (a, b) => Math.hypot(c(a)[0] - c(b)[0], c(a)[1] - c(b)[1]);
+  const dist3 = (a, b) => Math.hypot(c(a)[0] - c(b)[0], c(a)[1] - c(b)[1]);
   const links = [], inTree = new Set(placed.length ? [0] : []);
   while (inTree.size < placed.length) {
     let best = [0, 0], bd = Infinity;
-    for (const i of inTree) for (let j = 0; j < placed.length; j++) if (!inTree.has(j) && dist(placed[i], placed[j]) < bd) {
-      bd = dist(placed[i], placed[j]);
+    for (const i of inTree) for (let j = 0; j < placed.length; j++) if (!inTree.has(j) && dist3(placed[i], placed[j]) < bd) {
+      bd = dist3(placed[i], placed[j]);
       best = [i, j];
     }
     links.push(best);
@@ -12374,7 +12850,7 @@ function generateDungeon(spec) {
   }
   const has = (i, j) => links.some(([a, b]) => a === i && b === j || a === j && b === i);
   const extra = Math.round(g.loops * placed.length * 0.5);
-  const cands = placed.flatMap((p2, i) => placed.map((q, j) => [i, j, dist(p2, q)]).filter(([, j]) => j > i)).filter(([i, j]) => !has(i, j)).sort((a, b) => a[2] - b[2]).slice(0, placed.length * 2);
+  const cands = placed.flatMap((p2, i) => placed.map((q, j) => [i, j, dist3(p2, q)]).filter(([, j]) => j > i)).filter(([i, j]) => !has(i, j)).sort((a, b) => a[2] - b[2]).slice(0, placed.length * 2);
   for (const [i, j] of cands) {
     if (links.length >= placed.length - 1 + extra) break;
     if (r() < 0.6) links.push([i, j]);
@@ -12580,12 +13056,12 @@ var init_symbols2 = __esm({
 function pointAt(path, d) {
   let at4 = 0;
   for (let i = 0; i + 3 < path.length; i += 2) {
-    const len = Math.hypot(path[i + 2] - path[i], path[i + 3] - path[i + 1]);
-    if (at4 + len >= d && len > 0) {
-      const t = (d - at4) / len;
+    const len3 = Math.hypot(path[i + 2] - path[i], path[i + 3] - path[i + 1]);
+    if (at4 + len3 >= d && len3 > 0) {
+      const t = (d - at4) / len3;
       return [path[i] + (path[i + 2] - path[i]) * t, path[i + 1] + (path[i + 3] - path[i + 1]) * t];
     }
-    at4 += len;
+    at4 += len3;
   }
   return [path[path.length - 2], path[path.length - 1]];
 }
@@ -12594,14 +13070,14 @@ function onSheet(path, cols, rows3) {
   if (inside3(path[0], path[1])) return 0;
   let at4 = 0;
   for (let i = 0; i + 3 < path.length; i += 2) {
-    const x0 = path[i], y0 = path[i + 1], x1 = path[i + 2], y1 = path[i + 3], len = Math.hypot(x1 - x0, y1 - y0);
+    const x0 = path[i], y0 = path[i + 1], x1 = path[i + 2], y1 = path[i + 3], len3 = Math.hypot(x1 - x0, y1 - y0);
     if (inside3(x1, y1)) {
       const dx = x1 - x0, dy = y1 - y0;
       let t = 0;
       for (const [p2, q] of [[-dx, x0], [dx, cols - x0], [-dy, y0], [dy, rows3 - y0]]) if (p2 < 0) t = Math.max(t, q / p2);
-      return at4 + len * t;
+      return at4 + len3 * t;
     }
-    at4 += len;
+    at4 += len3;
   }
   return null;
 }
@@ -12851,7 +13327,7 @@ function dungeonFurniture(spec, o = {}, l = o.layout ?? layoutDungeon(spec), on 
     }
   }
   if (on.scale) {
-    const n = scaleCells2(fr.w / k), len = n * k, fs = 11 * u, seg = Math.min(4, n), w = len + 34 * u, h = 40 * u;
+    const n = scaleCells2(fr.w / k), len3 = n * k, fs = 11 * u, seg = Math.min(4, n), w = len3 + 34 * u, h = 40 * u;
     items.push({
       id: "scale",
       rank: 1,
@@ -12861,10 +13337,10 @@ function dungeonFurniture(spec, o = {}, l = o.layout ?? layoutDungeon(spec), on 
       draw: (bx, by) => {
         const x = bx + 8 * u, y = by + 18 * u;
         let g = box2(bx, by, w, h);
-        for (let i = 0; i < seg; i++) g += `<rect x="${n1(x + len / seg * i)}" y="${n1(y)}" width="${n1(len / seg)}" height="${n1(5 * u)}" fill="${i % 2 ? PAPER : INK2}" stroke="${INK2}" stroke-width="${n1(0.8 * u)}"/>`;
+        for (let i = 0; i < seg; i++) g += `<rect x="${n1(x + len3 / seg * i)}" y="${n1(y)}" width="${n1(len3 / seg)}" height="${n1(5 * u)}" fill="${i % 2 ? PAPER : INK2}" stroke="${INK2}" stroke-width="${n1(0.8 * u)}"/>`;
         g += `<text x="${n1(x)}" y="${n1(y - 5 * u)}" font-size="${n1(fs)}" fill="${INK2}" text-anchor="middle">0</text>`;
-        g += `<text x="${n1(x + len)}" y="${n1(y - 5 * u)}" font-size="${n1(fs)}" fill="${INK2}" text-anchor="middle">${n * spec.scale.perCell} ${esc(spec.scale.unit)}</text>`;
-        g += `<text x="${n1(x + len / 2)}" y="${n1(y + 16 * u)}" font-size="${n1(fs * 0.85)}" fill="${INK2}" text-anchor="middle">1 square = ${spec.scale.perCell} ${esc(spec.scale.unit)}</text>`;
+        g += `<text x="${n1(x + len3)}" y="${n1(y - 5 * u)}" font-size="${n1(fs)}" fill="${INK2}" text-anchor="middle">${n * spec.scale.perCell} ${esc(spec.scale.unit)}</text>`;
+        g += `<text x="${n1(x + len3 / 2)}" y="${n1(y + 16 * u)}" font-size="${n1(fs * 0.85)}" fill="${INK2}" text-anchor="middle">1 square = ${spec.scale.perCell} ${esc(spec.scale.unit)}</text>`;
         return `<g id="scale">${g}</g>`;
       }
     });
@@ -12943,11 +13419,11 @@ function renderDungeonSvg(spec, o = {}) {
   if (exits.length) {
     let g = "";
     exits.forEach((x, i) => {
-      const len = Math.hypot(x.edge[0] - x.from[0], x.edge[1] - x.from[1]) * k, ext = 2 * k, wide = (x.width + 1) * k + 2 * (t + (spec.style.hatch === "band" ? spec.style.band * k : 0));
-      if (len > 0.5) {
-        const angle = Math.atan2(x.dir[1], x.dir[0]) * 180 / Math.PI, stop = (len / (len + ext)).toFixed(3);
+      const len3 = Math.hypot(x.edge[0] - x.from[0], x.edge[1] - x.from[1]) * k, ext = 2 * k, wide = (x.width + 1) * k + 2 * (t + (spec.style.hatch === "band" ? spec.style.band * k : 0));
+      if (len3 > 0.5) {
+        const angle = Math.atan2(x.dir[1], x.dir[0]) * 180 / Math.PI, stop = (len3 / (len3 + ext)).toFixed(3);
         defs.push(`<linearGradient id="exit-fade-${i}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${PAPER}" stop-opacity="0"/><stop offset="${stop}" stop-color="${PAPER}" stop-opacity="1"/></linearGradient>`);
-        g += `<g transform="translate(${n1(x.from[0] * k)} ${n1(x.from[1] * k)}) rotate(${n1(angle)})"><rect x="0" y="${n1(-wide / 2)}" width="${n1(len + ext)}" height="${n1(wide)}" fill="url(#exit-fade-${i})"/></g>`;
+        g += `<g transform="translate(${n1(x.from[0] * k)} ${n1(x.from[1] * k)}) rotate(${n1(angle)})"><rect x="0" y="${n1(-wide / 2)}" width="${n1(len3 + ext)}" height="${n1(wide)}" fill="url(#exit-fade-${i})"/></g>`;
       }
       const fs = o.pageScale ? pointsToPx(PAGE_PT.dungeon.note, o.pageScale) : 12 * u, lines2 = wrapText(x.exit.text, Math.abs(x.dir[0]) > Math.abs(x.dir[1]) ? 16 : 28);
       const w = Math.max(...lines2.map((t2) => t2.length)) * fs * 0.56 + 14 * u, h = fs * (0.7 + 1.2 * lines2.length);
@@ -13070,8 +13546,8 @@ function dungeonFacts(spec, layout2 = layoutDungeon(spec)) {
         reached.add(e.room);
         if (doors[k]) byId2.get(e.room)?.doors.push({ kind: doors[k], at: p2 ? pt3(p2.x, p2.y) : null, corridor: index, to: other });
       } else if ("at" in e) {
-        const [x, y] = e.at, dist = [["n", y], ["e", spec.cols - x], ["s", spec.rows - y], ["w", x]];
-        const [edge, d] = dist.reduce((a, b) => b[1] < a[1] ? b : a);
+        const [x, y] = e.at, dist3 = [["n", y], ["e", spec.cols - x], ["s", spec.rows - y], ["w", x]];
+        const [edge, d] = dist3.reduce((a, b) => b[1] < a[1] ? b : a);
         exits.push({ corridor: index, end: side, at: pt3(x, y), room: other, door: doors[k], edge, distance: length(d), ...e.exit && { text: e.exit.text }, ...e.exit?.href && { href: e.exit.href } });
       }
     });
@@ -13282,8 +13758,8 @@ function lintDungeon(spec, l = layoutDungeon(spec)) {
       add2("warning", at4, `${c.a} and ${c.b} share no wall, so the ${c.kind === "open" ? "opening" : c.kind} is not drawn; move one room against the other, or link them with a corridor`);
       return;
     }
-    const len = Math.hypot(c.wall[1][0] - c.wall[0][0], c.wall[1][1] - c.wall[0][1]);
-    if (len < c.width - 1e-6) add2("warning", at4, `the wall ${c.a} and ${c.b} share is ${len.toFixed(1)} cells, narrower than the ${c.width}-cell ${c.kind === "open" ? "opening" : c.kind}`);
+    const len3 = Math.hypot(c.wall[1][0] - c.wall[0][0], c.wall[1][1] - c.wall[0][1]);
+    if (len3 < c.width - 1e-6) add2("warning", at4, `the wall ${c.a} and ${c.b} share is ${len3.toFixed(1)} cells, narrower than the ${c.width}-cell ${c.kind === "open" ? "opening" : c.kind}`);
     const sc = spec.connections[i];
     if (sc.at && Math.hypot(sc.at[0] - c.x, sc.at[1] - c.y) > 0.75) add2("warning", `${at4}.at`, `${sc.at.join(",")} is not on the wall ${c.a} and ${c.b} share; the ${c.kind === "open" ? "opening" : c.kind} is at ${c.x.toFixed(1)},${c.y.toFixed(1)}`);
   });
@@ -14366,11 +14842,11 @@ function along(pts2, step, start = 0) {
   const out = [];
   let carry = start;
   for (let i = 0; i + 3 < pts2.length; i += 2) {
-    const dx = pts2[i + 2] - pts2[i], dy = pts2[i + 3] - pts2[i + 1], len = Math.hypot(dx, dy);
-    if (!len) continue;
+    const dx = pts2[i + 2] - pts2[i], dy = pts2[i + 3] - pts2[i + 1], len3 = Math.hypot(dx, dy);
+    if (!len3) continue;
     let t = carry;
-    for (; t <= len + 1e-9; t += step) out.push({ x: pts2[i] + dx * t / len, y: pts2[i + 1] + dy * t / len, angle: Math.atan2(dy, dx) / DEG });
-    carry = t - len;
+    for (; t <= len3 + 1e-9; t += step) out.push({ x: pts2[i] + dx * t / len3, y: pts2[i + 1] + dy * t / len3, angle: Math.atan2(dy, dx) / DEG });
+    carry = t - len3;
   }
   return out;
 }
@@ -14426,7 +14902,7 @@ function bridgesOf(roads, water2) {
     let run2 = [];
     const flush = () => {
       if (run2.length) {
-        const a = run2[0], b = run2[run2.length - 1], len = Math.hypot(b.x - a.x, b.y - a.y) || step, ux = (b.x - a.x) / len || Math.cos(a.angle * DEG), uy = (b.y - a.y) / len || Math.sin(a.angle * DEG), ext = 0.5;
+        const a = run2[0], b = run2[run2.length - 1], len3 = Math.hypot(b.x - a.x, b.y - a.y) || step, ux = (b.x - a.x) / len3 || Math.cos(a.angle * DEG), uy = (b.y - a.y) / len3 || Math.sin(a.angle * DEG), ext = 0.5;
         out.push({ road: r.index, x0: a.x - ux * ext, y0: a.y - uy * ext, x1: b.x + ux * ext, y1: b.y + uy * ext, width: r.width + 0.3 });
       }
       run2 = [];
@@ -14466,11 +14942,11 @@ function layoutSettlement(spec) {
     if (typeof b.number === "number") auto = Math.max(auto, b.number);
     return { building: b, index, outline: rotatePts(footprint(b), a, cx, cy), wings: buildingWings(b).map(([x, y, w, h]) => rotatePts(rectPts2(x, y, w, h), a, cx, cy)), cx, cy, number };
   });
-  const roads = spec.roads.map((r, index) => ({ index, kind: r.kind, pts: r.curve === "smooth" ? smooth2(r.points, false) : r.points.slice(), width: roadWidth(spec, r), closed: false }));
+  const roads = spec.roads.map((r, index) => ({ index, kind: r.kind, pts: r.curve === "smooth" ? smooth3(r.points, false) : r.points.slice(), width: roadWidth(spec, r), closed: false }));
   const water2 = spec.water.map((w, index) => {
     const area3 = !WATER_LINES.includes(w.kind), closed = area3 || closedLine(w.points);
     const raw = closed && !area3 ? w.points.slice(0, -2) : w.points;
-    const pts2 = w.kind === "canal" || w.kind === "moat" ? raw.slice() : smooth2(raw, closed, area3 ? 3 : 2);
+    const pts2 = w.kind === "canal" || w.kind === "moat" ? raw.slice() : smooth3(raw, closed, area3 ? 3 : 2);
     return { index, kind: w.kind, pts: pts2, width: area3 ? 0 : waterWidth(spec, w), closed, area: area3 };
   });
   const walls = spec.walls.map((_, i) => wallGeom2(spec, i, water2));
@@ -14538,7 +15014,7 @@ function layoutFloor(spec, b, floor3) {
   });
   return { outline: outline2, w, h, rooms: dl.rooms, partitions, inner, doors, windows, fixtures: fixtures2 };
 }
-var TREE_FT, GATE_FT, TOWER_FT, DEG, rectPts2, buildingCentre, roadWidth, waterWidth, wallThickness, closedLine, smooth2, centroid;
+var TREE_FT, GATE_FT, TOWER_FT, DEG, rectPts2, buildingCentre, roadWidth, waterWidth, wallThickness, closedLine, smooth3, centroid;
 var init_layout2 = __esm({
   "../artgen-mapgen/src/settlement/layout.ts"() {
     "use strict";
@@ -14559,7 +15035,7 @@ var init_layout2 = __esm({
     waterWidth = (spec, w) => w.width ?? Math.max(0.3, WATER_WIDTH_FT[w.kind] / spec.scale.perCell);
     wallThickness = (spec, w) => w.thickness ?? Math.max(0.2, WALL_THICK_FT[w.kind] / spec.scale.perCell);
     closedLine = (p2) => p2.length >= 6 && Math.abs(p2[0] - p2[p2.length - 2]) < 1e-9 && Math.abs(p2[1] - p2[p2.length - 1]) < 1e-9;
-    smooth2 = (p2, closed, passes = 3) => chaikin({ pts: p2, closed }, passes).pts;
+    smooth3 = (p2, closed, passes = 3) => chaikin({ pts: p2, closed }, passes).pts;
     centroid = (p2) => {
       let x = 0, y = 0;
       for (let i = 0; i < p2.length; i += 2) {
@@ -14715,8 +15191,8 @@ function roofSvg(g, k, p2, u) {
   }
   let dd = "";
   for (const w of g.wings) {
-    const r = ridgeOf(w), len = Math.hypot(r.b[0] - r.a[0], r.b[1] - r.a[1]) || 1, ux = (r.b[0] - r.a[0]) / len, uy = (r.b[1] - r.a[1]) / len;
-    const cut2 = roof === "hip" ? Math.min(len / 2 - 0.05, r.short / 2) : 0, a = [r.a[0] + ux * cut2, r.a[1] + uy * cut2], bb = [r.b[0] - ux * cut2, r.b[1] - uy * cut2];
+    const r = ridgeOf(w), len3 = Math.hypot(r.b[0] - r.a[0], r.b[1] - r.a[1]) || 1, ux = (r.b[0] - r.a[0]) / len3, uy = (r.b[1] - r.a[1]) / len3;
+    const cut2 = roof === "hip" ? Math.min(len3 / 2 - 0.05, r.short / 2) : 0, a = [r.a[0] + ux * cut2, r.a[1] + uy * cut2], bb = [r.b[0] - ux * cut2, r.b[1] - uy * cut2];
     dd += `M${M(a)}L${M(bb)}`;
     if (roof === "hip") {
       for (const c of r.corners) {
@@ -14742,10 +15218,10 @@ function wallSvg(w, k, p2, u, W3, H, defs) {
     const pts2 = w.closed ? [...w.pts, w.pts[0], w.pts[1]] : w.pts;
     let s2 = "", carry = 0;
     for (let i = 0; i + 3 < pts2.length; i += 2) {
-      const dx = pts2[i + 2] - pts2[i], dy = pts2[i + 3] - pts2[i + 1], len = Math.hypot(dx, dy);
+      const dx = pts2[i + 2] - pts2[i], dy = pts2[i + 3] - pts2[i + 1], len3 = Math.hypot(dx, dy);
       let t = carry;
-      for (; t <= len; t += step) s2 += `<circle cx="${n1((pts2[i] + dx * t / len) * k)}" cy="${n1((pts2[i + 1] + dy * t / len) * k)}" r="${n1(r)}" fill="${fill2}" stroke="${edge}" stroke-width="${n1(sw * 0.7)}"/>`;
-      carry = t - len;
+      for (; t <= len3; t += step) s2 += `<circle cx="${n1((pts2[i] + dx * t / len3) * k)}" cy="${n1((pts2[i + 1] + dy * t / len3) * k)}" r="${n1(r)}" fill="${fill2}" stroke="${edge}" stroke-width="${n1(sw * 0.7)}"/>`;
+      carry = t - len3;
     }
     return s2;
   };
@@ -14758,10 +15234,10 @@ function wallSvg(w, k, p2, u, W3, H, defs) {
   else body3 = S3(Math.max(sw, th * 0.6), tone) + dots(Math.max(1, 6 / Math.max(1, th / k)) * k * 0.25 + k, Math.max(sw, th * 0.7), tone, p2.ink);
   let g = `<g${cut2 ? ` mask="url(#${mid})"` : ""}>${body3}</g>`;
   for (const gt of w.gates) if (gt.drawbridge > 0) {
-    const a = Math.atan2(gt.outward[1], gt.outward[0]) * 180 / Math.PI, len = gt.drawbridge * k, bw = gt.width * k;
+    const a = Math.atan2(gt.outward[1], gt.outward[0]) * 180 / Math.PI, len3 = gt.drawbridge * k, bw = gt.width * k;
     let planks = "";
-    for (let x = len / 6; x < len; x += len / 6) planks += `M${n1(x)} ${n1(-bw / 2)}V${n1(bw / 2)}`;
-    g = `<g transform="translate(${n1(gt.x * k)} ${n1(gt.y * k)}) rotate(${n1(a)})"><rect x="0" y="${n1(-bw / 2)}" width="${n1(len)}" height="${n1(bw)}" fill="${p2.fixture.fill}" stroke="${p2.ink}" stroke-width="${n1(sw)}"/><path d="${planks}" stroke="${p2.ink}" stroke-width="${n1(sw * 0.5)}"/></g>` + g;
+    for (let x = len3 / 6; x < len3; x += len3 / 6) planks += `M${n1(x)} ${n1(-bw / 2)}V${n1(bw / 2)}`;
+    g = `<g transform="translate(${n1(gt.x * k)} ${n1(gt.y * k)}) rotate(${n1(a)})"><rect x="0" y="${n1(-bw / 2)}" width="${n1(len3)}" height="${n1(bw)}" fill="${p2.fixture.fill}" stroke="${p2.ink}" stroke-width="${n1(sw)}"/><path d="${planks}" stroke="${p2.ink}" stroke-width="${n1(sw * 0.5)}"/></g>` + g;
   }
   for (const t of w.towers) {
     const r = t.size * k / 2;
@@ -14806,14 +15282,14 @@ function furniture(a) {
     } });
   }
   if (a.on.scale) {
-    const n = scaleCells3(fr.w / k), len = n * k, fs = 11 * u, seg = Math.min(4, n), w = len + 34 * u, h = 40 * u;
+    const n = scaleCells3(fr.w / k), len3 = n * k, fs = 11 * u, seg = Math.min(4, n), w = len3 + 34 * u, h = 40 * u;
     items.push({ id: "scale", rank: 1, w, h, over: { x: fr.x + pad, y: fr.b - pad - h }, draw: (bx, by) => {
       const x = bx + 17 * u, y = by + 18 * u;
       let g = box2(bx, by, w, h);
-      for (let i = 0; i < seg; i++) g += `<rect x="${n1(x + len / seg * i)}" y="${n1(y)}" width="${n1(len / seg)}" height="${n1(5 * u)}" fill="${i % 2 ? p2.paper : p2.ink}" stroke="${p2.ink}" stroke-width="${n1(0.8 * u)}"/>`;
+      for (let i = 0; i < seg; i++) g += `<rect x="${n1(x + len3 / seg * i)}" y="${n1(y)}" width="${n1(len3 / seg)}" height="${n1(5 * u)}" fill="${i % 2 ? p2.paper : p2.ink}" stroke="${p2.ink}" stroke-width="${n1(0.8 * u)}"/>`;
       g += `<text x="${n1(x)}" y="${n1(y - 5 * u)}" font-size="${n1(fs)}" fill="${p2.ink}" text-anchor="middle">0</text>`;
-      g += `<text x="${n1(x + len)}" y="${n1(y - 5 * u)}" font-size="${n1(fs)}" fill="${p2.ink}" text-anchor="middle">${n * a.perCell} ${esc(a.unit)}</text>`;
-      g += `<text x="${n1(x + len / 2)}" y="${n1(y + 16 * u)}" font-size="${n1(fs * 0.85)}" fill="${p2.ink}" text-anchor="middle">1 square = ${a.perCell} ${esc(a.unit)}</text>`;
+      g += `<text x="${n1(x + len3)}" y="${n1(y - 5 * u)}" font-size="${n1(fs)}" fill="${p2.ink}" text-anchor="middle">${n * a.perCell} ${esc(a.unit)}</text>`;
+      g += `<text x="${n1(x + len3 / 2)}" y="${n1(y + 16 * u)}" font-size="${n1(fs * 0.85)}" fill="${p2.ink}" text-anchor="middle">1 square = ${a.perCell} ${esc(a.unit)}</text>`;
       return `<g id="scale">${g}</g>`;
     } });
   }
@@ -14827,12 +15303,12 @@ function furniture(a) {
   }
   return placeFurniture(items, fr, a.place, a.side, pad, a.covers);
 }
-function finish(fr, furn, defs, parts, p2, u, unit3) {
+function finish(fr, furn, defs, parts, p2, u, unit4) {
   const drawn = furn.placed.map((q) => q.item.draw(q.x, q.y)).join("");
   const out = { ...fr, w: fr.w + furn.band.right, h: fr.h + furn.band.bottom, r: fr.r + furn.band.right, b: fr.b + furn.band.bottom };
   const band = furn.band.right || furn.band.bottom ? `<rect x="${n1(out.x)}" y="${n1(out.y)}" width="${n1(out.w)}" height="${n1(out.h)}" fill="${p2.paper}"/>` : "";
   const frame = band ? `<rect x="${n1(fr.x)}" y="${n1(fr.y)}" width="${n1(fr.w)}" height="${n1(fr.h)}" fill="none" stroke="${p2.ink}" stroke-width="${n1(1.5 * u)}"/>` : "";
-  return `<svg xmlns="http://www.w3.org/2000/svg" ${sizeAttrs(out, unit3)} font-family="${FONT}"><defs>${defs.join("")}<clipPath id="map-clip"><rect x="${n1(fr.x)}" y="${n1(fr.y)}" width="${n1(fr.w)}" height="${n1(fr.h)}"/></clipPath></defs>${band}<g clip-path="url(#map-clip)">${parts.join("")}${band ? "" : drawn}</g>${frame}${band ? drawn : ""}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" ${sizeAttrs(out, unit4)} font-family="${FONT}"><defs>${defs.join("")}<clipPath id="map-clip"><rect x="${n1(fr.x)}" y="${n1(fr.y)}" width="${n1(fr.w)}" height="${n1(fr.h)}"/></clipPath></defs>${band}<g clip-path="url(#map-clip)">${parts.join("")}${band ? "" : drawn}</g>${frame}${band ? drawn : ""}</svg>`;
 }
 function labelSize3(l, u, pageScale) {
   const pt3 = { area: PAGE_PT.dungeon.area, name: PAGE_PT.dungeon.name, note: PAGE_PT.dungeon.note, street: PAGE_PT.dungeon.note }[l.kind];
@@ -14927,8 +15403,8 @@ function siteSvg(spec, o) {
   if (on.bridges && l.bridges.length) {
     let g = "";
     for (const b of l.bridges) {
-      const len = Math.hypot(b.x1 - b.x0, b.y1 - b.y0) * k, a = Math.atan2(b.y1 - b.y0, b.x1 - b.x0) * 180 / Math.PI, bw = b.width * k;
-      g += `<g transform="translate(${n1(b.x0 * k)} ${n1(b.y0 * k)}) rotate(${n1(a)})"><rect x="0" y="${n1(-bw / 2)}" width="${n1(len)}" height="${n1(bw)}" fill="${p2.fixture.stone}" stroke="${p2.ink}" stroke-width="${n1(sw)}"/><path d="M0 ${n1(-bw / 2 + sw * 1.5)}H${n1(len)}M0 ${n1(bw / 2 - sw * 1.5)}H${n1(len)}" stroke="${p2.ink}" stroke-width="${n1(sw * 1.6)}"/></g>`;
+      const len3 = Math.hypot(b.x1 - b.x0, b.y1 - b.y0) * k, a = Math.atan2(b.y1 - b.y0, b.x1 - b.x0) * 180 / Math.PI, bw = b.width * k;
+      g += `<g transform="translate(${n1(b.x0 * k)} ${n1(b.y0 * k)}) rotate(${n1(a)})"><rect x="0" y="${n1(-bw / 2)}" width="${n1(len3)}" height="${n1(bw)}" fill="${p2.fixture.stone}" stroke="${p2.ink}" stroke-width="${n1(sw)}"/><path d="M0 ${n1(-bw / 2 + sw * 1.5)}H${n1(len3)}M0 ${n1(bw / 2 - sw * 1.5)}H${n1(len3)}" stroke="${p2.ink}" stroke-width="${n1(sw * 1.6)}"/></g>`;
     }
     parts.push(`<g id="bridges">${g}</g>`);
   }
@@ -15102,8 +15578,8 @@ function splitFloor(spec, b, level2, min, single, rand) {
   for (let i = 1; i < wingRooms.length; i++) {
     let best = null;
     for (const a of wingRooms[0]) for (const c of wingRooms[i]) {
-      const len = sharedEdges(roomOutline(a), roomOutline(c)).reduce((s2, [p2, q]) => s2 + Math.hypot(q[0] - p2[0], q[1] - p2[1]), 0);
-      if (len >= 1 && (!best || len > best[2])) best = [a, c, len];
+      const len3 = sharedEdges(roomOutline(a), roomOutline(c)).reduce((s2, [p2, q]) => s2 + Math.hypot(q[0] - p2[0], q[1] - p2[1]), 0);
+      if (len3 >= 1 && (!best || len3 > best[2])) best = [a, c, len3];
     }
     if (best) connections.push({ a: best[0].id, b: best[1].id });
   }
@@ -15148,17 +15624,17 @@ function place(pl, room3, outline2, kind, where, rand, per, farFrom, size2) {
 }
 function rows(pl, room3, kind, n, per, door3) {
   const fx2 = FIXTURES[kind], long = room3.w >= room3.h, L2 = long ? room3.w : room3.h, S3 = long ? room3.h : room3.w, aisle = 1;
-  const len = Math.min(fx2.ft[0] / per, (S3 - aisle - 0.4) / 2), depth = fx2.ft[1] / per, step = depth + (kind === "bunk" ? 0.6 : 0.5);
-  if (len < 0.6) return;
+  const len3 = Math.min(fx2.ft[0] / per, (S3 - aisle - 0.4) / 2), depth = fx2.ft[1] / per, step = depth + (kind === "bunk" ? 0.6 : 0.5);
+  if (len3 < 0.6) return;
   const fromStart = !door3 || (long ? Math.abs(door3.x - room3.x) < Math.abs(door3.x - room3.x - room3.w) : Math.abs(door3.y - room3.y) < Math.abs(door3.y - room3.y - room3.h));
   let placed = 0;
   for (let t = 1.2 + depth / 2; t < L2 - 2.2 && placed < n; t += step) {
     const a = fromStart ? t : L2 - t;
     for (const sg2 of [-1, 1]) {
-      const off = aisle / 2 + len / 2, c = long ? { x: room3.x + a, y: room3.y + room3.h / 2 + sg2 * off } : { x: room3.x + room3.w / 2 + sg2 * off, y: room3.y + a };
-      const angle = long ? 90 : 0, bx = boxOf(c, len, depth, angle);
+      const off = aisle / 2 + len3 / 2, c = long ? { x: room3.x + a, y: room3.y + room3.h / 2 + sg2 * off } : { x: room3.x + room3.w / 2 + sg2 * off, y: room3.y + a };
+      const angle = long ? 90 : 0, bx = boxOf(c, len3, depth, angle);
       if (pl.boxes.some((o) => hits(o, bx, 0.05)) || pl.keepOut.some((k) => k.x > bx.x - 0.6 && k.x < bx.x + bx.w + 0.6 && k.y > bx.y - 0.6 && k.y < bx.y + bx.h + 0.6)) continue;
-      pl.fixtures.push({ kind, x: r2(c.x), y: r2(c.y), w: r2(len), h: r2(depth), ...angle && { angle }, origin: ORIGIN });
+      pl.fixtures.push({ kind, x: r2(c.x), y: r2(c.y), w: r2(len3), h: r2(depth), ...angle && { angle }, origin: ORIGIN });
       pl.boxes.push(bx);
       placed++;
     }
@@ -15192,15 +15668,15 @@ function windowsFor(outline2, doors, kind) {
   return out;
 }
 function doorOn(outline2, side, W3, H) {
-  let best = side === "n" ? [W3 / 2, 0] : side === "s" ? [W3 / 2, H] : side === "w" ? [0, H / 2] : [W3, H / 2], len = 0;
+  let best = side === "n" ? [W3 / 2, 0] : side === "s" ? [W3 / 2, H] : side === "w" ? [0, H / 2] : [W3, H / 2], len3 = 0;
   for (let i = 0, j = outline2.length - 2; i < outline2.length; j = i, i += 2) {
     const ax = outline2[j], ay = outline2[j + 1], bx = outline2[i], by = outline2[i + 1], L2 = Math.hypot(bx - ax, by - ay);
     const horizontal2 = Math.abs(ay - by) < 1e-6, vertical = Math.abs(ax - bx) < 1e-6;
     const facing = side === "n" || side === "s" ? horizontal2 : vertical;
     if (!facing || L2 < 1) continue;
     const out = side === "n" ? -ay : side === "s" ? ay : side === "w" ? -ax : ax, score2 = L2 + out * 0.01;
-    if (score2 > len) {
-      len = score2;
+    if (score2 > len3) {
+      len3 = score2;
       best = horizontal2 ? [Math.round((ax + bx) / 2 * 2) / 2, ay] : [ax, Math.round((ay + by) / 2 * 2) / 2];
     }
   }
@@ -15608,8 +16084,8 @@ function generateSettlement(spec, ctx = {}) {
         const pool2 = s2.roads.flatMap((r) => r.kind === "path" || r.kind === "track" ? [] : Array.from({ length: r.points.length / 2 - 1 }, (_, j) => [r.points[2 * j], r.points[2 * j + 1], r.points[2 * j + 2], r.points[2 * j + 3]])).filter((q) => Math.hypot(q[0] - C3[0], q[1] - C3[1]) < Rcore * 0.85);
         if (!pool2.length) break;
         const [sx, sy, nx, ny] = pool2[Math.floor(rand() * pool2.length)], a = Math.atan2(ny - sy, nx - sx) + (rand() < 0.5 ? 1 : -1) * Math.PI / 2 + (rand() - 0.5) * 0.5;
-        const len = Rcore * (0.35 + rand() * 0.45);
-        let end = [sx + Math.cos(a) * len, sy + Math.sin(a) * len];
+        const len3 = Rcore * (0.35 + rand() * 0.45);
+        let end = [sx + Math.cos(a) * len3, sy + Math.sin(a) * len3];
         for (let k = 0; k < 12 && (Math.hypot(end[0] - C3[0], end[1] - C3[1]) > Rcore * 0.95 || wallRing && !inPolygon(flat(wallRing), end[0], end[1])); k++) end = [end[0] + (sx - end[0]) * 0.15, end[1] + (sy - end[1]) * 0.15];
         end = [Math.max(1, Math.min(cols - 1, end[0])), Math.max(1, Math.min(rows3 - 1, end[1]))];
         if (wet(end[0], end[1], 1) || Math.hypot(end[0] - sx, end[1] - sy) < Rcore * 0.2) continue;
@@ -15695,10 +16171,10 @@ function generateSettlement(spec, ctx = {}) {
   for (const r of lay.roads) {
     if (r.kind === "path" || r.kind === "track") continue;
     for (let i = 0; i + 3 < r.pts.length; i += 2) {
-      const x0 = r.pts[i], y0 = r.pts[i + 1], x1 = r.pts[i + 2], y1 = r.pts[i + 3], len = Math.hypot(x1 - x0, y1 - y0);
-      if (len < 0.01) continue;
-      const ux = (x1 - x0) / len, uy = (y1 - y0) / len, step = ft(big ? 14 : 20) * (1.3 - g.density * 0.5);
-      for (let t = 0; t < len; t += step) for (const sg2 of [-1, 1]) {
+      const x0 = r.pts[i], y0 = r.pts[i + 1], x1 = r.pts[i + 2], y1 = r.pts[i + 3], len3 = Math.hypot(x1 - x0, y1 - y0);
+      if (len3 < 0.01) continue;
+      const ux = (x1 - x0) / len3, uy = (y1 - y0) / len3, step = ft(big ? 14 : 20) * (1.3 - g.density * 0.5);
+      for (let t = 0; t < len3; t += step) for (const sg2 of [-1, 1]) {
         const x = x0 + ux * t, y = y0 + uy * t;
         spots.push({ x, y, angle: Math.atan2(uy, ux) * 180 / Math.PI, nx: -uy * sg2, ny: ux * sg2, off: r.width / 2 + ft(big ? 3 : 6) + rand() * ft(4), d: Math.hypot(x - C3[0], y - C3[1]) + rand() * ft(30), road: r.kind });
       }
@@ -15930,7 +16406,7 @@ var init_generate3 = __esm({
       }
     };
     calm = (pts2) => simplifyLine(chaikin({ pts: pts2.flat(), closed: false }, 2), 0.35).pts.map(r22);
-    feetIn2 = (unit3) => ({ ft: 1, yd: 3, m: 3.28084, mi: 5280, km: 3280.84 })[unit3] ?? 1;
+    feetIn2 = (unit4) => ({ ft: 1, yd: 3, m: 3.28084, mi: 5280, km: 3280.84 })[unit4] ?? 1;
   }
 });
 
@@ -16026,12 +16502,12 @@ var init_lint2 = __esm({
 
 // ../artgen-mapgen/src/settlement/facts.ts
 function settlementFacts(spec, l = layoutSettlement(spec)) {
-  const per = spec.scale.perCell, unit3 = spec.scale.unit, len = (cells) => r12(cells * per), sq = (cells) => Math.round(cells * per * per);
+  const per = spec.scale.perCell, unit4 = spec.scale.unit, len3 = (cells) => r12(cells * per), sq = (cells) => Math.round(cells * per * per);
   return {
     version: SETTLEMENT_FORMAT,
     id: spec.id,
     kind: spec.kind,
-    size: { cols: spec.cols, rows: spec.rows, scale: `1 cell = ${per} ${unit3}` },
+    size: { cols: spec.cols, rows: spec.rows, scale: `1 cell = ${per} ${unit4}` },
     counts: {
       buildings: tally(spec.buildings.map((b) => b.kind)),
       roads: tally(spec.roads.map((r) => r.kind)),
@@ -16049,14 +16525,14 @@ function settlementFacts(spec, l = layoutSettlement(spec)) {
         kind: b.kind,
         ...b.label && { label: b.label },
         box: { x: r12(b.x), y: r12(b.y), w: r12(b.w), h: r12(b.h), angle: r12(b.angle ?? 0) },
-        size: `${len(b.w)} \xD7 ${len(b.h)} ${unit3}`,
+        size: `${len3(b.w)} \xD7 ${len3(b.h)} ${unit4}`,
         stories: b.stories ?? Math.max(1, (b.floors ?? []).filter((f) => f.level >= 0).length),
         floors: [...b.floors ?? []].sort((p2, q) => p2.level - q.level).map((f) => ({ level: f.level, name: floorName(f), rooms: f.rooms.length, doors: (f.doors?.length ?? 0) + (f.connections?.filter((c) => c.kind !== "open").length ?? 0), windows: f.windows?.length ?? 0, fixtures: tally((f.fixtures ?? []).map((x) => x.kind)) }))
       };
     }),
-    walls: l.walls.map((w) => ({ index: w.index, kind: w.kind, length: len(lineLength2(w.closed ? [...w.pts, w.pts[0], w.pts[1]] : w.pts)), closed: w.closed, towers: w.towers.length, gates: w.gates.map((g) => ({ kind: g.kind, at: [r12(g.x), r12(g.y)] })) })),
-    roads: l.roads.map((r) => ({ index: r.index, kind: r.kind, length: len(lineLength2(r.pts)), ...spec.roads[r.index].label && { label: spec.roads[r.index].label } })),
-    water: l.water.map((w) => w.area ? { index: w.index, kind: w.kind, area: sq(polygonArea(w.pts)) } : { index: w.index, kind: w.kind, length: len(lineLength2(w.pts)) }),
+    walls: l.walls.map((w) => ({ index: w.index, kind: w.kind, length: len3(lineLength2(w.closed ? [...w.pts, w.pts[0], w.pts[1]] : w.pts)), closed: w.closed, towers: w.towers.length, gates: w.gates.map((g) => ({ kind: g.kind, at: [r12(g.x), r12(g.y)] })) })),
+    roads: l.roads.map((r) => ({ index: r.index, kind: r.kind, length: len3(lineLength2(r.pts)), ...spec.roads[r.index].label && { label: spec.roads[r.index].label } })),
+    water: l.water.map((w) => w.area ? { index: w.index, kind: w.kind, area: sq(polygonArea(w.pts)) } : { index: w.index, kind: w.kind, length: len3(lineLength2(w.pts)) }),
     areas: spec.areas.map((a, index) => ({ index, kind: a.kind, area: sq(polygonArea(a.points)), ...a.label && { label: a.label } })),
     bridges: l.bridges.length
   };
@@ -16759,6 +17235,10 @@ function makeLib(dir, kind, stage, seed = 1, onScene, onRig) {
   const sceneOpts = { light: dir.camera.light, bands: dir.shading.bands, outlineColor: dir.outline, shadowColor: dir.shadow, applyLine: line2 };
   return {
     Grid,
+    /** Pixels per metre of world height (rev 9): a brief's `height` × this is how tall the body is drawn. Read when asked (a direction without a character scale has none). */
+    get pxPerMetre() {
+      return pxPerMetre(dir);
+    },
     line: line2,
     post: {
       ...post_exports,
@@ -16857,6 +17337,16 @@ function makeLib(dir, kind, stage, seed = 1, onScene, onRig) {
         const r = bodyRig(plan, { ...ctx, ...o });
         onRig?.({ plan: r.plan, set: r.set, lengths: r.lengths });
         return r;
+      },
+      /**
+       * The same skeletons in 3D (R7b): `body3d('biped', { height })` in a 3D-mode model's units and frame; build the parts along
+       * `rig.pose(ctx.state, ctx.t)` with `bone` on each and pass the pose to `t2.scene3d({ k, pose })`: `artgen rig` skins the
+       * mesh of the bind pose (idle, t = 0) to these bones and exports the clips.
+       */
+      body3d: (plan, o) => {
+        const r = bodyRig3d(plan, o);
+        onRig?.({ plan: r.plan, set: r.set, lengths: r.lengths });
+        return r;
       }
     },
     /**
@@ -16891,10 +17381,10 @@ function renderAsset(mod4, { dir, brief, seed = 1, variant = 0, params = {}, sta
   if (!facings) throw new Error(`brief ${brief.id}: directions must be 1, 4, 8 or 16`);
   const frames = {}, timing = {};
   for (const s2 of states2) {
-    const a = brief.anims?.[s2], n = a?.frames ?? 1, sub5 = Math.max(1, Math.floor(a?.sub ?? 1));
+    const a = brief.anims?.[s2], n = a?.frames ?? 1, sub6 = Math.max(1, Math.floor(a?.sub ?? 1));
     const fps = a?.fps ?? (brief.kind === "effect" ? dir.effects.fps : 8);
-    timing[s2] = { n, sub: sub5, durations: a?.durations?.length === n ? a.durations : Array.from({ length: n }, () => Math.round(1e3 / fps)) };
-    frames[s2] = n * sub5;
+    timing[s2] = { n, sub: sub6, durations: a?.durations?.length === n ? a.durations : Array.from({ length: n }, () => Math.round(1e3 / fps)) };
+    frames[s2] = n * sub6;
   }
   if (brief.rotate !== void 0 && brief.rotate !== "rotsprite") throw new Error(`brief ${brief.id}: rotate must be rotsprite`);
   const from = brief.rotate ? brief.rotateFrom ?? "e" : void 0;
@@ -17059,6 +17549,7 @@ var init_render4 = __esm({
     init_fp();
     init_anim();
     init_rigs();
+    init_rig3d();
     init_particles();
     init_scene();
     init_scene3d();
@@ -17137,9 +17628,9 @@ function animInput(r) {
   const f = r.facings[0];
   return {
     states: r.states.map((s2) => {
-      const a = r.brief.anims?.[s2], sub5 = Math.max(1, Math.floor(a?.sub ?? 1)), n = r.frames[s2];
+      const a = r.brief.anims?.[s2], sub6 = Math.max(1, Math.floor(a?.sub ?? 1)), n = r.frames[s2];
       const frames = r.cells.filter((c) => c.state === s2 && c.facing === f).sort((x, y) => x.frame - y.frame).map((c) => c.grid);
-      return { name: s2, loop: a?.loop ?? (r.brief.kind !== "effect" && (n === 1 || LOOPING.test(s2))), logical: n / sub5, ...a?.durations && { durations: a.durations }, frames };
+      return { name: s2, loop: a?.loop ?? (r.brief.kind !== "effect" && (n === 1 || LOOPING.test(s2))), logical: n / sub6, ...a?.durations && { durations: a.durations }, frames };
     })
   };
 }
@@ -17870,13 +18361,13 @@ function defaultAnchor(b, view, size2) {
 function stateDefs(b, dir, frames) {
   const out = {};
   for (const [s2, n] of Object.entries(frames)) {
-    const a = b.anims?.[s2], sub5 = Math.max(1, Math.floor(a?.sub ?? 1));
+    const a = b.anims?.[s2], sub6 = Math.max(1, Math.floor(a?.sub ?? 1));
     out[s2] = {
       frames: n,
       fps: a?.fps ?? (b.kind === "effect" ? dir.effects.fps : 8),
       loop: a?.loop ?? (b.kind !== "effect" && (n === 1 || LOOPING2.test(s2))),
       ...a?.durations?.length === n && { durations: [...a.durations] },
-      ...sub5 > 1 && { sub: sub5 }
+      ...sub6 > 1 && { sub: sub6 }
     };
   }
   return out;
@@ -18273,8 +18764,8 @@ function stageKeys(r, dir, o = {}) {
     } else light.str("-");
   }
   keys.shape = shape.hex();
-  const rig2 = rigKey(r);
-  if (rig2) keys.rig = rig2;
+  const rig3 = rigKey(r);
+  if (rig3) keys.rig = rig3;
   keys.decorate = look.hex();
   const decal = decalKey(r);
   if (decal) keys.decal = decal;
@@ -19546,8 +20037,8 @@ function lightDiagram(dir, r) {
   for (let y = 0; y < size2; y++) for (let x = 0; x < size2; x++) {
     const dx = (x + 0.5 - c) / r, dy = (y + 0.5 - c) / r, d2 = dx * dx + dy * dy;
     if (d2 > 1) continue;
-    const dz = Math.sqrt(1 - d2), dot5 = Math.max(0, (dx * lx + dy * ly + dz * lz) / n);
-    const b = Math.min(bands2 - 1, Math.floor((1 - dot5) * bands2));
+    const dz = Math.sqrt(1 - d2), dot6 = Math.max(0, (dx * lx + dy * ly + dz * lz) / n);
+    const b = Math.min(bands2 - 1, Math.floor((1 - dot6) * bands2));
     g.set(x, y, ramp2[Math.round(b * (ramp2.length - 1) / Math.max(1, bands2 - 1))]);
   }
   const ux = lx / (Math.hypot(lx, ly) || 1), uy = ly / (Math.hypot(lx, ly) || 1), ax = c + ux * (r + 3), ay = c + uy * (r + 3);
@@ -20137,7 +20628,7 @@ var require_applyReviver = __commonJS({
     function applyReviver(reviver, obj, key2, val) {
       if (val && typeof val === "object") {
         if (Array.isArray(val)) {
-          for (let i = 0, len = val.length; i < len; ++i) {
+          for (let i = 0, len3 = val.length; i < len3; ++i) {
             const v0 = val[i];
             const v1 = applyReviver(reviver, val, String(i), v0);
             if (v1 === void 0)
@@ -21620,8 +22111,8 @@ ${indent}${line2}` : "\n";
         return start + end;
       } else {
         if (!reqNewline) {
-          const len = lines2.reduce((sum2, line2) => sum2 + line2.length + 2, 2);
-          reqNewline = ctx.options.lineWidth > 0 && len > ctx.options.lineWidth;
+          const len3 = lines2.reduce((sum2, line2) => sum2 + line2.length + 2, 2);
+          reqNewline = ctx.options.lineWidth > 0 && len3 > ctx.options.lineWidth;
         }
         if (reqNewline) {
           let str2 = start;
@@ -22072,9 +22563,9 @@ var require_float = __commonJS({
       test: /^[-+]?(?:\.[0-9]+|[0-9]+\.[0-9]*)$/,
       resolve(str2) {
         const node = new Scalar.Scalar(parseFloat(str2));
-        const dot5 = str2.indexOf(".");
-        if (dot5 !== -1 && str2[str2.length - 1] === "0")
-          node.minFractionDigits = str2.length - dot5 - 1;
+        const dot6 = str2.indexOf(".");
+        if (dot6 !== -1 && str2[str2.length - 1] === "0")
+          node.minFractionDigits = str2.length - dot6 - 1;
         return node;
       },
       stringify: stringifyNumber.stringifyNumber
@@ -22512,9 +23003,9 @@ var require_float2 = __commonJS({
       test: /^[-+]?(?:[0-9][0-9_]*)?\.[0-9_]*$/,
       resolve(str2) {
         const node = new Scalar.Scalar(parseFloat(str2.replace(/_/g, "")));
-        const dot5 = str2.indexOf(".");
-        if (dot5 !== -1) {
-          const f = str2.substring(dot5 + 1).replace(/_/g, "");
+        const dot6 = str2.indexOf(".");
+        if (dot6 !== -1) {
+          const f = str2.substring(dot6 + 1).replace(/_/g, "");
           if (f[f.length - 1] === "0")
             node.minFractionDigits = f.length;
         }
@@ -27059,6 +27550,11 @@ function validateBrief(b, where = "brief") {
     if (!BODIES.includes(b.body)) e.push(`${at4}: body must be one of ${BODIES.join(", ")}`);
     else if (b.kind !== "character" && b.kind !== "creature") e.push(`${at4}: body applies to characters and creatures`);
   }
+  if (b.rigged !== void 0) {
+    if (typeof b.rigged !== "boolean") e.push(`${at4}: rigged must be true or false`);
+    else if (b.rigged && b.kind !== "character" && b.kind !== "creature") e.push(`${at4}: rigged applies to characters and creatures`);
+    else if (b.rigged && b.body !== void 0 && b.body !== "humanoid") e.push(`${at4}: rigged figures are humanoid for now (the rigged template is the biped; other bodies: ctx.lib.rigs.body3d by hand)`);
+  }
   if (b.autotile !== void 0 && !["wang16", "blob47"].includes(b.autotile)) e.push(`${at4}: autotile must be wang16 or blob47`);
   if (b.surface !== void 0 && !["wall", "floor", "ceiling", "sky"].includes(b.surface)) e.push(`${at4}: surface must be wall, floor, ceiling or sky`);
   if (b.blend !== void 0 && !["normal", "add"].includes(b.blend)) e.push(`${at4}: blend must be normal or add`);
@@ -27069,12 +27565,14 @@ function validateBrief(b, where = "brief") {
   if (b.gates !== void 0 && !(Array.isArray(b.gates) && b.gates.every((g) => GATEABLE.includes(g)))) e.push(`${at4}: gates must be a list of ${GATEABLE.join(", ")}`);
   if (b.mesh !== void 0) {
     const m = b.mesh;
-    if (!isObj4(m) || Object.keys(m).some((k) => !["budget", "mode", "texels", "look"].includes(k))) e.push(`${at4}: mesh takes budget, mode, texels and look`);
+    if (!isObj4(m) || Object.keys(m).some((k) => !["budget", "mode", "texels", "look", "lods", "keys"].includes(k))) e.push(`${at4}: mesh takes budget, mode, texels, look, lods and keys`);
     else {
       if (m.budget !== void 0 && !(Number.isInteger(m.budget) && m.budget >= 12)) e.push(`${at4}: mesh.budget must be a whole number of triangles (at least 12)`);
       if (m.mode !== void 0 && !["auto", "smooth", "faceted"].includes(m.mode)) e.push(`${at4}: mesh.mode must be auto, smooth or faceted`);
       if (m.texels !== void 0 && !(typeof m.texels === "number" && m.texels > 0 && m.texels <= 64)) e.push(`${at4}: mesh.texels must be texels per model unit (0\u201364)`);
       if (m.look !== void 0 && !["pbr", "baked"].includes(m.look)) e.push(`${at4}: mesh.look must be pbr or baked`);
+      if (m.lods !== void 0 && !(Number.isInteger(m.lods) && m.lods >= 1 && m.lods <= 4)) e.push(`${at4}: mesh.lods must be 1, 2, 3 or 4`);
+      if (m.keys !== void 0 && !(Number.isInteger(m.keys) && m.keys >= 2 && m.keys <= 120)) e.push(`${at4}: mesh.keys must be a whole number of samples per clip (2\u2013120)`);
     }
   }
   if (b.rotate !== void 0) {
@@ -28462,12 +28960,12 @@ async function renderMapFiles(p2, ref, o = {}) {
   const formats2 = o.formats ?? ["svg", "png"], files = [];
   if (o.fit && o.ppu !== void 0) throw new Error("--fit and --ppu both set the scale: use one");
   const crop3 = clampCrop(o.crop ?? [0, 0, m.cols, m.rows], m.cols, m.rows), ppu = o.fit ? fitPpu(crop3[2], crop3[3], o.fit) : o.ppu ?? 40;
-  const size2 = [Math.round(crop3[2] * ppu), Math.round(crop3[3] * ppu)], unit3 = o.fit?.unit ?? "px";
+  const size2 = [Math.round(crop3[2] * ppu), Math.round(crop3[3] * ppu)], unit4 = o.fit?.unit ?? "px";
   const pageScale = o.pageScale ?? (o.fit ? PX_PER_MM : void 0);
   if (formats2.includes("png")) await initNodeMapSvg();
   mkdirSync2(out, { recursive: true });
   for (const theme of o.themes ?? ["color"]) {
-    const svg4 = map_exports.renderMapSvg(m, { theme, ppu, layers: o.layers, field, ...o.crop && { crop: crop3 }, unit: unit3, pageScale }), base = join3(out, `${id2}.${theme}`);
+    const svg4 = map_exports.renderMapSvg(m, { theme, ppu, layers: o.layers, field, ...o.crop && { crop: crop3 }, unit: unit4, pageScale }), base = join3(out, `${id2}.${theme}`);
     if (formats2.includes("svg")) {
       writeFileSync2(`${base}.svg`, svg4);
       files.push(`${base}.svg`);
@@ -28477,11 +28975,11 @@ async function renderMapFiles(p2, ref, o = {}) {
       files.push(`${base}.png`);
     }
   }
-  return { files: files.map((f) => relative(process.cwd(), f)), terrains: map_exports.terrainsUsed(field), rivers: field.rivers.length, size: size2, crop: crop3, ppu, svg: svgSize(crop3, ppu, unit3), pageScale: pageScale ?? null, unplaced: map_exports.mapLabelLayout(m, ppu, pageScale).unplaced };
+  return { files: files.map((f) => relative(process.cwd(), f)), terrains: map_exports.terrainsUsed(field), rivers: field.rivers.length, size: size2, crop: crop3, ppu, svg: svgSize(crop3, ppu, unit4), pageScale: pageScale ?? null, unplaced: map_exports.mapLabelLayout(m, ppu, pageScale).unplaced };
 }
-function svgSize(crop3, ppu, unit3) {
-  const f = unit3 === "mm" ? 96 / 25.4 : 1, r = (v) => Math.round(v * ppu / f * 100) / 100;
-  return { width: r(crop3[2]), height: r(crop3[3]), unit: unit3 };
+function svgSize(crop3, ppu, unit4) {
+  const f = unit4 === "mm" ? 96 / 25.4 : 1, r = (v) => Math.round(v * ppu / f * 100) / 100;
+  return { width: r(crop3[2]), height: r(crop3[3]), unit: unit4 };
 }
 function numbers2(v, what, pairs2 = true) {
   const xs = (v ?? "").split(",").map((s2) => s2.trim()).filter(Boolean).map(Number);
@@ -28559,7 +29057,7 @@ var init_map2 = __esm({
     shown = (p2, f) => relative(p2?.root ?? process.cwd(), f);
     mapSummary = (m) => ({ id: m.id, preset: m.preset, size: `${m.cols}x${m.rows}`, ...m.title && { title: m.title }, edits: m.edits.length, labels: m.overlay.labels.length, symbols: m.overlay.symbols.length });
     onOff = (v) => v === void 0 ? void 0 : /^(on|true|yes|1)$/i.test(v);
-    km = (l, unit3) => `${l.map} (${l.scale} ${unit3})`;
+    km = (l, unit4) => `${l.map} (${l.scale} ${unit4})`;
     at3 = (p2) => `${p2[0]},${p2[1]}`;
   }
 });
@@ -28627,7 +29125,7 @@ async function renderDungeonFiles(p2, ref, o = {}) {
   if (o.crop && o.rooms?.length) throw new Error("--crop and --room both set the window: use one");
   if (o.margin !== void 0 && !o.rooms?.length) throw new Error("--margin goes with --room");
   const window = o.rooms?.length ? dungeon_exports.roomCrop(m, o.rooms, o.margin, layout2) : o.crop;
-  const crop3 = clampCrop(window ?? [0, 0, m.cols, m.rows], m.cols, m.rows), unit3 = o.fit?.unit ?? "px";
+  const crop3 = clampCrop(window ?? [0, 0, m.cols, m.rows], m.cols, m.rows), unit4 = o.fit?.unit ?? "px";
   const pageScale = o.pageScale ?? (o.fit ? PX_PER_MM : void 0), underlay = readUnderlay(p2, ref, m);
   const view = { layers: o.layers, layout: layout2, ...window && { crop: crop3 }, pageScale };
   let ppu = o.fit ? fitPpu(crop3[2], crop3[3], o.fit) : o.ppu ?? 40;
@@ -28647,7 +29145,7 @@ async function renderDungeonFiles(p2, ref, o = {}) {
   const px = dungeon_exports.dungeonRenderSize(m, { ...view, ppu }), size2 = [Math.round(px.width), Math.round(px.height)];
   if (formats2.includes("png")) await initNodeMapSvg();
   mkdirSync3(out, { recursive: true });
-  const svg4 = dungeon_exports.renderDungeonSvg(m, { ...view, ppu, unit: unit3, ...underlay && { underlay } }), base = join4(out, id2);
+  const svg4 = dungeon_exports.renderDungeonSvg(m, { ...view, ppu, unit: unit4, ...underlay && { underlay } }), base = join4(out, id2);
   if (formats2.includes("svg")) {
     writeFileSync3(`${base}.svg`, svg4);
     files.push(`${base}.svg`);
@@ -28656,7 +29154,7 @@ async function renderDungeonFiles(p2, ref, o = {}) {
     writeFileSync3(`${base}.png`, encodePNG(rasterizeSvg(svg4, size2[0], size2[1])));
     files.push(`${base}.png`);
   }
-  return { files: files.map((f) => relative2(process.cwd(), f)), rooms: m.rooms.length, corridors: m.corridors.length, doors: layout2.doors.length, size: size2, crop: crop3, ppu, svg: svgSize([0, 0, px.width, px.height], 1, unit3), pageScale: pageScale ?? null, unplaced: dungeon_exports.dungeonLabelLayout(m, ppu, pageScale, layout2).unplaced };
+  return { files: files.map((f) => relative2(process.cwd(), f)), rooms: m.rooms.length, corridors: m.corridors.length, doors: layout2.doors.length, size: size2, crop: crop3, ppu, svg: svgSize([0, 0, px.width, px.height], 1, unit4), pageScale: pageScale ?? null, unplaced: dungeon_exports.dungeonLabelLayout(m, ppu, pageScale, layout2).unplaced };
 }
 function warningLines(m, max2 = 5) {
   const found = dungeon_exports.lintDungeon(m);
@@ -28688,16 +29186,16 @@ function describeDungeon(m) {
   ].join("\n");
 }
 function describeDungeonFacts(r) {
-  const unit3 = r.unit.scale, box2 = (b) => `${b.cells.w}\xD7${b.cells.h} cells (${b.scale.w}\xD7${b.scale.h} ${unit3}) at ${b.cells.x},${b.cells.y}`;
+  const unit4 = r.unit.scale, box2 = (b) => `${b.cells.w}\xD7${b.cells.h} cells (${b.scale.w}\xD7${b.scale.h} ${unit4}) at ${b.cells.x},${b.cells.y}`;
   const end = endText;
   return [
-    `${r.id}: ${r.size.cols}\xD7${r.size.rows} cells; positions in cells, lengths also in ${unit3}`,
+    `${r.id}: ${r.size.cols}\xD7${r.size.rows} cells; positions in cells, lengths also in ${unit4}`,
     `rooms (${r.rooms.length}):${r.rooms.map((m) => `
   ${m.id}${m.number !== null ? ` #${m.number}` : ""}: ${m.shape} ${box2(m.box)}${m.label ? ` "${m.label}"` : ""}${m.doors.length ? `; doors ${m.doors.map((d) => `${d.kind}${d.at ? ` at ${d.at.join(",")}` : ""}`).join(", ")}` : ""}${m.connections?.length ? `; joins ${m.connections.map((c) => `${c.to} (${c.kind})`).join(", ")}` : ""}`).join("")}`,
     `corridors (${r.corridors.length}):${r.corridors.map((c) => `
-  ${c.index}. ${end(c.from)} \u2192 ${end(c.to)}: ${c.length.map} cells (${c.length.scale} ${unit3}), width ${c.width}${c.doors.some(Boolean) ? `, doors ${c.doors.map((d) => d ?? "none").join("/")}` : ""}`).join("")}`,
+  ${c.index}. ${end(c.from)} \u2192 ${end(c.to)}: ${c.length.map} cells (${c.length.scale} ${unit4}), width ${c.width}${c.doors.some(Boolean) ? `, doors ${c.doors.map((d) => d ?? "none").join("/")}` : ""}`).join("")}`,
     `exits (${r.exits.length}):${r.exits.map((x) => `
-  corridor ${x.corridor} ${x.end} at ${x.at.join(",")}${x.room ? ` from ${x.room}` : ""}: nearest edge ${x.edge}, ${x.distance.map} cells (${x.distance.scale} ${unit3})`).join("")}`,
+  corridor ${x.corridor} ${x.end} at ${x.at.join(",")}${x.room ? ` from ${x.room}` : ""}: nearest edge ${x.edge}, ${x.distance.map} cells (${x.distance.scale} ${unit4})`).join("")}`,
     `overlaps (${r.overlaps.length}):${r.overlaps.map((o) => `
   ${o.rooms.join(" / ")}: ${o.count} cells, ${box2(o.box)}`).join("")}`,
     `unreached rooms: ${r.unreached.join(", ") || "none"}`,
@@ -28808,7 +29306,7 @@ async function renderSettlementFiles(p2, ref, o = {}) {
   const results = [];
   for (const job of jobs) {
     const sheet = job.view === "plan" ? settlement_exports.planSheet(m, m.buildings.find((b) => b.id === job.building)) : { cols: m.cols, rows: m.rows };
-    const crop3 = clampCrop(o.crop ?? [0, 0, sheet.cols, sheet.rows], sheet.cols, sheet.rows), unit3 = o.fit?.unit ?? "px", pageScale = o.pageScale ?? (o.fit ? PX_PER_MM : void 0);
+    const crop3 = clampCrop(o.crop ?? [0, 0, sheet.cols, sheet.rows], sheet.cols, sheet.rows), unit4 = o.fit?.unit ?? "px", pageScale = o.pageScale ?? (o.fit ? PX_PER_MM : void 0);
     const view = { view: job.view, ...job.building && { building: job.building }, ...job.floor !== void 0 && { floor: job.floor }, buildings: o.buildings, layers: o.layers, ...job.view === "site" && { layout: layout2 }, ...o.crop && { crop: crop3 }, pageScale };
     let ppu = o.fit ? fitPpu(crop3[2], crop3[3], o.fit) : o.ppu ?? (job.view === "plan" ? 40 : 24);
     if (o.fit) {
@@ -28829,7 +29327,7 @@ async function renderSettlementFiles(p2, ref, o = {}) {
     const px = settlement_exports.settlementRenderSize(m, { ...view, ppu }), size2 = [Math.round(px.width), Math.round(px.height)], files = [];
     const stem = job.view === "plan" ? `${id2}.${job.building}.${(job.floor ?? 0) < 0 ? `c${-(job.floor ?? 0)}` : `f${job.floor ?? 0}`}` : id2;
     for (const theme of themes) {
-      const svg4 = settlement_exports.renderSettlementSvg(m, { ...view, ppu, unit: unit3, theme, ...underlay && job.view === "site" && { underlay } }), base = join5(out, `${stem}.${theme}`);
+      const svg4 = settlement_exports.renderSettlementSvg(m, { ...view, ppu, unit: unit4, theme, ...underlay && job.view === "site" && { underlay } }), base = join5(out, `${stem}.${theme}`);
       if (formats2.includes("svg")) {
         writeFileSync4(`${base}.svg`, svg4);
         files.push(`${base}.svg`);
@@ -28839,17 +29337,17 @@ async function renderSettlementFiles(p2, ref, o = {}) {
         files.push(`${base}.png`);
       }
     }
-    results.push({ files: files.map((f) => relative3(process.cwd(), f)), view: job.view, ...job.building && { building: job.building }, ...job.floor !== void 0 && { floor: job.floor }, size: size2, crop: crop3, ppu, svg: svgSize([0, 0, px.width, px.height], 1, unit3) });
+    results.push({ files: files.map((f) => relative3(process.cwd(), f)), view: job.view, ...job.building && { building: job.building }, ...job.floor !== void 0 && { floor: job.floor }, size: size2, crop: crop3, ppu, svg: svgSize([0, 0, px.width, px.height], 1, unit4) });
   }
   return results;
 }
 function describeSettlement(m) {
-  const g = m.gen, l = settlement_exports.layoutSettlement(m), unit3 = m.scale.unit;
+  const g = m.gen, l = settlement_exports.layoutSettlement(m), unit4 = m.scale.unit;
   const counts = (xs) => Object.entries(xs.reduce((a, k) => (a[k] = (a[k] ?? 0) + 1, a), {})).map(([k, n]) => `${n} ${k}`).join(", ") || "none";
   return [
-    `${m.id}${m.title ? ` "${m.title}"` : ""}: a ${m.kind}, ${m.cols}\xD7${m.rows} cells of ${m.scale.perCell} ${unit3} (plans in ${m.interior.perCell} ${unit3} cells), seed ${m.seed}, ${m.ground} ground`,
+    `${m.id}${m.title ? ` "${m.title}"` : ""}: a ${m.kind}, ${m.cols}\xD7${m.rows} cells of ${m.scale.perCell} ${unit4} (plans in ${m.interior.perCell} ${unit4} cells), seed ${m.seed}, ${m.ground} ground`,
     `  gen: buildings ${g.buildings}, density ${g.density}, streets ${g.streets}, wall ${g.wall}, water ${g.water}, trees ${g.trees}, fields ${g.fields}, market ${g.market ? "on" : "off"}, castle ${g.castle ? "on" : "off"}, interiors ${g.interiors ? "on" : "off"}`,
-    `  grid: ${m.grid.show ? `every ${m.grid.size * m.scale.perCell} ${unit3}${m.grid.sub ? ", sub-grid" : ""}` : "off"}; numbers ${m.numbers ? "on" : "off"}, scale bar ${m.scaleBar ? "on" : "off"}, compass ${m.compass ? "on" : "off"}, legend ${m.legend ? "on" : "off"}${m.underlay ? `; underlay ${m.underlay.map} at ${m.underlay.origin.join(",")}, ${m.underlay.scale} map units a cell` : ""}`,
+    `  grid: ${m.grid.show ? `every ${m.grid.size * m.scale.perCell} ${unit4}${m.grid.sub ? ", sub-grid" : ""}` : "off"}; numbers ${m.numbers ? "on" : "off"}, scale bar ${m.scaleBar ? "on" : "off"}, compass ${m.compass ? "on" : "off"}, legend ${m.legend ? "on" : "off"}${m.underlay ? `; underlay ${m.underlay.map} at ${m.underlay.origin.join(",")}, ${m.underlay.scale} map units a cell` : ""}`,
     `  buildings (${m.buildings.length}):${l.buildings.map((bg) => {
       const b = bg.building;
       return `
@@ -29766,7 +30264,7 @@ var init_pack2 = __esm({
     init_autotile2();
     init_facing();
     init_stack();
-    RUNTIME_VERSION = "1.4.0";
+    RUNTIME_VERSION = "1.5.0";
   }
 });
 
@@ -30156,6 +30654,10 @@ function resolveAssetArg(p2, arg) {
 }
 function templateFor(b, dir) {
   const view = b.view ?? dir.camera.view, figure = ["character", "creature"].includes(b.kind);
+  if (figure && b.rigged) {
+    const t = findTemplate(view, "character-rigged");
+    return t.kind === "character-rigged" ? t : { ...findTemplate("fp", "character-rigged"), fallback: view !== "fp" };
+  }
   if (figure && b.body && b.body !== "humanoid") return findTemplate(view, `creature-${b.body}`);
   const walker = figure && ((b.directions ?? 1) > 1 || !!b.anims?.walk);
   return walker ? findTemplate(view, "character-walk") : findTemplate(view, b.kind);
@@ -31294,8 +31796,8 @@ function script(a, b) {
   while (tail < a.length - head && tail < b.length - head && a[a.length - 1 - tail] === b[b.length - 1 - tail]) tail++;
   const x = a.slice(head, a.length - tail), y = b.slice(head, b.length - tail);
   if ((x.length + 1) * (y.length + 1) > MAX_CELLS) return [...a.slice(0, head).map((line2) => ({ t: " ", line: line2 })), ...x.map((line2) => ({ t: "-", line: line2 })), ...y.map((line2) => ({ t: "+", line: line2 })), ...a.slice(a.length - tail).map((line2) => ({ t: " ", line: line2 }))];
-  const w = y.length + 1, len = new Uint32Array((x.length + 1) * w);
-  for (let i2 = x.length - 1; i2 >= 0; i2--) for (let j2 = y.length - 1; j2 >= 0; j2--) len[i2 * w + j2] = x[i2] === y[j2] ? len[(i2 + 1) * w + j2 + 1] + 1 : Math.max(len[(i2 + 1) * w + j2], len[i2 * w + j2 + 1]);
+  const w = y.length + 1, len3 = new Uint32Array((x.length + 1) * w);
+  for (let i2 = x.length - 1; i2 >= 0; i2--) for (let j2 = y.length - 1; j2 >= 0; j2--) len3[i2 * w + j2] = x[i2] === y[j2] ? len3[(i2 + 1) * w + j2 + 1] + 1 : Math.max(len3[(i2 + 1) * w + j2], len3[i2 * w + j2 + 1]);
   const ops = a.slice(0, head).map((line2) => ({ t: " ", line: line2 }));
   let i = 0, j = 0;
   while (i < x.length || j < y.length) {
@@ -31303,7 +31805,7 @@ function script(a, b) {
       ops.push({ t: " ", line: x[i] });
       i++;
       j++;
-    } else if (j < y.length && (i === x.length || len[i * w + j + 1] >= len[(i + 1) * w + j])) ops.push({ t: "+", line: y[j++] });
+    } else if (j < y.length && (i === x.length || len3[i * w + j + 1] >= len3[(i + 1) * w + j])) ops.push({ t: "+", line: y[j++] });
     else ops.push({ t: "-", line: x[i++] });
   }
   for (const line2 of a.slice(a.length - tail)) ops.push({ t: " ", line: line2 });
@@ -31365,13 +31867,13 @@ function unfill(text2) {
   return text2.split("node tools/artgen/artgen-maps.js").join("{{ARTGEN}}").split("node tools/artgen/artgen.js").join("{{ARTGEN}}").split("`/artgen-direction`").join("{{CMD_DIRECTION}}").replace(/(^|[\s`(])\/artgen-(?=[a-z])/g, "$1{{CMD}}");
 }
 async function baseOf(version, installed, o) {
-  const dist = distPathOf(installed);
+  const dist3 = distPathOf(installed);
   if (o.base) {
-    for (const f of [join16(o.base, "dist", dist), join16(o.base, dist)]) if (existsSync16(f)) return readFileSync16(f);
+    for (const f of [join16(o.base, "dist", dist3), join16(o.base, dist3)]) if (existsSync16(f)) return readFileSync16(f);
     return void 0;
   }
   try {
-    const res = await (o.fetchImpl ?? fetch)(`https://raw.githubusercontent.com/${o.repo ?? DEFAULT_REPO}/artgen-dist-v${version}/dist/${dist}`);
+    const res = await (o.fetchImpl ?? fetch)(`https://raw.githubusercontent.com/${o.repo ?? DEFAULT_REPO}/artgen-dist-v${version}/dist/${dist3}`);
     return res.ok ? Buffer.from(await res.arrayBuffer()) : void 0;
   } catch {
     return void 0;
@@ -31850,9 +32352,9 @@ function simplifyRing(p2, epsilon) {
     pos = (pos + far) % count;
     let max2 = 0;
     for (let j = 1; j < count; j++) {
-      const dx = px(j + pos) - px(pos), dy = py(j + pos) - py(pos), dist = dx * dx + dy * dy;
-      if (dist > max2) {
-        max2 = dist;
+      const dx = px(j + pos) - px(pos), dy = py(j + pos) - py(pos), dist3 = dx * dx + dy * dy;
+      if (dist3 > max2) {
+        max2 = dist3;
         far = j;
       }
     }
@@ -31870,9 +32372,9 @@ function simplifyRing(p2, epsilon) {
       const dx = bx - ax, dy = by - ay;
       let max2 = 0;
       for (let i = a + 1; i < b; i++) {
-        const dist = Math.abs((py(i) - ay) * dx - (px(i) - ax) * dy);
-        if (dist > max2) {
-          max2 = dist;
+        const dist3 = Math.abs((py(i) - ay) * dx - (px(i) - ax) * dy);
+        if (dist3 > max2) {
+          max2 = dist3;
           split = i;
         }
       }
@@ -31903,9 +32405,9 @@ function simplifyRing(p2, epsilon) {
   let start = read(), wpos = at4, pt3 = read();
   for (let i = 0; i < n && newCount > 2; i++) {
     const end = read(), dx = end[0] - start[0], dy = end[1] - start[1];
-    const dist = Math.abs((pt3[0] - start[0]) * dy - (pt3[1] - start[1]) * dx);
+    const dist3 = Math.abs((pt3[0] - start[0]) * dy - (pt3[1] - start[1]) * dx);
     const inner = (pt3[0] - start[0]) * (end[0] - pt3[0]) + (pt3[1] - start[1]) * (end[1] - pt3[1]);
-    if (dist * dist <= 0.5 * eps * (dx * dx + dy * dy) && dx !== 0 && dy !== 0 && inner >= 0) {
+    if (dist3 * dist3 <= 0.5 * eps * (dx * dx + dy * dy) && dx !== 0 && dy !== 0 && inner >= 0) {
       newCount--;
       dst[wpos * 2] = end[0];
       dst[wpos * 2 + 1] = end[1];
@@ -34484,22 +34986,22 @@ function buildingFields(i) {
   if (i.size) [o.w, o.h] = i.size;
   return o;
 }
-function lineOp(sub5, summary, usage, extra = {}) {
+function lineOp(sub6, summary, usage, extra = {}) {
   return sugar(
-    sub5,
+    sub6,
     summary,
     usage,
-    { id: id(`${sub5}: <id>`), action: p.str("add | rm" + (sub5 === "wall" ? " | gate" : ""), { positional: true }), what: p.str("add: the kind; rm" + (sub5 === "wall" ? ", gate" : "") + ": the index", { positional: true }), ...LINE_PARAMS(), ...extra },
+    { id: id(`${sub6}: <id>`), action: p.str("add | rm" + (sub6 === "wall" ? " | gate" : ""), { positional: true }), what: p.str("add: the kind; rm" + (sub6 === "wall" ? ", gate" : "") + ": the index", { positional: true }), ...LINE_PARAMS(), ...extra },
     (i) => {
       const act = i.action, what = i.what;
-      if (act === "rm") return [{ op: `${sub5}.rm`, index: Number(what) }];
-      if (sub5 === "wall" && act === "gate") return [{ op: "wall.gate", index: Number(what), at: pointOf(i.at, "--at"), kind: i.kind ?? "gate", ...i.width !== void 0 && { width: i.width }, ...i.drawbridge === true && { drawbridge: true } }];
-      if (act !== "add") throw new Error(`settlement ${sub5} <id> add <kind> \u2026 | rm <i>`);
-      const o = { op: `${sub5}.add`, kind: what, points: needPoints(i.points, "--points") };
+      if (act === "rm") return [{ op: `${sub6}.rm`, index: Number(what) }];
+      if (sub6 === "wall" && act === "gate") return [{ op: "wall.gate", index: Number(what), at: pointOf(i.at, "--at"), kind: i.kind ?? "gate", ...i.width !== void 0 && { width: i.width }, ...i.drawbridge === true && { drawbridge: true } }];
+      if (act !== "add") throw new Error(`settlement ${sub6} <id> add <kind> \u2026 | rm <i>`);
+      const o = { op: `${sub6}.add`, kind: what, points: needPoints(i.points, "--points") };
       if (i.width !== void 0) o.width = i.width;
       if (i.curve) o.curve = i.curve;
       if (i.label) o.label = i.label;
-      if (sub5 === "wall") {
+      if (sub6 === "wall") {
         if (i.closed === true) o.closed = true;
         if (i.thickness !== void 0) o.thickness = i.thickness;
         if (i.towers) o.towers = { shape: i.towers, ...i.tower_size !== void 0 && { size: i.tower_size }, ...i.tower_every !== void 0 && { every: i.tower_every } };
@@ -35261,6 +35763,45 @@ async function scene3dOf(a, o = {}) {
 function metresPerUnit(scene, dir) {
   const r = scene.rendered, px = !r ? 2 : r.renderer === "raster" ? 2 * r.scale : r.renderer === "cubes" ? 2 * scene.k : r.scale * scene.k;
   return px / pxPerMetre(dir);
+}
+async function rigExport(a, o = {}) {
+  const version = o.version ?? versionsIn(a).filter((v) => v.startsWith("base.")).pop();
+  if (!version) throw new Error(`${a.brief.id}: no base version`);
+  let scene;
+  const bindBrief = { ...a.brief, states: ["idle"], directions: 1, rotate: void 0, anims: a.brief.anims?.idle ? { idle: a.brief.anims.idle } : void 0 };
+  await renderVersion({ ...a, brief: bindBrief }, version, { onScene: (cell3, sc) => {
+    if (cell3.endsWith("/0") && sc instanceof Scene3D && sc.pose && !scene) scene = sc;
+  } });
+  if (!scene) throw new Error(`${a.brief.id} ${version}: not a rigged model \u2014 build the 3D-mode scene along a body rig's pose (ctx.lib.t2.scene3d({ k, pose }) with ctx.lib.rigs.body3d; template fp/character-rigged)`);
+  const set2 = settingsOf(a, o), states2 = a.brief.states?.length ? a.brief.states : ["idle"];
+  const defs = stateDefs(a.brief, a.dir, Object.fromEntries(states2.map((s2) => [s2, a.brief.anims?.[s2]?.frames ?? 1])));
+  const clips = states2.map((state) => {
+    const d = defs[state], ms = d.frames === 1 && !d.durations ? 2e3 : d.durations ? d.durations.reduce((x, y) => x + y, 0) : d.frames * 1e3 / d.fps;
+    return { state, duration: Math.round(ms) / 1e3, loop: d.loop };
+  });
+  const m = buildRigged(scene, { ...set2, lods: o.lods ?? a.brief.mesh?.lods, keys: o.keys ?? a.brief.mesh?.keys, clips }), mpu = o.scale ?? metresPerUnit(scene, a.dir);
+  const out = o.out ?? join23(a.path, "out"), id2 = a.brief.id, glb = join23(out, `${id2}.rigged.glb`), strip2 = join23(out, `${id2}-clips.png`);
+  mkdirSync16(out, { recursive: true });
+  writeFileSync19(glb, riggedGlb(m, { name: id2, metresPerUnit: mpu }));
+  writeGrid(strip2, clipStrip(m, { light: worldLight(a.dir).light, background: background(a) }));
+  const r0 = m.lods[0].result, checks = riggedChecks(m, { budget: set2.budget, metresPerUnit: mpu, height: a.brief.height });
+  return {
+    asset: id2,
+    version,
+    glb: relative10(process.cwd(), glb),
+    clips: relative10(process.cwd(), strip2),
+    plan: m.rig.set,
+    bones: m.skeleton.bones,
+    states: clips,
+    lods: m.lods.map((l) => ({ triangles: l.result.mesh.indices.length / 3, budget: l.budget, texels: l.result.texels })),
+    vertices: r0.mesh.positions.length / 3,
+    mode: r0.mode,
+    look: r0.look,
+    atlas: r0.atlas,
+    metresPerUnit: mpu,
+    height: Math.round((r0.bounds[5] - r0.bounds[2]) * mpu * 1e3) / 1e3,
+    checks
+  };
 }
 async function meshExport(a, o = {}) {
   const { scene, cell: cell3, version } = await scene3dOf(a, o), set2 = settingsOf(a, o), r = buildMesh(scene, set2), mpu = o.scale ?? metresPerUnit(scene, a.dir);
@@ -36488,6 +37029,7 @@ var init_art_production = __esm({
         gates: p.list("string", "stages the user approves before the pipeline goes on: placeholder, shape (replaces review.gates for this brief)"),
         rotate: p.oneOf(["rotsprite"], "make the facings by rotating one drawn facing with RotSprite (vehicles, ships, turrets, projectiles); needs directions 4 or 8", { error: "rotsprite" }),
         rotate_from: p.str("the facing a rotated asset draws (default e)"),
+        rigged: p.bool("a rigged 3D figure (a humanoid built along the 3D body rig; artgen rig exports its skinned .glb)"),
         break_contract: p.bool("allow changing an exported animation's contract")
       },
       run(i, ctx) {
@@ -36517,7 +37059,8 @@ var init_art_production = __esm({
           ...i.body && { body: i.body },
           ...i.gates && { gates: i.gates },
           ...i.rotate && { rotate: i.rotate },
-          ...i.rotate_from && { rotateFrom: i.rotate_from }
+          ...i.rotate_from && { rotateFrom: i.rotate_from },
+          ...i.rigged && { rigged: true }
         };
         for (const d of i.durations ?? []) {
           const [s2, ms] = d.split("="), a = b.anims?.[s2];
@@ -36531,7 +37074,7 @@ var init_art_production = __esm({
       },
       cli: {
         usage: [
-          '       artgen brief add <id> --kind k [--view v] [--size key|WxH] [--states a,b] [--directions n] [--anims walk:4] [--durations attack=80/80/200/80] [--variants n] [--swaps red:cloth=accent] [--importance t] [--priority n] [--height metres] [--body quadruped|serpent|flyer|large] [--object "ice lance"] [--gates shape,placeholder] [--rotate rotsprite [--rotate-from e]] [--notes "..."] [--break-contract]'
+          '       artgen brief add <id> --kind k [--view v] [--size key|WxH] [--states a,b] [--directions n] [--anims walk:4] [--durations attack=80/80/200/80] [--variants n] [--swaps red:cloth=accent] [--importance t] [--priority n] [--height metres] [--body quadruped|serpent|flyer|large] [--object "ice lance"] [--gates shape,placeholder] [--rotate rotsprite [--rotate-from e]] [--rigged] [--notes "..."] [--break-contract]'
         ],
         text: (r) => `brief ${r.brief.id} (${r.brief.kind}) in art/briefs.yaml \u2014 ${r.count} briefs${r.warnings.map((w) => `
   warning: ${w}`).join("")}
@@ -37391,7 +37934,7 @@ function intoOf(i, ctx, cmd, dir) {
   }
   return { dir: dir && !i.direction ? dir : toolDirection(cmd, ctx.findProject(), i.direction).dir, to: i.to, out: i.out };
 }
-var MODES, LOOKS, meshParams, settings, checkLines2, mesh2, turntable2, BY_PATH_MODEL, convertText, convert2, extrude, MESH_OPS;
+var MODES, LOOKS, meshParams, settings, checkLines2, mesh2, turntable2, BY_PATH_MODEL, convertText, convert2, extrude, rig2, MESH_OPS;
 var init_art_mesh = __esm({
   "../artgen-cli/src/ops/art-mesh.ts"() {
     "use strict";
@@ -37528,7 +38071,39 @@ var init_art_mesh = __esm({
       mcp: { exclude: BY_PATH_MODEL },
       python: {}
     });
-    MESH_OPS = [mesh2, turntable2, convert2, extrude];
+    rig2 = defineOp({
+      name: "rig",
+      module: "art",
+      effect: "render",
+      summary: "Export a rigged 3D-mode asset as a skinned, animated .glb: its mesh bound to the body rig's bones, a clip per state, levels of detail.",
+      description: "For a 3D-mode asset built along a body rig (ctx.lib.rigs.body3d, template fp/character-rigged): the bind pose (idle, t = 0) is meshed under the budget and skinned to the rig's bones, each state of the brief becomes an animation clip as long as the sprite's, and lower levels of detail follow (a quarter of the budget each). Writes out/<id>.rigged.glb (three.js: GLTFLoader + AnimationMixer, or the runtime's riggedModel) and out/<id>-clips.png (a row per clip), with the mesh and skin checks; exit 1 on a failing check.",
+      params: {
+        asset: assetParam(),
+        version: p.str("the base version; default the latest"),
+        ...meshParams(),
+        lods: p.int("levels of detail, 1\u20134 (default: the brief's mesh.lods, else 3)"),
+        keys: p.int("samples per clip (default: the brief's mesh.keys, else 16)"),
+        scale: p.num("metres per model unit (default: as the sprite is drawn, at the direction's pixels per metre)"),
+        out: p.str("the output folder (default the asset's out/)"),
+        direction: directionParam(),
+        ledger: ledgerParam()
+      },
+      run: (i, ctx) => rigExport(assetOf(ctx, i), { ...settings(i), version: i.version, lods: i.lods, keys: i.keys, out: i.out, scale: i.scale }),
+      cli: {
+        usage: "       artgen rig <asset> [--version v] [--lods n] [--keys n] [--budget n] [--mode auto|smooth|faceted] [--texels n] [--look pbr|baked] [--scale m] [--out dir]",
+        text: (r) => [
+          `${r.asset} ${r.version}: ${r.plan} rig, ${r.bones.length} bones; ${r.lods.map((l, i) => `LOD${i} ${l.triangles}/${l.budget}`).join(", ")}; ${r.mode} ${r.look}, ${r.height} m tall`,
+          `  clips: ${r.states.map((c) => `${c.state} ${c.duration}s${c.loop ? " loop" : ""}`).join(", ")}`,
+          ...checkLines2(r.checks),
+          `  ${r.glb}`,
+          `  ${r.clips}`
+        ].join("\n"),
+        exit: (r) => r.checks.some((c) => c.status === "fail") ? 1 : 0
+      },
+      mcp: { exclude: "writes model files for the game; run from the CLI" },
+      python: {}
+    });
+    MESH_OPS = [mesh2, turntable2, convert2, extrude, rig2];
   }
 });
 
