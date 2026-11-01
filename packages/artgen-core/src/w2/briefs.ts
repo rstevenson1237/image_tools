@@ -27,9 +27,13 @@ export interface BriefEntry extends Brief {
   refs?: string[];
   /** Stages the user approves before the pipeline goes on (`placeholder`, `shape`); replaces `review.gates` for this brief. */
   gates?: GateStage[];
-  /** True 3D output (R7a, docs/MESHES.md §4): `artgen mesh` defaults for this asset. */
-  /** True 3D (R7a); `lods` and `keys` are for rigged models (R7b, `artgen rig`). */
+  /** True 3D output (R7a, docs/MESHES.md §4): `artgen mesh` defaults for this asset; `lods` and `keys` are `artgen rig`'s (R7b). */
   mesh?: { budget?: number; mode?: 'auto' | 'smooth' | 'faceted'; texels?: number; look?: 'pbr' | 'baked'; lods?: number; keys?: number };
+  /**
+   * A rigged 3D figure (R7b, docs/RIGS3D.md): a humanoid built along the 3D body rig, starting from `character-rigged`;
+   * its sprites come from the rig's poses and `artgen rig` exports the skinned `.glb` with a clip per state.
+   */
+  rigged?: boolean;
 }
 
 const ID = /^[a-z][a-z0-9_-]*$/;
@@ -121,6 +125,11 @@ export function validateBrief(b: unknown, where = 'brief'): string[] {
   if (b.body !== undefined) {
     if (!(BODIES as readonly string[]).includes(b.body as string)) e.push(`${at}: body must be one of ${BODIES.join(', ')}`);
     else if (b.kind !== 'character' && b.kind !== 'creature') e.push(`${at}: body applies to characters and creatures`);
+  }
+  if (b.rigged !== undefined) {
+    if (typeof b.rigged !== 'boolean') e.push(`${at}: rigged must be true or false`);
+    else if (b.rigged && b.kind !== 'character' && b.kind !== 'creature') e.push(`${at}: rigged applies to characters and creatures`);
+    else if (b.rigged && b.body !== undefined && b.body !== 'humanoid') e.push(`${at}: rigged figures are humanoid for now (the rigged template is the biped; other bodies: ctx.lib.rigs.body3d by hand)`);
   }
   if (b.autotile !== undefined && !['wang16', 'blob47'].includes(b.autotile as string)) e.push(`${at}: autotile must be wang16 or blob47`);
   if (b.surface !== undefined && !['wall', 'floor', 'ceiling', 'sky'].includes(b.surface as string)) e.push(`${at}: surface must be wall, floor, ceiling or sky`);

@@ -10,7 +10,7 @@ and `art/` are what `install.mjs init`, the art-direction workflow and the produ
 |---|---|---|---|
 | `swamp-topdown` | Pixi.js | top-down | direction locked, 10 assets approved and exported, direction v2 restyle; game: 8-dir walker, tile map, looping effects, palette swap |
 | `iso-dungeon` | Pixi.js | iso | direction locked, 10 assets approved and exported, direction v2 restyle; game: iso floor, depth-sorted props, torch flames, states and swaps |
-| `billboard-crawler` | three.js | first-person billboards | direction locked, 10 assets approved and exported; game: 8-direction ghoul billboard, lit by the player's lamp, walking round a moving camera on textured floor and walls |
+| `billboard-crawler` | three.js | first-person billboards | direction locked, 10 assets approved and exported; game: 8-direction ghoul billboard, lit by the player's lamp, walking round a moving camera on textured floor and walls; a rigged 3D warden (`artgen rig`, skinned `.glb`) walking his rounds |
 
 The generated bundles and wasm in `tools/artgen/` are gitignored here to keep this repo small; restore them with
 `npm run fixtures:install` (builds `packages/artgen-dist` and runs `install.mjs update` in each fixture). Then, inside a

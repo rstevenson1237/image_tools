@@ -48,3 +48,14 @@
   size: [ 16, 16 ]
   priority: 10
   notes: "pickup icon: amber pill bottle with a white label"
+- id: warden
+  kind: character
+  view: fp
+  states: [ idle, walk, attack, hurt ]
+  directions: 8
+  anims: { walk: { frames: 4 }, attack: { frames: 4 }, hurt: { frames: 2 } }
+  priority: 11
+  notes: "night warden in a long grey coat with a ring of keys: a rigged 3D figure; walks the ward in the game as a
+    skinned model (artgen rig)"
+  height: 1.8
+  rigged: true

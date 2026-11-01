@@ -85,11 +85,13 @@ export function resolveAssetArg(p: Project | null, arg: string): string {
 }
 
 /**
- * The template a brief starts from: a non-humanoid `body` its rig (`creature-quadruped`, `-serpent`, `-flyer`,
- * `-large`); figures that turn or walk the walker (facings + walk cycle, `character-walk`); else the kind's template.
+ * The template a brief starts from: a `rigged` figure the rigged 3D biped (`character-rigged`, any view: it draws in the
+ * brief's); a non-humanoid `body` its rig (`creature-quadruped`, `-serpent`, `-flyer`, `-large`); figures that turn or
+ * walk the walker (facings + walk cycle, `character-walk`); else the kind's template.
  */
 export function templateFor(b: BriefEntry, dir: Direction): TemplateRef {
   const view = b.view ?? dir.camera.view, figure = ['character', 'creature'].includes(b.kind);
+  if (figure && b.rigged) { const t = findTemplate(view, 'character-rigged'); return t.kind === 'character-rigged' ? t : { ...findTemplate('fp', 'character-rigged'), fallback: view !== 'fp' }; }
   if (figure && b.body && b.body !== 'humanoid') return findTemplate(view, `creature-${b.body}`);
   const walker = figure && ((b.directions ?? 1) > 1 || !!b.anims?.walk);
   return walker ? findTemplate(view, 'character-walk') : findTemplate(view, b.kind);

@@ -6,7 +6,7 @@
  *             its spec's `bone`); a solid without a bone follows the bone nearest the vertex
  *   blending  near a joint the vertex shares its weight with the bone across it (the parent, a child, or a sibling
  *             through a short parent such as the hip): equal at the joint, nothing a blend radius away (half the shorter
- *             bone), smoothstep between. At most four bones a vertex; the weights sum to 1.
+ *             bone; a short bone counts as long as the bones it joins), smoothstep between. At most four bones a vertex; the weights sum to 1.
  *   joints    a pose moves each bone rigidly: the bind start goes to the posed start and the least rotation turns the bind
  *             direction onto the posed one (bones keep their lengths, so nothing stretches along a bone)
  */
@@ -61,14 +61,19 @@ function segDist(p: V3, a: V3, b: V3): number {
 /** The bones a bone blends with, each with the joint point and the blend radius there. */
 function neighbours(sk: Skeleton, blend: number): { j: number; at: V3; r: number }[][] {
   const L = sk.bind.map(b => len(sub(b.b, b.a))), kids = sk.bones.map((_, i) => sk.parent.map((p, c) => (p === i ? c : -1)).filter(c => c >= 0));
+  // a short bone (the hip between the spine and the legs) blends as far as the bones it joins: its own length would
+  // leave the joint rigid
+  const short = (i: number) => kids[i].length > 0 && L[i] < 0.25 * Math.min(...kids[i].map(c => L[c]));
+  const reach = L.map((l, i) => (short(i) ? Math.max(l, ...kids[i].map(c => L[c]), sk.parent[i] >= 0 ? L[sk.parent[i]] : 0) : l));
+  const r = (a: number, b: number) => blend * Math.min(reach[a], reach[b]);
   return sk.bones.map((_, i) => {
     const out: { j: number; at: V3; r: number }[] = [], p = sk.parent[i];
     if (p >= 0) {
-      out.push({ j: p, at: sk.bind[i].a, r: blend * Math.min(L[i], L[p]) });
-      // a short parent (the hip between the spine and the legs) passes the joint on to its other children
-      for (const s of kids[p]) if (s !== i && L[p] < 0.25 * Math.min(L[i], L[s])) out.push({ j: s, at: sk.bind[s].a, r: blend * Math.min(L[i], L[s]) });
+      out.push({ j: p, at: sk.bind[i].a, r: r(i, p) });
+      // a short parent passes the joint on to its other children (the spine and the legs at the hip)
+      if (short(p)) for (const s of kids[p]) if (s !== i) out.push({ j: s, at: sk.bind[s].a, r: r(i, s) });
     }
-    for (const c of kids[i]) out.push({ j: c, at: sk.bind[c].a, r: blend * Math.min(L[i], L[c]) });
+    for (const c of kids[i]) out.push({ j: c, at: sk.bind[c].a, r: r(i, c) });
     return out.filter(n => n.r > 1e-9);
   });
 }

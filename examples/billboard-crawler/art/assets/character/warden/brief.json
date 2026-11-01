@@ -1,0 +1,8 @@
+{
+  "id": "warden",
+  "template": "fp/character-rigged",
+  "review": {
+    "scale": 4,
+    "sym": "none"
+  }
+}

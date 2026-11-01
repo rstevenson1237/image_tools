@@ -1,11 +1,14 @@
 // Hollow Ward — a ghoul paces the ward while the view drifts round it. The ghoul is an 8-direction billboard whose
 // facing follows the camera, lit by the player's oil lamp: it loads through the lit three adapter with the pack's
 // normal maps, so the lamp (a flickering point light at the camera) shades it (P6d). Floor and walls tile the exported
-// textures. All art comes through the vendored artgen runtime (the `art` blocks are the art code).
+// textures. A night warden makes his rounds the other way: a rigged 3D model (`artgen rig`: a skinned .glb with a clip
+// per state and levels of detail) loaded through the runtime's `riggedModel`, walking on its walk clip and turning to
+// strike when the ghoul comes near (R7b). All art comes through the vendored artgen runtime (the `art` blocks are the art code).
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 // art
 import { loadPack } from './art/runtime/index.js';
-import { billboardAngle, threeAdapter, threeLitAdapter, tileTexture } from './art/runtime/adapters/three.js';
+import { billboardAngle, riggedModel, threeAdapter, threeLitAdapter, tileTexture } from './art/runtime/adapters/three.js';
 import { Assets, Packs } from './art/assets';
 // /art
 
@@ -31,6 +34,10 @@ const lamps = pack.effect(Assets['lamp-flicker'], { parent: scene, loop: true })
 lamps.spawn(-3.7, 1.3, -0.5); lamps.spawn(3.7, 1.3, -1.5);
 const lit = await loadPack(Packs.main, threeLitAdapter({ pixelsPerUnit: 24 }), { normals: true });
 const ghoul = lit.sprite(Assets.ghoul, { state: 'walk', parent: scene });
+// the warden: metres in the file; the ward is drawn at 24 px a unit, where the 1.7 m figure would tower over the sprites
+const warden = (await riggedModel(new GLTFLoader(), 'assets/models/warden.rigged.glb', { state: 'walk' }));
+warden.object.scale.setScalar(0.8);
+scene.add(warden.object);
 // /art
 // the player's oil lamp: a warm point light carried at the camera, flickering; a little cold ambient for the ward
 const lamp = new THREE.PointLight('#ffc890', 3, 6, 1.4);
@@ -52,8 +59,13 @@ renderer.setAnimationLoop(now => {
   lamp.intensity = 2.6 + Math.sin(t * 23) * 0.3 + Math.sin(t * 7.3) * 0.25;
   // art
   ghoul.at(gx, 0, gz).face(billboardAngle(heading, ghoul.node, camera)).update(dt);
+  // the warden walks a wider circle the other way, facing along it; near the ghoul he stops to strike, then walks on
+  const b = -t * 0.45 + 2, wx = Math.cos(b) * 2.6, wz = Math.sin(b) * 2.6, near = Math.hypot(wx - gx, wz - gz) < 1.4;
+  if (near && warden.state === 'walk') warden.play('attack');
+  else if (warden.state === 'attack' && warden.done) warden.play('walk');
+  warden.at(wx, 0, wz).face(Math.atan2(Math.sin(b), -Math.cos(b))).update(dt, camera);
   props.forEach(p => p.update(dt)); lamps.update(dt);
   // /art
   renderer.render(scene, camera);
 });
-Object.assign(globalThis, { __game: { renderer, ghoul, lamp, setTime: (v: number) => { t = v; } } });
+Object.assign(globalThis, { __game: { renderer, scene, camera, ghoul, warden, lamp, setTime: (v: number) => { t = v; } } });
