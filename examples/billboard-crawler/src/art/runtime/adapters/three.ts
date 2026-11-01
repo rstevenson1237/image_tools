@@ -217,7 +217,7 @@ export interface RiggedModel {
   /** The level shown now. */
   lod: number;
   info: RiggedInfo;
-  /** Play a state's clip (looping as exported), cross-fading from the last over `fade` ms (default 120; 0 cuts). */
+  /** Play a state's clip (looping as exported), cross-fading from the last over `fade` ms (default 120; 0 cuts). The state already playing goes on unless `restart` (a finished one-shot starts again). */
   play(state: string, o?: { fade?: number; restart?: boolean }): RiggedModel;
   at(x: number, y: number, z: number): RiggedModel;
   /** Turn to a heading (radians about +y; 0 faces +z), as `billboardAngle` reads a heading. */
@@ -252,7 +252,8 @@ export async function riggedModel(loader: { loadAsync(url: string): Promise<{ sc
     play(state, p = {}) {
       const clip = clips[state];
       if (!clip) throw new Error(`rigged model: no clip ${state} (has ${Object.keys(clips).join(', ')})`);
-      if (state === m.state && !p.restart) return m;
+      // the state already playing goes on (a finished one-shot starts again)
+      if (state === m.state && !p.restart && !m.done) return m;
       const next = mixer.clipAction(clip), loop = info.clips[state]?.loop ?? true, fade = (p.fade ?? 120) / 1000;
       next.reset();
       next.setLoop(loop ? LoopRepeat : LoopOnce, Infinity);

@@ -27,3 +27,8 @@ naga tail), `flyer` (bat, wasp, bird; hovers over its ground shadow and beats it
 (dragon, giant beast; brief it on a large frame with its real height). Each computes its geometry in `layout(ctx)`,
 draws four facings and a walk, and exports `ground` (where it stands), `head` and the face anchors. Low bodies
 (quadruped, serpent, flyer) are seen along their length, so the height check only flags them.
+
+`fp/character-rigged/` is the rigged 3D figure (R7b, `docs/RIGS3D.md`): a 3D-mode biped built along the same rig in 3D
+(`ctx.lib.rigs.body3d('biped', { height })`, every part with its `bone`, the pose passed to `ctx.lib.t2.scene3d({ k, pose })`).
+It draws in the brief's own view at the brief's `height`, so it serves any view; briefs with `rigged: true` start from it,
+and `artgen rig <id>` exports the skinned `.glb` with a clip per state.

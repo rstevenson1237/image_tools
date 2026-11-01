@@ -261,8 +261,8 @@ folding charts split into layers rather than single triangles (§5), and a trian
 frame through the view's camera (§10), after a first version clipped an iso footprint.
 
 **Not done here.** Decimation: the budget sets the grid, so a plain box still uses most of its budget (the crate's 1,404
-triangles of 1,500); merging coplanar triangles would cut that. Rigged and animated meshes and levels of detail (R7b),
-and a `meshModel` helper in the three.js adapter (R7b loads them; `GLTFLoader` reads today's `.glb` as it is). Turntables
+triangles of 1,500); merging coplanar triangles would cut that. Rigged and animated meshes and levels of detail
+(built in R7b, [`RIGS3D.md`](RIGS3D.md), with the runtime's `riggedModel`; `GLTFLoader` reads today's static `.glb` as it is). Turntables
 on the review sheet (the plan's §12 risk note) and the shape sheet in 3D. The R7 accept (every cell of the output matrix
 with a bench asset at the approval bar; a rigged character walking in the three.js example) needs R7b, R7c and scored
 runs. Firefox (not installed in this sandbox).

@@ -124,8 +124,8 @@ export function makeLib(dir: DirContext, kind?: string, stage?: (name: string, g
   const sceneOpts: SceneOptions = { light: dir.camera.light, bands: dir.shading.bands, outlineColor: dir.outline, shadowColor: dir.shadow, applyLine: line };
   return {
     Grid,
-    /** Pixels per metre of world height (rev 9): a brief's `height` × this is how tall the body is drawn. */
-    pxPerMetre: pxPerMetre(dir),
+    /** Pixels per metre of world height (rev 9): a brief's `height` × this is how tall the body is drawn. Read when asked (a direction without a character scale has none). */
+    get pxPerMetre(): number { return pxPerMetre(dir); },
     line,
     post: {
       ...post,

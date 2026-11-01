@@ -32,6 +32,25 @@ the view and kind (`artgen new <id> --kind … --view …`, or `make` from a bri
   `artgen extrude <image.png|asset> --depth px --asset <id>` stands a picture up as a slab (signs, weapons, flat props).
   Without `--asset` both write a `.vox` (or `--to mesh` a mesh `.glb`). Shape and decorate the result in the next pass.
 
+## Rigged and animated meshes (`artgen rig`)
+- A rigged figure is a 3D-mode model built along the shared body rig in 3D: `const rig = ctx.lib.rigs.body3d('biped', {
+  height, proportions }), P = rig.pose(ctx.state, ctx.t)`, then `ctx.lib.t2.scene3d({ k, pose: P })` and parts along the bones,
+  each with its `bone`: `{ type: 'capsule', a: P.start('armL_up'), b: P.end('armL_up'), r, mat, bone: 'armL_up' }`;
+  `P.at(bone, u, fwd, side, up)` places things in the body's frame (eyes, keys, a held item). Model frame: x right on
+  screen, y toward the viewer (the body's forward), z up, the feet on z = 0, the body's right at −x. Start from the
+  template `fp/character-rigged` (brief `rigged: true`); it draws in the brief's view at the brief's `height`.
+- The sprites are the rig's poses (every state, facing and frame); `artgen rig <id> [--lods n] [--keys n] [--out dir]`
+  meshes the bind pose (idle, t = 0) under the budget, skins it to the bones (a vertex follows the bone of the part it lies
+  on, blended across each joint), samples each brief state as a clip as long as the sprite's (a one-frame state: 2 s) and
+  adds levels of detail (a quarter of the budget each): `out/<id>.rigged.glb` and `out/<id>-clips.png` (a row per clip).
+- Its checks: the mesh checks on LOD0, then `skin-weights`, `skin-bound` (fails on a bone the rig hasn't; flags parts
+  without one), `clip-lengths`, `skin-stretch` and `lod-budget`. **`skin-stretch` flags parts that touch in the bind pose
+  but move apart** (a hand against the hip, a long coat skirt over swinging thighs, a prop at the hip where the hand hangs):
+  the mesh bridges them and the bridge tears when they part. Leave a gap of half a unit or more between parts on
+  different bones, or end a skirt near the hip joints.
+- In the game: the runtime's `riggedModel(new GLTFLoader(), url)` (three adapter) plays the clips by state and picks the
+  level of detail by distance; any glTF viewer reads the file (skin, `AnimationClip`s named by state, nearest-sampled textures).
+
 ## Textures and tiles
 - `ctx.lib.tex.material(name, { size: ctx.size, scale, seed, ramps, range, params })` — `artgen texture --list`:
   stone cobble wood metal grass dirt sand snow water lava tech carpet brick. Seamless, palette-exact, with a normal map.

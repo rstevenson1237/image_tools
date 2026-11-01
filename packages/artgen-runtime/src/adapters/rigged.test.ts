@@ -35,6 +35,11 @@ describe('riggedModel', () => {
     expect(m.done).toBe(true);
     m.update(500);
     expect(m.state).toBe('attack');
+    // asked again once it is done, the one-shot plays again
+    m.play('attack', { fade: 0 });
+    expect(m.done).toBe(false);
+    m.update(250);
+    expect(2 * Math.acos(Math.min(1, bone.quaternion.w)) * (180 / Math.PI)).toBeCloseTo(90, 0);
     expect(() => m.play('dance')).toThrow(/no clip dance \(has idle, attack\)/);
   });
 

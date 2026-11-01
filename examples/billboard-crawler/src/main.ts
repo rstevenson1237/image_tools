@@ -35,9 +35,8 @@ lamps.spawn(-3.7, 1.3, -0.5); lamps.spawn(3.7, 1.3, -1.5);
 const lit = await loadPack(Packs.main, threeLitAdapter({ pixelsPerUnit: 24 }), { normals: true });
 const ghoul = lit.sprite(Assets.ghoul, { state: 'walk', parent: scene });
 // the warden: metres in the file; the ward is drawn at 24 px a unit, where the 1.7 m figure would tower over the sprites
-const warden = (await riggedModel(new GLTFLoader(), 'assets/models/warden.rigged.glb', { state: 'walk' }));
-warden.object.scale.setScalar(0.8);
-scene.add(warden.object);
+const warden = await riggedModel(new GLTFLoader(), 'assets/models/warden.rigged.glb', { state: 'walk' });
+scene.add(warden.object.scale.setScalar(0.8) && warden.object);
 // /art
 // the player's oil lamp: a warm point light carried at the camera, flickering; a little cold ambient for the ward
 const lamp = new THREE.PointLight('#ffc890', 3, 6, 1.4);
@@ -57,12 +56,11 @@ renderer.setAnimationLoop(now => {
   camera.lookAt(gx * 0.6, 0.45, gz * 0.6);
   lamp.position.set(camera.position.x + 0.3, 0.6, camera.position.z);
   lamp.intensity = 2.6 + Math.sin(t * 23) * 0.3 + Math.sin(t * 7.3) * 0.25;
-  // art
-  ghoul.at(gx, 0, gz).face(billboardAngle(heading, ghoul.node, camera)).update(dt);
   // the warden walks a wider circle the other way, facing along it; near the ghoul he stops to strike, then walks on
   const b = -t * 0.45 + 2, wx = Math.cos(b) * 2.6, wz = Math.sin(b) * 2.6, near = Math.hypot(wx - gx, wz - gz) < 1.4;
-  if (near && warden.state === 'walk') warden.play('attack');
-  else if (warden.state === 'attack' && warden.done) warden.play('walk');
+  // art
+  ghoul.at(gx, 0, gz).face(billboardAngle(heading, ghoul.node, camera)).update(dt);
+  if (near && warden.state === 'walk') warden.play('attack'); else if (warden.state === 'attack' && warden.done) warden.play('walk');
   warden.at(wx, 0, wz).face(Math.atan2(Math.sin(b), -Math.cos(b))).update(dt, camera);
   props.forEach(p => p.update(dt)); lamps.update(dt);
   // /art

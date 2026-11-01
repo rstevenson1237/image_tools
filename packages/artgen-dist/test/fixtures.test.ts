@@ -12,7 +12,7 @@ import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, test } from 'vitest';
-import { decodePNG, parseLedger, restyleDiff, type PackManifest } from 'artgen-core';
+import { decodePNG, parseLedger, readGlb, restyleDiff, type PackManifest } from 'artgen-core';
 import {
   candidateNames, directionVersion, lockedDirection, openAsset, projectConfig, projectStatus, readBriefs, readJson, renderProbes, renderVersion,
   runtimeFiles, vendoredSource, type Project, type RuntimeStamp,
@@ -62,8 +62,11 @@ describe.each(FIXTURES)('fixture %s', name => {
     expect(decodePNG(new Uint8Array(readFileSync(join(p.art, 'anchors', 'effect.png')))).w).toBe(strip.reduce((n, f) => n + f.w, 0) + strip.length - 1);
   });
 
+  // the billboard-crawler's rigged warden (R7b) came later and is still in the pipeline: the W2 record is the 10 sprite briefs
+  const spriteBriefs = () => readBriefs(p).filter(b => !b.rigged);
+
   test('W2 record (PLAN P3): a 10-asset brief, every asset through r1-r3 + finish, both feedback routes, approved ≥ 6.5 with a passing gate', async () => {
-    const briefs = readBriefs(p), ledger = parseLedger(readFileSync(join(p.art, 'ledger.jsonl'), 'utf8'));
+    const briefs = spriteBriefs(), ledger = parseLedger(readFileSync(join(p.art, 'ledger.jsonl'), 'utf8'));
     expect(briefs).toHaveLength(10);
     expect(new Set(briefs.map(b => b.kind)).size).toBeGreaterThanOrEqual(2);
     expect(briefs.some(b => b.directions === 8 && b.anims?.walk)).toBe(true);
@@ -73,7 +76,7 @@ describe.each(FIXTURES)('fixture %s', name => {
     }
     const routes = new Set(ledger.filter(e => e.type === 'feedback' && e.by === 'user' && e.asset !== 'direction').map(e => e.route));
     expect([...routes].sort()).toEqual(['base', 'finish']);
-    const rows = await projectStatus(p);
+    const rows = (await projectStatus(p)).filter(r => briefs.some(b => b.id === r.id));
     expect(rows.map(r => r.status)).toEqual(Array(10).fill('exported'));
     for (const r of rows) {
       expect(r.score, r.id).toBeGreaterThanOrEqual(6.5);
@@ -99,8 +102,8 @@ describe.each(FIXTURES)('fixture %s', name => {
   test('W2 export: the committed pack matches the approved finals and the typed ids', async () => {
     const pack = readJson<PackManifest>(join(root, 'public/assets/main/pack.json')), d = lockedDirection(p)!;
     expect(pack.direction).toEqual({ id: d.id, version: d.version });
-    expect(Object.keys(pack.assets).sort()).toEqual(readBriefs(p).map(b => b.id).sort());
-    for (const r of await projectStatus(p)) expect(pack.assets[r.id].version, r.id).toBe(r.final);
+    expect(Object.keys(pack.assets).sort()).toEqual(spriteBriefs().map(b => b.id).sort());
+    for (const r of await projectStatus(p)) if (pack.assets[r.id]) expect(pack.assets[r.id].version, r.id).toBe(r.final);
     const atlas = decodePNG(new Uint8Array(readFileSync(join(root, 'public/assets/main', pack.atlases[0]))));
     for (const [id, a] of Object.entries(pack.assets)) for (const [, x, y, w, h] of a.frames) expect(x + w <= atlas.w && y + h <= atlas.h, id).toBe(true);
     const ts = readFileSync(join(root, 'src/art/assets.ts'), 'utf8');
@@ -121,6 +124,16 @@ describe.each(FIXTURES)('fixture %s', name => {
     expect(art).toBeGreaterThan(5);
     expect(art).toBeLessThan(20);
     expect(outside).toEqual([]);
+  });
+
+  test.runIf(name === 'billboard-crawler')('R7b: the rigged warden is a skinned .glb with a clip per state and three levels, and the game loads it', async () => {
+    const b = readBriefs(p).find(x => x.rigged)!;
+    expect(b).toMatchObject({ id: 'warden', kind: 'character', rigged: true });
+    const g = readGlb(new Uint8Array(readFileSync(join(root, 'public/assets/models/warden.rigged.glb'))));
+    expect(g.json.animations.map((a: { name: string }) => a.name)).toEqual(b.states);
+    expect(g.json.skins[0].joints).toHaveLength(12);
+    expect(g.json.extras.artgen.lods).toHaveLength(3);
+    expect(readFileSync(join(root, 'src/main.ts'), 'utf8')).toMatch(/riggedModel\(new GLTFLoader\(\), 'assets\/models\/warden\.rigged\.glb'/);
   });
 
   test('W3 game typechecks against its engine, the vendored runtime and the typed ids', () => {
