@@ -67,6 +67,7 @@ _OPS: dict[str, tuple[tuple[str, ...], tuple[str, ...], dict[str, tuple[str, str
     "turntable": (("turntable",), ("asset",), {"version": ("--version", "value"), "cell": ("--cell", "value"), "source": ("--source", "value"), "angles": ("--angles", "value"), "pitch": ("--pitch", "value"), "size": ("--size", "value"), "budget": ("--budget", "value"), "mode": ("--mode", "value"), "texels": ("--texels", "value"), "look": ("--look", "value"), "out": ("--out", "value"), "direction": ("--direction", "value"), "ledger": ("--ledger", "value")}),
     "convert": (("convert",), ("file",), {"asset": ("--asset", "value"), "to": ("--to", "value"), "height": ("--height", "value"), "k": ("--k", "value"), "out": ("--out", "value"), "direction": ("--direction", "value"), "ledger": ("--ledger", "value")}),
     "extrude": (("extrude",), ("target",), {"depth": ("--depth", "value"), "version": ("--version", "value"), "asset": ("--asset", "value"), "to": ("--to", "value"), "out": ("--out", "value"), "direction": ("--direction", "value"), "ledger": ("--ledger", "value")}),
+    "rig": (("rig",), ("asset",), {"version": ("--version", "value"), "budget": ("--budget", "value"), "mode": ("--mode", "value"), "texels": ("--texels", "value"), "look": ("--look", "value"), "lods": ("--lods", "value"), "keys": ("--keys", "value"), "scale": ("--scale", "value"), "out": ("--out", "value"), "direction": ("--direction", "value"), "ledger": ("--ledger", "value")}),
     "anim": (("anim",), ("asset",), {"version": ("--version", "value"), "state": ("--state", "value"), "facing": ("--facing", "value"), "scale": ("--scale", "value"), "out": ("--out", "value"), "direction": ("--direction", "value"), "ledger": ("--ledger", "value")}),
     "map.list": (("map", "list"), (), {"file": ("--file", "value")}),
     "map.symbols": (("map", "symbols"), (), {}),
@@ -394,6 +395,10 @@ class Ops:
     def extrude(self, target: str, *, depth: Optional[int] = None, version: Optional[str] = None, asset: Optional[str] = None, to: Optional[Literal["vox", "mesh"]] = None, out: Optional[str] = None, direction: Optional[str] = None, ledger: Optional[str] = None) -> "Result":
         """A picture (or a 2D asset's render) as a slab with depth: its opaque pixels as columns, standing up, as an asset's next base, a .vox or a mesh .glb. (artgen extrude)"""
         return self._op("extrude", [target], {"depth": depth, "version": version, "asset": asset, "to": to, "out": out, "direction": direction, "ledger": ledger})
+
+    def rig(self, asset: str, *, version: Optional[str] = None, budget: Optional[int] = None, mode: Optional[Literal["auto", "smooth", "faceted"]] = None, texels: Optional[float] = None, look: Optional[Literal["pbr", "baked"]] = None, lods: Optional[int] = None, keys: Optional[int] = None, scale: Optional[float] = None, out: Optional[str] = None, direction: Optional[str] = None, ledger: Optional[str] = None) -> "Result":
+        """Export a rigged 3D-mode asset as a skinned, animated .glb: its mesh bound to the body rig's bones, a clip per state, levels of detail. (artgen rig)"""
+        return self._op("rig", [asset], {"version": version, "budget": budget, "mode": mode, "texels": texels, "look": look, "lods": lods, "keys": keys, "scale": scale, "out": out, "direction": direction, "ledger": ledger})
 
     def anim(self, asset: str, *, version: Optional[str] = None, state: Optional[str] = None, facing: Optional[str] = None, scale: Optional[float] = None, out: Optional[str] = None, direction: Optional[str] = None, ledger: Optional[str] = None) -> "Result":
         """GIF and APNG previews of an asset's animation states. (artgen anim)"""

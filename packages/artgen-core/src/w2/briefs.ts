@@ -28,7 +28,8 @@ export interface BriefEntry extends Brief {
   /** Stages the user approves before the pipeline goes on (`placeholder`, `shape`); replaces `review.gates` for this brief. */
   gates?: GateStage[];
   /** True 3D output (R7a, docs/MESHES.md §4): `artgen mesh` defaults for this asset. */
-  mesh?: { budget?: number; mode?: 'auto' | 'smooth' | 'faceted'; texels?: number; look?: 'pbr' | 'baked' };
+  /** True 3D (R7a); `lods` and `keys` are for rigged models (R7b, `artgen rig`). */
+  mesh?: { budget?: number; mode?: 'auto' | 'smooth' | 'faceted'; texels?: number; look?: 'pbr' | 'baked'; lods?: number; keys?: number };
 }
 
 const ID = /^[a-z][a-z0-9_-]*$/;
@@ -131,12 +132,14 @@ export function validateBrief(b: unknown, where = 'brief'): string[] {
   if (b.gates !== undefined && !(Array.isArray(b.gates) && b.gates.every(g => (GATEABLE as readonly string[]).includes(g as string)))) e.push(`${at}: gates must be a list of ${GATEABLE.join(', ')}`);
   if (b.mesh !== undefined) {
     const m = b.mesh as Record<string, unknown>;
-    if (!isObj(m) || Object.keys(m).some(k => !['budget', 'mode', 'texels', 'look'].includes(k))) e.push(`${at}: mesh takes budget, mode, texels and look`);
+    if (!isObj(m) || Object.keys(m).some(k => !['budget', 'mode', 'texels', 'look', 'lods', 'keys'].includes(k))) e.push(`${at}: mesh takes budget, mode, texels, look, lods and keys`);
     else {
       if (m.budget !== undefined && !(Number.isInteger(m.budget) && (m.budget as number) >= 12)) e.push(`${at}: mesh.budget must be a whole number of triangles (at least 12)`);
       if (m.mode !== undefined && !['auto', 'smooth', 'faceted'].includes(m.mode as string)) e.push(`${at}: mesh.mode must be auto, smooth or faceted`);
       if (m.texels !== undefined && !(typeof m.texels === 'number' && m.texels > 0 && m.texels <= 64)) e.push(`${at}: mesh.texels must be texels per model unit (0–64)`);
       if (m.look !== undefined && !['pbr', 'baked'].includes(m.look as string)) e.push(`${at}: mesh.look must be pbr or baked`);
+      if (m.lods !== undefined && !(Number.isInteger(m.lods) && (m.lods as number) >= 1 && (m.lods as number) <= 4)) e.push(`${at}: mesh.lods must be 1, 2, 3 or 4`);
+      if (m.keys !== undefined && !(Number.isInteger(m.keys) && (m.keys as number) >= 2 && (m.keys as number) <= 120)) e.push(`${at}: mesh.keys must be a whole number of samples per clip (2–120)`);
     }
   }
   if (b.rotate !== undefined) {

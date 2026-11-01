@@ -6,7 +6,7 @@
  */
 import { join } from 'node:path';
 import type { Direction } from 'artgen-core';
-import { convertFile, extrudeRun, meshExport, turntableOf } from '../mesh.ts';
+import { convertFile, extrudeRun, meshExport, rigExport, turntableOf } from '../mesh.ts';
 import { writeGrid } from '../node.ts';
 import { assetOf, assetParam, directionParam, image, ledgerParam, toolDirection, type Inp } from './art-shared.ts';
 import { defineOp, p, type Ctx } from './registry.ts';
@@ -108,4 +108,26 @@ export const extrude = defineOp({
   mcp: { exclude: BY_PATH_MODEL }, python: {},
 });
 
-export const MESH_OPS = [mesh, turntable, convert, extrude];
+export const rig = defineOp({
+  name: 'rig', module: 'art', effect: 'render',
+  summary: 'Export a rigged 3D-mode asset as a skinned, animated .glb: its mesh bound to the body rig\'s bones, a clip per state, levels of detail.',
+  description: 'For a 3D-mode asset built along a body rig (ctx.lib.rigs.body3d, template fp/character-rigged): the bind pose (idle, t = 0) is meshed under the budget and skinned to the rig\'s bones, each state of the brief becomes an animation clip as long as the sprite\'s, and lower levels of detail follow (a quarter of the budget each). Writes out/<id>.rigged.glb (three.js: GLTFLoader + AnimationMixer, or the runtime\'s riggedModel) and out/<id>-clips.png (a row per clip), with the mesh and skin checks; exit 1 on a failing check.',
+  params: {
+    asset: assetParam(), version: p.str('the base version; default the latest'), ...meshParams(),
+    lods: p.int('levels of detail, 1–4 (default: the brief\'s mesh.lods, else 3)'), keys: p.int('samples per clip (default: the brief\'s mesh.keys, else 16)'),
+    scale: p.num('metres per model unit (default: as the sprite is drawn, at the direction\'s pixels per metre)'), out: p.str('the output folder (default the asset\'s out/)'), direction: directionParam(), ledger: ledgerParam(),
+  },
+  run: (i: Inp, ctx) => rigExport(assetOf(ctx, i), { ...settings(i), version: i.version, lods: i.lods, keys: i.keys, out: i.out, scale: i.scale }),
+  cli: {
+    usage: '       artgen rig <asset> [--version v] [--lods n] [--keys n] [--budget n] [--mode auto|smooth|faceted] [--texels n] [--look pbr|baked] [--scale m] [--out dir]',
+    text: r => [
+      `${r.asset} ${r.version}: ${r.plan} rig, ${r.bones.length} bones; ${r.lods.map((l: any, i: number) => `LOD${i} ${l.triangles}/${l.budget}`).join(', ')}; ${r.mode} ${r.look}, ${r.height} m tall`,
+      `  clips: ${r.states.map((c: any) => `${c.state} ${c.duration}s${c.loop ? ' loop' : ''}`).join(', ')}`,
+      ...checkLines(r.checks), `  ${r.glb}`, `  ${r.clips}`,
+    ].join('\n'),
+    exit: r => (r.checks.some((c: any) => c.status === 'fail') ? 1 : 0),
+  },
+  mcp: { exclude: 'writes model files for the game; run from the CLI' }, python: {},
+});
+
+export const MESH_OPS = [mesh, turntable, convert, extrude, rig];

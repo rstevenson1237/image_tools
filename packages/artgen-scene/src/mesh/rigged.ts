@@ -19,7 +19,7 @@ import { meshChecks, type MeshCheck } from './checks.ts';
 import { sceneField } from './field.ts';
 import { ARRAY_BUFFER, binWriter, CLAMP, ELEMENT_ARRAY_BUFFER, glMeshArrays, materialOf, NEAREST, typedBytes } from './gltf.ts';
 import { jointPoses, skeletonOf, skinPose, skinWeights, type JointPose, type Skeleton, type Skin, type SkinOptions } from './skin.ts';
-import { orbitCamera, rasterMesh, viewBounds, viewOfMesh, type ViewMesh } from './view.ts';
+import { orbitCamera, rasterMesh, viewOfMesh, type ViewMesh } from './view.ts';
 
 export interface ClipSpec {
   /** The state (the clip's name in the `.glb`). */
@@ -266,8 +266,10 @@ export interface ClipStripOptions { frames?: number; yaw?: number; pitch?: numbe
 /** A row per clip: `frames` poses through it from one fixed camera (default 3/4 front), framed on the bind pose so motion shows. */
 export function clipStrip(m: RiggedModel, o: ClipStripOptions = {}): Grid {
   const n = o.frames ?? 6, w = o.w ?? 72, h = o.h ?? 96, rows = m.clips.length || 1, out = new Grid(n * (w + 1) - 1, rows * (h + 1) - 1);
-  const bind = viewOfMesh(m.lods[0].result), { center, radius } = viewBounds(bind);
-  const cam = orbitCamera({ target: center, yaw: o.yaw ?? 30, pitch: o.pitch ?? 15, w, h }, radius * 1.15);
+  // framed on the bind pose's box (a sphere round a tall figure would leave it small): tall enough for the height, wide enough for a reach
+  const [x0, y0, z0, x1, y1, z1] = m.lods[0].result.bounds, center: V3 = [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2], fov = 30, tv = Math.tan((fov * Math.PI) / 360);
+  const tall = z1 - z0, halfW = Math.max(x1 - x0, y1 - y0) / 2 + 0.15 * tall, distance = Math.max(((tall / 2) * 1.3) / tv, halfW / (tv * (w / h))) + (y1 - y0) / 2;
+  const cam = orbitCamera({ target: center, yaw: o.yaw ?? 30, pitch: o.pitch ?? 15, distance, fov, w, h });
   m.clips.forEach((c, row) => {
     for (let i = 0; i < n; i++) {
       const u = c.loop ? i / n : i / Math.max(1, n - 1);

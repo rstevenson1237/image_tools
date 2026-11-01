@@ -6,6 +6,7 @@ dist/
 artgen-out/
 packages/artgen-core/bench/pipeline/*/out/
 packages/artgen-core/bench/p6/*/out/
+packages/artgen-core/bench/r7/*/out/
 packages/artgen-cli/scratch-*.ts
 packages/artgen-dist/out/
 lib-dist/

@@ -2,7 +2,7 @@
  * Asset module contract (SPEC §6.2) and the render loop over states × facings × frames.
  * Every render gets the direction through `ctx.dir`; `ctx.lib` hands out engine pieces pre-bound to it.
  */
-import { dirContext, kindPalette, resolveSize, type DirContext, type Direction, type Size, type View } from 'artgen-scene/direction.ts';
+import { dirContext, kindPalette, pxPerMetre, resolveSize, type DirContext, type Direction, type Size, type View } from 'artgen-scene/direction.ts';
 import * as blitLib from 'artgen-primitives/lib/blit.ts';
 import { Grid } from 'artgen-primitives/lib/grid.ts';
 import { fitNormalMap, flipNormalMap } from 'artgen-primitives/lib/normals.ts';
@@ -124,6 +124,8 @@ export function makeLib(dir: DirContext, kind?: string, stage?: (name: string, g
   const sceneOpts: SceneOptions = { light: dir.camera.light, bands: dir.shading.bands, outlineColor: dir.outline, shadowColor: dir.shadow, applyLine: line };
   return {
     Grid,
+    /** Pixels per metre of world height (rev 9): a brief's `height` × this is how tall the body is drawn. */
+    pxPerMetre: pxPerMetre(dir),
     line,
     post: {
       ...post,
