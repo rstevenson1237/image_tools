@@ -26,6 +26,7 @@ import { Proc } from 'artgen-scene/t2/proc.ts';
 import { sky, type SkyOptions } from 'artgen-scene/views/fp.ts';
 import { blend, cellTiming, ease, pingpong, rig, solveTwoBone, spring, sweep, track } from 'artgen-scene/anim/anim.ts';
 import { BODY_PLAN, bodyRig, PROPORTIONS, RIG_PLANS, type BodyRigOptions, type RigPlan } from 'artgen-scene/anim/rigs.ts';
+import { bodyRig3d, type BodyRig3DOptions } from 'artgen-scene/anim/rig3d.ts';
 import { colorRun, flame, paletteCycle, particles, preset, PRESET_NAMES, simulate, drawParticles, type Emitter, type FlameOptions, type PresetOptions } from 'artgen-scene/fx/particles.ts';
 import { Scene2D, type Scene2DOptions } from 'artgen-scene/t2/scene.ts';
 import { Scene3D, type Scene3DOptions } from 'artgen-scene/t2/scene3d.ts';
@@ -199,6 +200,16 @@ export function makeLib(dir: DirContext, kind?: string, stage?: (name: string, g
       plans: RIG_PLANS, bodyPlan: BODY_PLAN, proportions: PROPORTIONS,
       body: (plan: RigPlan | 'large', ctx: Pick<BodyRigOptions, 'size' | 'facing'> & Partial<BodyRigOptions>, o: Partial<BodyRigOptions> = {}) => {
         const r = bodyRig(plan, { ...ctx, ...o });
+        onRig?.({ plan: r.plan, set: r.set, lengths: r.lengths });
+        return r;
+      },
+      /**
+       * The same skeletons in 3D (R7b): `body3d('biped', { height })` in a 3D-mode model's units and frame; build the parts along
+       * `rig.pose(ctx.state, ctx.t)` with `bone` on each and pass the pose to `t2.scene3d({ k, pose })`: `artgen rig` skins the
+       * mesh of the bind pose (idle, t = 0) to these bones and exports the clips.
+       */
+      body3d: (plan: RigPlan | 'large', o: BodyRig3DOptions) => {
+        const r = bodyRig3d(plan, o);
         onRig?.({ plan: r.plan, set: r.set, lengths: r.lengths });
         return r;
       },

@@ -20,12 +20,11 @@ export interface MeshGlbOptions {
   metresPerUnit: number;
 }
 
-const ARRAY_BUFFER = 34962, ELEMENT_ARRAY_BUFFER = 34963, NEAREST = 9728, CLAMP = 33071;
+export const ARRAY_BUFFER = 34962, ELEMENT_ARRAY_BUFFER = 34963, NEAREST = 9728, CLAMP = 33071;
 
-/** `.glb` bytes for a baked mesh. */
-export function meshGlb(r: MeshResult, o: MeshGlbOptions): Uint8Array {
-  const { positions: P, normals: N, tangents: T, uvs: U, indices: I } = r.mesh, s = o.metresPerUnit, n = P.length / 3;
-  const cx = (r.bounds[0] + r.bounds[3]) / 2, cy = (r.bounds[1] + r.bounds[4]) / 2;
+/** A baked mesh's vertex arrays in glTF's frame: metres, artgen x / y / z → glTF x / z / y about `origin` (x, y), the winding reversed for the mirror. */
+export function glMeshArrays(r: MeshResult, s: number, origin: [number, number]) {
+  const { positions: P, normals: N, tangents: T, uvs: U, indices: I } = r.mesh, n = P.length / 3, [cx, cy] = origin;
   const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), tan = new Float32Array(n * 4), idx = new Uint32Array(I.length);
   const min = [Infinity, Infinity, Infinity], max = [-Infinity, -Infinity, -Infinity];
   for (let i = 0; i < n; i++) {
@@ -38,6 +37,11 @@ export function meshGlb(r: MeshResult, o: MeshGlbOptions): Uint8Array {
   }
   // the mirror also reverses the winding
   for (let t = 0; t < I.length; t += 3) { idx[t] = I[t]; idx[t + 1] = I[t + 2]; idx[t + 2] = I[t + 1]; }
+  return { n, pos, nor, tan, uv: new Float32Array(U), idx, min, max };
+}
+
+/** The binary chunk of a `.glb` being written: each `view` is 4-byte aligned and becomes a buffer view. */
+export function binWriter() {
   const chunks: Uint8Array[] = [], views: any[] = [];
   let offset = 0;
   const view = (bytes: Uint8Array, target?: number) => {
@@ -47,12 +51,21 @@ export function meshGlb(r: MeshResult, o: MeshGlbOptions): Uint8Array {
     offset += bytes.length + pad;
     return views.length - 1;
   };
-  const bytes = (a: Float32Array | Uint32Array) => new Uint8Array(a.buffer, a.byteOffset, a.byteLength);
+  const bin = () => { const out = new Uint8Array(offset); let at = 0; for (const c of chunks) { out.set(c, at); at += c.length; } return out; };
+  return { views, view, bin, get length() { return offset; } };
+}
+
+export const typedBytes = (a: Float32Array | Uint32Array | Uint16Array | Uint8Array) => new Uint8Array(a.buffer, a.byteOffset, a.byteLength);
+
+/** `.glb` bytes for a baked mesh. */
+export function meshGlb(r: MeshResult, o: MeshGlbOptions): Uint8Array {
+  const s = o.metresPerUnit, { n, pos, nor, tan, uv, idx, min, max } = glMeshArrays(r, s, [(r.bounds[0] + r.bounds[3]) / 2, (r.bounds[1] + r.bounds[4]) / 2]);
+  const w = binWriter(), view = w.view, bytes = typedBytes;
   const accessors = [
     { bufferView: view(bytes(pos), ARRAY_BUFFER), componentType: 5126, count: n, type: 'VEC3', min, max },
     { bufferView: view(bytes(nor), ARRAY_BUFFER), componentType: 5126, count: n, type: 'VEC3' },
     { bufferView: view(bytes(tan), ARRAY_BUFFER), componentType: 5126, count: n, type: 'VEC4' },
-    { bufferView: view(bytes(new Float32Array(U)), ARRAY_BUFFER), componentType: 5126, count: n, type: 'VEC2' },
+    { bufferView: view(bytes(uv), ARRAY_BUFFER), componentType: 5126, count: n, type: 'VEC2' },
     { bufferView: view(bytes(idx), ELEMENT_ARRAY_BUFFER), componentType: 5125, count: idx.length, type: 'SCALAR' },
   ];
   const images = [r.textures.color, r.textures.normal, r.textures.orm].map(g => ({ bufferView: view(encodePNG(g)), mimeType: 'image/png' }));
@@ -61,19 +74,21 @@ export function meshGlb(r: MeshResult, o: MeshGlbOptions): Uint8Array {
     asset: { version: '2.0', generator: 'artgen' }, ...(unlit && { extensionsUsed: ['KHR_materials_unlit'] }),
     scene: 0, scenes: [{ nodes: [0] }], nodes: [{ mesh: 0, name }],
     meshes: [{ name, primitives: [{ attributes: { POSITION: 0, NORMAL: 1, TANGENT: 2, TEXCOORD_0: 3 }, indices: 4, material: 0 }] }],
-    materials: [{
-      name, pbrMetallicRoughness: { baseColorTexture: { index: 0 }, metallicRoughnessTexture: { index: 2 }, metallicFactor: 1, roughnessFactor: 1 },
-      normalTexture: { index: 1 }, ...(unlit && { extensions: { KHR_materials_unlit: {} } }),
-    }],
+    materials: [materialOf(name, r.look, 0)],
     samplers: [{ magFilter: NEAREST, minFilter: NEAREST, wrapS: CLAMP, wrapT: CLAMP }],
-    textures: [0, 1, 2].map(source => ({ sampler: 0, source })), images, accessors, bufferViews: views,
-    buffers: [{ byteLength: offset }],
-    extras: { artgen: { budget: r.budget, triangles: I.length / 3, mode: r.mode, look: r.look, texelsPerUnit: r.texels, atlas: r.atlas, metresPerUnit: s } },
+    textures: [0, 1, 2].map(source => ({ sampler: 0, source })), images, accessors, bufferViews: w.views,
+    buffers: [{ byteLength: w.length }],
+    extras: { artgen: { budget: r.budget, triangles: idx.length / 3, mode: r.mode, look: r.look, texelsPerUnit: r.texels, atlas: r.atlas, metresPerUnit: s } },
   };
-  const bin = new Uint8Array(offset);
-  let at = 0;
-  for (const c of chunks) { bin.set(c, at); at += c.length; }
-  return glbBytes(json, bin);
+  return glbBytes(json, w.bin());
+}
+
+/** The material of a baked mesh whose colour, normal and roughness-metal textures are `first`, `first + 1` and `first + 2`. */
+export function materialOf(name: string, look: MeshResult['look'], first: number) {
+  return {
+    name, pbrMetallicRoughness: { baseColorTexture: { index: first }, metallicRoughnessTexture: { index: first + 2 }, metallicFactor: 1, roughnessFactor: 1 },
+    normalTexture: { index: first + 1 }, ...(look === 'baked' && { extensions: { KHR_materials_unlit: {} } }),
+  };
 }
 
 // ---- reading

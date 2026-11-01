@@ -13,6 +13,7 @@ import { Voxels, type FaceRamp } from 'artgen-primitives/lib/voxel.ts';
 import { camera, facingYaw, lightIn, toScreen } from '../views/camera.ts';
 import { bandFor, project, rasterVoxels, smoothNormal, VoxelGrid, type VoxelRaster, type VoxelSet } from '../voxel/raster.ts';
 import { voxCells, type VoxModel } from '../voxel/vox.ts';
+import type { Pose3D } from '../anim/rig3d.ts';
 import { dist2, parseColor } from 'artgen-primitives/lib/color.ts';
 import { bandIndices } from 'artgen-primitives/raster.ts';
 
@@ -59,12 +60,16 @@ export interface Spec3 {
   /** Mesh textures: roughness and metal (0–1) in place of the material name's; inherited. */
   rough?: number;
   metal?: number;
+  /** Rigged meshes (R7b): the bone of the scene's pose this part moves with; inherited. Parts without one follow the nearest bone. */
+  bone?: string;
   name?: string;
 }
 
 export interface Scene3DOptions {
   /** Voxels per model unit. */
   k?: number;
+  /** Rigged models (R7b): the body-rig pose the parts are built along (`ctx.lib.rigs.body3d(…).pose(ctx.state, ctx.t)`). `artgen rig` skins the mesh of its bind pose to it. */
+  pose?: Pose3D;
 }
 
 export interface Render3DOptions {
@@ -114,9 +119,11 @@ export class Scene3D {
   readonly dir: DirContext;
   /** How the scene was last drawn (R7a): the renderer and its scale, so a mesh is as large in metres as the sprite. */
   rendered?: { renderer: 'cubes' | 'raster' | 'slices'; scale: number };
+  /** The body-rig pose the parts were built along (R7b), when the model is rigged. */
+  readonly pose?: Pose3D;
   private warnings: string[] = [];
 
-  constructor(dir: DirContext, opts: Scene3DOptions = {}) { this.dir = dir; this.k = opts.k ?? 1; }
+  constructor(dir: DirContext, opts: Scene3DOptions = {}) { this.dir = dir; this.k = opts.k ?? 1; this.pose = opts.pose; }
 
   add(...s: Spec3[]): this { this.specs.push(...s); return this; }
 
