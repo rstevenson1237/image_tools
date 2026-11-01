@@ -18,8 +18,17 @@ its facing comes from the camera-relative angle; the floor and walls repeat the 
 textures, and beds, an IV stand, a wheelchair, the orderly, a rat and two flickering lamps stand around as billboards. The ghoul loads through the lit three.js adapter with its normal map, so the player's
 lamp (a flickering point light at the camera) shades it.
 
+A night warden walks a wider circle the other way as a **rigged 3D model** (R7b): `art/assets/character/warden` is a
+3D-mode figure built along the shared biped rig (brief `rigged: true`, template `fp/character-rigged`), and
+`node tools/artgen/artgen.js rig warden --out public/assets/models` writes `warden.rigged.glb`: the mesh skinned to the rig's
+12 bones, a clip per state (idle, walk, attack, hurt) and three levels of detail. The game loads it with three's `GLTFLoader`
+through the runtime's `riggedModel`, plays its walk, turns it along its path and stops it to strike when the ghoul comes near.
+`npm run accept:rig` (in the image_tools checkout) builds this game and checks all of that in headless Chromium.
+The warden itself is still in the pipeline: its finish waits for a blind review by a fresh reviewer, which the
+authoring agent may not give itself, so its sprites are not in the pack yet; the model needs no approval to export.
+
 ```bash
 npm install && npm run dev     # or, inside the image_tools checkout: node ../../node_modules/vite/bin/vite.js
 ```
 
-![Hollow Ward: the ghoul lit by the player's lamp](screenshot.png)
+![Hollow Ward: the warden on his rounds, the ward lit by the player's lamp](screenshot.png)

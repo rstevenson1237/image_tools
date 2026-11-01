@@ -50,6 +50,8 @@ export interface BodyRigOptions {
   proportions?: Partial<Proportions>;
   /** Depth shown as a vertical shift: px up the frame per px away from the viewer (default 0.3, the 3/4 cameras). */
   tilt?: number;
+  /** Keep the clips' root moves unrounded (R7b, 3D rigs): sprites step by whole pixels, a skinned mesh moves smoothly. */
+  continuous?: boolean;
 }
 
 /** Screen angles of the eight facings, degrees: 0 faces the viewer, 90 is east (right), 180 is the back. */
@@ -86,7 +88,19 @@ export interface BodyRig {
   pose(state: string, t: number, o?: { angles?: Record<string, number>; ik?: Record<string, { target: P2; bend?: 1 | -1 }> }): BodyPose;
   /** Standard anchors of a pose in whole frame pixels: ground, head, hand (biped), tail (quadruped, serpent), muzzle (turret). */
   anchors(pose: Pose): Record<string, P2>;
+  /** Bone names, each after its parent (R7b). */
+  bones: string[];
+  /** Each bone's parent (a wing's is the body bone it sits on); undefined for the root. */
+  parents: Record<string, string | undefined>;
+  /**
+   * The pose before the facing projects it (R7b, 3D rigs): each bone's start and end in the body's own frame, rig px as
+   * [forward, up, right], with the feet (or the shadow) at up = 0 and the body centred along forward.
+   */
+  skeleton(state: string, t: number, o?: { angles?: Record<string, number>; ik?: Record<string, { target: P2; bend?: 1 | -1 }> }): Record<string, [Skel3, Skel3]>;
 }
+
+/** A point in a body's own frame: forward, up, right (rig px). */
+export type Skel3 = [number, number, number];
 
 type P3 = [number, number, number]; // forward, up, right
 type Plane = 'side' | 'front' | 'ground';
@@ -135,7 +149,7 @@ export function bodyRig(plan: RigPlan | 'large', o: BodyRigOptions): BodyRig {
   const len = (name: string, generic?: string) => H * prop(name, generic);
   const yaw = facingYaw(o.facing) * RAD, sx = Math.sin(yaw), front = Math.cos(yaw), side = Math.abs(sx);
 
-  const spec = SPECS[pl]({ H, len, prop, given: n => n in user });
+  const spec = SPECS[pl]({ H, len, prop, given: n => n in user, round: o.continuous ? (v: number) => v : Math.round });
   const rigs: Rig[] = spec.groups.map(g => rig({ root: [0, 0], bones: g.bones }));
   const lengths: Record<string, number> = {};
   for (const g of spec.groups) for (const [n, b] of Object.entries(g.bones)) lengths[n] = b.len;
@@ -200,16 +214,30 @@ export function bodyRig(plan: RigPlan | 'large', o: BodyRigOptions): BodyRig {
     return out;
   };
 
-  return { plan: pl, set, lengths, yaw, sx, front, side, height: H, ground, pose: posed, anchors };
+  const parents: Record<string, string | undefined> = {}, order: string[] = [];
+  for (const g of spec.groups) for (const [n, b] of Object.entries(g.bones)) parents[n] = b.parent ?? ('host' in g.origin ? g.origin.host : undefined);
+  const visit = (n: string) => { if (order.includes(n)) return; const p = parents[n]; if (p) visit(p); order.push(n); };
+  Object.keys(parents).forEach(visit);
+  const skeleton = (state: string, t: number, ov?: Parameters<BodyRig['skeleton']>[2]) => {
+    const { p3 } = solve(state, t, ov), out: Record<string, [Skel3, Skel3]> = {};
+    for (const n of order) { const [a, b] = p3[n]; out[n] = [[a[0] - fc, a[1], a[2]], [b[0] - fc, b[1], b[2]]]; }
+    return out;
+  };
+
+  return { plan: pl, set, lengths, yaw, sx, front, side, height: H, ground, pose: posed, anchors, bones: order, parents, skeleton };
 }
 
 // ---------------------------------------------------------------------------------------------------------------
 // plans
 
-interface Ctx { H: number; len(name: string, generic?: string): number; prop(name: string, generic?: string): number; /** The caller overrode this proportion. */ given(name: string): boolean }
+interface Ctx {
+  H: number; len(name: string, generic?: string): number; prop(name: string, generic?: string): number; /** The caller overrode this proportion. */ given(name: string): boolean;
+  /** Whole pixels for sprites (`Math.round`); the identity for continuous (3D) rigs. */
+  round(v: number): number;
+}
 
 const SPECS: Record<RigPlan, (c: Ctx) => Spec> = {
-  biped({ H, len, prop, given }) {
+  biped({ H, len, prop, given, round }) {
     const g = (n: string) => len(n), legUp = g('leg_up'), legLo = g('leg_lo'), leg = legUp + legLo;
     const hip = g('hip'), neck = g('neck'), head = g('head');
     // the spine takes what the others leave of the height, so a bigger head (direction.scale.proportions.headRatio) shortens the torso
@@ -232,7 +260,7 @@ const SPECS: Record<RigPlan, (c: Ctx) => Spec> = {
       if (state === 'walk') {
         const off = { L: 0, R: 0.5 }, feet = (['L', 'R'] as const).map(s => foot(t, off[s], 0, leg, stride, lift));
         for (const [i, s] of (['L', 'R'] as const).entries()) ik[`leg${s}_lo`] = { target: feet[i], bend: 1 };
-        root = [0, Math.round(Math.max(...feet.map(f => sag(leg, f[0]))) * 1.6)];
+        root = [0, round(Math.max(...feet.map(f => sag(leg, f[0]))) * 1.6)];
         // each arm swings against the leg on its side
         arms(s => -armSwing * sin(t, off[s]), s => 8 + 14 * Math.max(0, -sin(t, off[s])));
       } else if (state === 'attack') {
@@ -301,7 +329,7 @@ const SPECS: Record<RigPlan, (c: Ctx) => Spec> = {
     return { groups: [{ plane: 'side', sign: 1, bones, z, origin: [0, down, 0] }], clip, anchorBones: { head: ['head', 0.4], tail: ['tail', 1] } };
   },
 
-  flyer({ H, len, prop }) {
+  flyer({ H, len, prop, round }) {
     const bodyLen = len('body'), hover = H * prop('hover');
     const side: Group = {
       plane: 'side', sign: 1, z: {}, origin: [0, hover, 0],
@@ -315,7 +343,7 @@ const SPECS: Record<RigPlan, (c: Ctx) => Spec> = {
     const clip = (state: string, t: number): Clip => {
       // wings beat in every state: flyers never stand still. Hovering beats shallower than flying.
       const hovering = !['walk', 'attack', 'hurt'].includes(state), amp = hovering ? 38 : 58, beat = sin(t), lag = sin(t, -0.18);
-      const rel: Record<string, number> = {}, bob = Math.round(-beat * (hovering ? 0.6 : 0.9));
+      const rel: Record<string, number> = {}, bob = round(-beat * (hovering ? 0.6 : 0.9));
       for (const s of ['L', 'R']) { rel[`wing${s}`] = 90 + amp * beat; rel[`wing${s}_tip`] = -0.55 * amp * lag - 10; }
       let root: P2 = [0, bob * (H / 8)];
       if (state === 'attack') { const k = hold([[0, 0], [0.3, -0.5], [0.55, 1], [0.85, 0.2], [1, 0]], t); root = [H * 0.35 * k, root[1]]; rel.head = -15 - 25 * Math.max(0, k); }

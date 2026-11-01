@@ -27,6 +27,8 @@ export interface Solid {
   grain?: number;
   rough?: number;
   metal?: number;
+  /** The bone the solid moves with (R7b), from the spec or its parents. */
+  bone?: string;
 }
 
 export interface SceneField {
@@ -157,15 +159,15 @@ function material(dir: DirContext, m: Spec3['mat']): { ramp: string[]; role?: st
 /** The scene's solids as distance functions, with the geometry and paint queries. */
 export function sceneField(scene: Scene3D): SceneField {
   const k = scene.k, solids: Solid[] = [];
-  type Inh = { mat?: { ramp: string[]; role?: string }; shade?: 'flat' | 'toon'; part?: string; grain?: number; rough?: number; metal?: number };
+  type Inh = { mat?: { ramp: string[]; role?: string }; shade?: 'flat' | 'toon'; part?: string; grain?: number; rough?: number; metal?: number; bone?: string };
   const walk = (s: Spec3, parents: Spec3[], inh: Inh) => {
     const mat = material(scene.dir, s.mat) ?? inh.mat, shade = s.shade ?? inh.shade, label = s.name ?? s.type;
-    const grain = s.grain ?? inh.grain, rough = s.rough ?? inh.rough, metal = s.metal ?? inh.metal;
-    if (s.type === 'group') { (s.children ?? []).forEach(c => walk(c, [s, ...parents], { mat, shade, part: s.name ?? inh.part, grain, rough, metal })); return; }
+    const grain = s.grain ?? inh.grain, rough = s.rough ?? inh.rough, metal = s.metal ?? inh.metal, bone = s.bone ?? inh.bone;
+    if (s.type === 'group') { (s.children ?? []).forEach(c => walk(c, [s, ...parents], { mat, shade, part: s.name ?? inh.part, grain, rough, metal, bone })); return; }
     if (!mat) throw new Error(`3D ${label}: needs mat`);
     const own = specSdf(s, k), chain = parents.filter(p => p.translate || p.rotate || p.mirror).reverse();
     const sdf: Sdf = chain.length ? (x, y, z) => { let q: V3 = [x, y, z]; for (const p of chain) q = invert(p, k, q); return own(q[0], q[1], q[2]); } : own;
-    solids.push({ name: label, sdf, geometry: s.type !== 'slab' || s.add === true, slab: s.type === 'slab', ramp: mat.ramp, role: mat.role, part: s.name ?? inh.part ?? s.type, shade, grain, rough, metal });
+    solids.push({ name: label, sdf, geometry: s.type !== 'slab' || s.add === true, slab: s.type === 'slab', ramp: mat.ramp, role: mat.role, part: s.name ?? inh.part ?? s.type, shade, grain, rough, metal, ...(bone !== undefined && { bone }) });
   };
   for (const s of scene.specs) walk(s, [], {});
   const geo = solids.filter(s => s.geometry);

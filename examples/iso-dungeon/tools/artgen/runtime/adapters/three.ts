@@ -4,11 +4,12 @@
  * negative repeat), and the 8-direction facing picked from the camera-relative angle (`billboardAngle`). Also: slice
  * rotation (sprite stacks), additive blending, `.glb` voxel models (`voxelModel`), and lit billboards
  * (`threeLitAdapter`): camera-facing quads with a Lambert material whose normal map is the frame's rect in the pack's
- * normal atlases, so scene lights (a lamp) shade the sprite.
+ * normal atlases, so scene lights (a lamp) shade the sprite. Runtime 1.5: rigged models (`riggedModel`): the skinned `.glb`
+ * `artgen rig` writes, with a clip per state played by an `AnimationMixer` and its levels of detail picked by distance.
  */
 import {
-  AdditiveBlending, NormalBlending, DataTexture, Mesh, MeshLambertMaterial, NearestFilter, NoColorSpace, PlaneGeometry, RepeatWrapping, RGBAFormat,
-  SRGBColorSpace, Sprite, SpriteMaterial, Vector3, type Camera, type Object3D,
+  AdditiveBlending, AnimationMixer, LoopOnce, LoopRepeat, NormalBlending, DataTexture, Mesh, MeshLambertMaterial, NearestFilter, NoColorSpace, PlaneGeometry, RepeatWrapping, RGBAFormat,
+  SRGBColorSpace, Sprite, SpriteMaterial, Vector3, type AnimationAction, type AnimationClip, type Camera, type Object3D,
 } from 'three';
 import type { AssetRef, AtlasImage, RuntimeAdapter } from '../types.js';
 import type { FrameSelect, Pack } from '../pack.js';
@@ -190,4 +191,102 @@ export function threeLitAdapter(opts: ThreeLitOptions = {}): RuntimeAdapter<Data
     dispose(m) { m.removeFromParent(); m.material.map?.dispose(); m.material.normalMap?.dispose(); m.material.dispose(); m.geometry.dispose(); },
     disposeTexture: t => t.dispose(),
   };
+}
+
+/** What `artgen rig` records in a rigged `.glb` (`extras.artgen`). */
+export interface RiggedInfo {
+  rig: { plan: string; set: string; height: number; bones: string[] };
+  lods: { node: number; name: string; triangles: number; budget: number; distance: number }[];
+  clips: Record<string, { duration: number; loop: boolean; keys: number }>;
+  metresPerUnit: number;
+}
+
+export interface RiggedModel {
+  /** The model's root: add it to the scene, move and turn it (it faces +z at rotation 0). */
+  object: Object3D;
+  /** The clips by state, the mixer playing them, and the state playing now. */
+  clips: Record<string, AnimationClip>;
+  mixer: AnimationMixer;
+  state: string;
+  /** A non-looping state (attack, hurt) reached its end and holds its last pose. */
+  done: boolean;
+  /** The levels of detail, nearest first, with the distance each starts at (metres of the model: scaling the object scales them). */
+  lods: { object: Object3D; distance: number; triangles: number }[];
+  /** The level shown now. */
+  lod: number;
+  info: RiggedInfo;
+  /** Play a state's clip (looping as exported), cross-fading from the last over `fade` ms (default 120; 0 cuts). The state already playing goes on unless `restart` (a finished one-shot starts again). */
+  play(state: string, o?: { fade?: number; restart?: boolean }): RiggedModel;
+  at(x: number, y: number, z: number): RiggedModel;
+  /** Turn to a heading (radians about +y; 0 faces +z), as `billboardAngle` reads a heading. */
+  face(heading: number): RiggedModel;
+  /** Advance the clip by `dtMs` and, with a camera, show the level of detail for its distance. */
+  update(dtMs: number, camera?: Object3D): RiggedModel;
+  dispose(): void;
+}
+
+const _cw = new Vector3(), _mw = new Vector3(), _sw = new Vector3();
+
+/**
+ * A rigged model exported by `artgen rig` (`<id>.rigged.glb`: a skinned mesh per level of detail over one skeleton, a clip
+ * per state) loaded through three's `GLTFLoader`, passed in as for `voxelModel`. `play(state)` runs the state's clip in
+ * an `AnimationMixer` (idle and walk loop, attack and hurt play once and hold); `update(dtMs, camera)` advances it and
+ * shows the level of detail for the camera's distance. Textures sample nearest (the file says so), so texels stay pixels.
+ */
+export async function riggedModel(loader: { loadAsync(url: string): Promise<{ scene: Object3D; animations: AnimationClip[]; userData?: Record<string, unknown> }> }, url: string, o: { state?: string } = {}): Promise<RiggedModel> {
+  const gltf = await loader.loadAsync(url), root = gltf.scene, info = (gltf.userData?.artgen ?? root.userData?.artgen) as RiggedInfo | undefined;
+  if (!info?.rig || !info.lods?.length) throw new Error(`${url}: not a rigged model from artgen rig (no extras.artgen.rig)`);
+  const lods = info.lods.map(l => {
+    const object = root.getObjectByName(l.name);
+    if (!object) throw new Error(`${url}: level ${l.name} is missing`);
+    // the skinned meshes move with their bones, so their bounds do too: don't cull them on the bind pose's box
+    object.traverse(c => { c.frustumCulled = false; });
+    return { object, distance: l.distance, triangles: l.triangles };
+  }).sort((a, b) => a.distance - b.distance);
+  const mixer = new AnimationMixer(root), clips = Object.fromEntries(gltf.animations.map(c => [c.name, c]));
+  let action: AnimationAction | undefined;
+  const m: RiggedModel = {
+    object: root, clips, mixer, state: '', done: false, lods, lod: 0, info,
+    play(state, p = {}) {
+      const clip = clips[state];
+      if (!clip) throw new Error(`rigged model: no clip ${state} (has ${Object.keys(clips).join(', ')})`);
+      // the state already playing goes on (a finished one-shot starts again)
+      if (state === m.state && !p.restart && !m.done) return m;
+      const next = mixer.clipAction(clip), loop = info.clips[state]?.loop ?? true, fade = (p.fade ?? 120) / 1000;
+      next.reset();
+      next.setLoop(loop ? LoopRepeat : LoopOnce, Infinity);
+      next.clampWhenFinished = !loop;
+      next.play();
+      if (action && action !== next && fade > 0) action.crossFadeTo(next, fade, false);
+      else if (action && action !== next) action.stop();
+      action = next; m.state = state; m.done = false;
+      return m;
+    },
+    at(x, y, z) { root.position.set(x, y, z); return m; },
+    face(heading) { root.rotation.y = heading; return m; },
+    update(dtMs, camera) {
+      mixer.update(dtMs / 1000);
+      if (action && !(info.clips[m.state]?.loop ?? true)) m.done = !action.isRunning();
+      if (camera) {
+        camera.getWorldPosition(_cw); root.getWorldPosition(_mw); root.getWorldScale(_sw);
+        // the switch distances are the file's metres: a model scaled down switches sooner
+        const d = _cw.distanceTo(_mw) / Math.max(1e-9, Math.abs(_sw.y));
+        let k = 0;
+        lods.forEach((l, i) => { if (d >= l.distance) k = i; });
+        if (k !== m.lod || !lods[k].object.visible) lods.forEach((l, i) => { l.object.visible = i === k; });
+        m.lod = k;
+      }
+      return m;
+    },
+    dispose() {
+      mixer.stopAllAction(); root.removeFromParent();
+      root.traverse(c => {
+        const mesh = c as Object3D & { geometry?: { dispose(): void }; material?: { dispose(): void; [k: string]: unknown } };
+        mesh.geometry?.dispose();
+        if (mesh.material) { for (const v of Object.values(mesh.material)) if (v && typeof v === 'object' && 'isTexture' in v) (v as unknown as { dispose(): void }).dispose(); mesh.material.dispose(); }
+      });
+    },
+  };
+  lods.forEach((l, i) => { l.object.visible = i === 0; });
+  return m.play(o.state ?? (clips.idle ? 'idle' : gltf.animations[0]?.name ?? ''));
 }

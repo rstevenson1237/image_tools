@@ -21,6 +21,7 @@ export const briefAdd = defineOp({
     notes: p.str('notes for the maker'), gates: p.list('string', 'stages the user approves before the pipeline goes on: placeholder, shape (replaces review.gates for this brief)'),
     rotate: p.oneOf(['rotsprite'] as const, 'make the facings by rotating one drawn facing with RotSprite (vehicles, ships, turrets, projectiles); needs directions 4 or 8', { error: 'rotsprite' }),
     rotate_from: p.str('the facing a rotated asset draws (default e)'),
+    rigged: p.bool('a rigged 3D figure (a humanoid built along the 3D body rig; artgen rig exports its skinned .glb)'),
     break_contract: p.bool('allow changing an exported animation\'s contract'),
   },
   run(i: Inp, ctx) {
@@ -36,6 +37,7 @@ export const briefAdd = defineOp({
       ...(i.notes && { notes: i.notes }), ...(i.height !== undefined && { height: i.height }),
       ...(i.object && { object: i.object }), ...(i.body && { body: i.body as BriefEntry['body'] }), ...(i.gates && { gates: i.gates as BriefEntry['gates'] }),
       ...(i.rotate && { rotate: i.rotate as BriefEntry['rotate'] }), ...(i.rotate_from && { rotateFrom: i.rotate_from }),
+      ...(i.rigged && { rigged: true }),
     };
     for (const d of (i.durations as string[] | undefined) ?? []) {
       const [s, ms] = d.split('='), a = b.anims?.[s];
@@ -50,7 +52,7 @@ export const briefAdd = defineOp({
   },
   cli: {
     usage: [
-      '       artgen brief add <id> --kind k [--view v] [--size key|WxH] [--states a,b] [--directions n] [--anims walk:4] [--durations attack=80/80/200/80] [--variants n] [--swaps red:cloth=accent] [--importance t] [--priority n] [--height metres] [--body quadruped|serpent|flyer|large] [--object "ice lance"] [--gates shape,placeholder] [--rotate rotsprite [--rotate-from e]] [--notes "..."] [--break-contract]',
+      '       artgen brief add <id> --kind k [--view v] [--size key|WxH] [--states a,b] [--directions n] [--anims walk:4] [--durations attack=80/80/200/80] [--variants n] [--swaps red:cloth=accent] [--importance t] [--priority n] [--height metres] [--body quadruped|serpent|flyer|large] [--object "ice lance"] [--gates shape,placeholder] [--rotate rotsprite [--rotate-from e]] [--rigged] [--notes "..."] [--break-contract]',
     ],
     text: r => `brief ${r.brief.id} (${r.brief.kind}) in art/briefs.yaml — ${r.count} briefs${r.warnings.map((w: string) => `\n  warning: ${w}`).join('')}\nnext: artgen make ${r.brief.id}`,
   },

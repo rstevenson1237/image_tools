@@ -1,6 +1,6 @@
 # Tooling plan: separate, refactor, and build a feedback loop
 
-Status: proposal, 2026-10-27; decisions settled 2026-10-27 and revised 2026-10-29 (§12). R0, R1, R2, R3, R5, R5b, R6 and R7a are built, and R4's code is built but its acceptance run is not (§10); R6's production accept is not run either; the rest is not. It follows on from the finished artgen plan ([`archive/artgen/PLAN.md`](archive/artgen/PLAN.md)) and reuses its
+Status: proposal, 2026-10-27; decisions settled 2026-10-27 and revised 2026-10-29 (§12). R0, R1, R2, R3, R5, R5b, R6, R7a and R7b are built, and R4's code is built but its acceptance run is not (§10); R6's production accept is not run either; the rest is not. It follows on from the finished artgen plan ([`archive/artgen/PLAN.md`](archive/artgen/PLAN.md)) and reuses its
 decisions (`Dn`) where they still hold.
 
 ## 1. Summary
@@ -57,13 +57,13 @@ Coverage against the areas you listed (✅ have, ◐ partial, ✗ missing):
 | **Output** | 2D | ✅ | `Scene2D` primitives, tiles, textures, effects; SVG/PNG maps |
 | | 2.5D | ◐ | iso, 3/4 oblique, sprite stacks, parallax strips (D8). Lit sprites and sprite stacks are not in the Pixi.js runtime |
 | | Voxel | ✅ | `Scene3D` voxel mode, `.vox` and greedy-mesh `.glb` export |
-| | 3D | ✅ | R7a: smooth or faceted meshes under a budget, UVs, baked colour / normal / roughness textures, `.glb` ([`MESHES.md`](MESHES.md)). Rigged meshes are R7b |
+| | 3D | ✅ | R7a: smooth or faceted meshes under a budget, UVs, baked colour / normal / roughness textures, `.glb` ([`MESHES.md`](MESHES.md)). R7b: skinned to the body rigs, a clip per state, levels of detail ([`RIGS3D.md`](RIGS3D.md)) |
 | **Camera** | Top-down, side, iso | ✅ | `views/camera.ts`: affine pixel-art cameras |
 | | FPS | ◐ | billboards, wall/floor textures, view-models, raycaster preview (D9). No true perspective camera |
 | | Free camera | ✅ | R7a: a perspective orbit camera, turntables and the orbit view in Asset Lab |
 | **Stages** | Geometric placeholder | ✗ | `base.v1` is already a full build. Nothing ships a greybox to the game first |
 | | Shape | ✅ | S1 base: primitives, booleans, shading models |
-| | Rig | ◐ | `anim.rig`, `solveTwoBone`, `spring` exist, but templates don't use them. Each asset builds its own rig |
+| | Rig | ✅ | R6b: shared body rigs under the character and creature templates; R7b: the same rigs in 3D, skinned meshes and clips |
 | | Decorating | ✅ | S2 `proc` layers, finish ops |
 | | Decal / effect | ◐ | Effects: `fx/particles`. No decals (marks placed on a surface, kept as their own layer) |
 | | Lighting | ◐ | light direction, banded shading, normal maps. No lit-sprite runtime |
@@ -704,7 +704,7 @@ faster for the phases after it.
     needs model runs and a person answering the gates. Gates on stages after shape; a shape sheet in the web UI (R8); 3D rigs (R7b);
     WebGPU lit sprites; Firefox.
 
-### R7 — Output and camera breadth (L, three sub-phases) — R7a built 2026-10-31
+### R7 — Output and camera breadth (L, three sub-phases) — R7a built 2026-10-31, R7b built 2026-11-01
 - **R7a — true 3D meshes and the free camera.** Turn `Scene3D` primitives into meshes (polygon budget, smooth or
   faceted), add UVs and bake textures (colour, normal, roughness) from the palette and proc layers, and export `.glb`.
   Add a perspective camera and an orbit preview in the web UI for both voxel and mesh assets (three.js is already a
@@ -728,6 +728,27 @@ faster for the phases after it.
     asset in headless Chromium. Not done: decimation (a box uses most of its budget), turntables on review sheets, rigs (R7b).
 - **R7b — rigged and animated 3D.** Skin meshes to the shared rig library (R6b), export animation clips and levels of
   detail, and load them through the three.js adapter.
+
+  **Built (2026-11-01):** the design and what was built are in [`RIGS3D.md`](RIGS3D.md) (§12).
+  - **Rigs in 3D:** `ctx.lib.rigs.body3d(plan, { height })` is the R6b skeleton in a 3D-mode model's units and frame (the
+    2D rig's `skeleton()` before the facing projects it, with the root moves unrounded). A template builds its parts along
+    `rig.pose(ctx.state, ctx.t)`, each with its `bone`, so the sprites animate from the same clips the `.glb` carries.
+  - **Skinning:** the bind pose (idle, t = 0) is meshed by R7a's mesher. A vertex follows the bone of the solid it lies on,
+    blended across each joint (through the short hip to the spine and legs). A pose moves each bone by its least rotation.
+  - **`artgen rig <asset>`:** `out/<id>.rigged.glb` (one skin, a node per bone, a skinned mesh per level of detail at a
+    quarter of the budget each, an animation per brief state as long as the sprite's) and `out/<id>-clips.png`, with
+    checks `skin-weights`, `skin-bound`, `clip-lengths`, `skin-stretch` (parts that touch in the bind pose and move apart)
+    and `lod-budget`.
+  - **Template:** `fp/character-rigged` (any view, drawn at the brief's height); a brief's `rigged: true` starts from it.
+  - **Runtime 1.5.0:** `riggedModel(new GLTFLoader(), url)` in the three adapter plays the clips by state and picks the
+    level of detail by distance.
+  - **Accept for R7b:** a rigged `.glb` character walks in the three.js example game. The billboard-crawler's night warden
+    is briefed `rigged`, made v1–v3 and a finish, exported with `artgen rig`, and walks his rounds in `src/main.ts`.
+    `npm run accept:rig` builds and plays the game in headless Chromium: the clips, the skeleton, the walk (bones turn,
+    feet swing, the model travels), the pixels, attack then walk, and the levels by distance. A glTF-viewer evaluation of
+    the exported skin and walk matches the engine's posed mesh to 1e-4 m.
+  - **Not done:** the warden's approval (the pipeline holds it for a fresh blind reviewer); rigged templates for the
+    non-humanoid bodies; scored bench runs; clips in the web UI's orbit view.
 - **R7c — map and camera exports.** Add Tiled and LDtk export for maps and tilesets. Each new camera is a view module
   (projection, probe set, context view, check, runtime helper), the plug-in shape D8 already set.
 - **Makes later work faster:** voxel and mesh output share the same primitives, rigs and review, so every cell of the

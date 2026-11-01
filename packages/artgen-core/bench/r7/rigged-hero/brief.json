@@ -1,0 +1,13 @@
+{
+  "id": "rigged-hero",
+  "kind": "character",
+  "view": "fp",
+  "size": [32, 48],
+  "states": ["idle", "walk", "attack", "hurt"],
+  "directions": 8,
+  "anims": { "walk": { "frames": 4 }, "attack": { "frames": 4, "loop": false }, "hurt": { "frames": 2 } },
+  "height": 1.8,
+  "notes": "R7b benchmark: the rigged 3D biped template as it comes — sprites in every facing and state from the 3D rig's poses, and the skinned .glb (artgen rig)",
+  "direction": "../../p6/direction.json",
+  "review": { "scale": 4, "sym": "none", "label": "R7b: rigged 3D biped (fp billboard + skinned .glb)" }
+}

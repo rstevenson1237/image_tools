@@ -9,12 +9,15 @@
  *       voxelise an outside mesh (or take a .vox) at the direction's scale, colours snapped to its ramps
  *   artgen extrude <image.png|asset> [--depth px] [--asset id] [--to vox|mesh] [--out file]
  *       the opaque pixels as columns, standing up: a sign, a weapon, a flat prop with depth
+ *   artgen rig <asset> [--version v] [--lods n] [--keys n] [--budget n] [--mode …] [--texels n] [--look …] [--scale m] [--out dir]
+ *       (R7b, docs/RIGS3D.md) a rigged 3D-mode asset as a skinned .glb: its bind pose meshed and bound to the body rig's
+ *       bones, a clip per state, levels of detail; with the clip strip and the checks
  */
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import {
-  buildMesh, camera, decodePNG, decodeVox, encodeVox, glbTriangles, meshBudget, meshChecks, meshGlb, parseColor, parseVersion, pxPerMetre, readGlb, resolveSize, Scene3D, turntable, viewOfMesh,
+  buildMesh, buildRigged, camera, clipStrip, riggedChecks, riggedGlb, stateDefs, decodePNG, decodeVox, encodeVox, glbTriangles, meshBudget, meshChecks, meshGlb, parseColor, parseVersion, pxPerMetre, readGlb, resolveSize, Scene3D, turntable, viewOfMesh,
   voxelizeTriangles, voxelViewMesh, worldLight, dirContext, type Direction, type Grid, type MeshCheck, type MeshMode, type MeshLook, type MeshResult, type V3, type VoxModel,
 } from 'artgen-core';
 import { passOf, renderVersion, versionsIn, type AssetDir } from './asset.ts';
@@ -42,6 +45,46 @@ export function metresPerUnit(scene: Scene3D, dir: Direction): number {
 }
 
 export interface MeshSettings { budget?: number; mode?: MeshMode; texels?: number; look?: MeshLook }
+
+export interface RigExport {
+  asset: string; version: string; glb: string; clips: string; plan: string; bones: string[];
+  states: { state: string; duration: number; loop: boolean }[];
+  lods: { triangles: number; budget: number; texels: number }[];
+  vertices: number; mode: MeshMode; look: MeshLook; atlas: [number, number]; metresPerUnit: number; height: number; checks: MeshCheck[];
+}
+
+/**
+ * A rigged 3D-mode asset as a skinned `.glb` (R7b): the version is drawn once in the bind pose (idle, the first facing,
+ * t = 0), its mesh skinned to the bones of the pose the scene was built along, and every state of the brief sampled from
+ * the rig as a clip as long as the sprite's animation. Writes `<id>.rigged.glb` and `<id>-clips.png` (a row per clip).
+ */
+export async function rigExport(a: AssetDir, o: MeshSettings & { version?: string; out?: string; scale?: number; lods?: number; keys?: number } = {}): Promise<RigExport> {
+  const version = o.version ?? versionsIn(a).filter(v => v.startsWith('base.')).pop();
+  if (!version) throw new Error(`${a.brief.id}: no base version`);
+  let scene: Scene3D | undefined;
+  // only the bind cell is drawn: idle, one facing, frame 0
+  const bindBrief = { ...a.brief, states: ['idle'], directions: 1 as const, rotate: undefined, anims: a.brief.anims?.idle ? { idle: a.brief.anims.idle } : undefined };
+  await renderVersion({ ...a, brief: bindBrief }, version, { onScene: (cell, sc) => { if (cell.endsWith('/0') && sc instanceof Scene3D && sc.pose && !scene) scene = sc; } });
+  if (!scene) throw new Error(`${a.brief.id} ${version}: not a rigged model — build the 3D-mode scene along a body rig's pose (ctx.lib.t2.scene3d({ k, pose }) with ctx.lib.rigs.body3d; template fp/character-rigged)`);
+  const set = settingsOf(a, o), states = a.brief.states?.length ? a.brief.states : ['idle'];
+  const defs = stateDefs(a.brief, a.dir, Object.fromEntries(states.map(s => [s, a.brief.anims?.[s]?.frames ?? 1])));
+  const clips = states.map(state => {
+    // a still sprite (one frame) has no length of its own: its clip (a breath, a hover) takes two seconds
+    const d = defs[state], ms = d.frames === 1 && !d.durations ? 2000 : d.durations ? d.durations.reduce((x, y) => x + y, 0) : (d.frames * 1000) / d.fps;
+    return { state, duration: Math.round(ms) / 1000, loop: d.loop };
+  });
+  const m = buildRigged(scene, { ...set, lods: o.lods ?? a.brief.mesh?.lods, keys: o.keys ?? a.brief.mesh?.keys, clips }), mpu = o.scale ?? metresPerUnit(scene, a.dir);
+  const out = o.out ?? join(a.path, 'out'), id = a.brief.id, glb = join(out, `${id}.rigged.glb`), strip = join(out, `${id}-clips.png`);
+  mkdirSync(out, { recursive: true });
+  writeFileSync(glb, riggedGlb(m, { name: id, metresPerUnit: mpu }));
+  writeGrid(strip, clipStrip(m, { light: worldLight(a.dir).light, background: background(a) }));
+  const r0 = m.lods[0].result, checks = riggedChecks(m, { budget: set.budget, metresPerUnit: mpu, height: a.brief.height });
+  return {
+    asset: id, version, glb: relative(process.cwd(), glb), clips: relative(process.cwd(), strip), plan: m.rig.set, bones: m.skeleton.bones, states: clips,
+    lods: m.lods.map(l => ({ triangles: l.result.mesh.indices.length / 3, budget: l.budget, texels: l.result.texels })), vertices: r0.mesh.positions.length / 3,
+    mode: r0.mode, look: r0.look, atlas: r0.atlas, metresPerUnit: mpu, height: Math.round((r0.bounds[5] - r0.bounds[2]) * mpu * 1000) / 1000, checks,
+  };
+}
 
 /** The brief's `mesh` settings under the ones given, with the kind's budget. */
 const settingsOf = (a: AssetDir, o: MeshSettings): Required<MeshSettings> => ({

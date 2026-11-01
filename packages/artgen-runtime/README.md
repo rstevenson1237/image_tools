@@ -58,12 +58,31 @@ app.ticker.add(() => { rig.lights[0].x = lantern.x; rig.lights[0].y = lantern.y;
 Sprites whose asset exports normals take the light; others are lit as flat faces toward the viewer; `ambient: [1, 1, 1]` and no lights draws every sprite
 unchanged. Up to `MAX_LIGHTS` (8) lights count. Falloff is `(1 − distance / radius)²`, the angle term is `max(0, n · l)` rounded to `bands` steps.
 
+Runtime 1.5.0: rigged 3D models in three.js. `riggedModel` in `adapters/three.ts` loads the skinned `.glb` that `artgen rig`
+writes (a mesh per level of detail over one skeleton, an animation clip per state) through three's `GLTFLoader`, which the game
+passes in (it lives in `three/examples`, so the adapter still imports only `three`):
+
+```ts
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { riggedModel } from './art/runtime/adapters/three.js';
+
+const warden = await riggedModel(new GLTFLoader(), 'assets/models/warden.rigged.glb', { state: 'walk' });
+scene.add(warden.object);
+// every frame: place and turn it (0 faces +z), advance its clip, and let the camera's distance pick the level of detail
+warden.at(x, 0, z).face(heading).update(dtMs, camera);
+if (near) warden.play('attack');                // one-shot clips hold their last pose; `warden.done` once they end
+else if (warden.done) warden.play('walk');      // cross-fades over 120 ms (`{ fade }`)
+```
+
+The clips loop as the sprite's states do (`extras.artgen.clips`); the level-of-detail distances are the model's metres, so a
+model scaled down switches sooner. `npm run accept:rig` plays the billboard-crawler's warden in headless Chromium.
+
 ## Adapters (`src/adapters/`)
 
 | Entry | Engine | Nodes | Notes |
 |---|---|---|---|
 | `pixi.ts` | Pixi.js v8 | `Sprite` | nearest `BufferImageSource` atlases, cached frame textures, flip via `scale.x`, `zIndex` from z (parent made `sortableChildren`), `pixiStrip` → textures for `AnimatedSprite` |
-| `three.ts` | three.js | `Sprite` billboard | nearest sRGB `DataTexture`s, frames by UV offset/repeat (flip = negative repeat), sized by `pixelsPerUnit`, `alphaTest` cut-out (default 0.02: translucent shadow pixels draw blended, clear pixels write no depth); `billboardAngle(heading, node, camera)` for camera-relative facing; `tileTexture` for repeating floors and walls; `voxelModel` for `.glb`; **`threeLitAdapter`** (P6d): camera-yawed Lambert quads whose `normalMap` is the frame's rect in the normal atlas, for sprites lit by scene lights |
+| `three.ts` | three.js | `Sprite` billboard | nearest sRGB `DataTexture`s, frames by UV offset/repeat (flip = negative repeat), sized by `pixelsPerUnit`, `alphaTest` cut-out (default 0.02: translucent shadow pixels draw blended, clear pixels write no depth); `billboardAngle(heading, node, camera)` for camera-relative facing; `tileTexture` for repeating floors and walls; `voxelModel` for `.glb`; **`riggedModel`** (1.5) for the skinned `.glb` of `artgen rig`; **`threeLitAdapter`** (P6d): camera-yawed Lambert quads whose `normalMap` is the frame's rect in the normal atlas, for sprites lit by scene lights |
 | `pixi.ts` (`pixiLitAdapter`) | Pixi.js v8, WebGL | `Mesh` (a quad) | **lit sprites** (R6c): a GLSL shader samples the frame's rect of the colour atlas and of the normal atlas and shades each texel with a `LightRig` of point lights (`light.ts`, the same maths as `shadeTexel`); frame, flip, anchor and position are uniforms, so a frame change rebuilds nothing; the game mutates the rig and the next frame uses it; no `setRotation`; **WebGPU is not supported by this adapter** |
 | `canvas2d.ts` | Canvas 2D | plain records | reference adapter (UI previews, docs): `Canvas2DLayer.draw(ctx, zoom)` in z order, `drawNode` |
 
@@ -76,5 +95,5 @@ the lit Pixi one and a stub written only against the public API. Nothing in the 
 the new file up by name.
 
 Tests: `runtime.test.ts` (facing, frames, state machine, autotile, effects, coordinates, swaps, the three fixture packs),
-`adapters.test.ts` (contract × 5 + adapter extras), `light.test.ts` (`decodeNormal`, `shadeTexel`), `typed.test.ts` (typed ids), `size.test.ts` (8 KB budget, no imports
+`adapters.test.ts` (contract × 5 + adapter extras), `adapters/rigged.test.ts` (`riggedModel`: clips, one-shots, levels of detail), `light.test.ts` (`decodeNormal`, `shadeTexel`), `typed.test.ts` (typed ids), `size.test.ts` (8 KB budget, no imports
 outside the core / each adapter's engine). The lit adapter is also checked in a real browser: `npm run accept:lit` (Playwright + Chromium, pixels against `shadeTexel`).

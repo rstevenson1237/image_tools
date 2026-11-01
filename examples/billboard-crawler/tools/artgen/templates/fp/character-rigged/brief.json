@@ -1,0 +1,1 @@
+{ "kind": "character", "view": "fp", "size": [32, 48], "states": ["idle", "walk", "attack", "hurt"], "directions": 8, "anims": { "walk": { "frames": 4 }, "attack": { "frames": 4 }, "hurt": { "frames": 2 } }, "review": { "scale": 4, "sym": "none" } }
