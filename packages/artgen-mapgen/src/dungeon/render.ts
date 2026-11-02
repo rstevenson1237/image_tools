@@ -21,6 +21,7 @@ import { area2 } from './geom.ts';
 import { coversContent, placeFurniture, type FurnitureItem, type FurnitureLayout } from './furniture.ts';
 import { underlaySvg } from './underlay.ts';
 import { nameSize, numberSize, roomLabelLayout } from './roomlabels.ts';
+import { withMarks } from './marks.ts';
 import { layoutWalls } from './walls.ts';
 
 export const DUNGEON_LAYERS = ['underlay', 'rock', 'floors', 'buildings', 'enclosure', 'grid', 'exits', 'doors', 'symbols', 'cellars', 'numbers', 'labels', 'legend', 'title', 'scale', 'compass'] as const;
@@ -87,10 +88,14 @@ export function dungeonLabelLayout(spec: DungeonSpec, k: number, pageScale?: num
 /** The legend's name for a symbol: its name up to the first bracket. */
 export const LEGEND_NAMES = (kind: string): string => (SYMBOLS[kind] ?? SYMBOLS.trap).name.split(' (')[0];
 
+/** How the rock is drawn: `style.rock`, else hatching unless `hatch` is none. */
+export const rockOf = (spec: DungeonSpec): 'hatch' | 'solid' | 'none' => spec.style.rock ?? (spec.style.hatch === 'none' ? 'none' : 'hatch');
+const ROCK_COLOR = '#bdbdbd';
+
 /** Which layers render: everything on, the optional ones as the file says, then the caller's overrides. */
 export function dungeonLayersFor(spec: DungeonSpec, over: Partial<Record<DungeonLayer, boolean>> = {}): Record<DungeonLayer, boolean> {
   const on = Object.fromEntries(DUNGEON_LAYERS.map(l => [l, true])) as Record<DungeonLayer, boolean>;
-  on.rock = spec.style.hatch !== 'none'; on.underlay = !!spec.underlay; on.enclosure = !!spec.walls?.length; on.legend = !!spec.legend; on.grid = spec.grid.show; on.numbers = spec.numbers;
+  on.rock = rockOf(spec) !== 'none' || !!spec.areas?.length; on.underlay = !!spec.underlay; on.enclosure = !!spec.walls?.length; on.legend = !!spec.legend; on.grid = spec.grid.show; on.numbers = spec.numbers;
   on.scale = spec.scaleBar; on.compass = spec.compass; on.title = !!spec.title;
   return { ...on, ...over };
 }
@@ -223,9 +228,10 @@ export function dungeonRenderSize(spec: DungeonSpec, o: RenderDungeonOptions = {
   return { width: fr.w + band.right, height: fr.h + band.bottom, band };
 }
 
-export function renderDungeonSvg(spec: DungeonSpec, o: RenderDungeonOptions = {}): string {
+export function renderDungeonSvg(file: DungeonSpec, o: RenderDungeonOptions = {}): string {
+  const l = o.layout ?? layoutDungeon(file), spec = withMarks(file, l).spec, on = dungeonLayersFor(spec, o.layers);
   const k = o.ppu ?? 40, W = spec.cols * k, H = spec.rows * k, u = o.pageScale ? pageUnit(o.pageScale) : k / 40, t = 0.14 * k * spec.style.wall, fr = frameOf(o.crop, spec.cols, spec.rows, k);
-  const l = o.layout ?? layoutDungeon(spec), on = dungeonLayersFor(spec, o.layers);
+  const tp = 0.14 * k * (spec.style.partition ?? spec.style.wall), rock = rockOf(spec), rockFill = spec.style.rockColor ?? ROCK_COLOR;
   const parts: string[] = [`<rect width="${W}" height="${H}" fill="${PAPER}"/>`], defs: string[] = [];
   // floor shapes: the floor rooms and natural passages (filled), and built corridors (stroked to their width)
   // every ring turns the same way, so where floors overlap the non-zero fill adds them up instead of cutting a hole
@@ -234,21 +240,33 @@ export function renderDungeonSvg(spec: DungeonSpec, o: RenderDungeonOptions = {}
 
   if (on.underlay && spec.underlay && o.underlay) parts.push(underlaySvg(spec, o.underlay.map, k, o.underlay.field));
 
-  if (on.rock && spec.style.hatch !== 'none') {
-    defs.push(hatchPattern(k));
+  // the level's ground: the rock and the grid are drawn inside it
+  if (spec.bounds) defs.push(`<clipPath id="bounds-clip"><path d="${pathData([{ pts: spec.bounds, closed: true }], k)}"/></clipPath>`);
+  const inBounds = (g: string) => (spec.bounds ? `<g clip-path="url(#bounds-clip)">${g}</g>` : g);
+  if (on.rock) {
+    const hatched = rock === 'hatch' || spec.areas?.some(a => a.kind === 'rock');
+    if (hatched) defs.push(hatchPattern(k));
     const band = spec.style.band * k;
-    const g = spec.style.hatch === 'full'
-      ? `<rect width="${W}" height="${H}" fill="url(#hatch)"/>`
+    let g = rock === 'solid' ? `<rect width="${W}" height="${H}" fill="${rockFill}"/>`
+      : rock === 'none' ? ''
+      : spec.style.hatch === 'full' ? `<rect width="${W}" height="${H}" fill="url(#hatch)"/>`
       : `<g fill="url(#hatch)" stroke="url(#hatch)" stroke-linejoin="round" stroke-linecap="round">${roomD ? `<path d="${roomD}" stroke-width="${n1(2 * (t + band))}"/>` : ''}${corr.map(c => `<path d="${c.d}" fill="none" stroke-width="${n1(c.w + 2 * (t + band))}"/>`).join('')}</g>`;
-    parts.push(`<g id="rock">${g}</g>`);
+    // rock within the level is drawn as rock; a void is open paper, edged with a dashed line
+    for (const a of spec.areas ?? []) {
+      const d = pathData([{ pts: a.points, closed: true }], k);
+      g += a.kind === 'rock' ? `<path d="${d}" fill="${rock === 'solid' ? rockFill : 'url(#hatch)'}" stroke="${INK}" stroke-width="${n1(u)}"/>`
+        : `<path d="${d}" fill="${PAPER}" stroke="${INK}" stroke-width="${n1(1.4 * u)}" stroke-dasharray="${n1(5 * u)} ${n1(3 * u)}"/>`;
+    }
+    parts.push(`<g id="rock">${inBounds(g)}</g>`);
   }
+  if (spec.bounds) parts.push(`<path id="bounds" d="${pathData([{ pts: spec.bounds, closed: true }], k)}" fill="none" stroke="${INK}" stroke-width="${n1(1.5 * u)}"/>`);
 
   // the floor's shape: rooms filled, corridors stroked to their width (square ends, so dead ends close with a wall)
   const floor = (fill: string, extra: number) =>
     (roomD ? `<path d="${roomD}" fill="${fill}"${extra ? ` stroke="${fill}" stroke-width="${n1(extra * 2)}" stroke-linejoin="miter"` : ''}/>` : '') +
     corr.map(c => `<path d="${c.d}" fill="none" stroke="${fill}" stroke-width="${n1(c.w + extra * 2)}" stroke-linecap="square" stroke-linejoin="miter"/>`).join('');
   // the walls rooms share: drawn over the floor, as thick as an outer wall shows, with the openings left out
-  const inner = l.partitions.length ? `<path id="partitions" d="${l.partitions.map(p => `M${n1(p[0] * k)} ${n1(p[1] * k)}L${n1(p[2] * k)} ${n1(p[3] * k)}`).join('')}" stroke="${INK}" stroke-width="${n1(t * 1.1)}" stroke-linecap="square" fill="none"/>` : '';
+  const inner = l.partitions.length ? `<path id="partitions" d="${l.partitions.map(p => `M${n1(p[0] * k)} ${n1(p[1] * k)}L${n1(p[2] * k)} ${n1(p[3] * k)}`).join('')}" stroke="${INK}" stroke-width="${n1(tp * 1.1)}" stroke-linecap="square" fill="none"/>` : '';
   if (on.floors) parts.push(`<g id="floors"><g id="walls">${floor(INK, t)}</g><g id="floor">${floor(PAPER, 0)}</g>${inner}</g>`);
 
   const ofFill = (f: string) => l.rooms.filter(g => fillOf(g.room) === f);
@@ -297,7 +315,7 @@ export function renderDungeonSvg(spec: DungeonSpec, o: RenderDungeonOptions = {}
     g += `<path d="${line(s)}" stroke="${INK}" stroke-opacity="0.38" stroke-width="${n1(1.1 * u)}"/>`;
     const clip = spec.grid.clip === 'floor';
     if (clip) defs.push(`<mask id="floor-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}">${floor('#ffffff', 0)}</mask>`);
-    parts.push(`<g id="grid" fill="none"${clip ? ' mask="url(#floor-mask)"' : ''}>${g}</g>`);
+    parts.push(inBounds(`<g id="grid" fill="none"${clip ? ' mask="url(#floor-mask)"' : ''}>${g}</g>`));
   }
 
   // exits off the map: the corridor fades to white toward the edge, and a boxed note says where it leads

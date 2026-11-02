@@ -100,6 +100,13 @@ export function linkEnds(m: DungeonSpec, a: unknown, b: unknown): [unknown, unkn
   return [ea, eb];
 }
 
+/** An octagon's `cut`, a hexagon's `orient` and a room's `exits` from an edit (null removes one). */
+function roomExtras(r: Room, o: DungeonOp): void {
+  if (o.cut === null) delete r.cut; else if (typeof o.cut === 'number') r.cut = o.cut;
+  if (o.orient === null) delete r.orient; else if (o.orient === 'flat' || o.orient === 'pointy') r.orient = o.orient;
+  if (o.exits === null) delete r.exits; else if (Array.isArray(o.exits)) r.exits = o.exits as Room['exits'];
+}
+
 /** A room's `labelAt` from an edit: a side (n, s, w, e, c) or an offset (dx,dy cells). */
 const labelAt = (v: unknown): NonNullable<Room['labelAt']> => (typeof v === 'string' && ['c', 'n', 's', 'w', 'e'].includes(v) ? v as 'c' : pt(v));
 
@@ -118,6 +125,7 @@ export function editDungeon(m: DungeonSpec, o: DungeonOp): string {
       if (typeof o.fill === 'string' && o.fill) r.fill = o.fill as RoomFill;
       if (o.anchor !== undefined && o.anchor !== null) r.anchor = pt(o.anchor);
       if (o.label_at !== undefined && o.label_at !== null && o.label_at !== '') r.labelAt = labelAt(o.label_at);
+      roomExtras(r, o);
       if (typeof o.href === 'string' && o.href) r.href = o.href;
       if (typeof o.origin === 'string' && o.origin) r.origin = o.origin;
       m.rooms.push(r);
@@ -144,6 +152,7 @@ export function editDungeon(m: DungeonSpec, o: DungeonOp): string {
       if (typeof o.href === 'string') { if (o.href) r.href = o.href; else delete r.href; }
       if (o.anchor === null || o.anchor === '') delete r.anchor; else if (o.anchor !== undefined) r.anchor = pt(o.anchor);
       if (o.label_at === null || o.label_at === '') delete r.labelAt; else if (o.label_at !== undefined) r.labelAt = labelAt(o.label_at);
+      roomExtras(r, o);
       return `changed ${r.id}`;
     }
     case 'remove_room': {
@@ -161,7 +170,7 @@ export function editDungeon(m: DungeonSpec, o: DungeonOp): string {
       m.corridors.push({
         ...(typeof o.id === 'string' && { id: o.id }),
         from: a, to: exit && 'at' in b ? { ...b, exit } : b,
-        ...(typeof o.width === 'number' && { width: o.width }), ...(typeof o.route === 'string' && { route: o.route as Route }),
+        ...(typeof o.width === 'number' && { width: o.width }), ...(typeof o.span === 'number' && { span: o.span }), ...(typeof o.route === 'string' && { route: o.route as Route }),
         ...(Array.isArray(o.via) && { via: numbers(o.via) }), ...(Array.isArray(o.doors) && { doors: o.doors as [DoorKind | null, DoorKind | null] }),
         ...(o.curve === 'smooth' && { curve: 'smooth' as const }), ...(o.style === 'natural' && { style: 'natural' as const }), ...(typeof o.seed === 'number' && { seed: o.seed }),
         ...(typeof o.origin === 'string' && o.origin && { origin: o.origin }),
@@ -206,7 +215,7 @@ export function editDungeon(m: DungeonSpec, o: DungeonOp): string {
     case 'connect': {
       (m.connections ??= []).push({
         a: String(o.a), b: String(o.b), ...(o.at !== undefined && { at: pt(o.at) }), ...(typeof o.kind === 'string' && o.kind !== 'door' && { kind: o.kind as DoorKind | 'open' }),
-        ...(typeof o.width === 'number' && { width: o.width }), ...(typeof o.origin === 'string' && o.origin && { origin: o.origin }),
+        ...(typeof o.width === 'number' && { width: o.width }), ...(typeof o.span === 'number' && { span: o.span }), ...(typeof o.origin === 'string' && o.origin && { origin: o.origin }),
       });
       return `connection ${m.connections.length - 1}: ${String(o.a)} ↔ ${String(o.b)}`;
     }

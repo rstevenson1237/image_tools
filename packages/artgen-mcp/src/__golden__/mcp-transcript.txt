@@ -2246,6 +2246,7 @@ text: {
     "rect",
     "circle",
     "octagon",
+    "hexagon",
     "cave",
     "poly"
   ],
@@ -2743,6 +2744,7 @@ text: {
     "rect",
     "circle",
     "octagon",
+    "hexagon",
     "cave",
     "poly"
   ],
@@ -3011,7 +3013,8 @@ text: {
     "name",
     "note",
     "area",
-    "street"
+    "street",
+    "water"
   ],
   "ops": [
     "building.add",
@@ -4020,7 +4023,8 @@ text: {
     "name",
     "note",
     "area",
-    "street"
+    "street",
+    "water"
   ],
   "ops": [
     "building.add",

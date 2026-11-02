@@ -5,7 +5,8 @@
  * JSON path of the entry it is about and a severity: an `error` draws wrongly, a `warning` is most likely a mistake.
  */
 import { overlaps, textBox, type Box } from 'artgen-primitives/lib/page.ts';
-import { corridorBoundaries, doorStand } from './floor.ts';
+import { corridorBoundaries, doorStand, floorGrid } from './floor.ts';
+import { withMarks } from './marks.ts';
 import { roomLabelLayout } from './roomlabels.ts';
 import { area2, lineLength, samples, segmentCross, selfCrossing, sharedEdges, type P } from './geom.ts';
 import { inPolygon, layoutDungeon, type DungeonLayout, type RoomGeom } from './layout.ts';
@@ -40,6 +41,8 @@ export const CHECK_IDS = {
   'doors-stacked': 'two doors stand on each other',
   'mark-on-badge': 'a symbol lies under a room\'s number',
   'label-overlap': 'a label lies over another label',
+  'outside-bounds': 'a room or corridor has floor outside the level\'s bounds',
+  'in-keep-out': 'a room or corridor has floor on an area of rock or a void',
 } as const;
 export type CheckId = keyof typeof CHECK_IDS;
 
@@ -214,30 +217,49 @@ export function lintDungeon(spec: DungeonSpec, l: DungeonLayout = layoutDungeon(
     if (sc.at && Math.hypot(sc.at[0] - c.x, sc.at[1] - c.y) > 0.75) add('connection-off-wall', 'warning', `${at}.at`, `${sc.at.join(',')} is not on the wall ${c.a} and ${c.b} share; the ${c.kind === 'open' ? 'opening' : c.kind} is at ${c.x.toFixed(1)},${c.y.toFixed(1)}`);
   });
 
-  // marks: off the sheet, symbols on a badge, labels on labels
+  // ground: the floor stays inside the level's bounds and off its rock and voids
+  const keepOut = (spec.areas ?? []).map((a, i) => ({ a, i }));
+  if (spec.bounds || keepOut.length) {
+    const grid = floorGrid(spec, l), R = l.rooms.length, outside = new Map<number, number>(), onArea = new Map<string, number>();
+    for (let y = 0; y < grid.rows; y++) for (let x = 0; x < grid.cols; x++) {
+      const v = grid.cells[y * grid.cols + x];
+      if (v < 0) continue;
+      if (spec.bounds && !inPolygon(spec.bounds, x + 0.5, y + 0.5)) outside.set(v, (outside.get(v) ?? 0) + 1);
+      for (const { a, i } of keepOut) if (inPolygon(a.points, x + 0.5, y + 0.5)) onArea.set(`${v},${i}`, (onArea.get(`${v},${i}`) ?? 0) + 1);
+    }
+    const name = (v: number) => (v < R ? { path: `rooms[${v}]`, what: l.rooms[v].room.id } : { path: `corridors[${v - R}]`, what: `corridor ${v - R}` });
+    for (const [v, n] of outside) add('outside-bounds', 'warning', name(v).path, `${name(v).what} has ${n} cell${n === 1 ? '' : 's'} of floor outside the level's bounds`);
+    for (const [k, n] of onArea) {
+      const [v, i] = k.split(',').map(Number);
+      add('in-keep-out', 'warning', name(v).path, `${name(v).what} has ${n} cell${n === 1 ? '' : 's'} of floor on areas[${i}] (${spec.areas![i].kind}${spec.areas![i].label ? ` "${spec.areas![i].label}"` : ''})`);
+    }
+  }
+
+  // marks (the overlay, and the marks rooms' exits and areas' labels add): off the sheet, symbols on a badge, labels on labels
+  const marked = withMarks(spec, l), marks = marked.spec.overlay;
   // the rooms' labels where they are drawn: one that found no clear spot lies on a symbol (reported with the symbol) or on another room's label
-  const placed = roomLabelLayout(spec, l), badges = placed.flatMap(r => (r.badge ? [{ g: l.rooms[r.room], b: r.badge }] : []));
+  const placed = roomLabelLayout(marked.spec, l), badges = placed.flatMap(r => (r.badge ? [{ g: l.rooms[r.room], b: r.badge }] : []));
   const block = (r: (typeof placed)[number]): Box[] => [r.badge, r.name].filter((b): b is Box => !!b);
   placed.forEach((r, i) => {
     if (r.placed) return;
     const other = placed.find((q, j) => j < i && block(q).some(b => block(r).some(c => overlaps(b, c))));
     if (other) add('label-overlap', 'warning', `rooms[${r.room}]`, `${l.rooms[r.room].room.id}'s label lies over ${l.rooms[other.room].room.id}'s and has no clear spot by its walls; set rooms[${r.room}].labelAt or move a room`);
   });
-  spec.overlay.symbols.forEach((s, i) => {
-    const at = `overlay.symbols[${i}]`, z = (s.scale ?? 1) * 0.9, box: Box = { x: s.x - z / 2, y: s.y - z / 2, w: z, h: z };
+  marks.symbols.forEach((s, i) => {
+    const at = marked.symbolPath[i], z = (s.scale ?? 1) * 0.9, box: Box = { x: s.x - z / 2, y: s.y - z / 2, w: z, h: z };
     if (offSheet(s.x, s.y)) add('off-sheet', 'warning', at, `${s.kind} at ${s.x},${s.y} is off the sheet`);
     const on = badges.find(({ b }) => overlaps(box, b));
     if (on) add('mark-on-badge', 'warning', at, `${s.kind} at ${s.x},${s.y} is under room ${on.g.room.id}'s number; move the symbol`);
   });
-  const labelBoxes = spec.overlay.labels.map(lb => {
+  const labelBoxes = marks.labels.map(lb => {
     const size = LABEL_CELLS[lb.kind] * (lb.size ?? 1), text = lb.kind === 'area' ? lb.text.toUpperCase() : lb.text;
     return textBox(text, lb.x, lb.y + size * 0.35, size, { bold: lb.kind !== 'note', spacing: lb.kind === 'area' ? size * 0.16 : 0 });
   });
-  spec.overlay.labels.forEach((lb, i) => {
-    const at = `overlay.labels[${i}]`;
+  marks.labels.forEach((lb, i) => {
+    const at = marked.labelPath[i];
     if (offSheet(lb.x, lb.y)) add('off-sheet', 'warning', at, `"${lb.text}" at ${lb.x},${lb.y} is off the sheet`);
-    const other = labelBoxes.findIndex((b, j) => j < i && !lb.angle && !spec.overlay.labels[j].angle && overlaps(labelBoxes[i], b));
-    if (other >= 0) add('label-overlap', 'warning', at, `"${lb.text}" overlaps label ${other} "${spec.overlay.labels[other].text}"`);
+    const other = labelBoxes.findIndex((b, j) => j < i && !lb.angle && !marks.labels[j].angle && overlaps(labelBoxes[i], b));
+    if (other >= 0) add('label-overlap', 'warning', at, `"${lb.text}" overlaps label ${other} "${marks.labels[other].text}"`);
   });
   return out;
 }

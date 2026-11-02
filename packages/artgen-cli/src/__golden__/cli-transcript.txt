@@ -4417,7 +4417,7 @@ exit 0
 }
 
 $ artgen dungeon room crypt add blob --root <root>
-threw: dungeon room <id> add <shape>: one of rect, circle, octagon, cave, poly
+threw: dungeon room <id> add <shape>: one of rect, circle, octagon, hexagon, cave, poly
 
 $ artgen dungeon room crypt add rect --root <root>
 threw: dungeon room <id> add <shape> --at x,y|C4 --size WxH

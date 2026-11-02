@@ -7,7 +7,7 @@ import { chaikin } from 'artgen-primitives/lib/trace.ts';
 import { junctionPort, naturalOutline, portRoute, routeAround, sidePort, smoothLine, snap, tidy, type Port } from './corridors.ts';
 import { segmentDistance, sharedEdges, type P } from './geom.ts';
 import { corridorBoundaries } from './floor.ts';
-import { corridorOrder, corridorWallsOn, sharedWallsOn, type Corridor, type DoorKind, type DungeonSpec, type Room } from './spec.ts';
+import { corridorOrder, corridorWallsOn, corridorWidth, sharedWallsOn, type Corridor, type DoorKind, type DungeonSpec, type Room } from './spec.ts';
 import { layoutWalls } from './walls.ts';
 
 export interface RoomGeom { room: Room; index: number; outline: number[]; cx: number; cy: number; number?: number }
@@ -37,8 +37,14 @@ export function roomOutline(r: Room): number[] {
   const { x, y, w, h } = r, cx = x + w / 2, cy = y + h / 2;
   if (r.shape === 'rect') return [x, y, x + w, y, x + w, y + h, x, y + h];
   if (r.shape === 'poly') return r.points!.slice();
+  if (r.shape === 'hexagon') {
+    return r.orient === 'pointy'
+      ? [cx, y, x + w, y + h / 4, x + w, y + (3 * h) / 4, cx, y + h, x, y + (3 * h) / 4, x, y + h / 4]
+      : [x + w / 4, y, x + (3 * w) / 4, y, x + w, cy, x + (3 * w) / 4, y + h, x + w / 4, y + h, x, cy];
+  }
   if (r.shape === 'octagon') {
-    const c = Math.max(0.5, Math.round(Math.min(w, h) * 0.3 * 2) / 2);
+    // the cut: `cut` of the shorter side exactly, else 0.3 of it to the half cell
+    const c = r.cut !== undefined ? Math.min(w, h) * r.cut : Math.max(0.5, Math.round(Math.min(w, h) * 0.3 * 2) / 2);
     return [x + c, y, x + w - c, y, x + w, y + c, x + w, y + h - c, x + w - c, y + h, x + c, y + h, x, y + h - c, x, y + c];
   }
   const n = r.shape === 'circle' ? 64 : 22, out: number[] = [];
@@ -184,7 +190,7 @@ const pointEnd = (path: number[]): EndGeom => ({ x: path[0], y: path[1], angle: 
 
 /** One corridor's geometry: its centre line from end to end, where it leaves each room, and a natural passage's floor. */
 function corridorGeom(c: Corridor, index: number, rooms: RoomGeom[], byId: Map<string, RoomGeom>, lineOf: Map<string, number[]>, spec: DungeonSpec): CorridorGeom {
-  const width = c.width ?? 1, how = c.route ?? 'auto';
+  const width = corridorWidth(c, spec), how = c.route ?? 'auto';
   const simple = (e: Corridor['from']) => 'at' in e || ('room' in e && e.side === undefined && e.port === undefined);
   let pts: number[];
   if (simple(c.from) && simple(c.to)) {

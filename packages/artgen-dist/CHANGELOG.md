@@ -61,6 +61,20 @@ Releases of the committed install (`artgen-dist`), the MCP server, the runtime i
   label over another's) or `mark-on-badge` (on a symbol). The Keep's drawing changes only where its labels moved: held at their anchors it
   renders as before, byte for byte.
 
+**Smaller drawing options (R9 D7)**
+- `rooms[].exits: [{kind: stairs-up|stairs-down|arrow, side?: n|e|s|w, at?: [x, y], angle?, text?}]`: a way out of the map inside a room,
+  its mark a cell in from that wall and turned toward it, its note on the room's side of it. Drawn, placed (under `--fit`) and checked as
+  overlay marks; `facts` lists each room's `exits`; a finding points at `rooms[i].exits[j]`. `dungeon room add|set --exits '<json>'`.
+- `style.rock: hatch|solid|none` and `style.rockColor` (solid rock in a colour, white floors); `style.partition`, the weight of the walls
+  between floors apart from `style.wall` (`dungeon style --rock --rock-color --partition`).
+- `corridors[].span`: a corridor's width in the scale unit (10 for a 10 ft passage) in place of `width` in cells (`link --span 10`).
+- Rooms: `hexagon` with `orient: flat|pointy`; an octagon's `cut` as a share of its shorter side, exact (unset: 0.3 of it to the half
+  cell, as before) (`room add|set --cut --orient`).
+- `bounds` (a polygon the rock and the grid are drawn in, its edge drawn) and `areas: [{points, kind: rock|void, label?}]` (rock within a
+  level, and voids drawn as open paper with a dashed edge; the label at the middle). `check` warns `outside-bounds` and `in-keep-out` for floor
+  outside the bounds or on an area (`dungeon update --bounds x,y,… --areas '<json>'`).
+- The settlement overlay takes the `water` label kind, as a terrain map does.
+
 ## 0.11.0 — 2026-10-25
 
 Settlement maps (villages, towns, cities and castles, with each building's floor plans) join terrain maps and

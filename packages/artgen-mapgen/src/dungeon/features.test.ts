@@ -361,3 +361,59 @@ describe('room labels that move and are checked (R9 D4)', () => {
     expect(D.validateDungeon({ ...s, rooms: [{ ...s.rooms[0], labelAt: 'x' as 'n' }] })).toEqual(['rooms[0].labelAt: n, s, w, e, c or [dx, dy] cells from the anchor']);
   });
 });
+
+describe('smaller drawing options (R9 D7)', () => {
+  const room = (over: Partial<D.Room> = {}): D.Room => ({ id: 'r', shape: 'rect', x: 2, y: 2, w: 6, h: 4, label: 'G.3', ...over });
+  const one = (over: Partial<D.DungeonSpec> = {}) => D.newDungeon('o', { cols: 12, rows: 10, rooms: [room()], corridors: [], ...over });
+
+  test('a room\'s exit: the mark by its wall, turned toward it, and its note; facts list it; check holds it to the sheet', () => {
+    const s = one({ rooms: [room({ exits: [{ kind: 'stairs-up', side: 'n', text: 'Up to F.2' }, { kind: 'arrow', at: [7, 5], text: 'To G.9' }] })] });
+    const m = D.fileMarks(s, D.layoutDungeon(s));
+    expect(m.symbols.map(x => x.mark)).toEqual([{ kind: 'stairs-up', x: 5, y: 2.9, angle: -90 }, { kind: 'arrow', x: 7, y: 5, angle: -90 }]);
+    expect(m.labels.map(x => [x.mark.text, x.mark.y, x.source])).toEqual([['Up to F.2', 4, 'rooms[0].exits[0]'], ['To G.9', 6.1, 'rooms[0].exits[1]']]);
+    expect(D.dungeonFacts(s).rooms[0].exits).toEqual([{ kind: 'stairs-up', at: [5, 2.9], text: 'Up to F.2' }, { kind: 'arrow', at: [7, 5], text: 'To G.9' }]);
+    const svg = D.renderDungeonSvg(s);
+    expect(svg).toContain('Up to F.2');
+    expect(svg.match(/<g id="symbols">/g)).toHaveLength(1);
+    expect(D.validateDungeon({ ...s, rooms: [room({ exits: [{ kind: 'ladder' as 'arrow' }] })] })).toEqual(['rooms[0].exits[0].kind: stairs-up, stairs-down, arrow', 'rooms[0].exits[0]: a side or a point (at)']);
+    expect(D.lintDungeon({ ...s, rooms: [room({ exits: [{ kind: 'arrow', at: [40, 5] }] })] }).map(f => `${f.id} ${f.path}`)).toContain('off-sheet rooms[0].exits[0]');
+  });
+
+  test('rock: solid in a colour, or none; the walls between floors have a weight of their own', () => {
+    const s = one({ style: { ...D.DEFAULTS.style, rock: 'solid', rockColor: '#a0a0a0', partition: 2.5 }, rooms: [room(), room({ id: 'b', x: 8, label: 'G.4' })] });
+    const svg = D.renderDungeonSvg(s);
+    expect(svg).toMatch(/<g id="rock"><rect width="480" height="400" fill="#a0a0a0"\/>/);
+    expect(svg).not.toContain('url(#hatch)');
+    expect(svg).toMatch(/id="partitions"[^>]*stroke-width="15\.4"/);   // 0.14 x 40 x 2.5 x 1.1
+    expect(D.renderDungeonSvg({ ...s, style: { ...s.style, rock: 'none' } })).not.toContain('<g id="rock">');
+    expect(D.validateDungeon({ ...s, style: { ...s.style, rock: 'stone' as 'solid', rockColor: 'grey', partition: 9 } })).toEqual(['style.rock: hatch, solid, none', 'style.rockColor: a colour #rrggbb', 'style.partition: 0.2..4']);
+  });
+
+  test('a corridor\'s span in the scale unit; a hexagon flat or pointy; an octagon\'s cut as a share of its side', () => {
+    const spanned = one({ rooms: [room(), room({ id: 'b', x: 2, y: 8, h: 2 })], rows: 12, corridors: [{ from: { room: 'r' }, to: { room: 'b' }, span: 10 }] });
+    expect(D.layoutDungeon(spanned).corridors[0].width).toBe(2);
+    expect(D.validateDungeon({ ...spanned, corridors: [{ from: { room: 'r' }, to: { room: 'b' }, span: 10, width: 1 }] })).toEqual(['corridors[0].span: a span or a width, not both']);
+    expect(D.roomOutline(room({ shape: 'hexagon', x: 0, y: 0, w: 8, h: 4 }))).toEqual([2, 0, 6, 0, 8, 2, 6, 4, 2, 4, 0, 2]);
+    expect(D.roomOutline(room({ shape: 'hexagon', orient: 'pointy', x: 0, y: 0, w: 4, h: 8 }))).toEqual([2, 0, 4, 2, 4, 6, 2, 8, 0, 6, 0, 2]);
+    // a cut of 1/(2 + √2) of the side makes a regular octagon, at any size and any cell
+    const c = 1 / (2 + Math.SQRT2), oct = D.roomOutline(room({ shape: 'octagon', x: 0, y: 0, w: 7, h: 7, cut: c }));
+    const sides = oct.map((_, i) => i % 2 ? 0 : Math.hypot(oct[(i + 2) % 16] - oct[i], oct[(i + 3) % 16] - oct[i + 1])).filter((_, i) => i % 2 === 0);
+    for (const s of sides) expect(s).toBeCloseTo(sides[0], 9);
+    expect(D.validateDungeon({ ...spanned, rooms: [room({ shape: 'octagon', cut: 0.6 }), room({ id: 'b', shape: 'hexagon', orient: 'up' as 'flat' })] })).toEqual(expect.arrayContaining(['rooms[0].cut: a share of the shorter side, above 0 and below 0.5', 'rooms[1].orient: flat or pointy']));
+  });
+
+  test('bounds and areas: rock and grid inside the level, its edge drawn; a void and rock inside; check keeps floor off them', () => {
+    const s = one({
+      style: { ...D.DEFAULTS.style, hatch: 'full' }, bounds: [1, 1, 11, 1, 11, 9, 1, 9],
+      areas: [{ points: [9, 6, 11, 6, 11, 9, 9, 9], kind: 'void', label: 'Shaft' }, { points: [3, 3, 5, 3, 5, 5, 3, 5], kind: 'rock' }],
+    });
+    const svg = D.renderDungeonSvg(s);
+    expect(svg).toContain('<clipPath id="bounds-clip">');
+    expect(svg).toContain('<path id="bounds"');
+    expect(svg).toContain('stroke-dasharray');
+    expect(svg).toContain('Shaft');
+    expect(D.lintDungeon(s).map(f => `${f.id} ${f.path}`)).toEqual(['in-keep-out rooms[0]']);
+    expect(D.lintDungeon({ ...s, areas: [], bounds: [4, 1, 11, 1, 11, 9, 4, 9] }).map(f => f.id)).toEqual(['outside-bounds']);
+    expect(D.validateDungeon({ ...s, bounds: [1, 1], areas: [{ points: [1, 1, 2, 2, 3, 1], kind: 'lava' as 'rock' }] })).toEqual(['bounds: at least 3 x,y pairs (cells)', 'areas[0].kind: rock or void']);
+  });
+});

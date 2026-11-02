@@ -118,6 +118,7 @@ const update = defineOp({
     grid_mode: p.str('10 | 5 | 10+5 | none'), grid: p.json({ type: 'object' }, 'grid settings, as JSON'), style: p.json({ type: 'object' }, 'style settings, as JSON'), scale: p.json({ type: 'object' }, 'scale settings, as JSON'), gen: p.json({ type: 'object' }, 'generator settings, as JSON'),
     title: p.str('the title ("" removes it)'), numbers: p.bool('show room numbers', { style: 'onoff' }), scale_bar: p.bool('show the scale bar', { style: 'onoff' }), compass: p.bool('show the compass', { style: 'onoff' }),
     cols: p.num('columns'), rows: p.num('rows'), furniture: p.json({ type: 'object' }, 'where the title, scale bar, compass and legend go, as JSON: {place, side}'),
+    bounds: p.str('x,y,x,y,…: the level\'s ground, a polygon the rock and grid are drawn in ("none" removes it)'), areas: p.json({ type: 'array' }, 'rock and voids within the level, as JSON: [{points, kind: rock|void, label?}] ([] removes them)'),
   },
   run(i: Inp, ctx) {
     return updateDungeon(projectOf(i, ctx), refOf(i), m => {
@@ -131,11 +132,13 @@ const update = defineOp({
       if (typeof i.scale_bar === 'boolean') m.scaleBar = i.scale_bar;
       if (typeof i.compass === 'boolean') m.compass = i.compass;
       if (typeof i.cols === 'number') m.cols = i.cols;
+      if (i.bounds === 'none') delete m.bounds; else if (typeof i.bounds === 'string') m.bounds = i.bounds.split(',').map(Number);
+      if (Array.isArray(i.areas)) { if (i.areas.length) m.areas = i.areas as dungeon.Area[]; else delete m.areas; }
       if (typeof i.rows === 'number') m.rows = i.rows;
     });
   },
   cli: {
-    usage: `       artgen dungeon update <id> [--grid-size 10] [--grid-unit ft] [--sub-grid on|off] [--show-grid on|off] [--grid-mode 10|5|10+5|none] [--grid|--style|--scale|--gen|--furniture '<json>'] [--title "..."] [--numbers on|off] [--scale-bar on|off] [--compass on|off] [--cols n] [--rows n]`,
+    usage: `       artgen dungeon update <id> [--grid-size 10] [--grid-unit ft] [--sub-grid on|off] [--show-grid on|off] [--grid-mode 10|5|10+5|none] [--grid|--style|--scale|--gen|--furniture '<json>'] [--title "..."] [--numbers on|off] [--scale-bar on|off] [--compass on|off] [--cols n] [--rows n] [--bounds x,y,…|none] [--areas '<json>']`,
     text: (m, i) => `${describeDungeon(m)}\n${next(i, m.id)}`, json: m => V(m),
   },
   mcp: { content: m => [text(describeDungeon(m))] }, python: {},
@@ -172,12 +175,16 @@ const style = defineOp({
     numbers: p.bool('show room numbers', { style: 'onoff' }), scale_bar: p.bool('show the scale bar', { style: 'onoff' }), compass: p.bool('show the compass', { style: 'onoff' }), legend: p.bool('show the legend', { style: 'onoff' }),
     title: p.str('the title ("" removes it)'), per_cell: p.num('map units in one cell'), unit: p.str('the scale unit, e.g. ft'),
     furniture: p.oneOf(dungeon.FURNITURE_PLACES, 'over | outside | auto'), furniture_side: p.oneOf(dungeon.FURNITURE_SIDES, 'bottom | right'), shared_walls: p.str('on (walls wherever two floors touch, the default) | rooms (between rooms only) | off | auto (the default)'),
+    rock: p.oneOf(dungeon.ROCK_STYLES, 'hatch | solid | none'), rock_color: p.str('the colour of solid rock, #rrggbb'), partition: p.num('the weight of the walls between floors (default: the wall weight)'),
   },
   run(i: Inp, ctx) {
     return updateDungeon(projectOf(i, ctx), refOf(i), m => {
       if (i.hatch) m.style.hatch = i.hatch;
       if (i.band !== undefined) m.style.band = i.band;
       if (i.wall !== undefined) m.style.wall = i.wall;
+      if (i.rock) m.style.rock = i.rock;
+      if (i.rock_color) m.style.rockColor = i.rock_color;
+      if (i.partition !== undefined) m.style.partition = i.partition;
       if (i.shared_walls === 'auto') delete m.style.sharedWalls; else if (i.shared_walls === 'rooms') m.style.sharedWalls = 'rooms'; else if (i.shared_walls !== undefined) m.style.sharedWalls = onOff(i.shared_walls)!;
       if (i.title !== undefined) { if (i.title) m.title = i.title; else delete m.title; }
       for (const k of ['numbers', 'scale_bar', 'compass', 'legend'] as const) if (i[k] !== undefined) m[k === 'scale_bar' ? 'scaleBar' : k] = i[k];
@@ -191,7 +198,7 @@ const style = defineOp({
     });
   },
   cli: {
-    usage: '       artgen dungeon style <id> [--hatch band|full|none] [--band n] [--wall f] [--numbers on|off] [--scale-bar on|off] [--compass on|off] [--legend on|off] [--title "..."] [--per-cell n] [--unit ft] [--furniture over|outside|auto] [--furniture-side bottom|right] [--shared-walls on|rooms|off|auto]',
+    usage: '       artgen dungeon style <id> [--hatch band|full|none] [--band n] [--wall f] [--numbers on|off] [--scale-bar on|off] [--compass on|off] [--legend on|off] [--title "..."] [--per-cell n] [--unit ft] [--furniture over|outside|auto] [--furniture-side bottom|right] [--shared-walls on|rooms|off|auto] [--rock hatch|solid|none] [--rock-color #rrggbb] [--partition f]',
     text: (m, i) => `${describeDungeon(m)}\n${next(i, m.id)}`, json: m => V(m),
   },
   mcp: { exclude: 'dungeon_update covers it' }, python: {},
@@ -209,6 +216,8 @@ const gen = defineOp({
       applyGenFlags(m, i);
       if (i.gen && typeof i.gen === 'object') Object.assign(m.gen, i.gen);
       if (typeof i.cols === 'number') m.cols = i.cols;
+      if (i.bounds === 'none') delete m.bounds; else if (typeof i.bounds === 'string') m.bounds = i.bounds.split(',').map(Number);
+      if (Array.isArray(i.areas)) { if (i.areas.length) m.areas = i.areas as dungeon.Area[]; else delete m.areas; }
       if (typeof i.rows === 'number') m.rows = i.rows;
       return dungeon.generateDungeon(dungeon.parseDungeon(m));
     });
@@ -226,7 +235,7 @@ const gen = defineOp({
 const OPS_DOC = 'a list of edits as JSON (or @file.json): add_room, move_room, set_room, remove_room, add_block, split_block, remove_block, link, unlink, connect, disconnect, door, fit (see the MCP tool dungeon_edit for the fields)';
 const edit = defineOp({
   name: 'dungeon.edit', module: 'maps', effect: 'write', summary: 'Change a dungeon\'s rooms and corridors with a list of edits, in order.',
-  description: 'Change a dungeon\'s rooms and corridors, in order. Coordinates are cells (x right, y down; 1 cell = 5 ft); a point is [x,y], "x,y" or a cell name "C4". ops: {op:"add_room", shape: rect|circle|octagon|cave|poly, at: top-left, w, h, points? (poly: [x,y,…]), label?, number? (false hides it), href? (a link from its number and name: http(s), a relative path or #anchor), anchor? ([x,y]: where its corridors start and its badge sits), label_at? (n|s|w|e|c or [dx,dy]: where its number and name stand; unset, they move off symbols and other labels), id?} | {op:"move_room", room, at} | {op:"set_room", room, shape?, w?, h?, label?, number?, href? ("" removes it)} | {op:"remove_room", room} (and its corridors) | {op:"add_block", shape: rect|octagon|circle|hex|poly, at, w, h, points?, split?: bsp|rows|cols|grid|cuts, min? (cells, about the size of each room), cuts?: {x?: [], y?: []}, seed?, doors? (0..1, extra doors), id?} (one shape split into rooms that share walls, with doors and openings between them; its rooms are ordinary rooms, ids <block>-1, <block>-2, …) | {op:"split_block", id, split?, min?, seed?} (split again: a new seed unless given) | {op:"remove_block", id} | {op:"link", from: room id, point or "corridor:<id>", to: the same (a point is an exit or dead end; past the map edge it runs off the map; a corridor is a junction on its centre line), from_side?/to_side?: n|e|s|w (leave the room by that wall), from_offset?/to_offset? (cells along that wall), from_port?/to_port?: [x,y] (leave or enter the room at that point on its wall, the door set along the wall), width?, route?: auto|hv|vh|straight|around (around: along the grid, round the rooms in the way), via?: [x,y,…], curve?: "smooth", style?: "natural" (rough cave-like walls), seed?, id? (a name other corridors can join), exit?: {text, href?, fade?} (to a point past the edge: the corridor fades out and a boxed note says where it leads), doors?: [kind|null, kind|null]} | {op:"unlink", index} | {op:"connect", a: room, b: room, kind?: door|secret|locked|portcullis|arch|open, at?: a point on their shared wall, width?} (a door or opening in the wall two touching rooms share; touching rooms without one keep the wall) | {op:"disconnect", index} | {op:"door", index, end: from|to, kind: door|secret|locked|portcullis|arch|null} | {op:"fit", margin?}.',
+  description: 'Change a dungeon\'s rooms and corridors, in order. Coordinates are cells (x right, y down; 1 cell = 5 ft); a point is [x,y], "x,y" or a cell name "C4". ops: {op:"add_room", shape: rect|circle|octagon|hexagon|cave|poly, at: top-left, cut? (an octagon\'s corner cut, a share of its shorter side), orient? (a hexagon: flat|pointy), exits? ([{kind: stairs-up|stairs-down|arrow, side?: n|e|s|w, at?: [x,y], text?}]: ways out of the map inside the room), w, h, points? (poly: [x,y,…]), label?, number? (false hides it), href? (a link from its number and name: http(s), a relative path or #anchor), anchor? ([x,y]: where its corridors start and its badge sits), label_at? (n|s|w|e|c or [dx,dy]: where its number and name stand; unset, they move off symbols and other labels), id?} | {op:"move_room", room, at} | {op:"set_room", room, shape?, w?, h?, label?, number?, href? ("" removes it)} | {op:"remove_room", room} (and its corridors) | {op:"add_block", shape: rect|octagon|circle|hex|poly, at, w, h, points?, split?: bsp|rows|cols|grid|cuts, min? (cells, about the size of each room), cuts?: {x?: [], y?: []}, seed?, doors? (0..1, extra doors), id?} (one shape split into rooms that share walls, with doors and openings between them; its rooms are ordinary rooms, ids <block>-1, <block>-2, …) | {op:"split_block", id, split?, min?, seed?} (split again: a new seed unless given) | {op:"remove_block", id} | {op:"link", from: room id, point or "corridor:<id>", to: the same (a point is an exit or dead end; past the map edge it runs off the map; a corridor is a junction on its centre line), from_side?/to_side?: n|e|s|w (leave the room by that wall), from_offset?/to_offset? (cells along that wall), from_port?/to_port?: [x,y] (leave or enter the room at that point on its wall, the door set along the wall), width?, span? (width in the scale unit, in place of width), route?: auto|hv|vh|straight|around (around: along the grid, round the rooms in the way), via?: [x,y,…], curve?: "smooth", style?: "natural" (rough cave-like walls), seed?, id? (a name other corridors can join), exit?: {text, href?, fade?} (to a point past the edge: the corridor fades out and a boxed note says where it leads), doors?: [kind|null, kind|null]} | {op:"unlink", index} | {op:"connect", a: room, b: room, kind?: door|secret|locked|portcullis|arch|open, at?: a point on their shared wall, width?} (a door or opening in the wall two touching rooms share; touching rooms without one keep the wall) | {op:"disconnect", index} | {op:"door", index, end: from|to, kind: door|secret|locked|portcullis|arch|null} | {op:"fit", margin?}.',
   params: {
     id: idParam('the dungeon id', 'dungeon edit: <id>'), path: pathParam('dungeon'),
     ops: p.json({ type: 'array', items: { type: 'object' } }, OPS_DOC, { required: 'dungeon edit: --ops \'<json list>\' (or @file.json) is required' }),
@@ -253,7 +262,9 @@ const roomCmd = defineOp({
   params: {
     id: idParam('the dungeon id', 'dungeon room: <id> add|move|set|rm'), path: pathParam('dungeon'), action: p.str('add | move | set | rm', { positional: true }), target: p.str('add: the shape (rect, circle, octagon, cave, poly); move, set, rm: the room id', { positional: true }),
     at: p.str('the top-left corner: x,y or a cell like C4'), size: p.size('width x height in cells, e.g. 6x4', { error: CELLS }), points: p.points('poly: x,y,… of the outline'), label: p.str('the room\'s name'), number: p.str('the room\'s number (n, or off)'),
-    room_id: p.str('add: the new room\'s id (default r<n>)'), fill: p.oneOf(dungeon.ROOM_FILLS, 'floor | building | yard | cellar'), href: p.str('a link from the number and name (set: "none" removes it)'), anchor: p.str('x,y: where the room\'s corridors start and its badge sits (set: "none" removes it)'), label_at: p.str('n | s | w | e | c, or dx,dy: where the room\'s number and name stand (set: "none" lets them move)'), origin: p.str('add: who wrote it (a sync replaces its own)'),
+    room_id: p.str('add: the new room\'s id (default r<n>)'), fill: p.oneOf(dungeon.ROOM_FILLS, 'floor | building | yard | cellar'), href: p.str('a link from the number and name (set: "none" removes it)'), anchor: p.str('x,y: where the room\'s corridors start and its badge sits (set: "none" removes it)'), label_at: p.str('n | s | w | e | c, or dx,dy: where the room\'s number and name stand (set: "none" lets them move)'),
+    cut: p.num('an octagon\'s corner cut, a share of its shorter side (0..0.5)'), orient: p.oneOf(['flat', 'pointy'], 'a hexagon: flat (points east and west) | pointy (points north and south)'),
+    exits: p.json({ type: 'array' }, 'ways out of the map inside the room, as JSON: [{kind: stairs-up|stairs-down|arrow, side: n|e|s|w or at: [x,y], text?}]'), origin: p.str('add: who wrote it (a sync replaces its own)'),
     shape: p.oneOf(['rect', 'circle', 'octagon', 'cave'], 'set: the new shape', { error: 'rect, circle, octagon or cave' }),
   },
   run(i: Inp, ctx) {
@@ -278,6 +289,7 @@ const roomCmd = defineOp({
         if (i.href) o.href = i.href;
         if (i.anchor) o.anchor = i.anchor;
         if (i.label_at) o.label_at = i.label_at;
+        for (const k of ['cut', 'orient', 'exits'] as const) if (i[k] !== undefined) o[k] = i[k];
         Object.assign(o, originOf(i.origin));
         summary = dungeon.editDungeon(m, o);
       } else if (i.action === 'move') {
@@ -289,7 +301,7 @@ const roomCmd = defineOp({
         const n = numberOf(i.number);
         summary = dungeon.editDungeon(m, {
           op: 'set_room', room: rid, ...(i.shape && { shape: i.shape }), ...(i.size && { w: i.size[0], h: i.size[1] }), ...(i.label !== undefined && { label: i.label }),
-          ...(n !== undefined && { number: n }), ...(i.fill && { fill: i.fill }), ...(i.href !== undefined && { href: i.href === 'none' ? '' : i.href }), ...(i.anchor !== undefined && { anchor: i.anchor === 'none' ? null : i.anchor }), ...(i.label_at !== undefined && { label_at: i.label_at === 'none' ? null : i.label_at }),
+          ...(n !== undefined && { number: n }), ...(i.fill && { fill: i.fill }), ...(i.href !== undefined && { href: i.href === 'none' ? '' : i.href }), ...(i.anchor !== undefined && { anchor: i.anchor === 'none' ? null : i.anchor }), ...(i.label_at !== undefined && { label_at: i.label_at === 'none' ? null : i.label_at }), ...(i.cut !== undefined && { cut: i.cut }), ...(i.orient !== undefined && { orient: i.orient }), ...(i.exits !== undefined && { exits: i.exits }),
         });
       } else if (i.action === 'rm') {
         findRoom(m, rid);
@@ -299,7 +311,7 @@ const roomCmd = defineOp({
     return { m, summary };
   },
   cli: {
-    usage: '       artgen dungeon room <id> add <shape> --at x,y|C4 --size WxH [--points x,y,…] [--label "..."] [--number n|off] [--room-id r9] [--fill floor|building|yard|cellar] [--href url] [--anchor x,y] [--label-at n|s|w|e|c|dx,dy] [--origin name] | move <rid> --at x,y | set <rid> [--shape s] [--size WxH] [--label "..."] [--number n|off] [--fill f] [--href url|none] [--anchor x,y|none] [--label-at n|s|w|e|c|dx,dy|none] | rm <rid>',
+    usage: '       artgen dungeon room <id> add <shape> --at x,y|C4 --size WxH [--points x,y,…] [--label "..."] [--number n|off] [--room-id r9] [--fill floor|building|yard|cellar] [--href url] [--anchor x,y] [--label-at n|s|w|e|c|dx,dy] [--cut f] [--orient flat|pointy] [--exits \'<json>\'] [--origin name] | move <rid> --at x,y | set <rid> [--shape s] [--size WxH] [--label "..."] [--number n|off] [--fill f] [--href url|none] [--anchor x,y|none] [--label-at n|s|w|e|c|dx,dy|none] | rm <rid>',
     text: (r, i) => [`${r.m.id}: ${r.summary} (${r.m.rooms.length} rooms)`, ...warningLines(r.m), next(i, r.m.id)].join('\n'), json: r => V(r.m.rooms),
   },
   mcp: { exclude: 'dungeon_edit add_room / move_room / set_room / remove_room covers it' }, python: {},
@@ -311,7 +323,7 @@ const link = defineOp({
     id: idParam('the dungeon id', 'dungeon link: <id>'), path: pathParam('dungeon'),
     from: p.str('a room id, a block id, or corridor:<id>', { positional: true, required: 'dungeon link <id> <room|corridor:id> <room|x,y|C4|corridor:id>' }),
     to: p.str('a room id, a block id, corridor:<id>, or a point x,y | C4', { positional: true, required: 'dungeon link <id> <room|corridor:id> <room|x,y|C4|corridor:id>' }),
-    width: p.num('corridor width in cells'), route: p.oneOf(dungeon.ROUTES, 'auto | hv | vh | straight | around'), via: p.points('bend points x,y,…'), doors: p.str('door,none: the doors at the two ends'),
+    width: p.num('corridor width in cells'), span: p.num('corridor width in the scale unit (10 for a 10 ft passage), in place of --width'), route: p.oneOf(dungeon.ROUTES, 'auto | hv | vh | straight | around'), via: p.points('bend points x,y,…'), doors: p.str('door,none: the doors at the two ends'),
     from_side: p.str('n | e | s | w: leave the first room by that wall'), from_offset: p.num('cells along that wall'), to_side: p.str('n | e | s | w: enter the second room by that wall'), to_offset: p.num('cells along that wall'),
     from_port: p.str('x,y: leave the first room from that point on its wall (its door set along the wall)'), to_port: p.str('x,y: enter the second room at that point on its wall'),
     curve: p.oneOf(dungeon.CURVES, 'none | smooth'), style: p.oneOf(dungeon.CORRIDOR_STYLES, 'built | natural'), seed: p.num('the seed of a natural corridor\'s walls'),
@@ -327,13 +339,13 @@ const link = defineOp({
       line = dungeon.editDungeon(m, {
         op: 'link', from: i.from, to: i.to, ...(i.corridor_id && { id: i.corridor_id }), from_side: i.from_side, from_offset: i.from_offset, to_side: i.to_side, to_offset: i.to_offset,
         ...(i.from_port && { from_port: i.from_port }), ...(i.to_port && { to_port: i.to_port }), ...(exit && { exit }),
-        width: i.width, route: i.route, via: i.via, doors, ...(i.curve === 'smooth' && { curve: 'smooth' }), ...(i.style === 'natural' && { style: 'natural' }), seed: i.seed, ...originOf(i.origin),
+        width: i.width, ...(i.span !== undefined && { span: i.span }), route: i.route, via: i.via, doors, ...(i.curve === 'smooth' && { curve: 'smooth' }), ...(i.style === 'natural' && { style: 'natural' }), seed: i.seed, ...originOf(i.origin),
       });
     });
     return { m, line };
   },
   cli: {
-    usage: '       artgen dungeon link <id> <room|corridor:id> <room|x,y|C4|corridor:id> [--width 1] [--route auto|hv|vh|straight|around] [--via x,y,…] [--doors door,none] [--from-side n|e|s|w] [--from-offset n] [--to-side …] [--to-offset n] [--from-port x,y] [--to-port x,y] [--curve smooth] [--style natural] [--seed n] [--id name] [--exit "To the caves" [--exit-href url] [--fade 3]] [--origin name]',
+    usage: '       artgen dungeon link <id> <room|corridor:id> <room|x,y|C4|corridor:id> [--width 1 | --span 10] [--route auto|hv|vh|straight|around] [--via x,y,…] [--doors door,none] [--from-side n|e|s|w] [--from-offset n] [--to-side …] [--to-offset n] [--from-port x,y] [--to-port x,y] [--curve smooth] [--style natural] [--seed n] [--id name] [--exit "To the caves" [--exit-href url] [--fade 3]] [--origin name]',
     text: (r, i) => [`${r.m.id}: ${r.line}`, ...warningLines(r.m), next(i, r.m.id)].join('\n'), json: r => V(r.m.corridors),
   },
   mcp: { exclude: 'dungeon_edit link covers it' }, python: {},

@@ -11,6 +11,7 @@
  */
 import { roundTo } from 'artgen-primitives/lib/round.ts';
 import { adjacency, doorStand, floorGrid, gridRows, ownerName, type DoorStand } from './floor.ts';
+import { fileMarks } from './marks.ts';
 import { inPolygon, layoutDungeon, type DungeonLayout } from './layout.ts';
 import { wallFacts, type WallFacts } from './walls.ts';
 import type { CorridorEnd, DoorKind, DungeonSpec } from './spec.ts';
@@ -44,6 +45,8 @@ export interface RoomFacts {
   shape: string;
   box: Boxed;
   doors: RoomDoor[];
+  /** Its ways out of the map (`rooms[].exits`): the mark, where it is drawn and its note; absent when it has none. */
+  exits?: { kind: string; at: Point; text: string | null }[];
   /** The rooms it is joined to through a shared wall (`connections`): the other room, the door kind or `open`, and where; absent when there are none. */
   connections?: { to: string; kind: DoorKind | 'open'; at: Point | null; connection: number }[];
 }
@@ -139,9 +142,14 @@ export function dungeonFacts(spec: DungeonSpec, layout: DungeonLayout = layoutDu
   const roomOf = (e: CorridorEnd) => ('room' in e ? e.room : null);
   const ends = (['from', 'to'] as const);
 
-  const rooms: RoomFacts[] = layout.rooms.map(g => ({
-    id: g.room.id, number: g.number ?? null, label: g.room.label ?? null, shape: g.room.shape, box: box(g.room), doors: [],
-  }));
+  const marks = fileMarks(spec, layout);
+  const rooms: RoomFacts[] = layout.rooms.map(g => {
+    const exits = (g.room.exits ?? []).map((x, j) => {
+      const s = marks.symbols.find(m => m.source === `rooms[${g.index}].exits[${j}]`)!.mark;
+      return { kind: x.kind, at: pt(s.x, s.y), text: x.text ?? null };
+    });
+    return { id: g.room.id, number: g.number ?? null, label: g.room.label ?? null, shape: g.room.shape, box: box(g.room), doors: [], ...(exits.length && { exits }) };
+  });
   const byId = new Map(rooms.map(r => [r.id, r]));
 
   const corridors: CorridorFacts[] = [], exits: ExitFacts[] = [], reached = new Set<string>();
