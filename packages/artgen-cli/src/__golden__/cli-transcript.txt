@@ -6068,7 +6068,7 @@ exit 0
         25.9,
         8.1
       ],
-      "angle": 352.6,
+      "angle": 0.1,
       "width": 1,
       "corridor": 1,
       "connection": null,

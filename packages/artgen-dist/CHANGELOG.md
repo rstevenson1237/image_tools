@@ -42,6 +42,17 @@ Releases of the committed install (`artgen-dist`), the MCP server, the runtime i
 - `dungeon style --shared-walls on|rooms|off|auto`; `auto` leaves the default (on).
 - The setting-builder dungeon fixtures are migrated to format 2 (`migrated:` in each `case.md`).
 
+**Ports on the wall, doors along it (R9 D3)**
+- A corridor end `{room, port: [x, y]}` starts at that point on the room's wall (moved onto the outline when off it) and keeps the room as
+  its end, so `facts`, `render --room` and `check` still count it. `dungeon link --from-port x,y --to-port x,y`; the edit op takes
+  `from_port`/`to_port`.
+- `rooms[].anchor: [x, y]`: where a room's `{room}` corridors start and its badge sits, in place of the centre or a poly's deepest point
+  (`dungeon room add|set --anchor x,y|none`).
+- A door is set square to the wall where its corridor crosses it (a round room's own curve, else the outline's edge there), not to the path,
+  so a slanted run onto a round, octagonal or diagonal wall gets a flush door. A corridor that runs square into a straight wall is unchanged.
+- An `auto` corridor between rooms that line up runs straight only where that run starts inside both rooms; for a poly room whose box is not
+  its floor it takes the elbow from the anchor instead of starting outside the room.
+
 ## 0.11.0 — 2026-10-25
 
 Settlement maps (villages, towns, cities and castles, with each building's floor plans) join terrain maps and

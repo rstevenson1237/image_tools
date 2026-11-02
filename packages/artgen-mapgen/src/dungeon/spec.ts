@@ -71,19 +71,23 @@ export interface Room {
   origin?: string;
   /** The fields a hand edit changed on an entry of some origin (`["x"]`); a sync reports them when it takes the origin's value back. */
   hand?: string[];
+  /** The point (cells) a `{room}` corridor end starts from and the badge sits on, in place of the one artgen picks (the centre, or a poly's deepest point). */
+  anchor?: [number, number];
 }
 
 /**
  * A corridor end: a room, a point, or another corridor.
- * - `{room}`: from the room's centre; with `side` it leaves through that wall instead, `offset` cells along it from the
- *   room's top or left edge (default: the middle), so several corridors can leave one room by different walls.
+ * - `{room}`: from the room's anchor (its centre, a poly's deepest point, or `anchor`); with `side` it leaves through that
+ *   wall instead, `offset` cells along it from the room's top or left edge (default: the middle), so several corridors can
+ *   leave one room by different walls; with `port: [x, y]` it leaves from that point on the room's wall (moved onto the
+ *   outline when it is off it), its door set along the wall there.
  * - `{at: [x, y]}`: a point (an exit stub, a dead end, or off the map). With `exit`, the corridor fades to white over
  *   its last `fade` cells before the point (or the sheet's edge, if the point is past it) and a boxed note there says
  *   where it leads (`text`, a link with `href`).
  * - `{corridor: id}`: a junction on that corridor's centre line, the point nearest the other end (or `near`), so
  *   corridors meet in a T or a cross.
  */
-export type CorridorEnd = { room: string; side?: Side; offset?: number } | { at: [number, number]; exit?: Exit } | { corridor: string; near?: [number, number] };
+export type CorridorEnd = { room: string; side?: Side; offset?: number; port?: [number, number] } | { at: [number, number]; exit?: Exit } | { corridor: string; near?: [number, number] };
 
 /** Where an exit leads: the note at the map's edge, an optional link, and the cells the corridor fades over (default 3). */
 export interface Exit { text: string; href?: string; fade?: number }
@@ -268,6 +272,8 @@ function endErrors(e: unknown, at: string, ids: Set<string>, corridorIds: Set<st
     if (o.side !== undefined && !SIDES.includes(o.side as Side)) out.push(`${at}.side: ${SIDES.join(', ')}`);
     if (o.offset !== undefined && !(isNum(o.offset) && o.offset >= 0)) out.push(`${at}.offset: cells along the wall, 0 or more`);
     if (o.offset !== undefined && o.side === undefined) out.push(`${at}.offset: goes with side`);
+    if (o.port !== undefined && !isPoint(o.port)) out.push(`${at}.port: [x, y], a point on the room's wall`);
+    if (o.port !== undefined && o.side !== undefined) out.push(`${at}.port: a port or a side, not both`);
     return out;
   }
   if ('at' in o) {
@@ -417,6 +423,7 @@ export function validateDungeon(raw: unknown): string[] {
     if (r?.fill !== undefined && !ROOM_FILLS.includes(r.fill)) e.push(`${at}.fill: one of ${ROOM_FILLS.join(', ')}`);
     if (r?.href !== undefined && hrefError(r.href)) e.push(`${at}.href: ${hrefError(r.href)}`);
     if (r?.hand !== undefined && !(Array.isArray(r.hand) && r.hand.every(f => typeof f === 'string'))) e.push(`${at}.hand: field names`);
+    if (r?.anchor !== undefined && !isPoint(r.anchor)) e.push(`${at}.anchor: [x, y] in cells`);
     originError(r, at, e);
   });
   const corridorIds = new Set<string>();

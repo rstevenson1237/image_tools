@@ -278,3 +278,50 @@ describe('dense and blocks generators', () => {
     expect(D.validateDungeon({ ...s, gen: { ...s.gen, layout: 'maze' as D.GenLayout, density: 2 } })).toEqual(['gen.layout: scatter, dense, blocks', 'gen.density: above 0, at most 1']);
   });
 });
+
+describe('ports on the wall and doors along it (R9 D3)', () => {
+  const L = [2, 2, 10, 2, 10, 4, 4, 4, 4, 10, 2, 10], ell: D.Room = { id: 'a', shape: 'poly', points: L, ...D.polyBox(L) };
+  const far: D.Room = { id: 'c', shape: 'rect', x: 14, y: 8, w: 4, h: 4 };
+  const s = (over: Partial<D.DungeonSpec>) => D.newDungeon('p', { cols: 24, rows: 16, rooms: [ell, far], ...over });
+
+  test('a port on the far arm of an L: the corridor starts on that wall, no passage over rock, and the room is still the corridor\'s end', () => {
+    const sp = s({ corridors: [{ from: { room: 'a', port: [4.3, 9.5] }, to: { room: 'c' }, doors: ['door', null] }] });
+    const l = D.layoutDungeon(sp);
+    expect(l.corridors[0].pts.slice(0, 2)).toEqual([4, 9.5]);   // moved onto the outline
+    expect(l.corridors[0].ends[0]).toEqual({ x: 4, y: 9.5, angle: 0, along: 0 });
+    expect(D.lintDungeon(sp)).toEqual([]);
+    const f = D.dungeonFacts(sp);
+    expect(f.rooms[0].doors).toEqual([{ kind: 'door', at: [4, 9.5], corridor: 0, to: 'c' }]);
+    expect(f.doors[0].on).toBe('wall');
+    expect(f.unreached).toEqual([]);
+    // render --room still crops round the room and the start of its corridor
+    const [x, y, w, h] = D.roomCrop(sp, ['a'], 2);
+    expect(x + w).toBeGreaterThanOrEqual(6);
+    expect([x, y, h]).toEqual([1.5, 1.5, 9]);
+    expect(D.validateDungeon({ ...sp, corridors: [{ from: { room: 'a', port: [4, 9.5], side: 'e' }, to: { room: 'c' } }] })).toEqual(['corridors[0].from.port: a port or a side, not both']);
+  });
+
+  test('a door on a round wall is set along the wall, whatever angle the path meets it at', () => {
+    const round: D.Room = { id: 'r', shape: 'circle', x: 2, y: 2, w: 8, h: 8 }, box: D.Room = { id: 'b', shape: 'rect', x: 16, y: 10, w: 4, h: 4 };
+    // from an anchor off the centre (4, 7) to a bend east of the room: the path meets the wall at a slant, the door faces out along the radius
+    const sp = D.newDungeon('o', { cols: 24, rows: 16, rooms: [{ ...round, anchor: [4, 7] }, box], corridors: [{ from: { room: 'r' }, to: { room: 'b' }, via: [12, 5, 12, 12] }] });
+    const e = D.layoutDungeon(sp).corridors[0].ends[0]!, radial = (Math.atan2(e.y - 6, e.x - 6) * 180) / Math.PI;
+    expect(Math.abs(e.angle - radial)).toBeLessThan(1e-6);
+    expect(Math.abs(e.angle - (Math.atan2(-2, 8) * 180) / Math.PI)).toBeGreaterThan(1);   // not the path's own heading
+    // a port on the round wall: the door faces out along the radius at the port
+    const ported = D.layoutDungeon({ ...sp, corridors: [{ from: { room: 'r', port: [6 + 4 * Math.SQRT1_2, 6 + 4 * Math.SQRT1_2] }, to: { room: 'b' }, via: [12, 12] }] }).corridors[0].ends[0]!;
+    expect(Math.round(ported.angle)).toBe(45);
+    // a corridor that runs square into a straight wall keeps its heading exactly
+    const square = D.layoutDungeon(D.newDungeon('q', { cols: 24, rows: 16, rooms: [{ id: 'a', shape: 'rect', x: 2, y: 2, w: 4, h: 4 }, box], corridors: [{ from: { room: 'a' }, to: { room: 'b' } }] }));
+    expect(square.corridors[0].ends.map(x => x!.angle)).toEqual([0, -90]);
+  });
+
+  test('a room\'s anchor: where its {room} corridors start and its badge sits', () => {
+    const sp = s({ rooms: [{ ...ell, anchor: [3, 9] }, far], corridors: [{ from: { room: 'a' }, to: { room: 'c' } }] });
+    const l = D.layoutDungeon(sp);
+    expect([l.rooms[0].cx, l.rooms[0].cy]).toEqual([3, 9]);
+    expect(l.corridors[0].pts.slice(0, 2)).toEqual([3, 9.5]);   // the anchor's column, on the row the rooms share
+    expect(D.lintDungeon(sp)).toEqual([]);
+    expect(D.validateDungeon({ ...sp, rooms: [{ ...ell, anchor: [3] as unknown as [number, number] }, far] })).toEqual(['rooms[0].anchor: [x, y] in cells']);
+  });
+});

@@ -26,10 +26,11 @@ export function cornerPoint(at: string): [number, number] {
  * A corridor end: a room id in the dungeon (leaving by its `side` wall, `offset` cells along, when given), a corridor
  * (`corridor:<id>`, or an id no room has) for a junction, else a point.
  */
-export function corridorEnd(m: DungeonSpec, ref: string, side?: string, offset?: number): CorridorEnd {
+export function corridorEnd(m: DungeonSpec, ref: string, side?: string, offset?: number, port?: [number, number]): CorridorEnd {
   if (side !== undefined && !SIDES.includes(side as Side)) throw new Error(`--from-side / --to-side: ${SIDES.join(', ')}`);
-  if (m.rooms.some(r => r.id === ref)) return { room: ref, ...(side && { side: side as Side }), ...(side && offset !== undefined && { offset }) };
-  if (side) throw new Error(`a side goes with a room end, and ${ref} is not a room`);
+  if (side !== undefined && port) throw new Error('a port or a side, not both');
+  if (m.rooms.some(r => r.id === ref)) return { room: ref, ...(side && { side: side as Side }), ...(side && offset !== undefined && { offset }), ...(port && { port }) };
+  if (side || port) throw new Error(`a side or a port goes with a room end, and ${ref} is not a room`);
   const c = ref.replace(/^corridor:/, '');
   if (ref.startsWith('corridor:') || m.corridors.some(x => x.id === c)) {
     if (!m.corridors.some(x => x.id === c)) throw new Error(`no corridor with id ${c} (give one an id: link … --id ${c})`);
@@ -112,6 +113,7 @@ export function editDungeon(m: DungeonSpec, o: DungeonOp): string {
       if (typeof o.label === 'string') r.label = o.label;
       if (typeof o.number === 'number' || o.number === false) r.number = o.number;
       if (typeof o.fill === 'string' && o.fill) r.fill = o.fill as RoomFill;
+      if (o.anchor !== undefined && o.anchor !== null) r.anchor = pt(o.anchor);
       if (typeof o.href === 'string' && o.href) r.href = o.href;
       if (typeof o.origin === 'string' && o.origin) r.origin = o.origin;
       m.rooms.push(r);
@@ -136,6 +138,7 @@ export function editDungeon(m: DungeonSpec, o: DungeonOp): string {
       if (typeof o.number === 'number' || o.number === false) r.number = o.number;
       if (typeof o.fill === 'string' && o.fill) { if (o.fill === 'floor') delete r.fill; else r.fill = o.fill as RoomFill; handEdit(r, ['fill']); }
       if (typeof o.href === 'string') { if (o.href) r.href = o.href; else delete r.href; }
+      if (o.anchor === null || o.anchor === '') delete r.anchor; else if (o.anchor !== undefined) r.anchor = pt(o.anchor);
       return `changed ${r.id}`;
     }
     case 'remove_room': {
@@ -144,12 +147,12 @@ export function editDungeon(m: DungeonSpec, o: DungeonOp): string {
     }
     case 'link': {
       const [from, to] = linkEnds(m, o.from, o.to);
-      const end = (v: unknown, side?: unknown, offset?: unknown): CorridorEnd => {
+      const end = (v: unknown, side?: unknown, offset?: unknown, port?: unknown): CorridorEnd => {
         if (v && typeof v === 'object' && !Array.isArray(v)) return v as CorridorEnd;
-        if (typeof v === 'string') return corridorEnd(m, v, typeof side === 'string' ? side : undefined, typeof offset === 'number' ? offset : undefined);
+        if (typeof v === 'string') return corridorEnd(m, v, typeof side === 'string' ? side : undefined, typeof offset === 'number' ? offset : undefined, port === undefined || port === null ? undefined : pt(port));
         return { at: pt(v) };
       };
-      const exit = o.exit && typeof o.exit === 'object' ? o.exit as Exit : undefined, a = end(from, o.from_side, o.from_offset), b = end(to, o.to_side, o.to_offset);
+      const exit = o.exit && typeof o.exit === 'object' ? o.exit as Exit : undefined, a = end(from, o.from_side, o.from_offset, o.from_port), b = end(to, o.to_side, o.to_offset, o.to_port);
       m.corridors.push({
         ...(typeof o.id === 'string' && { id: o.id }),
         from: a, to: exit && 'at' in b ? { ...b, exit } : b,

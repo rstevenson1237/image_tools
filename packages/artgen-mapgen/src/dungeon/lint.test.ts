@@ -83,12 +83,12 @@ describe('drawing defects a consumer used to find by rebuilding the floor (R9 D1
     expect(ids(s)).toEqual(expect.arrayContaining(['door-off-wall corridors[0].doors', 'doors-stacked corridors[2].doors']));
   });
 
-  test('port-outside-room and reenters-room: an L-shaped room\'s corridor that starts outside it, or crosses its notch', () => {
+  test('port-outside-room and reenters-room: an anchor set outside the room, a corridor across an L\'s notch', () => {
     const L = [2, 2, 10, 2, 10, 4, 4, 4, 4, 10, 2, 10], a: D.Room = { id: 'a', shape: 'poly', points: L, ...D.polyBox(L) };
-    // the anchor sits in the top arm (6, 3); a room lined up with the bottom arm gets a straight run starting at the anchor's x, outside a
-    const lined = base({ rooms: [a, { id: 'c', shape: 'rect', x: 14, y: 8, w: 4, h: 4 }], corridors: [{ from: { room: 'a' }, to: { room: 'c' }, doors: ['door', null] }] });
-    expect(ids(lined)).toEqual(['port-outside-room corridors[0].from']);
-    // a via from the anchor down into the bottom arm leaves a over the notch and comes back in
+    // an anchor in the L's notch: the corridor starts outside a, so it never reaches it
+    const outside = base({ rooms: [{ ...a, anchor: [7, 7] }, { id: 'c', shape: 'rect', x: 14, y: 8, w: 4, h: 4 }], corridors: [{ from: { room: 'a' }, to: { room: 'c' }, doors: ['door', null] }] });
+    expect(ids(outside)).toEqual(['port-outside-room corridors[0].from']);
+    // a via from the anchor (6, 3, in the top arm) down into the bottom arm leaves a over the notch and comes back in
     const notch = base({ rooms: [a, { id: 'b', shape: 'rect', x: 14, y: 8, w: 4, h: 4 }], corridors: [{ from: { room: 'a' }, to: { room: 'b' }, via: [3, 9, 14.5, 9] }] });
     expect(ids(notch)).toEqual(['reenters-room corridors[0].from']);
   });

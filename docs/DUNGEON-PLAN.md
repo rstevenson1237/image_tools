@@ -104,7 +104,7 @@ Write each one as a test in D1, before deciding whether it is a fault:
 
 ### D3 — Ports on the wall, doors along the wall (A13, A14) — S
 
-- A new end, `{room, at: [x, y]}`: a port at a point on the room's outline that keeps the room link, so `render --room`
+- A new end, `{room, port: [x, y]}` (not `at`, which already marks a point end): a port at a point on the room's outline that keeps the room link, so `render --room`
   and `facts` still count the room. Also `rooms[].anchor`, to override `roomAnchor`.
 - A door takes the outline's tangent where the path crosses it (`exitPoint`), not the angle of the path.
 - **Accept:** an L-shaped poly with a port on its far arm draws no passage over rock. A port on a round or octagonal
