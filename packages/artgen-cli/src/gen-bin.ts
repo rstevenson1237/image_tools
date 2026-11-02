@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** `npm run gen:ops`: write the Python client's generated methods and the operations reference from the registry. */
+/** `npm run gen:ops`: write the Python client's generated methods, the operations reference and the web app's form schema from the registry. */
 import { register } from 'node:module';
 import { writeFileSync } from 'node:fs';
 
@@ -9,9 +9,10 @@ const hook = `export async function resolve(s, c, next) {
 }`;
 register(`data:text/javascript,${encodeURIComponent(hook)}`);
 
-const { operationsDoc, pythonOps } = await import('./ops/gen.ts');
+const { formSchema, operationsDoc, pythonOps } = await import('./ops/gen.ts');
 const { OPS } = await import('./ops/index.ts');
 const repo = new URL('../../../', import.meta.url);
 writeFileSync(new URL('python/artgen/src/artgen/_ops.py', repo), pythonOps(OPS));
 writeFileSync(new URL('docs/OPERATIONS.md', repo), operationsDoc(OPS));
-console.log(`${OPS.length} operations -> python/artgen/src/artgen/_ops.py, docs/OPERATIONS.md`);
+writeFileSync(new URL('src/core/ops/forms.json', repo), formSchema(OPS));
+console.log(`${OPS.length} operations -> python/artgen/src/artgen/_ops.py, docs/OPERATIONS.md, src/core/ops/forms.json`);

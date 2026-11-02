@@ -1,6 +1,6 @@
 # Tooling plan: separate, refactor, and build a feedback loop
 
-Status: proposal, 2026-10-27; decisions settled 2026-10-27 and revised 2026-10-29 (§12). R0, R1, R2, R3, R5, R5b, R6, R7a, R7b and R7c are built, and R4's code is built but its acceptance run is not (§10); R6's production accept is not run either; the rest is not. It follows on from the finished artgen plan ([`archive/artgen/PLAN.md`](archive/artgen/PLAN.md)) and reuses its
+Status: proposal, 2026-10-27; decisions settled 2026-10-27 and revised 2026-10-29 (§12). R0, R1, R2, R3, R5, R5b, R6, R7a, R7b, R7c and R8 are built, and R4's code is built but its acceptance run is not (§10); R6's production accept is not run either; the rest is not. It follows on from the finished artgen plan ([`archive/artgen/PLAN.md`](archive/artgen/PLAN.md)) and reuses its
 decisions (`Dn`) where they still hold.
 
 ## 1. Summary
@@ -701,7 +701,7 @@ faster for the phases after it.
     example ledgers came after 34 passes; 4 of them are on props and creatures a shape gate sees (16 passes, at most 12 saved), only
     one on a kind `init` gates by default. The rebuilt templates are 18,501 → 19,065 code tokens (+3 %).
   - **Not done.** The production accept (tokens, passes and blind scores per approved asset with gates on, time to first placeholder)
-    needs model runs and a person answering the gates. Gates on stages after shape; a shape sheet in the web UI (R8); 3D rigs (R7b);
+    needs model runs and a person answering the gates. Gates on stages after shape; a shape sheet in the web UI (built in R8); 3D rigs (R7b);
     WebGPU lit sprites; Firefox.
 
 ### R7 — Output and camera breadth (L, three sub-phases) — R7a built 2026-10-31, R7b built 2026-11-01, R7c built 2026-11-02
@@ -782,13 +782,46 @@ faster for the phases after it.
   The second half passes (R7b). The first half does not yet: the oblique, stack and side cells start from the top-down
   templates (their modules' `probes`), the matrix has no bench asset per cell, and the bench runs are not blind-scored.
 
-### R8 — Web UI consolidation (M)
+### R8 — Web UI consolidation (M) — built 2026-11-02
 - One shell: project bar, a per-asset stage view (a simple node graph of §8's stages with cache status), a metrics
   dashboard fed by pooled analytics, and the same keyboard shortcuts and layout in every tool.
 - Build the web tools' forms and worker commands from the operation registry (R2 left this for the one shell).
 - Fill the archive's untested Firefox zip fallback.
 - **Makes later work faster:** you can see where time goes and approve stages without Claude Code open.
 - **Accept:** the headless UI acceptance (`scripts/artgen-ui-accept.mjs`) covers the stage view and maps review.
+- **Built:**
+  - **Stage view.** Asset Review shows an asset's eight stages as a chain (`StageGraph.svelte`): each node has its key, whether you approved it as
+    it is (`approved`, `changed`, `new`, `rejected`, `n/a`, the same rules as `artgen stages`, tested against the CLI on the three example repos) and a
+    **cache status** against another version of the asset (`reused`: the stage's key is unchanged, `runs again`: it changed; the default is the base
+    the final was made from). The gated stages (placeholder, shape) take your verdict there, written as the same `stage` ledger line the CLI writes
+    (`via: image-tools`), refused while a check of the stage fails, a rejection needing your words. The shape stage shows the shape sheet (the picture
+    `artgen review --stage shape` writes; equal to it, tested). Engine: `ArtProject.stages`, `stageVerdict`, `shapeSheet`.
+  - **Forms from the registry.** `npm run gen:ops` also writes `src/core/ops/forms.json`: every operation that has a command line, with the parameters,
+    help text and required messages the CLI uses (143 KB, loaded when a form first opens; a parity test fails when it is stale). `OperationForm.svelte`
+    draws a form for any of them and the `artgen …` line it stands for (`commandLine`, tested for every operation). The stage gate's form is the
+    registry's `stage approve` / `stage reject`. A new **Commands** tool (group *Suite*) lists all 167 operations with search and a module filter; a
+    filled-in form is a command line to copy, and the four operations that are the user's own calls (`approve`, `stage approve`, `stage reject`,
+    `stages`) can also run on the open project, through the same store methods the tools use.
+  - **Metrics dashboard.** A new **Metrics** tool: this repo's KPIs per generator (passes, tokens and minutes per approved subject, first-pass
+    approval, the checks failing most, your stage-gate verdicts, time to first export), where the time goes by kind of pass, and the pooled exports
+    per artgen version, the repo's own (`art/metrics/*.json`) plus any you add from other repos (kept in memory, never written), with the change in
+    tokens per approved asset against the version before. The pool is `poolExports` in `artgen-workflow` (moved out of the CLI's `metrics pool`, which
+    reads files and calls it), so the page and the CLI pool the same way.
+  - **One shell.** `[` and `]` step through the tools, `r` re-reads the project, `?` lists every shortcut (the list is what is registered, so it can't
+    drift); a tool adds its own beside them (Asset Review: `j`, `k`, `s`, `a`; Commands: `/`). Nothing fires while you type in a field or with ctrl, alt
+    or meta held, so each tool's own keys (undo, Delete, Enter, Escape) are untouched. The sidebar has a fourth group, *Suite*. Metrics shows for a
+    maps-only repo as well as an art one.
+  - **Firefox zip fallback.** The zip round trip is covered in the acceptance with the picker removed from the browser (the code path Firefox and
+    Safari take) and now carries a stage verdict back too. Firefox itself could not be installed where this ran.
+  - **Acceptance.** `scripts/artgen-ui-accept.mjs` gained steps 3a (stage view: eight stages, the cache status checked against `artgen stages` of the
+    two versions, approve one shape and reject another, the command line, the ledger lines, `artgen stages` agreeing), 3b (a dungeon Claude Code
+    versioned and reviewed, approved from the page, `artgen dungeon status` agreeing), 3c (`j`, `?`, typing in a field, the Metrics KPIs and two pooled
+    versions, a Commands form and `stages` run on the open project) and a stage verdict through the zip copy. It passes in headless Chromium with no
+    console errors (screenshots `stage-view.png`, `metrics.png`, `commands.png`, `asset-review-dungeon.png`).
+  - **Not done:** the project bar is still drawn by each tool (it takes tool-specific buttons), not once by the shell; the stage view is a chain, not a
+    node editor, and shows the stages of one version at a time; the placeholder stage has no picture (`out/placeholder.png` stays on disk); pooled
+    exports from other repos are added by hand, not fetched; Firefox and Safari themselves; the web map editors do not take their forms from the registry
+    (they edit through their own shared vocabularies).
 
 Order and what can run in parallel: R0 → R1 → (R2 ∥ R3) → R4 → (R5 ∥ R5b) → R6 → (R7 ∥ R8). R5b needs R2. R4 can start in a small form
 straight after R3. The `report` command alone does not need the registry.

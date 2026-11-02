@@ -4,7 +4,7 @@
 // the operations reference on disk are current; no two operations collide on a surface.
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { ART_OPS, CORE_OPS, cliOf, findOp, isExcluded, main, MAP_OPS, mapsMain, mcpName, mcpOf, operationsDoc, OPS, pythonOps, pyName, usageLines, wordsOf } from 'artgen-cli';
+import { ART_OPS, CORE_OPS, cliOf, findOp, isExcluded, formSchema, main, MAP_OPS, mapsMain, mcpName, mcpOf, operationsDoc, OPS, pythonOps, pyName, usageLines, wordsOf } from 'artgen-cli';
 import { handle } from './index.ts';
 
 const REPO = new URL('../../../', import.meta.url);
@@ -116,6 +116,9 @@ describe('the generated files', () => {
   });
   test('docs/OPERATIONS.md is what `npm run gen:ops` writes', () => {
     expect(read('docs/OPERATIONS.md')).toBe(operationsDoc(OPS));
+  });
+  test('src/core/ops/forms.json (the web app\'s forms) is what `npm run gen:ops` writes', () => {
+    expect(read('src/core/ops/forms.json')).toBe(formSchema(OPS));
   });
   test('every CLI operation has a Python method but `bench`, and the reference lists every operation', () => {
     const py = read('python/artgen/src/artgen/_ops.py'), doc = read('docs/OPERATIONS.md');

@@ -144,3 +144,39 @@ export function operationsDoc(ops: readonly OpDef[]): string {
   }
   return out.join('\n') + '\n';
 }
+
+/** One parameter of an operation as the web app's generated forms read it (R8): the fields of `Param` a form or a command line needs. */
+export interface FormParam {
+  key: string;
+  kind: Param['kind'];
+  doc?: string;
+  values?: readonly string[];
+  item?: 'string' | 'number';
+  /** Required; a string is the message the CLI gives when it is missing. */
+  required?: boolean | string;
+  positional?: boolean | 'rest';
+  /** The flag on the command line (`--note`). Absent for a positional. */
+  flag?: string;
+  repeat?: boolean;
+  multi?: boolean;
+  style?: 'switch' | 'onoff' | 'either';
+}
+export interface FormOp { name: string; module: string; effect: string; summary: string; params: FormParam[] }
+
+/**
+ * `src/core/ops/forms.json`: every operation that has a command line, with the parameters a form shows (those on the CLI, in
+ * declaration order). The web app builds its forms and the `artgen …` line they stand for from this file, so it needs no Node
+ * code and no second list. A parity test fails when the file differs from what this returns.
+ */
+export function formSchema(ops: readonly OpDef[]): string {
+  const forms: FormOp[] = ops.filter(op => cliOf(op)).map(op => ({
+    name: op.name, module: op.module, effect: op.effect, summary: op.summary,
+    params: Object.entries(op.params).filter(([, par]) => par.cli !== false).map(([key, par]): FormParam => ({
+      key, kind: par.kind, ...(par.doc && { doc: par.doc }), ...(par.values && { values: par.values }), ...(par.item && { item: par.item }),
+      ...(par.required && { required: par.required }), ...(par.positional && { positional: par.positional }),
+      ...(!par.positional && { flag: flagOf(key, par) }), ...(par.repeat && { repeat: true }), ...(par.multi && { multi: true }),
+      ...(par.kind === 'boolean' && { style: par.style ?? 'switch' }),
+    })),
+  }));
+  return `[\n${forms.map(f => JSON.stringify(f)).join(',\n')}\n]\n`;
+}

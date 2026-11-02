@@ -11,10 +11,10 @@ import fontBold from '../../packages/artgen-core/assets/fonts/AlegreyaSans-Bold.
 import fontItalic from '../../packages/artgen-core/assets/fonts/AlegreyaSans-Italic.ttf?url';
 import {
   buildPack, dungeon, encodePNG, extractPalette, decodePNG, Grid, initSvg, map, parseDirection, rasterizeSvg, setSvgFonts, settlement, sourceHash, validateDirection,
-  mapDirection, buildMesh, meshBudget, viewOfMesh, voxelViewMesh, worldLight, type Direction, type LedgerEntry, type PackManifest, type SubjectKind, type ViewMesh,
+  mapDirection, buildMesh, type GateStage, type MetricsExport, meshBudget, viewOfMesh, voxelViewMesh, worldLight, type Direction, type LedgerEntry, type PackManifest, type SubjectKind, type ViewMesh,
 } from 'artgen-core';
 import { RUNTIME_VERSION } from 'artgen-runtime';
-import { ArtProject, img, strip, type FileOp, type Img, type Snapshot } from '../core/project/engine';
+import { ArtProject, img, strip, type FileOp, type Img, type Snapshot, type StagesView } from '../core/project/engine';
 import { snapshotLoader } from '../core/project/snapshot';
 
 let project: ArtProject | null = null;
@@ -115,6 +115,19 @@ const api = {
   feedback: (id: string, o: { route: 'base' | 'finish'; note: string; region?: number[]; cell?: string; force?: boolean }) => current().feedback(id, o),
 
   line: (e: Omit<LedgerEntry, 'ts'>): string => ArtProject.line(e),
+
+  /** The stage view (R8): a version's stage keys, the user's verdicts and the stage checks; `against` adds which stages another version shares. */
+  stages: (id: string, version: string, against?: string): Promise<StagesView> => current().stages(id, version, against),
+
+  /** The shape sheet of a version, as the stage view shows it before you give a verdict. */
+  shapeSheet: (id: string, version: string) => current().shapeSheet(id, version),
+
+  /** The user's verdict on a gated stage, as the ledger entry to append (the store writes it after checking the disk). */
+  stageVerdict: (id: string, stage: GateStage, verdict: 'approve' | 'reject', o: { version?: string; note?: string; force?: boolean }) => current().stageVerdict(id, stage, verdict, o),
+
+  /** The metrics exports under `art/metrics/`, for the dashboard to pool beside the ones the user drops in. */
+  metricsExports: (): MetricsExport[] => current().metricsExports(),
+  generators: () => current().generators(),
 
   analytics: () => current().analytics(),
 

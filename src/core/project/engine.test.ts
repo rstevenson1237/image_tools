@@ -7,10 +7,10 @@ import { cpSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from
 import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { decodePNG, parseLedger } from 'artgen-core';
+import { decodePNG, Grid, parseLedger } from 'artgen-core';
 import {
   approve as cliApprove, cliApproveSubject, cliFeedbackSubject, exportMetrics, initProject, main as cliMain, recordVersion, statusRows, writeSheet, assetPathOf, feedback as cliFeedback, initNodeSvg, lock as cliLock, openAsset, projectStatus,
-  readBriefs, renderVersion as cliRender, requireProject, writeDraft,
+  readBriefs, renderVersion as cliRender, requireProject, shapeReview, stagesRun, stageVerdict as cliStageVerdict, writeDraft,
 } from 'artgen-cli';
 import { ArtProject, strip } from './engine';
 import { MemoryFiles } from './files';
@@ -40,6 +40,12 @@ async function engineFor(art: string): Promise<{ project: ArtProject; files: Mem
 }
 
 beforeAll(() => initNodeSvg());
+
+/** The base a finish is bound to (its `base` export), read off the source. */
+const baseOf = (project: ArtProject, id: string, version: string): string => {
+  const a = project.asset(id);
+  return /export const base = '(base\.v\d+)'/.exec(project.source(a, version))![1];
+};
 
 describe('module loader', () => {
   it('resolves relative imports to the URLs of the files they name', () => {
@@ -79,6 +85,27 @@ describe.each(FIXTURES)('%s: the UI engine reads the project as the CLI does', f
     }
   }, 120_000);
 
+  it('the stage view is `artgen stages`: same keys, states, checks and gates for every final', async () => {
+    const { project } = await engineFor(p.art);
+    for (const row of await project.status()) {
+      if (!row.final) continue;
+      const b = readBriefs(p).find(x => x.id === row.id)!, cli = await stagesRun(openAsset(assetPathOf(p, b)), row.final), ui = await project.stages(row.id, row.final);
+      expect({ keys: ui.keys, states: ui.states, checks: ui.checks, gates: ui.gates }, `${row.id} ${row.final}`).toEqual({ keys: cli.keys, states: cli.states, checks: cli.checks, gates: cli.gates });
+    }
+  }, 120_000);
+
+  it('the shape sheet is the picture `artgen review --stage shape` writes', async () => {
+    // on a copy: `shapeReview` logs a review entry in the ledger
+    const tmp = mkdtempSync(join(tmpdir(), 'artgen-shape-')), copy = join(tmp, fixture);
+    try {
+      cpSync(root, copy, { recursive: true, filter: s => !s.includes('node_modules') });
+      const q = requireProject(copy), { project } = await engineFor(q.art), row = (await project.status()).find(r => r.final)!;
+      const b = readBriefs(q).find(x => x.id === row.id)!, cli = await shapeReview(openAsset(assetPathOf(q, b)), row.final!);
+      const ui = await project.shapeSheet(row.id, row.final!), want = decodePNG(new Uint8Array(readFileSync(cli.path)));
+      expect(new Grid(ui.w, ui.h, ui.data).hash()).toBe(want.hash());
+    } finally { rmSync(tmp, { recursive: true, force: true }); }
+  }, 120_000);
+
   it('analytics cover every brief', async () => {
     const { project } = await engineFor(p.art);
     const { report } = project.analytics();
@@ -106,6 +133,27 @@ describe('writes match the CLI (on a copy of swamp-topdown)', () => {
     expect(via).toBe('image-tools');
     expect(uiEntry).toEqual(cliEntry);
   }, 60_000);
+
+  it('stage verdicts: the same entry the CLI writes (plus via), refusals in the same words, cache status against another version', async () => {
+    const p = requireProject(root), { project } = await engineFor(p.art);
+    const row = (await project.status()).find(r => r.final)!, ui = await project.stageVerdict(row.id, 'shape', 'approve', { version: row.final, note: 'keeps the hunch' });
+    const cli = await cliStageVerdict(openAsset(assetPathOf(p, readBriefs(p).find(x => x.id === row.id)!)), 'shape', 'approve', { version: row.final, note: 'keeps the hunch' });
+    const last = parseLedger(readFileSync(join(p.art, 'ledger.jsonl'), 'utf8')).pop()!;
+    const { ts: _ts, ...cliEntry } = last;
+    const { via, ...uiEntry } = ui.entry as Record<string, unknown>;
+    expect(via).toBe('image-tools');
+    expect(uiEntry).toEqual(cliEntry);
+    expect(ui.checks).toEqual(cli.checks);
+    await expect(project.stageVerdict(row.id, 'shape', 'reject', { version: row.final })).rejects.toThrow('write what should change');
+    await expect(project.stageVerdict(row.id, 'shape', 'approve', {})).rejects.toThrow(/pick the version/);
+    // against its own base, a finish keeps the shape (a finish draws pixels only)
+    const fin = (await project.status()).find(r => r.final?.startsWith('finish'));
+    expect(fin, 'the fixture has a finished finish to compare').toBeDefined();
+    if (fin) {
+      const v = await project.stages(fin.id, fin.final!, baseOf(project, fin.id, fin.final!));
+      expect(v.against?.diff.shape, `${fin.id} ${fin.final}`).toBe('same');
+    }
+  }, 120_000);
 
   it('approve refuses what the CLI refuses', async () => {
     const p = requireProject(root), { project } = await engineFor(p.art);
