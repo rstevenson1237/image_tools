@@ -19,4 +19,4 @@ export { roomLabelLayout, numberSize, nameSize, LABEL_SIDES, type RoomLabel, typ
 export { withMarks, fileMarks, EXIT_INSET, type Marks } from './marks.ts';
 export { rockOf } from './render.ts';
 export { layoutGraph, validateGraph, GRAPH_SHAPES, type Graph, type GraphRoom, type GraphWay, type GraphReport } from './graph.ts';
-export { Router, Footprint, plan as planRoutes, detours as routeDetours, LATTICE, type Route } from './router.ts';
+export { Router, Footprint, plan as planRoutes, detours as routeDetours, LATTICE, type Route as RoutedWay } from './router.ts';
