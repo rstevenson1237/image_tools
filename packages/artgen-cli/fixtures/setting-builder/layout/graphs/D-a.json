@@ -1,0 +1,110 @@
+{
+ "id": "D-a",
+ "rooms": [
+  {
+   "id": "D.1",
+   "w": 2.0,
+   "h": 4.0,
+   "shape": "rect",
+   "label": "D.1",
+   "hall": false,
+   "turns": false
+  },
+  {
+   "id": "D.2",
+   "w": 8.0,
+   "h": 6.0,
+   "shape": "rect",
+   "label": "D.2",
+   "hall": false,
+   "turns": false
+  },
+  {
+   "id": "D.3",
+   "w": 6.0,
+   "h": 6.0,
+   "shape": "rect",
+   "label": "D.3",
+   "hall": false,
+   "turns": false
+  },
+  {
+   "id": "D.4",
+   "w": 8.0,
+   "h": 8.0,
+   "shape": "rect",
+   "label": "D.4",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "D.5",
+   "w": 6.0,
+   "h": 8.0,
+   "shape": "rect",
+   "label": "D.5",
+   "hall": false,
+   "turns": false
+  },
+  {
+   "id": "D.6",
+   "w": 12.0,
+   "h": 10.0,
+   "shape": "rect",
+   "label": "D.6",
+   "hall": false,
+   "turns": false
+  }
+ ],
+ "ways": [
+  {
+   "a": "D.1",
+   "b": "D.2",
+   "bearing": 78.69006752597979
+  },
+  {
+   "a": "D.1",
+   "b": "D.3",
+   "bearing": 233.13010235415598
+  },
+  {
+   "a": "D.2",
+   "b": "D.4",
+   "bearing": 82.8749836510982
+  },
+  {
+   "a": "D.2",
+   "b": "D.5",
+   "bearing": 203.19859051364818
+  },
+  {
+   "a": "D.3",
+   "b": "D.5",
+   "bearing": 116.56505117707799
+  },
+  {
+   "a": "D.4",
+   "b": "D.6",
+   "bearing": 192.52880770915152
+  },
+  {
+   "a": "D.5",
+   "b": "D.6",
+   "bearing": 96.3401917459099
+  }
+ ],
+ "width": 2,
+ "scale": {
+  "perCell": 5,
+  "unit": "ft"
+ },
+ "fill": [
+  0.3,
+  0.45
+ ],
+ "passages": 0.35,
+ "seed": 1,
+ "tries": 12,
+ "detour": 20.0,
+ "footprint": 28.0
+}

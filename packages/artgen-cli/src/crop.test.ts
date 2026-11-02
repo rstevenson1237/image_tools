@@ -148,7 +148,7 @@ describe('warren: --room F.3 --margin 2', () => {
   test('dungeon render --room F.3 --margin 2 reports the window in cells and the ppu', async () => {
     const { dir, file } = bare('warren', 'dungeon');
     const r = JSON.parse((await cli('dungeon', 'render', '--file', file, '--format', 'svg', '--room', 'F.3', '--margin', '2', '--ppu', '30', '--json')).out);
-    expect(r).toMatchObject({ version: 1, ppu: 30 });
+    expect(r).toMatchObject({ version: 2, ppu: 30 });
     expect(r.crop).toEqual(win.map(v => +v.toFixed(3)));
     expect(viewBox(readFileSync(join(dir, 'dungeon.svg'), 'utf8'))).toEqual(win.map(v => +(v * 30).toFixed(3)));
   });

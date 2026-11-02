@@ -144,13 +144,13 @@
       const x = Math.floor(Math.min(x0, x1)), y = Math.floor(Math.min(y0, y1)), w = Math.ceil(Math.max(x0, x1)) - x, h = Math.ceil(Math.max(y0, y1)) - y;
       if (w < 1 || h < 1) return;
       if (store.blockSplit !== 'none') {
-        const mode = store.blockSplit, hex = store.blockHex;
+        const mode = store.blockSplit, hex = store.blockHex || store.roomShape === 'hexagon';
         attempt(() => store.change('add block', m => {
           const used = new Set((m.blocks ?? []).map(b => b.id));
           let id = 'b1';
           for (let n = 1; used.has(id); n++) id = `b${n + 1}`;
           const split = { mode, min: store.blockMin, seed: Math.floor(Math.random() * 1e6) };
-          const shape = store.roomShape === 'cave' ? 'rect' : store.roomShape;
+          const shape = store.roomShape === 'cave' || store.roomShape === 'hexagon' ? 'rect' : store.roomShape;
           (m.blocks ??= []).push(hex ? { id, shape: 'poly', points: dungeon.hexPoints(x, y, w, h), x, y, w, h, split } : { id, shape, x, y, w, h, split });
           return dungeon.applyBlock(dungeon.parseDungeon(m), id).spec;
         }));

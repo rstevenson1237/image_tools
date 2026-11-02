@@ -343,9 +343,9 @@ function finish(fr: Frame, furn: FurnitureLayout, defs: string[], parts: string[
   return `<svg xmlns="http://www.w3.org/2000/svg" ${sizeAttrs(out, unit)} font-family="${FONT}"><defs>${defs.join('')}<clipPath id="map-clip"><rect x="${n1(fr.x)}" y="${n1(fr.y)}" width="${n1(fr.w)}" height="${n1(fr.h)}"/></clipPath></defs>${band}<g clip-path="url(#map-clip)">${parts.join('')}${band ? '' : drawn}</g>${frame}${band ? drawn : ''}</svg>`;
 }
 
-const LABEL_PX = { area: 22, name: 15, note: 12, street: 12 } as const;
+const LABEL_PX = { area: 22, name: 15, note: 12, street: 12, water: 12 } as const;
 function labelSize(l: SettlementLabel, u: number, pageScale?: number): number {
-  const pt = { area: PAGE_PT.dungeon.area, name: PAGE_PT.dungeon.name, note: PAGE_PT.dungeon.note, street: PAGE_PT.dungeon.note }[l.kind];
+  const pt = { area: PAGE_PT.dungeon.area, name: PAGE_PT.dungeon.name, note: PAGE_PT.dungeon.note, street: PAGE_PT.dungeon.note, water: PAGE_PT.map.water }[l.kind];
   return (pageScale ? pointsToPx(pt, pageScale) : LABEL_PX[l.kind] * u) * (l.size ?? 1);
 }
 const textSizes = (u: number, pageScale?: number) => ({ number: pageScale ? pointsToPx(PAGE_PT.dungeon.number, pageScale) : 15 * u, name: pageScale ? pointsToPx(PAGE_PT.dungeon.room, pageScale) : 12.5 * u });
@@ -353,7 +353,7 @@ const textSizes = (u: number, pageScale?: number) => ({ number: pageScale ? poin
 /** A label's text and look by kind. */
 function labelSvg(l: SettlementLabel, k: number, u: number, p: Palette, pageScale?: number): string {
   const fs = labelSize(l, u, pageScale), text = l.kind === 'area' ? l.text.toUpperCase() : l.text;
-  const attrs = l.kind === 'area' ? `font-weight="700" letter-spacing="${n1(fs * 0.16)}"` : l.kind === 'name' ? 'font-weight="700"' : 'font-style="italic"';
+  const attrs = l.kind === 'area' ? `font-weight="700" letter-spacing="${n1(fs * 0.16)}"` : l.kind === 'name' ? 'font-weight="700"' : l.kind === 'water' ? `font-style="italic" letter-spacing="${n1(fs * 0.08)}"` : 'font-style="italic"';
   const t = haloText(text, l.x * k, l.y * k + fs * 0.35, fs, p.ink, { halo: p.halo }, attrs);
   const out = l.angle ? `<g transform="rotate(${n1(l.angle)} ${n1(l.x * k)} ${n1(l.y * k)})">${t}</g>` : t;
   return l.href ? `<a href="${esc(l.href)}">${out}</a>` : out;

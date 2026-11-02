@@ -1,6 +1,181 @@
 # artgen changelog
 
-Releases of the committed install (`artgen-dist`), the MCP server, the runtime it vendors and the Python client.
+Releases of the committed install (`artgen-dist`) and its modules, the MCP server, the runtime it vendors, the library package files and the Python client. The map engines (`mapgen`, the `maps` module) have a version line of their own, named in each section.
+
+## 0.12.0 — 2026-11-02
+
+mapgen 0.11.0 → 0.12.0
+
+**Install and feedback (R9 D0, from setting_builder's report 2)**
+- The shared text (the `core` and `ui` commands and CLAUDE.md fragments) names the program the repo has: the installer fills
+  `{{ARTGEN}}` with `node tools/artgen/artgen.js` when `art` is installed, else `node tools/artgen/artgen-maps.js`. `add art` and
+  `remove art` rewrite those files when they are as installed.
+- A maps-only install with no `art/` project (`init --with maps --no-scaffold`) gets a CLAUDE.md section for a repo that writes its own
+  map files and names them with `--file`. `--claude-md none` leaves CLAUDE.md alone, and later `update`s keep to it.
+- `modules.json` and `MANIFEST.json` record the build (the commit) beside the release; `status`, `update` and its `--notes` name both
+  builds when the release is the same. A bundle's `--version` already printed it; `report`'s `case.md` and `report.json` now do too.
+- `CHANGELOG.md` has an `## Unreleased` section for what is merged between releases. `update --notes` includes it, and
+  `scripts/artgen-release.mjs` folds it into the release's section, with the commit subjects under `### Commits`.
+- `report --file` writes the bundle to `artgen-feedback/<date>-<id>/` at the repo root (the git top level, else the file's folder), which
+  ignores itself, instead of beside the file. `--made-by "<command>"` records the consumer's own command that wrote the file.
+
+**Dungeon geometry out, defects in (R9 D1)**
+- `dungeon facts` adds each corridor's drawn `path`; `doors[]`, every door with where it stands, the way through it, its width, what drew it,
+  the units behind and ahead of it (`room:<id>`, `corridor:<index>`) and what it stands on (`wall`, `open`, `rock`, or `end` at a point end);
+  `floor`, which unit owns each cell, as runs per row; and `adjacent[]`, the units whose cells meet and how far. All of it is read from the
+  layout the renderer draws (`floor.ts`).
+- Every `dungeon check` finding has a stable `id` (`CHECK_IDS`; `[id]` in the text output). New: `door-off-wall` (a door in open floor or on
+  rock), `doors-stacked` (two openings on each other), `rooms-merge` (floor rooms touching while shared walls are off), `corridor-along-wall`
+  (a corridor's floor on a room's wall with no wall drawn between them), `way-no-passage` (a corridor between rooms that touch, or a connection
+  between rooms that share no wall), `port-outside-room` (a room end whose path starts outside the room) and `reenters-room` (a corridor that
+  leaves a room and runs back into it, over the rock between: the notch of an L). `check --errors id,id|all` reports chosen warnings as errors.
+- Consumer fixtures `setting-builder/g-level` and `h-level` (packed levels, sent with `artgen report --file … --made-by …` and taken in with
+  `npm run intake`): every door on a wall, a path per corridor, and the one `corridor-along-wall` H.a has.
+- Settled with tests (report 2, A17): a sync replaces an origin's corridor whole, so no `side` or `offset` is left behind; rooms meeting in a
+  partial overlap of their walls get the whole shared stretch as a wall, and corner to corner none; an anticlockwise poly lays out as the
+  clockwise one; a connection wider than its wall is drawn whole, and `check` says the wall is too short.
+
+**Walls wherever two floors meet; dungeon format 1 -> 2 (R9 D2)**
+- dungeon format 1 -> 2: `style.sharedWalls` defaults to walls between any two units that touch (room and room, room and corridor, corridor
+  and corridor), and `true` means that. `"rooms"` is format 1's `true` (between rooms only) and `false` draws none. A wall is left out where a
+  floor runs into another (a corridor into its room, two corridors sharing cells) and at a connection's opening. The migration writes what
+  format 1 drew: `true` becomes `"rooms"`, and an unset value becomes `"rooms"` when the file has connections or blocks, else `false`. A format
+  1 file draws as it did, byte for byte. `rooms-merge` and `corridor-along-wall` report what is left when the walls are off.
+- `dungeon style --shared-walls on|rooms|off|auto`; `auto` leaves the default (on).
+- The setting-builder dungeon fixtures are migrated to format 2 (`migrated:` in each `case.md`).
+
+**Ports on the wall, doors along it (R9 D3)**
+- A corridor end `{room, port: [x, y]}` starts at that point on the room's wall (moved onto the outline when off it) and keeps the room as
+  its end, so `facts`, `render --room` and `check` still count it. `dungeon link --from-port x,y --to-port x,y`; the edit op takes
+  `from_port`/`to_port`.
+- `rooms[].anchor: [x, y]`: where a room's `{room}` corridors start and its badge sits, in place of the centre or a poly's deepest point
+  (`dungeon room add|set --anchor x,y|none`).
+- A door is set square to the wall where its corridor crosses it (a round room's own curve, else the outline's edge there), not to the path,
+  so a slanted run onto a round, octagonal or diagonal wall gets a flush door. A corridor that runs square into a straight wall is unchanged.
+- An `auto` corridor between rooms that line up runs straight only where that run starts inside both rooms; for a poly room whose box is not
+  its floor it takes the elbow from the anchor instead of starting outside the room.
+
+**Room labels that move and are checked (R9 D4)**
+- A room's number and name move, in every render, to the first clear spot inside the room by its north, south, west or east wall when at the
+  anchor they would lie on a symbol or another room's label. `rooms[].labelAt` puts them by a wall (`n s w e`), at the anchor (`c`), or at
+  `[dx, dy]` cells from it, and they stay there (`dungeon room add|set --label-at`). Overlay labels keep clear of room labels where they are drawn.
+- A room label with no clear spot is listed in a render's `--json` `unplaced` (`{room, text}`), and `check` warns `label-overlap` (one room's
+  label over another's) or `mark-on-badge` (on a symbol). The Keep's drawing changes only where its labels moved: held at their anchors it
+  renders as before, byte for byte.
+
+**Smaller drawing options (R9 D7)**
+- `rooms[].exits: [{kind: stairs-up|stairs-down|arrow, side?: n|e|s|w, at?: [x, y], angle?, text?}]`: a way out of the map inside a room,
+  its mark a cell in from that wall and turned toward it, its note on the room's side of it. Drawn, placed (under `--fit`) and checked as
+  overlay marks; `facts` lists each room's `exits`; a finding points at `rooms[i].exits[j]`. `dungeon room add|set --exits '<json>'`.
+- `style.rock: hatch|solid|none` and `style.rockColor` (solid rock in a colour, white floors); `style.partition`, the weight of the walls
+  between floors apart from `style.wall` (`dungeon style --rock --rock-color --partition`).
+- `corridors[].span`: a corridor's width in the scale unit (10 for a 10 ft passage) in place of `width` in cells (`link --span 10`).
+- Rooms: `hexagon` with `orient: flat|pointy`; an octagon's `cut` as a share of its shorter side, exact (unset: 0.3 of it to the half
+  cell, as before) (`room add|set --cut --orient`).
+- `bounds` (a polygon the rock and the grid are drawn in, its edge drawn) and `areas: [{points, kind: rock|void, label?}]` (rock within a
+  level, and voids drawn as open paper with a dashed edge; the label at the middle). `check` warns `outside-bounds` and `in-keep-out` for floor
+  outside the bounds or on an area (`dungeon update --bounds x,y,… --areas '<json>'`).
+- The settlement overlay takes the `water` label kind, as a terrain map does.
+
+**A router and a layout from a graph (R9 D6)**
+- `route: "maze"`: a corridor routed on the lattice of its width (`router.ts`, ported from setting_builder's `route.py`), round the rooms,
+  off the other corridors, inside `bounds` and off `areas`; it leaves by its `side`, near its `port`, or by the door nearest the other room,
+  and its door stands on the wall. Corridors from one room may join and part but never run beside each other. Where walls are drawn along
+  corridors (the default) a passage may run against a wall; otherwise it keeps a lattice cell off. `corridors[].maze: {clearance, bend, seed}`;
+  `link --route maze`. A maze corridor no passage fits is drawn as an elbow and `check` warns `maze-no-route`.
+- Corridors that leave a room in common may cross or merge with no `corridors-cross` warning: a junction, as the router lays them.
+- `artgen dungeon layout --graph g.json` (MCP `dungeon_layout`): rooms (sizes in cells, shapes, turns, `against`, `over`) and ways (bearing to
+  keep, the wall named, doors) packed in a footprint (a square or a polygon, with keep-out polygons) at a target fill, annealed from a seed
+  and kept only where every way is a door through a shared wall or a routed passage within `detour` (`graph.ts`, ported from `pack.py`).
+  Writes a format 2 file: connections and corridors with ports and bends, the footprint as `bounds`, keep-out as rock `areas`. On setting_builder's
+  ten packed levels every way routes with none past its detour, at 1 to 10 s a block on one core (`pack.py` took about 30 s on four); with the
+  footprint unset the rooms reach 55% of the square, against 36 to 43% in the setting's brief.
+- Consumer fixture `setting-builder/layout`: the ten graphs and G laid out.
+
+**A schema and a reference (R9 D5)**
+- `artgen schema dungeon|map|settlement|graph`: the file's JSON Schema (draft 2020-12), every key with a line; `--keys` lists every key
+  path with its line, `--checks` the ids `dungeon check` gives. In the maps-only bundle and over MCP (`schema`). A test runs each validator
+  over a full file through a recording proxy and fails on any key it reads that the schema does not declare.
+- `docs/DUNGEON.md`: units and angle conventions, each shape's outline (the octagon's cut, the hexagon, the circle's 64 sides), how a
+  corridor's ends start (`side` and `offset`, the snap to the corridor's width, `port`), the anchor, label placement, walls between floors,
+  maze corridors and layouts, the ground, and what `facts` and `check` read; the key and check lists are written by `npm run gen:ops`.
+- The `dungeon-map` skill: `dungeon layout`, `--route maze`, ports, anchors, label placement, room exits, rock, bounds and areas, check ids,
+  `--errors`, `facts` and `schema`.
+
+### Commits
+
+- R9: the Dungeon Map tool takes the new route and room shapes; the router's route type is exported as RoutedWay
+- R9 D5: artgen schema for dungeon, map, settlement and graph; docs/DUNGEON.md; the dungeon-map skill updated
+- R9 D6: a lattice router (route: maze) and dungeon layout from a graph
+- R9 D7: room exits, solid rock, partition weight, corridor span, hexagons and octagon cuts, bounds and keep-out areas
+- R9 D4: room labels move off symbols and other labels, labelAt holds them, check and render --json report the ones with no spot
+- R9 D3: MCP transcript golden (the edit tool's description names ports and anchors)
+- R9 D3: corridor ports on the wall, room anchors, doors set along the wall
+- R9 D2: walls wherever two floors meet; sharedWalls on by default; dungeon format 2 with a migration
+- R9 D1: dungeon facts give paths, doors and what they stand between, the owner grid and adjacency; check ids and seven new checks
+- R9 D0: the installer names the program a repo has; files layout; builds recorded; Unreleased changelog; report bundles at the repo root
+- R8: web UI consolidation - stage view, metrics dashboard, registry-built forms, shared shortcuts
+- R7c: docs/TILEMAPS.md, the plan and the map skills updated; the examples reinstalled
+- R7c: artgen dungeon|map|settlement export and artgen tileset; npm run accept:tilemap
+- R7c: tile grids, tilesets, Tiled and LDtk writers; view modules completed
+- R7b: docs/RIGS3D.md, the plan and skills updated; fixes from the full run
+- R7b: riggedModel in the three.js runtime (1.5.0), a rigged warden walking in the three.js example, accept:rig
+- R7b: artgen rig, the rigged 3D template, a rigged bench asset
+- R7b: body rigs in 3D, skinning, rigged meshes with clips and LODs, the skinned .glb
+- R7a: skills for meshes and the converters; reinstall the example games
+- R7a: the 3D orbit view in Asset Lab (voxels or mesh), with an acceptance step
+- R7a: `artgen mesh`, `turntable` (MCP tool), `convert` and `extrude`; generated docs and Python methods
+- R7a: true 3D meshes from Scene3D (distance field, dual contouring under a budget, UV charts, baked textures, .glb in and out, mesh checks, orbit camera, voxelising)
+- R6 review: a rejected silhouette never stays the best base or the final; shape-pivot fails only against a placeholder file
+- R6d: RotSprite (scale2x, rotsprite, rotateNormals), rotated assets with the rotation stage key and checks, `artgen rotate`, `brief add --rotate`, example reinstall
+- R6c: lit sprites in Pixi (light model, pixiLitAdapter, accept:lit), runtime 1.4.0, the swamp lantern, example reinstall
+- R6c: decals as a procedural layer, Grid and Cell decal masks, the decal stage key and decal-inside check
+- R6b: shared body rigs, ctx.lib.rigs, the rig stage and the 12 character and creature templates on them
+- R6a: placeholder, stages, stage approve and reject, export --placeholders, review --stage shape, brief add --gates
+- R6a: stage keys, shape checks, the placeholder and stage gates in the pass machine; runtime 1.3.0
+- R5b: the image tools join the pipeline (artgen-imagekit, no OpenCV)
+- R5 review: re-approve after a map direction change, map approval in the UI acceptance
+- R5: docs, skills and the installed example toolsets
+- R5: Asset Review lists maps, dungeons and settlements
+- R5: generator metrics, the data sheet and references on review sheets
+- R5: versions, review, approval and the map direction for maps, dungeons and settlements
+- R5: the artgen-workflow package (ledger, status, analytics moved; versions, diffs, subjects, metrics, data sheet)
+- Give the frontier river fixture test the same timeout as its siblings (it timed out at 5 s on CI)
+- R4: feedback loop — report, upstream, metrics, intake, review on the pull request, consumer CI
+- R3: modular install, bundled review UI (artgen ui), update pull requests, library packages
+- R2 step 3: art operations on the registry; generated MCP tools, Python methods and docs; parity test
+- R2 step 2: map, dungeon and settlement operations on the registry
+- R2 step 1: CLI and MCP transcripts, MCP schema snapshot
+- R1: split artgen-core into primitives, scene and mapgen packages; shared map-editor shell
+- artgen-release: safe to run again; finish a release made by hand
+
+### mapgen 0.12.0
+
+- R9: the Dungeon Map tool takes the new route and room shapes; the router's route type is exported as RoutedWay
+- R9 D5: artgen schema for dungeon, map, settlement and graph; docs/DUNGEON.md; the dungeon-map skill updated
+- R9 D6: a lattice router (route: maze) and dungeon layout from a graph
+- R9 D7: room exits, solid rock, partition weight, corridor span, hexagons and octagon cuts, bounds and keep-out areas
+- R9 D4: room labels move off symbols and other labels, labelAt holds them, check and render --json report the ones with no spot
+- R9 D3: corridor ports on the wall, room anchors, doors set along the wall
+- R9 D2: walls wherever two floors meet; sharedWalls on by default; dungeon format 2 with a migration
+- R9 D1: dungeon facts give paths, doors and what they stand between, the owner grid and adjacency; check ids and seven new checks
+- R8: web UI consolidation - stage view, metrics dashboard, registry-built forms, shared shortcuts
+- R7c: artgen dungeon|map|settlement export and artgen tileset; npm run accept:tilemap
+- R7c: tile grids, tilesets, Tiled and LDtk writers; view modules completed
+- R6d: RotSprite (scale2x, rotsprite, rotateNormals), rotated assets with the rotation stage key and checks, `artgen rotate`, `brief add --rotate`, example reinstall
+- R6c: decals as a procedural layer, Grid and Cell decal masks, the decal stage key and decal-inside check
+- R6a: stage keys, shape checks, the placeholder and stage gates in the pass machine; runtime 1.3.0
+- R5b: the image tools join the pipeline (artgen-imagekit, no OpenCV)
+- R5 review: re-approve after a map direction change, map approval in the UI acceptance
+- R5: Asset Review lists maps, dungeons and settlements
+- R5: generator metrics, the data sheet and references on review sheets
+- R5: versions, review, approval and the map direction for maps, dungeons and settlements
+- R5: the artgen-workflow package (ledger, status, analytics moved; versions, diffs, subjects, metrics, data sheet)
+- R4: feedback loop — report, upstream, metrics, intake, review on the pull request, consumer CI
+- R3: modular install, bundled review UI (artgen ui), update pull requests, library packages
+- R2 step 3: art operations on the registry; generated MCP tools, Python methods and docs; parity test
+- R2 step 2: map, dungeon and settlement operations on the registry
+- R1: split artgen-core into primitives, scene and mapgen packages; shared map-editor shell
 
 ## 0.11.0 — 2026-10-25
 

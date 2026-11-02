@@ -7,12 +7,15 @@
  */
 import { inPolygon, roomOutline } from '../dungeon/layout.ts';
 import { nearestOnLine, polygonArea } from '../dungeon/geom.ts';
-import type { Finding, Severity } from '../dungeon/lint.ts';
+import type { Issue } from '../dungeon/spec.ts';
+import type { Severity } from '../dungeon/lint.ts';
+/** A drawing finding on a settlement: where, what and how bad. */
+export interface Finding extends Issue { severity: Severity }
 import { fixtureSize } from './fixtures.ts';
 import { inWater, layoutSettlement, planOutline, snapToLine, type SettlementLayout } from './layout.ts';
 import type { SettlementSpec } from './spec.ts';
 
-export type { Finding, Severity };
+export type { Severity };
 
 /** The share of a polygon's sample points (every half cell) inside another test. */
 function share(poly: number[], test: (x: number, y: number) => boolean): number {

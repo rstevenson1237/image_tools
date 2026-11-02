@@ -66,7 +66,7 @@ export type AreaKind = (typeof AREA_KINDS)[number];
 export const TREE_KINDS = ['tree', 'conifer', 'bush', 'rock', 'boulder', 'stump', 'reeds'] as const;
 export type TreeKind = (typeof TREE_KINDS)[number];
 
-export const LABEL_KINDS = ['name', 'note', 'area', 'street'] as const;
+export const LABEL_KINDS = ['name', 'note', 'area', 'street', 'water'] as const;
 export type LabelKind = (typeof LABEL_KINDS)[number];
 
 export const CURVES = ['none', 'smooth'] as const;

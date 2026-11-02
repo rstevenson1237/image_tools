@@ -26,10 +26,11 @@ export function cornerPoint(at: string): [number, number] {
  * A corridor end: a room id in the dungeon (leaving by its `side` wall, `offset` cells along, when given), a corridor
  * (`corridor:<id>`, or an id no room has) for a junction, else a point.
  */
-export function corridorEnd(m: DungeonSpec, ref: string, side?: string, offset?: number): CorridorEnd {
+export function corridorEnd(m: DungeonSpec, ref: string, side?: string, offset?: number, port?: [number, number]): CorridorEnd {
   if (side !== undefined && !SIDES.includes(side as Side)) throw new Error(`--from-side / --to-side: ${SIDES.join(', ')}`);
-  if (m.rooms.some(r => r.id === ref)) return { room: ref, ...(side && { side: side as Side }), ...(side && offset !== undefined && { offset }) };
-  if (side) throw new Error(`a side goes with a room end, and ${ref} is not a room`);
+  if (side !== undefined && port) throw new Error('a port or a side, not both');
+  if (m.rooms.some(r => r.id === ref)) return { room: ref, ...(side && { side: side as Side }), ...(side && offset !== undefined && { offset }), ...(port && { port }) };
+  if (side || port) throw new Error(`a side or a port goes with a room end, and ${ref} is not a room`);
   const c = ref.replace(/^corridor:/, '');
   if (ref.startsWith('corridor:') || m.corridors.some(x => x.id === c)) {
     if (!m.corridors.some(x => x.id === c)) throw new Error(`no corridor with id ${c} (give one an id: link … --id ${c})`);
@@ -99,6 +100,16 @@ export function linkEnds(m: DungeonSpec, a: unknown, b: unknown): [unknown, unkn
   return [ea, eb];
 }
 
+/** An octagon's `cut`, a hexagon's `orient` and a room's `exits` from an edit (null removes one). */
+function roomExtras(r: Room, o: DungeonOp): void {
+  if (o.cut === null) delete r.cut; else if (typeof o.cut === 'number') r.cut = o.cut;
+  if (o.orient === null) delete r.orient; else if (o.orient === 'flat' || o.orient === 'pointy') r.orient = o.orient;
+  if (o.exits === null) delete r.exits; else if (Array.isArray(o.exits)) r.exits = o.exits as Room['exits'];
+}
+
+/** A room's `labelAt` from an edit: a side (n, s, w, e, c) or an offset (dx,dy cells). */
+const labelAt = (v: unknown): NonNullable<Room['labelAt']> => (typeof v === 'string' && ['c', 'n', 's', 'w', 'e'].includes(v) ? v as 'c' : pt(v));
+
 const show = (v: unknown): string => (typeof v === 'string' ? v : JSON.stringify(v));
 
 /** Apply one edit; returns what it did. */
@@ -112,6 +123,9 @@ export function editDungeon(m: DungeonSpec, o: DungeonOp): string {
       if (typeof o.label === 'string') r.label = o.label;
       if (typeof o.number === 'number' || o.number === false) r.number = o.number;
       if (typeof o.fill === 'string' && o.fill) r.fill = o.fill as RoomFill;
+      if (o.anchor !== undefined && o.anchor !== null) r.anchor = pt(o.anchor);
+      if (o.label_at !== undefined && o.label_at !== null && o.label_at !== '') r.labelAt = labelAt(o.label_at);
+      roomExtras(r, o);
       if (typeof o.href === 'string' && o.href) r.href = o.href;
       if (typeof o.origin === 'string' && o.origin) r.origin = o.origin;
       m.rooms.push(r);
@@ -136,6 +150,9 @@ export function editDungeon(m: DungeonSpec, o: DungeonOp): string {
       if (typeof o.number === 'number' || o.number === false) r.number = o.number;
       if (typeof o.fill === 'string' && o.fill) { if (o.fill === 'floor') delete r.fill; else r.fill = o.fill as RoomFill; handEdit(r, ['fill']); }
       if (typeof o.href === 'string') { if (o.href) r.href = o.href; else delete r.href; }
+      if (o.anchor === null || o.anchor === '') delete r.anchor; else if (o.anchor !== undefined) r.anchor = pt(o.anchor);
+      if (o.label_at === null || o.label_at === '') delete r.labelAt; else if (o.label_at !== undefined) r.labelAt = labelAt(o.label_at);
+      roomExtras(r, o);
       return `changed ${r.id}`;
     }
     case 'remove_room': {
@@ -144,16 +161,16 @@ export function editDungeon(m: DungeonSpec, o: DungeonOp): string {
     }
     case 'link': {
       const [from, to] = linkEnds(m, o.from, o.to);
-      const end = (v: unknown, side?: unknown, offset?: unknown): CorridorEnd => {
+      const end = (v: unknown, side?: unknown, offset?: unknown, port?: unknown): CorridorEnd => {
         if (v && typeof v === 'object' && !Array.isArray(v)) return v as CorridorEnd;
-        if (typeof v === 'string') return corridorEnd(m, v, typeof side === 'string' ? side : undefined, typeof offset === 'number' ? offset : undefined);
+        if (typeof v === 'string') return corridorEnd(m, v, typeof side === 'string' ? side : undefined, typeof offset === 'number' ? offset : undefined, port === undefined || port === null ? undefined : pt(port));
         return { at: pt(v) };
       };
-      const exit = o.exit && typeof o.exit === 'object' ? o.exit as Exit : undefined, a = end(from, o.from_side, o.from_offset), b = end(to, o.to_side, o.to_offset);
+      const exit = o.exit && typeof o.exit === 'object' ? o.exit as Exit : undefined, a = end(from, o.from_side, o.from_offset, o.from_port), b = end(to, o.to_side, o.to_offset, o.to_port);
       m.corridors.push({
         ...(typeof o.id === 'string' && { id: o.id }),
         from: a, to: exit && 'at' in b ? { ...b, exit } : b,
-        ...(typeof o.width === 'number' && { width: o.width }), ...(typeof o.route === 'string' && { route: o.route as Route }),
+        ...(typeof o.width === 'number' && { width: o.width }), ...(typeof o.span === 'number' && { span: o.span }), ...(typeof o.route === 'string' && { route: o.route as Route }),
         ...(Array.isArray(o.via) && { via: numbers(o.via) }), ...(Array.isArray(o.doors) && { doors: o.doors as [DoorKind | null, DoorKind | null] }),
         ...(o.curve === 'smooth' && { curve: 'smooth' as const }), ...(o.style === 'natural' && { style: 'natural' as const }), ...(typeof o.seed === 'number' && { seed: o.seed }),
         ...(typeof o.origin === 'string' && o.origin && { origin: o.origin }),
@@ -198,7 +215,7 @@ export function editDungeon(m: DungeonSpec, o: DungeonOp): string {
     case 'connect': {
       (m.connections ??= []).push({
         a: String(o.a), b: String(o.b), ...(o.at !== undefined && { at: pt(o.at) }), ...(typeof o.kind === 'string' && o.kind !== 'door' && { kind: o.kind as DoorKind | 'open' }),
-        ...(typeof o.width === 'number' && { width: o.width }), ...(typeof o.origin === 'string' && o.origin && { origin: o.origin }),
+        ...(typeof o.width === 'number' && { width: o.width }), ...(typeof o.span === 'number' && { span: o.span }), ...(typeof o.origin === 'string' && o.origin && { origin: o.origin }),
       });
       return `connection ${m.connections.length - 1}: ${String(o.a)} ↔ ${String(o.b)}`;
     }

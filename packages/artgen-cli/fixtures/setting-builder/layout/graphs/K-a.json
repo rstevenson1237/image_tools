@@ -1,0 +1,91 @@
+{
+ "id": "K-a",
+ "rooms": [
+  {
+   "id": "K.1",
+   "w": 2.0,
+   "h": 4.0,
+   "shape": "rect",
+   "label": "K.1",
+   "hall": false,
+   "turns": false
+  },
+  {
+   "id": "K.2",
+   "w": 10.0,
+   "h": 6.0,
+   "shape": "rect",
+   "label": "K.2",
+   "hall": false,
+   "turns": false
+  },
+  {
+   "id": "K.3",
+   "w": 12.0,
+   "h": 12.0,
+   "shape": "rect",
+   "label": "K.3",
+   "hall": false,
+   "turns": false
+  },
+  {
+   "id": "K.4",
+   "w": 6.0,
+   "h": 6.0,
+   "shape": "rect",
+   "label": "K.4",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "K.5",
+   "w": 4.0,
+   "h": 4.0,
+   "shape": "rect",
+   "label": "K.5",
+   "hall": false,
+   "turns": false
+  }
+ ],
+ "ways": [
+  {
+   "a": "K.1",
+   "b": "K.2",
+   "bearing": 279.4623222080256
+  },
+  {
+   "a": "K.2",
+   "b": "K.3",
+   "bearing": 186.3401917459099
+  },
+  {
+   "a": "K.2",
+   "b": "K.4",
+   "bearing": 326.30993247402023
+  },
+  {
+   "a": "K.3",
+   "b": "K.5",
+   "bearing": 63.43494882292201
+  },
+  {
+   "a": "K.3",
+   "b": "K.4",
+   "bearing": 348.69006752597977
+  }
+ ],
+ "width": 2,
+ "scale": {
+  "perCell": 5,
+  "unit": "ft"
+ },
+ "fill": [
+  0.3,
+  0.45
+ ],
+ "passages": 0.35,
+ "seed": 1,
+ "tries": 12,
+ "detour": 20.0,
+ "footprint": 28.0
+}

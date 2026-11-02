@@ -162,11 +162,12 @@ describe('rooms joined directly', () => {
   ];
   const sp = (connections: D.Connection[]) => D.newDungeon('k', { cols: 26, rows: 18, rooms, connections });
 
-  test('touching rooms keep the wall between them (with sharedWalls, or once there are connections); a connection puts a door or an opening in it, on the grid', () => {
-    // an older file (no connections, no blocks): rooms that touch run together, as they always did
-    expect(D.layoutDungeon(sp([])).partitions).toEqual([]);
-    expect(D.renderDungeonSvg(sp([]))).not.toContain('id="partitions"');
-    const walled = { ...sp([]), style: { ...sp([]).style, sharedWalls: true } }, l = D.layoutDungeon(walled);
+  test('touching rooms keep the wall between them (unless sharedWalls is false); a connection puts a door or an opening in it, on the grid', () => {
+    // with shared walls off, rooms that touch run together
+    const open = { ...sp([]), style: { ...sp([]).style, sharedWalls: false } };
+    expect(D.layoutDungeon(open).partitions).toEqual([]);
+    expect(D.renderDungeonSvg(open)).not.toContain('id="partitions"');
+    const walled = sp([]), l = D.layoutDungeon(walled);
     // hall|a at x 12, a|b and a|c at x 17, b|c at y 5
     expect(l.partitions.map(p => p.map(v => Math.round(v * 100) / 100))).toEqual([[12, 2, 12, 8], [17, 2, 17, 5], [17, 5, 17, 8], [23, 5, 17, 5]].map(p => expect.arrayContaining(p)));
     const c = D.layoutDungeon(sp([{ a: 'hall', b: 'a' }, { a: 'b', b: 'c', kind: 'open', width: 2 }, { a: 'a', b: 'b', kind: 'secret', at: [17, 3] }]));
@@ -276,4 +277,188 @@ describe('dense and blocks generators', () => {
     expect(s.connections).toBeUndefined();
     expect(D.validateDungeon({ ...s, gen: { ...s.gen, layout: 'maze' as D.GenLayout, density: 2 } })).toEqual(['gen.layout: scatter, dense, blocks', 'gen.density: above 0, at most 1']);
   });
+});
+
+describe('ports on the wall and doors along it (R9 D3)', () => {
+  const L = [2, 2, 10, 2, 10, 4, 4, 4, 4, 10, 2, 10], ell: D.Room = { id: 'a', shape: 'poly', points: L, ...D.polyBox(L) };
+  const far: D.Room = { id: 'c', shape: 'rect', x: 14, y: 8, w: 4, h: 4 };
+  const s = (over: Partial<D.DungeonSpec>) => D.newDungeon('p', { cols: 24, rows: 16, rooms: [ell, far], ...over });
+
+  test('a port on the far arm of an L: the corridor starts on that wall, no passage over rock, and the room is still the corridor\'s end', () => {
+    const sp = s({ corridors: [{ from: { room: 'a', port: [4.3, 9.5] }, to: { room: 'c' }, doors: ['door', null] }] });
+    const l = D.layoutDungeon(sp);
+    expect(l.corridors[0].pts.slice(0, 2)).toEqual([4, 9.5]);   // moved onto the outline
+    expect(l.corridors[0].ends[0]).toEqual({ x: 4, y: 9.5, angle: 0, along: 0 });
+    expect(D.lintDungeon(sp)).toEqual([]);
+    const f = D.dungeonFacts(sp);
+    expect(f.rooms[0].doors).toEqual([{ kind: 'door', at: [4, 9.5], corridor: 0, to: 'c' }]);
+    expect(f.doors[0].on).toBe('wall');
+    expect(f.unreached).toEqual([]);
+    // render --room still crops round the room and the start of its corridor
+    const [x, y, w, h] = D.roomCrop(sp, ['a'], 2);
+    expect(x + w).toBeGreaterThanOrEqual(6);
+    expect([x, y, h]).toEqual([1.5, 1.5, 9]);
+    expect(D.validateDungeon({ ...sp, corridors: [{ from: { room: 'a', port: [4, 9.5], side: 'e' }, to: { room: 'c' } }] })).toEqual(['corridors[0].from.port: a port or a side, not both']);
+  });
+
+  test('a door on a round wall is set along the wall, whatever angle the path meets it at', () => {
+    const round: D.Room = { id: 'r', shape: 'circle', x: 2, y: 2, w: 8, h: 8 }, box: D.Room = { id: 'b', shape: 'rect', x: 16, y: 10, w: 4, h: 4 };
+    // from an anchor off the centre (4, 7) to a bend east of the room: the path meets the wall at a slant, the door faces out along the radius
+    const sp = D.newDungeon('o', { cols: 24, rows: 16, rooms: [{ ...round, anchor: [4, 7] }, box], corridors: [{ from: { room: 'r' }, to: { room: 'b' }, via: [12, 5, 12, 12] }] });
+    const e = D.layoutDungeon(sp).corridors[0].ends[0]!, radial = (Math.atan2(e.y - 6, e.x - 6) * 180) / Math.PI;
+    expect(Math.abs(e.angle - radial)).toBeLessThan(1e-6);
+    expect(Math.abs(e.angle - (Math.atan2(-2, 8) * 180) / Math.PI)).toBeGreaterThan(1);   // not the path's own heading
+    // a port on the round wall: the door faces out along the radius at the port
+    const ported = D.layoutDungeon({ ...sp, corridors: [{ from: { room: 'r', port: [6 + 4 * Math.SQRT1_2, 6 + 4 * Math.SQRT1_2] }, to: { room: 'b' }, via: [12, 12] }] }).corridors[0].ends[0]!;
+    expect(Math.round(ported.angle)).toBe(45);
+    // a corridor that runs square into a straight wall keeps its heading exactly
+    const square = D.layoutDungeon(D.newDungeon('q', { cols: 24, rows: 16, rooms: [{ id: 'a', shape: 'rect', x: 2, y: 2, w: 4, h: 4 }, box], corridors: [{ from: { room: 'a' }, to: { room: 'b' } }] }));
+    expect(square.corridors[0].ends.map(x => x!.angle)).toEqual([0, -90]);
+  });
+
+  test('a room\'s anchor: where its {room} corridors start and its badge sits', () => {
+    const sp = s({ rooms: [{ ...ell, anchor: [3, 9] }, far], corridors: [{ from: { room: 'a' }, to: { room: 'c' } }] });
+    const l = D.layoutDungeon(sp);
+    expect([l.rooms[0].cx, l.rooms[0].cy]).toEqual([3, 9]);
+    expect(l.corridors[0].pts.slice(0, 2)).toEqual([3, 9.5]);   // the anchor's column, on the row the rooms share
+    expect(D.lintDungeon(sp)).toEqual([]);
+    expect(D.validateDungeon({ ...sp, rooms: [{ ...ell, anchor: [3] as unknown as [number, number] }, far] })).toEqual(['rooms[0].anchor: [x, y] in cells']);
+  });
+});
+
+describe('room labels that move and are checked (R9 D4)', () => {
+  const over = (a: { x: number; y: number; w: number; h: number }, b: typeof a) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+  const boxes = (s: D.DungeonSpec) => D.roomLabelLayout(s, D.layoutDungeon(s)).map(r => [r.badge, r.name].filter(Boolean) as { x: number; y: number; w: number; h: number }[]);
+
+  test('two adjacent 10 ft halls: the second hall\'s label moves along its hall, clear of the first\'s', () => {
+    // at 10 ft a cell, each hall one cell wide and side by side: labels wider than a hall overlap at the anchors
+    const halls: D.Room[] = [{ id: 'a', shape: 'rect', x: 2, y: 2, w: 1, h: 8, label: 'G.12 Hall', number: false }, { id: 'b', shape: 'rect', x: 3, y: 2, w: 1, h: 8, label: 'G.13 Hall', number: false }];
+    const s = D.newDungeon('h', { cols: 8, rows: 12, scale: { perCell: 10, unit: 'ft' }, rooms: halls, corridors: [], connections: [{ a: 'a', b: 'b' }] });
+    const [a, b] = boxes(s);
+    expect(a.some(p => b.some(q => over(p, q)))).toBe(false);
+    expect(D.lintDungeon(s).filter(f => f.id === 'label-overlap')).toEqual([]);
+    // held at the anchor, they overlap, and check says so
+    const held = { ...s, rooms: halls.map(r => ({ ...r, labelAt: 'c' as const })) };
+    expect(D.lintDungeon(held).filter(f => f.id === 'label-overlap').map(f => f.path)).toEqual(['rooms[1]']);
+  });
+
+  test('a stair in a 10 x 20 ft room: the room\'s label moves off the stair to a wall of its own room', () => {
+    const s = D.newDungeon('st', { cols: 10, rows: 10, rooms: [{ id: 'r', shape: 'rect', x: 3, y: 2, w: 2, h: 4, label: 'G.3', number: false }], corridors: [], overlay: { labels: [], symbols: [{ kind: 'stairs-down', x: 4, y: 4 }] } });
+    const l = D.roomLabelLayout(s, D.layoutDungeon(s))[0];
+    expect(l).toMatchObject({ placed: true, moved: true });
+    expect(l.name!.y).toBeGreaterThanOrEqual(2);
+    expect(l.name!.y + l.name!.h).toBeLessThanOrEqual(6);
+    expect(over(l.name!, { x: 3.55, y: 3.55, w: 0.9, h: 0.9 })).toBe(false);
+  });
+
+  test('labelAt puts a label by a wall or at an offset, and it stays there; render --json lists a room label with no clear spot', () => {
+    const s = D.newDungeon('la', { cols: 12, rows: 10, rooms: [{ id: 'r', shape: 'rect', x: 2, y: 2, w: 8, h: 6, label: 'Hall', labelAt: 's' }], corridors: [] });
+    const r = D.roomLabelLayout(s, D.layoutDungeon(s))[0];
+    expect(r.y).toBeLessThan(8);
+    expect(r.name!.y + r.name!.h).toBeCloseTo(8 - 0.2, 5);
+    const moved = { ...s, rooms: [{ ...s.rooms[0], labelAt: [1, -2] as [number, number] }] }, off = D.roomLabelLayout(moved, D.layoutDungeon(moved))[0];
+    expect([off.x, off.y]).toEqual([7, 3]);
+    expect(D.validateDungeon({ ...s, rooms: [{ ...s.rooms[0], labelAt: 'x' as 'n' }] })).toEqual(['rooms[0].labelAt: n, s, w, e, c or [dx, dy] cells from the anchor']);
+  });
+});
+
+describe('smaller drawing options (R9 D7)', () => {
+  const room = (over: Partial<D.Room> = {}): D.Room => ({ id: 'r', shape: 'rect', x: 2, y: 2, w: 6, h: 4, label: 'G.3', ...over });
+  const one = (over: Partial<D.DungeonSpec> = {}) => D.newDungeon('o', { cols: 12, rows: 10, rooms: [room()], corridors: [], ...over });
+
+  test('a room\'s exit: the mark by its wall, turned toward it, and its note; facts list it; check holds it to the sheet', () => {
+    const s = one({ rooms: [room({ exits: [{ kind: 'stairs-up', side: 'n', text: 'Up to F.2' }, { kind: 'arrow', at: [7, 5], text: 'To G.9' }] })] });
+    const m = D.fileMarks(s, D.layoutDungeon(s));
+    expect(m.symbols.map(x => x.mark)).toEqual([{ kind: 'stairs-up', x: 5, y: 2.9, angle: -90 }, { kind: 'arrow', x: 7, y: 5, angle: -90 }]);
+    expect(m.labels.map(x => [x.mark.text, x.mark.y, x.source])).toEqual([['Up to F.2', 4, 'rooms[0].exits[0]'], ['To G.9', 6.1, 'rooms[0].exits[1]']]);
+    expect(D.dungeonFacts(s).rooms[0].exits).toEqual([{ kind: 'stairs-up', at: [5, 2.9], text: 'Up to F.2' }, { kind: 'arrow', at: [7, 5], text: 'To G.9' }]);
+    const svg = D.renderDungeonSvg(s);
+    expect(svg).toContain('Up to F.2');
+    expect(svg.match(/<g id="symbols">/g)).toHaveLength(1);
+    expect(D.validateDungeon({ ...s, rooms: [room({ exits: [{ kind: 'ladder' as 'arrow' }] })] })).toEqual(['rooms[0].exits[0].kind: stairs-up, stairs-down, arrow', 'rooms[0].exits[0]: a side or a point (at)']);
+    expect(D.lintDungeon({ ...s, rooms: [room({ exits: [{ kind: 'arrow', at: [40, 5] }] })] }).map(f => `${f.id} ${f.path}`)).toContain('off-sheet rooms[0].exits[0]');
+  });
+
+  test('rock: solid in a colour, or none; the walls between floors have a weight of their own', () => {
+    const s = one({ style: { ...D.DEFAULTS.style, rock: 'solid', rockColor: '#a0a0a0', partition: 2.5 }, rooms: [room(), room({ id: 'b', x: 8, label: 'G.4' })] });
+    const svg = D.renderDungeonSvg(s);
+    expect(svg).toMatch(/<g id="rock"><rect width="480" height="400" fill="#a0a0a0"\/>/);
+    expect(svg).not.toContain('url(#hatch)');
+    expect(svg).toMatch(/id="partitions"[^>]*stroke-width="15\.4"/);   // 0.14 x 40 x 2.5 x 1.1
+    expect(D.renderDungeonSvg({ ...s, style: { ...s.style, rock: 'none' } })).not.toContain('<g id="rock">');
+    expect(D.validateDungeon({ ...s, style: { ...s.style, rock: 'stone' as 'solid', rockColor: 'grey', partition: 9 } })).toEqual(['style.rock: hatch, solid, none', 'style.rockColor: a colour #rrggbb', 'style.partition: 0.2..4']);
+  });
+
+  test('a corridor\'s span in the scale unit; a hexagon flat or pointy; an octagon\'s cut as a share of its side', () => {
+    const spanned = one({ rooms: [room(), room({ id: 'b', x: 2, y: 8, h: 2 })], rows: 12, corridors: [{ from: { room: 'r' }, to: { room: 'b' }, span: 10 }] });
+    expect(D.layoutDungeon(spanned).corridors[0].width).toBe(2);
+    expect(D.validateDungeon({ ...spanned, corridors: [{ from: { room: 'r' }, to: { room: 'b' }, span: 10, width: 1 }] })).toEqual(['corridors[0].span: a span or a width, not both']);
+    expect(D.roomOutline(room({ shape: 'hexagon', x: 0, y: 0, w: 8, h: 4 }))).toEqual([2, 0, 6, 0, 8, 2, 6, 4, 2, 4, 0, 2]);
+    expect(D.roomOutline(room({ shape: 'hexagon', orient: 'pointy', x: 0, y: 0, w: 4, h: 8 }))).toEqual([2, 0, 4, 2, 4, 6, 2, 8, 0, 6, 0, 2]);
+    // a cut of 1/(2 + √2) of the side makes a regular octagon, at any size and any cell
+    const c = 1 / (2 + Math.SQRT2), oct = D.roomOutline(room({ shape: 'octagon', x: 0, y: 0, w: 7, h: 7, cut: c }));
+    const sides = oct.map((_, i) => i % 2 ? 0 : Math.hypot(oct[(i + 2) % 16] - oct[i], oct[(i + 3) % 16] - oct[i + 1])).filter((_, i) => i % 2 === 0);
+    for (const s of sides) expect(s).toBeCloseTo(sides[0], 9);
+    expect(D.validateDungeon({ ...spanned, rooms: [room({ shape: 'octagon', cut: 0.6 }), room({ id: 'b', shape: 'hexagon', orient: 'up' as 'flat' })] })).toEqual(expect.arrayContaining(['rooms[0].cut: a share of the shorter side, above 0 and below 0.5', 'rooms[1].orient: flat or pointy']));
+  });
+
+  test('bounds and areas: rock and grid inside the level, its edge drawn; a void and rock inside; check keeps floor off them', () => {
+    const s = one({
+      style: { ...D.DEFAULTS.style, hatch: 'full' }, bounds: [1, 1, 11, 1, 11, 9, 1, 9],
+      areas: [{ points: [9, 6, 11, 6, 11, 9, 9, 9], kind: 'void', label: 'Shaft' }, { points: [3, 3, 5, 3, 5, 5, 3, 5], kind: 'rock' }],
+    });
+    const svg = D.renderDungeonSvg(s);
+    expect(svg).toContain('<clipPath id="bounds-clip">');
+    expect(svg).toContain('<path id="bounds"');
+    expect(svg).toContain('stroke-dasharray');
+    expect(svg).toContain('Shaft');
+    expect(D.lintDungeon(s).map(f => `${f.id} ${f.path}`)).toEqual(['in-keep-out rooms[0]']);
+    expect(D.lintDungeon({ ...s, areas: [], bounds: [4, 1, 11, 1, 11, 9, 4, 9] }).map(f => f.id)).toEqual(['outside-bounds']);
+    expect(D.validateDungeon({ ...s, bounds: [1, 1], areas: [{ points: [1, 1, 2, 2, 3, 1], kind: 'lava' as 'rock' }] })).toEqual(['bounds: at least 3 x,y pairs (cells)', 'areas[0].kind: rock or void']);
+  });
+});
+
+describe('the maze router and the layout from a graph (R9 D6)', () => {
+  const rect = (id: string, x: number, y: number, w: number, h: number): D.Room => ({ id, shape: 'rect', x, y, w, h });
+
+  test('a maze corridor goes round the room in the way on its lattice, with doors on the walls, and check finds nothing', () => {
+    const s = D.newDungeon('m', { cols: 40, rows: 24, rooms: [rect('a', 2, 8, 6, 6), rect('m', 14, 6, 8, 10), rect('b', 28, 8, 6, 6)], corridors: [{ from: { room: 'a' }, to: { room: 'b' }, route: 'maze', width: 2, doors: ['door', 'door'] }] });
+    const l = D.layoutDungeon(s), pts = l.corridors[0].pts;
+    expect(l.corridors[0].unrouted).toBeUndefined();
+    for (let i = 2; i < pts.length; i += 2) expect(pts[i] === pts[i - 2] || pts[i + 1] === pts[i - 1]).toBe(true);   // on the lattice
+    expect(D.lintDungeon(s)).toEqual([]);
+    expect(D.dungeonFacts(s).doors.map(d => d.on)).toEqual(['wall', 'wall']);
+  });
+
+  test('maze corridors from one room may join; they keep off an unrelated corridor, the bounds and a keep-out area', () => {
+    const rooms = [rect('a', 4, 4, 6, 6), rect('b', 30, 4, 6, 6), rect('c', 30, 24, 6, 6), rect('d', 4, 24, 6, 6)];
+    const s = D.newDungeon('j', {
+      cols: 42, rows: 34, rooms, bounds: [2, 2, 40, 2, 40, 32, 2, 32], areas: [{ points: [14, 12, 26, 12, 26, 20, 14, 20], kind: 'void', label: 'Pit' }],
+      corridors: [{ from: { room: 'a' }, to: { room: 'b' }, route: 'maze', width: 2 }, { from: { room: 'a' }, to: { room: 'c' }, route: 'maze', width: 2 }, { from: { room: 'd' }, to: { room: 'c' }, width: 2 }],
+    });
+    expect(D.layoutDungeon(s).corridors.map(c => c.unrouted ?? false)).toEqual([false, false, false]);
+    expect(D.lintDungeon(s).map(f => f.id)).toEqual([]);
+    // rooms that touch get no maze corridor: a connection joins them
+    const touching = D.newDungeon('t', { cols: 20, rows: 12, rooms: [rect('a', 2, 2, 6, 6), rect('b', 8, 2, 6, 6)], corridors: [{ from: { room: 'a' }, to: { room: 'b' }, route: 'maze', width: 2 }] });
+    expect(D.lintDungeon(touching).map(f => f.id)).toContain('maze-no-route');
+  });
+
+  test('a graph laid out: every way a door through a shared wall or a routed passage, inside the footprint, the same for the same seed', () => {
+    const g: D.Graph = {
+      id: 'g', width: 2, seed: 3, tries: 2, footprint: 30, passages: 0.4,
+      rooms: [{ id: 'X.1', w: 6, h: 4 }, { id: 'X.2', w: 4, h: 4 }, { id: 'X.3', w: 8, h: 6, shape: 'round' }, { id: 'X.4', w: 4, h: 8, turns: true }, { id: 'X.5', w: 6, h: 6, shape: 'octagon' }],
+      ways: [{ a: 'X.1', b: 'X.2', doors: ['door', null] }, { a: 'X.2', b: 'X.3' }, { a: 'X.3', b: 'X.4', doors: ['secret', null] }, { a: 'X.4', b: 'X.5' }, { a: 'X.5', b: 'X.1', bearing: 90 }],
+    };
+    const { spec, report } = D.layoutGraph(g);
+    expect(report.left).toEqual([]);
+    expect(spec.connections!.length + spec.corridors.length).toBe(5);
+    const f = D.dungeonFacts(spec);
+    expect(f.unreached).toEqual([]);
+    expect(f.overlaps).toEqual([]);
+    expect(D.lintDungeon(spec).filter(x => x.severity === 'error')).toEqual([]);
+    expect(D.lintDungeon(spec).map(x => x.id).filter(id => ['door-off-wall', 'through-room', 'outside-bounds', 'corridors-cross', 'way-no-passage'].includes(id))).toEqual([]);
+    expect(spec.rooms.find(r => r.id === 'X-5')).toMatchObject({ shape: 'octagon', cut: 1 / (2 + Math.SQRT2) });
+    expect(JSON.stringify(D.layoutGraph(g).spec)).toBe(JSON.stringify(spec));
+    expect(D.validateGraph({ ...g, rooms: [...g.rooms, { id: 'X.1', w: 0, h: 2 }], ways: [{ a: 'X.1', b: 'nope' }] })).toEqual(['rooms[5].id: X.1 is used twice', 'rooms[5].w: cells, above 0', 'ways[0].b: no room "nope"']);
+  }, 60_000);
 });

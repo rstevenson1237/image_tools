@@ -13,7 +13,7 @@ import { checkDungeonFile, dungeonFile, renderDungeonFiles } from '../dungeon.ts
 import { checkMapFile, mapFile, renderMapFiles } from '../map.ts';
 import { checkSettlementFile, renderSettlementFiles, settlementFile } from '../settlement.ts';
 import type { Project } from '../projectfs.ts';
-import { VERSION } from '../version.ts';
+import { VERSION, VERSION_LINE } from '../version.ts';
 
 export type BundleKind = 'asset' | 'map' | 'dungeon' | 'settlement';
 export const BUNDLE_KINDS: readonly BundleKind[] = ['asset', 'map', 'dungeon', 'settlement'];
@@ -32,8 +32,10 @@ export interface BundleOptions {
   /** A map, dungeon or settlement file by path (no project needed). */
   file?: string;
   kind?: BundleKind;
-  /** The folder to write the bundle to (default `art/feedback/<date>-<id>/` in the project, else beside the file). */
+  /** The folder to write the bundle to (default `art/feedback/<date>-<id>/` in the project, else `artgen-feedback/<date>-<id>/` at the repo root). */
   out?: string;
+  /** The consumer's own command that wrote the file (its converter), for case.md. */
+  madeBy?: string;
   /** Leave the render out. */
   noRender?: boolean;
   now?: Date;
@@ -127,15 +129,16 @@ const issueLink = (repo: string, title: string, body: string): string =>
   `https://github.com/${repo}/issues/new?${new URLSearchParams({ labels: 'artgen-feedback', title, body: body.length > LINK_BODY_MAX ? `${body.slice(0, LINK_BODY_MAX)}\n…\n(the rest is in ISSUE.md of the bundle: paste it here)` : body }).toString()}`;
 
 /** `case.md`, in the layout of `packages/artgen-cli/fixtures/<consumer>/<case>/case.md`. */
-function caseMd(o: { id: string; kind: BundleKind; format?: number; note: string; command: string; consumer: ReturnType<typeof consumerOf>; mapgen?: string; check: string; render: string; asset?: string; extra?: string }): string {
+function caseMd(o: { id: string; kind: BundleKind; format?: number; note: string; command: string; madeBy?: string; consumer: ReturnType<typeof consumerOf>; mapgen?: string; check: string; render: string; asset?: string; extra?: string }): string {
   const title = o.note.split('\n')[0].slice(0, 80) || 'reported from a consumer';
   return [
     `# ${o.id} — ${title}`, '',
     ...(o.format !== undefined ? [`format: ${o.kind} ${o.format}`] : [`kind: ${o.kind}`]),
     `consumer: ${o.consumer.name} at ${o.consumer.commit} (${o.consumer.branch}), reported with \`artgen report\``,
-    `artgen: ${VERSION}${o.mapgen ? `, maps ${o.mapgen}` : ''}`,
+    `artgen: ${VERSION_LINE}${o.mapgen ? `, maps ${o.mapgen}` : ''}`,
     ...(o.asset ? [`asset: ${o.asset}`] : []), '',
     o.note || '(no note given)', '',
+    ...(o.madeBy ? ['Made by the consumer with:', '', '```sh', o.madeBy, '```', '', 'Checked with:', ''] : []),
     '```sh', o.command, '```', '',
     `check: ${o.check}`, `render: ${o.render}`, '',
     '## Must go on drawing', '', '_(for the maintainer: the facts this file states, once the report is understood)_', '',
@@ -171,9 +174,12 @@ export async function writeBundle(p: Project | null, target: string | undefined,
     ({ kind, file: input } = { kind: found[0].kind, file: found[0].file });
     id = target;
   }
-  const root = p?.root ?? dirname(input), consumer = consumerOf(root);
-  const dir = resolve(o.out ?? (p ? freshDir(join(p.art, 'feedback'), `${dateOf(now)}-${id}`) : freshDir(dirname(input), `feedback-${dateOf(now)}-${id}`)));
+  // outside a project: the repo the file is in (its git top level), else the file's folder
+  const root = p?.root ?? run(dirname(input), 'rev-parse', '--show-toplevel') ?? dirname(input), consumer = consumerOf(root);
+  const dir = resolve(o.out ?? (p ? freshDir(join(p.art, 'feedback'), `${dateOf(now)}-${id}`) : freshDir(join(root, 'artgen-feedback'), `${dateOf(now)}-${id}`)));
   mkdirSync(dir, { recursive: true });
+  // the default folder outside a project ignores itself, so a bundle is never committed with the consumer's own files
+  if (!p && !o.out && !existsSync(join(root, 'artgen-feedback', '.gitignore'))) writeFileSync(join(root, 'artgen-feedback', '.gitignore'), '*\n');
   const files: string[] = [], put = (rel: string, text: string) => { mkdirSync(dirname(join(dir, rel)), { recursive: true }); writeFileSync(join(dir, rel), text); files.push(rel); };
   const mapgen = (() => { try { return readFileSync(join(root, 'tools', 'artgen', 'VERSION'), 'utf8').trim(); } catch { return undefined; } })();
 
@@ -221,9 +227,9 @@ export async function writeBundle(p: Project | null, target: string | undefined,
     command = `node tools/artgen/artgen-maps.js ${kind} check --file ${INPUT[kind]} --json`;
   }
 
-  const md = caseMd({ id, kind, format, note, command, consumer, mapgen, check, render, asset: assetPath });
+  const md = caseMd({ id, kind, format, note, command, madeBy: o.madeBy?.trim() || undefined, consumer, mapgen, check, render, asset: assetPath });
   put('case.md', md);
-  put('report.json', JSON.stringify({ schema: 1, id, kind, ...(format !== undefined && { format }), artgen: VERSION, ...(mapgen && { installed: mapgen }), consumer, note, check, render, createdAt: now.toISOString(), command }, null, 2) + '\n');
+  put('report.json', JSON.stringify({ schema: 1, id, kind, ...(format !== undefined && { format }), artgen: VERSION, build: VERSION_LINE, ...(mapgen && { installed: mapgen }), consumer, note, check, render, createdAt: now.toISOString(), command, ...(o.madeBy && { madeBy: o.madeBy }) }, null, 2) + '\n');
 
   // the issue it would open: the case, and the input file inline when it fits
   const title = `[artgen report] ${kind} ${id}${note ? `: ${note.split('\n')[0].slice(0, 60)}` : ''}`;

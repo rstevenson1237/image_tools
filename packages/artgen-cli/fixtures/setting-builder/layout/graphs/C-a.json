@@ -1,0 +1,77 @@
+{
+ "id": "C-a",
+ "rooms": [
+  {
+   "id": "C.1",
+   "w": 2.0,
+   "h": 4.0,
+   "shape": "rect",
+   "label": "C.1",
+   "hall": true,
+   "turns": false
+  },
+  {
+   "id": "C.2",
+   "w": 10.0,
+   "h": 10.0,
+   "shape": "rect",
+   "label": "C.2",
+   "hall": false,
+   "turns": false
+  },
+  {
+   "id": "C.3",
+   "w": 12.0,
+   "h": 4.0,
+   "shape": "rect",
+   "label": "C.3",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "C.4",
+   "w": 8.0,
+   "h": 8.0,
+   "shape": "round",
+   "label": "C.4",
+   "hall": false,
+   "turns": true
+  }
+ ],
+ "ways": [
+  {
+   "a": "C.1",
+   "b": "C.2",
+   "bearing": 304.99202019855863
+  },
+  {
+   "a": "C.2",
+   "b": "C.3",
+   "bearing": 74.74488129694222
+  },
+  {
+   "a": "C.2",
+   "b": "C.4",
+   "bearing": 15.255118703057777
+  },
+  {
+   "a": "C.3",
+   "b": "C.4",
+   "bearing": 315.0
+  }
+ ],
+ "width": 2,
+ "scale": {
+  "perCell": 5,
+  "unit": "ft"
+ },
+ "fill": [
+  0.3,
+  0.45
+ ],
+ "passages": 0.35,
+ "seed": 1,
+ "tries": 12,
+ "detour": 20.0,
+ "footprint": 24.0
+}

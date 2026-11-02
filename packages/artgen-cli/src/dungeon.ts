@@ -91,7 +91,8 @@ export function updateDungeon(p: Project | null, ref: DungeonRef, change: (m: Du
  */
 export interface DungeonCheck { file: string; ok: boolean; errors: dungeon.Issue[]; warnings: dungeon.Issue[] }
 
-export function checkDungeonFile(p: Project | null, ref: DungeonRef): DungeonCheck {
+/** `raise`: drawing findings to report as errors, by id (or `all`). */
+export function checkDungeonFile(p: Project | null, ref: DungeonRef, raise: string[] = []): DungeonCheck {
   const f = dungeonFile(p, ref);
   let raw: unknown;
   try { raw = JSON.parse(readFileSync(f, 'utf8')); } catch (e) {
@@ -99,7 +100,8 @@ export function checkDungeonFile(p: Project | null, ref: DungeonRef): DungeonChe
     return { file: shown(p, f), ok: false, errors: [{ path: '', message: missing ? `no such file: ${shown(p, f)}` : `not JSON: ${(e as Error).message}` }], warnings: [] };
   }
   const r = dungeon.checkDungeon(raw), errors = [...r.errors], warnings: dungeon.Issue[] = [];
-  if (!errors.length) for (const x of dungeon.lintDungeon(dungeon.parseDungeon(raw))) (x.severity === 'error' ? errors : warnings).push({ path: x.path, message: x.message });
+  const raised = (id: string) => raise.includes('all') || raise.includes(id);
+  if (!errors.length) for (const x of dungeon.lintDungeon(dungeon.parseDungeon(raw))) (x.severity === 'error' || raised(x.id) ? errors : warnings).push({ path: x.path, message: x.message, id: x.id });
   const u = (raw as { underlay?: { map?: unknown } } | null)?.underlay;
   if (!errors.some(e => e.path.startsWith('underlay')) && u && typeof u.map === 'string' && !existsSync(resolve(dirname(f), u.map)))
     errors.push({ path: 'underlay.map', message: `no such map file ${u.map}` });
@@ -157,7 +159,10 @@ export async function renderDungeonFiles(p: Project | null, ref: DungeonRef, o: 
   const svg = dungeon.renderDungeonSvg(m, { ...view, ppu, unit, ...(underlay && { underlay }) }), base = join(out, id);
   if (formats.includes('svg')) { writeFileSync(`${base}.svg`, svg); files.push(`${base}.svg`); }
   if (formats.includes('png')) { writeFileSync(`${base}.png`, encodePNG(rasterizeSvg(svg, size[0], size[1]))); files.push(`${base}.png`); }
-  return { files: files.map(f => relative(process.cwd(), f)), rooms: m.rooms.length, corridors: m.corridors.length, doors: layout.doors.length, size, crop, ppu, svg: svgSize([0, 0, px.width, px.height], 1, unit), pageScale: pageScale ?? null, unplaced: dungeon.dungeonLabelLayout(m, ppu, pageScale, layout).unplaced };
+  return { files: files.map(f => relative(process.cwd(), f)), rooms: m.rooms.length, corridors: m.corridors.length, doors: layout.doors.length, size, crop, ppu, svg: svgSize([0, 0, px.width, px.height], 1, unit), pageScale: pageScale ?? null, unplaced: [
+    ...dungeon.roomLabelLayout(m, layout, { ppu, pageScale }).filter(r => !r.placed).map(r => ({ room: m.rooms[r.room].id, text: m.rooms[r.room].label ?? String(layout.rooms[r.room].number ?? '') })),
+    ...dungeon.dungeonLabelLayout(dungeon.withMarks(m, layout).spec, ppu, pageScale, layout).unplaced,
+  ] };
 }
 
 /** Moved to `artgen-mapgen` with the dungeon edits (`dungeon/edit.ts`); re-exported for the MCP server and the tests that import them from here. */
@@ -171,7 +176,7 @@ export const endText = (e: dungeon.CorridorEnd): string =>
 export function warningLines(m: DungeonSpec, max = 5): string[] {
   const found = dungeon.lintDungeon(m);
   if (!found.length) return [];
-  const lines = found.slice(0, max).map(x => `  ${x.severity}: ${x.path}: ${x.message}`);
+  const lines = found.slice(0, max).map(x => `  ${x.severity}: ${x.path}: ${x.message} [${x.id}]`);
   if (found.length > max) lines.push(`  … ${found.length - max} more (artgen dungeon check ${m.id})`);
   return lines;
 }
@@ -183,7 +188,7 @@ export function describeDungeon(m: DungeonSpec): string {
   return [
     `${m.id}${m.title ? ` "${m.title}"` : ''}: ${m.cols}×${m.rows} cells of ${m.scale.perCell} ${m.scale.unit}, seed ${m.seed}`,
     `  gen: rooms ${g.rooms}, size ${g.minSize}..${g.maxSize}, caves ${g.caves}, round ${g.round}, loops ${g.loops}, doors ${g.doors}, corridor width ${g.corridorWidth}, spacing ${g.spacing}, entrance ${g.entrance ? 'on' : 'off'}${g.layout && g.layout !== 'scatter' ? `, layout ${g.layout}${g.layout === 'dense' ? ` (density ${g.density ?? 0.5})` : ''}` : ''}`,
-    `  grid: ${m.grid.show ? `size ${gridFt(m.grid.size)}, sub-grid ${m.grid.sub && m.grid.size > 1 ? `${gridFt(1)}` : 'off'}, ${m.grid.clip === 'floor' ? 'on the floor' : 'everywhere'}` : 'off'}; hatch ${m.style.hatch}${m.style.hatch === 'band' ? ` (${m.style.band} cells)` : ''}; shared walls ${dungeon.sharedWallsOn(m) ? 'on' : 'off'}${m.style.sharedWalls === undefined ? ' (auto)' : ''}; numbers ${m.numbers ? 'on' : 'off'}, scale bar ${m.scaleBar ? 'on' : 'off'}, compass ${m.compass ? 'on' : 'off'}`,
+    `  grid: ${m.grid.show ? `size ${gridFt(m.grid.size)}, sub-grid ${m.grid.sub && m.grid.size > 1 ? `${gridFt(1)}` : 'off'}, ${m.grid.clip === 'floor' ? 'on the floor' : 'everywhere'}` : 'off'}; hatch ${m.style.hatch}${m.style.hatch === 'band' ? ` (${m.style.band} cells)` : ''}; shared walls ${dungeon.corridorWallsOn(m) ? 'on' : dungeon.sharedWallsOn(m) ? 'between rooms' : 'off'}${m.style.sharedWalls === undefined ? ' (default)' : ''}; numbers ${m.numbers ? 'on' : 'off'}, scale bar ${m.scaleBar ? 'on' : 'off'}, compass ${m.compass ? 'on' : 'off'}`,
     ...(m.furniture && m.furniture.place !== 'over' ? [`  furniture: ${m.furniture.place}, band ${m.furniture.side ?? 'bottom'}`] : []),
     `  rooms (${m.rooms.length}):${m.rooms.map(r => `\n    ${r.id}: ${r.shape} ${r.w}×${r.h} at ${r.x},${r.y}${r.fill && r.fill !== 'floor' ? `, ${r.fill}` : ''}${r.number === false ? ', no number' : r.number !== undefined ? `, #${r.number}` : ''}${r.label ? ` "${r.label}"` : ''}${r.href ? ` → ${r.href}` : ''}`).join('')}`,
     `  corridors (${m.corridors.length}):${m.corridors.map((c, i) => `\n    ${i}.${c.id ? ` [${c.id}]` : ''} ${end(c.from)} → ${end(c.to)}${c.width && c.width !== 1 ? `, width ${c.width}` : ''}${c.via ? `, via ${c.via.join(',')}` : c.route && c.route !== 'auto' ? `, ${c.route}` : ''}${c.curve === 'smooth' ? ', curved' : ''}${c.style === 'natural' ? ', natural' : ''}${c.doors?.some(Boolean) ? `, doors ${c.doors.map(d => d ?? 'none').join('/')}` : ''}`).join('')}`,

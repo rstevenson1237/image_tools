@@ -1,0 +1,357 @@
+# Dungeon files: a reference
+
+A dungeon is one JSON file (`dungeon.json`, or any path given with `--file`), format 2. This page says how each part is
+drawn, with the formulas a consumer would otherwise find by experiment. The list of every key is generated at the end
+from the schema (`artgen schema dungeon`, `--keys` for the list in the terminal). Check a file with
+`artgen dungeon check --file F --json`; read it back as numbers with `artgen dungeon facts --file F --json`.
+
+## Units and directions
+
+- **Cells.** Every position and size is in cells: x to the right, y down, the sheet from `0,0` to `cols,rows`. A room's `x, y`
+  is its box's top-left corner. `scale.perCell` is how many scale units (`scale.unit`, ft by default) one cell is: 5 ft.
+- **Angles** of symbols, labels and doors: degrees, 0 east, clockwise on the page (90 is south).
+- **Bearings** in a layout graph (`ways[].bearing`, `ways[].wall`) and a maze corridor's named wall: degrees clockwise from
+  north, as a compass reads (90 is east).
+- A **corridor's width** is in cells (`width`, default 1), or in the scale unit (`span: 10` for a 10 ft passage).
+
+## Rooms
+
+| Shape | Outline |
+|---|---|
+| `rect` | the box |
+| `circle` | the box's ellipse, drawn as 64 straight sides |
+| `octagon` | the box with its corners cut by `cut × min(w, h)` cells when `cut` is set (`1 / (2 + √2)` ≈ 0.293 makes a square box a regular octagon); unset, `max(0.5, round(0.3 × min(w, h) × 2) / 2)`, which moves with the cell size |
+| `hexagon` | `orient: flat` (the default): flat north and south walls, points east and west at the box's middle, the flat walls `w / 4` in from the corners; `pointy`: the same turned, points north and south |
+| `cave` | a seeded wobbly ring inside the box (`seed`, default from the id) |
+| `poly` | `points`, x,y pairs in cells, in either winding; `x, y, w, h` are then its box |
+
+A room's **anchor** is where its `{room}` corridors start and its badge sits: `anchor` when set, else the box's centre, or for
+a poly the half-cell point deepest inside it (clear of the walls by up to 1.5 cells, nearest the box's centre). In an L-shaped
+room that point lies in one arm: a corridor to the other arm should start at a **port** (below).
+
+Its **label** (badge and name) stands at the anchor. Where it would lie on a symbol or another room's label it moves to the
+first clear spot inside the room by its north, south, west or east wall. `labelAt` holds it by a wall (`"n"`), at the anchor
+(`"c"`) or at `[dx, dy]` cells from it. A label with no clear spot is in a render's `--json` `unplaced` and `check` warns.
+
+```json
+{ "id": "G-3", "shape": "rect", "x": 10, "y": 4, "w": 2, "h": 4, "label": "G.3", "labelAt": "s",
+  "exits": [{ "kind": "stairs-down", "side": "n", "text": "Down to H.1" }] }
+```
+
+`exits` are ways out of the map inside a room: the mark a cell in from the wall (at most a third of the room's depth),
+turned toward it, and its note on the room's side of it; or at `at`.
+
+## Corridors
+
+A corridor runs between two **ends** along its **centre line**, its floor the line stroked to its width, square at the ends
+and mitred at the bends.
+
+| End | Where the line starts |
+|---|---|
+| `{ "room": "a" }` | the room's anchor |
+| `{ "room": "a", "side": "e", "offset": 3 }` | inside the room, on the anchor's row (for `e`/`w`) or column (`n`/`s`), `offset` cells from the room's top (for `e`/`w`) or left edge, then straight out through that wall. With no `offset`, the anchor's row or column snapped to the corridor: the middle of a cell for an odd width (`floor(v) + 0.5`), a grid line for an even one (`round(v)`) |
+| `{ "room": "a", "port": [4, 9.5] }` | that point on the room's wall (moved onto the outline when it is off it); the room stays the corridor's end |
+| `{ "at": [30, 5] }` | a point: a dead end, or past the sheet's edge, the way off the map (`exit` fades it out under a note) |
+| `{ "corridor": "main" }` | the point of that corridor's centre line nearest the other end: a junction |
+
+Between the ends: `via` (bends, exact), else `route`: `auto` (straight where the rooms line up and the run starts inside both,
+else an elbow whose bend is clear of other rooms), `hv`, `vh`, `straight`, `around` (on the grid, round the rooms in the way),
+or `maze` (below).
+
+A **door** stands where the line leaves its room, set along the wall there: square to the wall (a circle's own curve, else
+the outline's edge), whatever angle the line arrives at. Its width is the corridor's.
+
+## Walls between floors
+
+`style.sharedWalls` (format 2): `true`, the default, draws a wall wherever two units' floors touch along a line (room and
+room, room and corridor, corridor and corridor), with no wall where one floor runs into another (a corridor into its room,
+two corridors sharing cells) or at a connection's opening. `"rooms"` draws them between rooms only (what format 1's `true`
+was); `false` draws none, so floors that touch run together. `style.partition` sets their weight apart from the outer walls.
+
+A **connection** is a door or an opening in the wall two touching rooms share: `at` a point on it (default: the middle of its
+longest stretch, on the grid for the opening's width), `width` cells, `kind` a door or `open`.
+
+```json
+{ "a": "G-4", "b": "G-5", "kind": "arch", "at": [14, 8] }
+```
+
+## Maze corridors and layouts
+
+`route: "maze"` routes a corridor between two rooms on a lattice as wide as the corridor: round the rooms, off the other
+corridors, inside `bounds` and off `areas`, leaving by its `side`, near its `port`, or by the door nearest the other room. Maze
+corridors are routed in file order, each seeing those before it. Corridors from one room may join and part but never run beside
+each other, and `check` treats their meeting as a junction. With walls drawn along corridors a passage may run against a wall;
+otherwise (`maze.clearance: 1`) it keeps a lattice cell off every wall but at its own doors.
+
+`artgen dungeon layout --graph g.json` lays a whole level out: the rooms packed in the footprint and every way a connection or
+a routed corridor (with ports and its bends written out, so the file draws without routing again). The graph's keys are listed
+below; an example:
+
+```json
+{ "id": "G-a", "width": 2, "footprint": 50, "fill": [0.35, 0.55], "passages": 0.35, "detour": 20, "seed": 1,
+  "rooms": [{ "id": "G.1", "w": 2, "h": 4 }, { "id": "G.2", "w": 8, "h": 8, "shape": "round" }, { "id": "G.3", "w": 6, "h": 4, "turns": true }],
+  "ways": [{ "a": "G.1", "b": "G.2", "doors": ["door", null] }, { "a": "G.2", "b": "G.3", "bearing": 90 }] }
+```
+
+## Ground
+
+`bounds` is the level's outline: the rock and the grid are drawn inside it and its edge is drawn. `areas` are rock (drawn as
+rock) and voids (open paper, a dashed edge) within it; a floor on either, or outside the bounds, is a `check` warning.
+`style.rock` draws the rock as hatching (`hatch`, the default, as `style.hatch` says), a solid `rockColor`, or not at all.
+
+## What facts and check read
+
+`dungeon facts` reads everything from the layout the renderer draws: each corridor's `path`, every door with the units behind
+and ahead of it (`room:<id>`, `corridor:<index>`) and what it stands on (`wall`, `open`, `rock`, `end`), the owner of every cell
+(`floor`, runs per row), the units whose cells meet (`adjacent`). Positions are rounded to 0.1 cell. `dungeon check` lists
+errors (exit 1) and warnings, each with a stable `id`; `--errors id,id|all` reports chosen warnings as errors.
+
+## Reference
+
+<!-- generated by npm run gen:ops from packages/artgen-mapgen/src/schema.ts: do not edit by hand -->
+
+### Every key of a dungeon file
+
+| Key | What it is |
+|---|---|
+| `id` | letters, digits, - and _ |
+| `version` | the format version (2; older files are migrated on read) |
+| `cols` | columns, 4..160 |
+| `rows` | rows, 4..160 |
+| `seed` | the generator seed |
+| `title` | the title |
+| `gen` | generator settings (`dungeon gen`) |
+| `gen.rooms` | rooms to generate, 1..80 |
+| `gen.minSize` | the smallest room side, cells |
+| `gen.maxSize` | the largest room side, cells |
+| `gen.caves` | the share of cave rooms, 0..1 |
+| `gen.round` | the share of round and octagonal rooms, 0..1 |
+| `gen.loops` | extra corridors beyond a tree, 0..1 |
+| `gen.doors` | the share of corridor ends with a door, 0..1 |
+| `gen.corridorWidth` | corridor width, cells |
+| `gen.spacing` | empty cells between rooms |
+| `gen.entrance` | a corridor from the first room off the nearest edge |
+| `gen.layout` | scatter (default), dense (rooms side by side) or blocks |
+| `gen.density` | dense: the share of the sheet filled |
+| `grid` | the grid: a line every `size` cells, a fainter one at every cell with `sub`, on the floor or everywhere |
+| `grid.show` | draw it |
+| `grid.size` | cells between lines (2 = 10 ft at 5 ft a cell) |
+| `grid.sub` | a line at every cell too |
+| `grid.clip` | floor (default) or all |
+| `style` | how it is drawn |
+| `style.hatch` | rock hatching: a band along the walls, everywhere, or none |
+| `style.band` | cells of the hatched band, 0..6 |
+| `style.wall` | wall weight, 0.2..4 |
+| `style.sharedWalls` | walls where two floors meet: true (default) between any two units, "rooms" between rooms only (format 1's true), false none |
+| `style.rock` | the rock: hatch (as hatch says; default), solid (rockColor) or none |
+| `style.rockColor` | solid rock's colour, #rrggbb (default #bdbdbd) |
+| `style.partition` | the weight of the walls between floors, like wall (default: wall), 0.2..4 |
+| `scale` | the scale |
+| `scale.perCell` | map units in one cell (5) |
+| `scale.unit` | the unit (ft) |
+| `numbers` | room number badges |
+| `scaleBar` | the scale bar |
+| `compass` | the compass |
+| `legend` | a key of the symbols used |
+| `furniture` | where the title, scale bar, compass and legend go: over the map, in a band outside it, or in the band only when they would cover something |
+| `furniture.place` | over (default), outside or auto |
+| `furniture.side` | the band's side |
+| `rooms` | the rooms |
+| `rooms[].id` | letters, digits, - and _ |
+| `rooms[].shape` | the shape |
+| `rooms[].x` | the box's left (cells) |
+| `rooms[].y` | the box's top |
+| `rooms[].w` | the box's width, at least 1 |
+| `rooms[].h` | the box's height, at least 1 |
+| `rooms[].points` | a poly's outline, cells; x, y, w, h are then its box (x,y pairs) |
+| `rooms[].seed` | a cave's outline seed (default: from its id) |
+| `rooms[].label` | its name |
+| `rooms[].number` | its badge's number, or false to hide it (default: file order) |
+| `rooms[].fill` | what it is: floor (default), building, yard or cellar |
+| `rooms[].href` | a link from it in the SVG: http(s)://…, a relative path or #anchor |
+| `rooms[].origin` | who wrote the entry; a sync replaces its own origin's entries and keeps the rest (none: a hand entry) |
+| `rooms[].hand` | fields a hand edit changed on an entry of some origin; a sync reports them |
+| `rooms[].anchor` | where its {room} corridors start and its badge sits (default: the centre, or a poly's deepest point) |
+| `rooms[].labelAt` | where its number and name stand: by a wall, at the anchor (c), or [dx, dy] from it; unset, they move off what they would lie on |
+| `rooms[].cut` | an octagon's corner cut, a share of its shorter side, exactly (default: 0.3 of it to the half cell) |
+| `rooms[].orient` | a hexagon: flat (points east and west; default) or pointy |
+| `rooms[].exits` | ways out of the map inside the room |
+| `rooms[].exits[].kind` | the mark |
+| `rooms[].exits[].side` | a wall: n (top), e, s or w |
+| `rooms[].exits[].at` | the mark's point |
+| `rooms[].exits[].angle` | degrees, 0 east, clockwise (default: toward its wall) |
+| `rooms[].exits[].text` | the note under it |
+| `corridors` | the corridors |
+| `corridors[].id` | a name other corridors can join |
+| `corridors[].from` | a corridor end: a room, a point, or another corridor |
+| `corridors[].from.room` | the room's id |
+| `corridors[].from.side` | a wall: n (top), e, s or w |
+| `corridors[].from.offset` | cells along the side wall from the room's top or left edge (goes with side) |
+| `corridors[].from.port` | a point on the room's wall the corridor leaves from, its door set along the wall (moved onto the outline when off it) |
+| `corridors[].from.at` | the point (cells) |
+| `corridors[].from.exit` | where it leads: the corridor fades out over `fade` cells and a boxed note says so |
+| `corridors[].from.exit.text` | the note |
+| `corridors[].from.exit.href` | a link from it in the SVG: http(s)://…, a relative path or #anchor |
+| `corridors[].from.exit.fade` | cells it fades over (default 3) |
+| `corridors[].from.corridor` | the joined corridor's id |
+| `corridors[].from.near` | the point on it to meet nearest |
+| `corridors[].to` | a corridor end: a room, a point, or another corridor |
+| `corridors[].to.room` | the room's id |
+| `corridors[].to.side` | a wall: n (top), e, s or w |
+| `corridors[].to.offset` | cells along the side wall from the room's top or left edge (goes with side) |
+| `corridors[].to.port` | a point on the room's wall the corridor leaves from, its door set along the wall (moved onto the outline when off it) |
+| `corridors[].to.at` | the point (cells) |
+| `corridors[].to.exit` | where it leads: the corridor fades out over `fade` cells and a boxed note says so |
+| `corridors[].to.exit.text` | the note |
+| `corridors[].to.exit.href` | a link from it in the SVG: http(s)://…, a relative path or #anchor |
+| `corridors[].to.exit.fade` | cells it fades over (default 3) |
+| `corridors[].to.corridor` | the joined corridor's id |
+| `corridors[].to.near` | the point on it to meet nearest |
+| `corridors[].width` | width in cells, 0.5..6 (default 1) |
+| `corridors[].span` | width in the scale unit, in place of width (10 for a 10 ft passage) |
+| `corridors[].route` | auto (straight when the rooms line up, else an elbow), hv, vh, straight, around (round the rooms on the grid) or maze (on the lattice of its width, off other corridors) |
+| `corridors[].maze` | route maze: cells kept off rooms' walls (0 or 1; default 0 where walls are drawn along corridors), a bend's cost, the noise's seed |
+| `corridors[].via` | its bends, in order (x,y pairs) |
+| `corridors[].curve` | a smooth curve through the bends |
+| `corridors[].style` | built (default) or natural (rough walls) |
+| `corridors[].seed` | a natural passage's seed |
+| `corridors[].doors` | the door at each end, from then to: a kind, or null for an open passage |
+| `corridors[].origin` | who wrote the entry; a sync replaces its own origin's entries and keeps the rest (none: a hand entry) |
+| `connections` | doors and openings in the walls rooms share |
+| `connections[].a` | a room |
+| `connections[].b` | the room it touches |
+| `connections[].at` | a point on their shared wall (default: the middle of its longest stretch) |
+| `connections[].kind` | a door kind or open |
+| `connections[].width` | the opening, cells (default 1) |
+| `connections[].origin` | who wrote the entry; a sync replaces its own origin's entries and keeps the rest (none: a hand entry) |
+| `blocks` | shapes split into rooms that share walls |
+| `blocks[].id` | its id |
+| `blocks[].shape` | the shape |
+| `blocks[].x` | left |
+| `blocks[].y` | top |
+| `blocks[].w` | width |
+| `blocks[].h` | height |
+| `blocks[].points` | a poly's outline (x,y pairs) |
+| `blocks[].split` | how it splits |
+| `blocks[].split.mode` | bsp, rows, cols, grid or cuts |
+| `blocks[].split.min` | about the size of each room, cells |
+| `blocks[].split.cuts` | where to cut |
+| `blocks[].split.cuts.x` | x lines |
+| `blocks[].split.cuts.y` | y lines |
+| `blocks[].split.seed` | the seed |
+| `blocks[].doors` | the share of extra connections, 0..1 |
+| `blocks[].origin` | who wrote the entry; a sync replaces its own origin's entries and keeps the rest (none: a hand entry) |
+| `overlay` | labels and symbols |
+| `overlay.labels` | labels |
+| `overlay.labels[].text` | the text |
+| `overlay.labels[].x` | x |
+| `overlay.labels[].y` | y |
+| `overlay.labels[].kind` | name (bold), note (italic) or area (spaced capitals) |
+| `overlay.labels[].size` | a factor on its size |
+| `overlay.labels[].angle` | degrees |
+| `overlay.labels[].href` | a link from it in the SVG: http(s)://…, a relative path or #anchor |
+| `overlay.labels[].origin` | who wrote the entry; a sync replaces its own origin's entries and keeps the rest (none: a hand entry) |
+| `overlay.symbols` | symbols |
+| `overlay.symbols[].kind` | a symbol kind (`artgen dungeon symbols`) |
+| `overlay.symbols[].x` | x |
+| `overlay.symbols[].y` | y |
+| `overlay.symbols[].scale` | a factor on its size |
+| `overlay.symbols[].angle` | degrees, 0 east, clockwise on the page |
+| `overlay.symbols[].origin` | who wrote the entry; a sync replaces its own origin's entries and keeps the rest (none: a hand entry) |
+| `underlay` | a terrain map under the rooms |
+| `underlay.map` | the map file's path, from this file's folder |
+| `underlay.origin` | the map unit at the dungeon's top-left |
+| `underlay.scale` | map units in one cell |
+| `underlay.theme` | color or bw |
+| `walls` | enclosing walls with towers and gates |
+| `walls[].id` | its id |
+| `walls[].rooms` | the rooms it goes round (their hull plus inset) |
+| `walls[].poly` | its own line (x,y pairs) |
+| `walls[].thickness` | cells, at most 4 |
+| `walls[].inset` | cells round the rooms (default 1) |
+| `walls[].towers` | towers |
+| `walls[].towers.shape` | round or square |
+| `walls[].towers.size` | cells across (default 3) |
+| `walls[].towers.at` | at the corners or at these vertices |
+| `walls[].gates` | gates |
+| `walls[].gates[].at` | near the wall |
+| `walls[].gates[].kind` | gate or postern |
+| `walls[].gates[].room` | the room it opens into |
+| `walls[].gates[].width` | cells |
+| `walls[].origin` | who wrote the entry; a sync replaces its own origin's entries and keeps the rest (none: a hand entry) |
+| `bounds` | the ground the level occupies: the rock and grid are drawn inside it and its edge is drawn (x,y pairs) |
+| `areas` | rock and voids within the level, which no floor may take |
+| `areas[].points` | its outline (x,y pairs) |
+| `areas[].kind` | rock or void |
+| `areas[].label` | a note at its middle |
+| `areas[].origin` | who wrote the entry; a sync replaces its own origin's entries and keeps the rest (none: a hand entry) |
+
+### Every key of a layout graph
+
+| Key | What it is |
+|---|---|
+| `id` | the dungeon's id |
+| `title` | its title |
+| `rooms` | the rooms |
+| `rooms[].id` | its id (letters, digits, ., - and _) |
+| `rooms[].w` | width, cells |
+| `rooms[].h` | height, cells |
+| `rooms[].shape` | the shape (round is drawn as a circle) |
+| `rooms[].points` | a poly's outline, cells from its box's centre (x,y pairs) |
+| `rooms[].label` | its name (default: its id) |
+| `rooms[].turns` | may lie in any quarter turn or mirror of itself |
+| `rooms[].hall` | shows its name alone: its label is shorter |
+| `rooms[].against` | set against another room: its centre dx, dy cells from that room's |
+| `rooms[].over` | must stand over this box (cells, the footprint's frame) |
+| `ways` | the ways |
+| `ways[].a` | a room |
+| `ways[].b` | another room |
+| `ways[].bearing` | degrees clockwise from north: b lies this way from a |
+| `ways[].wall` | degrees clockwise from north: the wall a's door stands on |
+| `ways[].doors` | the door at each end, from then to: a kind, or null for an open passage |
+| `ways[].style` | built (default) or natural |
+| `ways[].label` | a note |
+| `width` | the passage width in cells, the lattice (default 2) |
+| `scale` | the scale |
+| `footprint` | a square's side in cells, or a polygon (x,y cells); unset, the least square `fill` allows |
+| `keepOut` | polygons no room or passage may take |
+| `fill` | [least, most] share of the ground the rooms cover (default [0.35, 0.55]) |
+| `passages` | the share of ways run as passages (default 0.35) |
+| `detour` | cells a way may walk past the straight line between its rooms |
+| `seed` | the seed (default 1) |
+| `tries` | packings tried at each side (default 12) |
+| `margin` | cells round the footprint in the file (default 2) |
+| `clearance` | 0 (default) or 1: cells a passage keeps off walls |
+
+### What `dungeon check` reports, by id
+
+| Key | What it is |
+|---|---|
+| `outline-crosses` | a poly room's outline crosses itself |
+| `zero-wall` | a poly room repeats a corner (a zero-length wall) |
+| `no-floor` | a room has almost no floor |
+| `off-sheet` | a room, symbol or label lies off the sheet |
+| `runs-off-sheet` | a room runs past the sheet's edge |
+| `rooms-overlap` | two rooms are laid over each other |
+| `rooms-merge` | two floor rooms touch while shared walls are off, so their floors run together |
+| `repeated-bend` | a corridor's via repeats a bend |
+| `never-leaves` | a corridor never leaves a room it starts or ends at |
+| `port-outside-room` | a corridor end at a room starts outside that room, so it has no door and does not reach it |
+| `reenters-room` | a corridor leaves a room and runs back into it, drawing a passage over the rock between |
+| `end-in-room` | a corridor ends at a point inside a room |
+| `no-length` | a corridor has no length |
+| `through-room` | a corridor runs through a room it does not join |
+| `corridors-cross` | two corridors that share no room cross with no junction (corridors that leave one room may join and part) |
+| `maze-no-route` | a maze corridor found no passage (or its rooms touch, which a connection joins), so it is drawn as an elbow |
+| `corridor-along-wall` | a corridor runs along a room's wall with no wall drawn between them, so the floors run together |
+| `way-no-passage` | a way the file states draws no passage: a connection between rooms that share no wall, or a corridor between rooms laid over each other |
+| `wall-too-short` | a shared wall is narrower than the opening in it |
+| `connection-off-wall` | a connection's point is not on the wall the rooms share |
+| `door-off-wall` | a door stands in open floor or on rock, not on a wall between two floors |
+| `doors-stacked` | two doors stand on each other |
+| `mark-on-badge` | a symbol lies under a room's number |
+| `label-overlap` | a label lies over another label |
+| `outside-bounds` | a room or corridor has floor outside the level's bounds |
+| `in-keep-out` | a room or corridor has floor on an area of rock or a void |
+
+<!-- end of generated -->

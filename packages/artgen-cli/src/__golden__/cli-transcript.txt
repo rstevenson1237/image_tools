@@ -1,21 +1,21 @@
 $ artgen formats
 exit 0
 map 1
-dungeon 1
+dungeon 2
 settlement 1
 
 $ artgen formats --json
 exit 0
 {
   "map": 1,
-  "dungeon": 1,
+  "dungeon": 2,
   "settlement": 1
 }
 
 $ artgen formats
 exit 0
 map 1
-dungeon 1
+dungeon 2
 settlement 1
 
 $ artgen map list --root <root>
@@ -26,12 +26,12 @@ $ artgen formats --json
 exit 0
 {
   "map": 1,
-  "dungeon": 1,
+  "dungeon": 2,
   "settlement": 1
 }
 
 $ artgen texture stone
-threw: artgen-maps: texture: not a command here; this bundle has map, dungeon, settlement, formats, ui, report, upstream, metrics, trace, slice, quantize, rotate (--help)
+threw: artgen-maps: texture: not a command here; this bundle has map, dungeon, settlement, formats, schema, ui, report, upstream, metrics, trace, slice, quantize, rotate (--help)
 
 $ artgen --version
 exit 0
@@ -2931,7 +2931,7 @@ no dungeons yet: artgen dungeon new <id>
 $ artgen dungeon list --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "items": []
 }
 
@@ -2969,7 +2969,7 @@ arrow      Arrow (way on)
 $ artgen dungeon symbols --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "items": [
     "stairs",
     "stairs-up",
@@ -3007,7 +3007,7 @@ exit 0
 art/dungeons/cell/dungeon.json
 cell "Cell": 12×12 cells of 5 ft, seed 3
   gen: rooms 8, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on
-  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls off (auto); numbers on, scale bar on, compass off
+  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls on (default); numbers on, scale bar on, compass off
   rooms (1):
     r1: rect 6×6 at 3,3, #20 "Cell"
   corridors (4):
@@ -3022,7 +3022,7 @@ next: artgen dungeon render cell
 $ artgen dungeon new cell --room rect --room-size 6x6 --exits n,e:secret,s:none:To the caves,w --label Cell --number 20 --seed 3 --title Cell --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "file": "art/dungeons/cell/dungeon.json",
   "dungeon": {
     "cols": 12,
@@ -3060,7 +3060,7 @@ exit 0
     "seed": 3,
     "title": "Cell",
     "id": "cell",
-    "version": 1,
+    "version": 2,
     "rooms": [
       {
         "id": "r1",
@@ -3170,7 +3170,7 @@ exit 0
 art/dungeons/crypt/dungeon.json
 crypt "Crypt": 30×20 cells of 5 ft, seed 7
   gen: rooms 8, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on
-  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls off (auto); numbers on, scale bar on, compass off
+  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls on (default); numbers on, scale bar on, compass off
   rooms (0):
   corridors (0):
   labels (0):
@@ -3180,7 +3180,7 @@ next: artgen dungeon render crypt
 $ artgen dungeon new crypt --size 30x20 --seed 7 --empty --title Crypt --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "file": "art/dungeons/crypt/dungeon.json",
   "dungeon": {
     "cols": 30,
@@ -3218,7 +3218,7 @@ exit 0
     "seed": 7,
     "title": "Crypt",
     "id": "crypt",
-    "version": 1,
+    "version": 2,
     "rooms": [],
     "corridors": [],
     "overlay": {
@@ -3233,7 +3233,7 @@ exit 0
 art/dungeons/vault/dungeon.json
 vault: 40×30 cells of 5 ft, seed 11
   gen: rooms 8, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on
-  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls off (auto); numbers on, scale bar on, compass off
+  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls on (default); numbers on, scale bar on, compass off
   rooms (8):
     r1: rect 7×6 at 9,1
     r2: rect 8×4 at 20,3
@@ -3260,7 +3260,7 @@ next: artgen dungeon render vault
 $ artgen dungeon new vault --size 40x30 --seed 11 --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "file": "art/dungeons/vault/dungeon.json",
   "dungeon": {
     "cols": 40,
@@ -3297,7 +3297,7 @@ exit 0
     "compass": false,
     "seed": 11,
     "id": "vault",
-    "version": 1,
+    "version": 2,
     "rooms": [
       {
         "id": "r1",
@@ -3519,7 +3519,7 @@ $ artgen dungeon gen vault --seed 12 --rooms 6 --min-size 4 --max-size 8 --caves
 exit 0
 vault: 36×26 cells of 5 ft, seed 12
   gen: rooms 6, size 4..8, caves 0.2, round 0.3, loops 0.2, doors 0.5, corridor width 1, spacing 2, entrance on, layout dense (density 0.6)
-  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls on (auto); numbers on, scale bar on, compass off
+  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls on (default); numbers on, scale bar on, compass off
   rooms (6):
     r1: rect 7×8 at 8,5
     r2: rect 4×7 at 4,8
@@ -3542,7 +3542,7 @@ next: artgen dungeon render vault
 $ artgen dungeon gen vault --seed 12 --rooms 6 --min-size 4 --max-size 8 --caves 0.2 --round 0.3 --loops 0.2 --doors 0.5 --corridor-width 1 --spacing 2 --entrance on --size 36x26 --layout dense --density 0.6 --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "cols": 36,
   "rows": 26,
   "gen": {
@@ -3688,7 +3688,7 @@ $ artgen dungeon gen vault --seed 12 --layout blocks --root <root>
 exit 0
 vault: 36×26 cells of 5 ft, seed 12
   gen: rooms 6, size 4..8, caves 0.2, round 0.3, loops 0.2, doors 0.5, corridor width 1, spacing 2, entrance on, layout blocks
-  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls on (auto); numbers on, scale bar on, compass off
+  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls on (default); numbers on, scale bar on, compass off
   rooms (6):
     b1-1: rect 4×7 at 6,12
     b1-2: rect 5×7 at 10,12
@@ -3713,7 +3713,7 @@ next: artgen dungeon render vault
 $ artgen dungeon gen vault --seed 12 --layout blocks --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "cols": 36,
   "rows": 26,
   "gen": {
@@ -3883,7 +3883,7 @@ $ artgen dungeon gen vault --seed 13 --layout scatter --root <root>
 exit 0
 vault: 36×26 cells of 5 ft, seed 13
   gen: rooms 6, size 4..8, caves 0.2, round 0.3, loops 0.2, doors 0.5, corridor width 1, spacing 2, entrance on
-  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls off (auto); numbers on, scale bar on, compass off
+  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls on (default); numbers on, scale bar on, compass off
   rooms (6):
     r1: cave 8×7 at 17,5
     r2: cave 10×9 at 5,7
@@ -3906,7 +3906,7 @@ next: artgen dungeon render vault
 $ artgen dungeon gen vault --seed 13 --layout scatter --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "cols": 36,
   "rows": 26,
   "gen": {
@@ -4112,7 +4112,7 @@ next: artgen dungeon render crypt
 $ artgen dungeon room crypt add rect --at 3,3 --size 6x4 --label Hall --number 1 --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "id": "r1",
@@ -4135,7 +4135,7 @@ next: artgen dungeon render crypt
 $ artgen dungeon room crypt add cave --at 16,4 --size 8x6 --number off --fill cellar --href http://example.com/cave --origin tables --room-id r9 --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "id": "r1",
@@ -4170,7 +4170,7 @@ next: artgen dungeon render crypt
 $ artgen dungeon room crypt add poly --points 3,12,9,12,6,17 --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "id": "r1",
@@ -4221,7 +4221,7 @@ next: artgen dungeon render crypt
 $ artgen dungeon room crypt move r9 --at 17,5 --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "id": "r1",
@@ -4276,7 +4276,7 @@ next: artgen dungeon render crypt
 $ artgen dungeon room crypt set r1 --label Great Hall --size 7x5 --number 2 --fill yard --href none --shape octagon --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "id": "r1",
@@ -4332,7 +4332,7 @@ next: artgen dungeon render crypt
 $ artgen dungeon room crypt set r1 --label  --fill floor --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "id": "r1",
@@ -4386,7 +4386,7 @@ next: artgen dungeon render crypt
 $ artgen dungeon room crypt rm r3 --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "id": "r1",
@@ -4417,7 +4417,7 @@ exit 0
 }
 
 $ artgen dungeon room crypt add blob --root <root>
-threw: dungeon room <id> add <shape>: one of rect, circle, octagon, cave, poly
+threw: dungeon room <id> add <shape>: one of rect, circle, octagon, hexagon, cave, poly
 
 $ artgen dungeon room crypt add rect --root <root>
 threw: dungeon room <id> add <shape> --at x,y|C4 --size WxH
@@ -4453,7 +4453,7 @@ next: artgen dungeon render crypt
 $ artgen dungeon room crypt add rect --at C9 --size 5x5 --label Chapel --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "id": "r1",
@@ -4500,7 +4500,7 @@ next: artgen dungeon render crypt
 $ artgen dungeon link crypt r1 r9 --doors door,none --route hv --width 2 --origin tables --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "from": {
@@ -4528,7 +4528,7 @@ next: artgen dungeon render crypt
 $ artgen dungeon link crypt r9 29,15 --exit To the caves --exit-href http://example.com/out --fade 3 --id out1 --curve smooth --style natural --seed 3 --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "from": {
@@ -4571,13 +4571,12 @@ exit 0
 $ artgen dungeon link crypt r1 corridor:out1 --from-side e --from-offset 1 --route around --via 10,8,12,8 --root <root>
 exit 0
 crypt: corridor 2: r1 → corridor:out1
-  warning: corridors[2]: crosses corridor 0 at 10.5,6.0 with no junction (the floors join there)
 next: artgen dungeon render crypt
 
 $ artgen dungeon link crypt r1 corridor:out1 --from-side e --from-offset 1 --route around --via 10,8,12,8 --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "from": {
@@ -4638,7 +4637,7 @@ $ artgen dungeon link crypt r1 --root <root>
 threw: dungeon link <id> <room|corridor:id> <room|x,y|C4|corridor:id>
 
 $ artgen dungeon link crypt r1 r9 --route sideways --root <root>
-threw: --route: auto, hv, vh, straight, around
+threw: --route: auto, hv, vh, straight, around, maze
 
 $ artgen dungeon link crypt r1 r9 --curve wavy --root <root>
 threw: --curve: none, smooth
@@ -4661,13 +4660,12 @@ threw: --via: comma-separated numbers in x,y pairs
 $ artgen dungeon door crypt 1 from portcullis --root <root>
 exit 0
 crypt: 3 corridors
-  warning: corridors[2]: crosses corridor 0 at 10.5,6.0 with no junction (the floors join there)
 next: artgen dungeon render crypt
 
 $ artgen dungeon door crypt 1 from portcullis --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "from": {
@@ -4742,7 +4740,7 @@ next: artgen dungeon render crypt
 $ artgen dungeon unlink crypt 2 --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "from": {
@@ -4792,13 +4790,13 @@ threw: dungeon unlink <id> <index> (corridors 0..1; artgen dungeon show)
 $ artgen dungeon block crypt add hex --at 3,12 --size 12x8 --split grid --min 4 --block-id hx --seed 4 --doors 0.25 --root <root>
 exit 0
 crypt: block hx: 6 rooms, 6 connections
-  warning: rooms[3]: hx-1 lies over r3 (1 cell); the wall between them is not drawn
+  warning: rooms[3]: hx-1 lies over r3 (1 cell); the wall between them is not drawn [rooms-overlap]
 next: artgen dungeon render crypt
 
 $ artgen dungeon block crypt add hex --at 3,12 --size 12x8 --split grid --min 4 --block-id hx --seed 4 --doors 0.25 --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "id": "hx",
@@ -4834,13 +4832,13 @@ exit 0
 $ artgen dungeon block crypt add rect --at 18,12 --size 8x6 --split cuts --cuts-x 4 --cuts-y 3 --seed 2 --root <root>
 exit 0
 crypt: block b1: 1 rooms, 0 connections
-  warning: rooms[3]: hx-1 lies over r3 (1 cell); the wall between them is not drawn
+  warning: rooms[3]: hx-1 lies over r3 (1 cell); the wall between them is not drawn [rooms-overlap]
 next: artgen dungeon render crypt
 
 $ artgen dungeon block crypt add rect --at 18,12 --size 8x6 --split cuts --cuts-x 4 --cuts-y 3 --seed 2 --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "id": "hx",
@@ -4896,13 +4894,13 @@ exit 0
 $ artgen dungeon block crypt split hx --seed 5 --split rows --min 3 --doors 0.5 --root <root>
 exit 0
 crypt: block hx: 2 rooms, 1 connections
-  warning: rooms[3]: hx-1 lies over r3 (1 cell); the wall between them is not drawn
+  warning: rooms[3]: hx-1 lies over r3 (1 cell); the wall between them is not drawn [rooms-overlap]
 next: artgen dungeon render crypt
 
 $ artgen dungeon block crypt split hx --seed 5 --split rows --min 3 --doors 0.5 --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "id": "hx",
@@ -4958,13 +4956,13 @@ exit 0
 $ artgen dungeon link crypt hx b1 --seed 1 --root <root>
 exit 0
 crypt: corridor 2: hx-1 → b1-1
-  warning: rooms[3]: hx-1 lies over r3 (1 cell); the wall between them is not drawn
+  warning: rooms[3]: hx-1 lies over r3 (1 cell); the wall between them is not drawn [rooms-overlap]
 next: artgen dungeon render crypt
 
 $ artgen dungeon link crypt hx b1 --seed 1 --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "from": {
@@ -5038,13 +5036,13 @@ threw: dungeon block <id> add|split|rm
 $ artgen dungeon block crypt rm b1 --root <root>
 exit 0
 crypt: removed block b1 and its rooms
-  warning: rooms[3]: hx-1 lies over r3 (1 cell); the wall between them is not drawn
+  warning: rooms[3]: hx-1 lies over r3 (1 cell); the wall between them is not drawn [rooms-overlap]
 next: artgen dungeon render crypt
 
 $ artgen dungeon block crypt rm b1 --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "id": "hx",
@@ -5080,13 +5078,14 @@ exit 0
 $ artgen dungeon connect crypt hx-1 hx-2 --kind secret --width 2 --origin tables --root <root>
 exit 0
 crypt: connection 1: hx-1 ↔ hx-2
-  warning: rooms[3]: hx-1 lies over r3 (1 cell); the wall between them is not drawn
+  warning: rooms[3]: hx-1 lies over r3 (1 cell); the wall between them is not drawn [rooms-overlap]
+  warning: connections[1]: the secret at 9.0,16.0 stands on the door of connections[0] [doors-stacked]
 next: artgen dungeon render crypt
 
 $ artgen dungeon connect crypt hx-1 hx-2 --kind secret --width 2 --origin tables --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "a": "hx-1",
@@ -5114,13 +5113,15 @@ threw: invalid dungeon crypt:
 $ artgen dungeon connect crypt hx-2 hx-1 --kind arch --root <root>
 exit 0
 crypt: connection 2: hx-2 ↔ hx-1
-  warning: rooms[3]: hx-1 lies over r3 (1 cell); the wall between them is not drawn
+  warning: rooms[3]: hx-1 lies over r3 (1 cell); the wall between them is not drawn [rooms-overlap]
+  warning: connections[1]: the secret at 9.0,16.0 stands on the door of connections[0] [doors-stacked]
+  warning: connections[2]: the arch at 9.5,16.0 stands on the door of connections[0] [doors-stacked]
 next: artgen dungeon render crypt
 
 $ artgen dungeon connect crypt hx-2 hx-1 --kind arch --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "a": "hx-1",
@@ -5156,7 +5157,7 @@ next: artgen dungeon render crypt
 $ artgen dungeon disconnect crypt 0 --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "a": "hx-1",
@@ -5184,19 +5185,19 @@ next: artgen dungeon render crypt
 $ artgen dungeon block crypt rm hx --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "items": []
 }
 
 $ artgen dungeon grid crypt 10+5 --root <root>
 exit 0
-grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls off (auto); numbers on, scale bar on, compass off
+grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls on (default); numbers on, scale bar on, compass off
 next: artgen dungeon render crypt
 
 $ artgen dungeon grid crypt 10+5 --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "show": true,
   "size": 2,
   "sub": true,
@@ -5205,13 +5206,13 @@ exit 0
 
 $ artgen dungeon grid crypt --size 10 --unit ft --sub off --show on --clip all --root <root>
 exit 0
-grid: size 10 ft, sub-grid off, everywhere; hatch band (0.9 cells); shared walls off (auto); numbers on, scale bar on, compass off
+grid: size 10 ft, sub-grid off, everywhere; hatch band (0.9 cells); shared walls on (default); numbers on, scale bar on, compass off
 next: artgen dungeon render crypt
 
 $ artgen dungeon grid crypt --size 10 --unit ft --sub off --show on --clip all --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "show": true,
   "size": 2,
   "sub": false,
@@ -5220,13 +5221,13 @@ exit 0
 
 $ artgen dungeon grid crypt none --root <root>
 exit 0
-grid: off; hatch band (0.9 cells); shared walls off (auto); numbers on, scale bar on, compass off
+grid: off; hatch band (0.9 cells); shared walls on (default); numbers on, scale bar on, compass off
 next: artgen dungeon render crypt
 
 $ artgen dungeon grid crypt none --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "show": false,
   "size": 2,
   "sub": false,
@@ -5262,7 +5263,7 @@ next: artgen dungeon render crypt
 $ artgen dungeon style crypt --hatch full --band 2 --wall 0.3 --numbers on --scale-bar on --compass off --legend on --title The Crypt --per-cell 5 --unit ft --furniture outside --furniture-side right --shared-walls off --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "cols": 30,
   "rows": 20,
   "gen": {
@@ -5391,7 +5392,7 @@ $ artgen dungeon style crypt --shared-walls auto --furniture over --furniture-si
 exit 0
 crypt: 30×20 cells of 5 ft, seed 7
   gen: rooms 8, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on
-  grid: off; hatch full; shared walls off (auto); numbers on, scale bar on, compass off
+  grid: off; hatch full; shared walls on (default); numbers on, scale bar on, compass off
   rooms (3):
     r1: octagon 7×5 at 3,3, no number
     r9: cave 8×6 at 17,5, cellar, no number → http://example.com/cave
@@ -5406,7 +5407,7 @@ next: artgen dungeon render crypt
 $ artgen dungeon style crypt --shared-walls auto --furniture over --furniture-side bottom --title  --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "cols": 30,
   "rows": 20,
   "gen": {
@@ -5546,7 +5547,7 @@ next: artgen dungeon render crypt
 $ artgen dungeon label crypt Bones --at C4 --kind note --size 1.2 --angle 10 --href #bones --origin tables --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "text": "Bones",
@@ -5569,7 +5570,7 @@ next: artgen dungeon render crypt
 $ artgen dungeon label crypt Ossuary --at 5,6 --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "text": "Bones",
@@ -5604,7 +5605,7 @@ next: artgen dungeon render crypt
 $ artgen dungeon symbol crypt stairs --at 4,4 --scale 1.5 --angle 90 --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "kind": "stairs",
@@ -5624,7 +5625,7 @@ next: artgen dungeon render crypt
 $ artgen dungeon symbol crypt pillar --at 5,5 --origin tables --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "kind": "stairs",
@@ -5652,7 +5653,7 @@ crypt: 2 labels, 1 symbols
 $ artgen dungeon overlay crypt rm symbol 1 --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "labels": [
     {
       "text": "Bones",
@@ -5695,7 +5696,7 @@ crypt: 0 labels, 1 symbols
 $ artgen dungeon overlay crypt clear labels --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "labels": [],
   "symbols": [
     {
@@ -5716,7 +5717,7 @@ next: artgen dungeon render crypt
 $ artgen dungeon fit crypt --margin 3 --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "cols": 35,
   "rows": 19
 }
@@ -5728,7 +5729,7 @@ art/dungeons/crypt/dungeon.json: ok
 $ artgen dungeon check crypt --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "file": "art/dungeons/crypt/dungeon.json",
   "ok": true,
   "errors": [],
@@ -5742,7 +5743,7 @@ art/dungeons/vault/dungeon.json: ok
 $ artgen dungeon check vault --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "file": "art/dungeons/vault/dungeon.json",
   "ok": true,
   "errors": [],
@@ -5772,7 +5773,7 @@ unreached rooms: r3
 $ artgen dungeon facts crypt --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "id": "crypt",
   "size": {
     "cols": 35,
@@ -5887,7 +5888,15 @@ exit 0
       "length": {
         "map": 9.4,
         "scale": 47
-      }
+      },
+      "path": [
+        8,
+        6,
+        22,
+        6,
+        22,
+        8
+      ]
     },
     {
       "index": 1,
@@ -5913,7 +5922,97 @@ exit 0
       "length": {
         "map": 10.9,
         "scale": 54.5
-      }
+      },
+      "path": [
+        22.5,
+        8.5,
+        22.8,
+        8.5,
+        23.2,
+        8.5,
+        23.5,
+        8.4,
+        23.9,
+        8.4,
+        24.3,
+        8.4,
+        24.7,
+        8.3,
+        25,
+        8.3,
+        25.4,
+        8.2,
+        25.8,
+        8.2,
+        26.2,
+        8.1,
+        26.6,
+        8.1,
+        26.9,
+        8,
+        27.3,
+        8,
+        27.6,
+        8,
+        28,
+        8,
+        28.3,
+        8,
+        28.6,
+        8,
+        28.9,
+        8,
+        29.2,
+        8.1,
+        29.4,
+        8.1,
+        29.6,
+        8.2,
+        29.8,
+        8.4,
+        30,
+        8.5,
+        30.2,
+        8.7,
+        30.3,
+        8.9,
+        30.4,
+        9.1,
+        30.4,
+        9.4,
+        30.5,
+        9.7,
+        30.5,
+        10,
+        30.5,
+        10.3,
+        30.5,
+        10.6,
+        30.5,
+        11,
+        30.4,
+        11.4,
+        30.4,
+        11.7,
+        30.3,
+        12.1,
+        30.3,
+        12.5,
+        30.2,
+        12.9,
+        30.2,
+        13.2,
+        30.1,
+        13.6,
+        30.1,
+        14,
+        30,
+        14.3,
+        30,
+        14.7,
+        30,
+        15
+      ]
     }
   ],
   "exits": [
@@ -5938,6 +6037,245 @@ exit 0
   "overlaps": [],
   "unreached": [
     "r3"
+  ],
+  "doors": [
+    {
+      "kind": "door",
+      "at": [
+        11,
+        6
+      ],
+      "angle": 0,
+      "width": 2,
+      "corridor": 0,
+      "connection": null,
+      "wall": [
+        [
+          "room:r1",
+          "corridor:0"
+        ],
+        [
+          "corridor:0"
+        ]
+      ],
+      "on": "wall"
+    },
+    {
+      "kind": "portcullis",
+      "at": [
+        25.9,
+        8.1
+      ],
+      "angle": 0.1,
+      "width": 1,
+      "corridor": 1,
+      "connection": null,
+      "wall": [
+        [
+          "room:r9",
+          "corridor:1"
+        ],
+        [
+          "corridor:1"
+        ]
+      ],
+      "on": "wall"
+    }
+  ],
+  "floor": {
+    "owners": [
+      "room:r1",
+      "room:r9",
+      "room:r3",
+      "corridor:0",
+      "corridor:1"
+    ],
+    "rows": [
+      [
+        -1,
+        35
+      ],
+      [
+        -1,
+        35
+      ],
+      [
+        -1,
+        35
+      ],
+      [
+        -1,
+        5,
+        0,
+        5,
+        -1,
+        25
+      ],
+      [
+        -1,
+        4,
+        0,
+        7,
+        -1,
+        24
+      ],
+      [
+        -1,
+        4,
+        0,
+        7,
+        3,
+        12,
+        -1,
+        12
+      ],
+      [
+        -1,
+        4,
+        0,
+        7,
+        3,
+        12,
+        -1,
+        12
+      ],
+      [
+        -1,
+        5,
+        0,
+        5,
+        -1,
+        11,
+        3,
+        2,
+        -1,
+        12
+      ],
+      [
+        -1,
+        3,
+        2,
+        5,
+        -1,
+        13,
+        3,
+        2,
+        4,
+        4,
+        -1,
+        2,
+        4,
+        2,
+        -1,
+        4
+      ],
+      [
+        -1,
+        3,
+        2,
+        5,
+        -1,
+        22,
+        4,
+        1,
+        -1,
+        4
+      ],
+      [
+        -1,
+        3,
+        2,
+        5,
+        -1,
+        22,
+        4,
+        1,
+        -1,
+        4
+      ],
+      [
+        -1,
+        3,
+        2,
+        5,
+        -1,
+        22,
+        4,
+        1,
+        -1,
+        4
+      ],
+      [
+        -1,
+        3,
+        2,
+        5,
+        -1,
+        22,
+        4,
+        1,
+        -1,
+        4
+      ],
+      [
+        -1,
+        30,
+        4,
+        1,
+        -1,
+        4
+      ],
+      [
+        -1,
+        30,
+        4,
+        1,
+        -1,
+        4
+      ],
+      [
+        -1,
+        35
+      ],
+      [
+        -1,
+        35
+      ],
+      [
+        -1,
+        35
+      ],
+      [
+        -1,
+        35
+      ]
+    ]
+  },
+  "adjacent": [
+    {
+      "a": "room:r1",
+      "b": "room:r3",
+      "along": {
+        "map": 3,
+        "scale": 15
+      }
+    },
+    {
+      "a": "room:r1",
+      "b": "corridor:0",
+      "along": {
+        "map": 2,
+        "scale": 10
+      }
+    },
+    {
+      "a": "corridor:0",
+      "b": "corridor:1",
+      "along": {
+        "map": 1,
+        "scale": 5
+      }
+    }
   ]
 }
 
@@ -5945,7 +6283,7 @@ $ artgen dungeon show crypt --root <root>
 exit 0
 crypt: 35×19 cells of 5 ft, seed 7
   gen: rooms 8, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on
-  grid: off; hatch full; shared walls off (auto); numbers on, scale bar on, compass off
+  grid: off; hatch full; shared walls on (default); numbers on, scale bar on, compass off
   rooms (3):
     r1: octagon 7×5 at 4,3, no number
     r9: cave 8×6 at 18,5, cellar, no number → http://example.com/cave
@@ -5960,7 +6298,7 @@ crypt: 35×19 cells of 5 ft, seed 7
 $ artgen dungeon show crypt --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "cols": 35,
   "rows": 19,
   "gen": {
@@ -6103,7 +6441,7 @@ vault            36x26   6 rooms, 7 corridors, 0 labels, 0 symbols
 $ artgen dungeon list --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "id": "cell",
@@ -6141,7 +6479,7 @@ crypt 280×152 px, 8 px a cell, window 0,0,35,19: 3 rooms, 2 corridors, 2 doors
 $ artgen dungeon render crypt --format svg --ppu 8 --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "files": [
     "art/dungeons/crypt/out/crypt.svg"
   ],
@@ -6176,7 +6514,7 @@ crypt 122×42 px, 5 px a cell, window 3.5,2.5,24.414,8.493: 3 rooms, 2 corridors
 $ artgen dungeon render crypt --format png --ppu 5 --room r1 --room r9 --margin 1 --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "files": [
     "art/dungeons/crypt/out/crypt.png"
   ],
@@ -6212,7 +6550,7 @@ vault 340×246 px, 9.448818897637796 px a cell, window 0,0,36,26: 6 rooms, 7 cor
 $ artgen dungeon render vault --format both --fit 90x120mm --layers grid=off,labels=off --page-scale 2 --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "files": [
     "art/dungeons/vault/out/vault.svg",
     "art/dungeons/vault/out/vault.png"
@@ -6248,7 +6586,7 @@ crypt 80×64 px, 8 px a cell, window 2,2,10,8: 3 rooms, 2 corridors, 2 doors
 $ artgen dungeon render crypt --format svg --ppu 8 --crop 2,2,10,8 --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "files": [
     "art/dungeons/crypt/out/crypt.svg"
   ],
@@ -6296,7 +6634,7 @@ crypt: synced origin tables (rooms: 1 of tables replaced by 2; corridors: 1 of t
 $ artgen dungeon sync crypt --from <root>/dsync-from.json --origin tables --root <root> --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "origin": "tables",
   "lists": {
     "rooms": {
@@ -6358,7 +6696,7 @@ exit 0
 pm/D.a.json
 D-a "Hole": 24×18 cells of 5 ft, seed 2
   gen: rooms 8, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on
-  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls off (auto); numbers on, scale bar on, compass off
+  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls on (default); numbers on, scale bar on, compass off
   rooms (6):
     r1: rect 6×3 at 2,1
     r2: rect 8×5 at 13,1
@@ -6381,7 +6719,7 @@ next: artgen dungeon render --file <root>/pm/D.a.json
 $ artgen dungeon new --size 24x18 --seed 2 --title Hole --file <root>/pm/D.a.json --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "file": "pm/D.a.json",
   "dungeon": {
     "cols": 24,
@@ -6419,7 +6757,7 @@ exit 0
     "seed": 2,
     "title": "Hole",
     "id": "D-a",
-    "version": 1,
+    "version": 2,
     "rooms": [
       {
         "id": "r1",
@@ -6584,7 +6922,7 @@ $ artgen dungeon gen --seed 3 --rooms 4 --file <root>/pm/D.a.json
 exit 0
 D-a "Hole": 24×18 cells of 5 ft, seed 3
   gen: rooms 4, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on
-  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls off (auto); numbers on, scale bar on, compass off
+  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls on (default); numbers on, scale bar on, compass off
   rooms (4):
     r1: rect 4×3 at 1,1
     r2: rect 4×8 at 19,3
@@ -6603,7 +6941,7 @@ next: artgen dungeon render --file <root>/pm/D.a.json
 $ artgen dungeon gen --seed 3 --rooms 4 --file <root>/pm/D.a.json --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "cols": 24,
   "rows": 18,
   "gen": {
@@ -6756,16 +7094,18 @@ exit 0
 $ artgen dungeon room add rect --at 2,2 --size 4x4 --file <root>/pm/D.a.json
 exit 0
 D-a: added rect room r5 (5 rooms)
-  warning: rooms[4]: r5 lies over r1 (6 cells); the wall between them is not drawn
-  warning: corridors[0]: runs through r5, which it does not join (set via or route, or link through r5)
-  warning: corridors[1]: runs through r5, which it does not join (set via or route, or link through r5)
-  warning: corridors[4]: runs through r5, which it does not join (set via or route, or link through r5)
+  warning: rooms[4]: r5 lies over r1 (6 cells); the wall between them is not drawn [rooms-overlap]
+  warning: corridors[0]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
+  warning: corridors[1]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
+  warning: corridors[4]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
+  warning: corridors[1].doors: the door at 4.5,4.0 stands in open floor, not on a wall between two floors [door-off-wall]
+  … 1 more (artgen dungeon check D-a)
 next: artgen dungeon render --file <root>/pm/D.a.json
 
 $ artgen dungeon room add rect --at 2,2 --size 4x4 --file <root>/pm/D.a.json --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "id": "r1",
@@ -6813,17 +7153,18 @@ exit 0
 $ artgen dungeon link r1 23,10 --file <root>/pm/D.a.json
 exit 0
 D-a: corridor 5: r1 → 23,10
-  warning: rooms[4]: r5 lies over r1 (6 cells); the wall between them is not drawn
-  warning: corridors[0]: runs through r5, which it does not join (set via or route, or link through r5)
-  warning: corridors[1]: runs through r5, which it does not join (set via or route, or link through r5)
-  warning: corridors[4]: runs through r5, which it does not join (set via or route, or link through r5)
-  warning: corridors[5]: runs through r5, which it does not join (set via or route, or link through r5)
+  warning: rooms[4]: r5 lies over r1 (6 cells); the wall between them is not drawn [rooms-overlap]
+  warning: corridors[0]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
+  warning: corridors[1]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
+  warning: corridors[4]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
+  warning: corridors[5]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
+  … 2 more (artgen dungeon check D-a)
 next: artgen dungeon render --file <root>/pm/D.a.json
 
 $ artgen dungeon link r1 23,10 --file <root>/pm/D.a.json --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "from": {
@@ -6913,13 +7254,13 @@ exit 0
 
 $ artgen dungeon grid 10 --file <root>/pm/D.a.json
 exit 0
-grid: size 10 ft, sub-grid off, on the floor; hatch band (0.9 cells); shared walls off (auto); numbers on, scale bar on, compass off
+grid: size 10 ft, sub-grid off, on the floor; hatch band (0.9 cells); shared walls on (default); numbers on, scale bar on, compass off
 next: artgen dungeon render --file <root>/pm/D.a.json
 
 $ artgen dungeon grid 10 --file <root>/pm/D.a.json --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "show": true,
   "size": 2,
   "sub": false,
@@ -6930,7 +7271,7 @@ $ artgen dungeon style --hatch band --file <root>/pm/D.a.json
 exit 0
 D-a "Hole": 24×18 cells of 5 ft, seed 3
   gen: rooms 4, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on
-  grid: size 10 ft, sub-grid off, on the floor; hatch band (0.9 cells); shared walls off (auto); numbers on, scale bar on, compass off
+  grid: size 10 ft, sub-grid off, on the floor; hatch band (0.9 cells); shared walls on (default); numbers on, scale bar on, compass off
   rooms (5):
     r1: rect 4×3 at 1,1
     r2: rect 4×8 at 19,3
@@ -6951,7 +7292,7 @@ next: artgen dungeon render --file <root>/pm/D.a.json
 $ artgen dungeon style --hatch band --file <root>/pm/D.a.json --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "cols": 24,
   "rows": 18,
   "gen": {
@@ -7123,17 +7464,18 @@ exit 0
 $ artgen dungeon label Hole --at 3,3 --file <root>/pm/D.a.json
 exit 0
 D-a: label 0 "Hole"
-  warning: rooms[4]: r5 lies over r1 (6 cells); the wall between them is not drawn
-  warning: corridors[0]: runs through r5, which it does not join (set via or route, or link through r5)
-  warning: corridors[1]: runs through r5, which it does not join (set via or route, or link through r5)
-  warning: corridors[4]: runs through r5, which it does not join (set via or route, or link through r5)
-  warning: corridors[5]: runs through r5, which it does not join (set via or route, or link through r5)
+  warning: rooms[4]: r5 lies over r1 (6 cells); the wall between them is not drawn [rooms-overlap]
+  warning: corridors[0]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
+  warning: corridors[1]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
+  warning: corridors[4]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
+  warning: corridors[5]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
+  … 2 more (artgen dungeon check D-a)
 next: artgen dungeon render --file <root>/pm/D.a.json
 
 $ artgen dungeon label Hole --at 3,3 --file <root>/pm/D.a.json --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "text": "Hole",
@@ -7151,7 +7493,7 @@ D-a: 0 labels, 0 symbols
 $ artgen dungeon overlay clear --file <root>/pm/D.a.json --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "labels": [],
   "symbols": []
 }
@@ -7164,47 +7506,64 @@ next: artgen dungeon render --file <root>/pm/D.a.json
 $ artgen dungeon fit --file <root>/pm/D.a.json --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "cols": 27,
   "rows": 21
 }
 
 $ artgen dungeon check --file <root>/pm/D.a.json
 exit 0
-pm/D.a.json: ok, 5 warnings
-  warning: rooms[4]: r5 lies over r1 (6 cells); the wall between them is not drawn
-  warning: corridors[0]: runs through r5, which it does not join (set via or route, or link through r5)
-  warning: corridors[1]: runs through r5, which it does not join (set via or route, or link through r5)
-  warning: corridors[4]: runs through r5, which it does not join (set via or route, or link through r5)
-  warning: corridors[5]: runs through r5, which it does not join (set via or route, or link through r5)
+pm/D.a.json: ok, 7 warnings
+  warning: rooms[4]: r5 lies over r1 (6 cells); the wall between them is not drawn [rooms-overlap]
+  warning: corridors[0]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
+  warning: corridors[1]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
+  warning: corridors[4]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
+  warning: corridors[5]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
+  warning: corridors[1].doors: the door at 5.5,8.0 stands in open floor, not on a wall between two floors [door-off-wall]
+  warning: corridors[4].doors: the secret at 6.0,6.5 stands in open floor, not on a wall between two floors [door-off-wall]
 
 $ artgen dungeon check --file <root>/pm/D.a.json --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "file": "pm/D.a.json",
   "ok": true,
   "errors": [],
   "warnings": [
     {
       "path": "rooms[4]",
-      "message": "r5 lies over r1 (6 cells); the wall between them is not drawn"
+      "message": "r5 lies over r1 (6 cells); the wall between them is not drawn",
+      "id": "rooms-overlap"
     },
     {
       "path": "corridors[0]",
-      "message": "runs through r5, which it does not join (set via or route, or link through r5)"
+      "message": "runs through r5, which it does not join (set via or route, or link through r5)",
+      "id": "through-room"
     },
     {
       "path": "corridors[1]",
-      "message": "runs through r5, which it does not join (set via or route, or link through r5)"
+      "message": "runs through r5, which it does not join (set via or route, or link through r5)",
+      "id": "through-room"
     },
     {
       "path": "corridors[4]",
-      "message": "runs through r5, which it does not join (set via or route, or link through r5)"
+      "message": "runs through r5, which it does not join (set via or route, or link through r5)",
+      "id": "through-room"
     },
     {
       "path": "corridors[5]",
-      "message": "runs through r5, which it does not join (set via or route, or link through r5)"
+      "message": "runs through r5, which it does not join (set via or route, or link through r5)",
+      "id": "through-room"
+    },
+    {
+      "path": "corridors[1].doors",
+      "message": "the door at 5.5,8.0 stands in open floor, not on a wall between two floors",
+      "id": "door-off-wall"
+    },
+    {
+      "path": "corridors[4].doors",
+      "message": "the secret at 6.0,6.5 stands in open floor, not on a wall between two floors",
+      "id": "door-off-wall"
     }
   ]
 }
@@ -7235,7 +7594,7 @@ unreached rooms: r5
 $ artgen dungeon facts --file <root>/pm/D.a.json --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "id": "D-a",
   "size": {
     "cols": 27,
@@ -7441,7 +7800,15 @@ exit 0
       "length": {
         "map": 2,
         "scale": 10
-      }
+      },
+      "path": [
+        4,
+        6.5,
+        4.5,
+        6.5,
+        4.5,
+        3
+      ]
     },
     {
       "index": 1,
@@ -7459,7 +7826,13 @@ exit 0
       "length": {
         "map": 2,
         "scale": 10
-      }
+      },
+      "path": [
+        5.5,
+        6.5,
+        5.5,
+        13
+      ]
     },
     {
       "index": 2,
@@ -7477,7 +7850,13 @@ exit 0
       "length": {
         "map": 2.3,
         "scale": 11.5
-      }
+      },
+      "path": [
+        6.5,
+        14.5,
+        13.5,
+        14.5
+      ]
     },
     {
       "index": 3,
@@ -7495,7 +7874,15 @@ exit 0
       "length": {
         "map": 7.6,
         "scale": 38
-      }
+      },
+      "path": [
+        13.5,
+        15.5,
+        22.5,
+        15.5,
+        22.5,
+        11.5
+      ]
     },
     {
       "index": 4,
@@ -7513,7 +7900,15 @@ exit 0
       "length": {
         "map": 17,
         "scale": 85
-      }
+      },
+      "path": [
+        4.5,
+        6.5,
+        22.5,
+        6.5,
+        22.5,
+        11.5
+      ]
     },
     {
       "index": 5,
@@ -7534,7 +7929,15 @@ exit 0
       "length": {
         "map": 25.5,
         "scale": 127.5
-      }
+      },
+      "path": [
+        4.5,
+        6.5,
+        24,
+        6.5,
+        24,
+        14
+      ]
     }
   ],
   "exits": [
@@ -7620,6 +8023,497 @@ exit 0
   ],
   "unreached": [
     "r5"
+  ],
+  "doors": [
+    {
+      "kind": "door",
+      "at": [
+        4.5,
+        5
+      ],
+      "angle": 270,
+      "width": 1,
+      "corridor": 0,
+      "connection": null,
+      "wall": [
+        [
+          "room:r1",
+          "corridor:0"
+        ],
+        [
+          "corridor:0"
+        ]
+      ],
+      "on": "wall"
+    },
+    {
+      "kind": "door",
+      "at": [
+        5.5,
+        8
+      ],
+      "angle": 90,
+      "width": 1,
+      "corridor": 1,
+      "connection": null,
+      "wall": [
+        [
+          "room:r1",
+          "room:r5",
+          "corridor:1"
+        ],
+        [
+          "room:r5",
+          "corridor:1"
+        ]
+      ],
+      "on": "open"
+    },
+    {
+      "kind": "secret",
+      "at": [
+        5.5,
+        10
+      ],
+      "angle": 270,
+      "width": 1,
+      "corridor": 1,
+      "connection": null,
+      "wall": [
+        [
+          "room:r3",
+          "corridor:1"
+        ],
+        [
+          "room:r5",
+          "corridor:1"
+        ]
+      ],
+      "on": "wall"
+    },
+    {
+      "kind": "door",
+      "at": [
+        9,
+        14.5
+      ],
+      "angle": 0,
+      "width": 1,
+      "corridor": 2,
+      "connection": null,
+      "wall": [
+        [
+          "room:r3",
+          "corridor:2"
+        ],
+        [
+          "corridor:2"
+        ]
+      ],
+      "on": "wall"
+    },
+    {
+      "kind": "door",
+      "at": [
+        22.5,
+        15
+      ],
+      "angle": 90,
+      "width": 1,
+      "corridor": 3,
+      "connection": null,
+      "wall": [
+        [
+          "room:r2",
+          "corridor:3"
+        ],
+        [
+          "corridor:3"
+        ]
+      ],
+      "on": "wall"
+    },
+    {
+      "kind": "secret",
+      "at": [
+        6,
+        6.5
+      ],
+      "angle": 0,
+      "width": 1,
+      "corridor": 4,
+      "connection": null,
+      "wall": [
+        [
+          "room:r1",
+          "room:r5",
+          "corridor:1",
+          "corridor:4",
+          "corridor:5"
+        ],
+        [
+          "room:r5",
+          "corridor:4",
+          "corridor:5"
+        ]
+      ],
+      "on": "open"
+    },
+    {
+      "kind": "door",
+      "at": [
+        22.5,
+        7
+      ],
+      "angle": 270,
+      "width": 1,
+      "corridor": 4,
+      "connection": null,
+      "wall": [
+        [
+          "room:r2",
+          "corridor:4"
+        ],
+        [
+          "corridor:4",
+          "corridor:5"
+        ]
+      ],
+      "on": "wall"
+    }
+  ],
+  "floor": {
+    "owners": [
+      "room:r1",
+      "room:r2",
+      "room:r3",
+      "room:r4",
+      "room:r5",
+      "corridor:0",
+      "corridor:1",
+      "corridor:2",
+      "corridor:3",
+      "corridor:4",
+      "corridor:5"
+    ],
+    "rows": [
+      [
+        -1,
+        27
+      ],
+      [
+        -1,
+        27
+      ],
+      [
+        -1,
+        4,
+        5,
+        1,
+        -1,
+        22
+      ],
+      [
+        -1,
+        4,
+        5,
+        1,
+        -1,
+        22
+      ],
+      [
+        -1,
+        4,
+        5,
+        1,
+        -1,
+        22
+      ],
+      [
+        -1,
+        2,
+        0,
+        4,
+        -1,
+        21
+      ],
+      [
+        -1,
+        2,
+        0,
+        4,
+        4,
+        1,
+        9,
+        16,
+        10,
+        2,
+        -1,
+        2
+      ],
+      [
+        -1,
+        2,
+        0,
+        4,
+        4,
+        1,
+        -1,
+        13,
+        1,
+        4,
+        10,
+        1,
+        -1,
+        2
+      ],
+      [
+        -1,
+        3,
+        4,
+        4,
+        -1,
+        13,
+        1,
+        4,
+        10,
+        1,
+        -1,
+        2
+      ],
+      [
+        -1,
+        3,
+        4,
+        4,
+        -1,
+        13,
+        1,
+        4,
+        10,
+        1,
+        -1,
+        2
+      ],
+      [
+        -1,
+        4,
+        2,
+        5,
+        -1,
+        11,
+        1,
+        4,
+        10,
+        1,
+        -1,
+        2
+      ],
+      [
+        -1,
+        4,
+        2,
+        5,
+        -1,
+        11,
+        1,
+        4,
+        10,
+        1,
+        -1,
+        2
+      ],
+      [
+        -1,
+        4,
+        2,
+        5,
+        -1,
+        4,
+        3,
+        2,
+        -1,
+        5,
+        1,
+        4,
+        10,
+        1,
+        -1,
+        2
+      ],
+      [
+        -1,
+        4,
+        2,
+        5,
+        -1,
+        3,
+        3,
+        3,
+        -1,
+        5,
+        1,
+        4,
+        10,
+        1,
+        -1,
+        2
+      ],
+      [
+        -1,
+        4,
+        2,
+        5,
+        7,
+        2,
+        3,
+        5,
+        -1,
+        4,
+        1,
+        4,
+        10,
+        1,
+        -1,
+        2
+      ],
+      [
+        -1,
+        4,
+        2,
+        5,
+        -1,
+        2,
+        3,
+        4,
+        8,
+        8,
+        -1,
+        4
+      ],
+      [
+        -1,
+        12,
+        3,
+        3,
+        -1,
+        12
+      ],
+      [
+        -1,
+        12,
+        3,
+        3,
+        -1,
+        12
+      ],
+      [
+        -1,
+        12,
+        3,
+        3,
+        -1,
+        12
+      ],
+      [
+        -1,
+        27
+      ],
+      [
+        -1,
+        27
+      ]
+    ]
+  },
+  "adjacent": [
+    {
+      "a": "room:r1",
+      "b": "room:r5",
+      "along": {
+        "map": 5,
+        "scale": 25
+      }
+    },
+    {
+      "a": "room:r1",
+      "b": "corridor:0",
+      "along": {
+        "map": 1,
+        "scale": 5
+      }
+    },
+    {
+      "a": "room:r2",
+      "b": "corridor:3",
+      "along": {
+        "map": 3,
+        "scale": 15
+      }
+    },
+    {
+      "a": "room:r2",
+      "b": "corridor:4",
+      "along": {
+        "map": 3,
+        "scale": 15
+      }
+    },
+    {
+      "a": "room:r2",
+      "b": "corridor:5",
+      "along": {
+        "map": 9,
+        "scale": 45
+      }
+    },
+    {
+      "a": "room:r3",
+      "b": "room:r5",
+      "along": {
+        "map": 3,
+        "scale": 15
+      }
+    },
+    {
+      "a": "room:r3",
+      "b": "corridor:2",
+      "along": {
+        "map": 1,
+        "scale": 5
+      }
+    },
+    {
+      "a": "room:r4",
+      "b": "corridor:2",
+      "along": {
+        "map": 1,
+        "scale": 5
+      }
+    },
+    {
+      "a": "room:r4",
+      "b": "corridor:3",
+      "along": {
+        "map": 2,
+        "scale": 10
+      }
+    },
+    {
+      "a": "room:r5",
+      "b": "corridor:4",
+      "along": {
+        "map": 1,
+        "scale": 5
+      }
+    },
+    {
+      "a": "corridor:4",
+      "b": "corridor:5",
+      "along": {
+        "map": 1,
+        "scale": 5
+      }
+    }
   ]
 }
 
@@ -7627,7 +8521,7 @@ $ artgen dungeon show --file <root>/pm/D.a.json
 exit 0
 D-a "Hole": 27×21 cells of 5 ft, seed 3
   gen: rooms 4, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on
-  grid: size 10 ft, sub-grid off, on the floor; hatch band (0.9 cells); shared walls off (auto); numbers on, scale bar on, compass off
+  grid: size 10 ft, sub-grid off, on the floor; hatch band (0.9 cells); shared walls on (default); numbers on, scale bar on, compass off
   rooms (5):
     r1: rect 4×3 at 2,5
     r2: rect 4×8 at 20,7
@@ -7647,7 +8541,7 @@ D-a "Hole": 27×21 cells of 5 ft, seed 3
 $ artgen dungeon show --file <root>/pm/D.a.json --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "cols": 27,
   "rows": 21,
   "gen": {
@@ -7823,7 +8717,7 @@ D-a              27x21   5 rooms, 6 corridors, 0 labels, 0 symbols  "Hole"
 $ artgen dungeon list --file <root>/pm/D.a.json --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "id": "D-a",
@@ -7845,7 +8739,7 @@ exit 0
 $ artgen dungeon render --format svg --ppu 6 --file <root>/pm/D.a.json --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "files": [
     "pm/D.a.svg"
   ],
@@ -7880,7 +8774,7 @@ exit 0
 $ artgen dungeon sync --from <root>/dsync-from.json --origin tables --file <root>/pm/D.a.json --json
 exit 0
 {
-  "version": 1,
+  "version": 2,
   "origin": "tables",
   "lists": {
     "rooms": {

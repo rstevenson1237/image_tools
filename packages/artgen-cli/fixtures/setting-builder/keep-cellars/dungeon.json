@@ -22,7 +22,8 @@
   "style": {
     "hatch": "none",
     "band": 0.9,
-    "wall": 1
+    "wall": 1,
+    "sharedWalls": false
   },
   "scale": {
     "perCell": 5,
@@ -34,7 +35,7 @@
   "seed": 678132,
   "title": "A Roadsend Keep: cellars",
   "id": "a-cellars",
-  "version": 1,
+  "version": 2,
   "rooms": [
     {
       "id": "r12",

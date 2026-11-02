@@ -1,0 +1,152 @@
+{
+ "id": "I-a",
+ "rooms": [
+  {
+   "id": "I.1",
+   "w": 2.0,
+   "h": 4.0,
+   "shape": "rect",
+   "label": "I.1",
+   "hall": false,
+   "turns": false
+  },
+  {
+   "id": "I.2",
+   "w": 10.0,
+   "h": 6.0,
+   "shape": "rect",
+   "label": "I.2",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "I.3",
+   "w": 10.0,
+   "h": 8.0,
+   "shape": "rect",
+   "label": "I.3",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "I.4",
+   "w": 6.0,
+   "h": 8.0,
+   "shape": "rect",
+   "label": "I.4",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "I.5",
+   "w": 6.0,
+   "h": 8.0,
+   "shape": "rect",
+   "label": "I.5",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "I.6",
+   "w": 6.0,
+   "h": 6.0,
+   "shape": "rect",
+   "label": "I.6",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "I.7",
+   "w": 6.0,
+   "h": 6.0,
+   "shape": "rect",
+   "label": "I.7",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "I.8",
+   "w": 12.0,
+   "h": 2.0,
+   "shape": "rect",
+   "label": "I.8",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "I.9",
+   "w": 4.0,
+   "h": 8.0,
+   "shape": "rect",
+   "label": "I.9",
+   "hall": false,
+   "turns": false
+  }
+ ],
+ "ways": [
+  {
+   "a": "I.1",
+   "b": "I.2",
+   "bearing": 38.65980825409009
+  },
+  {
+   "a": "I.1",
+   "b": "I.5",
+   "bearing": 296.565051177078
+  },
+  {
+   "a": "I.2",
+   "b": "I.4",
+   "bearing": 302.0053832080835
+  },
+  {
+   "a": "I.2",
+   "b": "I.3",
+   "bearing": 33.690067525979785
+  },
+  {
+   "a": "I.2",
+   "b": "I.7",
+   "bearing": 341.565051177078
+  },
+  {
+   "a": "I.3",
+   "b": "I.6",
+   "bearing": 300.25643716352926
+  },
+  {
+   "a": "I.3",
+   "b": "I.9",
+   "bearing": 159.44395478041653
+  },
+  {
+   "a": "I.4",
+   "b": "I.5",
+   "bearing": 180.0
+  },
+  {
+   "a": "I.4",
+   "b": "I.6",
+   "bearing": 10.304846468766033
+  },
+  {
+   "a": "I.7",
+   "b": "I.8",
+   "bearing": 323.13010235415595
+  }
+ ],
+ "width": 2,
+ "scale": {
+  "perCell": 5,
+  "unit": "ft"
+ },
+ "fill": [
+  0.3,
+  0.45
+ ],
+ "passages": 0.35,
+ "seed": 1,
+ "tries": 12,
+ "detour": 20.0,
+ "footprint": 34.0
+}

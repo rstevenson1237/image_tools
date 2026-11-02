@@ -1,0 +1,297 @@
+{
+ "id": "G-a",
+ "rooms": [
+  {
+   "id": "G.1",
+   "w": 2.0,
+   "h": 4.0,
+   "shape": "rect",
+   "label": "G.1",
+   "hall": true,
+   "turns": true
+  },
+  {
+   "id": "G.2",
+   "w": 2.0,
+   "h": 16.0,
+   "shape": "rect",
+   "label": "G.2",
+   "hall": true,
+   "turns": true
+  },
+  {
+   "id": "G.3",
+   "w": 10.0,
+   "h": 8.0,
+   "shape": "rect",
+   "label": "G.3",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "G.4",
+   "w": 8.0,
+   "h": 6.0,
+   "shape": "rect",
+   "label": "G.4",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "G.5",
+   "w": 6.0,
+   "h": 6.0,
+   "shape": "rect",
+   "label": "G.5",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "G.6",
+   "w": 12.0,
+   "h": 12.0,
+   "shape": "rect",
+   "label": "G.6",
+   "hall": false,
+   "turns": false
+  },
+  {
+   "id": "G.7",
+   "w": 8.0,
+   "h": 8.0,
+   "shape": "rect",
+   "label": "G.7",
+   "hall": false,
+   "turns": false
+  },
+  {
+   "id": "G.8",
+   "w": 8.0,
+   "h": 8.0,
+   "shape": "rect",
+   "label": "G.8",
+   "hall": false,
+   "turns": false
+  },
+  {
+   "id": "G.9",
+   "w": 8.0,
+   "h": 8.0,
+   "shape": "rect",
+   "label": "G.9",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "G.10",
+   "w": 6.0,
+   "h": 6.0,
+   "shape": "rect",
+   "label": "G.10",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "G.11",
+   "w": 4.0,
+   "h": 6.0,
+   "shape": "rect",
+   "label": "G.11",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "G.12",
+   "w": 8.0,
+   "h": 8.0,
+   "shape": "round",
+   "label": "G.12",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "G.13",
+   "w": 6.0,
+   "h": 16.0,
+   "shape": "rect",
+   "label": "G.13",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "G.14",
+   "w": 2.0,
+   "h": 18.0,
+   "shape": "rect",
+   "label": "G.14",
+   "hall": true,
+   "turns": false
+  },
+  {
+   "id": "G.15",
+   "w": 10.0,
+   "h": 10.0,
+   "shape": "rect",
+   "label": "G.15",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "G.16",
+   "w": 2.0,
+   "h": 16.0,
+   "shape": "rect",
+   "label": "G.16",
+   "hall": true,
+   "turns": false
+  },
+  {
+   "id": "G.17",
+   "w": 8.0,
+   "h": 10.0,
+   "shape": "rect",
+   "label": "G.17",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "G.18",
+   "w": 8.0,
+   "h": 6.0,
+   "shape": "rect",
+   "label": "G.18",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "G.19",
+   "w": 2.0,
+   "h": 6.0,
+   "shape": "rect",
+   "label": "G.19",
+   "hall": true,
+   "turns": false
+  }
+ ],
+ "ways": [
+  {
+   "a": "G.1",
+   "b": "G.2",
+   "bearing": 63.43494882292201
+  },
+  {
+   "a": "G.2",
+   "b": "G.3",
+   "bearing": 210.96375653207352
+  },
+  {
+   "a": "G.2",
+   "b": "G.4",
+   "bearing": 35.53767779197438
+  },
+  {
+   "a": "G.2",
+   "b": "G.13",
+   "bearing": 352.8749836510982
+  },
+  {
+   "a": "G.3",
+   "b": "G.11",
+   "bearing": 335.55604521958344
+  },
+  {
+   "a": "G.4",
+   "b": "G.15",
+   "bearing": 102.52880770915151
+  },
+  {
+   "a": "G.5",
+   "b": "G.13",
+   "bearing": 63.43494882292201
+  },
+  {
+   "a": "G.5",
+   "b": "G.18",
+   "bearing": 189.46232220802563
+  },
+  {
+   "a": "G.6",
+   "b": "G.13",
+   "bearing": 153.434948822922
+  },
+  {
+   "a": "G.6",
+   "b": "G.9",
+   "bearing": 191.3099324740202
+  },
+  {
+   "a": "G.6",
+   "b": "G.7",
+   "bearing": 239.03624346792648
+  },
+  {
+   "a": "G.6",
+   "b": "G.8",
+   "bearing": 101.30993247402021
+  },
+  {
+   "a": "G.7",
+   "b": "G.10",
+   "bearing": 8.13010235415598
+  },
+  {
+   "a": "G.8",
+   "b": "G.19",
+   "bearing": 101.30993247402021
+  },
+  {
+   "a": "G.11",
+   "b": "G.18",
+   "bearing": 18.43494882292201
+  },
+  {
+   "a": "G.12",
+   "b": "G.13",
+   "bearing": 278.74616226255523
+  },
+  {
+   "a": "G.12",
+   "b": "G.16",
+   "bearing": 102.52880770915151
+  },
+  {
+   "a": "G.14",
+   "b": "G.16",
+   "bearing": 326.30993247402023
+  },
+  {
+   "a": "G.15",
+   "b": "G.16",
+   "bearing": 40.60129464500447
+  },
+  {
+   "a": "G.16",
+   "b": "G.17",
+   "bearing": 320.71059313749964
+  },
+  {
+   "a": "G.17",
+   "b": "G.19",
+   "bearing": 308.6598082540901
+  }
+ ],
+ "width": 2,
+ "scale": {
+  "perCell": 5,
+  "unit": "ft"
+ },
+ "fill": [
+  0.3,
+  0.45
+ ],
+ "passages": 0.35,
+ "seed": 1,
+ "tries": 12,
+ "detour": 20.0,
+ "footprint": 50.0
+}

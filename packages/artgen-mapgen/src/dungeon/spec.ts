@@ -7,7 +7,7 @@
  */
 import { readFormat, type Migration } from 'artgen-primitives/format.ts';
 
-export const ROOM_SHAPES = ['rect', 'circle', 'octagon', 'cave', 'poly'] as const;
+export const ROOM_SHAPES = ['rect', 'circle', 'octagon', 'hexagon', 'cave', 'poly'] as const;
 export type RoomShape = (typeof ROOM_SHAPES)[number];
 
 export const DOOR_KINDS = ['door', 'secret', 'locked', 'portcullis', 'arch'] as const;
@@ -17,8 +17,8 @@ export const DOOR_NAMES: Record<DoorKind, string> = {
   door: 'Door', secret: 'Secret door', locked: 'Locked door', portcullis: 'Portcullis / bars', arch: 'Archway',
 };
 
-/** auto: straight when the rooms line up, else an elbow; hv / vh: across then down / down then across; straight: one line; around: along the grid, round the rooms in the way. */
-export const ROUTES = ['auto', 'hv', 'vh', 'straight', 'around'] as const;
+/** auto: straight when the rooms line up, else an elbow; hv / vh: across then down / down then across; straight: one line; around: along the grid, round the rooms in the way; maze: on the lattice of its width, round the rooms and off the other corridors (`maze.ts`). */
+export const ROUTES = ['auto', 'hv', 'vh', 'straight', 'around', 'maze'] as const;
 export type Route = (typeof ROUTES)[number];
 
 /** A room's walls: north (top), east, south, west. */
@@ -32,6 +32,16 @@ export const CURVES = ['none', 'smooth'] as const;
 export type Curve = (typeof CURVES)[number];
 
 export const HATCH_STYLES = ['band', 'full', 'none'] as const;
+export const ROCK_STYLES = ['hatch', 'solid', 'none'] as const;
+export type RockStyle = (typeof ROCK_STYLES)[number];
+
+/** Kinds of area: `rock` (solid ground inside the level, drawn as rock) or `void` (a shaft, a chasm: nothing to stand on). */
+export const AREA_KINDS = ['rock', 'void'] as const;
+/** Ground inside a level that no room or corridor may take, with an optional note at its middle. */
+export interface Area { points: number[]; kind: (typeof AREA_KINDS)[number]; label?: string; origin?: string }
+
+/** Where shared walls are drawn: between any two units that touch, between rooms only, or nowhere (see `style.sharedWalls`). */
+export type SharedWalls = boolean | 'rooms';
 export type HatchStyle = (typeof HATCH_STYLES)[number];
 
 export const LABEL_KINDS = ['name', 'note', 'area'] as const;
@@ -68,19 +78,39 @@ export interface Room {
   origin?: string;
   /** The fields a hand edit changed on an entry of some origin (`["x"]`); a sync reports them when it takes the origin's value back. */
   hand?: string[];
+  /** The point (cells) a `{room}` corridor end starts from and the badge sits on, in place of the one artgen picks (the centre, or a poly's deepest point). */
+  anchor?: [number, number];
+  /** An octagon's corner cut, as a share of its shorter side (0 to 0.5): the cut is that share of it, in cells, unsnapped. Unset: 0.3 of it, to the half cell. */
+  cut?: number;
+  /** A hexagon's lie: `flat` (flat north and south walls, points east and west; the default) or `pointy` (points north and south). */
+  orient?: 'flat' | 'pointy';
+  /** Ways out of the map inside the room: a stair or an arrow by a wall (`side`) or at a point (`at`), with a note saying where it leads. */
+  exits?: RoomExit[];
+  /** Where the room's number and name stand: by a wall (`n e s w`), at the anchor (`c`), or at [dx, dy] cells from the anchor. Unset: the anchor, moved by a wall when it would lie on a symbol or another room's label. */
+  labelAt?: 'c' | 'n' | 's' | 'w' | 'e' | [number, number];
 }
 
 /**
  * A corridor end: a room, a point, or another corridor.
- * - `{room}`: from the room's centre; with `side` it leaves through that wall instead, `offset` cells along it from the
- *   room's top or left edge (default: the middle), so several corridors can leave one room by different walls.
+ * - `{room}`: from the room's anchor (its centre, a poly's deepest point, or `anchor`); with `side` it leaves through that
+ *   wall instead, `offset` cells along it from the room's top or left edge (default: the middle), so several corridors can
+ *   leave one room by different walls; with `port: [x, y]` it leaves from that point on the room's wall (moved onto the
+ *   outline when it is off it), its door set along the wall there.
  * - `{at: [x, y]}`: a point (an exit stub, a dead end, or off the map). With `exit`, the corridor fades to white over
  *   its last `fade` cells before the point (or the sheet's edge, if the point is past it) and a boxed note there says
  *   where it leads (`text`, a link with `href`).
  * - `{corridor: id}`: a junction on that corridor's centre line, the point nearest the other end (or `near`), so
  *   corridors meet in a T or a cross.
  */
-export type CorridorEnd = { room: string; side?: Side; offset?: number } | { at: [number, number]; exit?: Exit } | { corridor: string; near?: [number, number] };
+export type CorridorEnd = { room: string; side?: Side; offset?: number; port?: [number, number] } | { at: [number, number]; exit?: Exit } | { corridor: string; near?: [number, number] };
+
+/** The marks a room's exit can be. */
+export const ROOM_EXIT_KINDS = ['stairs-up', 'stairs-down', 'arrow'] as const;
+/**
+ * A way out of the map inside a room: its mark (`kind`) by the room's `side` wall (the middle of it, a cell in) or at `at`
+ * (cells), turned toward that wall or by `angle` (degrees, 0 east, clockwise on the page), and a note under it (`text`).
+ */
+export interface RoomExit { kind: (typeof ROOM_EXIT_KINDS)[number]; side?: Side; at?: [number, number]; angle?: number; text?: string }
 
 /** Where an exit leads: the note at the map's edge, an optional link, and the cells the corridor fades over (default 3). */
 export interface Exit { text: string; href?: string; fade?: number }
@@ -92,6 +122,10 @@ export interface Corridor {
   to: CorridorEnd;
   /** Width in cells (default 1). */
   width?: number;
+  /** Width in the scale unit (`scale.unit`: 10 for a 10 ft passage), in place of `width`. */
+  span?: number;
+  /** For `route: "maze"`: lattice cells kept off rooms' walls but at the doors (default 0 when walls are drawn along corridors, else 1), what a bend costs, the noise's seed. Read from the first maze corridor of each width. */
+  maze?: { clearance?: number; bend?: number; seed?: number };
   /** auto: straight when the rooms line up, else an elbow; hv: across then down; vh: down then across. */
   route?: Route;
   /** Bend points (x,y pairs) between the two ends; when set the corridor runs straight through them. */
@@ -183,11 +217,20 @@ export interface DungeonSpec {
   /** Grid lines every `size` cells (2 = 10 ft), with fainter lines at every cell when `sub`; on the floor or everywhere. */
   grid: { show: boolean; size: number; sub: boolean; clip: 'floor' | 'all' };
   /**
-   * Rock around the rooms: a band of hatching along the walls, hatching everywhere, or plain paper. `sharedWalls`: draw
-   * the wall between floor rooms that touch (default: on when the file has `connections` or `blocks`, else off, where
-   * rooms that touch run together as one floor, as they always did).
+   * Rock around the rooms: a band of hatching along the walls, hatching everywhere, or plain paper. `sharedWalls`: the
+   * wall where two floors meet: `true` (the default) wherever any two units touch (room and room, room and corridor,
+   * corridor and corridor) except at an opening (a door, a connection, where a corridor runs into a floor); `rooms`
+   * between touching floor rooms only (format 1's `true`); `false` none, so floors that touch run together.
    */
-  style: { hatch: HatchStyle; band: number; wall: number; sharedWalls?: boolean };
+  style: {
+    hatch: HatchStyle; band: number; wall: number; sharedWalls?: SharedWalls;
+    /** The rock: `hatch` (as `hatch` says; the default), `solid` (`rockColor` everywhere off the floor, white floors) or `none` (plain paper). */
+    rock?: RockStyle;
+    /** The colour of solid rock (default #bdbdbd). */
+    rockColor?: string;
+    /** The stroke of the walls between floors, as a factor like `wall` (default: `wall`). */
+    partition?: number;
+  };
   scale: { perCell: number; unit: string };
   numbers: boolean;
   scaleBar: boolean;
@@ -203,6 +246,10 @@ export interface DungeonSpec {
   underlay?: Underlay;
   /** Optional: walls, towers and gates (see {@link Wall}). */
   walls?: Wall[];
+  /** Optional: the ground the level occupies, as a polygon (x,y cells): the rock and grid are drawn inside it and its edge is drawn. */
+  bounds?: number[];
+  /** Optional: rock and voids within the level (see {@link Area}). */
+  areas?: Area[];
   /** A key of the symbols used, in the corner (default off). */
   legend?: boolean;
   /**
@@ -225,9 +272,19 @@ export const DEFAULTS: Omit<DungeonSpec, 'id' | 'seed' | 'version' | 'rooms' | '
 };
 
 /** The dungeon file format (`format.ts` says what bumps it). */
-export const DUNGEON_FORMAT = 1;
+export const DUNGEON_FORMAT = 2;
 
-const MIGRATIONS: Record<number, Migration> = {};
+const MIGRATIONS: Record<number, Migration> = {
+  /**
+   * dungeon format 1 -> 2: `style.sharedWalls` defaults to walls between any two units, and `true` means that. A format 1 file
+   * draws as it did: its `true` becomes `rooms`, and an unset value the one format 1 gave it (on with connections or blocks).
+   */
+  1: raw => {
+    const style = (raw.style && typeof raw.style === 'object' ? raw.style : {}) as Record<string, unknown>, list = (k: string) => Array.isArray(raw[k]) && (raw[k] as unknown[]).length > 0;
+    const was = style.sharedWalls ?? (list('connections') || list('blocks'));
+    return { ...raw, style: { ...style, sharedWalls: was === true ? 'rooms' : was } };
+  },
+};
 
 export const MAX_SIDE = 160;
 
@@ -254,6 +311,8 @@ function endErrors(e: unknown, at: string, ids: Set<string>, corridorIds: Set<st
     if (o.side !== undefined && !SIDES.includes(o.side as Side)) out.push(`${at}.side: ${SIDES.join(', ')}`);
     if (o.offset !== undefined && !(isNum(o.offset) && o.offset >= 0)) out.push(`${at}.offset: cells along the wall, 0 or more`);
     if (o.offset !== undefined && o.side === undefined) out.push(`${at}.offset: goes with side`);
+    if (o.port !== undefined && !isPoint(o.port)) out.push(`${at}.port: [x, y], a point on the room's wall`);
+    if (o.port !== undefined && o.side !== undefined) out.push(`${at}.port: a port or a side, not both`);
     return out;
   }
   if ('at' in o) {
@@ -386,7 +445,10 @@ export function validateDungeon(raw: unknown): string[] {
     e.push('grid: show, size ≥ 0.5 (cells), sub (true|false), clip floor|all');
   if (!m.style || !HATCH_STYLES.includes(m.style.hatch) || !isNum(m.style.band) || m.style.band < 0 || m.style.band > 6 || !isNum(m.style.wall) || m.style.wall < 0.2 || m.style.wall > 4)
     e.push(`style: hatch ${HATCH_STYLES.join('|')}, band 0..6, wall 0.2..4`);
-  if (m.style?.sharedWalls !== undefined && typeof m.style.sharedWalls !== 'boolean') e.push('style.sharedWalls: true or false');
+  if (m.style?.rock !== undefined && !ROCK_STYLES.includes(m.style.rock)) e.push(`style.rock: ${ROCK_STYLES.join(', ')}`);
+  if (m.style?.rockColor !== undefined && !(typeof m.style.rockColor === 'string' && /^#[0-9a-f]{6}$/i.test(m.style.rockColor))) e.push('style.rockColor: a colour #rrggbb');
+  if (m.style?.partition !== undefined && !(isNum(m.style.partition) && m.style.partition >= 0.2 && m.style.partition <= 4)) e.push('style.partition: 0.2..4');
+  if (m.style?.sharedWalls !== undefined && typeof m.style.sharedWalls !== 'boolean' && m.style.sharedWalls !== 'rooms') e.push('style.sharedWalls: true (between any two units), "rooms" (between rooms only) or false');
   if (!m.scale || !isNum(m.scale.perCell) || typeof m.scale.unit !== 'string') e.push('scale: perCell (number) and unit');
   const ids = new Set<string>();
   (Array.isArray(m.rooms) ? m.rooms : (e.push('rooms: an array'), [])).forEach((r, i) => {
@@ -403,6 +465,19 @@ export function validateDungeon(raw: unknown): string[] {
     if (r?.fill !== undefined && !ROOM_FILLS.includes(r.fill)) e.push(`${at}.fill: one of ${ROOM_FILLS.join(', ')}`);
     if (r?.href !== undefined && hrefError(r.href)) e.push(`${at}.href: ${hrefError(r.href)}`);
     if (r?.hand !== undefined && !(Array.isArray(r.hand) && r.hand.every(f => typeof f === 'string'))) e.push(`${at}.hand: field names`);
+    if (r?.anchor !== undefined && !isPoint(r.anchor)) e.push(`${at}.anchor: [x, y] in cells`);
+    if (r?.cut !== undefined && !(isNum(r.cut) && r.cut > 0 && r.cut < 0.5)) e.push(`${at}.cut: a share of the shorter side, above 0 and below 0.5`);
+    if (r?.orient !== undefined && r.orient !== 'flat' && r.orient !== 'pointy') e.push(`${at}.orient: flat or pointy`);
+    (r?.exits === undefined ? [] : Array.isArray(r.exits) ? r.exits : (e.push(`${at}.exits: an array`), [])).forEach((x, j) => {
+      const xa = `${at}.exits[${j}]`;
+      if (!x || !ROOM_EXIT_KINDS.includes(x.kind)) e.push(`${xa}.kind: ${ROOM_EXIT_KINDS.join(', ')}`);
+      if (x?.side !== undefined && !SIDES.includes(x.side)) e.push(`${xa}.side: ${SIDES.join(', ')}`);
+      if (x?.at !== undefined && !isPoint(x.at)) e.push(`${xa}.at: [x, y] in cells`);
+      if (x && x.side === undefined && x.at === undefined) e.push(`${xa}: a side or a point (at)`);
+      if (x?.angle !== undefined && !isNum(x.angle)) e.push(`${xa}.angle: degrees`);
+      if (x?.text !== undefined && typeof x.text !== 'string') e.push(`${xa}.text: text`);
+    });
+    if (r?.labelAt !== undefined && !(isPoint(r.labelAt) || ['c', 'n', 's', 'w', 'e'].includes(r.labelAt as string))) e.push(`${at}.labelAt: n, s, w, e, c or [dx, dy] cells from the anchor`);
     originError(r, at, e);
   });
   const corridorIds = new Set<string>();
@@ -420,7 +495,13 @@ export function validateDungeon(raw: unknown): string[] {
     if (c?.style !== undefined && !CORRIDOR_STYLES.includes(c.style)) e.push(`${at}.style: ${CORRIDOR_STYLES.join(' or ')}`);
     if (c?.seed !== undefined && !isNum(c.seed)) e.push(`${at}.seed: a number`);
     if (c?.width !== undefined && !(isNum(c.width) && c.width >= 0.5 && c.width <= 6)) e.push(`${at}.width: 0.5..6`);
+    if (c?.span !== undefined) {
+      const per = isNum(m.scale?.perCell) ? m.scale!.perCell : 5;
+      if (c.width !== undefined) e.push(`${at}.span: a span or a width, not both`);
+      else if (!(isNum(c.span) && c.span / per >= 0.5 && c.span / per <= 6)) e.push(`${at}.span: the width in ${m.scale?.unit ?? 'ft'}, 0.5..6 cells (${0.5 * per}..${6 * per})`);
+    }
     if (c?.route !== undefined && !ROUTES.includes(c.route)) e.push(`${at}.route: one of ${ROUTES.join(', ')}`);
+    if (c?.maze !== undefined && !(c.maze && typeof c.maze === 'object' && (c.maze.clearance === undefined || c.maze.clearance === 0 || c.maze.clearance === 1) && (c.maze.bend === undefined || (isNum(c.maze.bend) && c.maze.bend >= 0)) && (c.maze.seed === undefined || isNum(c.maze.seed)))) e.push(`${at}.maze: {clearance?: 0 or 1, bend?: 0 or more, seed?}`);
     if (c?.via !== undefined && !(nums(c.via) && c.via.length % 2 === 0)) e.push(`${at}.via: x,y pairs`);
     if (c?.doors !== undefined && !(Array.isArray(c.doors) && c.doors.length === 2 && c.doors.every(d => d === null || DOOR_KINDS.includes(d))))
       e.push(`${at}.doors: [from, to], each null or one of ${DOOR_KINDS.join(', ')}`);
@@ -468,6 +549,17 @@ export function validateDungeon(raw: unknown): string[] {
   }
   if (Array.isArray(m.corridors) && !e.some(x => x.startsWith('corridors')) && !corridorOrder(m.corridors)) e.push('corridors: corridors join each other in a ring ({corridor: id} ends); one must end at a room or a point');
   e.push(...enclosureErrors(m, ids));
+  if (m.bounds !== undefined && !(nums(m.bounds) && m.bounds.length >= 6 && m.bounds.length % 2 === 0)) e.push('bounds: at least 3 x,y pairs (cells)');
+  if (m.areas !== undefined) {
+    if (!Array.isArray(m.areas)) e.push('areas: an array');
+    else m.areas.forEach((a, i) => {
+      const at = `areas[${i}]`;
+      if (!a || !(nums(a.points) && a.points.length >= 6 && a.points.length % 2 === 0)) e.push(`${at}.points: at least 3 x,y pairs (cells)`);
+      if (!a || !AREA_KINDS.includes(a.kind)) e.push(`${at}.kind: ${AREA_KINDS.join(' or ')}`);
+      if (a?.label !== undefined && typeof a.label !== 'string') e.push(`${at}.label: text`);
+      originError(a, at, e);
+    });
+  }
   const o = m.overlay;
   if (!o || !Array.isArray(o.labels) || !Array.isArray(o.symbols)) e.push('overlay: { labels: [], symbols: [] }');
   else {
@@ -508,8 +600,8 @@ export function parseDungeon(raw: unknown): DungeonSpec {
   return m;
 }
 
-/** A problem in a file: where (a JSON path, empty for the file as a whole) and what. */
-export interface Issue { path: string; message: string }
+/** A problem in a file: where (a JSON path, empty for the file as a whole) and what; a drawing finding also has the `id` of its kind. */
+export interface Issue { path: string; message: string; id?: string }
 
 /** A `path: message` string from a validator as an {@link Issue}. */
 export const toIssue = (s: string): Issue => {
@@ -599,8 +691,13 @@ export function nextCorridorId(spec: Pick<DungeonSpec, 'corridors'>): string {
   for (let n = 1; ; n++) if (!used.has(`c${n}`)) return `c${n}`;
 }
 
+/** A corridor's width in cells: its `span` in the scale unit, else its `width` (default 1). */
+export const corridorWidth = (c: Pick<Corridor, 'width' | 'span'>, m: Pick<DungeonSpec, 'scale'>): number => (c.span !== undefined ? c.span / m.scale.perCell : c.width ?? 1);
+
 /** Whether the wall between touching floor rooms is drawn (see `style.sharedWalls`). */
-export const sharedWallsOn = (m: Pick<DungeonSpec, 'style' | 'connections' | 'blocks'>): boolean => m.style.sharedWalls ?? !!(m.connections?.length || m.blocks?.length);
+export const sharedWallsOn = (m: Pick<DungeonSpec, 'style'>): boolean => (m.style.sharedWalls ?? true) !== false;
+/** Whether walls are drawn where a corridor touches a room or another corridor too (`style.sharedWalls: true`, the default). */
+export const corridorWallsOn = (m: Pick<DungeonSpec, 'style'>): boolean => (m.style.sharedWalls ?? true) === true;
 
 /** The next free room id (`r1`, `r2`, …). */
 export function nextRoomId(spec: Pick<DungeonSpec, 'rooms'>): string {

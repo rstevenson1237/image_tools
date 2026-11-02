@@ -183,6 +183,59 @@ describe('setting-builder/shrine-crypts', () => {
   });
 });
 
+describe.each([
+  { name: 'g-level', code: 'G', rooms: 19, corridors: 5, connections: 16, doors: 13, warnings: [] as string[] },
+  { name: 'h-level', code: 'H', rooms: 13, corridors: 6, connections: 10, doors: 7, warnings: ['corridor-along-wall corridors[1]'] },
+])('setting-builder/$name (a packed level, R9 D1)', ({ name, code, rooms, corridors, connections, doors, warnings }) => {
+  const { file } = bareCopy('setting-builder', name);
+  test('is at the format version case.md states; check gives no errors and the warnings case.md names', async () => {
+    const md = readFileSync(join(FIXTURES, 'setting-builder', name, 'case.md'), 'utf8');
+    expect(JSON.parse(readFileSync(file, 'utf8')).version).toBe(formatOf(md, 'dungeon'));
+    const r = JSON.parse((await cli('dungeon', 'check', '--file', file, '--json')).out);
+    expect(r.errors).toEqual([]);
+    expect(r.warnings.map((w: dungeon.Issue) => `${w.id} ${w.path}`)).toEqual(warnings);
+  });
+
+  test('facts: the rooms, corridors and connections; every door on a wall between two floors; a path per corridor; the floor grid', async () => {
+    const f = JSON.parse((await cli('dungeon', 'facts', '--file', file, '--json')).out) as dungeon.DungeonFacts;
+    expect(f.rooms.map(r => r.label)).toEqual(Array.from({ length: rooms }, (_, i) => `${code}.${i + 1}`));
+    expect(f.corridors).toHaveLength(corridors);
+    expect(f.rooms.reduce((n, r) => n + (r.connections?.length ?? 0), 0) / 2).toBe(connections);
+    expect(f.doors).toHaveLength(doors);
+    expect(f.doors.filter(d => d.on !== 'wall')).toEqual([]);
+    expect([f.overlaps, f.unreached, f.exits]).toEqual([[], [], []]);
+    for (const c of f.corridors) expect(c.path.length).toBeGreaterThanOrEqual(4);
+    expect(f.floor.owners).toEqual([...f.rooms.map(r => `room:${r.id}`), ...f.corridors.map(c => `corridor:${c.index}`)]);
+    for (const row of f.floor.rows) expect(row.filter((_, i) => i % 2).reduce((a, b) => a + b, 0)).toBe(f.size.cols);
+  });
+});
+
+describe('setting-builder/layout (R9 D6): the ten packed levels laid out from their graphs', () => {
+  const dir = join(FIXTURES, 'setting-builder', 'layout');
+  test.each(readdirSync(join(dir, 'graphs')).filter(f => f.endsWith('.json')).sort())('%s lays out at its footprint, every way routed, and checks clean', f => {
+    const g = JSON.parse(readFileSync(join(dir, 'graphs', f), 'utf8')) as dungeon.Graph, { spec, report } = dungeon.layoutGraph(g);
+    expect(report.left).toEqual([]);
+    expect(report.detours).toEqual([]);
+    expect(report.side).toBe(g.footprint);
+    expect(spec.connections!.length + spec.corridors.length).toBe(new Set(g.ways.map(w => [w.a, w.b].sort().join('|'))).size);
+    const bad = ['door-off-wall', 'through-room', 'corridors-cross', 'way-no-passage', 'outside-bounds', 'maze-no-route', 'rooms-overlap'];
+    expect(dungeon.lintDungeon(spec).filter(x => bad.includes(x.id) || x.severity === 'error')).toEqual([]);
+    expect(dungeon.dungeonFacts(spec).unreached).toEqual([]);
+  }, 60_000);
+
+  test('G as laid out: 19 rooms, 43% of its square; check finds nothing; it renders the same twice', async () => {
+    const { dir: tmp, file } = bareCopy('setting-builder', 'layout');
+    const r = JSON.parse((await cli('dungeon', 'check', '--file', file, '--json')).out);
+    expect([r.errors, r.warnings]).toEqual([[], []]);
+    const spec = dungeon.parseDungeon(JSON.parse(readFileSync(file, 'utf8')));
+    expect(spec.rooms).toHaveLength(19);
+    expect(Math.round(spec.rooms.reduce((s, x) => s + x.w * x.h, 0) / 2500 * 100)).toBe(43);
+    await cli('dungeon', 'render', '--file', file, '--format', 'svg', '--out', join(tmp, 'a'));
+    await cli('dungeon', 'render', '--file', file, '--format', 'svg', '--out', join(tmp, 'b'));
+    expect(bytes(join(tmp, 'a', 'dungeon.svg')).equals(bytes(join(tmp, 'b', 'dungeon.svg')))).toBe(true);
+  });
+});
+
 describe('setting-builder/bad-file', () => {
   test('check exits non-zero and names both errors by JSON path; the file is left alone', async () => {
     const { file } = bareCopy('setting-builder', 'bad-file'), before = readFileSync(file);

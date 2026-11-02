@@ -3,7 +3,8 @@
 The phase-1 file, kept as it was written: thirteen rooms on white, with A.12 and A.13 overlapping the rooms above them. It is held to its overlaps and
 reach facts (`facts.test.ts`, `crop.test.ts`). `keep` and `keep-cellars` are the Keep as artgen A5 draws it.
 
-format: dungeon 1
+format: dungeon 2
+migrated: dungeon format 1 -> 2 (R9 D2): `style.sharedWalls: false`, what format 1 drew
 consumer: setting_builder at a34e7f5c90986c052e960ddf716c214aed658ff1 (main), `plans/sheet-maps/prototype/to_dungeon.py`
 artgen: 0.10.0 plus the format-version change, installed from this checkout's own build into a scratch game directory
 

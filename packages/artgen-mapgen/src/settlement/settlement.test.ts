@@ -212,4 +212,10 @@ describe('settlement facts', () => {
     expect(f.roads[0]).toMatchObject({ kind: 'street', length: 200 });
     expect(f.bridges).toBe(1);
   });
+
+  it('a water label (R9 D7: the overlay takes the kind a terrain map does)', () => {
+    const s = S.newSettlement('w', 'village', { overlay: { labels: [{ text: 'River Ash', x: 5, y: 5, kind: 'water' }], symbols: [] } });
+    expect(S.validateSettlement(s)).toEqual([]);
+    expect(S.renderSettlementSvg(s)).toContain('River Ash');
+  });
 });

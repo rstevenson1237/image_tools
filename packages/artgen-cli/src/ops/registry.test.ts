@@ -231,3 +231,11 @@ describe('the examples in the skills and commands', () => {
   });
 });
 
+
+describe('docs/DUNGEON.md (R9 D5)', () => {
+  test('its generated key and check lists are what npm run gen:ops writes from the schemas', async () => {
+    const { readFileSync } = await import('node:fs'), { withKeys } = await import('./schema-doc.ts');
+    const doc = readFileSync(new URL('../../../../docs/DUNGEON.md', import.meta.url), 'utf8');
+    expect(withKeys(doc)).toBe(doc);
+  });
+});

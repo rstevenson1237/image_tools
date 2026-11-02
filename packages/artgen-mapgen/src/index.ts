@@ -12,3 +12,4 @@ export * as tilemap from './tilemap/index.ts';
 export * as subjects from './workflow.ts';
 export * as mapDirection from './direction.ts';
 export { Grid } from 'artgen-primitives/lib/grid.ts';
+export { SCHEMAS, schemaKeys, declares, DUNGEON_CHECKS, type SchemaKind } from './schema.ts';

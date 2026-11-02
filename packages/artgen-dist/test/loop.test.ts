@@ -140,7 +140,7 @@ describe('consumer CI', () => {
     const r = runConsumerCi(OUT, FIXTURES);
     expect(r.results.length).toBeGreaterThanOrEqual(9);
     expect(r.results.filter((x: { ok: boolean }) => !x.ok), summary(r, OUT)).toEqual([]);
-    expect(summary(r, OUT)).toContain('9 of 9 pass');
+    expect(summary(r, OUT)).toContain(`${r.results.length} of ${r.results.length} pass`);
   });
 
   test('a regression stops it: a case that must go on passing and is refused, or one that must go on failing and is accepted', () => {

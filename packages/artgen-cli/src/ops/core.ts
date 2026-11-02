@@ -69,22 +69,23 @@ export const reportOp = defineOp({
     file: p.str('a map, dungeon or settlement file by path, in place of the id', { mcp: false }),
     kind: p.oneOf(BUNDLE_KINDS, 'which one the id (or file) is, when it could be more than one'),
     note: p.str('what is wrong or missing, in your words'),
-    out: p.str('the folder to write the bundle to (default art/feedback/<date>-<id>/)', { mcp: false }),
+    out: p.str('the folder to write the bundle to (default art/feedback/<date>-<id>/, or with --file artgen-feedback/<date>-<id>/ at the repo root)', { mcp: false }),
+    made_by: p.str('the command that wrote the file (your converter), for the case', { mcp: false }),
     no_render: p.bool('leave the render out'),
     issue: p.bool('open the issue on the artgen repo with the bundle (needs GH_TOKEN or GITHUB_TOKEN; without one, prints the link to open)', { mcp: false }),
     repo: p.str(`the repo the issue goes to (default ${DEFAULT_REPO})`, { mcp: false }),
   },
-  async run(i: { id?: string; file?: string; kind?: (typeof BUNDLE_KINDS)[number]; note?: string; out?: string; no_render?: boolean; issue?: boolean; repo?: string }, ctx) {
-    const pr = ctx.findProject(), b = await writeBundle(pr, i.id, { file: i.file, kind: i.kind, note: i.note, out: i.out, noRender: i.no_render, repo: i.repo });
+  async run(i: { id?: string; file?: string; kind?: (typeof BUNDLE_KINDS)[number]; note?: string; out?: string; made_by?: string; no_render?: boolean; issue?: boolean; repo?: string }, ctx) {
+    const pr = ctx.findProject(), b = await writeBundle(pr, i.id, { file: i.file, kind: i.kind, note: i.note, out: i.out, madeBy: i.made_by, noRender: i.no_render, repo: i.repo });
     const token = process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN;
     const issue = i.issue && token ? await openIssue(b, i.repo ?? DEFAULT_REPO, token) : undefined;
     return { dir: ctx.rel(b.dir), id: b.id, kind: b.kind, files: b.files, check: b.check, link: b.link, ...(issue && { issue }) };
   },
   cli: {
-    usage: '       artgen report <id> [--kind asset|map|dungeon|settlement] [--file path] [--note "..."] [--no-render] [--issue]   a feedback bundle for the artgen repo (art/feedback/); --issue sends it',
+    usage: '       artgen report <id> [--kind asset|map|dungeon|settlement] [--file path] [--note "..."] [--made-by "your command"] [--no-render] [--issue]   a feedback bundle for the artgen repo (art/feedback/, or artgen-feedback/ with --file); --issue sends it',
     text: (r, i) => [
       `feedback bundle: ${r.dir} (${r.files.length} files)`, `  check: ${r.check}`,
-      r.issue ? `issue opened: ${r.issue}` : i.issue ? `no GH_TOKEN or GITHUB_TOKEN here, so nothing was sent. To send it, open:\n${r.link}` : `read ${r.dir}/ISSUE.md, then send it: artgen report ${r.id} --issue (without a token this prints the link to open)`,
+      r.issue ? `issue opened: ${r.issue}` : i.issue ? `no GH_TOKEN or GITHUB_TOKEN here, so nothing was sent. To send it, open:\n${r.link}` : `read ${r.dir}/ISSUE.md, then send it: artgen report ${i.file ? `--file ${i.file}` : r.id} --issue (without a token this prints the link to open)`,
     ].join('\n'),
   },
   mcp: {}, python: {},
