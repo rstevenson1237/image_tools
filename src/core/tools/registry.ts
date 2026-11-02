@@ -7,6 +7,7 @@ export const toolGroups = [
   { id: 'image', name: 'Image tools' },
   { id: 'maps', name: 'Maps' },
   { id: 'art', name: 'Art pipeline' },
+  { id: 'suite', name: 'Suite' },
 ] as const;
 
 export type ToolGroup = (typeof toolGroups)[number]['id'];
@@ -123,6 +124,15 @@ export const tools: ToolDefinition[] = [
     requiredWorkers: ['artgen'],
   },
   {
+    id: 'metrics',
+    name: 'Metrics',
+    blurb: 'Passes, tokens and minutes per approved asset; where the time goes; versions side by side.',
+    icon: '∿',
+    group: 'art',
+    load: () => import('../../tools/Metrics/index.svelte') as Loaded,
+    requiredWorkers: ['artgen'],
+  },
+  {
     id: 'asset-lab',
     name: 'Asset Lab',
     blurb: 'Params, seed, facing and frame; animation through the runtime.',
@@ -131,13 +141,22 @@ export const tools: ToolDefinition[] = [
     load: () => import('../../tools/AssetLab/index.svelte') as Loaded,
     requiredWorkers: ['artgen'],
   },
+  {
+    id: 'commands',
+    name: 'Commands',
+    blurb: 'Every artgen operation as a form, and the command line it stands for.',
+    icon: '›',
+    group: 'suite',
+    load: () => import('../../tools/Commands/index.svelte') as Loaded,
+    requiredWorkers: ['artgen'],
+  },
 ];
 
 /** The installer module whose files a tool works on (`art/maps/…` belongs to `maps`); null for a tool of no module. */
 export const moduleOf = (t: ToolDefinition): 'art' | 'maps' | null => (t.group === 'maps' ? 'maps' : t.group === 'art' ? 'art' : null);
 
-/** Every module a tool works for: Asset Review reviews assets (`art`) and maps, dungeons and settlements (`maps`), so either is enough. */
-export const modulesOf = (t: ToolDefinition): ('art' | 'maps')[] => (t.id === 'asset-review' ? ['art', 'maps'] : [moduleOf(t)].filter((m): m is 'art' | 'maps' => !!m));
+/** Every module a tool works for: Asset Review and Metrics cover assets (`art`) and maps, dungeons and settlements (`maps`), so either is enough; the Suite tools belong to no module. */
+export const modulesOf = (t: ToolDefinition): ('art' | 'maps')[] => (t.id === 'asset-review' || t.id === 'metrics' ? ['art', 'maps'] : [moduleOf(t)].filter((m): m is 'art' | 'maps' => !!m));
 
 /** The tools a repo with these modules can use (all of them when the modules are unknown). */
 export const toolsFor = (modules: readonly string[] | null, list: ToolDefinition[] = tools): ToolDefinition[] =>

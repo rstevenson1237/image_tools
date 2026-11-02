@@ -11,11 +11,11 @@
  * Asset modules are arbitrary code from the game repo (D17): the loader runs them in the worker, never on the page.
  */
 import {
-  analytics, applyFinish, approvalEntry, isApprovable, diffJson, diffLines, assetDataSheet, assetStatus, dataSheetMarkdown, feedbackEntry, generatorMetrics, isSubjectKey, mapDirection, parseSubjectBrief, subjectDataSheet, subjectKey, subjectStatus, subjects, SUBJECT_KINDS, versionFile, versionOfFile, blindScores, briefDir, briefOrder, budgetFor, conformance, describeDirection,
+  analytics, applyFinish, defaultPlaceholder, diffStageKeys, shapeSheet, gatesFor, parsePlaceholder, placeholderChecks, placeholderKey, stageReport, stageState, stageVerdicts, STAGES, approvalEntry, isApprovable, diffJson, diffLines, assetDataSheet, assetStatus, dataSheetMarkdown, feedbackEntry, generatorMetrics, isSubjectKey, mapDirection, parseSubjectBrief, subjectDataSheet, subjectKey, subjectStatus, subjects, SUBJECT_KINDS, versionFile, versionOfFile, blindScores, briefDir, briefOrder, budgetFor, conformance, describeDirection,
   effectObjectIssues, encodePNG, finishBaseOf, finishStale, formatLedgerLine, Grid, isPlaceholderDirection, iso, lockDirection,
   mergeConfig, parseBriefs, parseDirection, parseLedger, parseVersion, passId, planPasses, PROBE_KINDS, pxPerMetre, animInput, standFrames,
   renderAsset, FACINGS, resolveSize, sourceHash, styleSheet, styleTile, TILE_KINDS, validateDirection, decodePNG, viewContext, stackStrip, parallaxStrip, fpRole, fpShots, autotileCount, autotileMap, Scene3D,
-  type AnalyticsReport, type AnimContract, type Check, type DataSheet, type GeneratorMetrics, type SubjectBrief, type SubjectKind, type AssetBudget, type AssetMeta, type AssetModule, type AssetStatus, type BriefEntry,
+  type AnalyticsReport, type AnimContract, type GateStage, type MetricsExport, type Placeholder, type StageCheck, type StageId, type StageKeys, type StageVerdict, type Check, type DataSheet, type GeneratorMetrics, type SubjectBrief, type SubjectKind, type AssetBudget, type AssetMeta, type AssetModule, type AssetStatus, type BriefEntry,
   type ConformanceReport, type Direction, type FeedbackOpen, type FinishModule, type LedgerEntry, type NextStep,
   type PassRow, type PatchRecord, type ProbeImages, type ProjectConfig, type RenderResult, type StyleTileColumn,
 } from 'artgen-core';
@@ -129,6 +129,25 @@ export interface AssetDetail {
   view: string;
   background?: string;
   facings: string[];
+}
+
+/** Where a stage stands against what the user approved (`artgen stages`'s states). */
+export type StageStatus = 'approved' | 'changed' | 'new' | 'rejected' | 'n/a';
+
+/** The stages of one version (R8's stage view): keys, the user's verdicts, the stage checks and, against another version, which stages that version's results can be reused for. */
+export interface StagesView {
+  id: string;
+  version: string;
+  keys: StageKeys;
+  states: Record<StageId, StageStatus>;
+  checks: StageCheck[];
+  gates: GateStage[];
+  /** The user's verdicts on the gated stages, oldest first. */
+  verdicts: StageVerdict[];
+  /** Cache status against another version: `same` = the stage's key is unchanged, so its result is reused; `changed` = it runs again. */
+  against?: { version: string; diff: Record<StageId, 'same' | 'changed' | 'added' | 'removed' | 'n/a'> };
+  /** Does the asset have a `placeholder.json` (else the brief's defaults are the placeholder)? */
+  placeholderFile: boolean;
 }
 
 const LEDGER = 'ledger.jsonl';
@@ -396,6 +415,89 @@ export class ArtProject {
     return { entry, opens, iterations };
   }
 
+  // ---- stages (docs/STAGES.md §5, R8): the same rules as the CLI's `stages.ts` ---------------------------------------------
+
+  /** `placeholder.json` parsed against the brief, or undefined (none, or a bad file: `artgen placeholder` reports it). */
+  private placeholderOf(a: AssetCtx): Placeholder | undefined {
+    const t = this.text(`${a.path}/placeholder.json`);
+    if (t === undefined) return undefined;
+    try { return parsePlaceholder(JSON.parse(t), a.brief, a.dir); } catch { return undefined; }
+  }
+
+  private gatesOf(a: AssetCtx): GateStage[] { return gatesFor(this.config().review.gates, a.brief); }
+
+  /** The stage keys and checks of a version (computed beside the conformance gate; they never change it). */
+  async stageReport(a: AssetCtx, version: string): Promise<{ keys: StageKeys; checks: StageCheck[] }> {
+    const r = await this.renderVersion(a, version);
+    return stageReport(r.render, a.dir, { brief: a.brief, placeholder: this.placeholderOf(a) });
+  }
+
+  /** The shape sheet of a version (`artgen review --stage shape`'s picture): the silhouettes against the placeholder, with the shape checks. Built on the page; nothing is written. */
+  async shapeSheet(id: string, version: string): Promise<Img> {
+    const a = this.asset(id), r = await this.renderVersion(a, version), rep = await this.stageReport(a, version);
+    const sheet = shapeSheet(r.render, a.dir, {
+      title: `${a.brief.review?.label ?? id} - ${version} shape`, placeholder: this.placeholderOf(a), checks: rep.checks.filter(c => c.stage === 'shape'), maxEdge: this.config().budget?.maxSheetEdge,
+    });
+    return img(sheet);
+  }
+
+  /** `artgen stages <id> --version v`, plus the cache status against `against` (another version of the same asset). */
+  async stages(id: string, version: string, against?: string): Promise<StagesView> {
+    const a = this.asset(id), rep = await this.stageReport(a, version), ledger = this.ledgerFor(id), keys = rep.keys;
+    const approval = [...ledger].reverse().find(e => e.type === 'approve' && e.by === 'user' && e.stages && typeof e.stages === 'object');
+    const states = Object.fromEntries(STAGES.map((s): [StageId, StageStatus] => {
+      const key = keys[s];
+      if (key === undefined) return [s, 'n/a'];
+      if (s === 'placeholder' || s === 'shape') {
+        const sv = stageState(ledger, s);
+        if (sv.latest?.key === key) return [s, sv.latest.verdict === 'approve' ? 'approved' : 'rejected'];
+        return [s, stageVerdicts(ledger, s).some(v => v.verdict === 'approve') ? 'changed' : 'new'];
+      }
+      const was = (approval?.stages as StageKeys | undefined)?.[s];
+      return [s, was === undefined ? 'new' : was === key ? 'approved' : 'changed'];
+    })) as Record<StageId, StageStatus>;
+    const other = against && against !== version ? { version: against, diff: diffStageKeys((await this.stageReport(a, against)).keys, keys) } : undefined;
+    return {
+      id, version, keys, states, checks: rep.checks, gates: this.gatesOf(a), verdicts: stageVerdicts(ledger), ...(other && { against: other }),
+      placeholderFile: this.text(`${a.path}/placeholder.json`) !== undefined,
+    };
+  }
+
+  /**
+   * The user's verdict on a gate (`artgen stage approve | reject`). An approval is refused while a check of that stage fails, unless
+   * `force` (then it is recorded as forced). The shape gate is judged on `version`; the placeholder gate on the placeholder in effect.
+   */
+  async stageVerdict(id: string, stage: GateStage, verdict: 'approve' | 'reject', o: { version?: string; note?: string; force?: boolean } = {}): Promise<{ entry: Omit<LedgerEntry, 'ts'>; checks: StageCheck[] }> {
+    const a = this.asset(id);
+    if (verdict === 'reject' && !o.note?.trim()) throw new Error('write what should change');
+    let key: string, checks: StageCheck[], version = o.version;
+    if (stage === 'placeholder') {
+      const ph = this.placeholderOf(a) ?? defaultPlaceholder(a.brief, a.dir);
+      key = placeholderKey(ph); checks = placeholderChecks(ph, a.brief, a.dir); version = undefined;
+    } else {
+      if (!version) throw new Error(`${id}: pick the version whose shape this is`);
+      const rep = await this.stageReport(a, version);
+      key = rep.keys.shape!; checks = rep.checks.filter(c => c.stage === 'shape');
+    }
+    const failing = checks.filter(c => c.status === 'fail');
+    if (verdict === 'approve' && failing.length && !o.force) throw new Error(`${id}: the ${stage} checks fail (${failing.map(c => `${c.id}: ${c.detail}`).join('; ')}) - fix it, or approve it as it is`);
+    const note = o.note?.trim();
+    const entry = {
+      type: 'stage' as const, asset: id, stage, verdict, key, ...(version && { version }), ...(note && { note }),
+      ...(verdict === 'approve' && failing.length && { forced: true }), via: 'image-tools', by: 'user' as const,
+    } as Omit<LedgerEntry, 'ts'>;
+    return { entry, checks };
+  }
+
+  // ---- metrics (R8): the exports under art/metrics/, pooled per artgen version on the page ---------------------------------------
+
+  /** The metrics exports in the project (`art/metrics/*.json`, written by `artgen metrics export`). */
+  metricsExports(): MetricsExport[] {
+    return Object.entries(this.snap.text).filter(([p]) => /^metrics\/[^/]+\.json$/.test(p)).sort(([a], [b]) => a.localeCompare(b)).flatMap(([, t]) => {
+      try { const j = JSON.parse(t) as MetricsExport; return (j.schema === 1 || j.schema === 2) && typeof j.repo === 'string' ? [j] : []; } catch { return []; }
+    });
+  }
+
   /** Ledger line for an entry (the store appends it). */
   static line(e: Omit<LedgerEntry, 'ts'>): string { return ledgerLine(e); }
 
@@ -409,6 +511,13 @@ export class ArtProject {
     // once there is map work in the ledger, the Generators table (as `artgen analytics` shows it)
     const maps = SUBJECT_KINDS.flatMap(kind => this.subjectIds(kind).map(id => ({ generator: kind as string, key: subjectKey(kind, id) })));
     return { report, metas, ...(ledger.some(e => isSubjectKey(e.asset)) && { generators: generatorMetrics(ledger, [...metas.map(m => ({ generator: 'art', key: m.id })), ...maps]) }) };
+  }
+
+  /** The metrics of every generator that has subjects (`art`, `map`, `dungeon`, `settlement`), as `artgen metrics export` writes them (R8's dashboard; `analytics()` adds them only once there is map work). */
+  generators(): Record<string, GeneratorMetrics> {
+    const metas = this.locked() ? this.briefs() : [], ledger = this.ledger();
+    const maps = SUBJECT_KINDS.flatMap(kind => this.subjectIds(kind).map(id => ({ generator: kind as string, key: subjectKey(kind, id) })));
+    return generatorMetrics(ledger, [...metas.map(m => ({ generator: 'art', key: m.id })), ...maps]);
   }
 
   // ---- maps, dungeons and settlements (docs/WORKFLOW.md §11): the same rules as the CLI's `workflow.ts`, over the snapshot ----------

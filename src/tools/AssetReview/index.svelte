@@ -11,13 +11,18 @@
   import { acquire } from '../../workers/workerRegistry';
   import type { ArtgenApi, RenderPayload } from '../../workers/artgen.worker';
   import type { AssetDetail, AssetRow, SubjectRow } from '../../core/project/engine';
+  import type { GateStage } from 'artgen-core';
+  import type { FormValues } from '../../core/ops/forms';
   import { project } from '../../core/project/store.svelte';
   import ProjectBar from '../../core/components/ProjectBar.svelte';
   import PixelPreview from '../../core/components/PixelPreview.svelte';
   import CompareView from '../../core/components/CompareView.svelte';
   import StatusBadge from '../../core/components/StatusBadge.svelte';
   import Analytics from './Analytics.svelte';
+  import StageGraph from './StageGraph.svelte';
+  import type { StagesView } from '../../core/project/engine';
   import SubjectReview from './SubjectReview.svelte';
+  import { useShortcuts } from '../../core/shell/shortcuts.svelte';
   import { fitScale, type Img, type Region } from '../../core/components/pixels';
 
   const lease = acquire<ArtgenApi>('artgen');
@@ -48,6 +53,12 @@
   let note = $state('');
   let route = $state<'base' | 'finish'>('finish');
   let approveNote = $state('');
+  /** The stage view of the version on the right of the compare, and the version its cache status is read against. */
+  let stagesView = $state<StagesView | null>(null);
+  let shapeImg = $state<Img | null>(null);
+  let stageAgainst = $state<string | null | undefined>(undefined);
+  /** Default: the version on the left of the compare; null: you chose to compare against nothing. */
+  const againstNow = $derived(stageAgainst === undefined ? (compareA && compareA !== compareB ? compareA : null) : stageAgainst === compareB ? null : stageAgainst);
   let showAnalytics = $state(false);
   let analytics = $state<AnalyticsReport | null>(null);
   let generators = $state<Record<string, GeneratorMetrics> | undefined>(undefined);
@@ -72,6 +83,21 @@
       .filter(f => Array.isArray(f.region) && f.on === detail?.row.final && (!f.cell || f.cell === cellId))
       .map((f, i) => ({ region: f.region as Region, label: `#${i + 1}` })),
   );
+
+  /** `j` and `k` move through the list (assets, then maps) in the order the gallery shows it; `s` jumps to the stages. */
+  function move(by: number) {
+    const keys = groups.flatMap(g => [...g.rows.map(r => ({ asset: r.id })), ...g.subjects.map(r => ({ subject: r }))]);
+    const at = keys.findIndex(k => ('asset' in k ? k.asset === selected : k.subject.key === selectedSubject));
+    const next = keys[Math.max(0, Math.min(keys.length - 1, at + by))];
+    if (!next) return;
+    if ('asset' in next) void select(next.asset); else pickSubject(next.subject);
+  }
+  useShortcuts('Asset Review', [
+    { key: 'j', label: 'next asset or map', run: () => move(1) },
+    { key: 'k', label: 'previous asset or map', run: () => move(-1) },
+    { key: 's', label: 'go to the stages', run: () => document.querySelector('[data-testid="stage-chain"]')?.scrollIntoView({ block: 'center' }) },
+    { key: 'a', label: 'open the analytics', run: () => void toggleAnalytics() },
+  ]);
 
   // re-read whenever the project (re)loads
   $effect(() => {
@@ -119,7 +145,7 @@
   async function select(id: string, keep = false) {
     const mine = ++selTicket;
     selected = id; selectedSubject = null;
-    if (!keep) { cellIndex = 0; region = null; note = ''; approveNote = ''; }
+    if (!keep) { stageAgainst = undefined; cellIndex = 0; region = null; note = ''; approveNote = ''; }
     try {
       const api = await project.sync(lease.api), d = await api.detail(id);
       const fr = d.row.final ? await api.render(id, d.row.final) : null;
@@ -156,6 +182,24 @@
     const mine = selTicket, api = await project.sync(lease.api);
     const a = compareA && selected ? await api.render(selected, compareA) : null, b = compareB && selected ? await api.render(selected, compareB) : null;
     if (mine === selTicket) { renderA = a; renderB = b; }
+    void loadStages(mine);
+  }
+
+  /** The stages of the compared version (a version that does not render, or an asset with no brief yet, simply has no stage view). */
+  async function loadStages(mine = selTicket) {
+    if (!selected || !compareB) { stagesView = null; shapeImg = null; return; }
+    try {
+      const api = await project.sync(lease.api), v = await api.stages(selected, compareB, againstNow ?? undefined);
+      const sheet = v.keys.shape ? await api.shapeSheet(selected, compareB).catch(() => null) : null;
+      if (mine === selTicket) { stagesView = v; shapeImg = sheet; }
+    } catch { if (mine === selTicket) { stagesView = null; shapeImg = null; } }
+  }
+
+  async function onStageVerdict(stage: GateStage, verdict: 'approve' | 'reject', v: FormValues) {
+    if (!selected || !stagesView) return;
+    const note = typeof v.note === 'string' ? v.note : '';
+    const r = await project.stageVerdict(lease.api, selected, stage, verdict, { version: stagesView.version, note, force: v.force === true });
+    if (r) await loadStages();
   }
 
   async function toggleAnalytics() {
@@ -316,6 +360,11 @@
                 <button type="button" onclick={requestChanges} disabled={!note.trim() || !['final', 'approved', 'exported', 'stale'].includes(row.status) || project.busy}>Send feedback</button>
               </div>
             </div>
+          {/if}
+
+          {#if stagesView}
+            <StageGraph view={stagesView} sheet={shapeImg} versions={detail.versions} against={againstNow} busy={project.busy}
+              onagainst={(v) => { stageAgainst = v; void loadStages(); }} onverdict={onStageVerdict} />
           {/if}
 
           <h3>Pass timeline</h3>

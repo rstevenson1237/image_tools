@@ -2,6 +2,8 @@
   import { groupedTools, toolsFor } from './core/tools/registry';
   import { activeTool } from './core/stores/activeTool.svelte';
   import { project } from './core/project/store.svelte';
+  import { shell, shortcuts, useShortcuts } from './core/shell/shortcuts.svelte';
+  import ShortcutHelp from './core/shell/ShortcutHelp.svelte';
 
   // the review UI shows the tools of the modules the served repo has installed
   const visible = $derived(toolsFor(project.modules));
@@ -9,12 +11,27 @@
     if (visible.length && !visible.some(t => t.id === activeTool.id)) activeTool.select(visible[0].id);
   });
 
+  /** `[` and `]` step through the tools in the sidebar's order. */
+  function step(by: number) {
+    const i = visible.findIndex(t => t.id === activeTool.id);
+    if (visible.length) activeTool.select(visible[(i + by + visible.length) % visible.length].id);
+  }
+  useShortcuts('Everywhere', [
+    { key: '?', label: 'show or hide this list', run: () => (shell.help = !shell.help) },
+    { key: '[', label: 'previous tool', run: () => step(-1) },
+    { key: ']', label: 'next tool', run: () => step(1) },
+    { key: 'r', label: 're-read the open project (after Claude Code changed it)', run: () => { if (project.files) void project.reload(); } },
+  ]);
+
   const definition = $derived(activeTool.definition);
 
   // Keyed on the tool id so switching tools destroys the previous component
   // tree — that unmount is what releases its Fabric canvas and worker lease.
   const loader = $derived(definition ? definition.load() : null);
 </script>
+
+<svelte:window onkeydown={(e) => { if (shortcuts.dispatch(e)) e.preventDefault(); }} />
+<ShortcutHelp />
 
 <div class="shell">
   <nav aria-label="Tools">
@@ -40,6 +57,7 @@
         {/each}
       </ul>
     {/each}
+    <p class="footnote"><button type="button" class="hint" onclick={() => (shell.help = true)}>Press <kbd>?</kbd> for shortcuts</button></p>
     <p class="footnote">{project.bundled ? 'Served by artgen ui from your repo; nothing leaves this machine.' : 'Everything runs locally in your browser.'}</p>
   </nav>
 
@@ -140,6 +158,8 @@
     color: var(--text-dim);
   }
 
+  .hint { background: transparent; border: none; padding: 0; color: var(--text-dim); font-size: 0.72rem; }
+  kbd { font: 0.72rem ui-monospace, monospace; padding: 0 0.3rem; border: 1px solid var(--border); border-radius: 3px; }
   main {
     min-width: 0;
     min-height: 0;

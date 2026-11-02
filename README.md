@@ -128,11 +128,18 @@ asset's base), `map trace` (a sketch becomes a map's ground), `cut` (a token fro
 - **Art Direction** — open a game's `art/` folder (File System Access in Chromium; a zip round trip elsewhere), edit
   palette ramps and style settings with a live style tile, compare candidates, save a draft or lock a new version.
 - **Asset Review** — finished assets by status, the pass timeline with scores, version compare, conformance; approve,
-  or request changes with notes pinned to regions of the sprite; pipeline analytics.
+  or request changes with notes pinned to regions of the sprite; maps, dungeons and settlements in the same list; the
+  asset's production stages as a chain (keys, what you approved, what a revision reuses), with your verdict on the
+  placeholder and shape gates; pipeline analytics.
+- **Metrics** — passes, tokens and minutes per approved asset or map, where the time goes, and exports from several
+  repos side by side per artgen version.
+- **Commands** — every `artgen` operation as a form generated from the operation registry, with the command line it
+  stands for; your own decisions (approve, stage approve and reject) can also run on the open project.
 - **Asset Lab** — drive an asset's params, seed and variant, and play it through the artgen runtime by state, facing
   and frame; export it alone as a pack.
 
-The art tools write the same files Claude Code reads, so changes made in either show up in the other.
+The art tools write the same files Claude Code reads, so changes made in either show up in the other. Press `?` in
+any tool for its keyboard shortcuts (`[` and `]` switch tools, `r` re-reads the project).
 
 ## Developing this repo
 

@@ -36,8 +36,8 @@
     ".claude/skills/artgen/references/review.md": "a4bd63443013275b",
     ".claude/skills/artgen/references/t2.md": "8c0e8e95a7ab295d",
     ".claude/skills/asset-production/SKILL.md": "1386a6a939cdffaa",
-    "tools/artgen/artgen-mcp.js": "54b3502614d19519",
-    "tools/artgen/artgen.js": "18ae9109ef2f6d67",
+    "tools/artgen/artgen-mcp.js": "4e51668181e41b20",
+    "tools/artgen/artgen.js": "cbcbef3a76987e56",
     "tools/artgen/runtime/adapters/canvas2d.ts": "e3983c0406cc9757",
     "tools/artgen/runtime/adapters/pixi.ts": "93c562c2f0badb5a",
     "tools/artgen/runtime/adapters/three.ts": "022809eb419acbf8",
@@ -112,7 +112,7 @@
     ".claude/skills/dungeon-map/SKILL.md": "cfeb22591f99c135",
     ".claude/skills/settlement-map/SKILL.md": "58953e8304434b03",
     ".claude/skills/terrain-map/SKILL.md": "c5510ec0d25d8206",
-    "tools/artgen/artgen-maps.js": "606c495e5e4a8315"
+    "tools/artgen/artgen-maps.js": "2bf32c9dcffc6d40"
   },
   "sources": {
     ".claude/commands/artgen-image.md": "packages/artgen-dist/content/core/commands/image.md",

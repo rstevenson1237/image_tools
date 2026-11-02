@@ -6,7 +6,8 @@ describe('tool registry', () => {
     expect(groupedTools().map(g => [g.id, g.tools.map(t => t.id)])).toEqual([
       ['image', ['token-cutter', 'svg-tracer', 'palette', 'slice']],
       ['maps', ['terrain-map', 'dungeon-map', 'settlement-map']],
-      ['art', ['art-direction', 'asset-review', 'asset-lab']],
+      ['art', ['art-direction', 'asset-review', 'metrics', 'asset-lab']],
+      ['suite', ['commands']],
     ]);
   });
   it('gives every tool a group and a unique id', () => {
@@ -17,7 +18,7 @@ describe('tool registry', () => {
   it('shows the tools of the modules a served repo has installed, and all of them when the modules are unknown', () => {
     const ids = (modules: string[] | null) => toolsFor(modules).map(t => t.id);
     expect(ids(null)).toEqual(tools.map(t => t.id));
-    expect(ids(['core', 'maps', 'ui'])).toEqual(['token-cutter', 'svg-tracer', 'palette', 'slice', 'terrain-map', 'dungeon-map', 'settlement-map', 'asset-review']);   // Asset Review lists maps in a maps-only repo
-    expect(ids(['core', 'art'])).toEqual(['token-cutter', 'svg-tracer', 'palette', 'slice', 'art-direction', 'asset-review', 'asset-lab']);
+    expect(ids(['core', 'maps', 'ui'])).toEqual(['token-cutter', 'svg-tracer', 'palette', 'slice', 'terrain-map', 'dungeon-map', 'settlement-map', 'asset-review', 'metrics', 'commands']);   // Asset Review lists maps in a maps-only repo
+    expect(ids(['core', 'art'])).toEqual(['token-cutter', 'svg-tracer', 'palette', 'slice', 'art-direction', 'asset-review', 'metrics', 'asset-lab', 'commands']);
   });
 });
