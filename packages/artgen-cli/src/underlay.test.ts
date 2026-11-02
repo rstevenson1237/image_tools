@@ -214,8 +214,11 @@ describe('room fills and walls without an underlay', () => {
 describe('what already renders, renders as before', () => {
   test('the first drawing of the Keep, a generated dungeon and the generated maps render byte for byte as they did (hashes from before A5 to A8)', () => {
     const flat = readDungeon(null, { file: F('keep-flat', 'dungeon.json') });
-    expect(hash(dungeon.renderDungeonSvg(flat, {}))).toBe('6b61723bc99aaf70463a26ba9ba7b5af70a50efecfa5d8a6ca8e9816963f927d');
-    expect(hash(dungeon.renderDungeonSvg(flat, { ppu: 12, crop: [0, 0, 50, 40] }))).toBe('65ad5f50314aafc03154c0c0b88b5741ed8ef99a66d9aeaa46a57b21d04d749b');
+    // room labels move off what they would lie on (R9 D4): held at their anchors, the Keep draws as it did
+    const held = { ...flat, rooms: flat.rooms.map(r => ({ ...r, labelAt: 'c' as const })) };
+    expect(hash(dungeon.renderDungeonSvg(held, {}))).toBe('6b61723bc99aaf70463a26ba9ba7b5af70a50efecfa5d8a6ca8e9816963f927d');
+    expect(hash(dungeon.renderDungeonSvg(held, { ppu: 12, crop: [0, 0, 50, 40] }))).toBe('65ad5f50314aafc03154c0c0b88b5741ed8ef99a66d9aeaa46a57b21d04d749b');
+    expect(hash(dungeon.renderDungeonSvg(flat, {}))).toBe('ad632297cb8b7e54b3b877afaf16d984d2e09aaa379abcd62175ef855bb6f2d4');
     // dungeon format 2 draws walls along corridors by default; with shared walls off, as format 1 drew it, the render is as it was
     const g = dungeon.generateDungeon(dungeon.newDungeon('g', { seed: 7 }));
     expect(hash(dungeon.renderDungeonSvg({ ...g, style: { ...g.style, sharedWalls: false } }, {}))).toBe('f1611f3817177e27831e629114ada16093f8aa861995bf594cfa5b324c1773e1');

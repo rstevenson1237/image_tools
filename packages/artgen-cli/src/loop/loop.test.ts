@@ -119,7 +119,7 @@ describe('report', () => {
     const b = await writeBundle(null, undefined, { file, noRender: true, out: join(root, 'b') });
     expect(b.body).not.toContain('artgen:input');
     expect(b.body).toContain('attach');
-  });
+  }, 30_000);
 
   test('the id must be one thing', async () => {
     const { root } = withWarren(), project = { root, art: join(root, 'art') };

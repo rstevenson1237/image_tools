@@ -73,6 +73,8 @@ export interface Room {
   hand?: string[];
   /** The point (cells) a `{room}` corridor end starts from and the badge sits on, in place of the one artgen picks (the centre, or a poly's deepest point). */
   anchor?: [number, number];
+  /** Where the room's number and name stand: by a wall (`n e s w`), at the anchor (`c`), or at [dx, dy] cells from the anchor. Unset: the anchor, moved by a wall when it would lie on a symbol or another room's label. */
+  labelAt?: 'c' | 'n' | 's' | 'w' | 'e' | [number, number];
 }
 
 /**
@@ -424,6 +426,7 @@ export function validateDungeon(raw: unknown): string[] {
     if (r?.href !== undefined && hrefError(r.href)) e.push(`${at}.href: ${hrefError(r.href)}`);
     if (r?.hand !== undefined && !(Array.isArray(r.hand) && r.hand.every(f => typeof f === 'string'))) e.push(`${at}.hand: field names`);
     if (r?.anchor !== undefined && !isPoint(r.anchor)) e.push(`${at}.anchor: [x, y] in cells`);
+    if (r?.labelAt !== undefined && !(isPoint(r.labelAt) || ['c', 'n', 's', 'w', 'e'].includes(r.labelAt as string))) e.push(`${at}.labelAt: n, s, w, e, c or [dx, dy] cells from the anchor`);
     originError(r, at, e);
   });
   const corridorIds = new Set<string>();

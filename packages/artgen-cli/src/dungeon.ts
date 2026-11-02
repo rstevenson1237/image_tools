@@ -159,7 +159,10 @@ export async function renderDungeonFiles(p: Project | null, ref: DungeonRef, o: 
   const svg = dungeon.renderDungeonSvg(m, { ...view, ppu, unit, ...(underlay && { underlay }) }), base = join(out, id);
   if (formats.includes('svg')) { writeFileSync(`${base}.svg`, svg); files.push(`${base}.svg`); }
   if (formats.includes('png')) { writeFileSync(`${base}.png`, encodePNG(rasterizeSvg(svg, size[0], size[1]))); files.push(`${base}.png`); }
-  return { files: files.map(f => relative(process.cwd(), f)), rooms: m.rooms.length, corridors: m.corridors.length, doors: layout.doors.length, size, crop, ppu, svg: svgSize([0, 0, px.width, px.height], 1, unit), pageScale: pageScale ?? null, unplaced: dungeon.dungeonLabelLayout(m, ppu, pageScale, layout).unplaced };
+  return { files: files.map(f => relative(process.cwd(), f)), rooms: m.rooms.length, corridors: m.corridors.length, doors: layout.doors.length, size, crop, ppu, svg: svgSize([0, 0, px.width, px.height], 1, unit), pageScale: pageScale ?? null, unplaced: [
+    ...dungeon.roomLabelLayout(m, layout, { ppu, pageScale }).filter(r => !r.placed).map(r => ({ room: m.rooms[r.room].id, text: m.rooms[r.room].label ?? String(layout.rooms[r.room].number ?? '') })),
+    ...dungeon.dungeonLabelLayout(m, ppu, pageScale, layout).unplaced,
+  ] };
 }
 
 /** Moved to `artgen-mapgen` with the dungeon edits (`dungeon/edit.ts`); re-exported for the MCP server and the tests that import them from here. */

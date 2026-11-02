@@ -100,6 +100,9 @@ export function linkEnds(m: DungeonSpec, a: unknown, b: unknown): [unknown, unkn
   return [ea, eb];
 }
 
+/** A room's `labelAt` from an edit: a side (n, s, w, e, c) or an offset (dx,dy cells). */
+const labelAt = (v: unknown): NonNullable<Room['labelAt']> => (typeof v === 'string' && ['c', 'n', 's', 'w', 'e'].includes(v) ? v as 'c' : pt(v));
+
 const show = (v: unknown): string => (typeof v === 'string' ? v : JSON.stringify(v));
 
 /** Apply one edit; returns what it did. */
@@ -114,6 +117,7 @@ export function editDungeon(m: DungeonSpec, o: DungeonOp): string {
       if (typeof o.number === 'number' || o.number === false) r.number = o.number;
       if (typeof o.fill === 'string' && o.fill) r.fill = o.fill as RoomFill;
       if (o.anchor !== undefined && o.anchor !== null) r.anchor = pt(o.anchor);
+      if (o.label_at !== undefined && o.label_at !== null && o.label_at !== '') r.labelAt = labelAt(o.label_at);
       if (typeof o.href === 'string' && o.href) r.href = o.href;
       if (typeof o.origin === 'string' && o.origin) r.origin = o.origin;
       m.rooms.push(r);
@@ -139,6 +143,7 @@ export function editDungeon(m: DungeonSpec, o: DungeonOp): string {
       if (typeof o.fill === 'string' && o.fill) { if (o.fill === 'floor') delete r.fill; else r.fill = o.fill as RoomFill; handEdit(r, ['fill']); }
       if (typeof o.href === 'string') { if (o.href) r.href = o.href; else delete r.href; }
       if (o.anchor === null || o.anchor === '') delete r.anchor; else if (o.anchor !== undefined) r.anchor = pt(o.anchor);
+      if (o.label_at === null || o.label_at === '') delete r.labelAt; else if (o.label_at !== undefined) r.labelAt = labelAt(o.label_at);
       return `changed ${r.id}`;
     }
     case 'remove_room': {

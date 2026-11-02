@@ -6,6 +6,7 @@
  */
 import { overlaps, textBox, type Box } from 'artgen-primitives/lib/page.ts';
 import { corridorBoundaries, doorStand } from './floor.ts';
+import { roomLabelLayout } from './roomlabels.ts';
 import { area2, lineLength, samples, segmentCross, selfCrossing, sharedEdges, type P } from './geom.ts';
 import { inPolygon, layoutDungeon, type DungeonLayout, type RoomGeom } from './layout.ts';
 import { corridorWallsOn, sharedWallsOn, type DungeonSpec, type Issue } from './spec.ts';
@@ -214,7 +215,14 @@ export function lintDungeon(spec: DungeonSpec, l: DungeonLayout = layoutDungeon(
   });
 
   // marks: off the sheet, symbols on a badge, labels on labels
-  const badges = spec.numbers ? l.rooms.flatMap(g => { const b = badgeBox(g); return b ? [{ g, b }] : []; }) : [];
+  // the rooms' labels where they are drawn: one that found no clear spot lies on a symbol (reported with the symbol) or on another room's label
+  const placed = roomLabelLayout(spec, l), badges = placed.flatMap(r => (r.badge ? [{ g: l.rooms[r.room], b: r.badge }] : []));
+  const block = (r: (typeof placed)[number]): Box[] => [r.badge, r.name].filter((b): b is Box => !!b);
+  placed.forEach((r, i) => {
+    if (r.placed) return;
+    const other = placed.find((q, j) => j < i && block(q).some(b => block(r).some(c => overlaps(b, c))));
+    if (other) add('label-overlap', 'warning', `rooms[${r.room}]`, `${l.rooms[r.room].room.id}'s label lies over ${l.rooms[other.room].room.id}'s and has no clear spot by its walls; set rooms[${r.room}].labelAt or move a room`);
+  });
   spec.overlay.symbols.forEach((s, i) => {
     const at = `overlay.symbols[${i}]`, z = (s.scale ?? 1) * 0.9, box: Box = { x: s.x - z / 2, y: s.y - z / 2, w: z, h: z };
     if (offSheet(s.x, s.y)) add('off-sheet', 'warning', at, `${s.kind} at ${s.x},${s.y} is off the sheet`);

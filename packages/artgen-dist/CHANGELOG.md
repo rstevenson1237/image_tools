@@ -53,6 +53,14 @@ Releases of the committed install (`artgen-dist`), the MCP server, the runtime i
 - An `auto` corridor between rooms that line up runs straight only where that run starts inside both rooms; for a poly room whose box is not
   its floor it takes the elbow from the anchor instead of starting outside the room.
 
+**Room labels that move and are checked (R9 D4)**
+- A room's number and name move, in every render, to the first clear spot inside the room by its north, south, west or east wall when at the
+  anchor they would lie on a symbol or another room's label. `rooms[].labelAt` puts them by a wall (`n s w e`), at the anchor (`c`), or at
+  `[dx, dy]` cells from it, and they stay there (`dungeon room add|set --label-at`). Overlay labels keep clear of room labels where they are drawn.
+- A room label with no clear spot is listed in a render's `--json` `unplaced` (`{room, text}`), and `check` warns `label-overlap` (one room's
+  label over another's) or `mark-on-badge` (on a symbol). The Keep's drawing changes only where its labels moved: held at their anchors it
+  renders as before, byte for byte.
+
 ## 0.11.0 — 2026-10-25
 
 Settlement maps (villages, towns, cities and castles, with each building's floor plans) join terrain maps and

@@ -20,7 +20,7 @@ describe('lintDungeon', () => {
     const off = base({ rooms: [{ id: 'x', shape: 'rect', x: 27, y: 2, w: 6, h: 4 }, { id: 'y', shape: 'rect', x: 40, y: 2, w: 2, h: 2 }] });
     expect(D.lintDungeon(off).map(f => f.message)).toEqual([expect.stringContaining('runs off the sheet'), expect.stringContaining('is off the sheet')]);
     const over = base({ rooms: [{ id: 'a', shape: 'rect', x: 2, y: 2, w: 6, h: 4 }, { id: 'b', shape: 'rect', x: 5, y: 3, w: 6, h: 4 }, { id: 'c', shape: 'rect', x: 4, y: 3, w: 2, h: 2, fill: 'cellar' }] });
-    expect(D.lintDungeon(over)).toEqual([{ severity: 'warning', path: 'rooms[1]', id: 'rooms-overlap', message: expect.stringMatching(/b lies over a \(9 cells\)/) }]);
+    expect(D.lintDungeon(over).filter(f => f.id === 'rooms-overlap')).toEqual([{ severity: 'warning', path: 'rooms[1]', id: 'rooms-overlap', message: expect.stringMatching(/b lies over a \(9 cells\)/) }]);
   });
 
   test('corridors: through a third room, crossing another, never leaving a room, ending inside one, a repeated bend', () => {
@@ -49,8 +49,12 @@ describe('lintDungeon', () => {
         symbols: [{ kind: 'pillar', x: 5, y: 4 }, { kind: 'altar', x: -1, y: 4 }],
       },
     });
-    expect(paths(s)).toEqual(['warning overlay.symbols[0]', 'warning overlay.symbols[1]', 'warning overlay.labels[1]', 'warning overlay.labels[2]']);
-    expect(paths({ ...s, numbers: false })).not.toContain('warning overlay.symbols[0]');
+    // the pillar at a's anchor: a's number moves by a wall, clear of it, so nothing is reported for it
+    expect(paths(s)).toEqual(['warning overlay.symbols[1]', 'warning overlay.labels[1]', 'warning overlay.labels[2]']);
+    expect(D.roomLabelLayout(s, D.layoutDungeon(s))[0]).toMatchObject({ moved: true, placed: true });
+    // a label held at the anchor (labelAt c) stays on the pillar, and check says so
+    const held = { ...s, rooms: [{ ...s.rooms[0], labelAt: 'c' as const }] };
+    expect(paths(held)).toContain('warning overlay.symbols[0]');
   });
 });
 

@@ -325,3 +325,39 @@ describe('ports on the wall and doors along it (R9 D3)', () => {
     expect(D.validateDungeon({ ...sp, rooms: [{ ...ell, anchor: [3] as unknown as [number, number] }, far] })).toEqual(['rooms[0].anchor: [x, y] in cells']);
   });
 });
+
+describe('room labels that move and are checked (R9 D4)', () => {
+  const over = (a: { x: number; y: number; w: number; h: number }, b: typeof a) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+  const boxes = (s: D.DungeonSpec) => D.roomLabelLayout(s, D.layoutDungeon(s)).map(r => [r.badge, r.name].filter(Boolean) as { x: number; y: number; w: number; h: number }[]);
+
+  test('two adjacent 10 ft halls: the second hall\'s label moves along its hall, clear of the first\'s', () => {
+    // at 10 ft a cell, each hall one cell wide and side by side: labels wider than a hall overlap at the anchors
+    const halls: D.Room[] = [{ id: 'a', shape: 'rect', x: 2, y: 2, w: 1, h: 8, label: 'G.12 Hall', number: false }, { id: 'b', shape: 'rect', x: 3, y: 2, w: 1, h: 8, label: 'G.13 Hall', number: false }];
+    const s = D.newDungeon('h', { cols: 8, rows: 12, scale: { perCell: 10, unit: 'ft' }, rooms: halls, corridors: [], connections: [{ a: 'a', b: 'b' }] });
+    const [a, b] = boxes(s);
+    expect(a.some(p => b.some(q => over(p, q)))).toBe(false);
+    expect(D.lintDungeon(s).filter(f => f.id === 'label-overlap')).toEqual([]);
+    // held at the anchor, they overlap, and check says so
+    const held = { ...s, rooms: halls.map(r => ({ ...r, labelAt: 'c' as const })) };
+    expect(D.lintDungeon(held).filter(f => f.id === 'label-overlap').map(f => f.path)).toEqual(['rooms[1]']);
+  });
+
+  test('a stair in a 10 x 20 ft room: the room\'s label moves off the stair to a wall of its own room', () => {
+    const s = D.newDungeon('st', { cols: 10, rows: 10, rooms: [{ id: 'r', shape: 'rect', x: 3, y: 2, w: 2, h: 4, label: 'G.3', number: false }], corridors: [], overlay: { labels: [], symbols: [{ kind: 'stairs-down', x: 4, y: 4 }] } });
+    const l = D.roomLabelLayout(s, D.layoutDungeon(s))[0];
+    expect(l).toMatchObject({ placed: true, moved: true });
+    expect(l.name!.y).toBeGreaterThanOrEqual(2);
+    expect(l.name!.y + l.name!.h).toBeLessThanOrEqual(6);
+    expect(over(l.name!, { x: 3.55, y: 3.55, w: 0.9, h: 0.9 })).toBe(false);
+  });
+
+  test('labelAt puts a label by a wall or at an offset, and it stays there; render --json lists a room label with no clear spot', () => {
+    const s = D.newDungeon('la', { cols: 12, rows: 10, rooms: [{ id: 'r', shape: 'rect', x: 2, y: 2, w: 8, h: 6, label: 'Hall', labelAt: 's' }], corridors: [] });
+    const r = D.roomLabelLayout(s, D.layoutDungeon(s))[0];
+    expect(r.y).toBeLessThan(8);
+    expect(r.name!.y + r.name!.h).toBeCloseTo(8 - 0.2, 5);
+    const moved = { ...s, rooms: [{ ...s.rooms[0], labelAt: [1, -2] as [number, number] }] }, off = D.roomLabelLayout(moved, D.layoutDungeon(moved))[0];
+    expect([off.x, off.y]).toEqual([7, 3]);
+    expect(D.validateDungeon({ ...s, rooms: [{ ...s.rooms[0], labelAt: 'x' as 'n' }] })).toEqual(['rooms[0].labelAt: n, s, w, e, c or [dx, dy] cells from the anchor']);
+  });
+});

@@ -20,6 +20,7 @@ import { layoutExits } from './exits.ts';
 import { area2 } from './geom.ts';
 import { coversContent, placeFurniture, type FurnitureItem, type FurnitureLayout } from './furniture.ts';
 import { underlaySvg } from './underlay.ts';
+import { nameSize, numberSize, roomLabelLayout } from './roomlabels.ts';
 import { layoutWalls } from './walls.ts';
 
 export const DUNGEON_LAYERS = ['underlay', 'rock', 'floors', 'buildings', 'enclosure', 'grid', 'exits', 'doors', 'symbols', 'cellars', 'numbers', 'labels', 'legend', 'title', 'scale', 'compass'] as const;
@@ -54,8 +55,8 @@ const ROOF = '#dcdcdc', RIDGE = '#8c8c8c';
 /** What a room is, whatever the file leaves out. */
 const fillOf = (r: Room) => r.fill ?? 'floor';
 
-/** A label that found no free spot on the page, with its index in `overlay.labels`. */
-export interface UnplacedLabel { index: number; text: string }
+/** A label that found no free spot: an overlay label, with its index in `overlay.labels`, or a room's own label, with the room's id. */
+export interface UnplacedLabel { index?: number; room?: string; text: string }
 
 const BASE_PX = { area: 24, name: 15, note: 12 } as const;
 
@@ -64,9 +65,6 @@ function labelSize(l: DungeonLabel, u: number, pageScale?: number): number {
   return (pageScale ? pointsToPx(PAGE_PT.dungeon[l.kind], pageScale) : BASE_PX[l.kind] * u) * (l.size ?? 1);
 }
 
-/** The room number and name sizes in pixels. */
-const numberSize = (u: number, pageScale?: number) => (pageScale ? pointsToPx(PAGE_PT.dungeon.number, pageScale) : 19 * u);
-const nameSize = (u: number, pageScale?: number) => (pageScale ? pointsToPx(PAGE_PT.dungeon.room, pageScale) : 15 * u);
 
 /**
  * Where each overlay label is drawn, and the labels that could not be kept clear of the others or of a symbol or a room's
@@ -76,11 +74,8 @@ export function dungeonLabelLayout(spec: DungeonSpec, k: number, pageScale?: num
   const raw = spec.overlay.labels.map(lb => ({ x: lb.x * k, y: lb.y * k }));
   if (!pageScale) return { at: raw, unplaced: [] };
   const u = pageUnit(pageScale), obstacles: Box[] = spec.overlay.symbols.map(s => { const z = PAGE_SYMBOL_MM * pageScale * (s.scale ?? 1); return { x: s.x * k - z / 2, y: s.y * k - z / 2, w: z, h: z }; });
-  for (const g of l.rooms) {
-    const x = g.cx * k, y = g.cy * k, fs = numberSize(u, pageScale), badge = numbers && g.number !== undefined;
-    if (badge) { const txt = String(g.number), bh = fs * 1.45, bw = Math.max(bh, txt.length * fs * 0.62 + fs * 0.7); obstacles.push({ x: x - bw / 2, y: y - bh / 2, w: bw, h: bh }); }
-    if (g.room.label) obstacles.push(textBox(g.room.label, x, y + (badge ? fs * 1.6 : fs * 0.3), nameSize(u, pageScale), { bold: true }));
-  }
+  // the rooms' badges and names, where they are drawn
+  for (const r of roomLabelLayout(spec, l, { ppu: k, pageScale, numbers })) for (const b of [r.badge, r.name]) if (b) obstacles.push({ x: b.x * k, y: b.y * k, w: b.w * k, h: b.h * k });
   const items: PlaceLabel[] = spec.overlay.labels.map(lb => {
     const size = labelSize(lb, u, pageScale), text = lb.kind === 'area' ? lb.text.toUpperCase() : lb.text;
     return { x: lb.x * k, y: lb.y * k, box: textBox(text, lb.x * k, lb.y * k + size * 0.35, size, { bold: lb.kind !== 'note', spacing: lb.kind === 'area' ? size * 0.16 : 0 }), clear: 0 };
@@ -342,8 +337,11 @@ export function renderDungeonSvg(spec: DungeonSpec, o: RenderDungeonOptions = {}
 
   if (on.numbers || on.labels) {
     let nums = '', names = '';
+    const placed = new Map(roomLabelLayout(spec, l, { ppu: k, pageScale: o.pageScale, numbers: on.numbers, labels: on.labels }).map(r => [r.room, r]));
     for (const g of l.rooms) {
-      const x = g.cx * k, y = g.cy * k, badge = on.numbers && g.number !== undefined;
+      const at = placed.get(g.index);
+      if (!at) continue;
+      const x = at.x * k, y = at.y * k, badge = on.numbers && g.number !== undefined;
       if (badge) {
         const txt = String(g.number), fs = numberSize(u, o.pageScale), bh = fs * 1.45, bw = Math.max(bh, txt.length * fs * 0.62 + fs * 0.7);
         nums += linked(g.room.href, `<rect x="${n1(x - bw / 2)}" y="${n1(y - bh / 2)}" width="${n1(bw)}" height="${n1(bh)}" rx="${n1(bh * 0.32)}" fill="${INK}"/><text x="${n1(x)}" y="${n1(y + fs * 0.36)}" font-size="${n1(fs)}" font-weight="700" text-anchor="middle" fill="${PAPER}">${esc(txt)}</text>`);

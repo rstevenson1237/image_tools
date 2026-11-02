@@ -15,3 +15,4 @@ export { FURNITURE_PLACES, FURNITURE_SIDES, coversContent, placeFurniture, type 
 export { layoutExits, EXIT_FADE, type ExitGeom } from './exits.ts';
 export { splitBlock, applyBlock, removeBlock, blockOutline, blockRoomNear, clipToRect, hexPoints } from './blocks.ts';
 export { DUNGEON_OPS, editDungeon, linkEnds, cornerPoint, corridorEnd, doorPair, gridMode, type DungeonOp } from './edit.ts';
+export { roomLabelLayout, numberSize, nameSize, LABEL_SIDES, type RoomLabel, type LabelSide } from './roomlabels.ts';

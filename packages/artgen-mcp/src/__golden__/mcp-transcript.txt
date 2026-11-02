@@ -2678,7 +2678,7 @@ text: {
   "pageScale": null,
   "unplaced": []
 }
-image image/png: 947x408 sha256:5e74ebc0377c0bd4
+image image/png: 947x408 sha256:f512ecce92defc6d
 
 ### dungeon_render {"id":"cell","ppu":6,"layers":{"grid":false}}
 text: {
