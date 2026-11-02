@@ -171,14 +171,14 @@ const style = defineOp({
     id: idParam('the dungeon id', 'dungeon style: <id>'), path: pathParam('dungeon'), hatch: p.oneOf(dungeon.HATCH_STYLES, 'band | full | none'), band: p.num('cells of hatching along the walls'), wall: p.num('wall weight'),
     numbers: p.bool('show room numbers', { style: 'onoff' }), scale_bar: p.bool('show the scale bar', { style: 'onoff' }), compass: p.bool('show the compass', { style: 'onoff' }), legend: p.bool('show the legend', { style: 'onoff' }),
     title: p.str('the title ("" removes it)'), per_cell: p.num('map units in one cell'), unit: p.str('the scale unit, e.g. ft'),
-    furniture: p.oneOf(dungeon.FURNITURE_PLACES, 'over | outside | auto'), furniture_side: p.oneOf(dungeon.FURNITURE_SIDES, 'bottom | right'), shared_walls: p.str('on | off | auto'),
+    furniture: p.oneOf(dungeon.FURNITURE_PLACES, 'over | outside | auto'), furniture_side: p.oneOf(dungeon.FURNITURE_SIDES, 'bottom | right'), shared_walls: p.str('on (walls wherever two floors touch, the default) | rooms (between rooms only) | off | auto (the default)'),
   },
   run(i: Inp, ctx) {
     return updateDungeon(projectOf(i, ctx), refOf(i), m => {
       if (i.hatch) m.style.hatch = i.hatch;
       if (i.band !== undefined) m.style.band = i.band;
       if (i.wall !== undefined) m.style.wall = i.wall;
-      if (i.shared_walls === 'auto') delete m.style.sharedWalls; else if (i.shared_walls !== undefined) m.style.sharedWalls = onOff(i.shared_walls)!;
+      if (i.shared_walls === 'auto') delete m.style.sharedWalls; else if (i.shared_walls === 'rooms') m.style.sharedWalls = 'rooms'; else if (i.shared_walls !== undefined) m.style.sharedWalls = onOff(i.shared_walls)!;
       if (i.title !== undefined) { if (i.title) m.title = i.title; else delete m.title; }
       for (const k of ['numbers', 'scale_bar', 'compass', 'legend'] as const) if (i[k] !== undefined) m[k === 'scale_bar' ? 'scaleBar' : k] = i[k];
       if (i.per_cell !== undefined) m.scale.perCell = i.per_cell;
@@ -191,7 +191,7 @@ const style = defineOp({
     });
   },
   cli: {
-    usage: '       artgen dungeon style <id> [--hatch band|full|none] [--band n] [--wall f] [--numbers on|off] [--scale-bar on|off] [--compass on|off] [--legend on|off] [--title "..."] [--per-cell n] [--unit ft] [--furniture over|outside|auto] [--furniture-side bottom|right] [--shared-walls on|off|auto]',
+    usage: '       artgen dungeon style <id> [--hatch band|full|none] [--band n] [--wall f] [--numbers on|off] [--scale-bar on|off] [--compass on|off] [--legend on|off] [--title "..."] [--per-cell n] [--unit ft] [--furniture over|outside|auto] [--furniture-side bottom|right] [--shared-walls on|rooms|off|auto]',
     text: (m, i) => `${describeDungeon(m)}\n${next(i, m.id)}`, json: m => V(m),
   },
   mcp: { exclude: 'dungeon_update covers it' }, python: {},

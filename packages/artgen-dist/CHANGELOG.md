@@ -33,6 +33,15 @@ Releases of the committed install (`artgen-dist`), the MCP server, the runtime i
   partial overlap of their walls get the whole shared stretch as a wall, and corner to corner none; an anticlockwise poly lays out as the
   clockwise one; a connection wider than its wall is drawn whole, and `check` says the wall is too short.
 
+**Walls wherever two floors meet; dungeon format 1 -> 2 (R9 D2)**
+- dungeon format 1 -> 2: `style.sharedWalls` defaults to walls between any two units that touch (room and room, room and corridor, corridor
+  and corridor), and `true` means that. `"rooms"` is format 1's `true` (between rooms only) and `false` draws none. A wall is left out where a
+  floor runs into another (a corridor into its room, two corridors sharing cells) and at a connection's opening. The migration writes what
+  format 1 drew: `true` becomes `"rooms"`, and an unset value becomes `"rooms"` when the file has connections or blocks, else `false`. A format
+  1 file draws as it did, byte for byte. `rooms-merge` and `corridor-along-wall` report what is left when the walls are off.
+- `dungeon style --shared-walls on|rooms|off|auto`; `auto` leaves the default (on).
+- The setting-builder dungeon fixtures are migrated to format 2 (`migrated:` in each `case.md`).
+
 ## 0.11.0 — 2026-10-25
 
 Settlement maps (villages, towns, cities and castles, with each building's floor plans) join terrain maps and

@@ -7,7 +7,7 @@
  */
 import { rng } from 'artgen-primitives/lib/rng.ts';
 import { chaikin } from 'artgen-primitives/lib/trace.ts';
-import { DEFAULTS as DUNGEON_DEFAULTS, type DungeonSpec } from '../dungeon/spec.ts';
+import { DEFAULTS as DUNGEON_DEFAULTS, DUNGEON_FORMAT, type DungeonSpec } from '../dungeon/spec.ts';
 import { idSeed, inPolygon, layoutDungeon, roomOutline, type RoomGeom } from '../dungeon/layout.ts';
 import { edges, lineLength, nearestOnLine, sharedEdges, type P } from '../dungeon/geom.ts';
 import { fixtureSize } from './fixtures.ts';
@@ -258,8 +258,8 @@ export interface FloorLayout {
 export function floorAsDungeon(floor: Floor, w: number, h: number): DungeonSpec {
   const d = structuredClone(DUNGEON_DEFAULTS);
   return {
-    ...d, id: 'floor', version: 1, seed: 1, cols: Math.max(4, Math.ceil(w)), rows: Math.max(4, Math.ceil(h)),
-    style: { ...d.style, hatch: 'none', sharedWalls: true },
+    ...d, id: 'floor', version: DUNGEON_FORMAT, seed: 1, cols: Math.max(4, Math.ceil(w)), rows: Math.max(4, Math.ceil(h)),
+    style: { ...d.style, hatch: 'none', sharedWalls: 'rooms' },
     rooms: floor.rooms.map(r => ({ ...r, fill: 'floor' as const })), corridors: [], connections: floor.connections ?? [], overlay: { labels: [], symbols: [] },
   };
 }

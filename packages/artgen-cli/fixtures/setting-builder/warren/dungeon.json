@@ -22,7 +22,8 @@
   "style": {
     "hatch": "band",
     "band": 0.9,
-    "wall": 1
+    "wall": 1,
+    "sharedWalls": false
   },
   "scale": {
     "perCell": 5,
@@ -34,7 +35,7 @@
   "seed": 732232,
   "title": "F Kobold Warren",
   "id": "f",
-  "version": 1,
+  "version": 2,
   "rooms": [
     {
       "id": "r1",

@@ -16,8 +16,8 @@ describe('artgen formats', () => {
   beforeAll(async () => { await run('init', ...R); });
 
   test('prints every version', async () => {
-    expect(JSON.parse((await run('formats', '--json')).out)).toEqual({ map: 1, dungeon: 1, settlement: 1 });
-    expect((await run('formats')).out).toBe('map 1\ndungeon 1\nsettlement 1');
+    expect(JSON.parse((await run('formats', '--json')).out)).toEqual({ map: 1, dungeon: 2, settlement: 1 });
+    expect((await run('formats')).out).toBe('map 1\ndungeon 2\nsettlement 1');
   });
 
   test('every map and dungeon --json result carries the version', async () => {
@@ -26,7 +26,7 @@ describe('artgen formats', () => {
     for (const args of [['map', 'new', 'v2', '--size', '8x8'], ['map', 'show', 'vale'], ['map', 'list'], ['map', 'symbols'], ['map', 'label', 'vale', 'Hi', '--at', '2,2'], ['map', 'render', 'vale', '--format', 'svg'],
       ['dungeon', 'show', 'cell'], ['dungeon', 'list'], ['dungeon', 'symbols'], ['dungeon', 'room', 'cell', 'add', 'rect', '--at', '20,20', '--size', '3x3'], ['dungeon', 'render', 'cell', '--format', 'svg']]) {
       const r = JSON.parse((await run(...args, '--json', ...R)).out);
-      expect(r.version, args.join(' ')).toBe(1);
+      expect(r.version, args.join(' ')).toBe(args[0] === 'dungeon' ? 2 : 1);
     }
     expect(JSON.parse((await run('map', 'list', '--json', ...R)).out).items).toHaveLength(2);
   });
@@ -42,6 +42,6 @@ describe('artgen formats', () => {
     const dFile = join(root, 'art', 'dungeons', 'cell', 'dungeon.json'), d = JSON.parse(readFileSync(dFile, 'utf8'));
     mkdirSync(join(root, 'art', 'dungeons', 'cell'), { recursive: true });
     writeFileSync(dFile, JSON.stringify({ ...d, version: 9 }));
-    await expect(run('dungeon', 'show', 'cell', ...R)).rejects.toThrow(/dungeon is format version 9.*reads dungeon format 1/);
+    await expect(run('dungeon', 'show', 'cell', ...R)).rejects.toThrow(/dungeon is format version 9.*reads dungeon format 2/);
   });
 });

@@ -1,6 +1,7 @@
 # G-a — packed level G.a, nineteen rooms through shared walls and five routed passages
 
-format: dungeon 1
+format: dungeon 2
+migrated: dungeon format 1 -> 2 (R9 D2): `style.sharedWalls: "rooms"`, what format 1 drew
 consumer: rstevenson1237/setting_builder at 81a21529ad962c96d7d75e3f4cf03df43f08bd83 (claude/gallant-bardeen-pt0nlz), reported with `artgen report`
 artgen: dev, maps 0.11.0
 

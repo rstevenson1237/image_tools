@@ -8,7 +8,7 @@ import { overlaps, textBox, type Box } from 'artgen-primitives/lib/page.ts';
 import { corridorBoundaries, doorStand } from './floor.ts';
 import { area2, lineLength, samples, segmentCross, selfCrossing, sharedEdges, type P } from './geom.ts';
 import { inPolygon, layoutDungeon, type DungeonLayout, type RoomGeom } from './layout.ts';
-import { sharedWallsOn, type DungeonSpec, type Issue } from './spec.ts';
+import { corridorWallsOn, sharedWallsOn, type DungeonSpec, type Issue } from './spec.ts';
 
 export type Severity = 'error' | 'warning';
 /** A finding: where, what, how bad, and a stable `id` for its kind, so a consumer can raise chosen kinds to errors (`CHECK_IDS`). */
@@ -125,7 +125,7 @@ export function lintDungeon(spec: DungeonSpec, l: DungeonLayout = layoutDungeon(
     const floors = l.rooms.filter(g => (g.room.fill ?? 'floor') === 'floor');
     for (let a = 0; a < floors.length; a++) for (let b = a + 1; b < floors.length; b++) {
       const A = floors[a], B = floors[b], along = sharedEdges(A.outline, B.outline).reduce((s, [p, q]) => s + Math.hypot(q[0] - p[0], q[1] - p[1]), 0);
-      if (along > 1e-6) add('rooms-merge', 'warning', `rooms[${B.index}]`, `${B.room.id} touches ${A.room.id} along ${along.toFixed(1)} cells and shared walls are off, so their floors run together; set style.sharedWalls`);
+      if (along > 1e-6) add('rooms-merge', 'warning', `rooms[${B.index}]`, `${B.room.id} touches ${A.room.id} along ${along.toFixed(1)} cells and shared walls are off, so their floors run together; leave style.sharedWalls unset (or true)`);
     }
   }
 
@@ -184,14 +184,14 @@ export function lintDungeon(spec: DungeonSpec, l: DungeonLayout = layoutDungeon(
 
   // a corridor's floor against a room's wall: with no wall drawn between them, the two floors run together
   const along = new Map<string, number>();
-  for (const b of corridorBoundaries(l)) {
+  for (const b of corridorWallsOn(spec) ? [] : corridorBoundaries(l)) {
     if (!('room' in b.a) || !('corridor' in b.b)) continue;
     const k = `${b.b.corridor},${b.a.room}`;
     along.set(k, (along.get(k) ?? 0) + Math.hypot(b.seg[1][0] - b.seg[0][0], b.seg[1][1] - b.seg[0][1]));
   }
   for (const [k, n] of along) {
     const [ci, ri] = k.split(',').map(Number);
-    add('corridor-along-wall', 'warning', `corridors[${ci}]`, `runs along ${l.rooms[ri].room.id}'s wall for ${n.toFixed(1)} cells with no wall drawn between them, so the floors run together`);
+    add('corridor-along-wall', 'warning', `corridors[${ci}]`, `runs along ${l.rooms[ri].room.id}'s wall for ${n.toFixed(1)} cells with no wall drawn between them, so the floors run together; style.sharedWalls: true draws one`);
   }
 
   // doors: each stands on a wall between two floors, and on no other door

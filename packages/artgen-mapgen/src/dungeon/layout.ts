@@ -6,7 +6,8 @@ import { rng } from 'artgen-primitives/lib/rng.ts';
 import { chaikin } from 'artgen-primitives/lib/trace.ts';
 import { junctionPort, naturalOutline, portRoute, routeAround, sidePort, smoothLine, snap, tidy, type Port } from './corridors.ts';
 import { sharedEdges, type P } from './geom.ts';
-import { corridorOrder, sharedWallsOn, type Corridor, type DoorKind, type DungeonSpec, type Room } from './spec.ts';
+import { corridorBoundaries } from './floor.ts';
+import { corridorOrder, corridorWallsOn, sharedWallsOn, type Corridor, type DoorKind, type DungeonSpec, type Room } from './spec.ts';
 import { layoutWalls } from './walls.ts';
 
 export interface RoomGeom { room: Room; index: number; outline: number[]; cx: number; cy: number; number?: number }
@@ -21,7 +22,10 @@ export interface ConnectionGeom { index: number; a: string; b: string; kind: Doo
 export interface DungeonLayout {
   rooms: RoomGeom[]; corridors: CorridorGeom[]; doors: DoorGeom[];
   connections: ConnectionGeom[];
-  /** The walls touching floor rooms share, with the openings of their connections cut out, as x0,y0,x1,y1 segments (none when `style.sharedWalls` is off). */
+  /**
+   * The walls where floors meet, as x0,y0,x1,y1 segments: between touching floor rooms, less the openings of their connections,
+   * and (with `style.sharedWalls: true`) where a corridor's floor touches a room's or another corridor's, less where it runs into one.
+   */
   partitions: number[][];
 }
 
@@ -196,7 +200,9 @@ export function layoutDungeon(spec: DungeonSpec): DungeonLayout {
   corridors.forEach((g, index) => g.ends.forEach((p, i) => { const kind = spec.corridors[index].doors?.[i]; if (p && kind) doors.push({ kind, x: p.x, y: p.y, angle: p.angle, width: g.width, corridor: index }); }));
   const { connections, partitions } = layoutConnections(spec, rooms, byId);
   for (const c of connections) if (c.kind !== 'open' && c.wall) doors.push({ kind: c.kind, x: c.x, y: c.y, angle: c.angle, width: c.width, corridor: -1, connection: c.index, inner: true });
-  return { rooms, corridors, doors, connections, partitions };
+  const l = { rooms, corridors, doors, connections, partitions };
+  if (corridorWallsOn(spec)) for (const b of corridorBoundaries(l)) partitions.push([b.seg[0][0], b.seg[0][1], b.seg[1][0], b.seg[1][1]]);
+  return l;
 }
 
 /** Whether two rooms' boxes touch or overlap (a cheap test before looking for a shared wall). */

@@ -1,6 +1,7 @@
 # keep-cellars — the Keep's lower level (artgen A5)
 
-format: dungeon 1
+format: dungeon 2
+migrated: dungeon format 1 -> 2 (R9 D2): `style.sharedWalls: false`, what format 1 drew
 consumer: setting_builder at a34e7f5c90986c052e960ddf716c214aed658ff1 (main), `plans/sheet-maps/prototype/to_dungeon.py`; this case is built in artgen from `brief-underlay.md`
 artgen: `underlay` and room `fill` (optional fields: the format version is unchanged), see the CHANGELOG
 

@@ -70,8 +70,11 @@ describe('drawing defects a consumer used to find by rebuilding the floor (R9 D1
   test('corridor-along-wall: a corridor laid against a room\'s wall, with nothing drawn between them', () => {
     const rooms: D.Room[] = [{ id: 'a', shape: 'rect', x: 2, y: 2, w: 4, h: 4 }, { id: 'm', shape: 'rect', x: 8, y: 2, w: 6, h: 3 }, { id: 'b', shape: 'rect', x: 16, y: 2, w: 4, h: 4 }];
     // from a's east wall along m's south wall (y 5) to b: the band y 5..6 touches m along x 8..14
-    const s = base({ rooms, corridors: [{ from: { room: 'a', side: 'e', offset: 3.5 }, to: { room: 'b', side: 'w', offset: 3.5 } }] });
+    const s = base({ style: { ...D.DEFAULTS.style, sharedWalls: 'rooms' }, rooms, corridors: [{ from: { room: 'a', side: 'e', offset: 3.5 }, to: { room: 'b', side: 'w', offset: 3.5 } }] });
     expect(D.lintDungeon(s).filter(f => f.id === 'corridor-along-wall').map(f => f.message)).toEqual([expect.stringMatching(/runs along m's wall for 6\.0 cells/)]);
+    // with walls between any two units (the default) one is drawn there, and nothing is reported
+    expect(D.lintDungeon({ ...s, style: { ...s.style, sharedWalls: true } }).filter(f => f.id === 'corridor-along-wall')).toEqual([]);
+    expect(D.layoutDungeon({ ...s, style: { ...s.style, sharedWalls: true } }).partitions).toEqual([[14, 5, 8, 5]]);
   });
 
   test('door-off-wall and doors-stacked: a door in open floor, on rock, or on another door', () => {

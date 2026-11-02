@@ -1,6 +1,7 @@
 # shrine-crypts — dungeon.json of M's crypt block
 
-format: dungeon 1
+format: dungeon 2
+migrated: dungeon format 1 -> 2 (R9 D2): `style.sharedWalls: false`, what format 1 drew
 consumer: setting_builder at 22da126ab7051ac0120beacca8f7c8630709204a (main), written by hand from `setting/region/M/Connections.md` and `setting/region/M/Brief.md`
 artgen: 0.10.0 plus path mode (`--file`) and `dungeon check`
 

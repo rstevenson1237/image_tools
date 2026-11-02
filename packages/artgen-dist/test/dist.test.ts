@@ -252,7 +252,7 @@ describe('maps/ (the maps-only bundle)', () => {
 
   test('--version prints the release and the commit it was built from; formats --json', () => {
     expect(ok('--version').trim()).toBe(`${readFileSync(join(OUT, 'maps', 'VERSION'), 'utf8').trim()} (${sourceSha()})`);
-    expect(JSON.parse(ok('formats', '--json'))).toEqual({ map: 1, dungeon: 1, settlement: 1 });
+    expect(JSON.parse(ok('formats', '--json'))).toEqual({ map: 1, dungeon: 2, settlement: 1 });
   });
 
   test('check, fit and an SVG render of the fixtures from an empty folder, with no resvg.wasm and no fonts', () => {

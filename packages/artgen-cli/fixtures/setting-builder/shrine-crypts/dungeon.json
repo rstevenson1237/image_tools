@@ -1,6 +1,6 @@
 {
   "id": "m-crypts",
-  "version": 1,
+  "version": 2,
   "title": "M Crypts",
   "cols": 44,
   "rows": 40,
@@ -191,5 +191,8 @@
         "angle": 90
       }
     ]
+  },
+  "style": {
+    "sharedWalls": false
   }
 }

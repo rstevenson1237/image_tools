@@ -1,6 +1,6 @@
 {
  "id": "H-a",
- "version": 1,
+ "version": 2,
  "seed": 1,
  "cols": 42,
  "rows": 46,
@@ -26,7 +26,7 @@
   "hatch": "full",
   "band": 0.9,
   "wall": 2.5,
-  "sharedWalls": true
+  "sharedWalls": "rooms"
  },
  "scale": {
   "perCell": 5,

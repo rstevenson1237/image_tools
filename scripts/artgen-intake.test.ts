@@ -31,14 +31,14 @@ describe('parsing', () => {
   });
   test('case.md is read for its kind, format, consumer and commit', async () => {
     const { sha, bundle } = await reported();
-    expect(parseCase(readFileSync(join(bundle.dir, 'case.md'), 'utf8'))).toMatchObject({ id: 'warren', kind: 'dungeon', format: 1, consumer: 'rstevenson1237/setting_builder', commit: sha });
+    expect(parseCase(readFileSync(join(bundle.dir, 'case.md'), 'utf8'))).toMatchObject({ id: 'warren', kind: 'dungeon', format: 2, consumer: 'rstevenson1237/setting_builder', commit: sha });
   });
   test('the issue body splits into the case and the inline input', async () => {
     const { bundle } = await reported();
     const r = parseIssueBody(bundle.body);
     expect(r.input!.name).toBe('dungeon.json');
     expect(JSON.parse(r.input!.text)).toEqual(JSON.parse(readFileSync(join(FIXTURES, 'warren', 'dungeon.json'), 'utf8')));
-    expect(r.caseMd).toContain('format: dungeon 1');
+    expect(r.caseMd).toContain('format: dungeon 2');
     expect(r.caseMd).not.toContain('artgen:input');
   });
   test('the input file\'s name is one of the three fixture names, whatever the issue says (it is written to disk)', () => {
@@ -67,7 +67,7 @@ describe('writeCase', () => {
     const dir = writeCase({ consumer: 'setting-builder', name: 'doors', caseMd, files: { [input.name]: input.text }, issue: 'o/r#9', fixtures });
     expect(dir).toBe(join(fixtures, 'setting-builder', 'doors'));
     const md = readFileSync(join(dir, 'case.md'), 'utf8');
-    expect(md).toMatch(/^format: dungeon 1\nstatus: reported — /m);
+    expect(md).toMatch(/^format: dungeon 2\nstatus: reported — /m);
     expect(md).toMatch(/^intake: o\/r#9$/m);
     expect(md).toMatch(/\b[0-9a-f]{40}\b/);                       // what fixtures.test.ts requires of a case
     expect(readFileSync(join(dir, 'dungeon.json'), 'utf8')).toBe(input.text);

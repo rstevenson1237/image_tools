@@ -92,7 +92,7 @@ describe('report', () => {
     expect(readFileSync(join(b.dir, 'dungeon.json'), 'utf8')).toBe(readFileSync(join(FIXTURES, 'warren', 'dungeon.json'), 'utf8'));
     const md = readFileSync(join(b.dir, 'case.md'), 'utf8');
     expect(md).toMatch(/^# warren — the F\.3 doors draw on top of the corridor$/m);
-    expect(md).toMatch(/^format: dungeon 1$/m);          // what fixtures.test.ts requires of a case
+    expect(md).toMatch(/^format: dungeon 2$/m);          // what fixtures.test.ts requires of a case
     expect(md).toMatch(/^consumer: .* at \S+ \(/m);
     expect(md).toMatch(/```sh\nnode tools\/artgen\/artgen-maps\.js dungeon check --file dungeon\.json --json\n```/);
     expect(b.check).toBe('ok');

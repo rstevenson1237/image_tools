@@ -32,6 +32,9 @@ export const CURVES = ['none', 'smooth'] as const;
 export type Curve = (typeof CURVES)[number];
 
 export const HATCH_STYLES = ['band', 'full', 'none'] as const;
+
+/** Where shared walls are drawn: between any two units that touch, between rooms only, or nowhere (see `style.sharedWalls`). */
+export type SharedWalls = boolean | 'rooms';
 export type HatchStyle = (typeof HATCH_STYLES)[number];
 
 export const LABEL_KINDS = ['name', 'note', 'area'] as const;
@@ -183,11 +186,12 @@ export interface DungeonSpec {
   /** Grid lines every `size` cells (2 = 10 ft), with fainter lines at every cell when `sub`; on the floor or everywhere. */
   grid: { show: boolean; size: number; sub: boolean; clip: 'floor' | 'all' };
   /**
-   * Rock around the rooms: a band of hatching along the walls, hatching everywhere, or plain paper. `sharedWalls`: draw
-   * the wall between floor rooms that touch (default: on when the file has `connections` or `blocks`, else off, where
-   * rooms that touch run together as one floor, as they always did).
+   * Rock around the rooms: a band of hatching along the walls, hatching everywhere, or plain paper. `sharedWalls`: the
+   * wall where two floors meet: `true` (the default) wherever any two units touch (room and room, room and corridor,
+   * corridor and corridor) except at an opening (a door, a connection, where a corridor runs into a floor); `rooms`
+   * between touching floor rooms only (format 1's `true`); `false` none, so floors that touch run together.
    */
-  style: { hatch: HatchStyle; band: number; wall: number; sharedWalls?: boolean };
+  style: { hatch: HatchStyle; band: number; wall: number; sharedWalls?: SharedWalls };
   scale: { perCell: number; unit: string };
   numbers: boolean;
   scaleBar: boolean;
@@ -225,9 +229,19 @@ export const DEFAULTS: Omit<DungeonSpec, 'id' | 'seed' | 'version' | 'rooms' | '
 };
 
 /** The dungeon file format (`format.ts` says what bumps it). */
-export const DUNGEON_FORMAT = 1;
+export const DUNGEON_FORMAT = 2;
 
-const MIGRATIONS: Record<number, Migration> = {};
+const MIGRATIONS: Record<number, Migration> = {
+  /**
+   * dungeon format 1 -> 2: `style.sharedWalls` defaults to walls between any two units, and `true` means that. A format 1 file
+   * draws as it did: its `true` becomes `rooms`, and an unset value the one format 1 gave it (on with connections or blocks).
+   */
+  1: raw => {
+    const style = (raw.style && typeof raw.style === 'object' ? raw.style : {}) as Record<string, unknown>, list = (k: string) => Array.isArray(raw[k]) && (raw[k] as unknown[]).length > 0;
+    const was = style.sharedWalls ?? (list('connections') || list('blocks'));
+    return { ...raw, style: { ...style, sharedWalls: was === true ? 'rooms' : was } };
+  },
+};
 
 export const MAX_SIDE = 160;
 
@@ -386,7 +400,7 @@ export function validateDungeon(raw: unknown): string[] {
     e.push('grid: show, size ≥ 0.5 (cells), sub (true|false), clip floor|all');
   if (!m.style || !HATCH_STYLES.includes(m.style.hatch) || !isNum(m.style.band) || m.style.band < 0 || m.style.band > 6 || !isNum(m.style.wall) || m.style.wall < 0.2 || m.style.wall > 4)
     e.push(`style: hatch ${HATCH_STYLES.join('|')}, band 0..6, wall 0.2..4`);
-  if (m.style?.sharedWalls !== undefined && typeof m.style.sharedWalls !== 'boolean') e.push('style.sharedWalls: true or false');
+  if (m.style?.sharedWalls !== undefined && typeof m.style.sharedWalls !== 'boolean' && m.style.sharedWalls !== 'rooms') e.push('style.sharedWalls: true (between any two units), "rooms" (between rooms only) or false');
   if (!m.scale || !isNum(m.scale.perCell) || typeof m.scale.unit !== 'string') e.push('scale: perCell (number) and unit');
   const ids = new Set<string>();
   (Array.isArray(m.rooms) ? m.rooms : (e.push('rooms: an array'), [])).forEach((r, i) => {
@@ -600,7 +614,9 @@ export function nextCorridorId(spec: Pick<DungeonSpec, 'corridors'>): string {
 }
 
 /** Whether the wall between touching floor rooms is drawn (see `style.sharedWalls`). */
-export const sharedWallsOn = (m: Pick<DungeonSpec, 'style' | 'connections' | 'blocks'>): boolean => m.style.sharedWalls ?? !!(m.connections?.length || m.blocks?.length);
+export const sharedWallsOn = (m: Pick<DungeonSpec, 'style'>): boolean => (m.style.sharedWalls ?? true) !== false;
+/** Whether walls are drawn where a corridor touches a room or another corridor too (`style.sharedWalls: true`, the default). */
+export const corridorWallsOn = (m: Pick<DungeonSpec, 'style'>): boolean => (m.style.sharedWalls ?? true) === true;
 
 /** The next free room id (`r1`, `r2`, …). */
 export function nextRoomId(spec: Pick<DungeonSpec, 'rooms'>): string {

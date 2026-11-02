@@ -162,11 +162,12 @@ describe('rooms joined directly', () => {
   ];
   const sp = (connections: D.Connection[]) => D.newDungeon('k', { cols: 26, rows: 18, rooms, connections });
 
-  test('touching rooms keep the wall between them (with sharedWalls, or once there are connections); a connection puts a door or an opening in it, on the grid', () => {
-    // an older file (no connections, no blocks): rooms that touch run together, as they always did
-    expect(D.layoutDungeon(sp([])).partitions).toEqual([]);
-    expect(D.renderDungeonSvg(sp([]))).not.toContain('id="partitions"');
-    const walled = { ...sp([]), style: { ...sp([]).style, sharedWalls: true } }, l = D.layoutDungeon(walled);
+  test('touching rooms keep the wall between them (unless sharedWalls is false); a connection puts a door or an opening in it, on the grid', () => {
+    // with shared walls off, rooms that touch run together
+    const open = { ...sp([]), style: { ...sp([]).style, sharedWalls: false } };
+    expect(D.layoutDungeon(open).partitions).toEqual([]);
+    expect(D.renderDungeonSvg(open)).not.toContain('id="partitions"');
+    const walled = sp([]), l = D.layoutDungeon(walled);
     // hall|a at x 12, a|b and a|c at x 17, b|c at y 5
     expect(l.partitions.map(p => p.map(v => Math.round(v * 100) / 100))).toEqual([[12, 2, 12, 8], [17, 2, 17, 5], [17, 5, 17, 8], [23, 5, 17, 5]].map(p => expect.arrayContaining(p)));
     const c = D.layoutDungeon(sp([{ a: 'hall', b: 'a' }, { a: 'b', b: 'c', kind: 'open', width: 2 }, { a: 'a', b: 'b', kind: 'secret', at: [17, 3] }]));

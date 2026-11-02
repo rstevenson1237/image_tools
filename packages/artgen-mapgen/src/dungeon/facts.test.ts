@@ -13,7 +13,7 @@ const spec = (over: Partial<Parameters<typeof newDungeon>[1]> = {}) => newDungeo
 describe('dungeon facts', () => {
   test('a room states its box in cells and in the scale unit, its shape, number and doors', () => {
     const f = dungeonFacts(spec());
-    expect(f).toMatchObject({ version: 1, id: 't', size: { cols: 20, rows: 16 }, unit: { map: 'cell', scale: 'ft' } });
+    expect(f).toMatchObject({ version: 2, id: 't', size: { cols: 20, rows: 16 }, unit: { map: 'cell', scale: 'ft' } });
     expect(f.rooms.map(r => r.id)).toEqual(['a', 'b', 'c', 'd']);
     expect(f.rooms[0]).toEqual({
       id: 'a', number: 1, label: 'A.1 Hall', shape: 'rect', box: { cells: { x: 2, y: 2, w: 4, h: 3 }, scale: { x: 10, y: 10, w: 20, h: 15 } },

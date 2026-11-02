@@ -92,7 +92,7 @@ describe('dungeon --file', () => {
     await run('dungeon', 'gen', '--rooms', '4', '--seed', '3', ...F);
     expect(spec().rooms.length).toBeGreaterThan(0);
     const r = JSON.parse((await run('dungeon', 'fit', '--margin', '3', '--json', ...F)).out);
-    expect(r).toMatchObject({ version: 1 });
+    expect(r).toMatchObject({ version: 2 });
     expect([spec().cols, spec().rows]).toEqual([r.cols, r.rows]);
     expect((await run('dungeon', 'show', ...F)).out).toContain('M-a "Crypts"');
     expect(JSON.parse((await run('dungeon', 'list', '--json', ...F)).out).items[0]).toMatchObject({ id: 'M-a' });
@@ -114,7 +114,7 @@ describe('dungeon --file', () => {
 
   test('check: ok on a good file; every error with its JSON path, exit 1, file untouched, on a bad one', async () => {
     const good = JSON.parse((await run('dungeon', 'check', '--json', ...F)).out);
-    expect(good).toMatchObject({ version: 1, ok: true, errors: [] });
+    expect(good).toMatchObject({ version: 2, ok: true, errors: [] });
     const bad = join(dir, 'bad.json'), text = JSON.stringify({ id: 'bad', seed: 1, rooms: [{ id: 'a', shape: 'rect', x: 1, y: 1, w: 0, h: 2 }], corridors: [{ from: { room: 'a' }, to: { room: 'zz' } }] });
     writeFileSync(bad, text);
     const r = await run('dungeon', 'check', '--json', '--file', bad);
@@ -197,7 +197,7 @@ describe('map check', () => {
 
 describe('the maps-only entry', () => {
   test('formats, version, help and the same commands; other commands are refused', async () => {
-    expect(JSON.parse((await runMaps('formats', '--json')).out)).toEqual({ map: 1, dungeon: 1, settlement: 1 });
+    expect(JSON.parse((await runMaps('formats', '--json')).out)).toEqual({ map: 1, dungeon: 2, settlement: 1 });
     expect((await runMaps('--help')).out).toContain('artgen settlement render');
     expect((await runMaps('--version')).out).toMatch(/^\S+ \(\S+\)$/);
     expect((await runMaps('--help')).out).toContain('artgen dungeon check');

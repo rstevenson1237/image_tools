@@ -2303,19 +2303,19 @@ text: {
 ### dungeon_new {"id":"cell","mode":"room","shape":"rect","w":6,"h":6,"number":20,"label":"Cell","seed":3,"exits":[{"side":"n"},{"side":"e","door":"secret"},{"side":"s","door":null,"text":"To the caves"}]}
 text: {
   "file": "art/dungeons/cell/dungeon.json",
-  "summary": "cell: 12×12 cells of 5 ft, seed 3\n  gen: rooms 8, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on\n  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls off (auto); numbers on, scale bar on, compass off\n  rooms (1):\n    r1: rect 6×6 at 3,3, #20 \"Cell\"\n  corridors (3):\n    0. r1 → (6.5,-1), via 6.5,6, doors door/none\n    1. r1 → (13,6.5), via 6,6.5, doors secret/none\n    2. r1 → (6.5,13) \"To the caves\", via 6.5,6\n  labels (0):\n  symbols (0):"
+  "summary": "cell: 12×12 cells of 5 ft, seed 3\n  gen: rooms 8, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on\n  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls on (default); numbers on, scale bar on, compass off\n  rooms (1):\n    r1: rect 6×6 at 3,3, #20 \"Cell\"\n  corridors (3):\n    0. r1 → (6.5,-1), via 6.5,6, doors door/none\n    1. r1 → (13,6.5), via 6,6.5, doors secret/none\n    2. r1 → (6.5,13) \"To the caves\", via 6.5,6\n  labels (0):\n  symbols (0):"
 }
 
 ### dungeon_new {"id":"crypt","mode":"empty","cols":30,"rows":20,"seed":7,"title":"Crypt"}
 text: {
   "file": "art/dungeons/crypt/dungeon.json",
-  "summary": "crypt \"Crypt\": 30×20 cells of 5 ft, seed 7\n  gen: rooms 8, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on\n  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls off (auto); numbers on, scale bar on, compass off\n  rooms (0):\n  corridors (0):\n  labels (0):\n  symbols (0):"
+  "summary": "crypt \"Crypt\": 30×20 cells of 5 ft, seed 7\n  gen: rooms 8, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on\n  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls on (default); numbers on, scale bar on, compass off\n  rooms (0):\n  corridors (0):\n  labels (0):\n  symbols (0):"
 }
 
 ### dungeon_new {"id":"vault","cols":40,"rows":30,"seed":11,"gen":{"rooms":6,"layout":"dense","density":0.6}}
 text: {
   "file": "art/dungeons/vault/dungeon.json",
-  "summary": "vault: 40×30 cells of 5 ft, seed 11\n  gen: rooms 6, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on, layout dense (density 0.6)\n  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls on (auto); numbers on, scale bar on, compass off\n  rooms (6):\n    r1: rect 6×7 at 11,6\n    r2: rect 4×3 at 17,9\n    r3: rect 5×8 at 21,10\n    r4: rect 8×6 at 26,9\n    r5: rect 7×6 at 11,13\n    r6: rect 3×5 at 18,12\n  corridors (1):\n    0. r1 → (14.5,-1), via 14.5,9.5, doors door/none\n  connections (6):\n    0. r2 ↔ r6: locked\n    1. r1 ↔ r2: door\n    2. r2 ↔ r3: door\n    3. r3 ↔ r6: open\n    4. r5 ↔ r6: secret\n    5. r3 ↔ r4: open\n  labels (0):\n  symbols (0):"
+  "summary": "vault: 40×30 cells of 5 ft, seed 11\n  gen: rooms 6, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on, layout dense (density 0.6)\n  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls on (default); numbers on, scale bar on, compass off\n  rooms (6):\n    r1: rect 6×7 at 11,6\n    r2: rect 4×3 at 17,9\n    r3: rect 5×8 at 21,10\n    r4: rect 8×6 at 26,9\n    r5: rect 7×6 at 11,13\n    r6: rect 3×5 at 18,12\n  corridors (1):\n    0. r1 → (14.5,-1), via 14.5,9.5, doors door/none\n  connections (6):\n    0. r2 ↔ r6: locked\n    1. r1 ↔ r2: door\n    2. r2 ↔ r3: door\n    3. r3 ↔ r6: open\n    4. r5 ↔ r6: secret\n    5. r3 ↔ r4: open\n  labels (0):\n  symbols (0):"
 }
 
 ### dungeon_new {"id":"vault"} (isError)
@@ -2328,7 +2328,7 @@ text: invalid dungeon ../../etc:
 ### dungeon_edit {"id":"crypt","ops":[{"op":"add_room","shape":"rect","at":"3,3","w":6,"h":4,"label":"Hall","number":1,"href":"http://example.com/hall"},{"op":"add_room","shape":"cave","at":[16,4],"w":8,"h":6,"number":false},{"op":"add_room","shape":"poly","points":[3,12,9,12,6,17],"id":"tri"},{"op":"set_room","room":"r1","label":"Great Hall","w":7,"number":2,"href":""},{"op":"move_room","room":"tri","at":"C9"},{"op":"link","from":"r1","to":"r2","doors":["door",null],"route":"hv","width":2},{"op":"link","from":"r2","to":[29,15],"exit":{"text":"To the caves","fade":3},"id":"out1","curve":"smooth","style":"natural","seed":3},{"op":"link","from":"r1","to":"corridor:out1","from_side":"e","from_offset":1},{"op":"door","index":1,"end":"from","kind":"portcullis"},{"op":"unlink","index":2},{"op":"remove_room","room":"tri"},{"op":"fit","margin":2}]}
 text: crypt "Crypt": 32×17 cells of 5 ft, seed 7
   gen: rooms 8, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on
-  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls off (auto); numbers on, scale bar on, compass off
+  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls on (default); numbers on, scale bar on, compass off
   rooms (2):
     r1: rect 7×4 at 2,2, #2 "Great Hall"
     r2: cave 8×6 at 15,3, no number
@@ -2341,7 +2341,7 @@ text: crypt "Crypt": 32×17 cells of 5 ft, seed 7
 ### dungeon_edit {"id":"crypt","ops":[{"op":"add_block","shape":"hex","at":[3,12],"w":12,"h":8,"split":"grid","min":4,"id":"hx","doors":0.25},{"op":"split_block","id":"hx","seed":4}]}
 text: crypt "Crypt": 32×17 cells of 5 ft, seed 7
   gen: rooms 8, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on
-  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls on (auto); numbers on, scale bar on, compass off
+  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls on (default); numbers on, scale bar on, compass off
   rooms (8):
     r1: rect 7×4 at 2,2, #2 "Great Hall"
     r2: cave 8×6 at 15,3, no number
@@ -2365,14 +2365,14 @@ text: crypt "Crypt": 32×17 cells of 5 ft, seed 7
     5. hx-1 ↔ hx-4: door
   labels (0):
   symbols (0):
-  warning: rooms[5]: hx-4 runs off the sheet (0,0 to 32,17); `dungeon fit` makes room
-  warning: rooms[6]: hx-5 runs off the sheet (0,0 to 32,17); `dungeon fit` makes room
-  warning: rooms[7]: hx-6 runs off the sheet (0,0 to 32,17); `dungeon fit` makes room
+  warning: rooms[5]: hx-4 runs off the sheet (0,0 to 32,17); `dungeon fit` makes room [runs-off-sheet]
+  warning: rooms[6]: hx-5 runs off the sheet (0,0 to 32,17); `dungeon fit` makes room [runs-off-sheet]
+  warning: rooms[7]: hx-6 runs off the sheet (0,0 to 32,17); `dungeon fit` makes room [runs-off-sheet]
 
 ### dungeon_edit {"id":"crypt","ops":[{"op":"connect","a":"hx-2","b":"hx-1","kind":"arch"},{"op":"disconnect","index":0}]}
 text: crypt "Crypt": 32×17 cells of 5 ft, seed 7
   gen: rooms 8, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on
-  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls on (auto); numbers on, scale bar on, compass off
+  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls on (default); numbers on, scale bar on, compass off
   rooms (8):
     r1: rect 7×4 at 2,2, #2 "Great Hall"
     r2: cave 8×6 at 15,3, no number
@@ -2396,14 +2396,15 @@ text: crypt "Crypt": 32×17 cells of 5 ft, seed 7
     5. hx-2 ↔ hx-1: arch
   labels (0):
   symbols (0):
-  warning: rooms[5]: hx-4 runs off the sheet (0,0 to 32,17); `dungeon fit` makes room
-  warning: rooms[6]: hx-5 runs off the sheet (0,0 to 32,17); `dungeon fit` makes room
-  warning: rooms[7]: hx-6 runs off the sheet (0,0 to 32,17); `dungeon fit` makes room
+  warning: rooms[5]: hx-4 runs off the sheet (0,0 to 32,17); `dungeon fit` makes room [runs-off-sheet]
+  warning: rooms[6]: hx-5 runs off the sheet (0,0 to 32,17); `dungeon fit` makes room [runs-off-sheet]
+  warning: rooms[7]: hx-6 runs off the sheet (0,0 to 32,17); `dungeon fit` makes room [runs-off-sheet]
+  warning: connections[5]: the arch at 7.0,14.5 stands on the door of connections[2] [doors-stacked]
 
 ### dungeon_edit {"id":"crypt","ops":[{"op":"remove_block","id":"hx"}]}
 text: crypt "Crypt": 32×17 cells of 5 ft, seed 7
   gen: rooms 8, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on
-  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls off (auto); numbers on, scale bar on, compass off
+  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls on (default); numbers on, scale bar on, compass off
   rooms (2):
     r1: rect 7×4 at 2,2, #2 "Great Hall"
     r2: cave 8×6 at 15,3, no number
@@ -2422,7 +2423,7 @@ text: unknown op sing (add_room, move_room, set_room, remove_room, add_block, sp
 ### dungeon_update {"id":"crypt","grid_mode":"10+5","style":{"hatch":"full"},"title":"The Crypt","numbers":true,"scale_bar":true,"compass":false,"furniture":{"place":"outside","side":"right"}}
 text: crypt "The Crypt": 32×17 cells of 5 ft, seed 7
   gen: rooms 8, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on
-  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch full; shared walls off (auto); numbers on, scale bar on, compass off
+  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch full; shared walls on (default); numbers on, scale bar on, compass off
   furniture: outside, band right
   rooms (2):
     r1: rect 7×4 at 2,2, #2 "Great Hall"
@@ -2436,7 +2437,7 @@ text: crypt "The Crypt": 32×17 cells of 5 ft, seed 7
 ### dungeon_update {"id":"crypt","grid_size":15,"sub_grid":false,"grid_unit":"ft","show_grid":true}
 text: crypt "The Crypt": 32×17 cells of 5 ft, seed 7
   gen: rooms 8, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on
-  grid: size 15 ft, sub-grid off, on the floor; hatch full; shared walls off (auto); numbers on, scale bar on, compass off
+  grid: size 15 ft, sub-grid off, on the floor; hatch full; shared walls on (default); numbers on, scale bar on, compass off
   furniture: outside, band right
   rooms (2):
     r1: rect 7×4 at 2,2, #2 "Great Hall"
@@ -2485,7 +2486,7 @@ text: {
 ### dungeon_generate {"id":"vault","seed":3,"gen":{"rooms":5},"cols":30,"rows":24}
 text: vault: 30×24 cells of 5 ft, seed 3
   gen: rooms 5, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on, layout dense (density 0.6)
-  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls on (auto); numbers on, scale bar on, compass off
+  grid: size 10 ft, sub-grid 5 ft, on the floor; hatch band (0.9 cells); shared walls on (default); numbers on, scale bar on, compass off
   rooms (5):
     r1: rect 8×5 at 8,3
     r2: rect 6×8 at 1,9
@@ -2521,7 +2522,7 @@ text: {
 ### dungeon_get {"id":"crypt"}
 text: crypt "The Crypt": 32×17 cells of 5 ft, seed 7
   gen: rooms 8, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on
-  grid: size 15 ft, sub-grid off, on the floor; hatch full; shared walls off (auto); numbers on, scale bar on, compass off
+  grid: size 15 ft, sub-grid off, on the floor; hatch full; shared walls on (default); numbers on, scale bar on, compass off
   furniture: outside, band right
   rooms (2):
     r1: rect 7×4 at 2,2, #2 "Great Hall"
@@ -2568,7 +2569,7 @@ text: {
   "seed": 7,
   "title": "The Crypt",
   "id": "crypt",
-  "version": 1,
+  "version": 2,
   "rooms": [
     {
       "id": "r1",
