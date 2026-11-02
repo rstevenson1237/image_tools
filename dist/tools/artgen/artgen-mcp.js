@@ -10169,6 +10169,81 @@ var init_stages = __esm({
   }
 });
 
+// ../artgen-workflow/src/pool.ts
+function poolExports(all) {
+  const latest = /* @__PURE__ */ new Map();
+  for (const e of all) {
+    const k = `${e.repo}\0${e.artgen}`, had = latest.get(k);
+    if (!had || e.exported >= had.exported) latest.set(k, e);
+  }
+  const byVersion = /* @__PURE__ */ new Map();
+  for (const e of latest.values()) byVersion.set(e.artgen, [...byVersion.get(e.artgen) ?? [], e]);
+  const sum2 = (xs) => xs.reduce((a, b) => a + b, 0);
+  const versions = [...byVersion.entries()].map(([artgen, es]) => {
+    const art = es.filter((e) => e.assets), approved = sum2(art.map((e) => e.assets.approved)), untouched = sum2(art.map((e) => e.firstPassApproval.untouched));
+    const tokens = sum2(art.map((e) => e.totals.outTokens + e.totals.imageTokens)), fails2 = {};
+    for (const e of art) for (const [c, n] of Object.entries(e.gateFailures)) fails2[c] = (fails2[c] ?? 0) + n;
+    const gens = {}, byGen = /* @__PURE__ */ new Map();
+    for (const e of es) for (const [g, m] of Object.entries(e.generators ?? {})) byGen.set(g, [...byGen.get(g) ?? [], m]);
+    for (const [g, ms] of [...byGen].sort(([a], [b]) => a.localeCompare(b))) {
+      const ap = sum2(ms.map((m) => m.approved));
+      gens[g] = {
+        subjects: sum2(ms.map((m) => m.subjects)),
+        approved: ap,
+        ...ap && { passesPerApproved: round3(sum2(ms.map((m) => (m.passesPerApproved ?? 0) * m.approved)) / ap), firstPassApprovalRate: round3(sum2(ms.map((m) => m.firstPassApproval.untouched)) / ap) },
+        imageTokens: sum2(ms.map((m) => m.imageTokens)),
+        wallMinutes: round3(sum2(ms.map((m) => m.wallMinutes)), 1)
+      };
+    }
+    return {
+      artgen,
+      repos: es.map((e) => e.repo).sort(),
+      assets: sum2(art.map((e) => e.assets.total)),
+      approved,
+      tokensPerApproved: approved ? Math.round(tokens / approved) : void 0,
+      wallMinutesPerApproved: approved ? round3(sum2(art.map((e) => e.totals.wallMinutes)) / approved, 1) : void 0,
+      firstPassApprovalRate: approved ? round3(untouched / approved) : void 0,
+      topGateFailures: Object.entries(fails2).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 3).map(([check4, n]) => ({ check: check4, n })),
+      generators: gens
+    };
+  }).sort((a, b) => a.artgen.localeCompare(b.artgen, void 0, { numeric: true }));
+  return { exports: latest.size, repos: [...new Set([...latest.values()].map((e) => e.repo))].sort(), versions };
+}
+function poolMarkdown(r, title = "artgen pooled metrics") {
+  const cell3 = (v) => v === void 0 ? "\u2014" : String(v);
+  const gens = r.versions.flatMap((v) => Object.entries(v.generators).map(([g, m]) => ({ artgen: v.artgen, g, ...m })));
+  return [
+    `# ${title}`,
+    "",
+    `${r.exports} exports from ${r.repos.length} repo${r.repos.length === 1 ? "" : "s"}: ${r.repos.join(", ") || "\u2014"}.`,
+    "",
+    "| artgen | repos | assets | approved | tokens / approved | minutes / approved | first-pass approval | gate checks failing most |",
+    "|---|---|---|---|---|---|---|---|",
+    ...r.versions.map((v) => `| ${v.artgen} | ${v.repos.length} | ${v.assets} | ${v.approved} | ${cell3(v.tokensPerApproved)} | ${cell3(v.wallMinutesPerApproved)} | ${cell3(v.firstPassApprovalRate)} | ${v.topGateFailures.map((f) => `${f.check} \xD7${f.n}`).join(", ") || "\u2014"} |`),
+    "",
+    "Tokens are written code plus review images. A lower tokens / approved number at a later version is the sign a release made production cheaper; compare versions only when they hold the same kinds of asset.",
+    "",
+    ...gens.length ? [
+      "## Per generator",
+      "",
+      "From the exports of schema 2: the same numbers for pixel art and each kind of map.",
+      "",
+      "| artgen | generator | subjects | approved | passes / approved | first-pass approval | review image tokens | minutes |",
+      "|---|---|---|---|---|---|---|---|",
+      ...gens.map((m) => `| ${m.artgen} | ${m.g} | ${m.subjects} | ${m.approved} | ${cell3(m.passesPerApproved)} | ${cell3(m.firstPassApprovalRate)} | ${m.imageTokens} | ${m.wallMinutes} |`),
+      ""
+    ] : []
+  ].join("\n");
+}
+var METRICS_SCHEMA, round3;
+var init_pool = __esm({
+  "../artgen-workflow/src/pool.ts"() {
+    "use strict";
+    METRICS_SCHEMA = 2;
+    round3 = (v, d = 2) => Math.round(v * 10 ** d) / 10 ** d;
+  }
+});
+
 // ../artgen-workflow/src/index.ts
 var init_src3 = __esm({
   "../artgen-workflow/src/index.ts"() {
@@ -10184,6 +10259,7 @@ var init_src3 = __esm({
     init_brief();
     init_decide();
     init_stages();
+    init_pool();
   }
 });
 
@@ -29713,8 +29789,8 @@ function recommend(sets, o = {}) {
       confidence,
       why,
       imageTokens: { n: perAssetImg.length, p50: perAssetImg.length ? pct(perAssetImg, 0.5) : 0, p90, ...cap && { cap } },
-      finish: { n: fins.length, ...firstFin.length && { meanGain: mean2(firstFin) }, ...fins.length && { extraFinishRate: round3(fins.filter((f) => f.length > 1).length / fins.length) } },
-      ...finished.length && { userRevisionRate: round3(finished.filter((a) => feedback2.has(a)).length / finished.length) },
+      finish: { n: fins.length, ...firstFin.length && { meanGain: mean2(firstFin) }, ...fins.length && { extraFinishRate: round4(fins.filter((f) => f.length > 1).length / fins.length) } },
+      ...finished.length && { userRevisionRate: round4(finished.filter((a) => feedback2.has(a)).length / finished.length) },
       ...bl.length && { blindGap: { n: bl.length, mean: mean2(bl.map((b) => b.gap)) } }
     };
     kinds.push(kb);
@@ -29735,7 +29811,7 @@ function recommend(sets, o = {}) {
     }
     const mappings = [...g].map(([k, xs]) => {
       const [model, effort] = k.split("\0"), ds = xs.map((x) => stage === "base" ? x.score : x.delta).filter((d) => d !== void 0), tok2 = xs.reduce((s2, x) => s2 + totalTok(x), 0);
-      return { model, effort, n: xs.length, ...ds.length && { meanDelta: mean2(ds) }, ...tok2 && ds.length && { deltaPerKTok: round3(ds.reduce((a, b) => a + b, 0) / tok2 * 1e3, 3) } };
+      return { model, effort, n: xs.length, ...ds.length && { meanDelta: mean2(ds) }, ...tok2 && ds.length && { deltaPerKTok: round4(ds.reduce((a, b) => a + b, 0) / tok2 * 1e3, 3) } };
     }).sort((a, b) => b.n - a.n);
     const solid = mappings.filter((m) => m.n >= minAssets && m.meanDelta !== void 0);
     let why, pick2;
@@ -29820,13 +29896,13 @@ function applyRecommendations(cfg, patch) {
   for (const [k, v] of Object.entries(patch.budget.perKind)) perKind[k] = { ...perKind[k] ?? {}, ...v };
   return { ...cfg, budget: { ...cfg.budget, ...Object.keys(perKind).length && { perKind } }, models: { ...cfg.models, ...patch.models } };
 }
-var round3, mean2, pct, stageOfRec, baseIndex, sg;
+var round4, mean2, pct, stageOfRec, baseIndex, sg;
 var init_recommend = __esm({
   "../artgen-core/src/w2/recommend.ts"() {
     "use strict";
     init_analytics2();
-    round3 = (v, d = 2) => Math.round(v * 10 ** d) / 10 ** d;
-    mean2 = (xs) => round3(xs.reduce((a, b) => a + b, 0) / xs.length);
+    round4 = (v, d = 2) => Math.round(v * 10 ** d) / 10 ** d;
+    mean2 = (xs) => round4(xs.reduce((a, b) => a + b, 0) / xs.length);
     pct = (xs, q) => {
       const s2 = [...xs].sort((a, b) => a - b);
       return s2[Math.min(s2.length - 1, Math.max(0, Math.ceil(q * s2.length) - 1))];
@@ -32462,13 +32538,13 @@ function artMetricsOf(p2) {
   const gateFailures = {};
   for (const e of ledger) for (const c of e.conformance?.checks ?? []) if (c.status === "fail") gateFailures[c.id] = (gateFailures[c.id] ?? 0) + 1;
   const recs = passRecords(ledger), gen4 = generatorMetrics(ledger, set2.metas.map((m) => ({ generator: "art", key: m.id }))), art = gen4.art;
-  const wall2 = (rs) => round4(rs.reduce((n, r) => n + (r.wallMs ?? 0), 0) / 6e4, 1);
+  const wall2 = (rs) => round5(rs.reduce((n, r) => n + (r.wallMs ?? 0), 0) / 6e4, 1);
   return {
     assets: { total: set2.metas.length, final: finals, approved: approved.size },
     byKind: Object.fromEntries(report2.byGroup.kind.map((g) => [g.key, { assets: g.n, meanFinal: g.meanFinal, meanPasses: g.meanPasses, meanCost: g.meanCost }])),
-    passes: report2.passes.map((x) => ({ pass: x.pass, n: x.n, meanDelta: x.meanDelta, regressed: x.regressed, gatePass: x.gatePass, outTokens: x.outTokens, imageTokens: x.imageTokens, ...x.meanWallS !== void 0 && { wallMinutes: round4(x.meanWallS * x.n / 60, 1) } })),
-    totals: { outTokens: report2.totals.outTokens, inTokens: report2.totals.inTokens, imageTokens: report2.totals.imageTokens, cost: round4(report2.totals.cost, 2), wallMinutes: wall2(recs) },
-    firstPassApproval: { approved: approved.size, untouched, rate: approved.size ? round4(untouched / approved.size) : void 0 },
+    passes: report2.passes.map((x) => ({ pass: x.pass, n: x.n, meanDelta: x.meanDelta, regressed: x.regressed, gatePass: x.gatePass, outTokens: x.outTokens, imageTokens: x.imageTokens, ...x.meanWallS !== void 0 && { wallMinutes: round5(x.meanWallS * x.n / 60, 1) } })),
+    totals: { outTokens: report2.totals.outTokens, inTokens: report2.totals.inTokens, imageTokens: report2.totals.imageTokens, cost: round5(report2.totals.cost, 2), wallMinutes: wall2(recs) },
+    firstPassApproval: { approved: approved.size, untouched, rate: approved.size ? round5(untouched / approved.size) : void 0 },
     userRevisionRate: report2.userRevisionRate.rate,
     gateFailures,
     blind: { n: report2.review.blind.n, meanGap: report2.review.blind.meanGap },
@@ -32477,13 +32553,13 @@ function artMetricsOf(p2) {
     generators: gen4
   };
 }
-var round4;
+var round5;
 var init_art_metrics = __esm({
   "../artgen-cli/src/loop/art-metrics.ts"() {
     "use strict";
     init_src5();
     init_w2();
-    round4 = (v, d = 2) => Math.round(v * 10 ** d) / 10 ** d;
+    round5 = (v, d = 2) => Math.round(v * 10 ** d) / 10 ** d;
   }
 });
 
@@ -32859,80 +32935,14 @@ function exportsIn(paths) {
   for (const x of paths) walk(x);
   return out;
 }
-function pool(paths) {
-  const all = exportsIn(paths), latest = /* @__PURE__ */ new Map();
-  for (const e of all) {
-    const k = `${e.repo}\0${e.artgen}`, had = latest.get(k);
-    if (!had || e.exported >= had.exported) latest.set(k, e);
-  }
-  const byVersion = /* @__PURE__ */ new Map();
-  for (const e of latest.values()) byVersion.set(e.artgen, [...byVersion.get(e.artgen) ?? [], e]);
-  const sum2 = (xs) => xs.reduce((a, b) => a + b, 0);
-  const versions = [...byVersion.entries()].map(([artgen, es]) => {
-    const art = es.filter((e) => e.assets), approved = sum2(art.map((e) => e.assets.approved)), untouched = sum2(art.map((e) => e.firstPassApproval.untouched));
-    const tokens = sum2(art.map((e) => e.totals.outTokens + e.totals.imageTokens)), fails2 = {};
-    for (const e of art) for (const [c, n] of Object.entries(e.gateFailures)) fails2[c] = (fails2[c] ?? 0) + n;
-    const gens = {}, byGen = /* @__PURE__ */ new Map();
-    for (const e of es) for (const [g, m] of Object.entries(e.generators ?? {})) byGen.set(g, [...byGen.get(g) ?? [], m]);
-    for (const [g, ms] of [...byGen].sort(([a], [b]) => a.localeCompare(b))) {
-      const ap = sum2(ms.map((m) => m.approved));
-      gens[g] = {
-        subjects: sum2(ms.map((m) => m.subjects)),
-        approved: ap,
-        ...ap && { passesPerApproved: round5(sum2(ms.map((m) => (m.passesPerApproved ?? 0) * m.approved)) / ap), firstPassApprovalRate: round5(sum2(ms.map((m) => m.firstPassApproval.untouched)) / ap) },
-        imageTokens: sum2(ms.map((m) => m.imageTokens)),
-        wallMinutes: round5(sum2(ms.map((m) => m.wallMinutes)), 1)
-      };
-    }
-    return {
-      artgen,
-      repos: es.map((e) => e.repo).sort(),
-      assets: sum2(art.map((e) => e.assets.total)),
-      approved,
-      tokensPerApproved: approved ? Math.round(tokens / approved) : void 0,
-      wallMinutesPerApproved: approved ? round5(sum2(art.map((e) => e.totals.wallMinutes)) / approved, 1) : void 0,
-      firstPassApprovalRate: approved ? round5(untouched / approved) : void 0,
-      topGateFailures: Object.entries(fails2).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 3).map(([check4, n]) => ({ check: check4, n })),
-      generators: gens
-    };
-  }).sort((a, b) => a.artgen.localeCompare(b.artgen, void 0, { numeric: true }));
-  return { exports: latest.size, repos: [...new Set([...latest.values()].map((e) => e.repo))].sort(), versions };
-}
-function poolMarkdown(r, title = "artgen pooled metrics") {
-  const cell3 = (v) => v === void 0 ? "\u2014" : String(v);
-  const gens = r.versions.flatMap((v) => Object.entries(v.generators).map(([g, m]) => ({ artgen: v.artgen, g, ...m })));
-  return [
-    `# ${title}`,
-    "",
-    `${r.exports} exports from ${r.repos.length} repo${r.repos.length === 1 ? "" : "s"}: ${r.repos.join(", ") || "\u2014"}.`,
-    "",
-    "| artgen | repos | assets | approved | tokens / approved | minutes / approved | first-pass approval | gate checks failing most |",
-    "|---|---|---|---|---|---|---|---|",
-    ...r.versions.map((v) => `| ${v.artgen} | ${v.repos.length} | ${v.assets} | ${v.approved} | ${cell3(v.tokensPerApproved)} | ${cell3(v.wallMinutesPerApproved)} | ${cell3(v.firstPassApprovalRate)} | ${v.topGateFailures.map((f) => `${f.check} \xD7${f.n}`).join(", ") || "\u2014"} |`),
-    "",
-    "Tokens are written code plus review images. A lower tokens / approved number at a later version is the sign a release made production cheaper; compare versions only when they hold the same kinds of asset.",
-    "",
-    ...gens.length ? [
-      "## Per generator",
-      "",
-      "From the exports of schema 2: the same numbers for pixel art and each kind of map.",
-      "",
-      "| artgen | generator | subjects | approved | passes / approved | first-pass approval | review image tokens | minutes |",
-      "|---|---|---|---|---|---|---|---|",
-      ...gens.map((m) => `| ${m.artgen} | ${m.g} | ${m.subjects} | ${m.approved} | ${cell3(m.passesPerApproved)} | ${cell3(m.firstPassApprovalRate)} | ${m.imageTokens} | ${m.wallMinutes} |`),
-      ""
-    ] : []
-  ].join("\n");
-}
-var METRICS_SCHEMA, round5;
+var pool;
 var init_metrics3 = __esm({
   "../artgen-cli/src/loop/metrics.ts"() {
     "use strict";
     init_maps();
     init_version();
     init_workflow2();
-    METRICS_SCHEMA = 2;
-    round5 = (v, d = 2) => Math.round(v * 10 ** d) / 10 ** d;
+    pool = (paths) => poolExports(exportsIn(paths));
   }
 });
 
@@ -39481,6 +39491,7 @@ var init_src8 = __esm({
     init_runtime();
     init_art_metrics();
     init_metrics3();
+    init_stages3();
     init_workflow2();
     init_maps2();
     init_ops();
