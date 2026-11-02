@@ -823,6 +823,11 @@ faster for the phases after it.
     exports from other repos are added by hand, not fetched; Firefox and Safari themselves; the web map editors do not take their forms from the registry
     (they edit through their own shared vocabularies).
 
+### R9 — The dungeon engine to a consumer's brief (L) — proposed 2026-11-02
+- setting_builder's report 2 lists what its dungeon levels needed from the engine, and the ~1,400 lines of Python it
+  wrote instead. The plan, in phases D0–D7, is [`DUNGEON-PLAN.md`](DUNGEON-PLAN.md). D0 fixes six install and
+  feedback-loop faults found while installing `7c2f5fc` as setting_builder's `maps` module.
+
 Order and what can run in parallel: R0 → R1 → (R2 ∥ R3) → R4 → (R5 ∥ R5b) → R6 → (R7 ∥ R8). R5b needs R2. R4 can start in a small form
 straight after R3. The `report` command alone does not need the registry.
 
