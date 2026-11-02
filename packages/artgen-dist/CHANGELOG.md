@@ -1,8 +1,10 @@
 # artgen changelog
 
-Releases of the committed install (`artgen-dist`), the MCP server, the runtime it vendors and the Python client.
+Releases of the committed install (`artgen-dist`) and its modules, the MCP server, the runtime it vendors, the library package files and the Python client. The map engines (`mapgen`, the `maps` module) have a version line of their own, named in each section.
 
-## Unreleased
+## 0.12.0 — 2026-11-02
+
+mapgen 0.11.0 → 0.12.0
 
 **Install and feedback (R9 D0, from setting_builder's report 2)**
 - The shared text (the `core` and `ui` commands and CLAUDE.md fragments) names the program the repo has: the installer fills
@@ -99,6 +101,81 @@ Releases of the committed install (`artgen-dist`), the MCP server, the runtime i
   maze corridors and layouts, the ground, and what `facts` and `check` read; the key and check lists are written by `npm run gen:ops`.
 - The `dungeon-map` skill: `dungeon layout`, `--route maze`, ports, anchors, label placement, room exits, rock, bounds and areas, check ids,
   `--errors`, `facts` and `schema`.
+
+### Commits
+
+- R9: the Dungeon Map tool takes the new route and room shapes; the router's route type is exported as RoutedWay
+- R9 D5: artgen schema for dungeon, map, settlement and graph; docs/DUNGEON.md; the dungeon-map skill updated
+- R9 D6: a lattice router (route: maze) and dungeon layout from a graph
+- R9 D7: room exits, solid rock, partition weight, corridor span, hexagons and octagon cuts, bounds and keep-out areas
+- R9 D4: room labels move off symbols and other labels, labelAt holds them, check and render --json report the ones with no spot
+- R9 D3: MCP transcript golden (the edit tool's description names ports and anchors)
+- R9 D3: corridor ports on the wall, room anchors, doors set along the wall
+- R9 D2: walls wherever two floors meet; sharedWalls on by default; dungeon format 2 with a migration
+- R9 D1: dungeon facts give paths, doors and what they stand between, the owner grid and adjacency; check ids and seven new checks
+- R9 D0: the installer names the program a repo has; files layout; builds recorded; Unreleased changelog; report bundles at the repo root
+- R8: web UI consolidation - stage view, metrics dashboard, registry-built forms, shared shortcuts
+- R7c: docs/TILEMAPS.md, the plan and the map skills updated; the examples reinstalled
+- R7c: artgen dungeon|map|settlement export and artgen tileset; npm run accept:tilemap
+- R7c: tile grids, tilesets, Tiled and LDtk writers; view modules completed
+- R7b: docs/RIGS3D.md, the plan and skills updated; fixes from the full run
+- R7b: riggedModel in the three.js runtime (1.5.0), a rigged warden walking in the three.js example, accept:rig
+- R7b: artgen rig, the rigged 3D template, a rigged bench asset
+- R7b: body rigs in 3D, skinning, rigged meshes with clips and LODs, the skinned .glb
+- R7a: skills for meshes and the converters; reinstall the example games
+- R7a: the 3D orbit view in Asset Lab (voxels or mesh), with an acceptance step
+- R7a: `artgen mesh`, `turntable` (MCP tool), `convert` and `extrude`; generated docs and Python methods
+- R7a: true 3D meshes from Scene3D (distance field, dual contouring under a budget, UV charts, baked textures, .glb in and out, mesh checks, orbit camera, voxelising)
+- R6 review: a rejected silhouette never stays the best base or the final; shape-pivot fails only against a placeholder file
+- R6d: RotSprite (scale2x, rotsprite, rotateNormals), rotated assets with the rotation stage key and checks, `artgen rotate`, `brief add --rotate`, example reinstall
+- R6c: lit sprites in Pixi (light model, pixiLitAdapter, accept:lit), runtime 1.4.0, the swamp lantern, example reinstall
+- R6c: decals as a procedural layer, Grid and Cell decal masks, the decal stage key and decal-inside check
+- R6b: shared body rigs, ctx.lib.rigs, the rig stage and the 12 character and creature templates on them
+- R6a: placeholder, stages, stage approve and reject, export --placeholders, review --stage shape, brief add --gates
+- R6a: stage keys, shape checks, the placeholder and stage gates in the pass machine; runtime 1.3.0
+- R5b: the image tools join the pipeline (artgen-imagekit, no OpenCV)
+- R5 review: re-approve after a map direction change, map approval in the UI acceptance
+- R5: docs, skills and the installed example toolsets
+- R5: Asset Review lists maps, dungeons and settlements
+- R5: generator metrics, the data sheet and references on review sheets
+- R5: versions, review, approval and the map direction for maps, dungeons and settlements
+- R5: the artgen-workflow package (ledger, status, analytics moved; versions, diffs, subjects, metrics, data sheet)
+- Give the frontier river fixture test the same timeout as its siblings (it timed out at 5 s on CI)
+- R4: feedback loop — report, upstream, metrics, intake, review on the pull request, consumer CI
+- R3: modular install, bundled review UI (artgen ui), update pull requests, library packages
+- R2 step 3: art operations on the registry; generated MCP tools, Python methods and docs; parity test
+- R2 step 2: map, dungeon and settlement operations on the registry
+- R2 step 1: CLI and MCP transcripts, MCP schema snapshot
+- R1: split artgen-core into primitives, scene and mapgen packages; shared map-editor shell
+- artgen-release: safe to run again; finish a release made by hand
+
+### mapgen 0.12.0
+
+- R9: the Dungeon Map tool takes the new route and room shapes; the router's route type is exported as RoutedWay
+- R9 D5: artgen schema for dungeon, map, settlement and graph; docs/DUNGEON.md; the dungeon-map skill updated
+- R9 D6: a lattice router (route: maze) and dungeon layout from a graph
+- R9 D7: room exits, solid rock, partition weight, corridor span, hexagons and octagon cuts, bounds and keep-out areas
+- R9 D4: room labels move off symbols and other labels, labelAt holds them, check and render --json report the ones with no spot
+- R9 D3: corridor ports on the wall, room anchors, doors set along the wall
+- R9 D2: walls wherever two floors meet; sharedWalls on by default; dungeon format 2 with a migration
+- R9 D1: dungeon facts give paths, doors and what they stand between, the owner grid and adjacency; check ids and seven new checks
+- R8: web UI consolidation - stage view, metrics dashboard, registry-built forms, shared shortcuts
+- R7c: artgen dungeon|map|settlement export and artgen tileset; npm run accept:tilemap
+- R7c: tile grids, tilesets, Tiled and LDtk writers; view modules completed
+- R6d: RotSprite (scale2x, rotsprite, rotateNormals), rotated assets with the rotation stage key and checks, `artgen rotate`, `brief add --rotate`, example reinstall
+- R6c: decals as a procedural layer, Grid and Cell decal masks, the decal stage key and decal-inside check
+- R6a: stage keys, shape checks, the placeholder and stage gates in the pass machine; runtime 1.3.0
+- R5b: the image tools join the pipeline (artgen-imagekit, no OpenCV)
+- R5 review: re-approve after a map direction change, map approval in the UI acceptance
+- R5: Asset Review lists maps, dungeons and settlements
+- R5: generator metrics, the data sheet and references on review sheets
+- R5: versions, review, approval and the map direction for maps, dungeons and settlements
+- R5: the artgen-workflow package (ledger, status, analytics moved; versions, diffs, subjects, metrics, data sheet)
+- R4: feedback loop — report, upstream, metrics, intake, review on the pull request, consumer CI
+- R3: modular install, bundled review UI (artgen ui), update pull requests, library packages
+- R2 step 3: art operations on the registry; generated MCP tools, Python methods and docs; parity test
+- R2 step 2: map, dungeon and settlement operations on the registry
+- R1: split artgen-core into primitives, scene and mapgen packages; shared map-editor shell
 
 ## 0.11.0 — 2026-10-25
 
