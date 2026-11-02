@@ -21,7 +21,9 @@ npx -y github:rstevenson1237/image_tools#artgen-dist status
 **Modules.** `init` installs `core`, `art` and `maps`. `init --with maps` is the maps only (no art skills, agents, commands,
 CLI or MCP server); `add ui` / `add update-pr` / `add art` and `remove maps` change an install later (`modules` lists them):
 `core` (always), `art` (the pixel-art pipeline), `maps` (terrain, dungeon and settlement maps, `artgen-maps.js`), `ui` (the
-review UI, below) and `update-pr` (a weekly workflow that opens a pull request with the new release).
+review UI, below) and `update-pr` (a weekly workflow that opens a pull request with the new release). `--claude-md none` installs
+without the managed CLAUDE.md section (later runs keep to it); a maps-only repo with no `art/` project (`--no-scaffold`) gets the
+section for files named by path.
 
 **Releases.** `#artgen-dist` follows `main`. To pin a release, use its tag instead (see the
 [changelog](https://github.com/rstevenson1237/image_tools/blob/main/packages/artgen-dist/CHANGELOG.md)):

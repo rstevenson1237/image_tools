@@ -9,7 +9,8 @@
  *   npx -y github:rstevenson1237/image_tools#artgen-dist status                      installed vs available, locally edited files
  *   npx -y github:rstevenson1237/image_tools#artgen-dist modules                     what each module holds
  *
- * Options: --target <dir> (default: cwd), --force (overwrite locally edited files), --dry-run, --no-scaffold,
+ * Options: --target <dir> (default: cwd), --force (overwrite locally edited files), --dry-run, --no-scaffold, --claude-md auto|none
+ * (none: no managed section in CLAUDE.md, kept by later runs),
  * --with <a,b> (init: the modules to install instead of the default core,art,maps), --notes <file> (update: write the
  * changelog and the list of kept files there, for a pull request description), --skip-workflows (update: leave changed
  * files under .github/workflows/ alone; the update workflow passes it when its token may not push them).
@@ -40,6 +41,14 @@ const TARGETS = [['claude/', '.claude/'], ['tools/artgen/', 'tools/artgen/'], ['
 const LEGACY_MODULES = ['core', 'art', 'maps'];
 
 const sha = buf => createHash('sha256').update(buf).digest('hex').slice(0, 16);
+/** The CLI the installed text names: the full one with `art`, else the maps-only bundle. */
+export const programFor = names => (names.includes('art') ? 'node tools/artgen/artgen.js' : 'node tools/artgen/artgen-maps.js');
+/** A file as installed: the `{{ARTGEN}}` a shared (core, ui) text file keeps in the distribution, filled with the program these modules have. */
+export function filled(rel, data, names) {
+  if (!/\.md$/.test(rel)) return data;
+  const text = data.toString('utf8');
+  return text.includes('{{ARTGEN}}') ? Buffer.from(text.split('{{ARTGEN}}').join(programFor(names))) : data;
+}
 const posix = p => p.split(sep).join('/');
 
 /** `modules.json` of a distribution: `{ release, modules: { name: { version, summary, default?, requiresAny?, files } } }`. */
@@ -81,11 +90,19 @@ export function resolveModules(index, names) {
   return out;
 }
 
-/** The managed CLAUDE.md section text (between the markers) for these modules, or '' when none has a fragment. */
-export function claudeSection(dist = DIST, names = Object.keys(moduleIndex(dist).modules)) {
-  const parts = names.map(n => join(dist, 'claude-md', `${n}.md`)).filter(existsSync).map(f => readFileSync(f, 'utf8').trim());
+/**
+ * The managed CLAUDE.md section text (between the markers) for these modules, or '' when none has a fragment. `layout`:
+ * `project` (an `art/` project) or `files` (maps only, no `art/`: a repo that writes its map files itself and names them
+ * with `--file`), which takes a module's `<module>.files.md` fragment where it has one.
+ */
+export function claudeSection(dist = DIST, names = Object.keys(moduleIndex(dist).modules), layout = 'project') {
+  const frag = n => [layout === 'files' && join(dist, 'claude-md', `${n}.files.md`), join(dist, 'claude-md', `${n}.md`)].find(f => f && existsSync(f));
+  const parts = names.map(frag).filter(Boolean).map(f => readFileSync(f, 'utf8').trim().split('{{ARTGEN}}').join(programFor(names)));
   return parts.length ? `${BEGIN}\n${parts.join('\n\n')}\n${END}` : '';
 }
+
+/** `project` when the repo has (or is about to get) an `art/` project or the art module, else `files`. */
+const layoutOf = (target, names, scaffolding) => (names.includes('art') || scaffolding || existsSync(join(target, 'art', 'artgen.config.json')) ? 'project' : 'files');
 
 function mergeMcp(target, want, dry) {
   const f = join(target, '.mcp.json');
@@ -142,12 +159,16 @@ const vkey = v => v.split('.').map(n => parseInt(n, 10) || 0);
 /** semver-ish order of x.y.z strings: negative when a < b. */
 export const compareVersions = (a, b) => { const x = vkey(a), y = vkey(b); for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return (x[i] ?? 0) - (y[i] ?? 0); return 0; };
 
-/** The changelog sections newer than `from` (all of them when `from` is null), as markdown. '' when there is no changelog. */
+/**
+ * The changelog sections newer than `from` (all of them when `from` is null), as markdown, with the `## Unreleased` section
+ * (what is merged since the last release) first when there is one. '' when there is no changelog.
+ */
 export function changelogSince(dist, from) {
   const f = join(dist, '..', 'CHANGELOG.md');
   if (!existsSync(f)) return '';
-  const sections = readFileSync(f, 'utf8').split(/^(?=## \d)/m).filter(s => /^## \d/.test(s));
-  return sections.filter(s => !from || compareVersions(s.match(/^## (\d+\.\d+\.\d+)/)?.[1] ?? '0.0.0', from) > 0).map(s => s.trim()).join('\n\n');
+  const sections = readFileSync(f, 'utf8').split(/^(?=## (?:\d|Unreleased))/m).filter(s => /^## (\d|Unreleased)/.test(s));
+  const newer = s => /^## Unreleased/.test(s) || !from || compareVersions(s.match(/^## (\d+\.\d+\.\d+)/)?.[1] ?? '0.0.0', from) > 0;
+  return sections.filter(newer).map(s => s.trim()).join('\n\n');
 }
 
 /**
@@ -196,7 +217,7 @@ function scaffoldProject(target, modules, report) {
   }
 }
 
-/** @typedef {{ mode?: string, modules?: string[], force?: boolean, dryRun?: boolean, scaffold?: boolean, skipWorkflows?: boolean, dist?: string, notes?: string, log?: ((s: string) => void) | null }} InstallOptions */
+/** @typedef {{ mode?: string, modules?: string[], force?: boolean, dryRun?: boolean, scaffold?: boolean, skipWorkflows?: boolean, dist?: string, notes?: string, claudeMd?: 'auto' | 'none', log?: ((s: string) => void) | null }} InstallOptions */
 
 /**
  * Install, add modules to, or update an install. `mode`: `init` (the modules in `modules`, default core, art and maps),
@@ -207,7 +228,7 @@ function scaffoldProject(target, modules, report) {
  * @param {string} target
  * @param {InstallOptions} [options]
  */
-export function install(target, { mode = 'init', modules, force = false, dryRun = false, scaffold = true, skipWorkflows = false, dist = DIST, notes, log = console.log } = {}) {
+export function install(target, { mode = 'init', modules, force = false, dryRun = false, scaffold = true, skipWorkflows = false, dist = DIST, notes, claudeMd, log = console.log } = {}) {
   target = resolve(target);
   const index = moduleIndex(dist), old = readManifest(target), to = distVersion(dist), had = installedModules(old);
   if (mode === 'init' && old && !force) throw new Error(`artgen ${old.version} is already installed here — use \`update\`, or \`add <module>\``);
@@ -216,10 +237,10 @@ export function install(target, { mode = 'init', modules, force = false, dryRun 
   const defaults = Object.entries(index.modules).filter(([, m]) => m.default).map(([n]) => n);
   const names = resolveModules(index, mode === 'init' ? modules ?? defaults : mode === 'add' ? [...Object.keys(had).filter(n => index.modules[n]), ...(modules ?? [])] : Object.keys(had).filter(n => index.modules[n]));
   const files = distFiles(dist, names);
-  const report = { from: old?.version ?? null, to, modules: Object.fromEntries(names.map(n => [n, index.modules[n].version])), hadModules: had, written: [], unchanged: [], kept: [], removed: [], conflicts: [], mcp: '', claudeMd: '', packages: [] };
+  const report = { from: old?.version ?? null, to, fromBuild: old?.build ?? null, toBuild: index.build ?? null, modules: Object.fromEntries(names.map(n => [n, index.modules[n].version])), hadModules: had, written: [], unchanged: [], kept: [], removed: [], conflicts: [], mcp: '', claudeMd: '', packages: [] };
   const hashes = {};
   for (const [rel, src] of Object.entries(files)) {
-    const dest = join(target, rel), data = readFileSync(src), h = sha(data);
+    const dest = join(target, rel), data = filled(rel, readFileSync(src), names), h = sha(data);
     if (existsSync(dest)) {
       const cur = sha(readFileSync(dest));
       if (cur === h) { report.unchanged.push(rel); hashes[rel] = h; continue; }
@@ -245,14 +266,17 @@ export function install(target, { mode = 'init', modules, force = false, dryRun 
     else { report.kept.push(`${rel} (no longer shipped)`); }
   }
   report.mcp = mergeMcp(target, names.includes('art'), dryRun);
-  const cm = writeClaudeMd(target, claudeSection(dist, names), old?.claudeMd, force, dryRun);
+  // `--claude-md none` is kept in the manifest, so `update` leaves CLAUDE.md alone too
+  const mdMode = claudeMd ?? old?.claudeMdMode ?? 'auto';
+  const section = mdMode === 'none' ? '' : claudeSection(dist, names, layoutOf(target, names, scaffold && mode === 'init'));
+  const cm = writeClaudeMd(target, section, old?.claudeMd, force, dryRun);
   report.claudeMd = cm.action;
   if (mode === 'update') report.packages = bumpPackages(target, dist, dryRun);
   if (!dryRun) {
     mkdirSync(join(target, 'tools', 'artgen'), { recursive: true });
     // `sources`: where each installed file comes from in the artgen repo, for `artgen upstream`
     const sources = Object.fromEntries(Object.entries(index.sources ?? {}).map(([f, s]) => [targetOf(f), s]).filter(([t]) => hashes[t]));
-    writeFileSync(join(target, MANIFEST), JSON.stringify({ version: to, modules: report.modules, files: hashes, ...(Object.keys(sources).length && { sources }), claudeMd: cm.hash }, null, 2) + '\n');
+    writeFileSync(join(target, MANIFEST), JSON.stringify({ version: to, ...(index.build && { build: index.build }), modules: report.modules, files: hashes, ...(Object.keys(sources).length && { sources }), claudeMd: cm.hash, ...(mdMode === 'none' && { claudeMdMode: 'none' }) }, null, 2) + '\n');
   }
   if (scaffold && !dryRun) scaffoldProject(target, names, report);
   if (notes && !dryRun) writeFileSync(resolve(notes), releaseNotes(report, dist));
@@ -290,9 +314,19 @@ export function remove(target, names, { force = false, dryRun = false, dist = DI
     if (force || sha(readFileSync(dest)) === old.files[rel]) { if (!dryRun) { rmSync(dest); pruneEmpty(dirname(dest), target); } report.removed.push(rel); }
     else { report.kept.push(rel); hashes[rel] = old.files[rel]; }
   }
-  report.unchanged = Object.keys(stays).filter(r => hashes[r]);
+  // a shared text file that names the program is written again for the modules that stay (when it is as installed)
+  for (const [rel, src] of Object.entries(stays)) {
+    const dest = join(target, rel);
+    if (!hashes[rel] || !existsSync(dest) || sha(readFileSync(dest)) !== hashes[rel]) continue;
+    const data = filled(rel, readFileSync(src), keep);
+    if (sha(data) === hashes[rel]) continue;
+    if (!dryRun) writeFileSync(dest, data);
+    hashes[rel] = sha(data);
+    report.written.push(rel);
+  }
+  report.unchanged = Object.keys(stays).filter(r => hashes[r] && !report.written.includes(r));
   report.mcp = mergeMcp(target, keep.includes('art'), dryRun);
-  const cm = writeClaudeMd(target, claudeSection(dist, keep), old.claudeMd, force, dryRun);
+  const cm = writeClaudeMd(target, old.claudeMdMode === 'none' ? '' : claudeSection(dist, keep, layoutOf(target, keep, false)), old.claudeMd, force, dryRun);
   report.claudeMd = cm.action;
   if (!dryRun) {
     const sources = old.sources && Object.fromEntries(Object.entries(old.sources).filter(([t]) => hashes[t]));
@@ -304,7 +338,9 @@ export function remove(target, names, { force = false, dryRun = false, dist = DI
 
 /** The pull request description of an update: what changed in the modules, the changelog since the installed version, and what was kept. */
 export function releaseNotes(r, dist = DIST) {
-  const lines = [`artgen ${r.from ?? 'none'} → ${r.to}`, ''];
+  // the builds are named only when the release is the same on both sides
+  const same = r.from === r.to, b = (v, build) => (same && build ? `${v} (${build})` : v);
+  const lines = [`artgen ${r.from ? b(r.from, r.fromBuild) : 'none'} → ${b(r.to, r.toBuild)}`, ''];
   const mods = Object.entries(r.modules).map(([n, v]) => (r.hadModules[n] && r.hadModules[n] !== v ? `${n} ${r.hadModules[n]} → ${v}` : `${n} ${v}`));
   lines.push(`Modules: ${mods.join(', ')}`, '', `${r.written.length} files written, ${r.removed.length} removed, ${r.unchanged.length} unchanged.`);
   if (r.packages.length) lines.push(`Library package URLs in package.json moved to this release: ${r.packages.join(', ')} (run npm install to refresh the lockfile).`);
@@ -316,7 +352,8 @@ export function releaseNotes(r, dist = DIST) {
 }
 
 export function formatReport(r, mode, dryRun) {
-  const lines = [`artgen ${mode}${dryRun ? ' (dry run)' : ''}: ${r.from && r.from !== r.to ? `${r.from} → ${r.to}` : r.to}`];
+  const rebuilt = r.from === r.to && r.fromBuild && r.toBuild && r.fromBuild !== r.toBuild;
+  const lines = [`artgen ${mode}${dryRun ? ' (dry run)' : ''}: ${rebuilt ? `${r.from} (${r.fromBuild}) → ${r.to} (${r.toBuild})` : r.from && r.from !== r.to ? `${r.from} → ${r.to}` : r.to}`];
   lines.push(`  modules: ${Object.entries(r.modules).map(([n, v]) => `${n} ${v}`).join(', ')}`);
   const list = (label, xs) => { if (xs.length) lines.push(`  ${label} (${xs.length}):`, ...xs.map(x => `    ${x}`)); };
   list('written', r.written);
@@ -340,10 +377,10 @@ export function status(target, { dist = DIST } = {}) {
     else if (sha(readFileSync(f)) !== h) edited.push(rel);
   }
   const modules = Object.fromEntries(Object.entries(index.modules).map(([n, m]) => [n, { installed: had[n] ?? null, available: m.version, summary: m.summary }]));
-  return { installed: old?.version ?? null, available: distVersion(dist), modules, edited };
+  return { installed: old?.version ?? null, installedBuild: old?.build ?? null, available: distVersion(dist), availableBuild: index.build ?? null, modules, edited };
 }
 
-const VALUE_FLAGS = new Set(['--target', '--with', '--notes']);
+const VALUE_FLAGS = new Set(['--target', '--with', '--notes', '--claude-md']);
 
 /** `argv` after the command: the flags it has and the words that are not flags. */
 function parseArgs(rest) {
@@ -358,11 +395,13 @@ function parseArgs(rest) {
 }
 
 const USAGE = `usage: install.mjs init [--with art,maps,ui,update-pr] | add <module…> | remove <module…> | update [--notes file] [--skip-workflows] | status | modules
-       options: [--target dir] [--force] [--dry-run] [--no-scaffold]`;
+       options: [--target dir] [--force] [--dry-run] [--no-scaffold] [--claude-md auto|none]`;
 
 function main(argv) {
   const [cmd = 'help', ...rest] = argv, { flags, words } = parseArgs(rest);
-  const target = flags['--target'] ?? process.cwd(), common = { force: !!flags['--force'], dryRun: !!flags['--dry-run'], scaffold: !flags['--no-scaffold'] };
+  const md = flags['--claude-md'];
+  if (md !== undefined && md !== 'auto' && md !== 'none') throw new Error('--claude-md: auto (the managed section) or none (leave CLAUDE.md alone)');
+  const target = flags['--target'] ?? process.cwd(), common = { force: !!flags['--force'], dryRun: !!flags['--dry-run'], scaffold: !flags['--no-scaffold'], ...(md && { claudeMd: md }) };
   const list = s => s.split(',').map(x => x.trim()).filter(Boolean);
   if (cmd === 'init') { install(target, { mode: 'init', ...common, modules: flags['--with'] ? list(flags['--with']) : undefined }); return 0; }
   if (cmd === 'update') { install(target, { mode: 'update', ...common, notes: flags['--notes'], skipWorkflows: !!flags['--skip-workflows'] }); return 0; }
@@ -370,7 +409,8 @@ function main(argv) {
   if (cmd === 'remove') { remove(target, words.flatMap(list), common); return 0; }
   if (cmd === 'status') {
     const s = status(target);
-    console.log(`installed: ${s.installed ?? 'none'}\navailable: ${s.available}`);
+    const b = (v, build) => (build ? `${v} (${build})` : v);
+    console.log(`installed: ${s.installed ? b(s.installed, s.installedBuild) : 'none'}\navailable: ${b(s.available, s.availableBuild)}`);
     for (const [n, m] of Object.entries(s.modules)) console.log(`  ${n.padEnd(10)} ${(m.installed ?? '—').padEnd(8)} available ${m.available}`);
     if (s.edited.length) console.log(`edited locally:\n  ${s.edited.join('\n  ')}`);
     return 0;

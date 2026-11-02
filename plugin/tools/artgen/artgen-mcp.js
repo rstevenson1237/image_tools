@@ -24,9 +24,9 @@ var __export = (target, all) => {
 };
 var __copyProps = (to, from, except, desc) => {
   if (from && typeof from === "object" || typeof from === "function") {
-    for (let key2 of __getOwnPropNames(from))
-      if (!__hasOwnProp.call(to, key2) && key2 !== except)
-        __defProp(to, key2, { get: () => from[key2], enumerable: !(desc = __getOwnPropDesc(from, key2)) || desc.enumerable });
+    for (let key3 of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key3) && key3 !== except)
+        __defProp(to, key3, { get: () => from[key3], enumerable: !(desc = __getOwnPropDesc(from, key3)) || desc.enumerable });
   }
   return to;
 };
@@ -880,15 +880,15 @@ var init_grid = __esm({
        * position + 1 per pixel (0 = transparent).
        */
       toIndexed() {
-        const key2 = /* @__PURE__ */ new Map(), palette = [], alphas = [], index = new Uint16Array(this.w * this.h);
+        const key3 = /* @__PURE__ */ new Map(), palette = [], alphas = [], index = new Uint16Array(this.w * this.h);
         for (let p2 = 0; p2 < index.length; p2++) {
           const i = p2 * 4, a = this.d[i + 3];
           if (!a) continue;
           const k = (this.d[i] << 24 | this.d[i + 1] << 16 | this.d[i + 2] << 8 | a) >>> 0;
-          let n = key2.get(k);
+          let n = key3.get(k);
           if (n === void 0) {
             n = palette.length;
-            key2.set(k, n);
+            key3.set(k, n);
             palette.push(toHex(this.d[i], this.d[i + 1], this.d[i + 2]));
             alphas.push(a);
           }
@@ -1289,11 +1289,11 @@ var init_esm = __esm({
               cbuf(bt + 131072);
             var end = bt + add2;
             if (bt < dt) {
-              var shift = dl - dt, dend = Math.min(dt, end);
-              if (shift + bt < 0)
+              var shift2 = dl - dt, dend = Math.min(dt, end);
+              if (shift2 + bt < 0)
                 err(3);
               for (; bt < dend; ++bt)
-                buf[bt] = dict[shift + bt];
+                buf[bt] = dict[shift2 + bt];
             }
             for (; bt < end; ++bt)
               buf[bt] = buf[bt - dt];
@@ -1836,14 +1836,14 @@ function lzw(indices, minCode) {
   emit(clear);
   let cur = String(indices[0]);
   for (let i = 1; i < indices.length; i++) {
-    const k = indices[i], key2 = cur + "," + k;
-    if (dict.has(key2)) {
-      cur = key2;
+    const k = indices[i], key3 = cur + "," + k;
+    if (dict.has(key3)) {
+      cur = key3;
       continue;
     }
     emit(cur.includes(",") ? dict.get(cur) : +cur);
     if (next4 < 4096) {
-      dict.set(key2, next4++);
+      dict.set(key3, next4++);
       if (next4 > 1 << size2 && size2 < 12) size2++;
     } else {
       emit(clear);
@@ -1930,16 +1930,16 @@ __export(palette_exports, {
 });
 function parseHexPalette(text3) {
   const out = [];
-  for (const line2 of text3.split(/\r?\n/)) {
-    const m = line2.trim().match(/^#?([0-9a-fA-F]{6})$/);
+  for (const line3 of text3.split(/\r?\n/)) {
+    const m = line3.trim().match(/^#?([0-9a-fA-F]{6})$/);
     if (m) out.push("#" + m[1].toLowerCase());
   }
   return out;
 }
 function parseGpl(text3) {
   const out = [];
-  for (const line2 of text3.split(/\r?\n/)) {
-    const m = line2.trim().match(/^(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})(\s|$)/);
+  for (const line3 of text3.split(/\r?\n/)) {
+    const m = line3.trim().match(/^(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})(\s|$)/);
     if (m) out.push(toHex(+m[1], +m[2], +m[3]));
   }
   return out;
@@ -2385,8 +2385,8 @@ var init_prim = __esm({
           const t = s2.axis === "x" ? (y + 0.5 - (s2.y ?? 0)) / (s2.h ?? 1) : (x + 0.5 - (s2.x ?? 0)) / (s2.w ?? 1);
           return mat[Math.max(0, Math.min(last, Math.floor(t * (last + 1))))];
         }
-        const has = (a, b) => set2.has(a + "," + b);
-        const lit = !has(x + lx, y) || !has(x, y + ly), dark = !has(x - lx, y) || !has(x, y - ly);
+        const has2 = (a, b) => set2.has(a + "," + b);
+        const lit = !has2(x + lx, y) || !has2(x, y + ly), dark = !has2(x - lx, y) || !has2(x, y - ly);
         if (lit && !dark) return mat[0];
         if (dark && !lit) return mat[last];
         return mat[Math.min(1, last)];
@@ -2426,17 +2426,17 @@ __export(blit_exports, {
   blitMirrored: () => blitMirrored,
   shadeSide: () => shadeSide
 });
-function blit(g, rows3, key2, ox = 0, oy = 0) {
+function blit(g, rows3, key3, ox = 0, oy = 0) {
   rows3.forEach((r, y) => [...r].forEach((ch, x) => {
-    if (ch !== ".") g.set(ox + x, oy + y, key2[ch]);
+    if (ch !== ".") g.set(ox + x, oy + y, key3[ch]);
   }));
   return g;
 }
-function blitMirrored(g, half, key2, oy = 0) {
+function blitMirrored(g, half, key3, oy = 0) {
   half.forEach((r, y) => [...r].forEach((ch, x) => {
     if (ch !== ".") {
-      g.set(x, oy + y, key2[ch]);
-      g.set(g.w - 1 - x, oy + y, key2[ch]);
+      g.set(x, oy + y, key3[ch]);
+      g.set(g.w - 1 - x, oy + y, key3[ch]);
     }
   }));
   return g;
@@ -2629,12 +2629,12 @@ var init_voxel = __esm({
 });
 
 // ../../node_modules/@resvg/resvg-wasm/index.mjs
-function addHeapObject(obj) {
+function addHeapObject(obj2) {
   if (heap_next === heap.length)
     heap.push(heap.length + 1);
   const idx = heap_next;
   heap_next = heap[idx];
-  heap[idx] = obj;
+  heap[idx] = obj2;
   return idx;
 }
 function getObject(idx) {
@@ -2793,8 +2793,8 @@ function __wbg_get_imports() {
     return ret;
   };
   imports.wbg.__wbindgen_string_get = function(arg0, arg1) {
-    const obj = getObject(arg1);
-    const ret = typeof obj === "string" ? obj : void 0;
+    const obj2 = getObject(arg1);
+    const ret = typeof obj2 === "string" ? obj2 : void 0;
     var ptr1 = isLikeNone(ret) ? 0 : passStringToWasm0(ret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     var len1 = WASM_VECTOR_LEN;
     getInt32Memory0()[arg0 / 4 + 1] = len1;
@@ -2884,10 +2884,10 @@ var init_resvg_wasm = __esm({
     BBox = class _BBox {
       static __wrap(ptr) {
         ptr = ptr >>> 0;
-        const obj = Object.create(_BBox.prototype);
-        obj.__wbg_ptr = ptr;
-        BBoxFinalization.register(obj, obj.__wbg_ptr, obj);
-        return obj;
+        const obj2 = Object.create(_BBox.prototype);
+        obj2.__wbg_ptr = ptr;
+        BBoxFinalization.register(obj2, obj2.__wbg_ptr, obj2);
+        return obj2;
       }
       __destroy_into_raw() {
         const ptr = this.__wbg_ptr;
@@ -2958,10 +2958,10 @@ var init_resvg_wasm = __esm({
     RenderedImage = class _RenderedImage {
       static __wrap(ptr) {
         ptr = ptr >>> 0;
-        const obj = Object.create(_RenderedImage.prototype);
-        obj.__wbg_ptr = ptr;
-        RenderedImageFinalization.register(obj, obj.__wbg_ptr, obj);
-        return obj;
+        const obj2 = Object.create(_RenderedImage.prototype);
+        obj2.__wbg_ptr = ptr;
+        RenderedImageFinalization.register(obj2, obj2.__wbg_ptr, obj2);
+        return obj2;
       }
       __destroy_into_raw() {
         const ptr = this.__wbg_ptr;
@@ -3160,10 +3160,10 @@ var init_resvg_wasm = __esm({
       * @param {string} href
       * @param {Uint8Array} buffer
       */
-      resolveImage(href, buffer) {
+      resolveImage(href2, buffer) {
         try {
           const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-          const ptr0 = passStringToWasm0(href, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+          const ptr0 = passStringToWasm0(href2, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
           const len0 = WASM_VECTOR_LEN;
           wasm.resvg_resolveImage(retptr, this.__wbg_ptr, ptr0, len0, addHeapObject(buffer));
           var r0 = getInt32Memory0()[retptr / 4 + 0];
@@ -3367,18 +3367,18 @@ function scale2x(g) {
   }
   return out;
 }
-function inverse(w, h, deg, pivot, shift = [0, 0]) {
+function inverse(w, h, deg, pivot, shift2 = [0, 0]) {
   const [px, py] = pivot ?? [(w - 1) / 2, (h - 1) / 2], q = quarter(deg), r = norm(deg) * Math.PI / 180;
   const c = q < 0 ? Math.cos(r) : [1, 0, -1, 0][q], s2 = q < 0 ? Math.sin(r) : [0, 1, 0, -1][q];
   return (ox, oy) => {
-    const dx = ox - shift[0] - px, dy = oy - shift[1] - py;
+    const dx = ox - shift2[0] - px, dy = oy - shift2[1] - py;
     return [px + c * dx + s2 * dy + 0.5, py - s2 * dx + c * dy + 0.5];
   };
 }
 function rotsprite(g, deg, o = {}) {
   const [ow, oh] = o.size ?? [g.w, g.h], out = new Grid(ow, oh);
-  const shift = [Math.floor((ow - g.w) / 2), Math.floor((oh - g.h) / 2)];
-  const inv = inverse(g.w, g.h, deg, o.pivot, shift);
+  const shift2 = [Math.floor((ow - g.w) / 2), Math.floor((oh - g.h) / 2)];
+  const inv = inverse(g.w, g.h, deg, o.pivot, shift2);
   const exact = quarter(deg) >= 0;
   let src = g, k = 1;
   if (!exact) {
@@ -3401,8 +3401,8 @@ function rotsprite(g, deg, o = {}) {
 }
 function rotateNormals(n, deg, o = {}) {
   const [ow, oh] = o.size ?? [n.w, n.h], out = new Grid(ow, oh);
-  const shift = [Math.floor((ow - n.w) / 2), Math.floor((oh - n.h) / 2)];
-  const inv = inverse(n.w, n.h, deg, o.pivot, shift), q = quarter(deg), r = norm(deg) * Math.PI / 180;
+  const shift2 = [Math.floor((ow - n.w) / 2), Math.floor((oh - n.h) / 2)];
+  const inv = inverse(n.w, n.h, deg, o.pivot, shift2), q = quarter(deg), r = norm(deg) * Math.PI / 180;
   const c = q < 0 ? Math.cos(r) : [1, 0, -1, 0][q], s2 = q < 0 ? Math.sin(r) : [0, 1, 0, -1][q];
   for (let y = 0; y < oh; y++) for (let x = 0; x < ow; x++) {
     const [u, v] = inv(x, y), nv = getNormal(n, Math.floor(u + EPS), Math.floor(v + EPS));
@@ -3679,8 +3679,8 @@ function capsulePts(a, b, r0, r13 = r0, tol = 0.25) {
   const dx = b[0] - a[0], dy = b[1] - a[1], len3 = Math.hypot(dx, dy);
   if (len3 < 1e-6) return ellipsePts(a[0], a[1], Math.max(r0, r13), Math.max(r0, r13), tol);
   const ang = Math.atan2(dy, dx) * 180 / Math.PI;
-  const off = Math.asin(Math.max(-1, Math.min(1, (r0 - r13) / len3))) * 180 / Math.PI;
-  return [...ellipsePts(b[0], b[1], r13, r13, tol, ang - 90 + off, ang + 90 - off), ...ellipsePts(a[0], a[1], r0, r0, tol, ang + 90 - off, ang + 270 + off)];
+  const off2 = Math.asin(Math.max(-1, Math.min(1, (r0 - r13) / len3))) * 180 / Math.PI;
+  return [...ellipsePts(b[0], b[1], r13, r13, tol, ang - 90 + off2, ang + 90 - off2), ...ellipsePts(a[0], a[1], r0, r0, tol, ang + 90 - off2, ang + 270 + off2)];
 }
 function starPts(cx, cy, r, r26, n, rotDeg = -90) {
   const out = [];
@@ -4040,19 +4040,19 @@ var init_raster = __esm({
         const inkHex = normHex(ink);
         for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) {
           if (g.alpha(x, y) < 255) continue;
-          const c = g.get(x, y), i = y * g.w + x, hit = byColor.get(c), key2 = c === inkHex ? "#ink" : hit ? hit[0] : c;
-          let id2 = itemOf.get(key2);
+          const c = g.get(x, y), i = y * g.w + x, hit = byColor.get(c), key3 = c === inkHex ? "#ink" : hit ? hit[0] : c;
+          let id2 = itemOf.get(key3);
           if (id2 === void 0) {
             id2 = items.length;
-            itemOf.set(key2, id2);
-            if (key2 === "#ink") items.push({ name: "ink", fixed: inkHex, levels: [], rank: 0 });
+            itemOf.set(key3, id2);
+            if (key3 === "#ink") items.push({ name: "ink", fixed: inkHex, levels: [], rank: 0 });
             else if (hit) {
               const ramp2 = ramps[hit[0]].map(normHex);
               items.push({ name: hit[0], ramp: ramp2, levels: bandIndices(ramp2.length, bands2), rank: 0 });
             } else items.push({ fixed: c, levels: [], rank: 0 });
           }
           r.id[i] = id2;
-          if (key2 === "#ink") r.flag[i] = INK;
+          if (key3 === "#ink") r.flag[i] = INK;
           else if (hit) r.band[i] = hit[1];
         }
         for (const it of items) if (it.ramp) it.levels = [.../* @__PURE__ */ new Set([...it.levels, ...r.usedBands(items.indexOf(it))])].sort((a, b) => a - b);
@@ -4125,11 +4125,11 @@ function validateDirection(input) {
   if (!isObj(input)) return { ok: false, errors: ["direction: must be an object"] };
   const d = merge(DEFAULTS, input);
   const err2 = (path, msg) => errors.push(`${path}: ${msg}`);
-  const oneOf2 = (path, v, opts) => {
+  const oneOf3 = (path, v, opts) => {
     if (!opts.includes(v)) err2(path, `must be one of ${opts.join(" | ")} (got ${JSON.stringify(v)})`);
   };
-  const num5 = (path, v, min = -Infinity, max2 = Infinity, int = false) => {
-    if (typeof v !== "number" || !Number.isFinite(v) || v < min || v > max2 || int && !Number.isInteger(v)) err2(path, `must be ${int ? "an integer" : "a number"} in [${min}, ${max2}]`);
+  const num5 = (path, v, min = -Infinity, max2 = Infinity, int2 = false) => {
+    if (typeof v !== "number" || !Number.isFinite(v) || v < min || v > max2 || int2 && !Number.isInteger(v)) err2(path, `must be ${int2 ? "an integer" : "a number"} in [${min}, ${max2}]`);
   };
   const strs = (path, v) => {
     if (!Array.isArray(v) || v.some((s2) => typeof s2 !== "string")) err2(path, "must be an array of strings");
@@ -4141,14 +4141,14 @@ function validateDirection(input) {
   };
   if (typeof d.id !== "string" || !d.id) err2("id", "required string");
   num5("version", d.version, 1, Infinity, true);
-  oneOf2("status", d.status, ["draft", "candidate", "locked"]);
+  oneOf3("status", d.status, ["draft", "candidate", "locked"]);
   const cam = d.camera;
   if (!isObj(cam)) err2("camera", "required object");
   else {
-    oneOf2("camera.view", d.camera.view, VIEWS);
+    oneOf3("camera.view", d.camera.view, VIEWS);
     if (!Array.isArray(d.camera.light) || d.camera.light.length !== 3) err2("camera.light", "must be [x, y, z]");
     else d.camera.light.forEach((n, i) => num5(`camera.light[${i}]`, n));
-    oneOf2("camera.directions", d.camera.directions, [1, 4, 8, 16]);
+    oneOf3("camera.directions", d.camera.directions, [1, 4, 8, 16]);
     num5("camera.pixelScale", d.camera.pixelScale, 1, 16, true);
     if (d.camera.iso !== void 0) size2("camera.iso.tile", d.camera.iso.tile);
     if (d.camera.oblique !== void 0) num5("camera.oblique.frontRatio", d.camera.oblique.frontRatio, 0, 1);
@@ -4195,15 +4195,15 @@ function validateDirection(input) {
       if (Array.isArray(d.effects.palette)) d.effects.palette.forEach((n, i) => known(`effects.palette[${i}]`, n));
     }
   }
-  oneOf2("line.outer", d.line?.outer, ["dark", "selout", "none"]);
-  oneOf2("line.inner", d.line?.inner, ["none", "selective", "all"]);
+  oneOf3("line.outer", d.line?.outer, ["dark", "selout", "none"]);
+  oneOf3("line.inner", d.line?.inner, ["none", "selective", "all"]);
   num5("line.weight", d.line?.weight, 1, 4, true);
   num5("shading.bands", d.shading?.bands, 1, 16, true);
   num5("shading.hueShift", d.shading?.hueShift, 0, 180);
-  oneOf2("shading.dither", d.shading?.dither, ["none", "bayer2", "bayer4", "noise"]);
-  oneOf2("shading.highlight", d.shading?.highlight, ["none", "sparing", "rich"]);
+  oneOf3("shading.dither", d.shading?.dither, ["none", "bayer2", "bayer4", "noise"]);
+  oneOf3("shading.highlight", d.shading?.highlight, ["none", "sparing", "rich"]);
   if (typeof d.shading?.aa !== "boolean") err2("shading.aa", "must be a boolean");
-  oneOf2("detail.density", d.detail?.density, ["low", "medium", "high"]);
+  oneOf3("detail.density", d.detail?.density, ["low", "medium", "high"]);
   num5("detail.minFeaturePx", d.detail?.minFeaturePx, 1, 64, true);
   num5("pipeline.revisionPasses", d.pipeline?.revisionPasses, 1, 10, true);
   if (typeof d.pipeline?.finishPass !== "boolean") err2("pipeline.finishPass", "must be a boolean");
@@ -4243,9 +4243,9 @@ function pxPerMetre(dir) {
 }
 function resolveSize(dir, size2, kind) {
   if (Array.isArray(size2)) return size2;
-  const key2 = size2 ?? kind;
+  const key3 = size2 ?? kind;
   const ALIAS = { creature: "character", tileset: "tile", texture: "tile", viewmodel: "large", "ui-icon": "prop" };
-  const v = key2 ? dir.scale[key2] ?? dir.scale[ALIAS[key2]] : void 0;
+  const v = key3 ? dir.scale[key3] ?? dir.scale[ALIAS[key3]] : void 0;
   if (typeof v === "number") return [v, v];
   if (Array.isArray(v)) return v;
   throw new Error(`no size for ${JSON.stringify(size2 ?? kind)} in direction.scale`);
@@ -4355,11 +4355,11 @@ function tones(dir, ramp2) {
   return { lo: r[r.length - 1], mid: r[Math.max(0, r.length - 2)], hi: r[r.length >> 1] };
 }
 function obliqueRoom(w, h, dir, frontRatio = dir.camera.oblique?.frontRatio ?? 0.5) {
-  const g = new Grid(w, h), floor3 = tones(dir, "stone"), wall2 = tones(dir, "wood"), tile2 = Math.max(6, Math.round(w / 4)), row = Math.max(3, Math.round(tile2 * (1 / frontRatio - 1)));
+  const g = new Grid(w, h), floor4 = tones(dir, "stone"), wall2 = tones(dir, "wood"), tile2 = Math.max(6, Math.round(w / 4)), row = Math.max(3, Math.round(tile2 * (1 / frontRatio - 1)));
   const wallH = Math.round(h / 4);
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
     if (y < wallH) g.set(x, y, y === wallH - 1 || x % (tile2 * 2) === 0 ? wall2.mid : wall2.lo);
-    else g.set(x, y, (y - wallH) % row === 0 || x % tile2 === 0 ? floor3.lo : floor3.mid);
+    else g.set(x, y, (y - wallH) % row === 0 || x % tile2 === 0 ? floor4.lo : floor4.mid);
   }
   return g;
 }
@@ -4401,7 +4401,7 @@ function parallaxStrip(layers, viewW, offsets = [0, 24, 48]) {
   const h = Math.max(...layers.map((l) => l.grid.h)), out = new Grid((viewW + 1) * offsets.length - 1, h);
   offsets.forEach((cam, k) => {
     for (const l of layers) {
-      const lw = l.grid.w, off = -cam * l.depth, start = off - Math.ceil(off / lw) * lw;
+      const lw = l.grid.w, off2 = -cam * l.depth, start = off2 - Math.ceil(off2 / lw) * lw;
       for (let x = start; x < viewW; x += lw) for (let y = 0; y < l.grid.h; y++) for (let i = 0; i < lw; i++) {
         const sx = Math.round(x) + i;
         if (sx < 0 || sx >= viewW) continue;
@@ -4625,9 +4625,9 @@ var init_materials = __esm({
         return { role: "base", tone: crack ? 0.95 : 0.12 + vary * slab + 0.22 * (1 - n) + 0.1 * (fine - 0.5) - lip * 0.08, height: crack ? 0 : 0.5 + 0.3 * n + 0.1 * slab + fine * 0.1 };
       },
       cobble(x, y, c) {
-        const wv = pWorley(x, y, { w: c.w, h: c.h, seed: c.seed, cells: across(c.w, 9 * c.s), jitter: 0.75 }), edge = wv.f2 - wv.f1;
-        if (edge < 0.13) return { role: "mortar", tone: 0.55 + 0.3 * pValue(x, y, { w: c.w, h: c.h, cells: across(c.w, 3), seed: c.seed + 9 }), height: 0 };
-        const dome = sstep(0.13, 0.5, edge), own = c.rnd(wv.id);
+        const wv = pWorley(x, y, { w: c.w, h: c.h, seed: c.seed, cells: across(c.w, 9 * c.s), jitter: 0.75 }), edge2 = wv.f2 - wv.f1;
+        if (edge2 < 0.13) return { role: "mortar", tone: 0.55 + 0.3 * pValue(x, y, { w: c.w, h: c.h, cells: across(c.w, 3), seed: c.seed + 9 }), height: 0 };
+        const dome = sstep(0.13, 0.5, edge2), own = c.rnd(wv.id);
         return { role: "base", tone: 0.15 + 0.35 * own + 0.25 * (1 - dome) + 0.1 * pValue(x, y, { w: c.w, h: c.h, cells: across(c.w, 3), seed: c.seed + 3 }), height: 0.3 + 0.7 * dome };
       },
       wood(x, y, c) {
@@ -4692,19 +4692,19 @@ var init_materials = __esm({
         return { role: "base", tone: 0.25 + 0.5 * (1 - wave) * 0.8 + 0.2 * warp, height: wave * 0.3 };
       },
       lava(x, y, c) {
-        const wv = pWorley(x, y, { w: c.w, h: c.h, seed: c.seed, cells: across(c.w, 10 * c.s), jitter: 0.85 }), edge = wv.f2 - wv.f1;
+        const wv = pWorley(x, y, { w: c.w, h: c.h, seed: c.seed, cells: across(c.w, 10 * c.s), jitter: 0.85 }), edge2 = wv.f2 - wv.f1;
         const heat = pGradient(x, y, { w: c.w, h: c.h, cells: across(c.w, 16), octaves: 2, seed: c.seed + 1 });
-        if (edge < 0.1 + 0.08 * heat) return { role: "base", tone: edge * 4, height: 0 };
-        return { role: "crust", tone: 0.35 + 0.5 * (1 - sstep(0.1, 0.4, edge)) * 0.6 + 0.25 * c.rnd(wv.id), height: 0.4 + 0.6 * sstep(0.1, 0.45, edge) };
+        if (edge2 < 0.1 + 0.08 * heat) return { role: "base", tone: edge2 * 4, height: 0 };
+        return { role: "crust", tone: 0.35 + 0.5 * (1 - sstep(0.1, 0.4, edge2)) * 0.6 + 0.25 * c.rnd(wv.id), height: 0.4 + 0.6 * sstep(0.1, 0.45, edge2) };
       },
       tech(x, y, c) {
         const P2 = across(c.w, 16 * c.s), pw = c.w / P2, ph = c.h / across(c.h, 16 * c.s), u = mod2(x, pw), v = mod2(y, ph);
-        const edge = u < 1 || v < 1 ? "seam" : u < 2 || v < 2 ? "lit" : u > pw - 2 || v > ph - 2 ? "dark" : "";
+        const edge2 = u < 1 || v < 1 ? "seam" : u < 2 || v < 2 ? "lit" : u > pw - 2 || v > ph - 2 ? "dark" : "";
         const cell3 = Math.floor(x / pw) + Math.floor(y / ph) * 31, strip2 = c.rnd(cell3, 3) > 0.6 && Math.abs(v - ph / 2) < 0.6 && u > 3 && u < pw - 3;
         if (strip2) return { role: "light", tone: 0.1, height: 0.6 };
         const vent = c.rnd(cell3, 4) > 0.65 && u > 4 && u < pw - 4 && v > 4 && v < ph - 4 && Math.floor(v) % 2 === 0;
         const scuff = pValue(x, y, { w: c.w, h: c.h, cells: across(c.w, 4), seed: c.seed }) > 0.8 ? 0.15 : 0;
-        return { role: "base", tone: edge === "seam" ? 1 : edge === "lit" ? 0.05 : edge === "dark" ? 0.75 : vent ? 0.85 : 0.35 + scuff, height: edge === "seam" ? 0 : vent ? 0.2 : 0.5 };
+        return { role: "base", tone: edge2 === "seam" ? 1 : edge2 === "lit" ? 0.05 : edge2 === "dark" ? 0.75 : vent ? 0.85 : 0.35 + scuff, height: edge2 === "seam" ? 0 : vent ? 0.2 : 0.5 };
       },
       carpet(x, y, c) {
         const P2 = c.w / across(c.w, 16 * c.s), u = mod2(x, P2) / P2 - 0.5, v = mod2(y, P2) / P2 - 0.5, d = Math.abs(u) + Math.abs(v);
@@ -4762,26 +4762,26 @@ function raycast(scene, o) {
     const cx = 2 * (x + 0.5) / w - 1, rx = dx + qx * cx, ry = dy + qy * cx;
     let mx = Math.floor(px), my = Math.floor(py);
     const ddx = Math.abs(1 / (rx || 1e-9)), ddy = Math.abs(1 / (ry || 1e-9)), sx = rx < 0 ? -1 : 1, sy = ry < 0 ? -1 : 1;
-    let sdx = rx < 0 ? (px - mx) * ddx : (mx + 1 - px) * ddx, sdy = ry < 0 ? (py - my) * ddy : (my + 1 - py) * ddy, side = 0;
+    let sdx = rx < 0 ? (px - mx) * ddx : (mx + 1 - px) * ddx, sdy = ry < 0 ? (py - my) * ddy : (my + 1 - py) * ddy, side2 = 0;
     for (let n = 0; n < 64; n++) {
       if (sdx < sdy) {
         sdx += ddx;
         mx += sx;
-        side = 0;
+        side2 = 0;
       } else {
         sdy += ddy;
         my += sy;
-        side = 1;
+        side2 = 1;
       }
       if (solid(mx, my)) break;
     }
-    const dist3 = side === 0 ? sdx - ddx : sdy - ddy;
+    const dist3 = side2 === 0 ? sdx - ddx : sdy - ddy;
     zbuf[x] = dist3;
-    let wx = side === 0 ? py + dist3 * ry : px + dist3 * rx;
+    let wx = side2 === 0 ? py + dist3 * ry : px + dist3 * rx;
     wx -= Math.floor(wx);
-    if (side === 0 && rx > 0 || side === 1 && ry < 0) wx = 1 - wx;
+    if (side2 === 0 && rx > 0 || side2 === 1 && ry < 0) wx = 1 - wx;
     const lh = h / dist3, top = horizon - lh / 2;
-    for (let y = Math.max(0, Math.floor(top)); y < Math.min(h, Math.ceil(top + lh)); y++) put(x, y, texel(scene.wall, wx, (y + 0.5 - top) / lh), dist3, side ? 0.72 : 1);
+    for (let y = Math.max(0, Math.floor(top)); y < Math.min(h, Math.ceil(top + lh)); y++) put(x, y, texel(scene.wall, wx, (y + 0.5 - top) / lh), dist3, side2 ? 0.72 : 1);
   }
   const sprites = [...scene.sprites ?? []].map((s2) => ({ s: s2, d: (s2.x - px) ** 2 + (s2.y - py) ** 2 })).sort((a, b) => b.d - a.d);
   const inv = 1 / (qx * dy - dx * qy);
@@ -4804,7 +4804,7 @@ function raycast(scene, o) {
 }
 function sky(dir, o) {
   const { w, h } = o, seed = o.seed ?? 1, g = new Grid(w, h);
-  const pick2 = (want, fallback) => want && dir.pal[want] ? want : fallback.find((n2) => dir.pal[n2]) ?? Object.keys(dir.pal)[0];
+  const pick2 = (want2, fallback) => want2 && dir.pal[want2] ? want2 : fallback.find((n2) => dir.pal[n2]) ?? Object.keys(dir.pal)[0];
   const band = dir.pal[pick2(o.ramp, ["cloth", "stone"])], cloud = dir.pal[pick2(o.cloudRamp, ["metal", "stone"])], n = band.length;
   const clouds = o.clouds ?? 0.5;
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
@@ -4964,8 +4964,8 @@ function wfc(tiles, w, h, o = {}) {
   if (!n) throw new Error("wfc: no tiles");
   const compat = [0, 1, 2, 3].map((d) => tiles.map((a) => tiles.map((b, j) => a.edges[d] === b.edges[OPP[d]] ? j : -1).filter((j) => j >= 0)));
   const weights2 = tiles.map((t) => t.weight ?? 1);
-  for (let attempt = 0; attempt <= (o.restarts ?? 20); attempt++) {
-    const r = rng((o.seed ?? 1) * 7919 + attempt), cells = Array.from({ length: w * h }, () => new Set(tiles.map((_, i) => i)));
+  for (let attempt2 = 0; attempt2 <= (o.restarts ?? 20); attempt2++) {
+    const r = rng((o.seed ?? 1) * 7919 + attempt2), cells = Array.from({ length: w * h }, () => new Set(tiles.map((_, i) => i)));
     const nb = (c, d) => {
       let x = c % w + DX[d], y = Math.floor(c / w) + DY[d];
       if (o.periodic) {
@@ -5005,7 +5005,7 @@ function wfc(tiles, w, h, o = {}) {
       }
       ok = propagate(touched);
     }
-    if (!ok && !o.fixed && attempt === 0) break;
+    if (!ok && !o.fixed && attempt2 === 0) break;
     while (ok) {
       let best = -1, be = Infinity;
       for (let c = 0; c < cells.length; c++) {
@@ -5123,17 +5123,17 @@ function reduceCorners(m) {
   if (m & NW && m & N && m & W) r |= NW;
   return r;
 }
-function neighbourMask(x, y, same2) {
+function neighbourMask(x, y, same3) {
   let m = 0;
-  for (const [dx, dy, bit] of NEIGHBOURS) if (same2(x + dx, y + dy)) m |= bit;
+  for (const [dx, dy, bit] of NEIGHBOURS) if (same3(x + dx, y + dy)) m |= bit;
   return m;
 }
-function autotileIndexOf(layout2, mask) {
-  if (layout2 === "wang16") return (mask & N ? 1 : 0) | (mask & E ? 2 : 0) | (mask & S ? 4 : 0) | (mask & W ? 8 : 0);
+function autotileIndexOf(layout3, mask) {
+  if (layout3 === "wang16") return (mask & N ? 1 : 0) | (mask & E ? 2 : 0) | (mask & S ? 4 : 0) | (mask & W ? 8 : 0);
   return BLOB_INDEX.get(reduceCorners(mask & 255));
 }
-function autotileMask(layout2, index) {
-  if (layout2 === "blob47") {
+function autotileMask(layout3, index) {
+  if (layout3 === "blob47") {
     const m = BLOB47[index];
     if (m === void 0) throw new Error(`blob47 has 47 tiles (index ${index})`);
     return m;
@@ -5162,7 +5162,7 @@ var init_autobits = __esm({
     NEIGHBOURS = [[0, -1, N], [1, -1, NE], [1, 0, E], [1, 1, SE], [0, 1, S], [-1, 1, SW], [-1, 0, W], [-1, -1, NW]];
     BLOB47 = [...new Set(Array.from({ length: 256 }, (_, m) => reduceCorners(m)))].sort((a, b) => a - b);
     BLOB_INDEX = new Map(BLOB47.map((m, i) => [m, i]));
-    autotileCount = (layout2) => layout2 === "blob47" ? 47 : 16;
+    autotileCount = (layout3) => layout3 === "blob47" ? 47 : 16;
   }
 });
 
@@ -5187,8 +5187,8 @@ function autotileCovers(m, x, y, s2, o) {
   if (m & N && m & W && !(m & NW) && Math.hypot(px, py) < notch) return false;
   return true;
 }
-function autotile(dir, layout2, index, o) {
-  const s2 = o.over.w, m = autotileMask(layout2, index), inset = o.inset ?? Math.round(s2 / 4), opts = { inset, wobble: o.wobble ?? inset / 2, seed: o.seed ?? 1 };
+function autotile(dir, layout3, index, o) {
+  const s2 = o.over.w, m = autotileMask(layout3, index), inset = o.inset ?? Math.round(s2 / 4), opts = { inset, wobble: o.wobble ?? inset / 2, seed: o.seed ?? 1 };
   if (o.base.w !== s2 || o.over.h !== s2 || o.base.h !== s2) throw new Error("autotile: over and base must be square textures of the same size");
   const cov = new Uint8Array(s2 * s2);
   for (let y = 0; y < s2; y++) for (let x = 0; x < s2; x++) cov[y * s2 + x] = autotileCovers(m, x, y, s2, opts) ? 1 : 0;
@@ -5236,7 +5236,7 @@ function autotileSheet(tiles, cols = 8) {
   tiles.forEach((t, i) => g.blit(t, i % cols * (s2 + 1), Math.floor(i / cols) * (s2 + 1)));
   return g;
 }
-function autotileMap(tiles, layout2, base, cells = 8, seed = 3) {
+function autotileMap(tiles, layout3, base, cells = 8, seed = 3) {
   const s2 = tiles[0].w, solid = (x, y) => {
     if (x < 0 || y < 0 || x >= cells || y >= cells) return false;
     const dx = x - (cells - 1) / 2, dy = y - (cells - 1) / 2;
@@ -5251,7 +5251,7 @@ function autotileMap(tiles, layout2, base, cells = 8, seed = 3) {
     }
     let m = 0;
     for (const [dx, dy, b] of OFF) if (solid(x + dx, y + dy)) m |= b;
-    g.blit(tiles[autotileIndexOf(layout2, m)], x * s2, y * s2);
+    g.blit(tiles[autotileIndexOf(layout3, m)], x * s2, y * s2);
   }
   return g;
 }
@@ -5400,8 +5400,8 @@ function rasterVoxels(set2, o) {
       const sees = Math.abs(cam.M[1][0]) + Math.abs(cam.M[1][1]) > 1e-6;
       if (pts2.length && sees) {
         const xs = pts2.map((p2) => p2[0]), ys = pts2.map((p2) => p2[1]), cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
-        const rx = Math.max(2, (Math.max(...xs) - Math.min(...xs)) / 2 + 1), flat2 = Math.abs(cam.M[1][1]) / Math.max(1e-6, Math.abs(cam.M[0][0]) + Math.abs(cam.M[0][1]));
-        const ry = Math.max(1, Math.max((Math.max(...ys) - Math.min(...ys)) / 2 + 0.5, rx * Math.min(0.5, flat2 || 0.5)));
+        const rx = Math.max(2, (Math.max(...xs) - Math.min(...xs)) / 2 + 1), flat3 = Math.abs(cam.M[1][1]) / Math.max(1e-6, Math.abs(cam.M[0][0]) + Math.abs(cam.M[0][1]));
+        const ry = Math.max(1, Math.max((Math.max(...ys) - Math.min(...ys)) / 2 + 0.5, rx * Math.min(0.5, flat3 || 0.5)));
         for (let y = Math.floor(cy - ry); y <= cy + ry; y++) for (let x = Math.floor(cx - rx); x <= cx + rx; x++)
           if (((x + 0.5 - cx) / rx) ** 2 + ((y + 0.5 - cy) / ry) ** 2 <= 1) sh.set(x, y, o.shadow);
       }
@@ -5925,13 +5925,13 @@ var init_scene = __esm({
       compile(S3) {
         const items = [], bands2 = this.env.dir.shading.bands, inner = this.env.dir.line.inner !== "none";
         this.warnings = [];
-        const walk = (s2, M, key2, inh) => {
+        const walk = (s2, M, key3, inh) => {
           const copies = [mul(M, specMatrix(s2))];
           if (s2.mirrorX != null) copies.push(mul(M, mul(mirrorX(s2.mirrorX), specMatrix(s2))));
           if (s2.mirrorY != null) copies.push(mul(M, mul(mirrorY(s2.mirrorY), specMatrix(s2))));
           const out = [];
           copies.forEach((Mc, ci) => {
-            const k = [...key2, ci];
+            const k = [...key3, ci];
             const mat = this.resolveMat(s2.mat) ?? inh.mat, shade = s2.shade ?? inh.shade;
             if (s2.type === "group") {
               let clip = inh.clip;
@@ -5990,13 +5990,13 @@ var init_scene = __esm({
         });
         return items;
       }
-      underlayItem(of, width, S3, key2, name) {
+      underlayItem(of, width, S3, key3, name) {
         const w = width === true ? 1 : +width, u = new Mask(this.w * S3, this.h * S3, S3);
         for (const it of of) u.or(it.mask);
         return {
           spec: { type: "group" },
           mask: u.dilate(w * S3),
-          key: key2,
+          key: key3,
           name: name ? `${name}:underlay` : "underlay",
           fixed: this.env.dir.outline,
           levels: [],
@@ -6117,8 +6117,8 @@ var init_scene = __esm({
               empty++;
               continue;
             }
-            const key2 = mode === "ss" ? l * 4096 + this.shadeAt(items[l], sx2, sy2, S3, cache2) : l;
-            counts.set(key2, (counts.get(key2) ?? 0) + 1);
+            const key3 = mode === "ss" ? l * 4096 + this.shadeAt(items[l], sx2, sy2, S3, cache2) : l;
+            counts.set(key3, (counts.get(key3) ?? 0) + 1);
           }
           if (empty > half) continue;
           let best = -1, bn = 0;
@@ -6425,7 +6425,7 @@ var init_scene3d = __esm({
         return { cells, mats, parts };
       }
       /** Raster render with its buffers (depth, part ids, normal map). */
-      raster(w, h, o = {}, line2) {
+      raster(w, h, o = {}, line3) {
         const view = o.view ?? this.dir.camera.view, k = this.k;
         const cam = camera(view === "fp" ? "billboard" : view, { scale: (o.scale ?? 1) / k, frontRatio: this.dir.camera.oblique?.frontRatio, elevation: o.elevation });
         const inner = o.inner ?? (this.dir.line.inner === "none" ? "none" : this.dir.line.inner === "all" ? "parts" : "depth");
@@ -6445,7 +6445,7 @@ var init_scene3d = __esm({
           inner,
           innerDepth: o.innerDepth,
           ink: this.dir.outline,
-          line: o.outline === false ? void 0 : line2,
+          line: o.outline === false ? void 0 : line3,
           shadow: o.shadow === false ? null : this.dir.shadow,
           shadowShape: o.shadowShape
         });
@@ -6463,15 +6463,15 @@ var init_scene3d = __esm({
         const px = [Math.floor(x), Math.floor(y)];
         return px[0] >= 0 && px[1] >= 0 && px[0] < w && px[1] < h ? px : void 0;
       }
-      render(w, h, o = {}, line2) {
+      render(w, h, o = {}, line3) {
         this.rendered = { renderer: o.renderer === "raster" ? "raster" : "cubes", scale: o.scale ?? 1 };
         if (o.renderer === "raster") {
-          const r = this.raster(w, h, o, line2);
+          const r = this.raster(w, h, o, line3);
           r.grid.normal = r.normal;
           return r.grid;
         }
         const m = this.model(o.facing ?? "s");
-        if (line2) Object.assign(m.defaults, { applyLine: line2 });
+        if (line3) Object.assign(m.defaults, { applyLine: line3 });
         return m.render(w, h, { ox: o.ox ?? 0, oy: o.oy ?? 0, ss: o.ss, outline: o.outline, shadow: o.shadow, edgeLight: o.edgeLight });
       }
       /**
@@ -6604,18 +6604,18 @@ var init_proc = __esm({
        */
       pattern(r, env, o) {
         const hit = matcher(r, env, o), type = o.type ?? "stripes", P2 = o.period ?? 4, wd = o.width ?? 1;
-        const off = o.offset ?? 0, len3 = o.length ?? P2 * 3, step = o.step ?? 1, along2 = o.axis ?? "x";
+        const off2 = o.offset ?? 0, len3 = o.length ?? P2 * 3, step = o.step ?? 1, along2 = o.axis ?? "x";
         const mod4 = (a, b) => (a % b + b) % b;
         for (let p2 = 0; p2 < r.id.length; p2++) {
           if (!hit(p2)) continue;
           const x0 = p2 % r.w, y0 = p2 / r.w | 0, [u, v] = along2 === "x" ? [x0, y0] : [y0, x0];
-          const row = Math.floor((v - off) / P2), line2 = mod4(v - off, P2) < wd;
+          const row = Math.floor((v - off2) / P2), line3 = mod4(v - off2, P2) < wd;
           let on = false;
-          if (type === "stripes") on = line2;
-          else if (type === "planks" || type === "bricks") on = line2 || mod4(u - (row % 2 ? len3 / 2 : 0) - (o.joint ?? 0), len3) < wd;
-          else if (type === "grid") on = mod4(u - off, P2) < wd || line2;
-          else if (type === "checker") on = (Math.floor((u - off) / P2) + row) % 2 === 0;
-          else if (type === "rivets") on = mod4(u - off, P2) === 0 && mod4(v - off, P2) === 0;
+          if (type === "stripes") on = line3;
+          else if (type === "planks" || type === "bricks") on = line3 || mod4(u - (row % 2 ? len3 / 2 : 0) - (o.joint ?? 0), len3) < wd;
+          else if (type === "grid") on = mod4(u - off2, P2) < wd || line3;
+          else if (type === "checker") on = (Math.floor((u - off2) / P2) + row) % 2 === 0;
+          else if (type === "rivets") on = mod4(u - off2, P2) === 0 && mod4(v - off2, P2) === 0;
           else throw new Error(`pattern: unknown type ${type}`);
           if (on) r.step(p2, step);
         }
@@ -6841,9 +6841,9 @@ function sample(s2, r) {
   if (s2.type === "toggle") return r() < (s2.p ?? 0.5);
   return s2.options[Math.floor(r() * s2.options.length)];
 }
-function resolveParams(schema = {}, variant = 0, overrides = {}) {
+function resolveParams(schema2 = {}, variant = 0, overrides = {}) {
   const out = {};
-  for (const [k, v] of Object.entries(schema)) {
+  for (const [k, v] of Object.entries(schema2)) {
     if (!isSpec(v)) {
       out[k] = v;
       continue;
@@ -6969,9 +6969,9 @@ function rig(def) {
         end: (n) => get(n).b,
         start: (n) => get(n).a,
         bone: get,
-        along(n, u, side = 0) {
+        along(n, u, side2 = 0) {
           const b = get(n), d = sub(b.b, b.a), l = len2(d) || 1;
-          return [b.a[0] + d[0] * u + -d[1] / l * side, b.a[1] + d[1] * u + d[0] / l * side];
+          return [b.a[0] + d[0] * u + -d[1] / l * side2, b.a[1] + d[1] * u + d[0] / l * side2];
         }
       };
     }
@@ -7007,8 +7007,8 @@ function spring(o) {
           prev[i] = p2;
           let q = [p2[0] + v[0] * (1 - damp) + fx2 * dt * dt, p2[1] + v[1] * (1 - damp) + g * dt * dt];
           ang += R3(i - 1);
-          const want = add(pts2[i - 1], dirOf(ang), L2(i - 1));
-          q = [q[0] + (want[0] - q[0]) * k, q[1] + (want[1] - q[1]) * k];
+          const want2 = add(pts2[i - 1], dirOf(ang), L2(i - 1));
+          q = [q[0] + (want2[0] - q[0]) * k, q[1] + (want2[1] - q[1]) * k];
           const d = sub(q, pts2[i - 1]), l = len2(d) || 1;
           q = add(pts2[i - 1], d, L2(i - 1) / l);
           pts2[i] = q;
@@ -7055,14 +7055,14 @@ function facingYaw2(facing) {
   const d = YAW16[facing];
   return d === void 0 ? 0 : Math.sign(d) * Math.round(Math.abs(d) / 45) * 45;
 }
-function bodyRig(plan, o) {
-  const set2 = plan, pl = plan === "large" ? "quadruped" : plan;
+function bodyRig(plan2, o) {
+  const set2 = plan2, pl = plan2 === "large" ? "quadruped" : plan2;
   const [w, h] = o.size, cx = w / 2, ground2 = o.ground ?? Math.round(h * 0.95), tilt = o.tilt ?? 0.3;
-  const H = o.height ?? Math.round(h * ({ biped: 0.89, quadruped: 0.375, flyer: 0.25, serpent: 0.22, turret: 0.4 }[pl] * (plan === "large" ? 1.15 : 1)));
+  const H = o.height ?? Math.round(h * ({ biped: 0.89, quadruped: 0.375, flyer: 0.25, serpent: 0.22, turret: 0.4 }[pl] * (plan2 === "large" ? 1.15 : 1)));
   const base = PROPORTIONS[set2], user = o.proportions ?? {};
   const prop2 = (name, generic = name.replace(/^(leg|arm)[FB]?[LR]_/, "$1_")) => user[name] ?? user[generic] ?? base[name] ?? base[generic] ?? 0;
   const len3 = (name, generic) => H * prop2(name, generic);
-  const yaw = facingYaw2(o.facing) * RAD2, sx = Math.sin(yaw), front = Math.cos(yaw), side = Math.abs(sx);
+  const yaw = facingYaw2(o.facing) * RAD2, sx = Math.sin(yaw), front = Math.cos(yaw), side2 = Math.abs(sx);
   const spec = SPECS[pl]({ H, len: len3, prop: prop2, given: (n) => n in user, round: o.continuous ? (v) => v : Math.round });
   const rigs = spec.groups.map((g) => rig({ root: [0, 0], bones: g.bones }));
   const lengths = {};
@@ -7074,14 +7074,14 @@ function bodyRig(plan, o) {
     spec.groups.forEach((g, gi) => {
       const names = Object.keys(g.bones), gik = Object.fromEntries(Object.entries(ik).filter(([n]) => names.includes(n)));
       const pose = rigs[gi].pose(angles, { ...gi === 0 && clip.root && { root: clip.root }, ik: gik });
-      let origin;
+      let origin2;
       if ("host" in g.origin) {
         const [a, b] = p3[g.origin.host], u = g.origin.u, d = g.origin.delta;
-        origin = [a[0] + (b[0] - a[0]) * u + d[0], a[1] + (b[1] - a[1]) * u + d[1], a[2] + (b[2] - a[2]) * u + d[2]];
-      } else origin = g.origin;
+        origin2 = [a[0] + (b[0] - a[0]) * u + d[0], a[1] + (b[1] - a[1]) * u + d[1], a[2] + (b[2] - a[2]) * u + d[2]];
+      } else origin2 = g.origin;
       const map = (p2, name, end) => {
         const lift = clip.lift?.[name]?.[end] ?? 0, z = g.z[name] ?? 0;
-        return g.plane === "side" ? [origin[0] + p2[0], origin[1] - p2[1] + lift, origin[2] + z] : g.plane === "front" ? [origin[0], origin[1] - p2[1] + lift, origin[2] + g.sign * p2[0] + z] : [origin[0] + p2[0], origin[1] + lift, origin[2] + p2[1] + z];
+        return g.plane === "side" ? [origin2[0] + p2[0], origin2[1] - p2[1] + lift, origin2[2] + z] : g.plane === "front" ? [origin2[0], origin2[1] - p2[1] + lift, origin2[2] + g.sign * p2[0] + z] : [origin2[0] + p2[0], origin2[1] + lift, origin2[2] + p2[1] + z];
       };
       for (const n of names) {
         const b = pose.bone(n);
@@ -7160,7 +7160,7 @@ function bodyRig(plan, o) {
     }
     return out;
   };
-  return { plan: pl, set: set2, lengths, yaw, sx, front, side, height: H, ground: ground2, pose: posed, anchors: anchors2, bones: order, parents, skeleton };
+  return { plan: pl, set: set2, lengths, yaw, sx, front, side: side2, height: H, ground: ground2, pose: posed, anchors: anchors2, bones: order, parents, skeleton };
 }
 var RIG_PLANS, BODY_PLAN, PROPORTIONS, YAW8, YAW16, RAD2, TAU, angOf2, sin, cos, hold, foot, sag, STATE_ALIAS, SPECS;
 var init_rigs = __esm({
@@ -7182,10 +7182,10 @@ var init_rigs = __esm({
     RAD2 = Math.PI / 180;
     TAU = Math.PI * 2;
     angOf2 = (dx, dy) => Math.atan2(dx, dy) / RAD2;
-    sin = (t, off = 0) => Math.sin((t + off) * TAU);
-    cos = (t, off = 0) => Math.cos((t + off) * TAU);
+    sin = (t, off2 = 0) => Math.sin((t + off2) * TAU);
+    cos = (t, off2 = 0) => Math.cos((t + off2) * TAU);
     hold = (keys, t) => track(keys, t, { ease: "inOut" });
-    foot = (t, off, x0, ground2, stride, lift) => [x0 + stride * sin(t, off), ground2 - lift * Math.max(0, cos(t, off))];
+    foot = (t, off2, x0, ground2, stride, lift) => [x0 + stride * sin(t, off2), ground2 - lift * Math.max(0, cos(t, off2))];
     sag = (L2, s2) => L2 - Math.sqrt(Math.max(0, L2 * L2 - s2 * s2));
     STATE_ALIAS = { run: "walk", move: "walk", fly: "walk", hover: "idle", stand: "idle", strike: "attack", hit: "hurt" };
     SPECS = {
@@ -7214,10 +7214,10 @@ var init_rigs = __esm({
             }
           };
           if (state === "walk") {
-            const off = { L: 0, R: 0.5 }, feet = ["L", "R"].map((s2) => foot(t, off[s2], 0, leg, stride, lift));
+            const off2 = { L: 0, R: 0.5 }, feet = ["L", "R"].map((s2) => foot(t, off2[s2], 0, leg, stride, lift));
             for (const [i, s2] of ["L", "R"].entries()) ik[`leg${s2}_lo`] = { target: feet[i], bend: 1 };
             root = [0, round6(Math.max(...feet.map((f) => sag(leg, f[0]))) * 1.6)];
-            arms((s2) => -armSwing * sin(t, off[s2]), (s2) => 8 + 14 * Math.max(0, -sin(t, off[s2])));
+            arms((s2) => -armSwing * sin(t, off2[s2]), (s2) => 8 + 14 * Math.max(0, -sin(t, off2[s2])));
           } else if (state === "attack") {
             const a = hold([[0, 150], [0.3, 160], [0.55, 45], [0.8, 20], [1, 150]], t), lo = hold([[0, 30], [0.3, 40], [0.55, 6], [0.8, 10], [1, 30]], t);
             arms((s2) => s2 === "R" ? a : -12, (s2) => s2 === "R" ? lo : 10);
@@ -7253,19 +7253,19 @@ var init_rigs = __esm({
           tail: { parent: "spine", at: 0, len: len3("tail"), angle: 155 }
         };
         const z = {}, legs = [];
-        for (const [e, at4, off] of [["B", prop2("hindAt"), 0.5], ["F", prop2("foreAt"), 0]]) for (const [s2, k] of [["L", -1], ["R", 1]]) {
+        for (const [e, at4, off2] of [["B", prop2("hindAt"), 0.5], ["F", prop2("foreAt"), 0]]) for (const [s2, k] of [["L", -1], ["R", 1]]) {
           const n = `leg${e}${s2}`;
           bones[`${n}_up`] = { parent: "spine", at: at4, offset: [0, barrel / 2], len: len3(`${n}_up`, "leg_up"), angle: -90 };
           bones[`${n}_lo`] = { parent: `${n}_up`, len: len3(`${n}_lo`, "leg_lo"), angle: 0 };
           z[`${n}_up`] = z[`${n}_lo`] = k * legSep;
-          legs.push([n, at4 * spine, (off + (s2 === "R" ? 0.5 : 0)) % 1]);
+          legs.push([n, at4 * spine, (off2 + (s2 === "R" ? 0.5 : 0)) % 1]);
         }
         const down = leg + barrel / 2, stride = H * 0.15, lift = H * 0.09;
         const clip = (state, t) => {
           const rel4 = {}, ik = {};
           let root = [0, 0];
           if (state === "walk") {
-            const fs = legs.map(([n, x0, off]) => ({ n, f: foot(t, off, x0, down, stride, lift), bend: n[3] === "F" ? -1 : 1 }));
+            const fs = legs.map(([n, x0, off2]) => ({ n, f: foot(t, off2, x0, down, stride, lift), bend: n[3] === "F" ? -1 : 1 }));
             for (const { n, f, bend } of fs) ik[`${n}_lo`] = { target: f, bend };
             root = [0, Math.max(...fs.map((x) => sag(leg, x.f[0] - legs.find((l) => l[0] === x.n)[1]))) * 1.6];
             rel4.neck = 50 + 4 * sin(t, 0.25);
@@ -7294,7 +7294,7 @@ var init_rigs = __esm({
       },
       flyer({ H, len: len3, prop: prop2, round: round6 }) {
         const bodyLen = len3("body"), hover = H * prop2("hover");
-        const side = {
+        const side2 = {
           plane: "side",
           sign: 1,
           z: {},
@@ -7327,7 +7327,7 @@ var init_rigs = __esm({
           }
           return { angles: rel4, root };
         };
-        return { groups: [side, wing("L"), wing("R")], clip, anchorBones: { head: ["head", 0.4] } };
+        return { groups: [side2, wing("L"), wing("R")], clip, anchorBones: { head: ["head", 0.4] } };
       },
       serpent({ H, len: len3, prop: prop2 }) {
         const n = 8, seg = len3("seg"), bones = {};
@@ -7370,9 +7370,9 @@ var init_rigs = __esm({
 });
 
 // ../artgen-scene/src/anim/rig3d.ts
-function bodyRig3d(plan, o) {
+function bodyRig3d(plan2, o) {
   if (!(o.height > 0)) throw new Error("rigs.body3d: height (model units) must be positive");
-  const r = bodyRig(plan, { size: [64, 64], facing: "s", height: o.height, proportions: o.proportions, continuous: true });
+  const r = bodyRig(plan2, { size: [64, 64], facing: "s", height: o.height, proportions: o.proportions, continuous: true });
   const self = {
     plan: r.plan,
     set: r.set,
@@ -7403,9 +7403,9 @@ function bodyRig3d(plan, o) {
         end: (n) => get(n).b,
         along: along2,
         // forward is +y, the body's right −x, up +z
-        at: (n, u = 0.5, fwd = 0, side = 0, up = 0) => {
+        at: (n, u = 0.5, fwd = 0, side2 = 0, up = 0) => {
           const p2 = along2(n, u);
-          return [p2[0] - side, p2[1] + fwd, p2[2] + up];
+          return [p2[0] - side2, p2[1] + fwd, p2[2] + up];
         }
       };
     },
@@ -7444,7 +7444,7 @@ function simulate(dir, o) {
   o.layers.forEach((L2, li) => {
     const run2 = colorRun(dir, L2.colors), [b0, b1] = L2.band ?? [0, 1];
     const lo = Math.floor(b0 * (run2.length - 1) + 1e-9), hi = Math.max(lo, Math.ceil(b1 * (run2.length - 1) - 1e-9));
-    const cols = run2.slice(lo, hi + 1), period = L2.period ?? o.duration, origin = L2.origin ?? [o.w / 2, o.h / 2];
+    const cols = run2.slice(lo, hi + 1), period = L2.period ?? o.duration, origin2 = L2.origin ?? [o.w / 2, o.h / 2];
     for (let i = 0; i < L2.count; i++) {
       const r = rng((o.seed ?? 1) * 7919 + (L2.seed ?? 0) * 104729 + li * 1543 + i * 31 >>> 0);
       r();
@@ -7459,8 +7459,8 @@ function simulate(dir, o) {
         sy = a[1] + (b[1] - a[1]) * f;
       } else {
         const ar = L2.area ?? 0, [ax, ay] = typeof ar === "number" ? [ar, ar] : ar, th = r() * Math.PI * 2, rr = Math.sqrt(r());
-        sx = origin[0] + Math.cos(th) * ax * rr;
-        sy = origin[1] + Math.sin(th) * ay * rr;
+        sx = origin2[0] + Math.cos(th) * ax * rr;
+        sy = origin2[1] + Math.sin(th) * ay * rr;
       }
       const jit = 1 + (r() - 0.5) * 2 * (L2.sizeJitter ?? 0.25), turb = (r() - 0.5) * 2 * (L2.turbulence ?? 0), phase = r() * Math.PI * 2;
       const ages = [];
@@ -7576,9 +7576,9 @@ function preset(name, o, override = {}) {
   if (!p2) throw new Error(`unknown particle preset ${JSON.stringify(name)} (have: ${PRESET_NAMES.join(", ")})`);
   return p2(o).map((l) => ({ ...l, ...override }));
 }
-function paletteCycle(dir, g, colors, shift) {
+function paletteCycle(dir, g, colors, shift2) {
   const run2 = colorRun(dir, colors), n = run2.length, at4 = new Map(run2.map((c, i) => [c, i]));
-  const out = g.clone(), s2 = (Math.round(shift) % n + n) % n;
+  const out = g.clone(), s2 = (Math.round(shift2) % n + n) % n;
   if (!s2) return out;
   for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) {
     if (g.alpha(x, y) !== 255) continue;
@@ -7931,7 +7931,7 @@ function mesh(sdf, normal, s2) {
   const cellOf = (x, y, z) => (z * ny + y) * nx + x;
   const acc = /* @__PURE__ */ new Map();
   const edges2 = [];
-  const point = (x, y, z) => [o[0] + x * h, o[1] + y * h, o[2] + z * h];
+  const point2 = (x, y, z) => [o[0] + x * h, o[1] + y * h, o[2] + z * h];
   for (let z = 0; z <= nz; z++) for (let y = 0; y <= ny; y++) for (let x = 0; x <= nx; x++) {
     const i = z * Z + y * Y + x, a = inside(v[i]);
     for (let ax = 0; ax < 3; ax++) {
@@ -7940,7 +7940,7 @@ function mesh(sdf, normal, s2) {
       const j = i + (ax === 0 ? X : ax === 1 ? Y : Z);
       if (a === inside(v[j])) continue;
       edges2.push([x, y, z, ax, a]);
-      const p0 = point(x, y, z), p1 = point(x + (ax === 0 ? 1 : 0), y + (ax === 1 ? 1 : 0), z + (ax === 2 ? 1 : 0));
+      const p0 = point2(x, y, z), p1 = point2(x + (ax === 0 ? 1 : 0), y + (ax === 1 ? 1 : 0), z + (ax === 2 ? 1 : 0));
       let lo = 0, hi = 1;
       for (let it = 0; it < 10; it++) {
         const t2 = (lo + hi) / 2, d = sdf(p0[0] + (p1[0] - p0[0]) * t2, p0[1] + (p1[1] - p0[1]) * t2, p0[2] + (p1[2] - p0[2]) * t2);
@@ -7975,7 +7975,7 @@ function mesh(sdf, normal, s2) {
       }
     }
     const d = solve3(A, b) ?? [0, 0, 0], cx = k % nx, cy = Math.floor(k / nx) % ny, cz = Math.floor(k / (nx * ny));
-    const lo = point(cx, cy, cz);
+    const lo = point2(cx, cy, cz);
     index.set(k, pos.length / 3);
     for (let a = 0; a < 3; a++) pos.push(Math.min(lo[a] + h, Math.max(lo[a], mean3[a] + d[a])));
   }
@@ -8032,12 +8032,12 @@ function texelsIn(a, b, c, each) {
   if (!(Math.abs(area3) > 1e-12)) return;
   const s2 = area3 > 0 ? 1 : -1;
   const x0 = Math.floor(Math.min(a[0], b[0], c[0])), x1 = Math.ceil(Math.max(a[0], b[0], c[0])), y0 = Math.floor(Math.min(a[1], b[1], c[1])), y1 = Math.ceil(Math.max(a[1], b[1], c[1]));
-  const edge = (u, v) => {
+  const edge2 = (u, v) => {
     const flip = u[0] > v[0] || u[0] === v[0] && u[1] > v[1], p2 = flip ? v : u, q = flip ? u : v, k = (flip ? -1 : 1) * s2;
     const nx = -(q[1] - p2[1]) * k, ny = (q[0] - p2[0]) * k, keep = nx > 0 || nx === 0 && ny > 0;
     return { at: (x, y) => k * ((q[0] - p2[0]) * (y - p2[1]) - (q[1] - p2[1]) * (x - p2[0])), keep };
   };
-  const ea = edge(b, c), eb = edge(c, a), ec2 = edge(a, b), A = Math.abs(area3);
+  const ea = edge2(b, c), eb = edge2(c, a), ec2 = edge2(a, b), A = Math.abs(area3);
   for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
     const px = x + 0.5, py = y + 0.5, wa = ea.at(px, py), wb = eb.at(px, py), wc = ec2.at(px, py);
     if (wa < 0 || wb < 0 || wc < 0) continue;
@@ -8061,8 +8061,8 @@ function layoutUvs(m, texels) {
   }
   const nbrs = Array.from({ length: tris }, () => []), byEdge0 = /* @__PURE__ */ new Map();
   for (let t = 0; t < tris; t++) for (let c = 0; c < 3; c++) {
-    const a = corner2(t, c), b = corner2(t, (c + 1) % 3), key2 = a < b ? `${a},${b}` : `${b},${a}`, o = byEdge0.get(key2);
-    if (o === void 0) byEdge0.set(key2, t);
+    const a = corner2(t, c), b = corner2(t, (c + 1) % 3), key3 = a < b ? `${a},${b}` : `${b},${a}`, o = byEdge0.get(key3);
+    if (o === void 0) byEdge0.set(key3, t);
     else {
       nbrs[t].push(o);
       nbrs[o].push(t);
@@ -8082,8 +8082,8 @@ function layoutUvs(m, texels) {
   };
   const byEdge = /* @__PURE__ */ new Map();
   for (let t = 0; t < tris; t++) for (let c = 0; c < 3; c++) {
-    const a = corner2(t, c), b = corner2(t, (c + 1) % 3), key2 = a < b ? `${a},${b}` : `${b},${a}`, o = byEdge.get(key2);
-    if (o === void 0) byEdge.set(key2, t);
+    const a = corner2(t, c), b = corner2(t, (c + 1) % 3), key3 = a < b ? `${a},${b}` : `${b},${a}`, o = byEdge.get(key3);
+    if (o === void 0) byEdge.set(key3, t);
     else if (label4[o] === label4[t]) {
       const ra = find(o), rb = find(t);
       if (ra !== rb) parent[Math.max(ra, rb)] = Math.min(ra, rb);
@@ -8144,8 +8144,8 @@ function layoutUvs(m, texels) {
     charts.forEach((ch, ci) => ch.tris.forEach((t, k) => {
       const pr = ch.proj[k];
       for (let c = 0; c < 3; c++) {
-        const vi = corner2(t, c), key2 = m.smooth[t] ? `${ci},${vi}` : `t${t},${c}`;
-        let out = seen.get(key2);
+        const vi = corner2(t, c), key3 = m.smooth[t] ? `${ci},${vi}` : `t${t},${c}`;
+        let out = seen.get(key3);
         if (out === void 0) {
           const p2 = P2(vi), n = m.smooth[t] ? m.normal(p2) : fn[t], [u, v] = ch.uv[k][c];
           const tt = unit(sub2(pr.du, n.map((x2) => x2 * dot(n, pr.du)))), w = dot(cross(n, tt), pr.up) >= 0 ? 1 : -1;
@@ -8154,7 +8154,7 @@ function layoutUvs(m, texels) {
           nor.push(...n);
           uvs.push((u + at4[ci][0]) / W3, (v + at4[ci][1]) / H);
           tan.push(...tt, w);
-          seen.set(key2, out);
+          seen.set(key3, out);
         }
         idx[t * 3 + c] = out;
       }
@@ -8522,9 +8522,9 @@ var init_skin = __esm({
 // ../artgen-scene/src/mesh/checks.ts
 function meshChecks(m, o) {
   const { positions: P2, uvs: U, indices: I } = m, tris = I.length / 3, out = [];
-  const key2 = (v) => `${P2[v * 3]},${P2[v * 3 + 1]},${P2[v * 3 + 2]}`, edges2 = /* @__PURE__ */ new Map();
+  const key3 = (v) => `${P2[v * 3]},${P2[v * 3 + 1]},${P2[v * 3 + 2]}`, edges2 = /* @__PURE__ */ new Map();
   for (let t = 0; t < tris; t++) for (let c = 0; c < 3; c++) {
-    const e = `${key2(I[t * 3 + c])}|${key2(I[t * 3 + (c + 1) % 3])}`;
+    const e = `${key3(I[t * 3 + c])}|${key3(I[t * 3 + (c + 1) % 3])}`;
     edges2.set(e, (edges2.get(e) ?? 0) + 1);
   }
   let open = 0;
@@ -8540,8 +8540,8 @@ function meshChecks(m, o) {
       lo2 = Math.min(lo2, P2[i]);
       hi2 = Math.max(hi2, P2[i]);
     }
-    const h = (hi2 - lo2) * o.metresPerUnit, off = Math.abs(h - o.height) / o.height, limit = o.heightTolerance ?? 0.2;
-    out.push({ id: "mesh-scale", status: off <= limit ? "pass" : "flag", detail: `${f2(h)} m tall, the brief says ${o.height} m (${Math.round(off * 100)} % off; ${Math.round(limit * 100)} % allowed)` });
+    const h = (hi2 - lo2) * o.metresPerUnit, off2 = Math.abs(h - o.height) / o.height, limit = o.heightTolerance ?? 0.2;
+    out.push({ id: "mesh-scale", status: off2 <= limit ? "pass" : "flag", detail: `${f2(h)} m tall, the brief says ${o.height} m (${Math.round(off2 * 100)} % off; ${Math.round(limit * 100)} % allowed)` });
   } else out.push({ id: "mesh-scale", status: "skip", detail: "the brief gives no height" });
   let outside = 0;
   for (const u of U) if (!(u >= 0 && u <= 1)) outside++;
@@ -8580,8 +8580,8 @@ var init_checks = __esm({
 });
 
 // ../artgen-scene/src/mesh/gltf.ts
-function glMeshArrays(r, s2, origin) {
-  const { positions: P2, normals: N3, tangents: T2, uvs: U, indices: I } = r.mesh, n = P2.length / 3, [cx, cy] = origin;
+function glMeshArrays(r, s2, origin2) {
+  const { positions: P2, normals: N3, tangents: T2, uvs: U, indices: I } = r.mesh, n = P2.length / 3, [cx, cy] = origin2;
   const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), tan = new Float32Array(n * 4), idx = new Uint32Array(I.length);
   const min = [Infinity, Infinity, Infinity], max2 = [-Infinity, -Infinity, -Infinity];
   for (let i = 0; i < n; i++) {
@@ -9012,17 +9012,17 @@ function riggedChecks(m, o) {
   }));
   out.push({ id: "clip-lengths", status: worst > 0.01 ? "flag" : "pass", detail: worst > 0.01 ? `${where}: ${(worst * 100).toFixed(1)} % off its bind length` : `${m.skeleton.bones.length} bones keep their lengths through ${m.clips.length} clips` });
   const limit = o.stretch ?? 2.5, I = lod0.result.mesh.indices, P2 = lod0.result.mesh.positions;
-  const edge = (a, b, X) => Math.hypot(X[a * 3] - X[b * 3], X[a * 3 + 1] - X[b * 3 + 1], X[a * 3 + 2] - X[b * 3 + 2]);
+  const edge2 = (a, b, X) => Math.hypot(X[a * 3] - X[b * 3], X[a * 3 + 1] - X[b * 3 + 1], X[a * 3 + 2] - X[b * 3 + 2]);
   const lens = [];
-  for (let t = 0; t < I.length; t += 3) for (let e = 0; e < 3; e++) lens.push(edge(I[t + e], I[t + (e + 1) % 3], P2));
-  const floor3 = 0.5 * (lens.sort((x, y) => x - y)[lens.length >> 1] ?? 0);
+  for (let t = 0; t < I.length; t += 3) for (let e = 0; e < 3; e++) lens.push(edge2(I[t + e], I[t + (e + 1) % 3], P2));
+  const floor4 = 0.5 * (lens.sort((x, y) => x - y)[lens.length >> 1] ?? 0);
   let most = 1, at4 = "";
   for (const c of m.clips) for (let j = 0; j < c.poses.length; j++) {
     const q = skinPose(lod0.result.mesh, lod0.skin, jointPoses(m.skeleton, c.poses[j])).positions;
     for (let t = 0; t < I.length; t += 3) for (let e = 0; e < 3; e++) {
-      const a = I[t + e], b = I[t + (e + 1) % 3], l0 = edge(a, b, P2);
-      if (l0 < Math.max(1e-6, floor3)) continue;
-      const r = edge(a, b, q) / l0;
+      const a = I[t + e], b = I[t + (e + 1) % 3], l0 = edge2(a, b, P2);
+      if (l0 < Math.max(1e-6, floor4)) continue;
+      const r = edge2(a, b, q) / l0;
       if (r > most) {
         most = r;
         at4 = `${c.state} key ${j}, ${lod0.result.mesh.parts[lod0.result.mesh.part[t / 3]]}`;
@@ -9252,8 +9252,8 @@ function voxelizeTriangles(m, o) {
   }
   const s2 = o.perMetre, size2 = [0, 1, 2].map((a) => Math.max(1, Math.ceil((hi[a] - lo[a]) * s2 - 1e-9)));
   if (Math.max(...size2) > max2) throw new Error(`voxelize: ${size2.join("x")} voxels; at most ${max2} a side (use fewer voxels per metre)`);
-  const off = [(size2[0] - (hi[0] - lo[0]) * s2) / 2, (size2[1] - (hi[1] - lo[1]) * s2) / 2, 0];
-  const V4 = (t, c) => [0, 1, 2].map((a) => (P2[t * 9 + c * 3 + a] - lo[a]) * s2 + off[a]);
+  const off2 = [(size2[0] - (hi[0] - lo[0]) * s2) / 2, (size2[1] - (hi[1] - lo[1]) * s2) / 2, 0];
+  const V4 = (t, c) => [0, 1, 2].map((a) => (P2[t * 9 + c * 3 + a] - lo[a]) * s2 + off2[a]);
   const [X, Y, Z] = [size2[0] + 2, size2[1] + 2, size2[2] + 2], idx = (x, y, z) => ((z + 1) * Y + (y + 1)) * X + (x + 1);
   const surf = new Int32Array(X * Y * Z).fill(-1), dist3 = new Float32Array(X * Y * Z).fill(Infinity), bary = new Array(X * Y * Z);
   for (let t = 0; t < n; t++) {
@@ -9457,8 +9457,8 @@ var init_versions = __esm({
 });
 
 // ../artgen-workflow/src/subject.ts
-function parseSubjectKey(key2) {
-  const m = /^(map|dungeon|settlement):([\w-]+)$/.exec(key2);
+function parseSubjectKey(key3) {
+  const m = /^(map|dungeon|settlement):([\w-]+)$/.exec(key3);
   return m ? { kind: m[1], id: m[2] } : null;
 }
 var SUBJECT_KINDS, subjectKey, isSubjectKey, stemOf;
@@ -9504,10 +9504,10 @@ function assetStatus({ ledger, next: next4, direction: direction2, finalHash: fi
   }
   return { status: "approved", final, issues, approval, why: "approved; ready to export" };
 }
-function subjectStatus({ entries, key: key2, workingHash, direction: direction2 }) {
+function subjectStatus({ entries, key: key3, workingHash, direction: direction2 }) {
   const iV = lastIndex(entries, (e) => e.type === "version");
   if (iV < 0) {
-    const k = parseSubjectKey(key2 ?? entries[0]?.asset ?? "");
+    const k = parseSubjectKey(key3 ?? entries[0]?.asset ?? "");
     return { status: "in-pipeline", why: `no version recorded yet${k ? `: artgen ${k.kind} version ${k.id}` : ""}` };
   }
   const V4 = entries[iV], v = String(V4.version);
@@ -9545,14 +9545,14 @@ function passRecords(ledger) {
   const out = [], lastBase = /* @__PURE__ */ new Map(), baseScore = /* @__PURE__ */ new Map();
   for (const e of latest.values()) {
     const tk = e.tokens ?? {};
-    const pass = e.pass ?? (e.version.startsWith("finish") ? "f" : "r?"), stage = stageOf(pass), key2 = (v) => `${e.asset}\0${v}`;
+    const pass = e.pass ?? (e.version.startsWith("finish") ? "f" : "r?"), stage = stageOf(pass), key3 = (v) => `${e.asset}\0${v}`;
     let delta;
     if (e.version.startsWith("base")) {
       const prev = lastBase.get(e.asset);
       if (prev !== void 0) delta = round(e.score - prev);
       lastBase.set(e.asset, e.score);
-      baseScore.set(key2(e.version), e.score);
-    } else if (typeof e.base === "string" && baseScore.has(key2(e.base))) delta = round(e.score - baseScore.get(key2(e.base)));
+      baseScore.set(key3(e.version), e.score);
+    } else if (typeof e.base === "string" && baseScore.has(key3(e.base))) delta = round(e.score - baseScore.get(key3(e.base)));
     out.push({
       asset: e.asset,
       version: e.version,
@@ -9616,7 +9616,7 @@ function analytics(ledger, metas) {
       const k = f(meta7.get(a.id)) ?? "-";
       g.set(k, [...g.get(k) ?? [], a]);
     }
-    return [...g].map(([key2, as]) => ({ key: key2, n: as.length, meanFinal: mean(as.map((a) => a.final).filter((x) => x !== void 0)), meanCost: as.length ? round(mean(as.map((a) => a.cost)) ?? 0, 4) : void 0, meanPasses: mean(as.map((a) => a.passes)) }));
+    return [...g].map(([key3, as]) => ({ key: key3, n: as.length, meanFinal: mean(as.map((a) => a.final).filter((x) => x !== void 0)), meanCost: as.length ? round(mean(as.map((a) => a.cost)) ?? 0, 4) : void 0, meanPasses: mean(as.map((a) => a.passes)) }));
   };
   const tmpl = /* @__PURE__ */ new Map();
   for (const a of perAsset) if (a.r1 !== void 0) {
@@ -9647,9 +9647,9 @@ function analytics(ledger, metas) {
   });
   const suggestions = [];
   const kinds = [...new Set(perAsset.map((a) => a.kind))];
-  const gainRules = (label4, d3, d2, key2) => {
-    if (d3.length >= 3 && mean(d3) <= 0.1) suggestions.push(`${label4}: v3 adds ${mean(d3)} on average over ${d3.length} assets \u2014 try ${key2}.revisionPasses = 2`);
-    else if (d3.length >= 3 && mean(d3) >= 0.75) suggestions.push(`${label4}: v3 still adds ${mean(d3)} on average \u2014 a fourth revision may pay off (${key2}.revisionPasses = 4)`);
+  const gainRules = (label4, d3, d2, key3) => {
+    if (d3.length >= 3 && mean(d3) <= 0.1) suggestions.push(`${label4}: v3 adds ${mean(d3)} on average over ${d3.length} assets \u2014 try ${key3}.revisionPasses = 2`);
+    else if (d3.length >= 3 && mean(d3) >= 0.75) suggestions.push(`${label4}: v3 still adds ${mean(d3)} on average \u2014 a fourth revision may pay off (${key3}.revisionPasses = 4)`);
     if (d2.length >= 3 && mean(d2) <= 0) suggestions.push(`${label4}: v2 does not improve on v1 (${mean(d2)}) \u2014 look at the template or the review notes`);
   };
   const deltas = (p2, kind) => recs.filter((r) => r.pass === p2 && (!kind || meta7.get(r.asset)?.kind === kind) && r.delta !== void 0).map((r) => r.delta);
@@ -9658,9 +9658,9 @@ function analytics(ledger, metas) {
   const fRecs = recs.filter((r) => r.pass === "f" && r.delta !== void 0), allTok = sum(recs.map((r) => r.outTokens + r.inTokens + r.imageTokens + r.agentIn));
   if (fRecs.length >= 3) {
     const fMean = mean(fRecs.map((r) => r.delta)), fReg = fRecs.filter((r) => r.delta < 0).length / fRecs.length;
-    const fTok = sum(recs.filter((r) => r.stage === "finish").map((r) => r.outTokens + r.inTokens + r.imageTokens + r.agentIn)), share2 = allTok ? Math.round(100 * fTok / allTok) : 0;
+    const fTok = sum(recs.filter((r) => r.stage === "finish").map((r) => r.outTokens + r.inTokens + r.imageTokens + r.agentIn)), share3 = allTok ? Math.round(100 * fTok / allTok) : 0;
     if (fMean <= 0 || fReg >= 0.3)
-      suggestions.push(`the finishing pass adds ${fMean} on average and regressed ${Math.round(fReg * 100)}% of ${fRecs.length} assets, for ${share2}% of the tokens \u2014 set review.finish = "auto" (finish only on a finish-level note or a base over approveMin), or check it fixes what the review sheets show`);
+      suggestions.push(`the finishing pass adds ${fMean} on average and regressed ${Math.round(fReg * 100)}% of ${fRecs.length} assets, for ${share3}% of the tokens \u2014 set review.finish = "auto" (finish only on a finish-level note or a base over approveMin), or check it fixes what the review sheets show`);
   }
   const revs = recs.filter((r) => r.stage === "revision" && r.delta !== void 0), regRate = revs.filter((r) => r.delta < 0).length / Math.max(1, revs.length);
   if (recs.length >= 10 && regRate >= 0.3) suggestions.push(`${Math.round(regRate * 100)}% of revisions regressed \u2014 change one thing per revision (R12 keeps the best, but each regression costs a pass)`);
@@ -9793,8 +9793,8 @@ function metricsFor(generator, keys, byKey) {
   const art = generator === "art";
   let started = 0, final = 0, approved = 0, untouched = 0, feedback2 = 0, imageTokens2 = 0, outTokens = 0, wallMs = 0, passes = 0;
   const checkFailures = {}, gates = {}, toGame = [];
-  for (const key2 of keys) {
-    const es = byKey.get(key2) ?? [], scores = latestScores(es);
+  for (const key3 of keys) {
+    const es = byKey.get(key3) ?? [], scores = latestScores(es);
     const approves = es.some((e) => e.type === "approve"), fb = es.filter((e) => e.type === "feedback" && e.by !== "agent" || art && e.type === "stage" && e.verdict === "reject" && e.by === "user").length;
     if (art) {
       for (const e of es) if (e.type === "stage" && (e.verdict === "approve" || e.verdict === "reject") && typeof e.stage === "string") {
@@ -9890,24 +9890,24 @@ function dataSheetMarkdown(s2) {
 function wrap(text3, n) {
   const out = [];
   for (const para of plain(text3).split("\n")) {
-    let line2 = "";
+    let line3 = "";
     for (let w of para.split(/\s+/).filter(Boolean)) {
       while (w.length > n) {
-        if (line2) {
-          out.push(line2);
-          line2 = "";
+        if (line3) {
+          out.push(line3);
+          line3 = "";
         }
         out.push(w.slice(0, n));
         w = w.slice(n);
       }
-      if (!line2) line2 = w;
-      else if (line2.length + 1 + w.length <= n) line2 += ` ${w}`;
+      if (!line3) line3 = w;
+      else if (line3.length + 1 + w.length <= n) line3 += ` ${w}`;
       else {
-        out.push(line2);
-        line2 = w;
+        out.push(line3);
+        line3 = w;
       }
     }
-    out.push(line2);
+    out.push(line3);
   }
   return out;
 }
@@ -10002,15 +10002,15 @@ function subjectReviewSheet(o) {
   const max2 = Math.min(o.maxEdge ?? MAX_EDGE, MAX_EDGE), top = PAD + LINE + PAD / 2;
   const refRow = o.refs?.length ? blocks({ title: "", subject: "", rows: [] }, max2, max2 / 3, { title: false, refs: o.refs }) : [];
   const refsH = sumH(refRow), sw = Math.min(SHEET_W, Math.floor(max2 / 3)), room3 = max2 - top - (refsH ? refsH + PAD : 0) - PAD;
-  const side = blocks(o.sheet, sw, room3 + PAD * 2, { title: false });
+  const side2 = blocks(o.sheet, sw, room3 + PAD * 2, { title: false });
   const render11 = fitGrid(o.render, max2 - sw - PAD * 3, room3);
-  const W3 = PAD * 3 + render11.w + sw, bodyH = Math.max(render11.h, sumH(side)), H = top + bodyH + (refsH ? refsH + PAD : 0) + PAD;
+  const W3 = PAD * 3 + render11.w + sw, bodyH = Math.max(render11.h, sumH(side2)), H = top + bodyH + (refsH ? refsH + PAD : 0) + PAD;
   const g = new Grid(W3, H).fill(0, 0, W3, H, BG);
   drawText(g, PAD, PAD, plain(o.title).slice(0, Math.floor((W3 - PAD * 2) / CH)), TITLE, TXT);
   g.fill(PAD, top, render11.w, render11.h, "#ffffff");
   g.over(render11, PAD, top);
   let y = top;
-  for (const b of side) {
+  for (const b of side2) {
     b.draw(g, PAD * 2 + render11.w, y);
     y += b.h;
   }
@@ -10050,8 +10050,8 @@ function parseSubjectBrief(text3) {
   const t = text3.replace(/\r\n/g, "\n"), m = /^---\n([\s\S]*?)\n---[ \t]*(?:\n|$)/.exec(t);
   const out = { refs: [], body: (m ? t.slice(m[0].length) : t).trim() };
   if (!m) return out;
-  for (const line2 of m[1].split("\n")) {
-    const kv = /^([A-Za-z][\w-]*)\s*:\s*(.*)$/.exec(line2.trim());
+  for (const line3 of m[1].split("\n")) {
+    const kv = /^([A-Za-z][\w-]*)\s*:\s*(.*)$/.exec(line3.trim());
     if (!kv) continue;
     const v = kv[2].trim().replace(/^(["'])(.*)\1$/, "$2");
     if (kv[1] === "title" && v) out.title = v;
@@ -10070,14 +10070,14 @@ ${head.join("\n")}
 function briefNotes(body3, n = 6, width = 60) {
   const lines2 = [];
   for (const para of body3.split("\n")) {
-    let line2 = "";
+    let line3 = "";
     for (const w of para.split(/\s+/).filter(Boolean)) {
-      if (line2 && line2.length + 1 + w.length > width) {
-        lines2.push(line2);
-        line2 = w;
-      } else line2 = line2 ? `${line2} ${w}` : w;
+      if (line3 && line3.length + 1 + w.length > width) {
+        lines2.push(line3);
+        line3 = w;
+      } else line3 = line3 ? `${line3} ${w}` : w;
     }
-    lines2.push(line2);
+    lines2.push(line3);
   }
   const kept = lines2.filter((l, i) => l || i > 0 && lines2[i - 1]);
   return kept.length > n ? `${kept.slice(0, n).join("\n").trimEnd()} ...` : kept.join("\n").trim();
@@ -10643,7 +10643,7 @@ function shapeGround(spec, f, raw, seaLevel, margin) {
     }
     steps.push([p2[p2.length - 2], p2[p2.length - 1]]);
     const at4 = (x, y) => raw[Math.min(f.h - 1, Math.max(0, Math.floor(y * f.res))) * f.w + Math.min(f.w - 1, Math.max(0, Math.floor(x * f.res)))];
-    const bed = steps.map(([x, y]) => at4(x, y)), floor3 = Math.max(seaLevel + 4e-3, 0);
+    const bed = steps.map(([x, y]) => at4(x, y)), floor4 = Math.max(seaLevel + 4e-3, 0);
     for (let i = 1; i < bed.length; i++) bed[i] = Math.min(bed[i], bed[i - 1]);
     const win = Math.max(1, Math.round(f.res)), smooth4 = bed.map((_, i) => {
       let s2 = 0, c = 0;
@@ -10651,7 +10651,7 @@ function shapeGround(spec, f, raw, seaLevel, margin) {
         s2 += bed[k];
         c++;
       }
-      return Math.max(floor3, s2 / c);
+      return Math.max(floor4, s2 / c);
     });
     const strokes = steps.length, reach = valley;
     const best = new Float32Array(N3).fill(reach), bedAt = new Float32Array(N3);
@@ -10735,15 +10735,15 @@ function shapeGround(spec, f, raw, seaLevel, margin) {
 function streamsOf(spec) {
   return (spec.require ?? []).flatMap((r) => r.kind === "path" && r.path === "stream" ? [{ id: r.id, points: r.points, width: r.width, delta: r.delta }] : []);
 }
-function routeRoad(points, f, elev, wet) {
+function routeRoad(points2, f, elev, wet) {
   const step = Math.max(1, Math.round(f.res / 2)), W3 = Math.ceil(f.w / step), H = Math.ceil(f.h / step), unit4 = step / f.res;
   const at4 = (i, j) => Math.min(f.h - 1, j * step + (step >> 1)) * f.w + Math.min(f.w - 1, i * step + (step >> 1));
   const cell3 = (x, y) => [Math.max(0, Math.min(W3 - 1, Math.floor(x * f.res / step))), Math.max(0, Math.min(H - 1, Math.floor(y * f.res / step)))];
-  const out = [points[0], points[1]];
-  for (let p2 = 2; p2 < points.length; p2 += 2) {
-    const [si, sj] = cell3(points[p2 - 2], points[p2 - 1]), [ti, tj] = cell3(points[p2], points[p2 + 1]);
-    const dist3 = new Float32Array(W3 * H).fill(Infinity), from = new Int32Array(W3 * H).fill(-1), done = new Uint8Array(W3 * H), heap2 = [], key2 = new Float32Array(W3 * H);
-    const less = (a, b) => key2[a] < key2[b];
+  const out = [points2[0], points2[1]];
+  for (let p2 = 2; p2 < points2.length; p2 += 2) {
+    const [si, sj] = cell3(points2[p2 - 2], points2[p2 - 1]), [ti, tj] = cell3(points2[p2], points2[p2 + 1]);
+    const dist3 = new Float32Array(W3 * H).fill(Infinity), from = new Int32Array(W3 * H).fill(-1), done = new Uint8Array(W3 * H), heap2 = [], key3 = new Float32Array(W3 * H);
+    const less = (a, b) => key3[a] < key3[b];
     const push = (n) => {
       heap2.push(n);
       let c = heap2.length - 1;
@@ -10773,7 +10773,7 @@ function routeRoad(points, f, elev, wet) {
     };
     const goal = tj * W3 + ti, h = (i, j) => Math.hypot(i - ti, j - tj) * unit4;
     dist3[sj * W3 + si] = 0;
-    key2[sj * W3 + si] = h(si, sj);
+    key3[sj * W3 + si] = h(si, sj);
     push(sj * W3 + si);
     while (heap2.length) {
       const n = pop();
@@ -10789,7 +10789,7 @@ function routeRoad(points, f, elev, wet) {
         if (c < dist3[m]) {
           dist3[m] = c;
           from[m] = n;
-          key2[m] = c + h(x, y);
+          key3[m] = c + h(x, y);
           push(m);
         }
       }
@@ -10800,7 +10800,7 @@ function routeRoad(points, f, elev, wet) {
       path.push((i + 0.5) * step / f.res, (j + 0.5) * step / f.res);
     }
     for (let k = path.length - 2; k >= 0; k -= 2) out.push(path[k], path[k + 1]);
-    out.push(points[p2], points[p2 + 1]);
+    out.push(points2[p2], points2[p2 + 1]);
   }
   return out;
 }
@@ -10880,15 +10880,15 @@ function isolines(f, w, h, t) {
   }
   const at4 = /* @__PURE__ */ new Map();
   segs2.forEach((s2, n) => {
-    for (const key2 of [s2[0], s2[3]]) {
-      const l = at4.get(key2);
+    for (const key3 of [s2[0], s2[3]]) {
+      const l = at4.get(key3);
       if (l) l.push(n);
-      else at4.set(key2, [n]);
+      else at4.set(key3, [n]);
     }
   });
   const used = new Uint8Array(segs2.length), lines2 = [];
-  const walk = (key2, from, out) => {
-    for (let cur = from, k = key2; ; ) {
+  const walk = (key3, from, out) => {
+    for (let cur = from, k = key3; ; ) {
       const next4 = (at4.get(k) ?? []).find((n) => n !== cur && !used[n]);
       if (next4 === void 0) return k;
       used[next4] = 1;
@@ -11142,8 +11142,8 @@ function resample(p2, step) {
   }
   return out;
 }
-function riverRibbon(line2, W3, mouth) {
-  let p2 = line2;
+function riverRibbon(line3, W3, mouth) {
+  let p2 = line3;
   if (mouth) {
     const n2 = p2.length / 2, ex = p2[n2 * 2 - 2], ey = p2[n2 * 2 - 1];
     let k = n2 - 2;
@@ -11164,7 +11164,7 @@ function riverRibbon(line2, W3, mouth) {
     nx.push(-ty / tl);
     ny.push(tx / tl);
   }
-  const side = (i, sgn) => [c[i * 2] + nx[i] * sgn * widths[i] / 2, c[i * 2 + 1] + ny[i] * sgn * widths[i] / 2];
+  const side2 = (i, sgn) => [c[i * 2] + nx[i] * sgn * widths[i] / 2, c[i * 2 + 1] + ny[i] * sgn * widths[i] / 2];
   const cap = (i, dir, from) => {
     const out = [], r = widths[i] / 2, tx = ny[i] * dir, ty = -nx[i] * dir;
     for (let k = 1; k < 8; k++) {
@@ -11174,9 +11174,9 @@ function riverRibbon(line2, W3, mouth) {
     return out;
   };
   const outline2 = [];
-  for (let i = 0; i < n; i++) outline2.push(...side(i, 1));
+  for (let i = 0; i < n; i++) outline2.push(...side2(i, 1));
   if (!mouth) outline2.push(...cap(n - 1, 1, 1));
-  for (let i = n - 1; i >= 0; i--) outline2.push(...side(i, -1));
+  for (let i = n - 1; i >= 0; i--) outline2.push(...side2(i, -1));
   outline2.push(...cap(0, -1, -1));
   return { pts: c, widths, outline: outline2, mouth };
 }
@@ -11705,8 +11705,8 @@ function renderMapSvg(spec, o = {}) {
     for (const t of order) {
       const d = pathData(regions.get(t) ?? [], k), st = th.terrain[t], water2 = t === "water" || t === "deep";
       if (!d) continue;
-      const edge = water2 ? th.coast : th.edge === "own" ? st.fill : th.edge, ew = water2 ? th.coastWidth : th.edgeWidth;
-      g += `<path d="${d}" fill="${st.fill}" fill-rule="evenodd" stroke="${edge}" stroke-width="${n1(ew * u)}" stroke-linejoin="round"/>`;
+      const edge2 = water2 ? th.coast : th.edge === "own" ? st.fill : th.edge, ew = water2 ? th.coastWidth : th.edgeWidth;
+      g += `<path d="${d}" fill="${st.fill}" fill-rule="evenodd" stroke="${edge2}" stroke-width="${n1(ew * u)}" stroke-linejoin="round"/>`;
       if (st.pattern) g += `<path d="${d}" fill="url(#pat-${t})" fill-rule="evenodd"/>`;
     }
     parts.push(`<g id="terrain">${g}</g>`);
@@ -11877,13 +11877,13 @@ function ground(spec, f) {
   ];
   const nearest = (kind, x, y) => {
     let best = null;
-    for (const line2 of lines2) {
-      if (line2.kind !== kind) continue;
-      const p2 = line2.pts;
+    for (const line3 of lines2) {
+      if (line3.kind !== kind) continue;
+      const p2 = line3.pts;
       for (let i = 2; i < p2.length; i += 2) {
         const ax = p2[i - 2], ay = p2[i - 1], dx = p2[i] - ax, dy = p2[i + 1] - ay, l2 = dx * dx + dy * dy, t = l2 ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2)) : 0;
         const px = ax + t * dx, py = ay + t * dy, d = Math.hypot(x - px, y - py);
-        if (!best || d < best.d) best = { line: line2, d, at: [px, py], width: line2.widths ? line2.widths[i / 2 - 1] * (1 - t) + line2.widths[i / 2] * t : 0 };
+        if (!best || d < best.d) best = { line: line3, d, at: [px, py], width: line3.widths ? line3.widths[i / 2 - 1] * (1 - t) + line3.widths[i / 2] * t : 0 };
       }
     }
     return best;
@@ -11900,7 +11900,7 @@ function shares(f, ids) {
   if (ids) for (const n of ids) count[f.terrain[n]]++;
   else for (const t of f.terrain) count[t]++;
   const out = percentShares(TERRAINS.map((t, i) => [t, count[i]]).filter(([, c]) => c > 0));
-  return out.map(([terrain, share2]) => ({ terrain, share: share2 })).sort((a, b) => b.share - a.share || TERRAINS.indexOf(a.terrain) - TERRAINS.indexOf(b.terrain));
+  return out.map(([terrain, share3]) => ({ terrain, share: share3 })).sort((a, b) => b.share - a.share || TERRAINS.indexOf(a.terrain) - TERRAINS.indexOf(b.terrain));
 }
 function samplesIn(f, poly) {
   const out = [];
@@ -12067,11 +12067,11 @@ function mapFacts(spec, q = {}, field = generateMap(spec)) {
     });
   }
   if (!out.points && !out.areas) {
-    const line2 = (l) => ({ name: l.name, ...l.source && { source: l.source }, points: listed(g, l.pts), length: g.length(pathLength(l.pts)), ...l.mouth !== void 0 && { mouth: l.mouth } });
+    const line3 = (l) => ({ name: l.name, ...l.source && { source: l.source }, points: listed(g, l.pts), length: g.length(pathLength(l.pts)), ...l.mouth !== void 0 && { mouth: l.mouth } });
     out.features = {
-      rivers: g.lines.filter((l) => l.kind === "river" && l.source !== "generated").map(line2),
-      generatedRivers: g.lines.filter((l) => l.kind === "river" && l.source === "generated").map(line2),
-      roads: g.lines.filter((l) => l.kind === "road").map(line2),
+      rivers: g.lines.filter((l) => l.kind === "river" && l.source !== "generated").map(line3),
+      generatedRivers: g.lines.filter((l) => l.kind === "river" && l.source === "generated").map(line3),
+      roads: g.lines.filter((l) => l.kind === "road").map(line3),
       ...summits(g, field, spec),
       terrain: shares(field),
       ...extremes(g, field, spec)
@@ -12190,17 +12190,17 @@ var init_require = __esm({
 });
 
 // ../artgen-primitives/src/lib/sync.ts
-function checkIncoming(name, incoming, origin) {
+function checkIncoming(name, incoming, origin2) {
   incoming.forEach((e, i) => {
-    if (e.origin !== origin) throw new Error(`--from: ${name}[${i}] has ${e.origin === void 0 ? "no origin" : `origin ${JSON.stringify(e.origin)}`}, not ${JSON.stringify(origin)}: every entry in the file synced from carries the origin`);
+    if (e.origin !== origin2) throw new Error(`--from: ${name}[${i}] has ${e.origin === void 0 ? "no origin" : `origin ${JSON.stringify(e.origin)}`}, not ${JSON.stringify(origin2)}: every entry in the file synced from carries the origin`);
   });
 }
-function mergeList(name, target, incoming, origin) {
-  checkIncoming(name, incoming, origin);
+function mergeList(name, target, incoming, origin2) {
+  checkIncoming(name, incoming, origin2);
   const generated = [], hand = [], removed = [];
   let placed = false;
   for (const e of target) {
-    if (e.origin === origin) {
+    if (e.origin === origin2) {
       removed.push(e);
       if (!placed) {
         generated.push(...incoming);
@@ -12221,10 +12221,10 @@ var init_sync = __esm({
 });
 
 // ../artgen-mapgen/src/map/sync.ts
-function syncMap(target, from, origin) {
+function syncMap(target, from, origin2) {
   const conflicts = [], lists = {};
   const take = (name, a, b) => {
-    const r = mergeList(name, a, b, origin);
+    const r = mergeList(name, a, b, origin2);
     lists[name] = { removed: r.removed.length, added: b.length, kept: r.kept };
     return r.list;
   };
@@ -12239,7 +12239,7 @@ function syncMap(target, from, origin) {
     if (hit && !(was && over(oldMarks, was)))
       conflicts.push({ kind: "over-mark", list: m.text !== void 0 ? "labels" : "symbols", index: oldMarks.indexOf(pre[i]), message: `hand ${markName(m)} at ${m.x},${m.y} is now over ${markName(hit)}` });
   });
-  return { spec, report: { version: MAP_FORMAT, origin, lists, conflicts } };
+  return { spec, report: { version: MAP_FORMAT, origin: origin2, lists, conflicts } };
 }
 var MARK_DISTANCE, markName;
 var init_sync2 = __esm({
@@ -12339,14 +12339,16 @@ function newDungeon(id2, over = {}) {
   });
 }
 function endErrors(e, at4, ids, corridorIds) {
-  const shape = `${at4}: {room: id}, {at: [x, y]} or {corridor: id}`;
-  if (!e || typeof e !== "object") return [shape];
+  const shape2 = `${at4}: {room: id}, {at: [x, y]} or {corridor: id}`;
+  if (!e || typeof e !== "object") return [shape2];
   const o = e, out = [];
   if ("room" in o) {
     if (!ids.has(o.room)) out.push(`${at4}.room: no room ${JSON.stringify(o.room)}`);
     if (o.side !== void 0 && !SIDES.includes(o.side)) out.push(`${at4}.side: ${SIDES.join(", ")}`);
     if (o.offset !== void 0 && !(isNum2(o.offset) && o.offset >= 0)) out.push(`${at4}.offset: cells along the wall, 0 or more`);
     if (o.offset !== void 0 && o.side === void 0) out.push(`${at4}.offset: goes with side`);
+    if (o.port !== void 0 && !isPoint(o.port)) out.push(`${at4}.port: [x, y], a point on the room's wall`);
+    if (o.port !== void 0 && o.side !== void 0) out.push(`${at4}.port: a port or a side, not both`);
     return out;
   }
   if ("at" in o) {
@@ -12366,7 +12368,7 @@ function endErrors(e, at4, ids, corridorIds) {
     if (o.near !== void 0 && !isPoint(o.near)) out.push(`${at4}.near: [x, y]`);
     return out;
   }
-  return [shape];
+  return [shape2];
 }
 function corridorDeps(corridors) {
   const byId2 = new Map(corridors.flatMap((c, i) => typeof c?.id === "string" ? [[c.id, i]] : []));
@@ -12468,7 +12470,10 @@ function validateDungeon(raw) {
     e.push("grid: show, size \u2265 0.5 (cells), sub (true|false), clip floor|all");
   if (!m.style || !HATCH_STYLES.includes(m.style.hatch) || !isNum2(m.style.band) || m.style.band < 0 || m.style.band > 6 || !isNum2(m.style.wall) || m.style.wall < 0.2 || m.style.wall > 4)
     e.push(`style: hatch ${HATCH_STYLES.join("|")}, band 0..6, wall 0.2..4`);
-  if (m.style?.sharedWalls !== void 0 && typeof m.style.sharedWalls !== "boolean") e.push("style.sharedWalls: true or false");
+  if (m.style?.rock !== void 0 && !ROCK_STYLES.includes(m.style.rock)) e.push(`style.rock: ${ROCK_STYLES.join(", ")}`);
+  if (m.style?.rockColor !== void 0 && !(typeof m.style.rockColor === "string" && /^#[0-9a-f]{6}$/i.test(m.style.rockColor))) e.push("style.rockColor: a colour #rrggbb");
+  if (m.style?.partition !== void 0 && !(isNum2(m.style.partition) && m.style.partition >= 0.2 && m.style.partition <= 4)) e.push("style.partition: 0.2..4");
+  if (m.style?.sharedWalls !== void 0 && typeof m.style.sharedWalls !== "boolean" && m.style.sharedWalls !== "rooms") e.push('style.sharedWalls: true (between any two units), "rooms" (between rooms only) or false');
   if (!m.scale || !isNum2(m.scale.perCell) || typeof m.scale.unit !== "string") e.push("scale: perCell (number) and unit");
   const ids = /* @__PURE__ */ new Set();
   (Array.isArray(m.rooms) ? m.rooms : (e.push("rooms: an array"), [])).forEach((r, i) => {
@@ -12485,6 +12490,19 @@ function validateDungeon(raw) {
     if (r?.fill !== void 0 && !ROOM_FILLS.includes(r.fill)) e.push(`${at4}.fill: one of ${ROOM_FILLS.join(", ")}`);
     if (r?.href !== void 0 && hrefError(r.href)) e.push(`${at4}.href: ${hrefError(r.href)}`);
     if (r?.hand !== void 0 && !(Array.isArray(r.hand) && r.hand.every((f) => typeof f === "string"))) e.push(`${at4}.hand: field names`);
+    if (r?.anchor !== void 0 && !isPoint(r.anchor)) e.push(`${at4}.anchor: [x, y] in cells`);
+    if (r?.cut !== void 0 && !(isNum2(r.cut) && r.cut > 0 && r.cut < 0.5)) e.push(`${at4}.cut: a share of the shorter side, above 0 and below 0.5`);
+    if (r?.orient !== void 0 && r.orient !== "flat" && r.orient !== "pointy") e.push(`${at4}.orient: flat or pointy`);
+    (r?.exits === void 0 ? [] : Array.isArray(r.exits) ? r.exits : (e.push(`${at4}.exits: an array`), [])).forEach((x, j) => {
+      const xa = `${at4}.exits[${j}]`;
+      if (!x || !ROOM_EXIT_KINDS.includes(x.kind)) e.push(`${xa}.kind: ${ROOM_EXIT_KINDS.join(", ")}`);
+      if (x?.side !== void 0 && !SIDES.includes(x.side)) e.push(`${xa}.side: ${SIDES.join(", ")}`);
+      if (x?.at !== void 0 && !isPoint(x.at)) e.push(`${xa}.at: [x, y] in cells`);
+      if (x && x.side === void 0 && x.at === void 0) e.push(`${xa}: a side or a point (at)`);
+      if (x?.angle !== void 0 && !isNum2(x.angle)) e.push(`${xa}.angle: degrees`);
+      if (x?.text !== void 0 && typeof x.text !== "string") e.push(`${xa}.text: text`);
+    });
+    if (r?.labelAt !== void 0 && !(isPoint(r.labelAt) || ["c", "n", "s", "w", "e"].includes(r.labelAt))) e.push(`${at4}.labelAt: n, s, w, e, c or [dx, dy] cells from the anchor`);
     originError2(r, at4, e);
   });
   const corridorIds = /* @__PURE__ */ new Set();
@@ -12497,15 +12515,21 @@ function validateDungeon(raw) {
   (Array.isArray(m.corridors) ? m.corridors : (e.push("corridors: an array"), [])).forEach((c, i) => {
     const at4 = `corridors[${i}]`;
     e.push(...endErrors(c?.from, `${at4}.from`, ids, corridorIds), ...endErrors(c?.to, `${at4}.to`, ids, corridorIds));
-    for (const side of ["from", "to"]) {
-      const x = c?.[side];
-      if (x && x.corridor !== void 0 && x.corridor === c?.id) e.push(`${at4}.${side}.corridor: a corridor cannot join itself`);
+    for (const side2 of ["from", "to"]) {
+      const x = c?.[side2];
+      if (x && x.corridor !== void 0 && x.corridor === c?.id) e.push(`${at4}.${side2}.corridor: a corridor cannot join itself`);
     }
     if (c?.curve !== void 0 && !CURVES.includes(c.curve)) e.push(`${at4}.curve: ${CURVES.join(" or ")}`);
     if (c?.style !== void 0 && !CORRIDOR_STYLES.includes(c.style)) e.push(`${at4}.style: ${CORRIDOR_STYLES.join(" or ")}`);
     if (c?.seed !== void 0 && !isNum2(c.seed)) e.push(`${at4}.seed: a number`);
     if (c?.width !== void 0 && !(isNum2(c.width) && c.width >= 0.5 && c.width <= 6)) e.push(`${at4}.width: 0.5..6`);
+    if (c?.span !== void 0) {
+      const per = isNum2(m.scale?.perCell) ? m.scale.perCell : 5;
+      if (c.width !== void 0) e.push(`${at4}.span: a span or a width, not both`);
+      else if (!(isNum2(c.span) && c.span / per >= 0.5 && c.span / per <= 6)) e.push(`${at4}.span: the width in ${m.scale?.unit ?? "ft"}, 0.5..6 cells (${0.5 * per}..${6 * per})`);
+    }
     if (c?.route !== void 0 && !ROUTES.includes(c.route)) e.push(`${at4}.route: one of ${ROUTES.join(", ")}`);
+    if (c?.maze !== void 0 && !(c.maze && typeof c.maze === "object" && (c.maze.clearance === void 0 || c.maze.clearance === 0 || c.maze.clearance === 1) && (c.maze.bend === void 0 || isNum2(c.maze.bend) && c.maze.bend >= 0) && (c.maze.seed === void 0 || isNum2(c.maze.seed)))) e.push(`${at4}.maze: {clearance?: 0 or 1, bend?: 0 or more, seed?}`);
     if (c?.via !== void 0 && !(nums2(c.via) && c.via.length % 2 === 0)) e.push(`${at4}.via: x,y pairs`);
     if (c?.doors !== void 0 && !(Array.isArray(c.doors) && c.doors.length === 2 && c.doors.every((d) => d === null || DOOR_KINDS.includes(d))))
       e.push(`${at4}.doors: [from, to], each null or one of ${DOOR_KINDS.join(", ")}`);
@@ -12559,6 +12583,17 @@ function validateDungeon(raw) {
   }
   if (Array.isArray(m.corridors) && !e.some((x) => x.startsWith("corridors")) && !corridorOrder(m.corridors)) e.push("corridors: corridors join each other in a ring ({corridor: id} ends); one must end at a room or a point");
   e.push(...enclosureErrors(m, ids));
+  if (m.bounds !== void 0 && !(nums2(m.bounds) && m.bounds.length >= 6 && m.bounds.length % 2 === 0)) e.push("bounds: at least 3 x,y pairs (cells)");
+  if (m.areas !== void 0) {
+    if (!Array.isArray(m.areas)) e.push("areas: an array");
+    else m.areas.forEach((a, i) => {
+      const at4 = `areas[${i}]`;
+      if (!a || !(nums2(a.points) && a.points.length >= 6 && a.points.length % 2 === 0)) e.push(`${at4}.points: at least 3 x,y pairs (cells)`);
+      if (!a || !AREA_KINDS.includes(a.kind)) e.push(`${at4}.kind: ${AREA_KINDS.join(" or ")}`);
+      if (a?.label !== void 0 && typeof a.label !== "string") e.push(`${at4}.label: text`);
+      originError2(a, at4, e);
+    });
+  }
   const o = m.overlay;
   if (!o || !Array.isArray(o.labels) || !Array.isArray(o.symbols)) e.push("overlay: { labels: [], symbols: [] }");
   else {
@@ -12577,8 +12612,8 @@ function validateDungeon(raw) {
   }
   return e;
 }
-function polyBox(points) {
-  const xs = points.filter((_, i) => i % 2 === 0), ys = points.filter((_, i) => i % 2 === 1);
+function polyBox(points2) {
+  const xs = points2.filter((_, i) => i % 2 === 0), ys = points2.filter((_, i) => i % 2 === 1);
   const x = Math.min(...xs), y = Math.min(...ys);
   return { x, y, w: Math.max(1, Math.max(...xs) - x), h: Math.max(1, Math.max(...ys) - y) };
 }
@@ -12671,12 +12706,12 @@ function nextRoomId(spec) {
   const used = new Set(spec.rooms.map((r) => r.id));
   for (let n = spec.rooms.length + 1; ; n++) if (!used.has(`r${n}`)) return `r${n}`;
 }
-var ROOM_SHAPES, DOOR_KINDS, DOOR_NAMES, ROUTES, SIDES, CORRIDOR_STYLES, CURVES, HATCH_STYLES, LABEL_KINDS2, ROOM_FILLS, WALL_TOWER_SHAPES, GATE_KINDS, BLOCK_SHAPES, SPLIT_MODES, GEN_LAYOUTS, DEFAULTS2, DUNGEON_FORMAT, MIGRATIONS2, MAX_SIDE2, isNum2, nums2, isPoint, toIssue, SCALE_UNITS, sharedWallsOn;
+var ROOM_SHAPES, DOOR_KINDS, DOOR_NAMES, ROUTES, SIDES, CORRIDOR_STYLES, CURVES, HATCH_STYLES, ROCK_STYLES, AREA_KINDS, LABEL_KINDS2, ROOM_FILLS, WALL_TOWER_SHAPES, GATE_KINDS, ROOM_EXIT_KINDS, BLOCK_SHAPES, SPLIT_MODES, GEN_LAYOUTS, DEFAULTS2, DUNGEON_FORMAT, MIGRATIONS2, MAX_SIDE2, isNum2, nums2, isPoint, toIssue, SCALE_UNITS, corridorWidth, sharedWallsOn, corridorWallsOn;
 var init_spec2 = __esm({
   "../artgen-mapgen/src/dungeon/spec.ts"() {
     "use strict";
     init_format();
-    ROOM_SHAPES = ["rect", "circle", "octagon", "cave", "poly"];
+    ROOM_SHAPES = ["rect", "circle", "octagon", "hexagon", "cave", "poly"];
     DOOR_KINDS = ["door", "secret", "locked", "portcullis", "arch"];
     DOOR_NAMES = {
       door: "Door",
@@ -12685,15 +12720,18 @@ var init_spec2 = __esm({
       portcullis: "Portcullis / bars",
       arch: "Archway"
     };
-    ROUTES = ["auto", "hv", "vh", "straight", "around"];
+    ROUTES = ["auto", "hv", "vh", "straight", "around", "maze"];
     SIDES = ["n", "e", "s", "w"];
     CORRIDOR_STYLES = ["built", "natural"];
     CURVES = ["none", "smooth"];
     HATCH_STYLES = ["band", "full", "none"];
+    ROCK_STYLES = ["hatch", "solid", "none"];
+    AREA_KINDS = ["rock", "void"];
     LABEL_KINDS2 = ["name", "note", "area"];
     ROOM_FILLS = ["floor", "building", "yard", "cellar"];
     WALL_TOWER_SHAPES = ["round", "square"];
     GATE_KINDS = ["gate", "postern"];
+    ROOM_EXIT_KINDS = ["stairs-up", "stairs-down", "arrow"];
     BLOCK_SHAPES = ["rect", "octagon", "circle", "poly"];
     SPLIT_MODES = ["bsp", "rows", "cols", "grid", "cuts"];
     GEN_LAYOUTS = ["scatter", "dense", "blocks"];
@@ -12708,8 +12746,18 @@ var init_spec2 = __esm({
       scaleBar: true,
       compass: false
     };
-    DUNGEON_FORMAT = 1;
-    MIGRATIONS2 = {};
+    DUNGEON_FORMAT = 2;
+    MIGRATIONS2 = {
+      /**
+       * dungeon format 1 -> 2: `style.sharedWalls` defaults to walls between any two units, and `true` means that. A format 1 file
+       * draws as it did: its `true` becomes `rooms`, and an unset value the one format 1 gave it (on with connections or blocks).
+       */
+      1: (raw) => {
+        const style3 = raw.style && typeof raw.style === "object" ? raw.style : {}, list6 = (k) => Array.isArray(raw[k]) && raw[k].length > 0;
+        const was = style3.sharedWalls ?? (list6("connections") || list6("blocks"));
+        return { ...raw, style: { ...style3, sharedWalls: was === true ? "rooms" : was } };
+      }
+    };
     MAX_SIDE2 = 160;
     isNum2 = (v) => typeof v === "number" && Number.isFinite(v);
     nums2 = (v) => Array.isArray(v) && v.every(isNum2);
@@ -12719,7 +12767,9 @@ var init_spec2 = __esm({
       return i < 0 ? { path: "", message: s2 } : { path: s2.slice(0, i), message: s2.slice(i + 2) };
     };
     SCALE_UNITS = ["ft", "m", "yd", "mi", "km"];
-    sharedWallsOn = (m) => m.style.sharedWalls ?? !!(m.connections?.length || m.blocks?.length);
+    corridorWidth = (c, m) => c.span !== void 0 ? c.span / m.scale.perCell : c.width ?? 1;
+    sharedWallsOn = (m) => (m.style.sharedWalls ?? true) !== false;
+    corridorWallsOn = (m) => (m.style.sharedWalls ?? true) === true;
   }
 });
 
@@ -12795,8 +12845,8 @@ function sharedEdges(a, b, eps = 1e-6) {
   for (const [p0, p1] of edges(a)) for (const [q0, q1] of edges(b)) {
     const dx = p1[0] - p0[0], dy = p1[1] - p0[1], L2 = Math.hypot(dx, dy);
     if (L2 < eps) continue;
-    const off = (q) => Math.abs((q[0] - p0[0]) * dy - (q[1] - p0[1]) * dx) / L2;
-    if (off(q0) > eps || off(q1) > eps) continue;
+    const off2 = (q) => Math.abs((q[0] - p0[0]) * dy - (q[1] - p0[1]) * dx) / L2;
+    if (off2(q0) > eps || off2(q1) > eps) continue;
     const t = (q) => ((q[0] - p0[0]) * dx + (q[1] - p0[1]) * dy) / (L2 * L2);
     const lo = Math.max(0, Math.min(t(q0), t(q1))), hi = Math.min(1, Math.max(t(q0), t(q1)));
     if (hi - lo < eps / L2) continue;
@@ -12814,17 +12864,17 @@ var init_geom2 = __esm({
 });
 
 // ../artgen-mapgen/src/dungeon/corridors.ts
-function sidePort(g, side, offset, width) {
-  const r = g.room, d = OUT[side], across2 = side === "n" || side === "s";
+function sidePort(g, side2, offset, width) {
+  const r = g.room, d = OUT[side2], across2 = side2 === "n" || side2 === "s";
   const along2 = across2 ? offset !== void 0 ? r.x + offset : snap(g.cx, width) : offset !== void 0 ? r.y + offset : snap(g.cy, width);
   const p2 = across2 ? [along2, g.cy] : [g.cx, along2];
-  const edge = side === "n" ? r.y : side === "s" ? r.y + r.h : side === "w" ? r.x : r.x + r.w;
-  const stub = across2 ? [along2, edge + d[1]] : [edge + d[0], along2];
+  const edge2 = side2 === "n" ? r.y : side2 === "s" ? r.y + r.h : side2 === "w" ? r.x : r.x + r.w;
+  const stub = across2 ? [along2, edge2 + d[1]] : [edge2 + d[0], along2];
   return { p: p2, stub, dir: d, room: g };
 }
-function junctionPort(line2, toward) {
-  const j = nearestOnLine(line2, toward[0], toward[1]), i = j.seg * 2;
-  const tx = line2[i + 2] - line2[i], ty = line2[i + 3] - line2[i + 1], L2 = Math.hypot(tx, ty) || 1;
+function junctionPort(line3, toward) {
+  const j = nearestOnLine(line3, toward[0], toward[1]), i = j.seg * 2;
+  const tx = line3[i + 2] - line3[i], ty = line3[i + 3] - line3[i + 1], L2 = Math.hypot(tx, ty) || 1;
   let dir = [-ty / L2, tx / L2];
   if ((toward[0] - j.x) * dir[0] + (toward[1] - j.y) * dir[1] < 0) dir = [-dir[0], -dir[1]];
   return { p: [j.x, j.y], dir };
@@ -13007,6 +13057,155 @@ var init_corridors = __esm({
   }
 });
 
+// ../artgen-mapgen/src/dungeon/floor.ts
+function inBand(pts2, width, x, y) {
+  const h = width / 2 + 1e-9;
+  for (let i = 0; i + 3 < pts2.length; i += 2) {
+    const ax = pts2[i], ay = pts2[i + 1], dx = pts2[i + 2] - ax, dy = pts2[i + 3] - ay, L2 = Math.hypot(dx, dy);
+    if (L2 < 1e-9) {
+      if (Math.abs(x - ax) <= h && Math.abs(y - ay) <= h) return true;
+      continue;
+    }
+    const ux = dx / L2, uy = dy / L2, t = (x - ax) * ux + (y - ay) * uy, d = Math.abs((x - ax) * uy - (y - ay) * ux);
+    if (t >= -h && t <= L2 + h && d <= h) return true;
+  }
+  return false;
+}
+function ownersAt(l, x, y, all = false) {
+  const out = [];
+  l.rooms.forEach((g, i) => {
+    const f = g.room.fill ?? "floor";
+    if ((all || f === "floor" || f === "building") && inPolygon(g.outline, x, y)) out.push({ room: i });
+  });
+  l.corridors.forEach((c, i) => {
+    if (inCorridor(c, x, y)) out.push({ corridor: i });
+  });
+  return out;
+}
+function floorGrid(spec, l) {
+  const owners = [...l.rooms.map((_, i) => ({ room: i })), ...l.corridors.map((_, i) => ({ corridor: i }))];
+  const R3 = l.rooms.length, cells = new Int32Array(spec.cols * spec.rows).fill(-1), shared2 = /* @__PURE__ */ new Map();
+  for (let y = 0; y < spec.rows; y++) for (let x = 0; x < spec.cols; x++) {
+    const at4 = ownersAt(l, x + 0.5, y + 0.5).map((o) => "room" in o ? o.room : R3 + o.corridor);
+    if (!at4.length) continue;
+    cells[y * spec.cols + x] = at4[0];
+    if (at4.length > 1) shared2.set(y * spec.cols + x, at4);
+  }
+  return { cols: spec.cols, rows: spec.rows, owners, cells, shared: shared2 };
+}
+function gridRows(g) {
+  const rows3 = [];
+  for (let y = 0; y < g.rows; y++) {
+    const row = [];
+    for (let x = 0; x < g.cols; x++) {
+      const v = g.cells[y * g.cols + x];
+      if (row.length && row[row.length - 2] === v) row[row.length - 1]++;
+      else row.push(v, 1);
+    }
+    rows3.push(row);
+  }
+  return rows3;
+}
+function adjacency(g) {
+  const count = /* @__PURE__ */ new Map();
+  const add2 = (p2, q) => {
+    if (p2 < 0 || q < 0 || p2 === q) return;
+    const k = p2 < q ? `${p2},${q}` : `${q},${p2}`;
+    count.set(k, (count.get(k) ?? 0) + 1);
+  };
+  for (let y = 0; y < g.rows; y++) for (let x = 0; x < g.cols; x++) {
+    const v = g.cells[y * g.cols + x];
+    if (x + 1 < g.cols) add2(v, g.cells[y * g.cols + x + 1]);
+    if (y + 1 < g.rows) add2(v, g.cells[(y + 1) * g.cols + x]);
+  }
+  return [...count].map(([k, along2]) => {
+    const [a, b] = k.split(",").map(Number);
+    return { a, b, along: along2 };
+  }).sort((p2, q) => p2.a - q.a || p2.b - q.b);
+}
+function doorStand(spec, l, d) {
+  const a = d.angle * Math.PI / 180, ux = Math.cos(a), uy = Math.sin(a);
+  const behind = ownersAt(l, d.x - ux * DOOR_PROBE, d.y - uy * DOOR_PROBE, true), ahead = ownersAt(l, d.x + ux * DOOR_PROBE, d.y + uy * DOOR_PROBE, true);
+  let from = { room: -1 }, to = { room: -1 };
+  if (d.connection !== void 0) {
+    const c = l.connections[d.connection], ia = l.rooms.findIndex((g) => g.room.id === c.a), ib = l.rooms.findIndex((g) => g.room.id === c.b);
+    from = { room: ia };
+    to = { room: ib };
+  } else {
+    const sc = spec.corridors[d.corridor], g = l.corridors[d.corridor];
+    const k = g.ends.findIndex((e) => e && Math.abs(e.x - d.x) < 1e-9 && Math.abs(e.y - d.y) < 1e-9);
+    const end = sc[k === 1 ? "to" : "from"];
+    if ("at" in end) return { on: "end", behind, ahead };
+    from = "room" in end ? { room: l.rooms.findIndex((r) => r.room.id === end.room) } : { corridor: spec.corridors.findIndex((c) => c.id === end.corridor) };
+    to = { corridor: d.corridor };
+  }
+  if (!behind.length || !ahead.length) return { on: "rock", behind, ahead };
+  const leaves = has(behind, from) && !has(ahead, from);
+  const enters = "room" in to ? has(ahead, to) && !has(behind, to) : has(ahead, to);
+  const through = behind.some((o) => has(ahead, o) && !same2(o, to));
+  return { on: leaves && enters && !through ? "wall" : "open", behind, ahead };
+}
+function corridorPieces(c) {
+  if (c.outline) return [c.outline];
+  const h = c.width / 2, out = [];
+  for (let i = 0; i + 3 < c.pts.length; i += 2) {
+    const ax = c.pts[i], ay = c.pts[i + 1], dx = c.pts[i + 2] - ax, dy = c.pts[i + 3] - ay, L2 = Math.hypot(dx, dy);
+    if (L2 < 1e-9) continue;
+    const ux = dx / L2, uy = dy / L2, nx = -uy * h, ny = ux * h, x0 = ax - ux * h, y0 = ay - uy * h, x1 = ax + dx + ux * h, y1 = ay + dy + uy * h;
+    out.push([x0 + nx, y0 + ny, x1 + nx, y1 + ny, x1 - nx, y1 - ny, x0 - nx, y0 - ny]);
+  }
+  return out;
+}
+function apart(l, a, b, seg) {
+  const [p2, q] = seg, L2 = Math.hypot(q[0] - p2[0], q[1] - p2[1]);
+  if (L2 < 1e-6) return [];
+  const ux = (q[0] - p2[0]) / L2, uy = (q[1] - p2[1]) / L2, nx = -uy * 0.05, ny = ux * 0.05;
+  const ok = (t) => {
+    const x = p2[0] + ux * t, y = p2[1] + uy * t, s1 = ownersAt(l, x + nx, y + ny), s2 = ownersAt(l, x - nx, y - ny);
+    const only = (s3, o) => s3.length === 1 && same2(s3[0], o);
+    return only(s1, a) && only(s2, b) || only(s1, b) && only(s2, a);
+  };
+  const n = Math.max(1, Math.ceil(L2 / STEP)), out = [];
+  let start = -1;
+  for (let k = 0; k <= n; k++) {
+    const t = Math.min(L2, (k + 0.5) * (L2 / n)), good = k < n && ok(t);
+    if (good && start < 0) start = k;
+    if (!good && start >= 0) {
+      const t0 = start * (L2 / n), t1 = k * (L2 / n);
+      out.push([[p2[0] + ux * t0, p2[1] + uy * t0], [p2[0] + ux * t1, p2[1] + uy * t1]]);
+      start = -1;
+    }
+  }
+  return out;
+}
+function corridorBoundaries(l) {
+  const out = [], pieces2 = l.corridors.map(corridorPieces);
+  const floors = l.rooms.filter((g) => (g.room.fill ?? "floor") === "floor");
+  const meet = (a, b, pa, pb) => {
+    for (const seg of sharedEdges(pa, pb)) for (const s2 of apart(l, a, b, seg)) out.push({ a, b, seg: s2 });
+  };
+  l.corridors.forEach((c, i) => {
+    if (c.outline) return;
+    for (const g of floors) for (const piece of pieces2[i]) meet({ room: g.index }, { corridor: i }, g.outline, piece);
+    for (let j = i + 1; j < l.corridors.length; j++) if (!l.corridors[j].outline) for (const pa of pieces2[i]) for (const pb of pieces2[j]) meet({ corridor: i }, { corridor: j }, pa, pb);
+  });
+  return out;
+}
+var inCorridor, ownerName, same2, has, DOOR_PROBE, STEP;
+var init_floor = __esm({
+  "../artgen-mapgen/src/dungeon/floor.ts"() {
+    "use strict";
+    init_geom2();
+    init_layout();
+    inCorridor = (c, x, y) => c.outline ? inPolygon(c.outline, x, y) : inBand(c.pts, c.width, x, y);
+    ownerName = (spec, o) => "room" in o ? `room:${spec.rooms[o.room].id}` : `corridor:${o.corridor}`;
+    same2 = (a, b) => "room" in a ? "room" in b && a.room === b.room : "corridor" in b && a.corridor === b.corridor;
+    has = (xs, o) => xs.some((x) => same2(x, o));
+    DOOR_PROBE = 0.25;
+    STEP = 0.125;
+  }
+});
+
 // ../artgen-mapgen/src/dungeon/walls.ts
 function convexHull(pts2) {
   const ps = [];
@@ -13055,23 +13254,23 @@ function wallGeom(w, index, l) {
   let ring2;
   if (w.poly) ring2 = Array.from({ length: w.poly.length / 2 }, (_, i) => [w.poly[2 * i], w.poly[2 * i + 1]]);
   else ring2 = offsetRing(convexHull((w.rooms ?? []).flatMap((id2) => byId2.get(id2)?.outline ?? [])), w.inset ?? WALL_DEFAULTS.inset);
-  const thickness = w.thickness ?? WALL_DEFAULTS.thickness, tw = w.towers, size2 = tw?.size ?? WALL_DEFAULTS.towerSize, shape = tw?.shape ?? "round";
+  const thickness = w.thickness ?? WALL_DEFAULTS.thickness, tw = w.towers, size2 = tw?.size ?? WALL_DEFAULTS.towerSize, shape2 = tw?.shape ?? "round";
   const towers = [];
   if (tw) {
     const at4 = tw.at ?? "corners", verts = at4 === "corners" ? ring2.map((_, i) => i) : at4.filter((i) => i >= 0 && i < ring2.length);
-    for (const i of verts) towers.push({ x: ring2[i][0], y: ring2[i][1], shape, size: size2, source: "corner", vertex: i });
+    for (const i of verts) towers.push({ x: ring2[i][0], y: ring2[i][1], shape: shape2, size: size2, source: "corner", vertex: i });
   }
   const gates = (w.gates ?? []).map((g) => {
     const s2 = snapToRing(ring2, g.at), width = g.width ?? (g.kind === "postern" ? WALL_DEFAULTS.posternWidth : WALL_DEFAULTS.gateWidth);
-    const dx = Math.cos(s2.angle * Math.PI / 180), dy = Math.sin(s2.angle * Math.PI / 180), off = width / 2 + size2 / 2;
-    const side = g.kind === "gate" ? [-1, 1].map((sg2) => ({ x: s2.x + sg2 * off * dx, y: s2.y + sg2 * off * dy, shape, size: size2, source: "gate" })) : [];
-    towers.push(...side);
-    return { kind: g.kind, x: s2.x, y: s2.y, angle: s2.angle, width, ...g.room !== void 0 && { room: g.room }, towers: side };
+    const dx = Math.cos(s2.angle * Math.PI / 180), dy = Math.sin(s2.angle * Math.PI / 180), off2 = width / 2 + size2 / 2;
+    const side2 = g.kind === "gate" ? [-1, 1].map((sg2) => ({ x: s2.x + sg2 * off2 * dx, y: s2.y + sg2 * off2 * dy, shape: shape2, size: size2, source: "gate" })) : [];
+    towers.push(...side2);
+    return { kind: g.kind, x: s2.x, y: s2.y, angle: s2.angle, width, ...g.room !== void 0 && { room: g.room }, towers: side2 };
   });
   const ids = w.rooms ?? l.rooms.map((g) => g.room.id);
   const enclosed2 = ids.map((room3) => {
-    const g = byId2.get(room3), flat2 = ring2.flat();
-    return { room: room3, inside: !!g && g.outline.every((_, i) => i % 2 || inPolygon(flat2, g.outline[i], g.outline[i + 1]) || onRing(ring2, g.outline[i], g.outline[i + 1])) };
+    const g = byId2.get(room3), flat3 = ring2.flat();
+    return { room: room3, inside: !!g && g.outline.every((_, i) => i % 2 || inPolygon(flat3, g.outline[i], g.outline[i + 1]) || onRing(ring2, g.outline[i], g.outline[i + 1])) };
   });
   return { index, ...w.id !== void 0 && { id: w.id }, thickness, ring: ring2.flat(), towers, gates, enclosed: enclosed2 };
 }
@@ -13105,13 +13304,564 @@ var init_walls = __esm({
   }
 });
 
+// ../artgen-mapgen/src/dungeon/router.ts
+function edge(p2, a, b) {
+  const L2 = (b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2;
+  const t = L2 ? Math.max(0, Math.min(1, ((p2[0] - a[0]) * (b[0] - a[0]) + (p2[1] - a[1]) * (b[1] - a[1])) / L2)) : 0;
+  return Math.hypot(p2[0] - a[0] - t * (b[0] - a[0]), p2[1] - a[1] - t * (b[1] - a[1]));
+}
+function kernel(poly) {
+  const area3 = poly.reduce((s2, p2, i) => {
+    const q = poly[(i + 1) % poly.length];
+    return s2 + p2[0] * q[1] - q[0] * p2[1];
+  }, 0);
+  let out = poly.slice();
+  for (let i = 0; i < poly.length; i++) {
+    const [ax, ay] = poly[i], [bx, by] = poly[(i + 1) % poly.length];
+    const side2 = (p2) => ((bx - ax) * (p2[1] - ay) - (by - ay) * (p2[0] - ax)) * (area3 > 0 ? 1 : -1);
+    const kept = [];
+    for (let j = 0; j < out.length; j++) {
+      const p2 = out[j], q = out[(j + 1) % out.length], sp = side2(p2), sq = side2(q);
+      if (sp >= -1e-9) kept.push(p2);
+      if (sp >= -1e-9 !== sq >= -1e-9) {
+        const t = sp / (sp - sq);
+        kept.push([p2[0] + (q[0] - p2[0]) * t, p2[1] + (q[1] - p2[1]) * t]);
+      }
+    }
+    out = kept;
+    if (out.length < 3) return [];
+  }
+  return out;
+}
+function raster(poly, whole = false) {
+  const xs = poly.map((p2) => p2[0]), ys = poly.map((p2) => p2[1]), e = 1e-3 * LATTICE, out = /* @__PURE__ */ new Set();
+  for (let i = Math.floor(Math.min(...xs) / LATTICE); i < Math.ceil(Math.max(...xs) / LATTICE); i++)
+    for (let j = Math.floor(Math.min(...ys) / LATTICE); j < Math.ceil(Math.max(...ys) / LATTICE); j++) {
+      const marks = whole ? [[i, j], [i + 1, j], [i, j + 1], [i + 1, j + 1]].map(([u, v]) => [u * LATTICE + (u === i ? e : -e), v * LATTICE + (v === j ? e : -e)]) : Array.from({ length: 16 }, (_, n) => [(i + (n % 4 + 0.5) / 4) * LATTICE, (j + (Math.floor(n / 4) + 0.5) / 4) * LATTICE]);
+      if (whole ? marks.every((p2) => holds(poly, p2[0], p2[1])) : marks.some((p2) => holds(poly, p2[0], p2[1]))) out.add(`${i},${j}`);
+    }
+  return out;
+}
+function routePoints(r) {
+  if (r.kind === "wall") return [r.doorA, r.doorB];
+  const pts2 = [r.doorA, ...r.cells.map(([i, j]) => [(i + 0.5) * LATTICE, (j + 0.5) * LATTICE]), r.doorB], keep = [pts2[0]];
+  for (let n = 1; n + 1 < pts2.length; n++) {
+    const [p2, q, s2] = [pts2[n - 1], pts2[n], pts2[n + 1]];
+    if (Math.abs((q[0] - p2[0]) * (s2[1] - q[1]) - (q[1] - p2[1]) * (s2[0] - q[0])) > 1e-6) keep.push(q);
+  }
+  return [...keep, pts2[pts2.length - 1]];
+}
+function boxWall(p2, q) {
+  for (const [ap, aq, sp, sq] of [[p2.x + p2.w, q.x, "e", "w"], [q.x + q.w, p2.x, "w", "e"]]) {
+    const lo = Math.max(p2.y, q.y), hi = Math.min(p2.y + p2.h, q.y + q.h);
+    if (Math.abs(ap - aq) < 1e-6 && hi - lo >= LATTICE) return [sp, sq, [ap, (lo + hi) / 2], lo, hi];
+  }
+  for (const [ap, aq, sp, sq] of [[p2.y + p2.h, q.y, "s", "n"], [q.y + q.h, p2.y, "n", "s"]]) {
+    const lo = Math.max(p2.x, q.x), hi = Math.min(p2.x + p2.w, q.x + q.w);
+    if (Math.abs(ap - aq) < 1e-6 && hi - lo >= LATTICE) return [sp, sq, [(lo + hi) / 2, ap], lo, hi];
+  }
+  return null;
+}
+function sharedWall(p2, q, wantP, wantQ) {
+  const boxed = p2.square && q.square ? boxWall(p2, q) : null, named = (wantP ?? null) !== null || (wantQ ?? null) !== null;
+  if (p2.square && q.square && (boxed === null || !named)) return boxed && [boxed[0], boxed[1], boxed[2]];
+  const r6 = (v) => Math.round(v * 1e6) / 1e6;
+  const theirs = new Set(q.allowed(wantQ).filter((s2) => s2.side).map((s2) => `${key2(s2.inner)}|${s2.side}|${r6(s2.point[0])},${r6(s2.point[1])}`));
+  const meet = p2.allowed(wantP).filter((s2) => s2.side && theirs.has(`${key2(s2.cell)}|${TURNED[s2.side]}|${r6(s2.point[0])},${r6(s2.point[1])}`) && (!boxed || s2.side === boxed[0] && boxed[3] + LATTICE / 2 - 1e-6 <= s2.point[s2.side === "e" || s2.side === "w" ? 1 : 0] && s2.point[s2.side === "e" || s2.side === "w" ? 1 : 0] <= boxed[4] - LATTICE / 2 + 1e-6));
+  if (!meet.length) return null;
+  if (!named) {
+    const sorted = meet.slice().sort((a, b) => (a.side < b.side ? -1 : a.side > b.side ? 1 : 0) || (a.side === "n" || a.side === "s" ? a.point[1] - b.point[1] || a.point[0] - b.point[0] : a.point[0] - b.point[0] || a.point[1] - b.point[1]));
+    const runs = [];
+    for (const s2 of sorted) {
+      const last = runs.length ? runs[runs.length - 1][runs[runs.length - 1].length - 1] : null;
+      if (last && last.side === s2.side && Math.hypot(last.point[0] - s2.point[0], last.point[1] - s2.point[1]) <= LATTICE + 1e-6 && (s2.side === "n" || s2.side === "s" ? last.point[1] === s2.point[1] : last.point[0] === s2.point[0])) runs[runs.length - 1].push(s2);
+      else runs.push([s2]);
+    }
+    const run2 = runs.reduce((a, b) => b.length > a.length ? b : a);
+    return [run2[0].side, TURNED[run2[0].side], [(run2[0].point[0] + run2[run2.length - 1].point[0]) / 2, (run2[0].point[1] + run2[run2.length - 1].point[1]) / 2]];
+  }
+  const qc = q.centre;
+  const cost2 = (s2) => (wantP != null ? off(s2.bearing, wantP) : 0) + (wantQ != null ? off(bearing(s2.point[0] - qc[0], s2.point[1] - qc[1]), wantQ) : 0);
+  const best = meet.reduce((a, b) => cost2(b) < cost2(a) ? b : a);
+  return [best.side, TURNED[best.side], best.point];
+}
+function detours(routes, rooms, limit) {
+  if (limit === null || limit === void 0) return [];
+  return routes.map((r) => {
+    const a = rooms.get(r.a).centre, b = rooms.get(r.b).centre;
+    return [r, r.length - Math.hypot(a[0] - b[0], a[1] - b[1])];
+  }).filter(([, x]) => x > limit);
+}
+function plan(rooms, ways, o = {}) {
+  const walls = o.walls ?? /* @__PURE__ */ new Map(), num5 = (c) => {
+    const m = c.match(/(\d+)\D*$/);
+    return m ? +m[1] : 0;
+  };
+  const pairs2 = [...new Map(ways.map((w) => {
+    const p2 = [...w].sort((x, y) => num5(x) - num5(y) || (x < y ? -1 : 1));
+    return [p2.join("|"), p2];
+  })).values()];
+  const dist3 = (p2) => Math.round(Math.hypot(rooms.get(p2[0]).x - rooms.get(p2[1]).x, rooms.get(p2[0]).y - rooms.get(p2[1]).y));
+  pairs2.sort((p2, q) => dist3(p2) - dist3(q) || (p2.join("|") < q.join("|") ? -1 : 1));
+  const router = new Router(rooms, o), left = [];
+  for (const [a, b] of pairs2) if (!router.add(a, b, walls.get(`${a}|${b}`), walls.get(`${b}|${a}`))) left.push(`${a} to ${b}`);
+  return { routes: router.routes, left };
+}
+var LATTICE, TURN, RUN, RUN_COST, SHARE, WANDER, HALF3, CIRCLE, STEPS, TURNED, key2, unkey, bearing, off, flat, holds, Footprint, Router;
+var init_router = __esm({
+  "../artgen-mapgen/src/dungeon/router.ts"() {
+    "use strict";
+    init_layout();
+    LATTICE = 10;
+    TURN = 0.5;
+    RUN = 4;
+    RUN_COST = 0.2;
+    SHARE = 0.4;
+    WANDER = 0.45;
+    HALF3 = 11.25;
+    CIRCLE = 64;
+    STEPS = { n: [0, -1], e: [1, 0], s: [0, 1], w: [-1, 0] };
+    TURNED = { n: "s", s: "n", e: "w", w: "e" };
+    key2 = (c) => `${c[0]},${c[1]}`;
+    unkey = (k) => k.split(",").map(Number);
+    bearing = (dx, dy) => (Math.atan2(dx, -dy) * 180 / Math.PI + 360) % 360;
+    off = (a, b) => Math.abs(((a - b + 180) % 360 + 360) % 360 - 180);
+    flat = (pts2) => pts2.flatMap((p2) => p2);
+    holds = (poly, x, y) => inPolygon(flat(poly), x, y);
+    Footprint = class {
+      x;
+      y;
+      w;
+      h;
+      outline;
+      square;
+      anchor;
+      _cells;
+      _touched;
+      _slots;
+      _hub;
+      constructor(x, y, w, h, outline2, square, anchor) {
+        this.x = x;
+        this.y = y;
+        this.w = w;
+        this.h = h;
+        this.outline = outline2;
+        this.square = square;
+        this.anchor = anchor;
+      }
+      get centre() {
+        return [this.x + this.w / 2, this.y + this.h / 2];
+      }
+      holds(x, y) {
+        return this.square ? this.x < x && x < this.x + this.w && this.y < y && y < this.y + this.h : holds(this.outline, x, y);
+      }
+      /** First and last lattice column and row the box covers. */
+      get span() {
+        return [Math.floor(this.x / LATTICE + 1e-6), Math.floor(this.y / LATTICE + 1e-6), Math.ceil((this.x + this.w) / LATTICE - 1e-6) - 1, Math.ceil((this.y + this.h) / LATTICE - 1e-6) - 1];
+      }
+      /** The lattice cells of its floor: those whose centres it holds. */
+      get cells() {
+        if (!this._cells) {
+          const [i0, j0, i1, j1] = this.span, out = /* @__PURE__ */ new Set();
+          for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) if (this.square || this.holds((i + 0.5) * LATTICE, (j + 0.5) * LATTICE)) out.add(`${i},${j}`);
+          this._cells = out;
+        }
+        return this._cells;
+      }
+      /** The lattice cells any of its floor reaches into, which no other room may. */
+      get touched() {
+        if (!this._touched) {
+          if (this.square) this._touched = this.cells;
+          else {
+            const [i0, j0, i1, j1] = this.span, out = new Set(this.cells), marks = [0.125, 0.375, 0.625, 0.875];
+            for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) if (marks.some((u) => marks.some((v) => this.holds((i + u) * LATTICE, (j + v) * LATTICE)))) out.add(`${i},${j}`);
+            this._touched = out;
+          }
+        }
+        return this._touched;
+      }
+      /** Whether a cell lies wholly on its floor. */
+      full(c) {
+        if (!this.cells.has(key2(c))) return false;
+        if (this.square) return true;
+        const e = 1e-3 * LATTICE;
+        return [[0, 0], [1, 0], [0, 1], [1, 1]].every(([u, v]) => this.holds((c[0] + u) * LATTICE + (u ? -e : e), (c[1] + v) * LATTICE + (v ? -e : e)));
+      }
+      /** The point a way is drawn from to a door off the lattice: of the points that see every wall, the one clearest of the walls (to half a passage) and nearest the centre; null where none sees every wall. */
+      get hub() {
+        if (this._hub !== void 0) return this._hub;
+        if (this.anchor) return this._hub = this.anchor;
+        if (this.square) return this._hub = this.centre;
+        const k = kernel(this.outline);
+        if (!k.length) return this._hub = null;
+        const step = LATTICE / 4, c = this.centre, xs = k.map((p2) => p2[0]), ys = k.map((p2) => p2[1]), seen = [c];
+        for (let i = 0; Math.min(...xs) + i * step <= Math.max(...xs) + 1e-9; i++) for (let j = 0; Math.min(...ys) + j * step <= Math.max(...ys) + 1e-9; j++) seen.push([Math.min(...xs) + i * step, Math.min(...ys) + j * step]);
+        const ok = seen.filter((p2) => holds(k, p2[0], p2[1]) && this.holds(p2[0], p2[1]));
+        if (!ok.length) return this._hub = null;
+        const clear = (p2) => Math.min(LATTICE / 2, ...this.outline.map((a, i) => edge(p2, a, this.outline[(i + 1) % this.outline.length])));
+        let best = ok[0], bs = -Infinity;
+        for (const p2 of ok) {
+          const s2 = Math.round(clear(p2) * 1e6) / 1e6 * 1e6 - Math.hypot(p2[0] - c[0], p2[1] - c[1]) * 1e-3;
+          if (s2 > bs) {
+            bs = s2;
+            best = p2;
+          }
+        }
+        return this._hub = best;
+      }
+      /** Where the line from a point it holds to one it does not crosses its wall. */
+      cross(inner, outer) {
+        let lo = 0, hi = 1;
+        for (let k = 0; k < 30; k++) {
+          const t = (lo + hi) / 2;
+          if (this.holds(inner[0] + (outer[0] - inner[0]) * t, inner[1] + (outer[1] - inner[1]) * t)) lo = t;
+          else hi = t;
+        }
+        return [inner[0] + (outer[0] - inner[0]) * lo, inner[1] + (outer[1] - inner[1]) * lo];
+      }
+      /** Every place a door of the room can stand, in a fixed order. */
+      get slots() {
+        if (this._slots) return this._slots;
+        const out = [], seen = /* @__PURE__ */ new Set(), [cx, cy] = this.centre;
+        for (const k of [...this.cells].sort()) {
+          const [i, j] = unkey(k);
+          for (const [s2, [dx, dy]] of Object.entries(STEPS)) {
+            const f = [i + dx, j + dy];
+            if (this.cells.has(key2(f))) continue;
+            const mid = [(i + 0.5 + dx / 2) * LATTICE, (j + 0.5 + dy / 2) * LATTICE];
+            if (this.full([i, j]) && !this.holds(mid[0] + dx * LATTICE / 4, mid[1] + dy * LATTICE / 4)) {
+              const p2 = this.square ? s2 === "n" ? [mid[0], this.y] : s2 === "s" ? [mid[0], this.y + this.h] : s2 === "w" ? [this.x, mid[1]] : [this.x + this.w, mid[1]] : this.cross([(i + 0.5) * LATTICE, (j + 0.5) * LATTICE], [(f[0] + 0.5) * LATTICE, (f[1] + 0.5) * LATTICE]);
+              out.push({ cell: f, inner: [i, j], side: s2, point: p2, bearing: bearing(p2[0] - cx, p2[1] - cy) });
+            } else if (!seen.has(key2(f)) && this.hub) {
+              seen.add(key2(f));
+              const p2 = this.cross(this.hub, [(f[0] + 0.5) * LATTICE, (f[1] + 0.5) * LATTICE]);
+              out.push({ cell: f, inner: [i, j], side: "", point: p2, bearing: bearing(p2[0] - cx, p2[1] - cy) });
+            }
+          }
+        }
+        const rank = "nswe";
+        const order = (s2) => s2.side === "n" || s2.side === "s" ? [0, s2.cell[0], rank.indexOf(s2.side), s2.cell[1]] : s2.side ? [1, s2.cell[1], rank.indexOf(s2.side), s2.cell[0]] : [2, s2.bearing, 0, 0];
+        out.sort((a, b) => {
+          const p2 = order(a), q = order(b);
+          for (let n = 0; n < 4; n++) if (p2[n] !== q[n]) return p2[n] - q[n];
+          return 0;
+        });
+        return this._slots = out;
+      }
+      /** The slots a way may leave by: all, those within half a compass point of the wall it names, or where none are, the nearest. */
+      allowed(want2) {
+        if (want2 === void 0 || want2 === null || !this.slots.length) return this.slots;
+        const near3 = this.slots.filter((s2) => off(s2.bearing, want2) <= HALF3 + 1e-6);
+        if (near3.length) return near3;
+        const least = Math.min(...this.slots.map((s2) => off(s2.bearing, want2)));
+        return this.slots.filter((s2) => off(s2.bearing, want2) <= least + 1e-6);
+      }
+    };
+    Router = class {
+      lo;
+      hi;
+      solid = /* @__PURE__ */ new Map();
+      against = /* @__PURE__ */ new Map();
+      used = /* @__PURE__ */ new Map();
+      doors = /* @__PURE__ */ new Set();
+      routes = [];
+      ends = [];
+      seed;
+      ground;
+      clearance;
+      bend;
+      taken;
+      rooms;
+      constructor(rooms, o = {}) {
+        this.rooms = rooms;
+        this.seed = o.seed ?? 1;
+        this.ground = o.ground ?? null;
+        this.clearance = o.clearance ?? 1;
+        this.bend = o.bend ?? TURN;
+        this.taken = o.taken ?? /* @__PURE__ */ new Map();
+        const margin = o.margin ?? 2, spans = [...rooms.values()].map((r) => r.span);
+        this.lo = [Math.min(...spans.map((s2) => s2[0])) - margin, Math.min(...spans.map((s2) => s2[1])) - margin];
+        this.hi = [Math.max(...spans.map((s2) => s2[2])) + margin, Math.max(...spans.map((s2) => s2[3])) + margin];
+        for (const [code, r] of rooms) for (const c of r.cells) this.solid.set(c, code);
+        for (const [c, code] of this.solid) {
+          const [i, j] = unkey(c);
+          for (const [dx, dy] of Object.values(STEPS)) {
+            const n = `${i + dx},${j + dy}`;
+            if (!this.solid.has(n)) {
+              if (!this.against.has(n)) this.against.set(n, /* @__PURE__ */ new Set());
+              this.against.get(n).add(code);
+            }
+          }
+        }
+        for (const [code, r] of rooms) for (const c of r.touched) if (!r.cells.has(c) && !this.solid.has(c)) {
+          if (!this.against.has(c)) this.against.set(c, /* @__PURE__ */ new Set());
+          this.against.get(c).add(code);
+        }
+      }
+      /** A cell's noise, from the plan's own corner, so a shifted plan routes alike. */
+      noise(c) {
+        const i = c[0] - this.lo[0], j = c[1] - this.lo[1];
+        const h = ((Math.imul(i, 73856093) ^ Math.imul(j, 19349663) ^ Math.imul(this.seed, 83492791)) >>> 0) % 1e3;
+        return h / 1e3 * WANDER;
+      }
+      inside(c) {
+        return this.lo[0] <= c[0] && c[0] <= this.hi[0] && this.lo[1] <= c[1] && c[1] <= this.hi[1];
+      }
+      /** Whether routes i and j leave a room in common, so may run together. */
+      related(i, j) {
+        return this.ends[i].some((x) => this.ends[j].includes(x));
+      }
+      doorway(room3, want2) {
+        return this.rooms.get(room3).allowed(want2).filter((s2) => this.inside(s2.cell) && !this.solid.has(key2(s2.cell)) && !this.doors.has(`${room3}|${key2(s2.cell)}`));
+      }
+      free(c, me) {
+        const k = key2(c);
+        if (this.solid.has(k) || !this.inside(c) || this.ground && !this.ground.has(k)) return false;
+        for (const [dx, dy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const n = `${c[0] + dx},${c[1] + dy}`;
+          for (const u of this.used.get(n) ?? []) if (!this.related(u, me)) return false;
+          const t = this.taken.get(n);
+          if (t && !t.some((x) => this.ends[me].includes(x))) return false;
+        }
+        return true;
+      }
+      /** Whether a step from cell c (null at a door) to n runs beside another way's passage from the same room, rather than joining or leaving it. */
+      beside(c, n, me) {
+        const at4 = (x) => this.used.get(key2(x)) ?? /* @__PURE__ */ new Set();
+        const touches2 = (cell3, u, but) => Object.values(STEPS).some(([dx, dy]) => {
+          const x = [cell3[0] + dx, cell3[1] + dy];
+          return !(but && x[0] === but[0] && x[1] === but[1]) && at4(x).has(u);
+        });
+        const near3 = /* @__PURE__ */ new Set();
+        for (const [dx, dy] of Object.values(STEPS)) for (const u of at4([n[0] + dx, n[1] + dy])) near3.add(u);
+        for (const u of near3) if (u !== me && !at4(n).has(u) && touches2(n, u, c) && (c === null || at4(c).has(u) || touches2(c, u, n))) return true;
+        return false;
+      }
+      /** Whether a passage cell keeps clear of walls: with clearance, none but at a door of its own rooms. */
+      clearOf(n, ok) {
+        if (this.clearance <= 0) return true;
+        const a = this.against.get(key2(n));
+        return !a || [...a].every((r) => ok.has(r));
+      }
+      /** Routes a to b, leaving each by its named wall where it names one; null where no passage fits. */
+      add(a, b, wantA, wantB) {
+        const me = this.routes.length;
+        this.ends.push([a, b]);
+        const ra = this.rooms.get(a), rb = this.rooms.get(b), wall2 = sharedWall(ra, rb, wantA, wantB);
+        if (wall2) {
+          const p2 = wall2[2];
+          const r5 = { a, b, kind: "wall", sideA: wall2[0], sideB: wall2[1], doorA: p2, doorB: p2, cells: [], length: 0, bearingA: bearing(p2[0] - ra.centre[0], p2[1] - ra.centre[1]), bearingB: bearing(p2[0] - rb.centre[0], p2[1] - rb.centre[1]) };
+          r5.length = this.measure(r5);
+          this.routes.push(r5);
+          return r5;
+        }
+        const path = this.search(a, b, me, wantA, wantB);
+        if (!path) {
+          this.ends.pop();
+          return null;
+        }
+        const [cells, sa, sb] = path;
+        const r = { a, b, kind: "path", sideA: sa.side, sideB: sb.side, doorA: sa.point, doorB: sb.point, cells, length: 0, bearingA: sa.bearing, bearingB: sb.bearing, slotA: sa, slotB: sb };
+        r.length = this.measure(r);
+        for (const c of cells) {
+          const k = key2(c);
+          if (!this.used.has(k)) this.used.set(k, /* @__PURE__ */ new Set());
+          this.used.get(k).add(me);
+        }
+        this.doors.add(`${a}|${key2(cells[0])}`);
+        this.doors.add(`${b}|${key2(cells[cells.length - 1])}`);
+        this.routes.push(r);
+        return r;
+      }
+      measure(r) {
+        const pts2 = [this.rooms.get(r.a).centre, ...routePoints(r), this.rooms.get(r.b).centre];
+        let s2 = 0;
+        for (let i = 1; i < pts2.length; i++) s2 += Math.hypot(pts2[i][0] - pts2[i - 1][0], pts2[i][1] - pts2[i - 1][1]);
+        return s2;
+      }
+      search(a, b, me, wantA, wantB) {
+        const goals = /* @__PURE__ */ new Map();
+        for (const s2 of this.doorway(b, wantB)) if (!goals.has(key2(s2.cell))) goals.set(key2(s2.cell), s2);
+        const starts = this.doorway(a, wantA);
+        if (!goals.size || !starts.length) return null;
+        const rb = this.rooms.get(b), tx = rb.x / LATTICE + rb.w / LATTICE / 2, ty = rb.y / LATTICE + rb.h / LATTICE / 2;
+        const h = (c) => Math.max(0, Math.abs(c[0] + 0.5 - tx) + Math.abs(c[1] + 0.5 - ty) - (rb.w + rb.h) / LATTICE / 2);
+        const heap2 = [], best = /* @__PURE__ */ new Map(), back = /* @__PURE__ */ new Map();
+        let tie = 0;
+        const push = (item) => {
+          heap2.push(item);
+          let i = heap2.length - 1;
+          while (i) {
+            const p2 = i - 1 >> 1;
+            if (heap2[p2][0] < heap2[i][0] || heap2[p2][0] === heap2[i][0] && heap2[p2][1] <= heap2[i][1]) break;
+            [heap2[p2], heap2[i]] = [heap2[i], heap2[p2]];
+            i = p2;
+          }
+        };
+        const pop = () => {
+          const top = heap2[0], last = heap2.pop();
+          if (heap2.length) {
+            heap2[0] = last;
+            let i = 0;
+            for (; ; ) {
+              const l = 2 * i + 1, r = l + 1;
+              let m = i;
+              const less = (x, y) => heap2[x][0] < heap2[y][0] || heap2[x][0] === heap2[y][0] && heap2[x][1] < heap2[y][1];
+              if (l < heap2.length && less(l, m)) m = l;
+              if (r < heap2.length && less(r, m)) m = r;
+              if (m === i) break;
+              [heap2[m], heap2[i]] = [heap2[i], heap2[m]];
+              i = m;
+            }
+          }
+          return top;
+        };
+        const st = (c, d, run2) => `${c[0]},${c[1]},${d},${run2}`;
+        const ownAtGoal = /* @__PURE__ */ new Set([a, b]);
+        const intrudes = (n, ok) => [...this.against.get(key2(n)) ?? []].some((r) => !ok.has(r) && this.rooms.get(r).touched.has(key2(n)));
+        for (const slot of starts) {
+          const c = slot.cell, atGoal = goals.has(key2(c));
+          if (!this.free(c, me) || this.beside(null, c, me)) continue;
+          const ag = this.against.get(key2(c));
+          if (this.clearance > 0 ? ag && ![...ag].every((r) => r === a || atGoal && r === b) : intrudes(c, atGoal ? ownAtGoal : /* @__PURE__ */ new Set([a]))) continue;
+          const s2 = st(c, "", 0), cost2 = 1 + this.noise(c);
+          if (best.has(s2) && best.get(s2) <= cost2) continue;
+          best.set(s2, cost2);
+          back.set(s2, [null, slot]);
+          push([cost2 + h(c), tie++, cost2, s2]);
+        }
+        while (heap2.length) {
+          const [, , cost2, s2] = pop();
+          if (cost2 > (best.get(s2) ?? 1e9) + 1e-9) continue;
+          const parts = s2.split(","), c = [+parts[0], +parts[1]], d = parts[2], run2 = +parts[3];
+          if (goals.has(key2(c))) {
+            const cells = [];
+            let entry = null;
+            for (let x = s2; x; ) {
+              const q = x.split(",");
+              cells.push([+q[0], +q[1]]);
+              const link2 = back.get(x);
+              if (link2[0] === null) entry = link2[1];
+              x = link2[0];
+            }
+            return [cells.reverse(), entry, goals.get(key2(c))];
+          }
+          for (const [nd, [dx, dy]] of Object.entries(STEPS)) {
+            const n = [c[0] + dx, c[1] + dy];
+            if (d && nd === TURNED[d] || !this.free(n, me) || this.beside(c, n, me)) continue;
+            const atGoal = goals.has(key2(n));
+            if (!this.clearOf(n, atGoal ? ownAtGoal : /* @__PURE__ */ new Set())) continue;
+            if (this.clearance <= 0 && intrudes(n, atGoal ? ownAtGoal : /* @__PURE__ */ new Set())) continue;
+            let step = 1 + this.noise(n);
+            if (this.used.get(key2(n))?.size) step -= SHARE;
+            if (d && nd !== d) step += this.bend;
+            const r = nd === d ? run2 + 1 : 1;
+            if (r > RUN) step += RUN_COST;
+            const ns = st(n, nd, Math.min(r, RUN + 1)), nc = cost2 + step;
+            if (nc < (best.get(ns) ?? 1e9) - 1e-9) {
+              best.set(ns, nc);
+              back.set(ns, [s2, null]);
+              push([nc + h(n), tie++, nc, ns]);
+            }
+          }
+        }
+        return null;
+      }
+    };
+  }
+});
+
+// ../artgen-mapgen/src/dungeon/maze.ts
+function routeMazes(spec, rooms, others) {
+  const out = /* @__PURE__ */ new Map(), byWidth = /* @__PURE__ */ new Map();
+  spec.corridors.forEach((c, i) => {
+    if (isMaze(c)) {
+      const w = corridorWidth(c, spec);
+      byWidth.set(w, [...byWidth.get(w) ?? [], i]);
+    }
+  });
+  for (const [width, list6] of byWidth) {
+    const f = LATTICE / width, U = (p2) => [p2[0] * f, p2[1] * f];
+    const prints = new Map(rooms.filter((g) => (g.room.fill ?? "floor") !== "yard").map((g) => {
+      const r = g.room, square = r.shape === "rect" || r.shape === "cave";
+      const outline2 = [];
+      for (let k = 0; k < g.outline.length; k += 2) outline2.push(U([g.outline[k], g.outline[k + 1]]));
+      return [r.id, new Footprint(r.x * f, r.y * f, r.w * f, r.h * f, outline2, square, U([g.cx, g.cy]))];
+    }));
+    const sheet = [[0, 0], [spec.cols * f, 0], [spec.cols * f, spec.rows * f], [0, spec.rows * f]];
+    const ground2 = raster(sheet, true);
+    if (spec.bounds) {
+      const b = raster(toPts(spec.bounds, f), true);
+      for (const k of [...ground2]) if (!b.has(k)) ground2.delete(k);
+    }
+    for (const a of spec.areas ?? []) for (const k of raster(toPts(a.points, f))) ground2.delete(k);
+    const taken = /* @__PURE__ */ new Map();
+    for (const [i, g] of others) {
+      const c = spec.corridors[i], ends = [c.from, c.to].flatMap((e) => "room" in e ? [e.room] : []);
+      const xs = [], ys = [];
+      for (let k = 0; k < g.pts.length; k += 2) {
+        xs.push(g.pts[k] * f);
+        ys.push(g.pts[k + 1] * f);
+      }
+      if (!xs.length) continue;
+      for (let ci = Math.floor((Math.min(...xs) - LATTICE) / LATTICE); ci <= Math.ceil((Math.max(...xs) + LATTICE) / LATTICE); ci++)
+        for (let cj = Math.floor((Math.min(...ys) - LATTICE) / LATTICE); cj <= Math.ceil((Math.max(...ys) + LATTICE) / LATTICE); cj++)
+          if (inBand(g.pts, g.width, (ci + 0.5) * LATTICE / f, (cj + 0.5) * LATTICE / f)) taken.set(`${ci},${cj}`, ends);
+    }
+    const first = spec.corridors[list6[0]].maze ?? {};
+    const router = new Router(prints, { seed: first.seed ?? spec.seed, ground: ground2, taken, clearance: first.clearance ?? (corridorWallsOn(spec) ? 0 : 1), ...first.bend !== void 0 && { bend: first.bend }, margin: 4 });
+    for (const i of list6) {
+      const c = spec.corridors[i], a = c.from.room, b = c.to.room;
+      const r = router.add(a, b, want(c.from, prints.get(a), f), want(c.to, prints.get(b), f));
+      out.set(i, r && r.kind === "path" ? toCells(r, prints, f) : null);
+    }
+  }
+  return out;
+}
+function want(e, fp, f) {
+  if (!("room" in e) || !fp) return null;
+  if (e.side) return SIDE_BEARING[e.side];
+  if (e.port) {
+    const [cx, cy] = fp.centre;
+    return bearing(e.port[0] * f - cx, e.port[1] * f - cy);
+  }
+  return null;
+}
+function toCells(r, prints, f) {
+  const inner = (room3, slot) => {
+    const fp = prints.get(room3);
+    return slot && slot.side ? [(slot.inner[0] + 0.5) * LATTICE, (slot.inner[1] + 0.5) * LATTICE] : fp.hub ?? fp.centre;
+  };
+  const pts2 = [inner(r.a, r.slotA), ...r.cells.map(([i, j]) => [(i + 0.5) * LATTICE, (j + 0.5) * LATTICE]), inner(r.b, r.slotB)];
+  return pts2.flatMap(([x, y]) => [Math.round(x / f * 1e6) / 1e6, Math.round(y / f * 1e6) / 1e6]);
+}
+var SIDE_BEARING, isMaze, toPts;
+var init_maze = __esm({
+  "../artgen-mapgen/src/dungeon/maze.ts"() {
+    "use strict";
+    init_floor();
+    init_router();
+    init_spec2();
+    SIDE_BEARING = { n: 0, e: 90, s: 180, w: 270 };
+    isMaze = (c) => c.route === "maze" && "room" in c.from && "room" in c.to;
+    toPts = (v, f) => {
+      const p2 = [];
+      for (let i = 0; i + 1 < v.length; i += 2) p2.push([v[i] * f, v[i + 1] * f]);
+      return p2;
+    };
+  }
+});
+
 // ../artgen-mapgen/src/dungeon/layout.ts
 function roomOutline(r) {
   const { x, y, w, h } = r, cx = x + w / 2, cy = y + h / 2;
   if (r.shape === "rect") return [x, y, x + w, y, x + w, y + h, x, y + h];
   if (r.shape === "poly") return r.points.slice();
+  if (r.shape === "hexagon") {
+    return r.orient === "pointy" ? [cx, y, x + w, y + h / 4, x + w, y + 3 * h / 4, cx, y + h, x, y + 3 * h / 4, x, y + h / 4] : [x + w / 4, y, x + 3 * w / 4, y, x + w, cy, x + 3 * w / 4, y + h, x + w / 4, y + h, x, cy];
+  }
   if (r.shape === "octagon") {
-    const c = Math.max(0.5, Math.round(Math.min(w, h) * 0.3 * 2) / 2);
+    const c = r.cut !== void 0 ? Math.min(w, h) * r.cut : Math.max(0.5, Math.round(Math.min(w, h) * 0.3 * 2) / 2);
     return [x + c, y, x + w - c, y, x + w, y + c, x + w, y + h - c, x + w - c, y + h, x + c, y + h, x, y + h - c, x, y + c];
   }
   const n = r.shape === "circle" ? 64 : 22, out = [];
@@ -13148,6 +13898,7 @@ function edgeDistance(p2, x, y) {
   return d;
 }
 function roomAnchor(r, outline2) {
+  if (r.anchor) return [r.anchor[0], r.anchor[1]];
   const cx = r.x + r.w / 2, cy = r.y + r.h / 2;
   if (r.shape !== "poly") return [cx, cy];
   let best = [cx, cy], score2 = -Infinity;
@@ -13170,15 +13921,16 @@ function route(a, b, width, how, rooms) {
   if (how === "straight") return [...pa, ...pb];
   if (how === "auto" && !Array.isArray(a) && !Array.isArray(b)) {
     const [ax0, ay0, ax1, ay1] = core(a), [bx0, by0, bx1, by1] = core(b);
+    const holds2 = (g, x, y) => inPolygon(g.outline, x, y);
     const lo = Math.max(ax0, bx0), hi = Math.min(ax1, bx1);
     if (hi - lo >= width + 1) {
       const x = Math.min(hi - width / 2, Math.max(lo + width / 2, snap((lo + hi) / 2, width)));
-      return [x, pa[1], x, pb[1]];
+      if (holds2(a, x, pa[1]) && holds2(b, x, pb[1])) return [x, pa[1], x, pb[1]];
     }
     const lo2 = Math.max(ay0, by0), hi2 = Math.min(ay1, by1);
     if (hi2 - lo2 >= width + 1) {
       const y = Math.min(hi2 - width / 2, Math.max(lo2 + width / 2, snap((lo2 + hi2) / 2, width)));
-      return [pa[0], y, pb[0], y];
+      if (holds2(a, pa[0], y) && holds2(b, pb[0], y)) return [pa[0], y, pb[0], y];
     }
   }
   const ax = Array.isArray(a) ? pa[0] : snap(pa[0], width), ay = Array.isArray(a) ? pa[1] : snap(pa[1], width);
@@ -13189,7 +13941,39 @@ function route(a, b, width, how, rooms) {
   const blocked = (x, y) => rooms.some((g) => g !== a && g !== b && inPolygon(g.outline, x, y));
   return blocked(bx, ay) && !blocked(ax, by) ? vh : hv;
 }
-function exitPoint(outline2, pts2) {
+function wallNormal(g, x, y) {
+  const r = g.room;
+  let nx, ny;
+  if (r.shape === "circle") {
+    const a2 = r.w / 2, b = r.h / 2;
+    nx = (x - (r.x + a2)) / (a2 * a2);
+    ny = (y - (r.y + b)) / (b * b);
+  } else {
+    const p2 = g.outline;
+    let best = Infinity;
+    nx = 1;
+    ny = 0;
+    for (let i = 0, j = p2.length - 2; i < p2.length; j = i, i += 2) {
+      const d = segmentDistance(x, y, [p2[j], p2[j + 1]], [p2[i], p2[i + 1]]);
+      if (d < best - 1e-9) {
+        best = d;
+        nx = p2[i + 1] - p2[j + 1];
+        ny = -(p2[i] - p2[j]);
+      }
+    }
+    const L2 = Math.hypot(nx, ny) || 1;
+    nx /= L2;
+    ny /= L2;
+    if (inPolygon(p2, x + nx * 0.01, y + ny * 0.01)) {
+      nx = -nx;
+      ny = -ny;
+    }
+  }
+  const a = Math.atan2(ny, nx) * 180 / Math.PI;
+  return Math.abs(a) < 1e-9 ? 0 : a;
+}
+function exitPoint(g, pts2) {
+  const outline2 = g.outline;
   let along2 = 0;
   for (let i = 0; i + 3 < pts2.length; i += 2) {
     const x0 = pts2[i], y0 = pts2[i + 1], x1 = pts2[i + 2], y1 = pts2[i + 3];
@@ -13204,20 +13988,38 @@ function exitPoint(outline2, pts2) {
       if (inPolygon(outline2, x0 + (x1 - x0) * t, y0 + (y1 - y0) * t)) lo = t;
       else hi = t;
     }
-    return { x: x0 + (x1 - x0) * lo, y: y0 + (y1 - y0) * lo, angle: Math.atan2(y1 - y0, x1 - x0) * 180 / Math.PI, along: along2 + Math.hypot(x1 - x0, y1 - y0) * lo };
+    const x = x0 + (x1 - x0) * lo, y = y0 + (y1 - y0) * lo;
+    const travel = Math.atan2(y1 - y0, x1 - x0) * 180 / Math.PI, normal = wallNormal(g, x, y);
+    return { x, y, angle: Math.abs((travel - normal + 540) % 360 - 180) < 1e-6 ? travel : normal, along: along2 + Math.hypot(x1 - x0, y1 - y0) * lo };
   }
   return null;
 }
-function corridorGeom(c, index, rooms, byId2, lineOf, spec) {
-  const width = c.width ?? 1, how = c.route ?? "auto";
-  const simple = (e) => "at" in e || "room" in e && e.side === void 0;
+function onOutline(outline2, x, y) {
+  let best = [outline2[0], outline2[1]], d = Infinity;
+  for (let i = 0, j = outline2.length - 2; i < outline2.length; j = i, i += 2) {
+    const ax = outline2[j], ay = outline2[j + 1], bx = outline2[i], by = outline2[i + 1], L2 = (bx - ax) ** 2 + (by - ay) ** 2;
+    const t = L2 ? Math.max(0, Math.min(1, ((x - ax) * (bx - ax) + (y - ay) * (by - ay)) / L2)) : 0, px = ax + t * (bx - ax), py = ay + t * (by - ay), e = Math.hypot(px - x, py - y);
+    if (e < d) {
+      d = e;
+      best = [px, py];
+    }
+  }
+  return best;
+}
+function corridorGeom(c, index, rooms, byId2, lineOf, spec, startA, startB) {
+  const width = corridorWidth(c, spec), how = c.route ?? "auto";
+  const simple = (e) => "at" in e || "room" in e && e.side === void 0 && e.port === void 0;
   let pts2;
   if (simple(c.from) && simple(c.to)) {
     const end = (e) => "room" in e ? byId2.get(e.room) : e.at;
-    const a = end(c.from), b = end(c.to), pa = Array.isArray(a) ? a : [a.cx, a.cy], pb = Array.isArray(b) ? b : [b.cx, b.cy];
+    const a = end(c.from), b = end(c.to), pa = startA ?? (Array.isArray(a) ? a : [a.cx, a.cy]), pb = startB ?? (Array.isArray(b) ? b : [b.cx, b.cy]);
     pts2 = c.via?.length ? [...pa, ...c.via, ...pb] : how === "around" ? around(pa, pb, a, b, width, rooms, spec) ?? route(a, b, width, "auto", rooms) : route(a, b, width, how, rooms);
   } else {
     const port = (e, other) => {
+      if ("room" in e && e.port) {
+        const g = byId2.get(e.room), p2 = onOutline(g.outline, e.port[0], e.port[1]), a2 = wallNormal(g, p2[0], p2[1]) * Math.PI / 180;
+        return { p: p2, dir: [Math.round(Math.cos(a2) * 1e9) / 1e9, Math.round(Math.sin(a2) * 1e9) / 1e9], room: g };
+      }
       if ("room" in e) {
         const g = byId2.get(e.room);
         return e.side ? sidePort(g, e.side, e.offset, width) : { p: [g.cx, g.cy], room: g };
@@ -13232,7 +14034,11 @@ function corridorGeom(c, index, rooms, byId2, lineOf, spec) {
     pts2 = tidy([...a.p, ...mid, ...b.p]);
   }
   if (c.curve === "smooth") pts2 = smoothLine2(pts2);
-  const ends = [[c.from, pts2], [c.to, reversed(pts2)]].map(([e, path]) => "room" in e ? exitPoint(byId2.get(e.room).outline, path) : pointEnd(path));
+  const ends = [[c.from, pts2], [c.to, reversed(pts2)]].map(([e, path]) => {
+    if (!("room" in e)) return pointEnd(path);
+    const g = byId2.get(e.room);
+    return e.port ? { x: path[0], y: path[1], angle: wallNormal(g, path[0], path[1]), along: 0 } : exitPoint(g, path);
+  });
   const outline2 = c.style === "natural" ? naturalOutline(pts2, width, c.seed ?? idSeed(c.id ?? `corridor-${index}`)) : void 0;
   return { index, pts: pts2, width, ends, ...outline2?.length && { outline: outline2 } };
 }
@@ -13250,10 +14056,20 @@ function layoutDungeon(spec) {
   });
   const byId2 = new Map(rooms.map((g) => [g.room.id, g]));
   const geoms = new Array(spec.corridors.length), lineOf = /* @__PURE__ */ new Map();
+  const maze = (c) => c.route === "maze" && "room" in c.from && "room" in c.to;
   for (const index of corridorOrder(spec.corridors) ?? spec.corridors.map((_, i) => i)) {
     const c = spec.corridors[index];
+    if (maze(c)) continue;
     geoms[index] = corridorGeom(c, index, rooms, byId2, lineOf, spec);
     if (c.id) lineOf.set(c.id, geoms[index].pts);
+  }
+  if (spec.corridors.some(maze)) {
+    const done = new Map(geoms.flatMap((g, i) => g ? [[i, g]] : [])), routed = routeMazes(spec, rooms, done);
+    for (const [index, pts2] of routed) {
+      const c = spec.corridors[index];
+      geoms[index] = pts2 ? corridorGeom({ ...c, route: "straight", via: pts2.slice(2, -2), from: { room: c.from.room }, to: { room: c.to.room } }, index, rooms, byId2, lineOf, spec, [pts2[0], pts2[1]], [pts2[pts2.length - 2], pts2[pts2.length - 1]]) : { ...corridorGeom({ ...c, route: "auto" }, index, rooms, byId2, lineOf, spec), unrouted: true };
+      if (c.id) lineOf.set(c.id, geoms[index].pts);
+    }
   }
   const corridors = geoms, doors = [];
   corridors.forEach((g, index) => g.ends.forEach((p2, i) => {
@@ -13262,7 +14078,9 @@ function layoutDungeon(spec) {
   }));
   const { connections, partitions } = layoutConnections(spec, rooms, byId2);
   for (const c of connections) if (c.kind !== "open" && c.wall) doors.push({ kind: c.kind, x: c.x, y: c.y, angle: c.angle, width: c.width, corridor: -1, connection: c.index, inner: true });
-  return { rooms, corridors, doors, connections, partitions };
+  const l = { rooms, corridors, doors, connections, partitions };
+  if (corridorWallsOn(spec)) for (const b of corridorBoundaries(l)) partitions.push([b.seg[0][0], b.seg[0][1], b.seg[1][0], b.seg[1][1]]);
+  return l;
 }
 function layoutConnections(spec, rooms, byId2) {
   const connections = (spec.connections ?? []).map((c, index) => {
@@ -13305,8 +14123,8 @@ function layoutConnections(spec, rooms, byId2) {
     for (const seg of sharedEdges(A.outline, B.outline)) {
       const L2 = Math.hypot(seg[1][0] - seg[0][0], seg[1][1] - seg[0][1]), ux = (seg[1][0] - seg[0][0]) / L2, uy = (seg[1][1] - seg[0][1]) / L2;
       const cuts = gaps.map((c) => {
-        const t = (c.x - seg[0][0]) * ux + (c.y - seg[0][1]) * uy, off = Math.abs((c.x - seg[0][0]) * uy - (c.y - seg[0][1]) * ux);
-        return off < 1e-6 ? [t - c.width / 2, t + c.width / 2] : null;
+        const t = (c.x - seg[0][0]) * ux + (c.y - seg[0][1]) * uy, off2 = Math.abs((c.x - seg[0][0]) * uy - (c.y - seg[0][1]) * ux);
+        return off2 < 1e-6 ? [t - c.width / 2, t + c.width / 2] : null;
       }).filter((v) => !!v).sort((p2, q) => p2[0] - q[0]);
       let from = 0;
       for (const [c0, c1] of [...cuts, [L2, L2]]) {
@@ -13376,11 +14194,11 @@ function fitDungeon(spec, margin = 2) {
 function stretch(path, from, to) {
   const out = [];
   let at4 = 0;
-  const point = (i, t) => [path[i] + (path[i + 2] - path[i]) * t, path[i + 1] + (path[i + 3] - path[i + 1]) * t];
+  const point2 = (i, t) => [path[i] + (path[i + 2] - path[i]) * t, path[i + 1] + (path[i + 3] - path[i + 1]) * t];
   for (let i = 0; i + 3 < path.length; i += 2) {
     const len3 = Math.hypot(path[i + 2] - path[i], path[i + 3] - path[i + 1]);
     if (len3 > 0 && at4 + len3 > from && at4 < to) {
-      out.push(...point(i, Math.max(0, (from - at4) / len3)), ...point(i, Math.min(1, (to - at4) / len3)));
+      out.push(...point2(i, Math.max(0, (from - at4) / len3)), ...point2(i, Math.min(1, (to - at4) / len3)));
     }
     at4 += len3;
   }
@@ -13424,8 +14242,10 @@ var init_layout = __esm({
     init_trace();
     init_corridors();
     init_geom2();
+    init_floor();
     init_spec2();
     init_walls();
+    init_maze();
     idSeed = (id2) => [...id2].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0, 2166136261);
     reversed = (p2) => {
       const out = [];
@@ -13465,11 +14285,11 @@ function clipToRect(poly, [x0, y0, x1, y1]) {
     pts2 = out;
     if (!pts2.length) return [];
   }
-  const r = (v) => Math.round(v * 1e6) / 1e6, flat2 = [];
-  for (const p2 of pts2.map(([x, y]) => [r(x), r(y)])) if (!flat2.length || flat2[flat2.length - 1][0] !== p2[0] || flat2[flat2.length - 1][1] !== p2[1]) flat2.push(p2);
-  if (flat2.length > 1 && flat2[0][0] === flat2[flat2.length - 1][0] && flat2[0][1] === flat2[flat2.length - 1][1]) flat2.pop();
-  const keep = flat2.filter((p2, i) => {
-    const a = flat2[(i + flat2.length - 1) % flat2.length], b = flat2[(i + 1) % flat2.length];
+  const r = (v) => Math.round(v * 1e6) / 1e6, flat3 = [];
+  for (const p2 of pts2.map(([x, y]) => [r(x), r(y)])) if (!flat3.length || flat3[flat3.length - 1][0] !== p2[0] || flat3[flat3.length - 1][1] !== p2[1]) flat3.push(p2);
+  if (flat3.length > 1 && flat3[0][0] === flat3[flat3.length - 1][0] && flat3[0][1] === flat3[flat3.length - 1][1]) flat3.pop();
+  const keep = flat3.filter((p2, i) => {
+    const a = flat3[(i + flat3.length - 1) % flat3.length], b = flat3[(i + 1) % flat3.length];
     return Math.abs((p2[0] - a[0]) * (b[1] - a[1]) - (p2[1] - a[1]) * (b[0] - a[0])) > 1e-9;
   });
   return keep.length >= 3 ? keep.flat() : [];
@@ -13508,7 +14328,7 @@ function pieces(b, rand) {
   return out;
 }
 function splitBlock(b) {
-  const rand = rng(b.split.seed ?? idSeed(b.id)), outline2 = blockOutline(b), origin = `block:${b.id}`, min = Math.max(1, b.split.min ?? 3);
+  const rand = rng(b.split.seed ?? idSeed(b.id)), outline2 = blockOutline(b), origin2 = `block:${b.id}`, min = Math.max(1, b.split.min ?? 3);
   const small = Math.max(2, min * min * 0.35), area3 = (r) => {
     const c = clipToRect(outline2, r);
     return c.length ? polygonArea(c) : 0;
@@ -13518,9 +14338,9 @@ function splitBlock(b) {
     merged = false;
     for (const r of rects) {
       if (area3(r) >= small) continue;
-      const side = rects.filter((n2) => n2 !== r && (n2[1] === r[1] && n2[3] === r[3] && (n2[2] === r[0] || n2[0] === r[2]) || n2[0] === r[0] && n2[2] === r[2] && (n2[3] === r[1] || n2[1] === r[3])));
-      if (!side.length) continue;
-      const n = side.reduce((m, x) => area3(x) > area3(m) ? x : m), u = [Math.min(r[0], n[0]), Math.min(r[1], n[1]), Math.max(r[2], n[2]), Math.max(r[3], n[3])];
+      const side2 = rects.filter((n2) => n2 !== r && (n2[1] === r[1] && n2[3] === r[3] && (n2[2] === r[0] || n2[0] === r[2]) || n2[0] === r[0] && n2[2] === r[2] && (n2[3] === r[1] || n2[1] === r[3])));
+      if (!side2.length) continue;
+      const n = side2.reduce((m, x) => area3(x) > area3(m) ? x : m), u = [Math.min(r[0], n[0]), Math.min(r[1], n[1]), Math.max(r[2], n[2]), Math.max(r[3], n[3])];
       rects = [...rects.filter((x) => x !== r && x !== n), u];
       merged = true;
       break;
@@ -13532,7 +14352,7 @@ function splitBlock(b) {
     const clip = clipToRect(outline2, r);
     if (!clip.length || polygonArea(clip) < small) continue;
     const id2 = `${b.id}-${rooms.length + 1}`, whole = Math.abs(polygonArea(clip) - (r[2] - r[0]) * (r[3] - r[1])) < 1e-6;
-    rooms.push(whole ? { id: id2, shape: "rect", x: r[0], y: r[1], w: r[2] - r[0], h: r[3] - r[1], origin } : { id: id2, shape: "poly", points: clip, ...polyBox(clip), origin });
+    rooms.push(whole ? { id: id2, shape: "rect", x: r[0], y: r[1], w: r[2] - r[0], h: r[3] - r[1], origin: origin2 } : { id: id2, shape: "poly", points: clip, ...polyBox(clip), origin: origin2 });
   }
   const outlines = rooms.map((r) => roomOutline(r)), pairs2 = [];
   for (let i = 0; i < rooms.length; i++) for (let j = i + 1; j < rooms.length; j++)
@@ -13556,17 +14376,17 @@ function splitBlock(b) {
   };
   const connections = used.map(([i, j]) => {
     const k = kind();
-    return { a: rooms[i].id, b: rooms[j].id, ...k && { kind: k }, origin };
+    return { a: rooms[i].id, b: rooms[j].id, ...k && { kind: k }, origin: origin2 };
   });
   return { rooms, connections };
 }
 function applyBlock(spec, id2) {
   const b = spec.blocks?.find((x) => x.id === id2);
   if (!b) throw new Error(`no block ${id2} (have: ${(spec.blocks ?? []).map((x) => x.id).join(", ") || "none"})`);
-  const origin = `block:${id2}`, made = splitBlock(b), out = structuredClone(spec);
+  const origin2 = `block:${id2}`, made = splitBlock(b), out = structuredClone(spec);
   const replace2 = (list6, fresh) => {
-    const at4 = list6.findIndex((e) => e.origin === origin), rest = list6.filter((e) => e.origin !== origin);
-    const pos = at4 < 0 ? rest.length : list6.slice(0, at4).filter((e) => e.origin !== origin).length;
+    const at4 = list6.findIndex((e) => e.origin === origin2), rest = list6.filter((e) => e.origin !== origin2);
+    const pos = at4 < 0 ? rest.length : list6.slice(0, at4).filter((e) => e.origin !== origin2).length;
     return [...rest.slice(0, pos), ...fresh, ...rest.slice(pos)];
   };
   out.rooms = replace2(out.rooms, made.rooms);
@@ -13588,7 +14408,7 @@ function applyBlock(spec, id2) {
   return { spec: out, dropped };
 }
 function removeBlock(spec, id2) {
-  const origin = `block:${id2}`, gone = new Set(spec.rooms.filter((r) => r.origin === origin).map((r) => r.id));
+  const origin2 = `block:${id2}`, gone = new Set(spec.rooms.filter((r) => r.origin === origin2).map((r) => r.id));
   spec.blocks = (spec.blocks ?? []).filter((b) => b.id !== id2);
   if (!spec.blocks.length) delete spec.blocks;
   spec.rooms = spec.rooms.filter((r) => !gone.has(r.id));
@@ -13633,28 +14453,28 @@ function generateDungeon(spec) {
   if (spec.gen.layout === "dense") return generateDense(spec);
   if (spec.gen.layout === "blocks") return generateBlocks(spec);
   const g = spec.gen, r = rng(spec.seed * 7919 + 13), out = structuredClone(spec);
-  const int = (lo, hi) => lo + Math.floor(r() * (hi - lo + 1));
+  const int2 = (lo, hi) => lo + Math.floor(r() * (hi - lo + 1));
   const placed = [];
   const free = (x, y, w, h) => placed.every((p2) => x >= p2.x + p2.w + g.spacing || p2.x >= x + w + g.spacing || y >= p2.y + p2.h + g.spacing || p2.y >= y + h + g.spacing);
   for (let n = 0; n < g.rooms; n++) {
-    const roll = r(), shape = roll < g.caves ? "cave" : roll < g.caves + g.round ? r() < 0.5 ? "circle" : "octagon" : "rect";
+    const roll = r(), shape2 = roll < g.caves ? "cave" : roll < g.caves + g.round ? r() < 0.5 ? "circle" : "octagon" : "rect";
     for (let tries = 0; tries < 400; tries++) {
-      let w = int(g.minSize, g.maxSize), h = int(g.minSize, g.maxSize);
-      if (shape === "circle" || shape === "octagon") {
+      let w = int2(g.minSize, g.maxSize), h = int2(g.minSize, g.maxSize);
+      if (shape2 === "circle" || shape2 === "octagon") {
         w = h = Math.max(w, 4);
         if (w % 2 === 0) {
           w++;
           h++;
         }
       }
-      if (shape === "cave") {
+      if (shape2 === "cave") {
         w = Math.max(w + 2, 5);
         h = Math.max(h + 1, 4);
       }
       if (w > spec.cols - 2 || h > spec.rows - 2) continue;
-      const x = int(1, spec.cols - w - 1), y = int(1, spec.rows - h - 1);
+      const x = int2(1, spec.cols - w - 1), y = int2(1, spec.rows - h - 1);
       if (!free(x, y, w, h)) continue;
-      placed.push({ id: "", shape, x, y, w, h });
+      placed.push({ id: "", shape: shape2, x, y, w, h });
       break;
     }
   }
@@ -13674,9 +14494,9 @@ function generateDungeon(spec) {
     links.push(best);
     inTree.add(best[1]);
   }
-  const has = (i, j) => links.some(([a, b]) => a === i && b === j || a === j && b === i);
+  const has2 = (i, j) => links.some(([a, b]) => a === i && b === j || a === j && b === i);
   const extra = Math.round(g.loops * placed.length * 0.5);
-  const cands = placed.flatMap((p2, i) => placed.map((q, j) => [i, j, dist3(p2, q)]).filter(([, j]) => j > i)).filter(([i, j]) => !has(i, j)).sort((a, b) => a[2] - b[2]).slice(0, placed.length * 2);
+  const cands = placed.flatMap((p2, i) => placed.map((q, j) => [i, j, dist3(p2, q)]).filter(([, j]) => j > i)).filter(([i, j]) => !has2(i, j)).sort((a, b) => a[2] - b[2]).slice(0, placed.length * 2);
   for (const [i, j] of cands) {
     if (links.length >= placed.length - 1 + extra) break;
     if (r() < 0.6) links.push([i, j]);
@@ -13701,9 +14521,9 @@ function generateDungeon(spec) {
 function entrance(spec, p2, door3) {
   const g = spec.gen, cx = p2.x + p2.w / 2, cy = p2.y + p2.h / 2, odd = Math.round(g.corridorWidth) % 2 === 1, s2 = (v) => odd ? Math.floor(v) + 0.5 : Math.round(v);
   const d = [[cy, "n"], [spec.rows - cy, "s"], [cx, "w"], [spec.cols - cx, "e"]];
-  const side = d.reduce((a, b) => b[0] < a[0] ? b : a)[1];
-  const at4 = side === "n" ? [s2(cx), -1] : side === "s" ? [s2(cx), spec.rows + 1] : side === "w" ? [-1, s2(cy)] : [spec.cols + 1, s2(cy)];
-  const via = side === "n" || side === "s" ? [at4[0], cy] : [cx, at4[1]];
+  const side2 = d.reduce((a, b) => b[0] < a[0] ? b : a)[1];
+  const at4 = side2 === "n" ? [s2(cx), -1] : side2 === "s" ? [s2(cx), spec.rows + 1] : side2 === "w" ? [-1, s2(cy)] : [spec.cols + 1, s2(cy)];
+  const via = side2 === "n" || side2 === "s" ? [at4[0], cy] : [cx, at4[1]];
   return { from: { room: p2.id }, to: { at: at4 }, via, width: g.corridorWidth, doors: [door3, null] };
 }
 function doorOrOpen(r, doors) {
@@ -13739,22 +14559,22 @@ function joinTouching(rooms, r, loops, doors) {
   });
 }
 function generateDense(spec) {
-  const g = spec.gen, r = rng(spec.seed * 7919 + 17), out = structuredClone(spec), int = (lo, hi) => lo + Math.floor(r() * (hi - lo + 1));
+  const g = spec.gen, r = rng(spec.seed * 7919 + 17), out = structuredClone(spec), int2 = (lo, hi) => lo + Math.floor(r() * (hi - lo + 1));
   const placed = [], target = (g.density ?? 0.5) * spec.cols * spec.rows;
   const fits = (x, y, w, h) => x >= 1 && y >= 1 && x + w <= spec.cols - 1 && y + h <= spec.rows - 1 && placed.every((p2) => x >= p2.x + p2.w || p2.x >= x + w || y >= p2.y + p2.h || p2.y >= y + h);
   const touch = (x, y, w, h) => placed.reduce((n, p2) => {
     const vx = Math.min(x + w, p2.x + p2.w) - Math.max(x, p2.x), vy = Math.min(y + h, p2.y + p2.h) - Math.max(y, p2.y);
     return n + ((x === p2.x + p2.w || p2.x === x + w) && vy > 0 ? vy : 0) + ((y === p2.y + p2.h || p2.y === y + h) && vx > 0 ? vx : 0);
   }, 0);
-  const w0 = int(g.minSize, g.maxSize), h0 = int(g.minSize, g.maxSize);
+  const w0 = int2(g.minSize, g.maxSize), h0 = int2(g.minSize, g.maxSize);
   if (w0 <= spec.cols - 2 && h0 <= spec.rows - 2) placed.push({ id: "", shape: "rect", x: Math.floor((spec.cols - w0) / 2), y: Math.floor((spec.rows - h0) / 2), w: w0, h: h0 });
   for (let tries = 0; placed.length && placed.length < g.rooms && tries < g.rooms * 60; tries++) {
     if (placed.reduce((n, p2) => n + p2.w * p2.h, 0) >= target) break;
     let best = null, bestScore = -1;
     for (let k = 0; k < 8; k++) {
-      const p2 = placed[Math.floor(r() * placed.length)], w = int(g.minSize, g.maxSize), h = int(g.minSize, g.maxSize), side = Math.floor(r() * 4);
-      const x = side === 1 ? p2.x + p2.w : side === 3 ? p2.x - w : int(p2.x - w + 2, p2.x + p2.w - 2);
-      const y = side === 2 ? p2.y + p2.h : side === 0 ? p2.y - h : int(p2.y - h + 2, p2.y + p2.h - 2);
+      const p2 = placed[Math.floor(r() * placed.length)], w = int2(g.minSize, g.maxSize), h = int2(g.minSize, g.maxSize), side2 = Math.floor(r() * 4);
+      const x = side2 === 1 ? p2.x + p2.w : side2 === 3 ? p2.x - w : int2(p2.x - w + 2, p2.x + p2.w - 2);
+      const y = side2 === 2 ? p2.y + p2.h : side2 === 0 ? p2.y - h : int2(p2.y - h + 2, p2.y + p2.h - 2);
       if (!fits(x, y, w, h)) continue;
       const score2 = touch(x, y, w, h) + r() * 0.5;
       if (score2 > bestScore) {
@@ -13777,13 +14597,13 @@ function edgeRoom(spec, rooms) {
   return rooms.reduce((m, p2) => gap(p2) < gap(m) ? p2 : m);
 }
 function generateBlocks(spec) {
-  const g = spec.gen, r = rng(spec.seed * 7919 + 19), int = (lo, hi) => lo + Math.floor(r() * (hi - lo + 1));
-  const n = Math.max(1, Math.min(6, Math.round(g.rooms / 5))), side = Math.round(Math.sqrt(Math.max(1, g.rooms / n)) * (g.minSize + g.maxSize) / 2);
+  const g = spec.gen, r = rng(spec.seed * 7919 + 19), int2 = (lo, hi) => lo + Math.floor(r() * (hi - lo + 1));
+  const n = Math.max(1, Math.min(6, Math.round(g.rooms / 5))), side2 = Math.round(Math.sqrt(Math.max(1, g.rooms / n)) * (g.minSize + g.maxSize) / 2);
   const gap = Math.max(2, g.spacing + g.corridorWidth + 1), boxes = [];
   for (let k = 0; k < n; k++) for (let tries = 0; tries < 300; tries++) {
-    const w = Math.min(spec.cols - 4, int(Math.round(side * 0.75), Math.round(side * 1.3))), h = Math.min(spec.rows - 4, int(Math.round(side * 0.6), Math.round(side * 1.1)));
+    const w = Math.min(spec.cols - 4, int2(Math.round(side2 * 0.75), Math.round(side2 * 1.3))), h = Math.min(spec.rows - 4, int2(Math.round(side2 * 0.6), Math.round(side2 * 1.1)));
     if (w < g.minSize * 2 || h < g.minSize) break;
-    const x = int(2, spec.cols - w - 2), y = int(2, spec.rows - h - 2);
+    const x = int2(2, spec.cols - w - 2), y = int2(2, spec.rows - h - 2);
     if (boxes.some((b) => !(x >= b[0] + b[2] + gap || b[0] >= x + w + gap || y >= b[1] + b[3] + gap || b[1] >= y + h + gap))) continue;
     boxes.push([x, y, w, h]);
     break;
@@ -13792,7 +14612,7 @@ function generateBlocks(spec) {
   delete out.connections;
   boxes.sort((a, b) => Math.floor(a[1] / 6) - Math.floor(b[1] / 6) || a[0] - b[0]);
   boxes.forEach(([x, y, w, h], k) => {
-    const id2 = `b${k + 1}`, split = { mode: "bsp", min: g.minSize, seed: int(1, 1e6) }, roll = r();
+    const id2 = `b${k + 1}`, split = { mode: "bsp", min: g.minSize, seed: int2(1, 1e6) }, roll = r();
     out.blocks.push(roll < g.round / 2 ? { id: id2, shape: "poly", points: hexPoints(x, y, w, h), x, y, w, h, split, doors: g.loops } : roll < g.round ? { id: id2, shape: "octagon", x, y, w, h, split, doors: g.loops } : { id: id2, shape: "rect", x, y, w, h, split, doors: g.loops });
   });
   for (const b of out.blocks) out = applyBlock(out, b.id).spec;
@@ -13815,11 +14635,11 @@ function generateBlocks(spec) {
     return Math.abs(dx) > Math.abs(dy) ? dx > 0 ? "e" : "w" : dy > 0 ? "s" : "n";
   };
   const port = (b, other) => {
-    const side2 = facing(b, other), own = out.rooms.filter((r5) => r5.origin === `block:${b.id}` && r5.shape === "rect");
-    const edge = (r5) => side2 === "e" ? r5.x + r5.w === Math.ceil(b.x + b.w) : side2 === "w" ? r5.x === Math.floor(b.x) : side2 === "s" ? r5.y + r5.h === Math.ceil(b.y + b.h) : r5.y === Math.floor(b.y);
-    const on = own.filter(edge), o = c(other), d = (r5) => Math.hypot(r5.x + r5.w / 2 - o[0], r5.y + r5.h / 2 - o[1]);
+    const side3 = facing(b, other), own = out.rooms.filter((r5) => r5.origin === `block:${b.id}` && r5.shape === "rect");
+    const edge2 = (r5) => side3 === "e" ? r5.x + r5.w === Math.ceil(b.x + b.w) : side3 === "w" ? r5.x === Math.floor(b.x) : side3 === "s" ? r5.y + r5.h === Math.ceil(b.y + b.h) : r5.y === Math.floor(b.y);
+    const on = own.filter(edge2), o = c(other), d = (r5) => Math.hypot(r5.x + r5.w / 2 - o[0], r5.y + r5.h / 2 - o[1]);
     if (!on.length) return { room: blockRoomNear(out, b.id, o[0], o[1]) };
-    return { room: on.reduce((m, r5) => d(r5) < d(m) ? r5 : m).id, side: side2 };
+    return { room: on.reduce((m, r5) => d(r5) < d(m) ? r5 : m).id, side: side3 };
   };
   out.corridors = links.map(([i, j]) => ({ from: port(bs[i], bs[j]), to: port(bs[j], bs[i]), route: "around", width: g.corridorWidth, doors: ["door", "door"] }));
   if (g.entrance && out.rooms.length) out.corridors.unshift(entrance(spec, edgeRoom(spec, out.rooms), "door"));
@@ -13918,9 +14738,9 @@ function layoutExits(spec, l) {
       else for (let i = g.pts.length - 2; i >= 0; i -= 2) path.push(g.pts[i], g.pts[i + 1]);
       const s0 = onSheet(path, spec.cols, spec.rows);
       if (s0 === null) return;
-      const fade = e.exit.fade ?? EXIT_FADE, edge = pointAt(path, s0), from = pointAt(path, s0 + fade), back = pointAt(path, s0 + Math.max(0.5, fade));
-      const dx = edge[0] - back[0], dy = edge[1] - back[1], L2 = Math.hypot(dx, dy) || 1;
-      out.push({ corridor: index, end, exit: e.exit, edge, from, dir: [dx / L2, dy / L2], off: s0 > 0, width: g.width });
+      const fade = e.exit.fade ?? EXIT_FADE, edge2 = pointAt(path, s0), from = pointAt(path, s0 + fade), back = pointAt(path, s0 + Math.max(0.5, fade));
+      const dx = edge2[0] - back[0], dy = edge2[1] - back[1], L2 = Math.hypot(dx, dy) || 1;
+      out.push({ corridor: index, end, exit: e.exit, edge: edge2, from, dir: [dx / L2, dy / L2], off: s0 > 0, width: g.width });
     });
   });
   return out;
@@ -13951,12 +14771,12 @@ function coversContent(spec, l, k, box2) {
   }
   return false;
 }
-function placeFurniture(items, fr, place2, side, pad, covers) {
+function placeFurniture(items, fr, place2, side2, pad, covers) {
   const out = items.map((item) => ({ item, outside: item.band || place2 === "outside" || place2 === "auto" && covers({ x: item.over.x, y: item.over.y, w: item.w, h: item.h }) }));
   const moved = out.filter((p2) => p2.outside).sort((a, b) => (a.item.rank ?? 0) - (b.item.rank ?? 0));
   const placed = [];
   let right = 0, bottom = 0;
-  if (side === "bottom") {
+  if (side2 === "bottom") {
     let x = fr.x + pad, y = fr.b + pad, row = 0;
     for (const p2 of moved) {
       if (x > fr.x + pad && x + p2.item.w + pad > fr.r) {
@@ -14034,6 +14854,121 @@ var init_underlay = __esm({
   }
 });
 
+// ../artgen-mapgen/src/dungeon/roomlabels.ts
+function roomLabelLayout(spec, l, o = {}) {
+  const k = o.ppu ?? 40, u = o.pageScale ? pageUnit(o.pageScale) : k / 40, numbers3 = o.numbers ?? spec.numbers, labels = o.labels ?? true;
+  const taken = spec.overlay.symbols.map((s2) => {
+    const z = (o.pageScale ? PAGE_SYMBOL_MM * o.pageScale : k * 0.9) * (s2.scale ?? 1) / k;
+    return { x: s2.x - z / 2, y: s2.y - z / 2, w: z, h: z };
+  });
+  const out = [];
+  for (const g of l.rooms) {
+    const hasBadge = numbers3 && g.number !== void 0, text3 = labels ? g.room.label : void 0;
+    if (!hasBadge && !text3) continue;
+    const fs = numberSize(u, o.pageScale), bh = fs * 1.45, bw = Math.max(bh, String(g.number ?? "").length * fs * 0.62 + fs * 0.7);
+    const badge2 = hasBadge ? { x: -bw / 2 / k, y: -bh / 2 / k, w: bw / k, h: bh / k } : null;
+    const nb = text3 ? textBox(text3, 0, hasBadge ? fs * 1.6 : fs * 0.3, nameSize(u, o.pageScale), { bold: true }) : null;
+    const name = nb ? { x: nb.x / k, y: nb.y / k, w: nb.w / k, h: nb.h / k } : null, block2 = union(badge2, name);
+    const r = g.room, at4 = (side2) => {
+      if (side2 === "n") return [g.cx, r.y + PAD2 - block2.y];
+      if (side2 === "s") return [g.cx, r.y + r.h - PAD2 - (block2.y + block2.h)];
+      if (side2 === "w") return [r.x + PAD2 - block2.x, g.cy];
+      if (side2 === "e") return [r.x + r.w - PAD2 - (block2.x + block2.w), g.cy];
+      return [g.cx, g.cy];
+    };
+    const inside3 = (x2, y2) => inPolygon(g.outline, x2 + block2.x + block2.w / 2, y2 + block2.y + block2.h / 2);
+    const clear = (x2, y2) => !taken.some((t) => overlaps(shift(block2, x2, y2), t));
+    const set2 = r.labelAt;
+    let spot, placed, moved = false;
+    if (Array.isArray(set2)) {
+      spot = [g.cx + set2[0], g.cy + set2[1]];
+      placed = clear(...spot);
+    } else if (set2) {
+      spot = at4(set2);
+      placed = clear(...spot);
+    } else {
+      spot = at4("c");
+      placed = clear(...spot);
+      if (!placed) {
+        const better = ["n", "s", "w", "e"].map(at4).find(([x2, y2]) => inside3(x2, y2) && clear(x2, y2));
+        if (better) {
+          spot = better;
+          placed = true;
+          moved = true;
+        }
+      }
+    }
+    const [x, y] = spot;
+    taken.push(shift(block2, x, y));
+    out.push({ room: g.index, x, y, badge: shift(badge2, x, y), name: shift(name, x, y), placed, moved });
+  }
+  return out;
+}
+var numberSize, nameSize, LABEL_SIDES, PAD2, union, shift;
+var init_roomlabels = __esm({
+  "../artgen-mapgen/src/dungeon/roomlabels.ts"() {
+    "use strict";
+    init_page();
+    init_layout();
+    numberSize = (u, pageScale) => pageScale ? pointsToPx(PAGE_PT.dungeon.number, pageScale) : 19 * u;
+    nameSize = (u, pageScale) => pageScale ? pointsToPx(PAGE_PT.dungeon.room, pageScale) : 15 * u;
+    LABEL_SIDES = ["c", "n", "s", "w", "e"];
+    PAD2 = 0.2;
+    union = (a, b) => {
+      if (!a || !b) return a ?? b;
+      const x = Math.min(a.x, b.x), y = Math.min(a.y, b.y);
+      return { x, y, w: Math.max(a.x + a.w, b.x + b.w) - x, h: Math.max(a.y + a.h, b.y + b.h) - y };
+    };
+    shift = (b, dx, dy) => b ? { ...b, x: b.x + dx, y: b.y + dy } : null;
+  }
+});
+
+// ../artgen-mapgen/src/dungeon/marks.ts
+function centroid(p2) {
+  let a = 0, x = 0, y = 0;
+  for (let i = 0, j = p2.length - 2; i < p2.length; j = i, i += 2) {
+    const c = p2[j] * p2[i + 1] - p2[i] * p2[j + 1];
+    a += c;
+    x += (p2[j] + p2[i]) * c;
+    y += (p2[j + 1] + p2[i + 1]) * c;
+  }
+  if (Math.abs(a) < 1e-9) return [p2[0], p2[1]];
+  return [x / (3 * a), y / (3 * a)];
+}
+function fileMarks(spec, l) {
+  const out = { symbols: [], labels: [] };
+  l.rooms.forEach((g) => (g.room.exits ?? []).forEach((x, j) => {
+    const r = g.room, source = `rooms[${g.index}].exits[${j}]`;
+    const ix = Math.min(EXIT_INSET, r.w / 3), iy = Math.min(EXIT_INSET, r.h / 3);
+    const [sx, sy] = x.at ?? (x.side === "n" ? [g.cx, r.y + iy] : x.side === "s" ? [g.cx, r.y + r.h - iy] : x.side === "w" ? [r.x + ix, g.cy] : [r.x + r.w - ix, g.cy]);
+    out.symbols.push({ mark: { kind: x.kind, x: sx, y: sy, angle: x.angle ?? (x.side ? TOWARD[x.side] : -90) }, source });
+    if (x.text) out.labels.push({ mark: { text: x.text, x: sx, y: sy + (x.side === "s" ? -1.1 : 1.1), kind: "note" }, source });
+  }));
+  (spec.areas ?? []).forEach((a, i) => {
+    if (!a.label || polygonArea(a.points) < 1e-9) return;
+    const [x, y] = centroid(a.points);
+    out.labels.push({ mark: { text: a.label, x, y, kind: "note" }, source: `areas[${i}]` });
+  });
+  return out;
+}
+function withMarks(spec, l) {
+  const m = fileMarks(spec, l);
+  return {
+    spec: m.symbols.length || m.labels.length ? { ...spec, overlay: { symbols: [...spec.overlay.symbols, ...m.symbols.map((s2) => s2.mark)], labels: [...spec.overlay.labels, ...m.labels.map((s2) => s2.mark)] } } : spec,
+    symbolPath: [...spec.overlay.symbols.map((_, i) => `overlay.symbols[${i}]`), ...m.symbols.map((s2) => s2.source)],
+    labelPath: [...spec.overlay.labels.map((_, i) => `overlay.labels[${i}]`), ...m.labels.map((s2) => s2.source)]
+  };
+}
+var EXIT_INSET, TOWARD;
+var init_marks = __esm({
+  "../artgen-mapgen/src/dungeon/marks.ts"() {
+    "use strict";
+    init_geom2();
+    EXIT_INSET = 0.9;
+    TOWARD = { n: -90, e: 0, s: 90, w: 180 };
+  }
+});
+
 // ../artgen-mapgen/src/dungeon/render.ts
 function labelSize2(l, u, pageScale) {
   return (pageScale ? pointsToPx(PAGE_PT.dungeon[l.kind], pageScale) : BASE_PX[l.kind] * u) * (l.size ?? 1);
@@ -14045,14 +14980,7 @@ function dungeonLabelLayout(spec, k, pageScale, l = layoutDungeon(spec), numbers
     const z = PAGE_SYMBOL_MM * pageScale * (s2.scale ?? 1);
     return { x: s2.x * k - z / 2, y: s2.y * k - z / 2, w: z, h: z };
   });
-  for (const g of l.rooms) {
-    const x = g.cx * k, y = g.cy * k, fs = numberSize(u, pageScale), badge2 = numbers3 && g.number !== void 0;
-    if (badge2) {
-      const txt = String(g.number), bh = fs * 1.45, bw = Math.max(bh, txt.length * fs * 0.62 + fs * 0.7);
-      obstacles.push({ x: x - bw / 2, y: y - bh / 2, w: bw, h: bh });
-    }
-    if (g.room.label) obstacles.push(textBox(g.room.label, x, y + (badge2 ? fs * 1.6 : fs * 0.3), nameSize(u, pageScale), { bold: true }));
-  }
+  for (const r of roomLabelLayout(spec, l, { ppu: k, pageScale, numbers: numbers3 })) for (const b of [r.badge, r.name]) if (b) obstacles.push({ x: b.x * k, y: b.y * k, w: b.w * k, h: b.h * k });
   const items = spec.overlay.labels.map((lb) => {
     const size2 = labelSize2(lb, u, pageScale), text3 = lb.kind === "area" ? lb.text.toUpperCase() : lb.text;
     return { x: lb.x * k, y: lb.y * k, box: textBox(text3, lb.x * k, lb.y * k + size2 * 0.35, size2, { bold: lb.kind !== "note", spacing: lb.kind === "area" ? size2 * 0.16 : 0 }), clear: 0 };
@@ -14062,7 +14990,7 @@ function dungeonLabelLayout(spec, k, pageScale, l = layoutDungeon(spec), numbers
 }
 function dungeonLayersFor(spec, over = {}) {
   const on = Object.fromEntries(DUNGEON_LAYERS.map((l) => [l, true]));
-  on.rock = spec.style.hatch !== "none";
+  on.rock = rockOf(spec) !== "none" || !!spec.areas?.length;
   on.underlay = !!spec.underlay;
   on.enclosure = !!spec.walls?.length;
   on.legend = !!spec.legend;
@@ -14098,7 +15026,7 @@ function doorSvg(dr, k, t, u) {
     const n = Math.max(3, Math.round(dr.width * 4));
     for (let i = 0; i < n; i++) g += `<circle cy="${n1(-hw + W3 * (i + 0.5) / n)}" r="${n1(Math.max(1.2, 0.06 * k))}" fill="${INK2}"/>`;
   } else if (dr.kind === "arch") g = rect(-d / 2, -hw - d * 0.25, d, d * 0.6, INK2) + rect(-d / 2, hw - d * 0.35, d, d * 0.6, INK2);
-  const off = dr.inner ? 0 : t / 2, ox = dr.x * k + Math.cos(dr.angle * Math.PI / 180) * off, oy = dr.y * k + Math.sin(dr.angle * Math.PI / 180) * off;
+  const off2 = dr.inner ? 0 : t / 2, ox = dr.x * k + Math.cos(dr.angle * Math.PI / 180) * off2, oy = dr.y * k + Math.sin(dr.angle * Math.PI / 180) * off2;
   let out = `<g transform="translate(${n1(ox)} ${n1(oy)}) rotate(${n1(dr.angle)})">${g}</g>`;
   if (dr.kind === "secret") {
     const fs = Math.max(10, 0.5 * k);
@@ -14183,22 +15111,31 @@ function dungeonRenderSize(spec, o = {}) {
   const k = o.ppu ?? 40, fr = frameOf(o.crop, spec.cols, spec.rows, k), band = dungeonFurniture(spec, o).band;
   return { width: fr.w + band.right, height: fr.h + band.bottom, band };
 }
-function renderDungeonSvg(spec, o = {}) {
+function renderDungeonSvg(file, o = {}) {
+  const l = o.layout ?? layoutDungeon(file), spec = withMarks(file, l).spec, on = dungeonLayersFor(spec, o.layers);
   const k = o.ppu ?? 40, W3 = spec.cols * k, H = spec.rows * k, u = o.pageScale ? pageUnit(o.pageScale) : k / 40, t = 0.14 * k * spec.style.wall, fr = frameOf(o.crop, spec.cols, spec.rows, k);
-  const l = o.layout ?? layoutDungeon(spec), on = dungeonLayersFor(spec, o.layers);
+  const tp = 0.14 * k * (spec.style.partition ?? spec.style.wall), rock = rockOf(spec), rockFill = spec.style.rockColor ?? ROCK_COLOR;
   const parts = [`<rect width="${W3}" height="${H}" fill="${PAPER}"/>`], defs = [];
   const roomD = pathData([...l.rooms.filter((g) => fillOf(g.room) === "floor").map((g) => ({ pts: clockwise(g.outline), closed: true })), ...l.corridors.flatMap((c) => c.outline ? [{ pts: clockwise(c.outline), closed: true }] : [])], k);
   const corr = l.corridors.filter((c) => !c.outline).map((c) => ({ d: pathData([{ pts: c.pts, closed: false }], k), w: c.width * k }));
   if (on.underlay && spec.underlay && o.underlay) parts.push(underlaySvg(spec, o.underlay.map, k, o.underlay.field));
-  if (on.rock && spec.style.hatch !== "none") {
-    defs.push(hatchPattern(k));
+  if (spec.bounds) defs.push(`<clipPath id="bounds-clip"><path d="${pathData([{ pts: spec.bounds, closed: true }], k)}"/></clipPath>`);
+  const inBounds = (g) => spec.bounds ? `<g clip-path="url(#bounds-clip)">${g}</g>` : g;
+  if (on.rock) {
+    const hatched = rock === "hatch" || spec.areas?.some((a) => a.kind === "rock");
+    if (hatched) defs.push(hatchPattern(k));
     const band2 = spec.style.band * k;
-    const g = spec.style.hatch === "full" ? `<rect width="${W3}" height="${H}" fill="url(#hatch)"/>` : `<g fill="url(#hatch)" stroke="url(#hatch)" stroke-linejoin="round" stroke-linecap="round">${roomD ? `<path d="${roomD}" stroke-width="${n1(2 * (t + band2))}"/>` : ""}${corr.map((c) => `<path d="${c.d}" fill="none" stroke-width="${n1(c.w + 2 * (t + band2))}"/>`).join("")}</g>`;
-    parts.push(`<g id="rock">${g}</g>`);
+    let g = rock === "solid" ? `<rect width="${W3}" height="${H}" fill="${rockFill}"/>` : rock === "none" ? "" : spec.style.hatch === "full" ? `<rect width="${W3}" height="${H}" fill="url(#hatch)"/>` : `<g fill="url(#hatch)" stroke="url(#hatch)" stroke-linejoin="round" stroke-linecap="round">${roomD ? `<path d="${roomD}" stroke-width="${n1(2 * (t + band2))}"/>` : ""}${corr.map((c) => `<path d="${c.d}" fill="none" stroke-width="${n1(c.w + 2 * (t + band2))}"/>`).join("")}</g>`;
+    for (const a of spec.areas ?? []) {
+      const d = pathData([{ pts: a.points, closed: true }], k);
+      g += a.kind === "rock" ? `<path d="${d}" fill="${rock === "solid" ? rockFill : "url(#hatch)"}" stroke="${INK2}" stroke-width="${n1(u)}"/>` : `<path d="${d}" fill="${PAPER}" stroke="${INK2}" stroke-width="${n1(1.4 * u)}" stroke-dasharray="${n1(5 * u)} ${n1(3 * u)}"/>`;
+    }
+    parts.push(`<g id="rock">${inBounds(g)}</g>`);
   }
-  const floor3 = (fill2, extra) => (roomD ? `<path d="${roomD}" fill="${fill2}"${extra ? ` stroke="${fill2}" stroke-width="${n1(extra * 2)}" stroke-linejoin="miter"` : ""}/>` : "") + corr.map((c) => `<path d="${c.d}" fill="none" stroke="${fill2}" stroke-width="${n1(c.w + extra * 2)}" stroke-linecap="square" stroke-linejoin="miter"/>`).join("");
-  const inner = l.partitions.length ? `<path id="partitions" d="${l.partitions.map((p2) => `M${n1(p2[0] * k)} ${n1(p2[1] * k)}L${n1(p2[2] * k)} ${n1(p2[3] * k)}`).join("")}" stroke="${INK2}" stroke-width="${n1(t * 1.1)}" stroke-linecap="square" fill="none"/>` : "";
-  if (on.floors) parts.push(`<g id="floors"><g id="walls">${floor3(INK2, t)}</g><g id="floor">${floor3(PAPER, 0)}</g>${inner}</g>`);
+  if (spec.bounds) parts.push(`<path id="bounds" d="${pathData([{ pts: spec.bounds, closed: true }], k)}" fill="none" stroke="${INK2}" stroke-width="${n1(1.5 * u)}"/>`);
+  const floor4 = (fill2, extra) => (roomD ? `<path d="${roomD}" fill="${fill2}"${extra ? ` stroke="${fill2}" stroke-width="${n1(extra * 2)}" stroke-linejoin="miter"` : ""}/>` : "") + corr.map((c) => `<path d="${c.d}" fill="none" stroke="${fill2}" stroke-width="${n1(c.w + extra * 2)}" stroke-linecap="square" stroke-linejoin="miter"/>`).join("");
+  const inner = l.partitions.length ? `<path id="partitions" d="${l.partitions.map((p2) => `M${n1(p2[0] * k)} ${n1(p2[1] * k)}L${n1(p2[2] * k)} ${n1(p2[3] * k)}`).join("")}" stroke="${INK2}" stroke-width="${n1(tp * 1.1)}" stroke-linecap="square" fill="none"/>` : "";
+  if (on.floors) parts.push(`<g id="floors"><g id="walls">${floor4(INK2, t)}</g><g id="floor">${floor4(PAPER, 0)}</g>${inner}</g>`);
   const ofFill = (f) => l.rooms.filter((g) => fillOf(g.room) === f);
   if (on.buildings && ofFill("building").length) {
     const sw = n1(Math.max(1, t * 0.55));
@@ -14228,18 +15165,18 @@ function renderDungeonSvg(spec, o = {}) {
     parts.push(`<g id="enclosure">${g}</g>`);
   }
   if (on.grid && spec.grid.show) {
-    const s2 = spec.grid.size, line2 = (step) => {
+    const s2 = spec.grid.size, line3 = (step) => {
       let d = "";
       for (let x = 0; x <= spec.cols + 1e-9; x += step) d += `M${n1(x * k)} 0V${H}`;
       for (let y = 0; y <= spec.rows + 1e-9; y += step) d += `M0 ${n1(y * k)}H${W3}`;
       return d;
     };
     let g = "";
-    if (spec.grid.sub && s2 > 1) g += `<path d="${line2(1)}" stroke="${INK2}" stroke-opacity="0.16" stroke-width="${n1(0.8 * u)}"/>`;
-    g += `<path d="${line2(s2)}" stroke="${INK2}" stroke-opacity="0.38" stroke-width="${n1(1.1 * u)}"/>`;
+    if (spec.grid.sub && s2 > 1) g += `<path d="${line3(1)}" stroke="${INK2}" stroke-opacity="0.16" stroke-width="${n1(0.8 * u)}"/>`;
+    g += `<path d="${line3(s2)}" stroke="${INK2}" stroke-opacity="0.38" stroke-width="${n1(1.1 * u)}"/>`;
     const clip = spec.grid.clip === "floor";
-    if (clip) defs.push(`<mask id="floor-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="${W3}" height="${H}">${floor3("#ffffff", 0)}</mask>`);
-    parts.push(`<g id="grid" fill="none"${clip ? ' mask="url(#floor-mask)"' : ""}>${g}</g>`);
+    if (clip) defs.push(`<mask id="floor-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="${W3}" height="${H}">${floor4("#ffffff", 0)}</mask>`);
+    parts.push(inBounds(`<g id="grid" fill="none"${clip ? ' mask="url(#floor-mask)"' : ""}>${g}</g>`));
   }
   const exits = on.exits ? layoutExits(spec, l) : [];
   if (exits.length) {
@@ -14271,8 +15208,11 @@ function renderDungeonSvg(spec, o = {}) {
     parts.push(`<g id="cellars" fill="none" stroke="${INK2}" stroke-width="${n1(Math.max(1.4 * u, t * 0.7))}" stroke-dasharray="${n1(6 * u)} ${n1(4 * u)}" stroke-linejoin="round">${ofFill("cellar").map((g) => `<path d="${pathData([{ pts: g.outline, closed: true }], k)}"/>`).join("")}</g>`);
   if (on.numbers || on.labels) {
     let nums4 = "", names = "";
+    const placed = new Map(roomLabelLayout(spec, l, { ppu: k, pageScale: o.pageScale, numbers: on.numbers, labels: on.labels }).map((r) => [r.room, r]));
     for (const g of l.rooms) {
-      const x = g.cx * k, y = g.cy * k, badge2 = on.numbers && g.number !== void 0;
+      const at4 = placed.get(g.index);
+      if (!at4) continue;
+      const x = at4.x * k, y = at4.y * k, badge2 = on.numbers && g.number !== void 0;
       if (badge2) {
         const txt = String(g.number), fs = numberSize(u, o.pageScale), bh = fs * 1.45, bw = Math.max(bh, txt.length * fs * 0.62 + fs * 0.7);
         nums4 += linked(g.room.href, `<rect x="${n1(x - bw / 2)}" y="${n1(y - bh / 2)}" width="${n1(bw)}" height="${n1(bh)}" rx="${n1(bh * 0.32)}" fill="${INK2}"/><text x="${n1(x)}" y="${n1(y + fs * 0.36)}" font-size="${n1(fs)}" font-weight="700" text-anchor="middle" fill="${PAPER}">${esc(txt)}</text>`);
@@ -14299,7 +15239,7 @@ function renderDungeonSvg(spec, o = {}) {
   const frame = band ? `<rect x="${n1(fr.x)}" y="${n1(fr.y)}" width="${n1(fr.w)}" height="${n1(fr.h)}" fill="none" stroke="${INK2}" stroke-width="${n1(1.5 * u)}"/>` : "";
   return `<svg xmlns="http://www.w3.org/2000/svg" ${sizeAttrs(out, o.unit)} font-family="${FONT}"><defs>${defs.join("")}<clipPath id="map-clip"><rect x="${fr.x}" y="${fr.y}" width="${fr.w}" height="${fr.h}"/></clipPath></defs>${band}<g clip-path="url(#map-clip)">${parts.join("")}${band ? "" : drawn}</g>${frame}${band ? drawn : ""}</svg>`;
 }
-var DUNGEON_LAYERS, INK2, PAPER, TH, ROOF, RIDGE, fillOf, BASE_PX, numberSize, nameSize, LEGEND_NAMES, linked;
+var DUNGEON_LAYERS, INK2, PAPER, TH, ROOF, RIDGE, fillOf, BASE_PX, LEGEND_NAMES, rockOf, ROCK_COLOR, linked;
 var init_render2 = __esm({
   "../artgen-mapgen/src/dungeon/render.ts"() {
     "use strict";
@@ -14314,6 +15254,8 @@ var init_render2 = __esm({
     init_geom2();
     init_furniture();
     init_underlay();
+    init_roomlabels();
+    init_marks();
     init_walls();
     DUNGEON_LAYERS = ["underlay", "rock", "floors", "buildings", "enclosure", "grid", "exits", "doors", "symbols", "cellars", "numbers", "labels", "legend", "title", "scale", "compass"];
     INK2 = "#000000";
@@ -14323,15 +15265,15 @@ var init_render2 = __esm({
     RIDGE = "#8c8c8c";
     fillOf = (r) => r.fill ?? "floor";
     BASE_PX = { area: 24, name: 15, note: 12 };
-    numberSize = (u, pageScale) => pageScale ? pointsToPx(PAGE_PT.dungeon.number, pageScale) : 19 * u;
-    nameSize = (u, pageScale) => pageScale ? pointsToPx(PAGE_PT.dungeon.room, pageScale) : 15 * u;
     LEGEND_NAMES = (kind) => (SYMBOLS2[kind] ?? SYMBOLS2.trap).name.split(" (")[0];
-    linked = (href, svg4) => href ? `<a href="${esc(href)}">${svg4}</a>` : svg4;
+    rockOf = (spec) => spec.style.rock ?? (spec.style.hatch === "none" ? "none" : "hatch");
+    ROCK_COLOR = "#bdbdbd";
+    linked = (href2, svg4) => href2 ? `<a href="${esc(href2)}">${svg4}</a>` : svg4;
   }
 });
 
 // ../artgen-mapgen/src/dungeon/facts.ts
-function dungeonFacts(spec, layout2 = layoutDungeon(spec)) {
+function dungeonFacts(spec, layout3 = layoutDungeon(spec)) {
   const per = spec.scale.perCell, rnd = (v) => roundTo(v, RULES2.position);
   const length = (cells) => {
     const m = rnd(cells);
@@ -14344,49 +15286,49 @@ function dungeonFacts(spec, layout2 = layoutDungeon(spec)) {
   };
   const roomOf = (e) => "room" in e ? e.room : null;
   const ends = ["from", "to"];
-  const rooms = layout2.rooms.map((g) => ({
-    id: g.room.id,
-    number: g.number ?? null,
-    label: g.room.label ?? null,
-    shape: g.room.shape,
-    box: box2(g.room),
-    doors: []
-  }));
+  const marks = fileMarks(spec, layout3);
+  const rooms = layout3.rooms.map((g) => {
+    const exits2 = (g.room.exits ?? []).map((x, j) => {
+      const s2 = marks.symbols.find((m) => m.source === `rooms[${g.index}].exits[${j}]`).mark;
+      return { kind: x.kind, at: pt3(s2.x, s2.y), text: x.text ?? null };
+    });
+    return { id: g.room.id, number: g.number ?? null, label: g.room.label ?? null, shape: g.room.shape, box: box2(g.room), doors: [], ...exits2.length && { exits: exits2 } };
+  });
   const byId2 = new Map(rooms.map((r) => [r.id, r]));
   const corridors = [], exits = [], reached = /* @__PURE__ */ new Set();
   spec.corridors.forEach((c, index) => {
-    const geom = layout2.corridors[index], doors = [c.doors?.[0] ?? null, c.doors?.[1] ?? null];
+    const geom = layout3.corridors[index], doors = [c.doors?.[0] ?? null, c.doors?.[1] ?? null];
     let run2 = 0;
     for (let i = 2; i < geom.pts.length; i += 2) run2 += Math.hypot(geom.pts[i] - geom.pts[i - 2], geom.pts[i + 1] - geom.pts[i - 1]);
     run2 = Math.max(0, run2 - (geom.ends[0]?.along ?? 0) - (geom.ends[1]?.along ?? 0));
-    const joins = ends.flatMap((side, k) => {
-      const e = c[side];
+    const joins = ends.flatMap((side2, k) => {
+      const e = c[side2];
       if (!("corridor" in e)) return [];
       const j = spec.corridors.findIndex((x) => x.id === e.corridor), p2 = geom.ends[k];
       return j >= 0 && p2 ? [{ corridor: j, at: pt3(p2.x, p2.y) }] : [];
     });
-    corridors.push({ index, from: c.from, to: c.to, width: geom.width, doors, length: length(run2), ...joins.length && { joins } });
-    ends.forEach((side, k) => {
-      const e = c[side], p2 = geom.ends[k], other = roomOf(c[ends[1 - k]]);
+    corridors.push({ index, from: c.from, to: c.to, width: geom.width, doors, length: length(run2), ...joins.length && { joins }, path: geom.pts.map(rnd) });
+    ends.forEach((side2, k) => {
+      const e = c[side2], p2 = geom.ends[k], other = roomOf(c[ends[1 - k]]);
       if ("room" in e) {
         reached.add(e.room);
         if (doors[k]) byId2.get(e.room)?.doors.push({ kind: doors[k], at: p2 ? pt3(p2.x, p2.y) : null, corridor: index, to: other });
       } else if ("at" in e) {
         const [x, y] = e.at, dist3 = [["n", y], ["e", spec.cols - x], ["s", spec.rows - y], ["w", x]];
-        const [edge, d] = dist3.reduce((a, b) => b[1] < a[1] ? b : a);
-        exits.push({ corridor: index, end: side, at: pt3(x, y), room: other, door: doors[k], edge, distance: length(d), ...e.exit && { text: e.exit.text }, ...e.exit?.href && { href: e.exit.href } });
+        const [edge2, d] = dist3.reduce((a, b) => b[1] < a[1] ? b : a);
+        exits.push({ corridor: index, end: side2, at: pt3(x, y), room: other, door: doors[k], edge: edge2, distance: length(d), ...e.exit && { text: e.exit.text }, ...e.exit?.href && { href: e.exit.href } });
       }
     });
   });
-  for (const c of layout2.connections) for (const [id2, other] of [[c.a, c.b], [c.b, c.a]]) {
+  for (const c of layout3.connections) for (const [id2, other] of [[c.a, c.b], [c.b, c.a]]) {
     const r = byId2.get(id2);
     if (!r) continue;
     reached.add(id2);
     (r.connections ??= []).push({ to: other, kind: c.kind, at: c.wall ? pt3(c.x, c.y) : null, connection: c.index });
   }
   const overlaps2 = [];
-  for (let a = 0; a < layout2.rooms.length; a++) for (let b = a + 1; b < layout2.rooms.length; b++) {
-    const A = layout2.rooms[a], B = layout2.rooms[b], cells = [];
+  for (let a = 0; a < layout3.rooms.length; a++) for (let b = a + 1; b < layout3.rooms.length; b++) {
+    const A = layout3.rooms[a], B = layout3.rooms[b], cells = [];
     const x0 = Math.floor(Math.max(A.room.x, B.room.x)), x1 = Math.ceil(Math.min(A.room.x + A.room.w, B.room.x + B.room.w));
     const y0 = Math.floor(Math.max(A.room.y, B.room.y)), y1 = Math.ceil(Math.min(A.room.y + A.room.h, B.room.y + B.room.h));
     for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) if (inPolygon(A.outline, x + 0.5, y + 0.5) && inPolygon(B.outline, x + 0.5, y + 0.5)) cells.push([x, y]);
@@ -14394,6 +15336,20 @@ function dungeonFacts(spec, layout2 = layoutDungeon(spec)) {
     const xs = cells.map((c) => c[0]), ys = cells.map((c) => c[1]), bx = Math.min(...xs), by = Math.min(...ys);
     overlaps2.push({ rooms: [A.room.id, B.room.id], cells, count: cells.length, box: box2({ x: bx, y: by, w: Math.max(...xs) + 1 - bx, h: Math.max(...ys) + 1 - by }) });
   }
+  const grid5 = floorGrid(spec, layout3), names = grid5.owners.map((o) => ownerName(spec, o));
+  const doorFacts = layout3.doors.map((d) => {
+    const s2 = doorStand(spec, layout3, d);
+    return {
+      kind: d.kind,
+      at: pt3(d.x, d.y),
+      angle: roundTo((d.angle % 360 + 360) % 360, RULES2.position),
+      width: d.width,
+      corridor: d.corridor >= 0 ? d.corridor : null,
+      connection: d.connection ?? null,
+      wall: [s2.behind.map((o) => ownerName(spec, o)), s2.ahead.map((o) => ownerName(spec, o))],
+      on: s2.on
+    };
+  });
   return {
     version: spec.version,
     id: spec.id,
@@ -14405,7 +15361,10 @@ function dungeonFacts(spec, layout2 = layoutDungeon(spec)) {
     exits,
     overlaps: overlaps2,
     unreached: rooms.filter((r) => !reached.has(r.id)).map((r) => r.id),
-    ...spec.walls?.length && { walls: wallFacts(spec, layout2) }
+    doors: doorFacts,
+    floor: { owners: names, rows: gridRows(grid5) },
+    adjacent: adjacency(grid5).map((a) => ({ a: names[a.a], b: names[a.b], along: length(a.along) })),
+    ...spec.walls?.length && { walls: wallFacts(spec, layout3) }
   };
 }
 var RULES2;
@@ -14413,6 +15372,8 @@ var init_facts2 = __esm({
   "../artgen-mapgen/src/dungeon/facts.ts"() {
     "use strict";
     init_round();
+    init_floor();
+    init_marks();
     init_layout();
     init_walls();
     RULES2 = {
@@ -14423,10 +15384,10 @@ var init_facts2 = __esm({
 });
 
 // ../artgen-mapgen/src/dungeon/sync.ts
-function syncDungeon(target, from, origin) {
+function syncDungeon(target, from, origin2) {
   const conflicts = [], lists = {};
   const take = (name, a, b) => {
-    const r = mergeList(name, a, b, origin);
+    const r = mergeList(name, a, b, origin2);
     lists[name] = { removed: r.removed.length, added: b.length, kept: r.kept };
     return r;
   };
@@ -14446,7 +15407,7 @@ function syncDungeon(target, from, origin) {
   const ids = new Set(rooms.list.map((r) => r.id));
   const dropped = (name, list6, source, refs) => list6.filter((e) => {
     const missing = refs(e).find((id2) => !ids.has(id2));
-    if (missing === void 0 || e.origin === origin) return true;
+    if (missing === void 0 || e.origin === origin2) return true;
     conflicts.push({ kind: "dropped", list: name, index: source.indexOf(e), message: `${name}[${source.indexOf(e)}] is dropped: it refers to ${missing}, which the sync removed` });
     return false;
   });
@@ -14485,7 +15446,7 @@ function syncDungeon(target, from, origin) {
     if (over && !(was && overMark(oldMarks, was)))
       conflicts.push({ kind: "over-mark", list: m.text !== void 0 ? "labels" : "symbols", index: oldMarks.indexOf(pre[i]), message: `hand ${markName2(m)} at ${m.x},${m.y} is now over ${markName2(over)}` });
   });
-  return { spec, report: { version: DUNGEON_FORMAT, origin, lists, conflicts } };
+  return { spec, report: { version: DUNGEON_FORMAT, origin: origin2, lists, conflicts } };
 }
 var MARK_DISTANCE2, markName2, insideRoom, overMark;
 var init_sync3 = __esm({
@@ -14507,9 +15468,31 @@ function badgeBox(g) {
   const fs = NUMBER_CELLS, bh = fs * 1.45, bw = Math.max(bh, String(g.number).length * fs * 0.62 + fs * 0.7);
   return { x: g.cx - bw / 2, y: g.cy - bh / 2, w: bw, h: bh };
 }
+function openingsMeet(a, b) {
+  const [p0, p1] = opening(a), [q0, q1] = opening(b), ux = (p1[0] - p0[0]) / a.width, uy = (p1[1] - p0[1]) / a.width;
+  if (Math.abs(ux * (q1[1] - q0[1]) - uy * (q1[0] - q0[0])) < 1e-6 * b.width) {
+    const off2 = Math.abs((q0[0] - p0[0]) * uy - (q0[1] - p0[1]) * ux);
+    const t0 = (q0[0] - p0[0]) * ux + (q0[1] - p0[1]) * uy, t1 = (q1[0] - p0[0]) * ux + (q1[1] - p0[1]) * uy;
+    return off2 < 0.3 && Math.min(a.width, Math.max(t0, t1)) - Math.max(0, Math.min(t0, t1)) > 0.1;
+  }
+  return !!segmentCross(p0, p1, q0, q1);
+}
+function alongOf(pts2, x, y) {
+  let at4 = 0, best = Infinity, out = 0;
+  for (let i = 0; i + 3 < pts2.length; i += 2) {
+    const ax = pts2[i], ay = pts2[i + 1], dx = pts2[i + 2] - ax, dy = pts2[i + 3] - ay, L2 = dx * dx + dy * dy, len3 = Math.sqrt(L2);
+    const t = L2 ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / L2)) : 0, d = Math.hypot(x - ax - t * dx, y - ay - t * dy);
+    if (d < best - 1e-9) {
+      best = d;
+      out = at4 + t * len3;
+    }
+    at4 += len3;
+  }
+  return out;
+}
 function lintDungeon(spec, l = layoutDungeon(spec)) {
   const out = [];
-  const add2 = (severity, path, message) => out.push({ severity, path, message });
+  const add2 = (id2, severity, path, message) => out.push({ severity, path, message, id: id2 });
   const offSheet = (x, y, pad = 0) => x < -pad || y < -pad || x > spec.cols + pad || y > spec.rows + pad;
   l.rooms.forEach((g, i) => {
     const at4 = `rooms[${i}]`, p2 = g.outline;
@@ -14519,20 +15502,20 @@ function lintDungeon(spec, l = layoutDungeon(spec)) {
       for (let k = 0; k < pts2; k++) {
         const j = (k + 1) % pts2;
         if (Math.hypot(p2[2 * j] - p2[2 * k], p2[2 * j + 1] - p2[2 * k + 1]) < 1e-9) {
-          add2("warning", `${at4}.points`, `corner ${j} repeats corner ${k} (a zero-length wall)`);
+          add2("zero-wall", "warning", `${at4}.points`, `corner ${j} repeats corner ${k} (a zero-length wall)`);
           break;
         }
       }
       const x = selfCrossing(p2);
       if (x) {
-        add2("error", `${at4}.points`, `the outline crosses itself (walls ${x[0]} and ${x[1]}); list the corners in order round the room`);
+        add2("outline-crosses", "error", `${at4}.points`, `the outline crosses itself (walls ${x[0]} and ${x[1]}); list the corners in order round the room`);
         crossed = true;
       }
     }
-    if (!crossed && Math.abs(area2(p2)) / 2 < MIN_AREA) add2("error", at4, `${g.room.id} has almost no floor (${(Math.abs(area2(p2)) / 2).toFixed(2)} square cells)`);
+    if (!crossed && Math.abs(area2(p2)) / 2 < MIN_AREA) add2("no-floor", "error", at4, `${g.room.id} has almost no floor (${(Math.abs(area2(p2)) / 2).toFixed(2)} square cells)`);
     const r = g.room;
-    if (r.x + r.w <= 0 || r.y + r.h <= 0 || r.x >= spec.cols || r.y >= spec.rows) add2("warning", at4, `${r.id} is off the sheet (0,0 to ${spec.cols},${spec.rows})`);
-    else if (r.x < 0 || r.y < 0 || r.x + r.w > spec.cols || r.y + r.h > spec.rows) add2("warning", at4, `${r.id} runs off the sheet (0,0 to ${spec.cols},${spec.rows}); \`dungeon fit\` makes room`);
+    if (r.x + r.w <= 0 || r.y + r.h <= 0 || r.x >= spec.cols || r.y >= spec.rows) add2("off-sheet", "warning", at4, `${r.id} is off the sheet (0,0 to ${spec.cols},${spec.rows})`);
+    else if (r.x < 0 || r.y < 0 || r.x + r.w > spec.cols || r.y + r.h > spec.rows) add2("runs-off-sheet", "warning", at4, `${r.id} runs off the sheet (0,0 to ${spec.cols},${spec.rows}); \`dungeon fit\` makes room`);
   });
   for (let a = 0; a < l.rooms.length; a++) for (let b = a + 1; b < l.rooms.length; b++) {
     const A = l.rooms[a], B = l.rooms[b];
@@ -14541,87 +15524,190 @@ function lintDungeon(spec, l = layoutDungeon(spec)) {
     const y0 = Math.floor(Math.max(A.room.y, B.room.y)), y1 = Math.ceil(Math.min(A.room.y + A.room.h, B.room.y + B.room.h));
     let n = 0;
     for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) if (inPolygon(A.outline, x + 0.5, y + 0.5) && inPolygon(B.outline, x + 0.5, y + 0.5)) n++;
-    if (n) add2("warning", `rooms[${b}]`, `${B.room.id} lies over ${A.room.id} (${n} cell${n === 1 ? "" : "s"}); the wall between them is not drawn`);
+    if (n) add2("rooms-overlap", "warning", `rooms[${b}]`, `${B.room.id} lies over ${A.room.id} (${n} cell${n === 1 ? "" : "s"}); the wall between them is not drawn`);
+  }
+  if (!sharedWallsOn(spec)) {
+    const floors = l.rooms.filter((g) => (g.room.fill ?? "floor") === "floor");
+    for (let a = 0; a < floors.length; a++) for (let b = a + 1; b < floors.length; b++) {
+      const A = floors[a], B = floors[b], along3 = sharedEdges(A.outline, B.outline).reduce((s2, [p2, q]) => s2 + Math.hypot(q[0] - p2[0], q[1] - p2[1]), 0);
+      if (along3 > 1e-6) add2("rooms-merge", "warning", `rooms[${B.index}]`, `${B.room.id} touches ${A.room.id} along ${along3.toFixed(1)} cells and shared walls are off, so their floors run together; leave style.sharedWalls unset (or true)`);
+    }
   }
   const roomsOf = (i) => new Set([spec.corridors[i].from, spec.corridors[i].to].flatMap((e) => "room" in e ? [e.room] : []));
   l.corridors.forEach((c, i) => {
     const sc = spec.corridors[i], at4 = `corridors[${i}]`, joins = roomsOf(i);
     const v = sc.via ?? [];
     for (let k = 2; k < v.length; k += 2) if (v[k] === v[k - 2] && v[k + 1] === v[k - 1]) {
-      add2("warning", `${at4}.via`, `bend ${k / 2} repeats bend ${k / 2 - 1}`);
+      add2("repeated-bend", "warning", `${at4}.via`, `bend ${k / 2} repeats bend ${k / 2 - 1}`);
       break;
     }
-    ["from", "to"].forEach((side, k) => {
-      const e = sc[side];
-      if ("room" in e && !c.ends[k]) add2("warning", `${at4}.${side}`, `the corridor never leaves ${e.room} (it ends inside it)${sc.doors?.[k] ? `, so its ${sc.doors[k]} is not drawn` : ""}`);
+    ["from", "to"].forEach((side2, k) => {
+      const e = sc[side2];
+      if ("room" in e && !c.ends[k]) {
+        const g = l.rooms.find((r) => r.room.id === e.room), n = c.pts.length, [x, y] = k === 0 ? [c.pts[0], c.pts[1]] : [c.pts[n - 2], c.pts[n - 1]];
+        if (g && !inPolygon(g.outline, x, y)) add2("port-outside-room", "warning", `${at4}.${side2}`, `starts at ${x.toFixed(1)},${y.toFixed(1)}, outside ${e.room}, so it never reaches ${e.room}${sc.doors?.[k] ? ` and its ${sc.doors[k]} is not drawn` : ""}; start it from a point inside the room (via) or on its wall`);
+        else add2("never-leaves", "warning", `${at4}.${side2}`, `the corridor never leaves ${e.room} (it ends inside it)${sc.doors?.[k] ? `, so its ${sc.doors[k]} is not drawn` : ""}`);
+      }
       if ("at" in e) {
         const inside3 = l.rooms.find((g) => inPolygon(g.outline, e.at[0], e.at[1]));
-        if (inside3) add2("warning", `${at4}.${side}`, `ends at ${e.at.join(",")}, inside ${inside3.room.id}; link to the room instead`);
+        if (inside3) add2("end-in-room", "warning", `${at4}.${side2}`, `ends at ${e.at.join(",")}, inside ${inside3.room.id}; link to the room instead`);
       }
     });
-    if (lineLength2(c.pts) < 1e-9) add2("warning", at4, "the corridor has no length (both ends at one point), so nothing is drawn");
+    if (c.unrouted) add2("maze-no-route", "warning", at4, `no passage fits between its rooms on the lattice${"room" in sc.from && "room" in sc.to ? ` (if ${sc.from.room} and ${sc.to.room} touch, join them with a connection)` : ""}; it is drawn as an elbow`);
+    if (lineLength2(c.pts) < 1e-9) add2("no-length", "warning", at4, "the corridor has no length (both ends at one point), so nothing is drawn");
+    else if ("room" in sc.from && "room" in sc.to && c.ends[0] && c.ends[1] && Math.hypot(c.ends[0].x - c.ends[1].x, c.ends[0].y - c.ends[1].y) < 0.05)
+      add2("way-no-passage", "warning", at4, `${sc.from.room} and ${sc.to.room} touch where it runs, so it draws no passage${sharedWallsOn(spec) ? " and no opening in their wall" : ""}; join them with a connection`);
     const hit = /* @__PURE__ */ new Set();
     for (const [x, y] of samples(c.pts, 0.25)) for (const g of l.rooms) {
       if (joins.has(g.room.id) || passable(g) || hit.has(g.room.id)) continue;
       if (inPolygon(g.outline, x, y)) hit.add(g.room.id);
     }
-    for (const id2 of hit) add2("warning", at4, `runs through ${id2}, which it does not join (set via or route, or link through ${id2})`);
+    for (const id2 of hit) add2("through-room", "warning", at4, `runs through ${id2}, which it does not join (set via or route, or link through ${id2})`);
+    [sc.from, sc.to].forEach((e, k) => {
+      const ex = c.ends[k], g = "room" in e ? l.rooms.find((r) => r.room.id === e.room) : void 0;
+      if (!ex || !g) return;
+      const path = k === 0 ? c.pts : reversedPts(c.pts), far = lineLength2(path) - (c.ends[1 - k]?.along ?? 0);
+      const back = samples(path, 0.25).some(([x, y]) => {
+        const d = alongOf(path, x, y), inside3 = inPolygon(g.outline, x, y);
+        return d < ex.along - 0.25 && !inside3 || d > ex.along + 0.5 && d < far - 0.5 && inside3;
+      });
+      if (back) add2("reenters-room", "warning", `${at4}.${k ? "to" : "from"}`, `leaves ${g.room.id} and runs back into it, over the rock between; start it from a point that sees the wall it leaves by (via), or from a point on that wall`);
+    });
   });
   const joined = (a, b) => [spec.corridors[a].from, spec.corridors[a].to].some((e) => "corridor" in e && e.corridor === spec.corridors[b].id) || [spec.corridors[b].from, spec.corridors[b].to].some((e) => "corridor" in e && e.corridor === spec.corridors[a].id);
+  const related = (a, b) => [...roomsOf(a)].some((r) => roomsOf(b).has(r));
   for (let a = 0; a < l.corridors.length; a++) for (let b = a + 1; b < l.corridors.length; b++) {
-    if (joined(a, b)) continue;
+    if (joined(a, b) || related(a, b)) continue;
     const A = l.corridors[a].pts, B = l.corridors[b].pts;
     let found = null;
     for (let i = 0; i + 3 < A.length && !found; i += 2) for (let j = 0; j + 3 < B.length && !found; j += 2) {
       const x = segmentCross([A[i], A[i + 1]], [A[i + 2], A[i + 3]], [B[j], B[j + 1]], [B[j + 2], B[j + 3]]);
       if (x && !l.rooms.some((g) => inPolygon(g.outline, x[0], x[1]))) found = x;
     }
-    if (found) add2("warning", `corridors[${b}]`, `crosses corridor ${a} at ${found.map((v) => v.toFixed(1)).join(",")} with no junction (the floors join there)`);
+    if (found) add2("corridors-cross", "warning", `corridors[${b}]`, `crosses corridor ${a} at ${found.map((v) => v.toFixed(1)).join(",")} with no junction (the floors join there)`);
   }
+  const along2 = /* @__PURE__ */ new Map();
+  for (const b of corridorWallsOn(spec) ? [] : corridorBoundaries(l)) {
+    if (!("room" in b.a) || !("corridor" in b.b)) continue;
+    const k = `${b.b.corridor},${b.a.room}`;
+    along2.set(k, (along2.get(k) ?? 0) + Math.hypot(b.seg[1][0] - b.seg[0][0], b.seg[1][1] - b.seg[0][1]));
+  }
+  for (const [k, n] of along2) {
+    const [ci, ri] = k.split(",").map(Number);
+    add2("corridor-along-wall", "warning", `corridors[${ci}]`, `runs along ${l.rooms[ri].room.id}'s wall for ${n.toFixed(1)} cells with no wall drawn between them, so the floors run together; style.sharedWalls: true draws one`);
+  }
+  const doorPath = (d) => d.connection !== void 0 ? `connections[${d.connection}]` : `corridors[${d.corridor}].doors`;
+  l.doors.forEach((d, i) => {
+    const s2 = doorStand(spec, l, d);
+    if (s2.on === "open" || s2.on === "rock") add2("door-off-wall", "warning", doorPath(d), `the ${d.kind} at ${d.x.toFixed(1)},${d.y.toFixed(1)} stands ${s2.on === "open" ? "in open floor" : "on rock"}, not on a wall between two floors`);
+    const on = l.doors.findIndex((e, j) => j < i && openingsMeet(e, d));
+    if (on >= 0) add2("doors-stacked", "warning", doorPath(d), `the ${d.kind} at ${d.x.toFixed(1)},${d.y.toFixed(1)} stands on the ${l.doors[on].kind} of ${doorPath(l.doors[on])}`);
+  });
   l.connections.forEach((c, i) => {
     const at4 = `connections[${i}]`;
     if (!c.wall) {
-      add2("warning", at4, `${c.a} and ${c.b} share no wall, so the ${c.kind === "open" ? "opening" : c.kind} is not drawn; move one room against the other, or link them with a corridor`);
+      add2("way-no-passage", "warning", at4, `${c.a} and ${c.b} share no wall, so the ${c.kind === "open" ? "opening" : c.kind} is not drawn; move one room against the other, or link them with a corridor`);
       return;
     }
     const len3 = Math.hypot(c.wall[1][0] - c.wall[0][0], c.wall[1][1] - c.wall[0][1]);
-    if (len3 < c.width - 1e-6) add2("warning", at4, `the wall ${c.a} and ${c.b} share is ${len3.toFixed(1)} cells, narrower than the ${c.width}-cell ${c.kind === "open" ? "opening" : c.kind}`);
+    if (len3 < c.width - 1e-6) add2("wall-too-short", "warning", at4, `the wall ${c.a} and ${c.b} share is ${len3.toFixed(1)} cells, narrower than the ${c.width}-cell ${c.kind === "open" ? "opening" : c.kind}`);
     const sc = spec.connections[i];
-    if (sc.at && Math.hypot(sc.at[0] - c.x, sc.at[1] - c.y) > 0.75) add2("warning", `${at4}.at`, `${sc.at.join(",")} is not on the wall ${c.a} and ${c.b} share; the ${c.kind === "open" ? "opening" : c.kind} is at ${c.x.toFixed(1)},${c.y.toFixed(1)}`);
+    if (sc.at && Math.hypot(sc.at[0] - c.x, sc.at[1] - c.y) > 0.75) add2("connection-off-wall", "warning", `${at4}.at`, `${sc.at.join(",")} is not on the wall ${c.a} and ${c.b} share; the ${c.kind === "open" ? "opening" : c.kind} is at ${c.x.toFixed(1)},${c.y.toFixed(1)}`);
   });
-  const badges = spec.numbers ? l.rooms.flatMap((g) => {
-    const b = badgeBox(g);
-    return b ? [{ g, b }] : [];
-  }) : [];
-  spec.overlay.symbols.forEach((s2, i) => {
-    const at4 = `overlay.symbols[${i}]`, z = (s2.scale ?? 1) * 0.9, box2 = { x: s2.x - z / 2, y: s2.y - z / 2, w: z, h: z };
-    if (offSheet(s2.x, s2.y)) add2("warning", at4, `${s2.kind} at ${s2.x},${s2.y} is off the sheet`);
+  const keepOut = (spec.areas ?? []).map((a, i) => ({ a, i }));
+  if (spec.bounds || keepOut.length) {
+    const grid5 = floorGrid(spec, l), R3 = l.rooms.length, outside = /* @__PURE__ */ new Map(), onArea = /* @__PURE__ */ new Map();
+    for (let y = 0; y < grid5.rows; y++) for (let x = 0; x < grid5.cols; x++) {
+      const v = grid5.cells[y * grid5.cols + x];
+      if (v < 0) continue;
+      if (spec.bounds && !inPolygon(spec.bounds, x + 0.5, y + 0.5)) outside.set(v, (outside.get(v) ?? 0) + 1);
+      for (const { a, i } of keepOut) if (inPolygon(a.points, x + 0.5, y + 0.5)) onArea.set(`${v},${i}`, (onArea.get(`${v},${i}`) ?? 0) + 1);
+    }
+    const name = (v) => v < R3 ? { path: `rooms[${v}]`, what: l.rooms[v].room.id } : { path: `corridors[${v - R3}]`, what: `corridor ${v - R3}` };
+    for (const [v, n] of outside) add2("outside-bounds", "warning", name(v).path, `${name(v).what} has ${n} cell${n === 1 ? "" : "s"} of floor outside the level's bounds`);
+    for (const [k, n] of onArea) {
+      const [v, i] = k.split(",").map(Number);
+      add2("in-keep-out", "warning", name(v).path, `${name(v).what} has ${n} cell${n === 1 ? "" : "s"} of floor on areas[${i}] (${spec.areas[i].kind}${spec.areas[i].label ? ` "${spec.areas[i].label}"` : ""})`);
+    }
+  }
+  const marked = withMarks(spec, l), marks = marked.spec.overlay;
+  const placed = roomLabelLayout(marked.spec, l), badges = placed.flatMap((r) => r.badge ? [{ g: l.rooms[r.room], b: r.badge }] : []);
+  const block2 = (r) => [r.badge, r.name].filter((b) => !!b);
+  placed.forEach((r, i) => {
+    if (r.placed) return;
+    const other = placed.find((q, j) => j < i && block2(q).some((b) => block2(r).some((c) => overlaps(b, c))));
+    if (other) add2("label-overlap", "warning", `rooms[${r.room}]`, `${l.rooms[r.room].room.id}'s label lies over ${l.rooms[other.room].room.id}'s and has no clear spot by its walls; set rooms[${r.room}].labelAt or move a room`);
+  });
+  marks.symbols.forEach((s2, i) => {
+    const at4 = marked.symbolPath[i], z = (s2.scale ?? 1) * 0.9, box2 = { x: s2.x - z / 2, y: s2.y - z / 2, w: z, h: z };
+    if (offSheet(s2.x, s2.y)) add2("off-sheet", "warning", at4, `${s2.kind} at ${s2.x},${s2.y} is off the sheet`);
     const on = badges.find(({ b }) => overlaps(box2, b));
-    if (on) add2("warning", at4, `${s2.kind} at ${s2.x},${s2.y} is under room ${on.g.room.id}'s number; move the symbol`);
+    if (on) add2("mark-on-badge", "warning", at4, `${s2.kind} at ${s2.x},${s2.y} is under room ${on.g.room.id}'s number; move the symbol`);
   });
-  const labelBoxes = spec.overlay.labels.map((lb) => {
+  const labelBoxes = marks.labels.map((lb) => {
     const size2 = LABEL_CELLS[lb.kind] * (lb.size ?? 1), text3 = lb.kind === "area" ? lb.text.toUpperCase() : lb.text;
     return textBox(text3, lb.x, lb.y + size2 * 0.35, size2, { bold: lb.kind !== "note", spacing: lb.kind === "area" ? size2 * 0.16 : 0 });
   });
-  spec.overlay.labels.forEach((lb, i) => {
-    const at4 = `overlay.labels[${i}]`;
-    if (offSheet(lb.x, lb.y)) add2("warning", at4, `"${lb.text}" at ${lb.x},${lb.y} is off the sheet`);
-    const other = labelBoxes.findIndex((b, j) => j < i && !lb.angle && !spec.overlay.labels[j].angle && overlaps(labelBoxes[i], b));
-    if (other >= 0) add2("warning", at4, `"${lb.text}" overlaps label ${other} "${spec.overlay.labels[other].text}"`);
+  marks.labels.forEach((lb, i) => {
+    const at4 = marked.labelPath[i];
+    if (offSheet(lb.x, lb.y)) add2("off-sheet", "warning", at4, `"${lb.text}" at ${lb.x},${lb.y} is off the sheet`);
+    const other = labelBoxes.findIndex((b, j) => j < i && !lb.angle && !marks.labels[j].angle && overlaps(labelBoxes[i], b));
+    if (other >= 0) add2("label-overlap", "warning", at4, `"${lb.text}" overlaps label ${other} "${marks.labels[other].text}"`);
   });
   return out;
 }
-var MIN_AREA, LABEL_CELLS, NUMBER_CELLS, passable;
+var CHECK_IDS, MIN_AREA, LABEL_CELLS, NUMBER_CELLS, passable, opening, reversedPts;
 var init_lint = __esm({
   "../artgen-mapgen/src/dungeon/lint.ts"() {
     "use strict";
     init_page();
+    init_floor();
+    init_marks();
+    init_roomlabels();
     init_geom2();
     init_layout();
+    init_spec2();
+    CHECK_IDS = {
+      "outline-crosses": "a poly room's outline crosses itself",
+      "zero-wall": "a poly room repeats a corner (a zero-length wall)",
+      "no-floor": "a room has almost no floor",
+      "off-sheet": "a room, symbol or label lies off the sheet",
+      "runs-off-sheet": "a room runs past the sheet's edge",
+      "rooms-overlap": "two rooms are laid over each other",
+      "rooms-merge": "two floor rooms touch while shared walls are off, so their floors run together",
+      "repeated-bend": "a corridor's via repeats a bend",
+      "never-leaves": "a corridor never leaves a room it starts or ends at",
+      "port-outside-room": "a corridor end at a room starts outside that room, so it has no door and does not reach it",
+      "reenters-room": "a corridor leaves a room and runs back into it, drawing a passage over the rock between",
+      "end-in-room": "a corridor ends at a point inside a room",
+      "no-length": "a corridor has no length",
+      "through-room": "a corridor runs through a room it does not join",
+      "corridors-cross": "two corridors that share no room cross with no junction (corridors that leave one room may join and part)",
+      "maze-no-route": "a maze corridor found no passage (or its rooms touch, which a connection joins), so it is drawn as an elbow",
+      "corridor-along-wall": "a corridor runs along a room's wall with no wall drawn between them, so the floors run together",
+      "way-no-passage": "a way the file states draws no passage: a connection between rooms that share no wall, or a corridor between rooms laid over each other",
+      "wall-too-short": "a shared wall is narrower than the opening in it",
+      "connection-off-wall": "a connection's point is not on the wall the rooms share",
+      "door-off-wall": "a door stands in open floor or on rock, not on a wall between two floors",
+      "doors-stacked": "two doors stand on each other",
+      "mark-on-badge": "a symbol lies under a room's number",
+      "label-overlap": "a label lies over another label",
+      "outside-bounds": "a room or corridor has floor outside the level's bounds",
+      "in-keep-out": "a room or corridor has floor on an area of rock or a void"
+    };
     MIN_AREA = 0.5;
     LABEL_CELLS = { area: 24 / 40, name: 15 / 40, note: 12 / 40 };
     NUMBER_CELLS = 19 / 40;
     passable = (g) => g.room.fill === "cellar" || g.room.fill === "yard";
+    opening = (d) => {
+      const a = d.angle * Math.PI / 180, tx = -Math.sin(a) * d.width / 2, ty = Math.cos(a) * d.width / 2;
+      return [[d.x - tx, d.y - ty], [d.x + tx, d.y + ty]];
+    };
+    reversedPts = (p2) => {
+      const out = [];
+      for (let i = p2.length - 2; i >= 0; i -= 2) out.push(p2[i], p2[i + 1]);
+      return out;
+    };
   }
 });
 
@@ -14630,10 +15716,11 @@ function cornerPoint(at4) {
   const [x, y] = parsePoint2(at4);
   return /^\s*-?[\d.]+\s*,/.test(at4) ? [x, y] : [Math.floor(x), Math.floor(y)];
 }
-function corridorEnd(m, ref, side, offset) {
-  if (side !== void 0 && !SIDES.includes(side)) throw new Error(`--from-side / --to-side: ${SIDES.join(", ")}`);
-  if (m.rooms.some((r) => r.id === ref)) return { room: ref, ...side && { side }, ...side && offset !== void 0 && { offset } };
-  if (side) throw new Error(`a side goes with a room end, and ${ref} is not a room`);
+function corridorEnd(m, ref, side2, offset, port) {
+  if (side2 !== void 0 && !SIDES.includes(side2)) throw new Error(`--from-side / --to-side: ${SIDES.join(", ")}`);
+  if (side2 !== void 0 && port) throw new Error("a port or a side, not both");
+  if (m.rooms.some((r) => r.id === ref)) return { room: ref, ...side2 && { side: side2 }, ...side2 && offset !== void 0 && { offset }, ...port && { port } };
+  if (side2 || port) throw new Error(`a side or a port goes with a room end, and ${ref} is not a room`);
   const c = ref.replace(/^corridor:/, "");
   if (ref.startsWith("corridor:") || m.corridors.some((x) => x.id === c)) {
     if (!m.corridors.some((x) => x.id === c)) throw new Error(`no corridor with id ${c} (give one an id: link \u2026 --id ${c})`);
@@ -14690,18 +15777,29 @@ function linkEnds(m, a, b) {
   if (isBlock(eb)) eb = blockRoomNear(m, eb, ...centre(ea)) ?? eb;
   return [ea, eb];
 }
+function roomExtras(r, o) {
+  if (o.cut === null) delete r.cut;
+  else if (typeof o.cut === "number") r.cut = o.cut;
+  if (o.orient === null) delete r.orient;
+  else if (o.orient === "flat" || o.orient === "pointy") r.orient = o.orient;
+  if (o.exits === null) delete r.exits;
+  else if (Array.isArray(o.exits)) r.exits = o.exits;
+}
 function editDungeon(m, o) {
   switch (o.op) {
     case "add_room": {
-      const shape = o.shape, id2 = typeof o.id === "string" ? o.id : nextRoomId(m);
-      const r = shape === "poly" ? { id: id2, shape, points: numbers(o.points), ...polyBox(numbers(o.points)) } : { id: id2, shape, ...(([x, y]) => ({ x, y }))(corner(o.at ?? [o.x, o.y])), w: Number(o.w), h: Number(o.h) };
+      const shape2 = o.shape, id2 = typeof o.id === "string" ? o.id : nextRoomId(m);
+      const r = shape2 === "poly" ? { id: id2, shape: shape2, points: numbers(o.points), ...polyBox(numbers(o.points)) } : { id: id2, shape: shape2, ...(([x, y]) => ({ x, y }))(corner(o.at ?? [o.x, o.y])), w: Number(o.w), h: Number(o.h) };
       if (typeof o.label === "string") r.label = o.label;
       if (typeof o.number === "number" || o.number === false) r.number = o.number;
       if (typeof o.fill === "string" && o.fill) r.fill = o.fill;
+      if (o.anchor !== void 0 && o.anchor !== null) r.anchor = pt(o.anchor);
+      if (o.label_at !== void 0 && o.label_at !== null && o.label_at !== "") r.labelAt = labelAt(o.label_at);
+      roomExtras(r, o);
       if (typeof o.href === "string" && o.href) r.href = o.href;
       if (typeof o.origin === "string" && o.origin) r.origin = o.origin;
       m.rooms.push(r);
-      return `added ${shape} room ${id2}`;
+      return `added ${shape2} room ${id2}`;
     }
     case "move_room": {
       const r = room(m, o.room), [x, y] = corner(o.at ?? [o.x, o.y]), dx = x - r.x, dy = y - r.y;
@@ -14743,6 +15841,11 @@ function editDungeon(m, o) {
         if (o.href) r.href = o.href;
         else delete r.href;
       }
+      if (o.anchor === null || o.anchor === "") delete r.anchor;
+      else if (o.anchor !== void 0) r.anchor = pt(o.anchor);
+      if (o.label_at === null || o.label_at === "") delete r.labelAt;
+      else if (o.label_at !== void 0) r.labelAt = labelAt(o.label_at);
+      roomExtras(r, o);
       return `changed ${r.id}`;
     }
     case "remove_room": {
@@ -14751,17 +15854,18 @@ function editDungeon(m, o) {
     }
     case "link": {
       const [from, to] = linkEnds(m, o.from, o.to);
-      const end = (v, side, offset) => {
+      const end = (v, side2, offset, port) => {
         if (v && typeof v === "object" && !Array.isArray(v)) return v;
-        if (typeof v === "string") return corridorEnd(m, v, typeof side === "string" ? side : void 0, typeof offset === "number" ? offset : void 0);
+        if (typeof v === "string") return corridorEnd(m, v, typeof side2 === "string" ? side2 : void 0, typeof offset === "number" ? offset : void 0, port === void 0 || port === null ? void 0 : pt(port));
         return { at: pt(v) };
       };
-      const exit = o.exit && typeof o.exit === "object" ? o.exit : void 0, a = end(from, o.from_side, o.from_offset), b = end(to, o.to_side, o.to_offset);
+      const exit = o.exit && typeof o.exit === "object" ? o.exit : void 0, a = end(from, o.from_side, o.from_offset, o.from_port), b = end(to, o.to_side, o.to_offset, o.to_port);
       m.corridors.push({
         ...typeof o.id === "string" && { id: o.id },
         from: a,
         to: exit && "at" in b ? { ...b, exit } : b,
         ...typeof o.width === "number" && { width: o.width },
+        ...typeof o.span === "number" && { span: o.span },
         ...typeof o.route === "string" && { route: o.route },
         ...Array.isArray(o.via) && { via: numbers(o.via) },
         ...Array.isArray(o.doors) && { doors: o.doors },
@@ -14789,14 +15893,14 @@ function editDungeon(m, o) {
             break;
           }
         }
-        const shape = String(o.shape ?? "rect");
+        const shape2 = String(o.shape ?? "rect");
         let b;
-        if (shape === "poly") {
-          const points = numbers(o.points);
-          b = { id: id2, shape: "poly", points, ...polyBox(points), split };
+        if (shape2 === "poly") {
+          const points2 = numbers(o.points);
+          b = { id: id2, shape: "poly", points: points2, ...polyBox(points2), split };
         } else {
           const [x, y] = corner(o.at ?? [o.x, o.y]), w = Number(o.w), h = Number(o.h);
-          b = shape === "hex" ? { id: id2, shape: "poly", points: hexPoints(x, y, w, h), x, y, w, h, split } : { id: id2, shape, x, y, w, h, split };
+          b = shape2 === "hex" ? { id: id2, shape: "poly", points: hexPoints(x, y, w, h), x, y, w, h, split } : { id: id2, shape: shape2, x, y, w, h, split };
         }
         if (typeof o.doors === "number") b.doors = o.doors;
         (m.blocks ??= []).push(b);
@@ -14825,6 +15929,7 @@ function editDungeon(m, o) {
         ...o.at !== void 0 && { at: pt(o.at) },
         ...typeof o.kind === "string" && o.kind !== "door" && { kind: o.kind },
         ...typeof o.width === "number" && { width: o.width },
+        ...typeof o.span === "number" && { span: o.span },
         ...typeof o.origin === "string" && o.origin && { origin: o.origin }
       });
       return `connection ${m.connections.length - 1}: ${String(o.a)} \u2194 ${String(o.b)}`;
@@ -14847,7 +15952,7 @@ function editDungeon(m, o) {
   }
   throw new Error(`unknown op ${String(o.op)} (${DUNGEON_OPS.join(", ")})`);
 }
-var DUNGEON_OPS, pt, corner, numbers, show;
+var DUNGEON_OPS, pt, corner, numbers, labelAt, show;
 var init_edit = __esm({
   "../artgen-mapgen/src/dungeon/edit.ts"() {
     "use strict";
@@ -14858,14 +15963,595 @@ var init_edit = __esm({
     pt = (v) => Array.isArray(v) ? [Number(v[0]), Number(v[1])] : parsePoint2(String(v));
     corner = (v) => Array.isArray(v) ? pt(v) : cornerPoint(String(v));
     numbers = (v) => v.map(Number);
+    labelAt = (v) => typeof v === "string" && ["c", "n", "s", "w", "e"].includes(v) ? v : pt(v);
     show = (v) => typeof v === "string" ? v : JSON.stringify(v);
+  }
+});
+
+// ../artgen-mapgen/src/dungeon/graph.ts
+function outlineOf(shape2, w, h, points2) {
+  const a = w / 2, b = h / 2;
+  if (shape2 === "round") return Array.from({ length: CIRCLE }, (_, i) => [a * Math.cos(2 * Math.PI * i / CIRCLE), b * Math.sin(2 * Math.PI * i / CIRCLE)]);
+  if (shape2 === "octagon") {
+    const c = Math.min(w, h) / (2 + Math.SQRT2);
+    return [[-a + c, -b], [a - c, -b], [a, -b + c], [a, b - c], [a - c, b], [-a + c, b], [-a, b - c], [-a, -b + c]];
+  }
+  if (shape2 === "hexagon") return [[-a / 2, -b], [a / 2, -b], [a, 0], [a / 2, b], [-a / 2, b], [-a, 0]];
+  if (shape2 === "poly" && points2?.length) {
+    const area3 = points2.reduce((s2, p2, i) => {
+      const q = points2[(i + 1) % points2.length];
+      return s2 + p2[0] * q[1] - q[0] * p2[1];
+    }, 0);
+    return area3 > 0 ? points2 : points2.slice().reverse();
+  }
+  return [[-a, -b], [a, -b], [a, b], [-a, b]];
+}
+function forms(r) {
+  const out = [], seen = /* @__PURE__ */ new Set();
+  for (let k = 0; k < (r.turns ? 4 : 1); k++) for (const mirror of r.turns ? [false, true] : [false]) {
+    let pts2 = r.points;
+    if (pts2) {
+      pts2 = mirror ? pts2.map(([x, y]) => [-x, y]) : pts2;
+      for (let n = 0; n < k; n++) pts2 = pts2.map(([x, y]) => [-y, x]);
+    }
+    const [w, h] = k % 2 === 0 ? [r.w, r.h] : [r.h, r.w], id2 = `${w},${h},${pts2 ? pts2.map((p2) => p2.map((v) => Math.round(v * 1e6)).join(":")).sort().join(";") : ""}`;
+    if (seen.has(id2)) continue;
+    seen.add(id2);
+    const f = footprintAt(r.shape, 0, 0, w, h, pts2), [i0, j0, i1, j1] = f.span, holes = [];
+    for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) if (!f.touched.has(`${i},${j}`)) holes.push([i, j]);
+    const cells = [...f.touched].map((k2) => k2.split(",").map(Number));
+    out.push({ w, h, pts: pts2, floor: new Set(cells.map(([u, v]) => cellKey(u, v))), cells, holes });
+  }
+  return out;
+}
+function squares(rooms, fill2) {
+  const area3 = rooms.reduce((s2, r) => s2 + r.w * r.h, 0);
+  const base = Math.max(Math.ceil(Math.sqrt(area3 / fill2[1]) / GRID) * GRID, Math.max(...rooms.map((r) => Math.max(r.w, r.h))) + 2 * GRID);
+  const top = Math.max(base, Math.floor(Math.sqrt(area3 / fill2[0]) / GRID) * GRID), out = [];
+  for (let s2 = base; s2 <= top; s2 += GRID) out.push(s2);
+  return out;
+}
+function attempt(rooms, ways, side2, seed, passages, pins, glue, walls, detour, ground2, clearance) {
+  const p2 = new Packer(rooms, ways, side2, seed, passages, pins, glue, ground2);
+  p2.anneal();
+  const pairs2 = ways.map(([a, b]) => [a, b]);
+  let best = null;
+  for (let n = 0; n < REPAIRS; n++) {
+    const rects = p2.rects(), { routes, left } = plan(rects, pairs2, { walls, ground: ground2, seed: 1, clearance });
+    const far = left.length ? [] : detours(routes, rects, detour);
+    if (!left.length && p2.clear() && p2.over()) {
+      const score2 = [far.length, routes.reduce((s2, r) => s2 + r.length, 0)];
+      if (!best || score2[0] < best.score[0] || score2[0] === best.score[0] && score2[1] < best.score[1]) best = { ok: true, score: score2, energy: p2.total(), x: p2.x.slice(), y: p2.y.slice(), o: p2.o.slice() };
+      if (!far.length) break;
+    }
+    for (const name of [...left, ...far.map(([r]) => `${r.a} to ${r.b}`)]) {
+      const [a, b] = name.split(" to ").map((c) => p2.ix.get(c)), k = `${Math.min(a, b)},${Math.max(a, b)}`;
+      p2.setFix(a, b, p2.round[a] || p2.round[b] || p2.trouble.get(k) === "door" ? "lane" : "door");
+    }
+    p2.anneal(REPAIR_STEPS, 1, true);
+  }
+  return best ?? { ok: false, score: null, energy: p2.total(), x: p2.x, y: p2.y, o: p2.o };
+}
+function validateGraph(g) {
+  const e = [], ids = /* @__PURE__ */ new Set();
+  if (!g || !Array.isArray(g.rooms) || !g.rooms.length) return ["rooms: at least one room"];
+  g.rooms.forEach((r, i) => {
+    const at4 = `rooms[${i}]`;
+    if (typeof r?.id !== "string" || !/^[\w.-]+$/.test(r.id)) e.push(`${at4}.id: letters, digits, ., - and _`);
+    else if (ids.has(r.id)) e.push(`${at4}.id: ${r.id} is used twice`);
+    else ids.add(r.id);
+    for (const k of ["w", "h"]) if (!(typeof r?.[k] === "number" && r[k] > 0)) e.push(`${at4}.${k}: cells, above 0`);
+    if (r?.shape !== void 0 && !GRAPH_SHAPES.includes(r.shape)) e.push(`${at4}.shape: ${GRAPH_SHAPES.join(", ")}`);
+    if (r?.shape === "poly" && !(Array.isArray(r.points) && r.points.length >= 6 && r.points.length % 2 === 0)) e.push(`${at4}.points: at least 3 x,y pairs, cells from the box's centre`);
+  });
+  g.rooms.forEach((r, i) => {
+    if (r.against && !ids.has(r.against.room)) e.push(`rooms[${i}].against.room: no room ${r.against.room}`);
+  });
+  (Array.isArray(g.ways) ? g.ways : (e.push("ways: an array"), [])).forEach((w, i) => {
+    for (const k of ["a", "b"]) if (!ids.has(w?.[k])) e.push(`ways[${i}].${k}: no room ${JSON.stringify(w?.[k])}`);
+    if (w?.a === w?.b) e.push(`ways[${i}]: a way joins two rooms`);
+    if (w?.doors !== void 0 && !(Array.isArray(w.doors) && w.doors.length === 2 && w.doors.every((d) => d === null || DOOR_KINDS.includes(d)))) e.push(`ways[${i}].doors: [kind|null, kind|null]`);
+  });
+  if (g.footprint !== void 0 && !(typeof g.footprint === "number" && g.footprint > 0) && !(Array.isArray(g.footprint) && g.footprint.length >= 6 && g.footprint.length % 2 === 0)) e.push("footprint: a square's side in cells, or a polygon of x,y cells");
+  if (g.fill !== void 0 && !(Array.isArray(g.fill) && g.fill.length === 2 && g.fill[0] > 0 && g.fill[0] <= g.fill[1] && g.fill[1] < 1)) e.push("fill: [least, most], shares of the ground (0..1)");
+  if (g.passages !== void 0 && !(g.passages >= 0 && g.passages <= 1)) e.push("passages: a share, 0..1");
+  if (g.width !== void 0 && !(g.width >= 1 && g.width <= 6)) e.push("width: cells, 1..6");
+  if (g.clearance !== void 0 && g.clearance !== 0 && g.clearance !== 1) e.push("clearance: 0 or 1");
+  return e;
+}
+function layoutGraph(g) {
+  const errors = validateGraph(g);
+  if (errors.length) throw new Error(`invalid graph:
+  ${errors.join("\n  ")}`);
+  const cell3 = g.width ?? 2, f = LATTICE / cell3, u = (v) => v * f, c = (v) => Math.round(v / f * 1e6) / 1e6;
+  const rooms = g.rooms.map((r) => ({ code: r.id, w: u(r.w), h: u(r.h), shape: r.shape ?? "rect", points: r.points ? poly2(r.points).map(([x, y]) => [u(x), u(y)]) : void 0, hall: !!r.hall, turns: !!r.turns }));
+  const ways = [], seen = /* @__PURE__ */ new Set();
+  for (const w of g.ways) {
+    const k = [w.a, w.b].sort().join("|");
+    if (seen.has(k)) continue;
+    seen.add(k);
+    ways.push([w.a, w.b, w.bearing ?? null]);
+  }
+  const walls = /* @__PURE__ */ new Map();
+  for (const w of g.ways) if (w.wall !== void 0) walls.set(`${w.a}|${w.b}`, w.wall);
+  const glue = new Map(g.rooms.filter((r) => r.against).map((r) => [r.id, [r.against.room, u(r.against.dx), u(r.against.dy)]]));
+  const pins = new Map(g.rooms.filter((r) => r.over).map((r) => [r.id, [u(r.over.x + r.over.w / 2), u(r.over.y + r.over.h / 2), u(r.over.w), u(r.over.h)]]));
+  const clearance = g.clearance ?? 0, fill2 = g.fill ?? [0.35, 0.55], passages = g.passages ?? 0.35, detour = g.detour === void 0 ? null : u(g.detour), tries = g.tries ?? 12, seed = g.seed ?? 1;
+  const poly = Array.isArray(g.footprint) ? poly2(g.footprint).map(([x, y]) => [u(x), u(y)]) : null;
+  const ox = poly ? Math.min(...poly.map((p3) => p3[0])) : 0, oy = poly ? Math.min(...poly.map((p3) => p3[1])) : 0;
+  const shift2 = (p3) => p3.map(([x, y]) => [x - ox, y - oy]), shape2 = poly ? shift2(poly) : null;
+  const keep = (g.keepOut ?? []).map((k) => shift2(poly2(k).map(([x, y]) => [u(x), u(y)])));
+  const groundOf = (side3) => {
+    if (!shape2 && !keep.length) return null;
+    const cells = raster(shape2 ?? [[0, 0], [side3, 0], [side3, side3], [0, side3]], true);
+    for (const k of keep) for (const x of raster(k)) cells.delete(x);
+    return cells;
+  };
+  const sides = typeof g.footprint === "number" ? [Math.ceil(u(g.footprint) / GRID) * GRID] : shape2 ? [Math.ceil(Math.max(...shape2.flat()) / GRID) * GRID] : squares(rooms, fill2);
+  let chosen = null;
+  for (const side3 of sides) {
+    const ground3 = groundOf(side3), runs = [];
+    for (let k = 0; k < tries; k++) {
+      const r = attempt(rooms, ways, side3, seed * 1e3 + k, passages, pins, glue, walls, detour, ground3, clearance);
+      if (r.ok) runs.push(r);
+    }
+    if (runs.length) {
+      const run3 = runs.reduce((a, b) => b.score[0] < a.score[0] || b.score[0] === a.score[0] && (b.score[1] < a.score[1] || b.score[1] === a.score[1] && b.energy < a.energy) ? b : a);
+      chosen = { side: side3, run: run3, ground: ground3 };
+      break;
+    }
+  }
+  if (!chosen) throw new Error(`no packing of ${rooms.length} rooms left room for every passage at a side of ${sides.map(c).join(", ")} cells; try another seed, a larger footprint or fewer passages`);
+  const { side: side2, run: run2, ground: ground2 } = chosen;
+  const p2 = new Packer(rooms, ways, side2, seed, passages, pins, glue, ground2);
+  p2.x = run2.x;
+  p2.y = run2.y;
+  run2.o.forEach((k, i) => p2.lie(i, k));
+  const rects = p2.rects(), { routes, left } = plan(rects, ways.map(([a, b]) => [a, b]), { walls, ground: ground2, seed: 1, clearance });
+  const margin = g.margin ?? 2, X = (v) => c(v) + margin;
+  const idOf = (code) => code.replace(/[^\w-]+/g, "-");
+  const out = g.rooms.map((gr, i) => {
+    const r = rooms[i], shapeOf = { rect: "rect", cave: "cave", round: "circle", octagon: "octagon", hexagon: "hexagon", poly: "poly" };
+    const room3 = { id: idOf(r.code), shape: shapeOf[r.shape], x: X(p2.x[i] - p2.w[i] / 2), y: X(p2.y[i] - p2.h[i] / 2), w: c(p2.w[i]), h: c(p2.h[i]), ...gr.label !== void 0 ? { label: gr.label } : { label: r.code }, origin: "layout" };
+    if (r.shape === "octagon") room3.cut = 1 / (2 + Math.SQRT2);
+    if (r.shape === "poly") room3.points = outlineOf("poly", p2.w[i], p2.h[i], p2.pts[i]).flatMap(([x, y]) => [X(p2.x[i] + x), X(p2.y[i] + y)]);
+    return room3;
+  });
+  const wayOf = (a, b) => g.ways.find((w) => w.a === a && w.b === b || w.a === b && w.b === a);
+  const doorsOf = (r) => {
+    const w = wayOf(r.a, r.b), d = w.doors ?? ["door", null];
+    return w.a === r.a ? d : [d[1], d[0]];
+  };
+  const connections = [], corridors = [];
+  for (const r of routes) {
+    const [da, db] = doorsOf(r);
+    if (r.kind === "wall") {
+      connections.push({ a: idOf(r.a), b: idOf(r.b), at: [X(r.doorA[0]), X(r.doorA[1])], kind: da ?? db ?? "open", origin: "layout" });
+      continue;
+    }
+    const pts2 = routePoints(r);
+    corridors.push({
+      from: { room: idOf(r.a), port: [X(r.doorA[0]), X(r.doorA[1])] },
+      to: { room: idOf(r.b), port: [X(r.doorB[0]), X(r.doorB[1])] },
+      via: pts2.slice(1, -1).flatMap(([x, y]) => [X(x), X(y)]),
+      width: cell3,
+      doors: [da, db],
+      ...wayOf(r.a, r.b).style === "natural" && { style: "natural" },
+      origin: "layout"
+    });
+  }
+  const frame = (shape2 ?? [[0, 0], [side2, 0], [side2, side2], [0, side2]]).flatMap(([x, y]) => [X(x), X(y)]);
+  const spec = parseDungeon({
+    ...newDungeon(g.id ?? "layout", { seed, cols: Math.ceil(c(side2)) + 2 * margin, rows: Math.ceil(c(side2)) + 2 * margin, ...g.title && { title: g.title }, ...g.scale && { scale: g.scale } }),
+    numbers: false,
+    rooms: out,
+    corridors,
+    connections,
+    grid: { show: true, size: cell3, sub: true, clip: "floor" },
+    style: { hatch: "full", band: 0.9, wall: 1.5, sharedWalls: true },
+    bounds: frame,
+    ...keep.length && { areas: keep.map((k) => ({ points: k.flatMap(([x, y]) => [X(x), X(y)]), kind: "rock", origin: "layout" })) },
+    furniture: { place: "outside" }
+  });
+  const area3 = rooms.reduce((s2, r) => s2 + r.w * r.h, 0), groundArea = ground2 ? ground2.size * GRID * GRID : side2 * side2;
+  return {
+    spec,
+    report: {
+      side: c(side2),
+      fill: Math.round(area3 / groundArea * 1e3) / 1e3,
+      passages: routes.filter((r) => r.kind === "path").length,
+      walls: routes.filter((r) => r.kind === "wall").length,
+      corridorCells: routes.reduce((s2, r) => s2 + r.cells.length, 0),
+      left,
+      detours: detours(routes, rects, detour).map(([r, x]) => ({ a: r.a, b: r.b, extra: c(x) })),
+      tries,
+      energy: run2.energy
+    }
+  };
+}
+var GRID, DOOR, STEPS_N, FAR, OVER, CORNER, STRAIGHT, ROUND, CLOSE, PULL, REPAIR, LABELS, PIN, CONTACT, TURN_SHARE, NEST, LABEL_H, NAME_H, REPAIRS, REPAIR_STEPS, GRAPH_SHAPES, isSquare, footprintAt, cellKey, compass, share, Packer, poly2;
+var init_graph = __esm({
+  "../artgen-mapgen/src/dungeon/graph.ts"() {
+    "use strict";
+    init_rng();
+    init_router();
+    init_spec2();
+    GRID = LATTICE;
+    DOOR = 10;
+    STEPS_N = 6e4;
+    FAR = 120;
+    OVER = 40;
+    CORNER = 1;
+    STRAIGHT = 1;
+    ROUND = 3;
+    CLOSE = 1;
+    PULL = 4e-5;
+    REPAIR = 6;
+    LABELS = 8;
+    PIN = 2;
+    CONTACT = 0.25;
+    TURN_SHARE = 0.06;
+    NEST = 0.06;
+    LABEL_H = 15;
+    NAME_H = 7;
+    REPAIRS = 8;
+    REPAIR_STEPS = 2e4;
+    GRAPH_SHAPES = ["rect", "cave", "round", "octagon", "hexagon", "poly"];
+    isSquare = (shape2) => shape2 === "rect" || shape2 === "cave";
+    footprintAt = (shape2, x, y, w, h, pts2) => new Footprint(x, y, w, h, outlineOf(shape2, w, h, pts2).map(([u, v]) => [x + w / 2 + u, y + h / 2 + v]), isSquare(shape2));
+    cellKey = (u, v) => (u + 512) * 2048 + (v + 512);
+    compass = (b) => [Math.sin(b * Math.PI / 180), -Math.cos(b * Math.PI / 180)];
+    share = (s2) => {
+      let h = 2166136261;
+      for (let i = 0; i < s2.length; i++) h = Math.imul(h ^ s2.charCodeAt(i), 16777619) >>> 0;
+      return h % 100;
+    };
+    Packer = class {
+      rooms;
+      side;
+      ground;
+      ix;
+      round;
+      lies;
+      boxed;
+      o;
+      w;
+      h;
+      pts;
+      floor;
+      fcells;
+      edges = /* @__PURE__ */ new Map();
+      passage = /* @__PURE__ */ new Set();
+      pins = /* @__PURE__ */ new Map();
+      near;
+      trouble = /* @__PURE__ */ new Map();
+      rand;
+      x;
+      y;
+      /** Per pair i * n + j (i < j): joined (1), a passage (2), the bearing to keep, and the repair it needs (1 door, 2 lane). */
+      link;
+      keepDir;
+      fix;
+      codeLen;
+      glue = /* @__PURE__ */ new Map();
+      free;
+      carrying;
+      turners;
+      notched;
+      constructor(rooms, ways, side2, seed, passages, pins, glue, ground2) {
+        this.rooms = rooms;
+        this.side = side2;
+        this.ground = ground2;
+        this.ix = new Map(rooms.map((r, i) => [r.code, i]));
+        this.round = rooms.map((r) => r.shape === "round");
+        this.lies = rooms.map(forms);
+        this.boxed = rooms.map((r) => isSquare(r.shape));
+        const n = rooms.length;
+        this.o = new Array(n).fill(0);
+        this.w = new Array(n).fill(0);
+        this.h = new Array(n).fill(0);
+        this.pts = new Array(n).fill(void 0);
+        this.floor = new Array(n).fill(/* @__PURE__ */ new Set());
+        this.fcells = new Array(n).fill([]);
+        for (let i = 0; i < n; i++) this.lie(i, 0);
+        for (const [a, b, br] of ways) {
+          let i = this.ix.get(a), j = this.ix.get(b), v = br === null ? null : compass(br);
+          if (i > j) {
+            [i, j] = [j, i];
+            if (v) v = [-v[0], -v[1]];
+          }
+          this.edges.set(`${i},${j}`, v);
+        }
+        for (const k of this.edges.keys()) {
+          const [i, j] = k.split(",").map(Number);
+          if (share(`${rooms[i].code}-${rooms[j].code}`) < passages * 100) this.passage.add(k);
+        }
+        this.link = new Uint8Array(n * n);
+        this.keepDir = new Array(n * n).fill(null);
+        this.fix = new Uint8Array(n * n);
+        this.codeLen = rooms.map((r) => r.code.length);
+        for (const [k, v] of this.edges) {
+          const [i, j] = k.split(",").map(Number);
+          this.link[i * n + j] = this.passage.has(k) ? 2 : 1;
+          this.keepDir[i * n + j] = v;
+        }
+        for (const [c, p2] of pins) if (this.ix.has(c)) this.pins.set(this.ix.get(c), p2);
+        this.near = rooms.map((_, i) => rooms.map((__, j) => j).filter((j) => this.edges.has(`${Math.min(i, j)},${Math.max(i, j)}`)));
+        this.rand = rng(seed >>> 0 || 1);
+        this.x = new Array(n).fill(0);
+        this.y = new Array(n).fill(0);
+        for (const [c, [a, dx, dy]] of glue) if (this.ix.has(c) && this.ix.has(a)) this.glue.set(this.ix.get(c), [this.ix.get(a), dx, dy]);
+        this.free = rooms.map((_, i) => i).filter((i) => !this.glue.has(i));
+        this.carrying = new Set([...this.glue.values()].map((g) => g[0]));
+        this.turners = this.free.filter((i) => this.lies[i].length > 1 && !this.carrying.has(i));
+        this.notched = rooms.map((_, i) => i).filter((i) => this.lies[i].some((f) => f.holes.length));
+      }
+      randint(a, b) {
+        return a + Math.floor(this.rand() * (b - a + 1));
+      }
+      choice(xs) {
+        return xs[Math.floor(this.rand() * xs.length)];
+      }
+      lie(i, k) {
+        this.o[i] = k;
+        const f = this.lies[i][k];
+        this.w[i] = f.w;
+        this.h[i] = f.h;
+        this.pts[i] = f.pts;
+        this.floor[i] = f.floor;
+        this.fcells[i] = f.cells;
+      }
+      follow() {
+        for (let n = 0; n < this.glue.size; n++) for (const [i, [j, dx, dy]] of this.glue) {
+          this.x[i] = this.x[j] + dx;
+          this.y[i] = this.y[j] + dy;
+        }
+      }
+      snap(i, x, y) {
+        return [Math.round((x - this.w[i] / 2) / GRID) * GRID + this.w[i] / 2, Math.round((y - this.h[i] / 2) / GRID) * GRID + this.h[i] / 2];
+      }
+      box(i, x = this.x[i], y = this.y[i]) {
+        return [x - this.w[i] / 2, y - this.h[i] / 2, x + this.w[i] / 2, y + this.h[i] / 2];
+      }
+      gaps(i, j, xi, yi) {
+        const a = this.box(i, xi, yi), b = this.box(j);
+        return [Math.max(b[0] - a[2], a[0] - b[2]), Math.max(b[1] - a[3], a[1] - b[3])];
+      }
+      face(i, j, xi, yi) {
+        const a = this.box(i, xi, yi), b = this.box(j), sx = Math.max(b[0] - a[2], a[0] - b[2]), sy = Math.max(b[1] - a[3], a[1] - b[3]);
+        let best = null;
+        if (sx >= 0 && Math.min(a[3], b[3]) - Math.max(a[1], b[1]) >= DOOR) best = ["x", sx];
+        if (sy >= 0 && Math.min(a[2], b[2]) - Math.max(a[0], b[0]) >= DOOR && (!best || sy < best[1])) best = ["y", sy];
+        return best;
+      }
+      offsets(i, j, xi, yi) {
+        const a = this.box(i, xi, yi), b = this.box(j);
+        return [Math.round((b[0] - a[0]) / GRID), Math.round((b[1] - a[1]) / GRID)];
+      }
+      shared(i, j, xi, yi) {
+        const [di, dj] = this.offsets(i, j, xi, yi), theirs = this.floor[j];
+        let n = 0;
+        for (const [u, v] of this.fcells[i]) if (theirs.has(cellKey(u - di, v - dj))) n++;
+        return n;
+      }
+      contact(i, j, xi, yi) {
+        const [di, dj] = this.offsets(i, j, xi, yi), theirs = this.floor[j];
+        let n = 0;
+        for (const [u, v] of this.fcells[i]) {
+          const k = cellKey(u - di, v - dj);
+          if (theirs.has(k + 2048)) n++;
+          if (theirs.has(k - 2048)) n++;
+          if (theirs.has(k + 1)) n++;
+          if (theirs.has(k - 1)) n++;
+        }
+        return n;
+      }
+      /** Mark the way between i and j as needing a door (1) or a lane (2) on the next anneal. */
+      setFix(i, j, mode) {
+        const n = this.w.length, k = Math.min(i, j) * n + Math.max(i, j);
+        this.fix[k] = mode === "door" ? 1 : 2;
+        this.trouble.set(`${Math.min(i, j)},${Math.max(i, j)}`, mode);
+      }
+      pair(i, j, xi, yi) {
+        const X = xi ?? this.x[i], Y = yi ?? this.y[i], hw = this.w[i] / 2, hh = this.h[i] / 2, jw = this.w[j] / 2, jh = this.h[j] / 2;
+        const sx = Math.max(this.x[j] - jw - (X + hw), X - hw - (this.x[j] + jw)), sy = Math.max(this.y[j] - jh - (Y + hh), Y - hh - (this.y[j] + jh));
+        if (sx < 0 && sy < 0) {
+          if (this.boxed[i] && this.boxed[j]) return OVER * (1 + Math.min(-sx, -sy) / GRID);
+          const n = this.shared(i, j, xi, yi);
+          if (n) return OVER * (1 + Math.sqrt(n));
+        }
+        const touching = sx <= 0 && sy <= 0 && !(this.boxed[i] && this.boxed[j]) ? this.contact(i, j, xi, yi) : 0;
+        const lw = 5 * (0.8 * (this.codeLen[i] + this.codeLen[j]) / 2 + 1);
+        const lh = ((this.rooms[i].hall ? NAME_H : LABEL_H) + (this.rooms[j].hall ? NAME_H : LABEL_H)) / 2;
+        const e = -CONTACT * touching + this.pairCost(i, j, sx, sy, xi, yi, touching);
+        if (Math.abs(this.x[j] - X) < lw && Math.abs(this.y[j] - Y) < lh) return LABELS + e;
+        return e;
+      }
+      pairCost(i, j, sx, sy, xi, yi, touching = 0) {
+        const n = this.w.length, k = Math.min(i, j) * n + Math.max(i, j), link2 = this.link[k];
+        if (!link2) return 0;
+        const gap = Math.max(sx, sy, 0), f = this.face(i, j, xi, yi) ?? (touching ? ["set in", 0] : null);
+        let e;
+        if (link2 === 2) {
+          e = gap < 2 * GRID ? CLOSE : 0;
+          e += f && gap > 0 ? STRAIGHT : 0;
+          e += Math.hypot(Math.max(sx, 0), Math.max(sy, 0)) / 60;
+        } else e = f ? gap / 80 : CORNER + gap / 80 + Math.hypot(Math.max(sx, 0), Math.max(sy, 0)) / 60;
+        if ((this.round[i] || this.round[j]) && gap < GRID) e += ROUND;
+        if (gap > FAR) e += 3 * (gap - FAR) / GRID;
+        const want2 = this.keepDir[k];
+        if (want2) {
+          const s2 = i < j ? 1 : -1, dx = (this.x[j] - (xi ?? this.x[i])) * s2, dy = (this.y[j] - (yi ?? this.y[i])) * s2;
+          e += 1.2 * (1 - (dx * want2[0] + dy * want2[1]) / (Math.hypot(dx, dy) || 1));
+        }
+        const mode = this.fix[k];
+        if (mode === 1 && !(f && gap === 0) || mode === 2 && !(f && 2 * GRID <= gap && gap <= 4 * GRID)) e += REPAIR;
+        return e;
+      }
+      inside(i, x, y) {
+        const a = this.box(i, x, y);
+        let e = 0;
+        if (this.ground) {
+          const di = Math.round(a[0] / GRID), dj = Math.round(a[1] / GRID);
+          for (const [u, v] of this.fcells[i]) if (!this.ground.has(`${u + di},${v + dj}`)) e += OVER;
+        }
+        for (const [lo, hi] of [[a[0], a[2]], [a[1], a[3]]]) {
+          if (lo < 0) e += OVER * (-lo / GRID + 1);
+          if (hi > this.side) e += OVER * ((hi - this.side) / GRID + 1);
+        }
+        return e;
+      }
+      pin(i, x, y) {
+        const p2 = this.pins.get(i);
+        return p2 ? PIN * Math.hypot((x ?? this.x[i]) - p2[0], (y ?? this.y[i]) - p2[1]) / GRID : 0;
+      }
+      over() {
+        for (const [i, [tx, ty, w, h]] of this.pins) if (!(Math.abs(this.x[i] - tx) < (this.w[i] + w) / 2 && Math.abs(this.y[i] - ty) < (this.h[i] + h) / 2)) return false;
+        return true;
+      }
+      local(i, x, y) {
+        const cx = (x ?? this.x[i]) - this.side / 2, cy = (y ?? this.y[i]) - this.side / 2;
+        let e = this.inside(i, x, y) + this.pin(i, x, y) + PULL * (cx * cx + cy * cy) / GRID ** 2 * 100;
+        for (let j = 0; j < this.w.length; j++) if (j !== i) e += this.pair(i, j, x, y);
+        return e;
+      }
+      total() {
+        const n = this.w.length;
+        let e = 0;
+        for (let i = 0; i < n; i++) e += this.inside(i) + this.pin(i) + PULL * 100 * ((this.x[i] - this.side / 2) ** 2 + (this.y[i] - this.side / 2) ** 2) / GRID ** 2;
+        for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) e += this.pair(i, j);
+        return e;
+      }
+      /** Rooms in order of the ways, each against the one before it. */
+      place() {
+        const n = this.w.length, order = [0];
+        for (let k = 0; k < order.length; k++) for (const j of this.near[order[k]]) if (!order.includes(j)) order.push(j);
+        for (let i = 0; i < n; i++) if (!order.includes(i)) order.push(i);
+        [this.x[order[0]], this.y[order[0]]] = this.snap(order[0], this.side / 2, this.side / 2);
+        for (let k = 1; k < order.length; k++) {
+          const i = order[k], placed = order.slice(0, k), anchors2 = this.near[i].filter((j) => placed.includes(j));
+          [this.x[i], this.y[i]] = this.against(i, this.choice(anchors2.length ? anchors2 : placed));
+        }
+        this.follow();
+      }
+      /** A spot for room i against room j, on a side and at an offset chosen at random. */
+      against(i, j) {
+        const side2 = this.choice(["n", "e", "s", "w"]), gap = this.choice([0, 0, GRID, 2 * GRID]), sign = side2 === "n" || side2 === "w" ? -1 : 1;
+        const slide = (a, b) => Math.max(0, Math.floor((a + b) / 2) - DOOR);
+        if (side2 === "n" || side2 === "s") {
+          const y = this.y[j] + sign * ((this.h[j] + this.h[i]) / 2 + gap), s3 = slide(this.w[j], this.w[i]);
+          return this.snap(i, this.x[j] + this.randint(-s3, s3), y);
+        }
+        const x = this.x[j] + sign * ((this.w[j] + this.w[i]) / 2 + gap), s2 = slide(this.h[j], this.h[i]);
+        return this.snap(i, x, this.y[j] + this.randint(-s2, s2));
+      }
+      anneal(steps = STEPS_N, t0 = 3, again = false) {
+        const n = this.w.length, t1 = 0.04, accept = (d, t) => d <= 0 || this.rand() < Math.exp(-d / t);
+        if (!again) this.place();
+        let cur = this.total(), best = cur, bestAt = [this.x.slice(), this.y.slice(), this.o.slice()];
+        const keep = () => {
+          if (cur < best - 1e-9) {
+            best = cur;
+            bestAt = [this.x.slice(), this.y.slice(), this.o.slice()];
+          }
+        };
+        for (let s2 = 0; s2 < steps; s2++) {
+          const t = t0 * (t1 / t0) ** (s2 / steps);
+          if (this.turners.length && this.rand() < TURN_SHARE) {
+            const i2 = this.choice(this.turners), old = [this.o[i2], this.x[i2], this.y[i2]], before = this.local(i2);
+            this.lie(i2, this.choice(this.lies[i2].map((_, k) => k).filter((k) => k !== old[0])));
+            [this.x[i2], this.y[i2]] = this.snap(i2, old[1], old[2]);
+            const after = this.local(i2);
+            if (accept(after - before, t)) {
+              cur += after - before;
+              keep();
+            } else {
+              this.lie(i2, old[0]);
+              this.x[i2] = old[1];
+              this.y[i2] = old[2];
+            }
+            continue;
+          }
+          const i = this.glue.size ? this.choice(this.free) : Math.floor(this.rand() * n);
+          let nx = 0, ny = 0, r;
+          if (this.notched.length && this.rand() < NEST) {
+            const j = this.choice(this.notched), holes = this.lies[j][this.o[j]].holes;
+            if (j === i || this.carrying.has(i) || !holes.length) continue;
+            const [hi, hj] = this.choice(holes), ci = Math.floor(this.rand() * Math.max(1, Math.round(this.w[i] / GRID))), cj = Math.floor(this.rand() * Math.max(1, Math.round(this.h[i] / GRID)));
+            [nx, ny] = this.snap(i, this.x[j] - this.w[j] / 2 + (hi - ci) * GRID + this.w[i] / 2, this.y[j] - this.h[j] / 2 + (hj - cj) * GRID + this.h[i] / 2);
+            r = 1;
+          } else r = this.rand();
+          if (r < 0.55) {
+            const reach = Math.max(GRID, Math.floor(50 * (1 - s2 / steps)));
+            [nx, ny] = this.snap(i, this.x[i] + this.randint(-reach, reach), this.y[i] + this.randint(-reach, reach));
+          } else if (r < 0.9 && this.near[i].length) [nx, ny] = this.against(i, this.choice(this.near[i]));
+          else if (r < 1) {
+            const j = Math.floor(this.rand() * n);
+            if (j === i || this.glue.size && (this.glue.has(i) || this.glue.has(j) || this.carrying.has(i) || this.carrying.has(j))) continue;
+            const before = this.local(i) + this.local(j) - this.pair(i, j), old = [this.x[i], this.y[i], this.x[j], this.y[j]];
+            [this.x[i], this.y[i]] = this.snap(i, old[2], old[3]);
+            [this.x[j], this.y[j]] = this.snap(j, old[0], old[1]);
+            const after = this.local(i) + this.local(j) - this.pair(i, j);
+            if (accept(after - before, t)) cur += after - before;
+            else {
+              this.x[i] = old[0];
+              this.y[i] = old[1];
+              this.x[j] = old[2];
+              this.y[j] = old[3];
+            }
+            continue;
+          }
+          if (this.carrying.has(i)) {
+            const old = [this.x.slice(), this.y.slice()], before = this.total();
+            this.x[i] = nx;
+            this.y[i] = ny;
+            this.follow();
+            const after = this.total();
+            if (accept(after - before, t)) cur += after - before;
+            else {
+              this.x = old[0];
+              this.y = old[1];
+            }
+          } else {
+            const before = this.local(i), after = this.local(i, nx, ny);
+            if (accept(after - before, t)) {
+              this.x[i] = nx;
+              this.y[i] = ny;
+              cur += after - before;
+            }
+          }
+          keep();
+        }
+        this.x = bestAt[0].slice();
+        this.y = bestAt[1].slice();
+        bestAt[2].forEach((k, i) => this.lie(i, k));
+        return this.total();
+      }
+      /** Whether no two rooms overlap and every room lies in the square. */
+      clear() {
+        const n = this.w.length;
+        for (let i = 0; i < n; i++) if (this.inside(i) !== 0) return false;
+        for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) if (!(Math.max(...this.gaps(i, j)) >= 0 || !(this.boxed[i] && this.boxed[j]) && !this.shared(i, j))) return false;
+        return true;
+      }
+      rects() {
+        return new Map(this.rooms.map((r, i) => [r.code, footprintAt(r.shape, this.x[i] - this.w[i] / 2, this.y[i] - this.h[i] / 2, this.w[i], this.h[i], this.pts[i])]));
+      }
+    };
+    poly2 = (v) => {
+      const out = [];
+      for (let i = 0; i + 1 < v.length; i += 2) out.push([v[i], v[i + 1]]);
+      return out;
+    };
   }
 });
 
 // ../artgen-mapgen/src/dungeon/index.ts
 var dungeon_exports = {};
 __export(dungeon_exports, {
+  AREA_KINDS: () => AREA_KINDS,
   BLOCK_SHAPES: () => BLOCK_SHAPES,
+  CHECK_IDS: () => CHECK_IDS,
   CORRIDOR_STYLES: () => CORRIDOR_STYLES,
   CURVES: () => CURVES,
   DEFAULTS: () => DEFAULTS2,
@@ -14875,19 +16561,27 @@ __export(dungeon_exports, {
   DUNGEON_LAYERS: () => DUNGEON_LAYERS,
   DUNGEON_OPS: () => DUNGEON_OPS,
   EXIT_FADE: () => EXIT_FADE,
+  EXIT_INSET: () => EXIT_INSET,
   FACTS_RULES: () => RULES2,
   FURNITURE_PLACES: () => FURNITURE_PLACES,
   FURNITURE_SIDES: () => FURNITURE_SIDES,
+  Footprint: () => Footprint,
   GATE_KINDS: () => GATE_KINDS,
   GEN_LAYOUTS: () => GEN_LAYOUTS,
+  GRAPH_SHAPES: () => GRAPH_SHAPES,
   HATCH_STYLES: () => HATCH_STYLES,
   LABEL_KINDS: () => LABEL_KINDS2,
+  LABEL_SIDES: () => LABEL_SIDES,
+  LATTICE: () => LATTICE,
   LEGEND_NAMES: () => LEGEND_NAMES,
   MARK_DISTANCE: () => MARK_DISTANCE2,
   MAX_SIDE: () => MAX_SIDE2,
+  ROCK_STYLES: () => ROCK_STYLES,
+  ROOM_EXIT_KINDS: () => ROOM_EXIT_KINDS,
   ROOM_FILLS: () => ROOM_FILLS,
   ROOM_SHAPES: () => ROOM_SHAPES,
   ROUTES: () => ROUTES,
+  Router: () => Router,
   SCALE_UNITS: () => SCALE_UNITS,
   SIDES: () => SIDES,
   SPLIT_MODES: () => SPLIT_MODES,
@@ -14895,6 +16589,7 @@ __export(dungeon_exports, {
   SYMBOL_KINDS: () => SYMBOL_KINDS2,
   WALL_DEFAULTS: () => WALL_DEFAULTS,
   WALL_TOWER_SHAPES: () => WALL_TOWER_SHAPES,
+  adjacency: () => adjacency,
   applyBlock: () => applyBlock,
   badgeBox: () => badgeBox,
   blockOutline: () => blockOutline,
@@ -14904,47 +16599,66 @@ __export(dungeon_exports, {
   contentBox: () => contentBox,
   convexHull: () => convexHull,
   cornerPoint: () => cornerPoint,
+  corridorBoundaries: () => corridorBoundaries,
   corridorDeps: () => corridorDeps,
   corridorEnd: () => corridorEnd,
   corridorOrder: () => corridorOrder,
+  corridorPieces: () => corridorPieces,
+  corridorWallsOn: () => corridorWallsOn,
+  corridorWidth: () => corridorWidth,
   coversContent: () => coversContent,
   doorPair: () => doorPair,
+  doorStand: () => doorStand,
   dungeonFacts: () => dungeonFacts,
   dungeonFurniture: () => dungeonFurniture,
   dungeonLabelLayout: () => dungeonLabelLayout,
   dungeonLayersFor: () => dungeonLayersFor,
   dungeonRenderSize: () => dungeonRenderSize,
   editDungeon: () => editDungeon,
+  fileMarks: () => fileMarks,
   fitDungeon: () => fitDungeon,
+  floorGrid: () => floorGrid,
   generateDungeon: () => generateDungeon,
   geom: () => geom_exports2,
   gridFromUnits: () => gridFromUnits,
   gridInUnits: () => gridInUnits,
   gridMode: () => gridMode,
+  gridRows: () => gridRows,
   hexPoints: () => hexPoints,
   hrefError: () => hrefError,
+  inBand: () => inBand,
+  inCorridor: () => inCorridor,
   inPolygon: () => inPolygon,
   layoutDungeon: () => layoutDungeon,
   layoutExits: () => layoutExits,
+  layoutGraph: () => layoutGraph,
   layoutWalls: () => layoutWalls,
   linkEnds: () => linkEnds,
   linked: () => linked,
   lintDungeon: () => lintDungeon,
+  nameSize: () => nameSize,
   newDungeon: () => newDungeon,
   nextCorridorId: () => nextCorridorId,
   nextRoomId: () => nextRoomId,
+  numberSize: () => numberSize,
   offsetRing: () => offsetRing,
   originError: () => originError2,
+  ownerName: () => ownerName,
+  ownersAt: () => ownersAt,
   parseDungeon: () => parseDungeon,
   parsePoint: () => parsePoint2,
   placeFurniture: () => placeFurniture,
+  planRoutes: () => plan,
   polyBox: () => polyBox,
   removeBlock: () => removeBlock,
   removeCorridor: () => removeCorridor,
   removeRoom: () => removeRoom,
   renderDungeonSvg: () => renderDungeonSvg,
+  rockOf: () => rockOf,
   roomCrop: () => roomCrop,
+  roomLabelLayout: () => roomLabelLayout,
   roomOutline: () => roomOutline,
+  routeDetours: () => detours,
   sharedWallsOn: () => sharedWallsOn,
   singleRoom: () => singleRoom,
   splitBlock: () => splitBlock,
@@ -14953,7 +16667,9 @@ __export(dungeon_exports, {
   underlaySvg: () => underlaySvg,
   underlayWindow: () => underlayWindow,
   validateDungeon: () => validateDungeon,
+  validateGraph: () => validateGraph,
   wallFacts: () => wallFacts,
+  withMarks: () => withMarks,
   withoutDangling: () => withoutDangling,
   wrapText: () => wrapText
 });
@@ -14970,11 +16686,17 @@ var init_dungeon = __esm({
     init_underlay();
     init_sync3();
     init_lint();
+    init_floor();
     init_geom2();
     init_furniture();
     init_exits();
     init_blocks();
     init_edit();
+    init_roomlabels();
+    init_marks();
+    init_render2();
+    init_graph();
+    init_router();
   }
 });
 
@@ -15312,7 +17034,7 @@ function validateSettlement(raw) {
   uniqueIds(areas, "areas", e);
   areas.forEach((a, i) => {
     const at4 = `areas[${i}]`;
-    if (!AREA_KINDS.includes(a?.kind)) e.push(`${at4}.kind: one of ${AREA_KINDS.join(", ")}`);
+    if (!AREA_KINDS2.includes(a?.kind)) e.push(`${at4}.kind: one of ${AREA_KINDS2.join(", ")}`);
     if (!pairs(a?.points, 3)) e.push(`${at4}.points: at least 3 x,y pairs`);
     if (a?.label !== void 0 && typeof a.label !== "string") e.push(`${at4}.label: text`);
     originError2(a, at4, e);
@@ -15418,7 +17140,7 @@ function removeBuilding(m, id2) {
   m.buildings = m.buildings.filter((b) => b.id !== id2);
   return m.buildings.length !== n;
 }
-var SETTLEMENT_KINDS, GROUNDS, STREET_PLANS, GEN_WALLS, GEN_WATERS, ROAD_KINDS, ROAD_WIDTH_FT, WATER_KINDS, WATER_LINES, WATER_WIDTH_FT, WALL_KINDS, WALL_THICK_FT, TOWER_SHAPES, GATE_KINDS2, BUILDING_KINDS, BUILDING_SHAPES, ROOFS, AREA_KINDS, TREE_KINDS, LABEL_KINDS3, CURVES2, SETTLEMENT_FORMAT, MIGRATIONS3, MAX_SIDE3, KIND_DEFAULTS, DEFAULTS3, isNum3, nums3, isPoint2, idOk, pairs, planFactor, unitsToCells, floorAt, floorName;
+var SETTLEMENT_KINDS, GROUNDS, STREET_PLANS, GEN_WALLS, GEN_WATERS, ROAD_KINDS, ROAD_WIDTH_FT, WATER_KINDS, WATER_LINES, WATER_WIDTH_FT, WALL_KINDS, WALL_THICK_FT, TOWER_SHAPES, GATE_KINDS2, BUILDING_KINDS, BUILDING_SHAPES, ROOFS, AREA_KINDS2, TREE_KINDS, LABEL_KINDS3, CURVES2, SETTLEMENT_FORMAT, MIGRATIONS3, MAX_SIDE3, KIND_DEFAULTS, DEFAULTS3, isNum3, nums3, isPoint2, idOk, pairs, planFactor, unitsToCells, floorAt, floorName;
 var init_spec3 = __esm({
   "../artgen-mapgen/src/settlement/spec.ts"() {
     "use strict";
@@ -15463,9 +17185,9 @@ var init_spec3 = __esm({
     ];
     BUILDING_SHAPES = ["rect", "L", "T", "circle", "octagon", "poly"];
     ROOFS = ["gable", "hip", "flat", "battlement", "cone", "thatch", "none"];
-    AREA_KINDS = ["field", "garden", "orchard", "wood", "scrub", "marsh", "graveyard", "market", "square", "yard", "paddock", "rubble"];
+    AREA_KINDS2 = ["field", "garden", "orchard", "wood", "scrub", "marsh", "graveyard", "market", "square", "yard", "paddock", "rubble"];
     TREE_KINDS = ["tree", "conifer", "bush", "rock", "boulder", "stump", "reeds"];
-    LABEL_KINDS3 = ["name", "note", "area", "street"];
+    LABEL_KINDS3 = ["name", "note", "area", "street", "water"];
     CURVES2 = ["none", "smooth"];
     SETTLEMENT_FORMAT = 1;
     MIGRATIONS3 = {};
@@ -15678,7 +17400,7 @@ function along(pts2, step, start = 0) {
 }
 function wallGeom2(spec, index, water2) {
   const w = spec.walls[index], closed = !!w.closed, pts2 = w.points.slice(), thickness = wallThickness(spec, w);
-  const t = w.towers, size2 = t?.size ?? Math.max(1, TOWER_FT / spec.scale.perCell), shape = t?.shape ?? "round";
+  const t = w.towers, size2 = t?.size ?? Math.max(1, TOWER_FT / spec.scale.perCell), shape2 = t?.shape ?? "round";
   const towers = [];
   const nVert = pts2.length / 2, segAngle = (i) => {
     const j = closed ? (i + 1) % nVert : Math.min(i + 1, nVert - 1), k = j === i ? i - 1 : i;
@@ -15687,13 +17409,13 @@ function wallGeom2(spec, index, water2) {
   };
   if (t) {
     const verts = t.at === void 0 || t.at === "corners" ? t.every && t.at === void 0 ? [] : Array.from({ length: nVert }, (_, i) => i) : t.at.filter((i) => i >= 0 && i < nVert);
-    for (const i of verts) towers.push({ x: pts2[2 * i], y: pts2[2 * i + 1], shape, size: size2, angle: segAngle(i) });
+    for (const i of verts) towers.push({ x: pts2[2 * i], y: pts2[2 * i + 1], shape: shape2, size: size2, angle: segAngle(i) });
     if (t.every) {
       const ring2 = closed ? [...pts2, pts2[0], pts2[1]] : pts2, total = lineLength2(ring2), n = Math.max(1, Math.round(total / t.every));
-      for (const p2 of along(ring2, total / n, 0)) if (!towers.some((q) => Math.hypot(q.x - p2.x, q.y - p2.y) < size2 * 1.2)) towers.push({ x: p2.x, y: p2.y, shape, size: size2, angle: p2.angle });
+      for (const p2 of along(ring2, total / n, 0)) if (!towers.some((q) => Math.hypot(q.x - p2.x, q.y - p2.y) < size2 * 1.2)) towers.push({ x: p2.x, y: p2.y, shape: shape2, size: size2, angle: p2.angle });
     }
   }
-  const [mx, my] = closed ? centroid(pts2) : [NaN, NaN];
+  const [mx, my] = closed ? centroid2(pts2) : [NaN, NaN];
   const gates = (w.gates ?? []).map((g) => {
     const s2 = snapToLine(pts2, closed, g.at), width = g.width ?? Math.max(0.6, GATE_FT[g.kind] / spec.scale.perCell);
     let nx = -Math.sin(s2.angle * DEG), ny = Math.cos(s2.angle * DEG);
@@ -15713,8 +17435,8 @@ function wallGeom2(spec, index, water2) {
   });
   const kept = towers.filter((tw) => !gates.some((g) => g.kind !== "postern" && Math.hypot(tw.x - g.x, tw.y - g.y) < g.width / 2 + tw.size * 0.4));
   for (const g of gates) if (g.kind === "gatehouse") {
-    const dx = Math.cos(g.angle * DEG), dy = Math.sin(g.angle * DEG), off = g.width / 2 + size2 / 2;
-    for (const sg2 of [-1, 1]) kept.push({ x: g.x + sg2 * off * dx + g.outward[0] * size2 * 0.25, y: g.y + sg2 * off * dy + g.outward[1] * size2 * 0.25, shape, size: size2, angle: g.angle });
+    const dx = Math.cos(g.angle * DEG), dy = Math.sin(g.angle * DEG), off2 = g.width / 2 + size2 / 2;
+    for (const sg2 of [-1, 1]) kept.push({ x: g.x + sg2 * off2 * dx + g.outward[0] * size2 * 0.25, y: g.y + sg2 * off2 * dy + g.outward[1] * size2 * 0.25, shape: shape2, size: size2, angle: g.angle });
   }
   return { index, kind: w.kind, pts: pts2, closed, thickness, towers: kept, gates };
 }
@@ -15782,19 +17504,19 @@ function buildingAt(l, x, y) {
   for (let i = l.buildings.length - 1; i >= 0; i--) if (inPolygon(l.buildings[i].outline, x, y)) return l.buildings[i];
   return void 0;
 }
-function floorAsDungeon(floor3, w, h) {
+function floorAsDungeon(floor4, w, h) {
   const d = structuredClone(DEFAULTS2);
   return {
     ...d,
     id: "floor",
-    version: 1,
+    version: DUNGEON_FORMAT,
     seed: 1,
     cols: Math.max(4, Math.ceil(w)),
     rows: Math.max(4, Math.ceil(h)),
-    style: { ...d.style, hatch: "none", sharedWalls: true },
-    rooms: floor3.rooms.map((r) => ({ ...r, fill: "floor" })),
+    style: { ...d.style, hatch: "none", sharedWalls: "rooms" },
+    rooms: floor4.rooms.map((r) => ({ ...r, fill: "floor" })),
     corridors: [],
-    connections: floor3.connections ?? [],
+    connections: floor4.connections ?? [],
     overlay: { labels: [], symbols: [] }
   };
 }
@@ -15812,13 +17534,13 @@ function uncovered(a, b, covers) {
   }
   return out;
 }
-function onOutline(outline2, at4) {
+function onOutline2(outline2, at4) {
   const s2 = snapToLine(outline2, true, at4);
   return { x: s2.x, y: s2.y, angle: s2.angle };
 }
-function layoutFloor(spec, b, floor3) {
+function layoutFloor(spec, b, floor4) {
   const outline2 = planOutline(spec, b), f = planFactor(spec), w = b.w * f, h = b.h * f;
-  const dl = layoutDungeon(floorAsDungeon(floor3, w, h));
+  const dl = layoutDungeon(floorAsDungeon(floor4, w, h));
   const partitions = dl.partitions.slice();
   const outerEdges = dl.rooms.map((g) => sharedEdges(g.outline, outline2));
   dl.rooms.forEach((g, i) => {
@@ -15827,20 +17549,20 @@ function layoutFloor(spec, b, floor3) {
       if (j !== i) covers.push(...sharedEdges(g.outline, o.outline));
     });
     for (const [a, c] of edges(g.outline)) {
-      const L2 = Math.hypot(c[0] - a[0], c[1] - a[1]) || 1, off = (p2) => Math.abs((p2[0] - a[0]) * (c[1] - a[1]) - (p2[1] - a[1]) * (c[0] - a[0])) / L2;
-      for (const [p2, q] of uncovered(a, c, covers.filter(([p0, p1]) => off(p0) < 1e-6 && off(p1) < 1e-6))) partitions.push([p2[0], p2[1], q[0], q[1]]);
+      const L2 = Math.hypot(c[0] - a[0], c[1] - a[1]) || 1, off2 = (p2) => Math.abs((p2[0] - a[0]) * (c[1] - a[1]) - (p2[1] - a[1]) * (c[0] - a[0])) / L2;
+      for (const [p2, q] of uncovered(a, c, covers.filter(([p0, p1]) => off2(p0) < 1e-6 && off2(p1) < 1e-6))) partitions.push([p2[0], p2[1], q[0], q[1]]);
     }
   });
   const inner = dl.connections.filter((c) => c.wall).map((c) => ({ kind: c.kind, x: c.x, y: c.y, angle: c.angle + 90, width: c.width }));
-  const doors = (floor3.doors ?? []).map((d) => ({ kind: d.kind ?? "door", width: d.width ?? 1, ...onOutline(outline2, d.at) }));
-  const windows = (floor3.windows ?? []).map((d) => ({ kind: "window", width: d.width ?? 1, ...onOutline(outline2, d.at) }));
-  const fixtures2 = (floor3.fixtures ?? []).map((x, index) => {
+  const doors = (floor4.doors ?? []).map((d) => ({ kind: d.kind ?? "door", width: d.width ?? 1, ...onOutline2(outline2, d.at) }));
+  const windows = (floor4.windows ?? []).map((d) => ({ kind: "window", width: d.width ?? 1, ...onOutline2(outline2, d.at) }));
+  const fixtures2 = (floor4.fixtures ?? []).map((x, index) => {
     const [fw, fh] = fixtureSize(x, spec.interior.perCell);
     return { index, kind: x.kind, x: x.x, y: x.y, w: fw, h: fh, angle: x.angle ?? 0, ...x.label !== void 0 && { label: x.label } };
   });
   return { outline: outline2, w, h, rooms: dl.rooms, partitions, inner, doors, windows, fixtures: fixtures2 };
 }
-var TREE_FT, GATE_FT, TOWER_FT, DEG, rectPts2, buildingCentre, roadWidth, waterWidth, wallThickness, closedLine, smooth3, centroid;
+var TREE_FT, GATE_FT, TOWER_FT, DEG, rectPts2, buildingCentre, roadWidth, waterWidth, wallThickness, closedLine, smooth3, centroid2;
 var init_layout2 = __esm({
   "../artgen-mapgen/src/settlement/layout.ts"() {
     "use strict";
@@ -15862,7 +17584,7 @@ var init_layout2 = __esm({
     wallThickness = (spec, w) => w.thickness ?? Math.max(0.2, WALL_THICK_FT[w.kind] / spec.scale.perCell);
     closedLine = (p2) => p2.length >= 6 && Math.abs(p2[0] - p2[p2.length - 2]) < 1e-9 && Math.abs(p2[1] - p2[p2.length - 1]) < 1e-9;
     smooth3 = (p2, closed, passes = 3) => chaikin({ pts: p2, closed }, passes).pts;
-    centroid = (p2) => {
+    centroid2 = (p2) => {
       let x = 0, y = 0;
       for (let i = 0; i < p2.length; i += 2) {
         x += p2[i];
@@ -15889,7 +17611,7 @@ function settlementLayersFor(spec, view, over = {}) {
   on.title = view === "plan" || !!spec.title;
   return { ...on, ...over };
 }
-function crown(cx, cy, r, bumps, fill2, edge, sw, seed) {
+function crown(cx, cy, r, bumps, fill2, edge2, sw, seed) {
   const rand = rng(seed), a0 = rand() * Math.PI * 2, pts2 = [];
   for (let i = 0; i < bumps; i++) {
     const a = a0 + i / bumps * Math.PI * 2, rr = r * (0.86 + rand() * 0.1);
@@ -15901,7 +17623,7 @@ function crown(cx, cy, r, bumps, fill2, edge, sw, seed) {
     const p2 = pts2[i % bumps];
     d += `A${n1(br)} ${n1(br)} 0 0 1 ${n1(p2[0])} ${n1(p2[1])}`;
   }
-  return `<path d="${d}Z" fill="${fill2}" stroke="${edge}" stroke-width="${n1(sw)}" stroke-linejoin="round"/>`;
+  return `<path d="${d}Z" fill="${fill2}" stroke="${edge2}" stroke-width="${n1(sw)}" stroke-linejoin="round"/>`;
 }
 function treeSvg(t, k, p2, u, per, seed) {
   const r = (t.size ?? TREE_FT[t.kind] / per) * k / 2, x = t.x * k, y = t.y * k, sw = Math.max(0.6, 0.9 * u);
@@ -15975,9 +17697,9 @@ function floorSvg(fl2, k, p2, u, on, clipId, gridSize, text3) {
   if (on.windows) out.windows = fl2.windows.map((o) => openingSvg(o, k, tOut, p2, sw)).join("");
   let nums4 = "", names = "";
   for (const g of fl2.rooms) {
-    const x = g.cx * k, y = g.cy * k, has = on.numbers && g.number !== void 0;
-    if (has) nums4 += badge(String(g.number), x, y, text3.number, p2);
-    if (on.labels && g.room.label) names += haloText(g.room.label, x, y + (has ? text3.number * 1.6 : text3.name * 0.3), text3.name, p2.ink, { halo: p2.halo }, 'font-weight="700"');
+    const x = g.cx * k, y = g.cy * k, has2 = on.numbers && g.number !== void 0;
+    if (has2) nums4 += badge(String(g.number), x, y, text3.number, p2);
+    if (on.labels && g.room.label) names += haloText(g.room.label, x, y + (has2 ? text3.number * 1.6 : text3.name * 0.3), text3.name, p2.ink, { halo: p2.halo }, 'font-weight="700"');
   }
   if (on.labels) {
     for (const f of fl2.fixtures) if (f.label) names += haloText(f.label, f.x * k, (f.y + f.h / 2) * k + text3.name, text3.name * 0.85, p2.ink, { halo: p2.halo }, 'font-style="italic"');
@@ -15987,10 +17709,10 @@ function floorSvg(fl2, k, p2, u, on, clipId, gridSize, text3) {
   return out;
 }
 function ridgeOf(w) {
-  const c = toP(w), side = (i, j) => Math.hypot(c[j][0] - c[i][0], c[j][1] - c[i][1]);
+  const c = toP(w), side2 = (i, j) => Math.hypot(c[j][0] - c[i][0], c[j][1] - c[i][1]);
   const mid = (i, j) => [(c[i][0] + c[j][0]) / 2, (c[i][1] + c[j][1]) / 2];
-  const long01 = side(0, 1) >= side(1, 2);
-  return long01 ? { a: mid(0, 3), b: mid(1, 2), corners: c, short: side(1, 2) } : { a: mid(0, 1), b: mid(3, 2), corners: c, short: side(0, 1) };
+  const long01 = side2(0, 1) >= side2(1, 2);
+  return long01 ? { a: mid(0, 3), b: mid(1, 2), corners: c, short: side2(1, 2) } : { a: mid(0, 1), b: mid(3, 2), corners: c, short: side2(0, 1) };
 }
 function roofSvg(g, k, p2, u) {
   const b = g.building, roof = roofOf(b), d = ring(g.outline, k), sw = Math.max(0.8, 1.1 * u), tone = p2.roof[roofTone(b.kind)];
@@ -16040,13 +17762,13 @@ function wallSvg(w, k, p2, u, W3, H, defs) {
   if (cut2) defs.push(`<mask id="${mid}" maskUnits="userSpaceOnUse" x="0" y="0" width="${n1(W3)}" height="${n1(H)}"><rect width="${n1(W3)}" height="${n1(H)}" fill="#fff"/>${cut2}</mask>`);
   const S3 = (width, color, extra = "") => `<path d="${d}" fill="none" stroke="${color}" stroke-width="${n1(width)}"${extra.includes("linecap") ? "" : ' stroke-linejoin="miter" stroke-linecap="butt"'}${extra}/>`;
   let body3 = "";
-  const dots = (step, r, fill2, edge) => {
+  const dots = (step, r, fill2, edge2) => {
     const pts2 = w.closed ? [...w.pts, w.pts[0], w.pts[1]] : w.pts;
     let s2 = "", carry = 0;
     for (let i = 0; i + 3 < pts2.length; i += 2) {
       const dx = pts2[i + 2] - pts2[i], dy = pts2[i + 3] - pts2[i + 1], len3 = Math.hypot(dx, dy);
       let t = carry;
-      for (; t <= len3; t += step) s2 += `<circle cx="${n1((pts2[i] + dx * t / len3) * k)}" cy="${n1((pts2[i + 1] + dy * t / len3) * k)}" r="${n1(r)}" fill="${fill2}" stroke="${edge}" stroke-width="${n1(sw * 0.7)}"/>`;
+      for (; t <= len3; t += step) s2 += `<circle cx="${n1((pts2[i] + dx * t / len3) * k)}" cy="${n1((pts2[i + 1] + dy * t / len3) * k)}" r="${n1(r)}" fill="${fill2}" stroke="${edge2}" stroke-width="${n1(sw * 0.7)}"/>`;
       carry = t - len3;
     }
     return s2;
@@ -16137,12 +17859,12 @@ function finish(fr, furn, defs, parts, p2, u, unit4) {
   return `<svg xmlns="http://www.w3.org/2000/svg" ${sizeAttrs(out, unit4)} font-family="${FONT}"><defs>${defs.join("")}<clipPath id="map-clip"><rect x="${n1(fr.x)}" y="${n1(fr.y)}" width="${n1(fr.w)}" height="${n1(fr.h)}"/></clipPath></defs>${band}<g clip-path="url(#map-clip)">${parts.join("")}${band ? "" : drawn}</g>${frame}${band ? drawn : ""}</svg>`;
 }
 function labelSize3(l, u, pageScale) {
-  const pt3 = { area: PAGE_PT.dungeon.area, name: PAGE_PT.dungeon.name, note: PAGE_PT.dungeon.note, street: PAGE_PT.dungeon.note }[l.kind];
+  const pt3 = { area: PAGE_PT.dungeon.area, name: PAGE_PT.dungeon.name, note: PAGE_PT.dungeon.note, street: PAGE_PT.dungeon.note, water: PAGE_PT.map.water }[l.kind];
   return (pageScale ? pointsToPx(pt3, pageScale) : LABEL_PX[l.kind] * u) * (l.size ?? 1);
 }
 function labelSvg(l, k, u, p2, pageScale) {
   const fs = labelSize3(l, u, pageScale), text3 = l.kind === "area" ? l.text.toUpperCase() : l.text;
-  const attrs2 = l.kind === "area" ? `font-weight="700" letter-spacing="${n1(fs * 0.16)}"` : l.kind === "name" ? 'font-weight="700"' : 'font-style="italic"';
+  const attrs2 = l.kind === "area" ? `font-weight="700" letter-spacing="${n1(fs * 0.16)}"` : l.kind === "name" ? 'font-weight="700"' : l.kind === "water" ? `font-style="italic" letter-spacing="${n1(fs * 0.08)}"` : 'font-style="italic"';
   const t = haloText(text3, l.x * k, l.y * k + fs * 0.35, fs, p2.ink, { halo: p2.halo }, attrs2);
   const out = l.angle ? `<g transform="rotate(${n1(l.angle)} ${n1(l.x * k)} ${n1(l.y * k)})">${t}</g>` : t;
   return l.href ? `<a href="${esc(l.href)}">${out}</a>` : out;
@@ -16154,14 +17876,14 @@ function planSheet(spec, b) {
 function planTarget(spec, id2, level2) {
   const building3 = id2 ? spec.buildings.find((b) => b.id === id2) : spec.buildings.find((b) => b.floors?.length);
   if (!building3) throw new Error(id2 ? `no building ${id2}` : "no building with floors (give --building)");
-  const floor3 = level2 !== void 0 ? floorAt(building3, level2) : groundFloor(building3);
-  if (level2 !== void 0 && !floor3) throw new Error(`building ${building3.id} has no floor at level ${level2} (it has ${(building3.floors ?? []).map((f) => f.level).join(", ") || "none"})`);
-  return { building: building3, floor: floor3 };
+  const floor4 = level2 !== void 0 ? floorAt(building3, level2) : groundFloor(building3);
+  if (level2 !== void 0 && !floor4) throw new Error(`building ${building3.id} has no floor at level ${level2} (it has ${(building3.floors ?? []).map((f) => f.level).join(", ") || "none"})`);
+  return { building: building3, floor: floor4 };
 }
-function legendFor(spec, p2, view, floor3) {
+function legendFor(spec, p2, view, floor4) {
   const out = [];
   if (view === "plan") {
-    for (const kind of [...new Set((floor3?.fixtures ?? []).map((f) => f.kind))]) {
+    for (const kind of [...new Set((floor4?.fixtures ?? []).map((f) => f.kind))]) {
       const fx2 = FIXTURES[kind];
       if (!fx2) continue;
       out.push({ name: fx2.name.split(" (")[0], swatch: (x, y, s2) => {
@@ -16171,7 +17893,7 @@ function legendFor(spec, p2, view, floor3) {
     }
     return out;
   }
-  const sw = (x, y, s2, fill2, edge, extra = "") => `<rect x="${n1(x - s2 / 2)}" y="${n1(y - s2 * 0.35)}" width="${n1(s2)}" height="${n1(s2 * 0.7)}" fill="${fill2}" stroke="${edge}" stroke-width="1"${extra}/>`;
+  const sw = (x, y, s2, fill2, edge2, extra = "") => `<rect x="${n1(x - s2 / 2)}" y="${n1(y - s2 * 0.35)}" width="${n1(s2)}" height="${n1(s2 * 0.7)}" fill="${fill2}" stroke="${edge2}" stroke-width="1"${extra}/>`;
   const name = (s2) => s2[0].toUpperCase() + s2.slice(1);
   for (const kind of [...new Set(spec.roads.map((r) => r.kind))]) {
     const st = p2.road[kind];
@@ -16207,9 +17929,9 @@ function siteSvg(spec, o) {
     parts.push(`<g id="areas">${g}</g>`);
   }
   if (on.water && l.water.length) {
-    const edge = l.water.map((w) => w.area ? `<path d="${ring(w.pts, k)}" fill="${p2.waterEdge}" stroke="${p2.waterEdge}" stroke-width="${n1(sw * 2.4)}" stroke-linejoin="round"/>` : `<path d="${line(w.pts, k, w.closed)}" fill="none" stroke="${p2.waterEdge}" stroke-width="${n1(w.width * k + sw * 2.4)}" stroke-linecap="${w.kind === "canal" || w.kind === "moat" ? "butt" : "round"}" stroke-linejoin="round"/>`).join("");
+    const edge2 = l.water.map((w) => w.area ? `<path d="${ring(w.pts, k)}" fill="${p2.waterEdge}" stroke="${p2.waterEdge}" stroke-width="${n1(sw * 2.4)}" stroke-linejoin="round"/>` : `<path d="${line(w.pts, k, w.closed)}" fill="none" stroke="${p2.waterEdge}" stroke-width="${n1(w.width * k + sw * 2.4)}" stroke-linecap="${w.kind === "canal" || w.kind === "moat" ? "butt" : "round"}" stroke-linejoin="round"/>`).join("");
     const fill2 = (paint) => l.water.map((w) => w.area ? `<path d="${ring(w.pts, k)}" fill="${paint}"/>` : `<path d="${line(w.pts, k, w.closed)}" fill="none" stroke="${paint}" stroke-width="${n1(w.width * k)}" stroke-linecap="${w.kind === "canal" || w.kind === "moat" ? "butt" : "round"}" stroke-linejoin="round"/>`).join("");
-    parts.push(`<g id="water">${edge}${fill2(p2.water)}${p2.ripples ? fill2(usePat("ripples", 1.5)) : ""}</g>`);
+    parts.push(`<g id="water">${edge2}${fill2(p2.water)}${p2.ripples ? fill2(usePat("ripples", 1.5)) : ""}</g>`);
   }
   if (on.roads && l.roads.length) {
     const sorted = [...l.roads].sort((a, b) => b.width - a.width);
@@ -16277,9 +17999,9 @@ function siteSvg(spec, o) {
   if (on.numbers || on.labels) {
     let nums4 = "", names = "";
     for (const bg of l.buildings) {
-      const x = bg.cx * k, y = bg.cy * k, has = on.numbers && bg.number !== void 0, b = bg.building;
-      if (has) nums4 += b.href ? `<a href="${esc(b.href)}">${badge(String(bg.number), x, y, txt.number, p2)}</a>` : badge(String(bg.number), x, y, txt.number, p2);
-      if (on.labels && b.label) names += haloText(b.label, x, y + (has ? txt.number * 1.6 : txt.name * 0.3), txt.name, p2.ink, { halo: p2.halo }, 'font-weight="700"');
+      const x = bg.cx * k, y = bg.cy * k, has2 = on.numbers && bg.number !== void 0, b = bg.building;
+      if (has2) nums4 += b.href ? `<a href="${esc(b.href)}">${badge(String(bg.number), x, y, txt.number, p2)}</a>` : badge(String(bg.number), x, y, txt.number, p2);
+      if (on.labels && b.label) names += haloText(b.label, x, y + (has2 ? txt.number * 1.6 : txt.name * 0.3), txt.name, p2.ink, { halo: p2.halo }, 'font-weight="700"');
     }
     if (on.labels) {
       for (const a of spec.areas) if (a.label) {
@@ -16310,18 +18032,18 @@ function siteSvg(spec, o) {
   return finish(fr, furn, defs, parts, p2, u, o.unit);
 }
 function planSvg(spec, o) {
-  const { building: b, floor: floor3 } = planTarget(spec, o.building, o.floor), sheet = planSheet(spec, b);
+  const { building: b, floor: floor4 } = planTarget(spec, o.building, o.floor), sheet = planSheet(spec, b);
   const k = o.ppu ?? 40, u = o.pageScale ? pageUnit(o.pageScale) : k / 40, p2 = PALETTES[o.theme ?? "color"], on = settlementLayersFor(spec, "plan", o.layers);
   const fr = frameOf(o.crop, sheet.cols, sheet.rows, k), W3 = sheet.cols * k, H = sheet.rows * k, M = sheet.margin * k;
   const parts = [], defs = [], txt = textSizes(u, o.pageScale);
   if (on.ground) parts.push(`<rect id="ground" width="${n1(W3)}" height="${n1(H)}" fill="${p2.ground[spec.ground]}"/>`);
-  const empty = { level: 0, rooms: [] }, lay = layoutFloor(spec, b, floor3 ?? empty);
+  const empty = { level: 0, rooms: [] }, lay = layoutFloor(spec, b, floor4 ?? empty);
   const drawn = floorSvg(lay, k, p2, u, { grid: on.grid, numbers: on.numbers, labels: on.labels, fixtures: on.fixtures, doors: on.doors, windows: on.windows, walls: on.walls, floor: on.floor }, "plan-clip", 1, txt);
   for (const layer of ["floor", "grid", "fixtures", "walls", "doors", "windows", "numbers", "labels"]) if (drawn[layer]) parts.push(`<g id="${layer}" transform="translate(${n1(M)} ${n1(M)})">${drawn[layer]}</g>`);
-  const title = `${b.label ?? b.kind[0].toUpperCase() + b.kind.slice(1)} \u2014 ${floor3 ? floorName(floor3) : "no floors yet"}`;
+  const title = `${b.label ?? b.kind[0].toUpperCase() + b.kind.slice(1)} \u2014 ${floor4 ? floorName(floor4) : "no floors yet"}`;
   const f = spec.furniture ?? { place: "auto" };
   const fb = { x: M, y: M, w: lay.w * k, h: lay.h * k };
-  const furn = furniture({ fr, k, u, p: p2, on, title, perCell: spec.interior.perCell, unit: spec.scale.unit, legend: legendFor(spec, p2, "plan", floor3), north: -(b.angle ?? 0), place: f.place, side: f.side ?? "bottom", covers: (x) => overlaps(x, fb) });
+  const furn = furniture({ fr, k, u, p: p2, on, title, perCell: spec.interior.perCell, unit: spec.scale.unit, legend: legendFor(spec, p2, "plan", floor4), north: -(b.angle ?? 0), place: f.place, side: f.side ?? "bottom", covers: (x) => overlaps(x, fb) });
   return finish(fr, furn, defs, parts, p2, u, o.unit);
 }
 function renderSettlementSvg(spec, o = {}) {
@@ -16362,7 +18084,7 @@ var init_render3 = __esm({
     ring = (pts2, k) => pathData([{ pts: pts2, closed: true }], k);
     line = (pts2, k, closed = false) => pathData([{ pts: pts2, closed }], k);
     toP = (pts2) => Array.from({ length: pts2.length / 2 }, (_, i) => [pts2[2 * i], pts2[2 * i + 1]]);
-    LABEL_PX = { area: 22, name: 15, note: 12, street: 12 };
+    LABEL_PX = { area: 22, name: 15, note: 12, street: 12, water: 12 };
     textSizes = (u, pageScale) => ({ number: pageScale ? pointsToPx(PAGE_PT.dungeon.number, pageScale) : 15 * u, name: pageScale ? pointsToPx(PAGE_PT.dungeon.room, pageScale) : 12.5 * u });
   }
 });
@@ -16372,14 +18094,14 @@ function frontSide(spec, b) {
   const f = planFactor(spec), W3 = b.w * f, H = b.h * f;
   const mids = [["n", W3 / 2, 0], ["e", W3, H / 2], ["s", W3 / 2, H], ["w", 0, H / 2]];
   let best = "s", bd = Infinity;
-  for (const [side, px, py] of mids) {
+  for (const [side2, px, py] of mids) {
     const [x, y] = planToSite(spec, b, px, py);
     for (const r of spec.roads) {
       if (r.kind === "path" || r.kind === "track") continue;
       const d = nearestOnLine(r.points, x, y).d - roadWidth(spec, r) / 2;
       if (d < bd) {
         bd = d;
-        best = side;
+        best = side2;
       }
     }
   }
@@ -16418,10 +18140,10 @@ function place(pl, room3, outline2, kind, where, rand, per, farFrom, size2) {
   const { x, y, w, h } = room3, inset = 0.12;
   const cands = [];
   const along2 = (n) => Array.from({ length: n }, () => 0.15 + rand() * 0.7);
-  const wall2 = (side, t) => {
-    if (side === "n") return { x: x + w * t, y: y + inset + fh / 2, angle: 0 };
-    if (side === "s") return { x: x + w * t, y: y + h - inset - fh / 2, angle: 180 };
-    if (side === "w") return { x: x + inset + fh / 2, y: y + h * t, angle: 270 };
+  const wall2 = (side2, t) => {
+    if (side2 === "n") return { x: x + w * t, y: y + inset + fh / 2, angle: 0 };
+    if (side2 === "s") return { x: x + w * t, y: y + h - inset - fh / 2, angle: 180 };
+    if (side2 === "w") return { x: x + inset + fh / 2, y: y + h * t, angle: 270 };
     return { x: x + w - inset - fh / 2, y: y + h * t, angle: 90 };
   };
   const sides = ["n", "s", "e", "w"];
@@ -16457,7 +18179,7 @@ function rows(pl, room3, kind, n, per, door3) {
   for (let t = 1.2 + depth / 2; t < L2 - 2.2 && placed < n; t += step) {
     const a = fromStart ? t : L2 - t;
     for (const sg2 of [-1, 1]) {
-      const off = aisle / 2 + len3 / 2, c = long ? { x: room3.x + a, y: room3.y + room3.h / 2 + sg2 * off } : { x: room3.x + room3.w / 2 + sg2 * off, y: room3.y + a };
+      const off2 = aisle / 2 + len3 / 2, c = long ? { x: room3.x + a, y: room3.y + room3.h / 2 + sg2 * off2 } : { x: room3.x + room3.w / 2 + sg2 * off2, y: room3.y + a };
       const angle = long ? 90 : 0, bx = boxOf(c, len3, depth, angle);
       if (pl.boxes.some((o) => hits(o, bx, 0.05)) || pl.keepOut.some((k) => k.x > bx.x - 0.6 && k.x < bx.x + bx.w + 0.6 && k.y > bx.y - 0.6 && k.y < bx.y + bx.h + 0.6)) continue;
       pl.fixtures.push({ kind, x: r2(c.x), y: r2(c.y), w: r2(len3), h: r2(depth), ...angle && { angle }, origin: ORIGIN });
@@ -16470,8 +18192,8 @@ function feast(pl, room3, kind, per) {
   const long = room3.w >= room3.h, L2 = (long ? room3.w : room3.h) * 0.6, d = FIXTURES[kind].ft[1] / per, b = FIXTURES.bench.ft[1] / per, c = { x: room3.x + room3.w / 2, y: room3.y + room3.h / 2 };
   if (L2 < 1.5 || (long ? room3.h : room3.w) < d + 2 * b + 1) return;
   const angle = long ? 0 : 90, items = [[kind, 0, L2, d], ["bench", -(d / 2 + b / 2 + 0.15), L2 * 0.9, b], ["bench", d / 2 + b / 2 + 0.15, L2 * 0.9, b]];
-  for (const [k, off, w, h] of items) {
-    const p2 = long ? { x: c.x, y: c.y + off } : { x: c.x + off, y: c.y }, bx = boxOf(p2, w, h, angle);
+  for (const [k, off2, w, h] of items) {
+    const p2 = long ? { x: c.x, y: c.y + off2 } : { x: c.x + off2, y: c.y }, bx = boxOf(p2, w, h, angle);
     if (pl.boxes.some((o) => hits(o, bx, 0.05))) continue;
     pl.fixtures.push({ kind: k, x: r2(p2.x), y: r2(p2.y), w: r2(w), h: r2(h), ...angle && { angle }, origin: ORIGIN });
     pl.boxes.push(bx);
@@ -16493,14 +18215,14 @@ function windowsFor(outline2, doors, kind) {
   }
   return out;
 }
-function doorOn(outline2, side, W3, H) {
-  let best = side === "n" ? [W3 / 2, 0] : side === "s" ? [W3 / 2, H] : side === "w" ? [0, H / 2] : [W3, H / 2], len3 = 0;
+function doorOn(outline2, side2, W3, H) {
+  let best = side2 === "n" ? [W3 / 2, 0] : side2 === "s" ? [W3 / 2, H] : side2 === "w" ? [0, H / 2] : [W3, H / 2], len3 = 0;
   for (let i = 0, j = outline2.length - 2; i < outline2.length; j = i, i += 2) {
     const ax = outline2[j], ay = outline2[j + 1], bx = outline2[i], by = outline2[i + 1], L2 = Math.hypot(bx - ax, by - ay);
     const horizontal2 = Math.abs(ay - by) < 1e-6, vertical = Math.abs(ax - bx) < 1e-6;
-    const facing = side === "n" || side === "s" ? horizontal2 : vertical;
+    const facing = side2 === "n" || side2 === "s" ? horizontal2 : vertical;
     if (!facing || L2 < 1) continue;
-    const out = side === "n" ? -ay : side === "s" ? ay : side === "w" ? -ax : ax, score2 = L2 + out * 0.01;
+    const out = side2 === "n" ? -ay : side2 === "s" ? ay : side2 === "w" ? -ax : ax, score2 = L2 + out * 0.01;
     if (score2 > len3) {
       len3 = score2;
       best = horizontal2 ? [Math.round((ax + bx) / 2 * 2) / 2, ay] : [ax, Math.round((ay + by) / 2 * 2) / 2];
@@ -16699,7 +18421,7 @@ function groundFromMap(spec, field) {
   };
 }
 function route2(a, b, cols, rows3, cost2) {
-  const W3 = cols + 1, H = rows3 + 1, key2 = (x, y) => y * W3 + x, N3 = W3 * H;
+  const W3 = cols + 1, H = rows3 + 1, key3 = (x, y) => y * W3 + x, N3 = W3 * H;
   const g = new Float64Array(N3).fill(Infinity), from = new Int32Array(N3).fill(-1), done = new Uint8Array(N3);
   const ax = Math.max(0, Math.min(cols, Math.round(a[0]))), ay = Math.max(0, Math.min(rows3, Math.round(a[1]))), bx = Math.max(0, Math.min(cols, Math.round(b[0]))), by = Math.max(0, Math.min(rows3, Math.round(b[1])));
   const h = (x, y) => Math.hypot(x - bx, y - by);
@@ -16730,8 +18452,8 @@ function route2(a, b, cols, rows3, cost2) {
     }
     return top;
   };
-  g[key2(ax, ay)] = 0;
-  push(h(ax, ay), key2(ax, ay));
+  g[key3(ax, ay)] = 0;
+  push(h(ax, ay), key3(ax, ay));
   const steps = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
   while (heap2.length) {
     const [, n] = pop();
@@ -16742,7 +18464,7 @@ function route2(a, b, cols, rows3, cost2) {
     for (const [dx, dy] of steps) {
       const nx = x + dx, ny = y + dy;
       if (nx < 0 || ny < 0 || nx >= W3 || ny >= H) continue;
-      const m = key2(nx, ny), c = g[n] + Math.hypot(dx, dy) * cost2(nx, ny);
+      const m = key3(nx, ny), c = g[n] + Math.hypot(dx, dy) * cost2(nx, ny);
       if (c < g[m]) {
         g[m] = c;
         from[m] = n;
@@ -16751,7 +18473,7 @@ function route2(a, b, cols, rows3, cost2) {
     }
   }
   const out = [];
-  for (let n = key2(bx, by); n >= 0; n = from[n]) out.push([n % W3, Math.floor(n / W3)]);
+  for (let n = key3(bx, by); n >= 0; n = from[n]) out.push([n % W3, Math.floor(n / W3)]);
   out.reverse();
   return out.length ? out : [a, b];
 }
@@ -16777,7 +18499,7 @@ function mapWater(spec, field) {
     const first = inside3.indexOf(true), last = inside3.lastIndexOf(true);
     if (first < 0) continue;
     const run2 = pts2.slice(Math.max(0, first - 1), last + 2), width = r.widths.reduce((s2, v) => s2 + v, 0) / r.widths.length / u.scale;
-    if (run2.length >= 2) out.push({ kind: width > 3 ? "river" : "stream", points: flat(simplifyLine({ pts: run2.flat(), closed: false }, 0.3).pts.reduce((a, v, i, s2) => i % 2 ? a : [...a, [v, s2[i + 1]]], [])), width: r22(Math.max(0.6, width)), origin: ORIGIN2 });
+    if (run2.length >= 2) out.push({ kind: width > 3 ? "river" : "stream", points: flat2(simplifyLine({ pts: run2.flat(), closed: false }, 0.3).pts.reduce((a, v, i, s2) => i % 2 ? a : [...a, [v, s2[i + 1]]], [])), width: r22(Math.max(0.6, width)), origin: ORIGIN2 });
   }
   const W3 = spec.cols + 3, H = spec.rows + 3, f = new Float32Array(W3 * H), g = groundFromMap(spec, field);
   for (let j = 1; j < H - 1; j++) for (let i = 1; i < W3 - 1; i++) f[j * W3 + i] = g.water(i - 1, j - 1) ? 1 : 0;
@@ -16801,10 +18523,10 @@ function mapWoods(spec, ground2) {
   }
   return out;
 }
-function crossings3(line2, ringPts) {
+function crossings3(line3, ringPts) {
   const out = [];
-  for (let i = 0; i + 3 < line2.length; i += 2) for (let j = 0; j < ringPts.length; j++) {
-    const c = segmentCross([line2[i], line2[i + 1]], [line2[i + 2], line2[i + 3]], ringPts[j], ringPts[(j + 1) % ringPts.length]);
+  for (let i = 0; i + 3 < line3.length; i += 2) for (let j = 0; j < ringPts.length; j++) {
+    const c = segmentCross([line3[i], line3[i + 1]], [line3[i + 2], line3[i + 3]], ringPts[j], ringPts[(j + 1) % ringPts.length]);
     if (c) out.push(c);
   }
   return out;
@@ -16826,25 +18548,25 @@ function generateSettlement(spec, ctx = {}) {
     s2.water.push(...mapWater(s2, ctx.field));
     s2.areas.push(...mapWoods(s2, ground2));
   } else if (g.water === "river") {
-    const vertical = rand() < 0.5, n2 = 7, pts2 = [], off = (vertical ? cols : rows3) * (0.62 + rand() * 0.2);
+    const vertical = rand() < 0.5, n2 = 7, pts2 = [], off2 = (vertical ? cols : rows3) * (0.62 + rand() * 0.2);
     for (let i = 0; i <= n2; i++) {
       const t = i / n2, wob = Math.sin(t * Math.PI * (1.5 + rand()) + rand() * 6) * (vertical ? cols : rows3) * 0.06;
-      pts2.push(vertical ? [off + wob, -1 + t * (rows3 + 2)] : [-1 + t * (cols + 2), off + wob]);
+      pts2.push(vertical ? [off2 + wob, -1 + t * (rows3 + 2)] : [-1 + t * (cols + 2), off2 + wob]);
     }
     const width = ft(s2.kind === "hamlet" ? 10 : s2.kind === "village" ? 25 : 45);
-    s2.water.push({ kind: s2.kind === "hamlet" ? "stream" : "river", points: flat(pts2), width: r22(width), origin: ORIGIN2 });
+    s2.water.push({ kind: s2.kind === "hamlet" ? "stream" : "river", points: flat2(pts2), width: r22(width), origin: ORIGIN2 });
   } else if (g.water === "lake") {
     const c = [cols * (rand() < 0.5 ? 0.2 : 0.8), rows3 * (rand() < 0.5 ? 0.22 : 0.78)];
-    s2.water.push({ kind: "lake", points: flat(blob(c, cols * 0.14, rows3 * 0.14, 10, 0.4, rand)), origin: ORIGIN2 });
+    s2.water.push({ kind: "lake", points: flat2(blob(c, cols * 0.14, rows3 * 0.14, 10, 0.4, rand)), origin: ORIGIN2 });
   } else if (g.water === "coast") {
-    const side = Math.floor(rand() * 4), depth = 0.16 + rand() * 0.06, pts2 = [], n2 = 10;
+    const side2 = Math.floor(rand() * 4), depth = 0.16 + rand() * 0.06, pts2 = [], n2 = 10;
     for (let i = 0; i <= n2; i++) {
       const t = i / n2, w = Math.sin(t * 7 + rand() * 3) * 0.03 + depth;
-      pts2.push(side === 0 ? [t * cols, rows3 * w] : side === 1 ? [cols * (1 - w), t * rows3] : side === 2 ? [t * cols, rows3 * (1 - w)] : [cols * w, t * rows3]);
+      pts2.push(side2 === 0 ? [t * cols, rows3 * w] : side2 === 1 ? [cols * (1 - w), t * rows3] : side2 === 2 ? [t * cols, rows3 * (1 - w)] : [cols * w, t * rows3]);
     }
-    const corner2 = side === 0 ? [[cols + 1, -1], [-1, -1]] : side === 1 ? [[cols + 1, rows3 + 1], [cols + 1, -1]] : side === 2 ? [[cols + 1, rows3 + 1], [-1, rows3 + 1]] : [[-1, rows3 + 1], [-1, -1]];
-    const ring2 = side === 0 || side === 3 ? [...pts2, ...side === 0 ? corner2 : corner2.reverse()] : [...pts2, ...corner2];
-    s2.water.push({ kind: "sea", points: flat(ring2), origin: ORIGIN2 });
+    const corner2 = side2 === 0 ? [[cols + 1, -1], [-1, -1]] : side2 === 1 ? [[cols + 1, rows3 + 1], [cols + 1, -1]] : side2 === 2 ? [[cols + 1, rows3 + 1], [-1, rows3 + 1]] : [[-1, rows3 + 1], [-1, -1]];
+    const ring2 = side2 === 0 || side2 === 3 ? [...pts2, ...side2 === 0 ? corner2 : corner2.reverse()] : [...pts2, ...corner2];
+    s2.water.push({ kind: "sea", points: flat2(ring2), origin: ORIGIN2 });
   }
   let lay = layoutSettlement(s2);
   const wet = (x, y, pad = 0) => ground2.water(x, y) || lay.water.some((w) => w.area ? inPolygon(w.pts, x, y) || pad > 0 && nearestOnLine([...w.pts, w.pts[0], w.pts[1]], x, y).d < pad : nearestOnLine(w.pts, x, y).d < w.width / 2 + pad);
@@ -16877,8 +18599,8 @@ function generateSettlement(spec, ctx = {}) {
   if (g.market && !castleOnly) {
     const half = ft(big ? 45 : 30);
     const sq = [[C3[0] - half, C3[1] - half * 0.75], [C3[0] + half, C3[1] - half * 0.75], [C3[0] + half, C3[1] + half * 0.75], [C3[0] - half, C3[1] + half * 0.75]];
-    s2.areas.push({ kind: big ? "market" : "square", points: flat(sq), label: big ? "Market" : void 0, origin: ORIGIN2 });
-    occ.poly(flat(sq), 0.2, false);
+    s2.areas.push({ kind: big ? "market" : "square", points: flat2(sq), label: big ? "Market" : void 0, origin: ORIGIN2 });
+    occ.poly(flat2(sq), 0.2, false);
     s2.props.push({ kind: big ? "fountain" : "well", x: r22(C3[0]), y: r22(C3[1]), origin: ORIGIN2 });
     if (big) for (let i = 0; i < 4; i++) s2.props.push({ kind: "stall", x: r22(C3[0] + (i % 2 ? 1 : -1) * half * 0.6), y: r22(C3[1] + (i < 2 ? -1 : 1) * half * 0.45), angle: i < 2 ? 0 : 180, origin: ORIGIN2 });
   } else if (!castleOnly) s2.props.push({ kind: "well", x: r22(C3[0] + ft(12)), y: r22(C3[1] + ft(12)), origin: ORIGIN2 });
@@ -16893,10 +18615,10 @@ function generateSettlement(spec, ctx = {}) {
     wallRing = ring2;
     const kind = g.wall === "stone" ? "stone" : "palisade", gates = [];
     for (const r of through) for (const c of crossings3(r.points, ring2)) if (!gates.some((q) => Math.hypot(q.at[0] - c[0], q.at[1] - c[1]) < 4)) gates.push({ at: [r22(c[0]), r22(c[1])], kind: kind === "stone" ? "gatehouse" : "gate", ...g.water === "moat" && { drawbridge: true } });
-    const w = { kind, points: flat(ring2), closed: true, ...kind === "stone" ? { towers: { shape: rand() < 0.5 ? "round" : "square", at: "corners" } } : {}, gates, origin: ORIGIN2 };
+    const w = { kind, points: flat2(ring2), closed: true, ...kind === "stone" ? { towers: { shape: rand() < 0.5 ? "round" : "square", at: "corners" } } : {}, gates, origin: ORIGIN2 };
     s2.walls.push(w);
     occ.line([...w.points, w.points[0], w.points[1]], wallThickness(s2, w) / 2 + ft(8));
-    if (g.water === "moat") s2.water.push({ kind: "moat", points: flat([...offsetRing(ring2, wallThickness(s2, w) / 2 + ft(14)), offsetRing(ring2, wallThickness(s2, w) / 2 + ft(14))[0]]), width: r22(ft(18)), origin: ORIGIN2 });
+    if (g.water === "moat") s2.water.push({ kind: "moat", points: flat2([...offsetRing(ring2, wallThickness(s2, w) / 2 + ft(14)), offsetRing(ring2, wallThickness(s2, w) / 2 + ft(14))[0]]), width: r22(ft(18)), origin: ORIGIN2 });
   }
   if (!castleOnly) {
     const lanes = s2.kind === "hamlet" ? 1 : s2.kind === "village" ? 3 : s2.kind === "city" ? 18 : big ? 10 : 4, sideKind = big ? "street" : "lane";
@@ -16905,14 +18627,14 @@ function generateSettlement(spec, ctx = {}) {
       for (let x = C3[0] - Rcore; x <= C3[0] + Rcore; x += step) addRoad("street", [r22(x), r22(C3[1] - Rcore), r22(x), r22(C3[1] + Rcore)]).curve = "none";
       for (let y = C3[1] - Rcore; y <= C3[1] + Rcore; y += step) addRoad("street", [r22(C3[0] - Rcore), r22(y), r22(C3[0] + Rcore), r22(y)]).curve = "none";
     } else {
-      if (g.streets === "radial" && big) addRoad("street", flat([...blob(C3, Rcore * 0.55, Rcore * 0.55, 14, 0.1, rand), blob(C3, Rcore * 0.55, Rcore * 0.55, 14, 0.1, rng(0))[0]]));
+      if (g.streets === "radial" && big) addRoad("street", flat2([...blob(C3, Rcore * 0.55, Rcore * 0.55, 14, 0.1, rand), blob(C3, Rcore * 0.55, Rcore * 0.55, 14, 0.1, rng(0))[0]]));
       for (let i = 0, tries2 = 0; i < lanes && tries2 < lanes * 8; tries2++) {
         const pool2 = s2.roads.flatMap((r) => r.kind === "path" || r.kind === "track" ? [] : Array.from({ length: r.points.length / 2 - 1 }, (_, j) => [r.points[2 * j], r.points[2 * j + 1], r.points[2 * j + 2], r.points[2 * j + 3]])).filter((q) => Math.hypot(q[0] - C3[0], q[1] - C3[1]) < Rcore * 0.85);
         if (!pool2.length) break;
         const [sx, sy, nx, ny] = pool2[Math.floor(rand() * pool2.length)], a = Math.atan2(ny - sy, nx - sx) + (rand() < 0.5 ? 1 : -1) * Math.PI / 2 + (rand() - 0.5) * 0.5;
         const len3 = Rcore * (0.35 + rand() * 0.45);
         let end = [sx + Math.cos(a) * len3, sy + Math.sin(a) * len3];
-        for (let k = 0; k < 12 && (Math.hypot(end[0] - C3[0], end[1] - C3[1]) > Rcore * 0.95 || wallRing && !inPolygon(flat(wallRing), end[0], end[1])); k++) end = [end[0] + (sx - end[0]) * 0.15, end[1] + (sy - end[1]) * 0.15];
+        for (let k = 0; k < 12 && (Math.hypot(end[0] - C3[0], end[1] - C3[1]) > Rcore * 0.95 || wallRing && !inPolygon(flat2(wallRing), end[0], end[1])); k++) end = [end[0] + (sx - end[0]) * 0.15, end[1] + (sy - end[1]) * 0.15];
         end = [Math.max(1, Math.min(cols - 1, end[0])), Math.max(1, Math.min(rows3 - 1, end[1]))];
         if (wet(end[0], end[1], 1) || Math.hypot(end[0] - sx, end[1] - sy) < Rcore * 0.2) continue;
         const pts2 = calm(route2([sx, sy], end, cols, rows3, roadCost));
@@ -16934,7 +18656,7 @@ function generateSettlement(spec, ctx = {}) {
   };
   const fit2 = (kind, long, short, cands, extra = {}) => {
     for (const { p: p2, vertical } of cands) {
-      const w = vertical ? short : long, h = vertical ? long : short, box2 = flat(castleRect(p2[0], p2[1], w, h));
+      const w = vertical ? short : long, h = vertical ? long : short, box2 = flat2(castleRect(p2[0], p2[1], w, h));
       if (box2.some((v, i) => v < 0.5 || v > (i % 2 ? rows3 : cols) - 0.5) || occ.poly(box2, ft(2), true)) continue;
       return put(kind, p2[0], p2[1], w, h, extra);
     }
@@ -16954,12 +18676,12 @@ function generateSettlement(spec, ctx = {}) {
     const dir = a0 + Math.PI / nThrough;
     const cc = castleOnly ? C3 : [Math.max(cw / 2 + 4, Math.min(cols - cw / 2 - 4, C3[0] + Math.cos(dir) * Rcore * 0.75)), Math.max(ch / 2 + 4, Math.min(rows3 - ch / 2 - 4, C3[1] + Math.sin(dir) * Rcore * 0.75))];
     const inner = castleRect(cc[0], cc[1], cw, ch), road2 = through[0], gateAt = crossings3(road2.points, inner)[0] ?? [cc[0], cc[1] + ch / 2];
-    const tower = ft(28), curtain = { kind: "curtain", points: flat(inner), closed: true, towers: { shape: rand() < 0.6 ? "round" : "square", at: "corners", size: r22(tower) }, gates: [{ at: [r22(gateAt[0]), r22(gateAt[1])], kind: "gatehouse", ...(castleOnly || g.water === "moat") && { drawbridge: true } }], origin: ORIGIN2 };
+    const tower = ft(28), curtain = { kind: "curtain", points: flat2(inner), closed: true, towers: { shape: rand() < 0.6 ? "round" : "square", at: "corners", size: r22(tower) }, gates: [{ at: [r22(gateAt[0]), r22(gateAt[1])], kind: "gatehouse", ...(castleOnly || g.water === "moat") && { drawbridge: true } }], origin: ORIGIN2 };
     s2.walls.push(curtain);
-    s2.buildings = s2.buildings.filter((b) => b.origin !== ORIGIN2 || !inPolygon(flat(inner), b.x + b.w / 2, b.y + b.h / 2));
-    occ.line([...flat(inner), inner[0][0], inner[0][1]], wallThickness(s2, curtain) / 2 + ft(2));
-    for (const [x, y] of inner) occ.poly(flat(castleRect(x, y, tower * 1.1, tower * 1.1)), 0, false);
-    occ.poly(flat(castleRect(gateAt[0], gateAt[1], ft(70), ft(70))), 0, false);
+    s2.buildings = s2.buildings.filter((b) => b.origin !== ORIGIN2 || !inPolygon(flat2(inner), b.x + b.w / 2, b.y + b.h / 2));
+    occ.line([...flat2(inner), inner[0][0], inner[0][1]], wallThickness(s2, curtain) / 2 + ft(2));
+    for (const [x, y] of inner) occ.poly(flat2(castleRect(x, y, tower * 1.1, tower * 1.1)), 0, false);
+    occ.poly(flat2(castleRect(gateAt[0], gateAt[1], ft(70), ft(70))), 0, false);
     const back = [cc[0] - (gateAt[0] - cc[0]), cc[1] - (gateAt[1] - cc[1])], inset = (d) => wallThickness(s2, curtain) / 2 + ft(9) + d / 2;
     const keep = fit2("keep", ft(45), ft(45), alongWalls(cc, cw, ch, inset(ft(45)), back).map((o) => ({ ...o, p: [o.p[0] + (cc[0] - o.p[0]) * 0.25, o.p[1] + (cc[1] - o.p[1]) * 0.25] })), { label: "Keep", roof: "battlement" });
     const k0 = keep ? [keep.x + keep.w / 2, keep.y + keep.h / 2] : cc;
@@ -16967,17 +18689,17 @@ function generateSettlement(spec, ctx = {}) {
     fit2("chapel", ft(32), ft(22), alongWalls(cc, cw, ch, inset(ft(22)), k0, true).filter((o) => Math.hypot(o.p[0] - gateAt[0], o.p[1] - gateAt[1]) > ft(50)), { label: "Chapel" });
     fit2("barracks", ft(40), ft(22), alongWalls(cc, cw, ch, inset(ft(22)), gateAt), {});
     s2.props.push({ kind: "well", x: r22(cc[0] + (gateAt[0] - cc[0]) * 0.3), y: r22(cc[1] + (gateAt[1] - cc[1]) * 0.3), origin: ORIGIN2 });
-    occ.poly(flat(inner), ft(6), false);
+    occ.poly(flat2(inner), ft(6), false);
     if (castleOnly) {
       const outer = blob(cc, Math.min(cw * 1.2, cc[0] - 3, cols - cc[0] - 3), Math.min(ch * 1.3, cc[1] - 3, rows3 - cc[1] - 3), 10, 0.1, rand);
       const og = crossings3(road2.points, outer)[0];
-      s2.walls.push({ kind: "stone", points: flat(outer), closed: true, towers: { shape: "round", at: "corners" }, gates: og ? [{ at: [r22(og[0]), r22(og[1])], kind: "gatehouse" }] : [], origin: ORIGIN2 });
-      occ.line([...flat(outer), outer[0][0], outer[0][1]], ft(14));
-      if (og) occ.poly(flat(castleRect(og[0], og[1], ft(60), ft(60))), 0, false);
+      s2.walls.push({ kind: "stone", points: flat2(outer), closed: true, towers: { shape: "round", at: "corners" }, gates: og ? [{ at: [r22(og[0]), r22(og[1])], kind: "gatehouse" }] : [], origin: ORIGIN2 });
+      occ.line([...flat2(outer), outer[0][0], outer[0][1]], ft(14));
+      if (og) occ.poly(flat2(castleRect(og[0], og[1], ft(60), ft(60))), 0, false);
       if (g.water === "moat") {
         const m = offsetRing(inner, wallThickness(s2, curtain) / 2 + ft(16));
-        s2.water.push({ kind: "moat", points: flat([...m, m[0]]), width: r22(ft(20)), origin: ORIGIN2 });
-        occ.line(flat([...m, m[0]]), ft(14));
+        s2.water.push({ kind: "moat", points: flat2([...m, m[0]]), width: r22(ft(20)), origin: ORIGIN2 });
+        occ.line(flat2([...m, m[0]]), ft(14));
       }
       const ring2 = [];
       for (let i = 0; i < 48; i++) {
@@ -17018,7 +18740,7 @@ function generateSettlement(spec, ctx = {}) {
   };
   for (const sp of spots) {
     if (placed >= quota) break;
-    if (wallRing && !inPolygon(flat(wallRing), sp.x, sp.y) && placed < quota * 0.8) continue;
+    if (wallRing && !inPolygon(flat2(wallRing), sp.x, sp.y) && placed < quota * 0.8) continue;
     if (reach && sp.d > reach * 1.15) continue;
     const first = queue.length ? queue.shift() : null, kinds = first && !(first === "mill" && !nearWater(sp.x, sp.y)) ? [first, fill2()] : [fill2()];
     if (first && kinds.length === 1) retry(first);
@@ -17028,9 +18750,9 @@ function generateSettlement(spec, ctx = {}) {
       fw = ft(f0 + rand() * (f1 - f0));
       dh = ft(d0 + rand() * (d1 - d0));
       const cx = sp.x + sp.nx * (sp.off + dh / 2), cy = sp.y + sp.ny * (sp.off + dh / 2);
-      const shape = SHAPE_OF[k] ?? (k === "house" && rand() < 0.15 ? "L" : "rect");
-      const c = { id: "", kind: k, shape, x: r22(cx - fw / 2), y: r22(cy - dh / 2), w: r22(fw), h: r22(dh), angle: r22(sp.angle), stories: k === "house" || k === "shop" ? big ? 2 : rand() < 0.3 ? 2 : 1 : storiesOf(k), origin: ORIGIN2 };
-      if (shape === "T" || shape === "L") {
+      const shape2 = SHAPE_OF[k] ?? (k === "house" && rand() < 0.15 ? "L" : "rect");
+      const c = { id: "", kind: k, shape: shape2, x: r22(cx - fw / 2), y: r22(cy - dh / 2), w: r22(fw), h: r22(dh), angle: r22(sp.angle), stories: k === "house" || k === "shop" ? big ? 2 : rand() < 0.3 ? 2 : 1 : storiesOf(k), origin: ORIGIN2 };
+      if (shape2 === "T" || shape2 === "L") {
         const facing = sp.nx * -Math.sin(sp.angle * Math.PI / 180) + sp.ny * Math.cos(sp.angle * Math.PI / 180);
         if (facing < 0) c.angle = r22(sp.angle + 180);
       }
@@ -17051,9 +18773,9 @@ function generateSettlement(spec, ctx = {}) {
     const behind = (depth, kindA) => {
       const bx = sp.x + sp.nx * (sp.off + dh + 0.3), by = sp.y + sp.ny * (sp.off + dh + 0.3), ux = Math.cos(sp.angle * Math.PI / 180), uy = Math.sin(sp.angle * Math.PI / 180), hw = fw / 2;
       const poly = [[bx - ux * hw, by - uy * hw], [bx + ux * hw, by + uy * hw], [bx + ux * hw + sp.nx * depth, by + uy * hw + sp.ny * depth], [bx - ux * hw + sp.nx * depth, by - uy * hw + sp.ny * depth]];
-      if (poly.some(([x, y]) => x < 0 || y < 0 || x > cols || y > rows3) || occ.poly(flat(poly), 0, true)) return;
-      occ.poly(flat(poly), 0.2, false);
-      s2.areas.push({ kind: kindA, points: flat(poly), origin: ORIGIN2 });
+      if (poly.some(([x, y]) => x < 0 || y < 0 || x > cols || y > rows3) || occ.poly(flat2(poly), 0, true)) return;
+      occ.poly(flat2(poly), 0.2, false);
+      s2.areas.push({ kind: kindA, points: flat2(poly), origin: ORIGIN2 });
     };
     if (kind === "temple") behind(ft(40), "graveyard");
     else if (!big && (kind === "house" || kind === "cottage") && rand() < 0.6) behind(ft(15 + rand() * 20), "garden");
@@ -17063,7 +18785,7 @@ function generateSettlement(spec, ctx = {}) {
   if (big || queue.length) {
     for (let n2 = 0; n2 < quota * 40 && (placed < quota || queue.length) && (big || queue.length); n2++) {
       const a = rand() * Math.PI * 2, d = Math.sqrt(rand()) * Rcore * (big ? 1 : 1.3), x = C3[0] + Math.cos(a) * d, y = C3[1] + Math.sin(a) * d;
-      if (wallRing && !inPolygon(flat(wallRing), x, y) || occ.taken(x, y)) continue;
+      if (wallRing && !inPolygon(flat2(wallRing), x, y) || occ.taken(x, y)) continue;
       let best = { d: Infinity, angle: 0 };
       for (const r of lay.roads) {
         if (r.kind === "path" || r.kind === "track") continue;
@@ -17104,9 +18826,9 @@ function generateSettlement(spec, ctx = {}) {
     const corners = [[0, 0], [cols, 0], [0, rows3], [cols, rows3]].sort((p2, q) => Math.hypot(q[0] - C3[0], q[1] - C3[1]) - Math.hypot(p2[0] - C3[0], p2[1] - C3[1]));
     for (const cn of corners) {
       const c = [cn[0] ? cols - cols * 0.12 : cols * 0.12, cn[1] ? rows3 - rows3 * 0.12 : rows3 * 0.12], ring2 = blob(c, cols * 0.13, rows3 * 0.13, 9, 0.35, rand).map(([x, y]) => [Math.max(0, Math.min(cols, x)), Math.max(0, Math.min(rows3, y))]);
-      if (occ.poly(flat(ring2), 0, true)) continue;
-      occ.poly(flat(ring2), 0, false);
-      s2.areas.push({ kind: "wood", points: flat(ring2), origin: ORIGIN2 });
+      if (occ.poly(flat2(ring2), 0, true)) continue;
+      occ.poly(flat2(ring2), 0, false);
+      s2.areas.push({ kind: "wood", points: flat2(ring2), origin: ORIGIN2 });
       break;
     }
   }
@@ -17122,8 +18844,8 @@ function generateSettlement(spec, ctx = {}) {
   }
   for (const b of s2.buildings) {
     if (b.origin !== ORIGIN2) continue;
-    const cx = b.x + b.w / 2, cy = b.y + b.h / 2, side = rotatePts([cx + b.w / 2 + ft(5), cy], b.angle ?? 0, cx, cy);
-    const prop2 = b.kind === "barn" ? { kind: "haystack", x: side[0], y: side[1] } : b.kind === "stable" ? { kind: "trough", x: side[0], y: side[1], angle: (b.angle ?? 0) + 90 } : b.kind === "inn" ? { kind: "cart", x: side[0], y: side[1], angle: b.angle ?? 0 } : b.kind === "smithy" ? { kind: "woodpile", x: side[0], y: side[1], angle: (b.angle ?? 0) + 90 } : null;
+    const cx = b.x + b.w / 2, cy = b.y + b.h / 2, side2 = rotatePts([cx + b.w / 2 + ft(5), cy], b.angle ?? 0, cx, cy);
+    const prop2 = b.kind === "barn" ? { kind: "haystack", x: side2[0], y: side2[1] } : b.kind === "stable" ? { kind: "trough", x: side2[0], y: side2[1], angle: (b.angle ?? 0) + 90 } : b.kind === "inn" ? { kind: "cart", x: side2[0], y: side2[1], angle: b.angle ?? 0 } : b.kind === "smithy" ? { kind: "woodpile", x: side2[0], y: side2[1], angle: (b.angle ?? 0) + 90 } : null;
     if (prop2 && !occ.taken(prop2.x, prop2.y)) {
       s2.props.push({ ...prop2, x: r22(prop2.x), y: r22(prop2.y), ...prop2.angle !== void 0 && { angle: r22(prop2.angle) }, origin: ORIGIN2 });
       occ.mark(prop2.x, prop2.y);
@@ -17143,12 +18865,12 @@ function generateSettlement(spec, ctx = {}) {
   }
   return parseSettlement(s2);
 }
-function settlementFromMap(spec, mapPath, map, field, origin) {
+function settlementFromMap(spec, mapPath, map, field, origin2) {
   const scale2 = Math.round(spec.scale.perCell * feetIn2(spec.scale.unit) / (map.scale.perCell * feetIn2(map.scale.unit)) * 1e4) / 1e4;
-  const s2 = { ...spec, underlay: { map: mapPath, origin, scale: scale2 } };
+  const s2 = { ...spec, underlay: { map: mapPath, origin: origin2, scale: scale2 } };
   return generateSettlement(s2, { map, field });
 }
-var ORIGIN2, r22, flat, FLAT2, SIZE_FT, SHAPE_OF, INN_A, INN_B, Grid2, calm, feetIn2;
+var ORIGIN2, r22, flat2, FLAT2, SIZE_FT, SHAPE_OF, INN_A, INN_B, Grid2, calm, feetIn2;
 var init_generate3 = __esm({
   "../artgen-mapgen/src/settlement/generate.ts"() {
     "use strict";
@@ -17163,7 +18885,7 @@ var init_generate3 = __esm({
     init_spec3();
     ORIGIN2 = "gen";
     r22 = (v) => Math.round(v * 100) / 100;
-    flat = (pts2) => pts2.flatMap(([x, y]) => [r22(x), r22(y)]);
+    flat2 = (pts2) => pts2.flatMap(([x, y]) => [r22(x), r22(y)]);
     FLAT2 = { water: () => false, slope: () => 0, forest: () => false };
     SIZE_FT = {
       house: [20, 30, 15, 22],
@@ -17237,7 +18959,7 @@ var init_generate3 = __esm({
 });
 
 // ../artgen-mapgen/src/settlement/lint.ts
-function share(poly, test) {
+function share2(poly, test) {
   const xs = poly.filter((_, i) => i % 2 === 0), ys = poly.filter((_, i) => i % 2 === 1);
   let n = 0, hit = 0;
   for (let y = Math.min(...ys) + 0.25; y < Math.max(...ys); y += 0.5) for (let x = Math.min(...xs) + 0.25; x < Math.max(...xs); x += 0.5) {
@@ -17250,26 +18972,26 @@ function share(poly, test) {
 function lintSettlement(spec, l = layoutSettlement(spec)) {
   const out = [];
   const add2 = (severity, path, message) => out.push({ severity, path, message });
-  const off = (x, y) => x < 0 || y < 0 || x > spec.cols || y > spec.rows;
+  const off2 = (x, y) => x < 0 || y < 0 || x > spec.cols || y > spec.rows;
   l.buildings.forEach((g, i) => {
     const at4 = `buildings[${i}]`, b = g.building;
     if (polygonArea(g.outline) < 0.25) add2("error", at4, "the footprint has (almost) no area");
     if (g.outline.some((v, j) => j % 2 ? v < 0 || v > spec.rows : v < 0 || v > spec.cols)) add2("warning", at4, `${b.id} runs off the sheet`);
-    const wet = share(g.outline, (x, y) => inWater(l.water, x, y));
+    const wet = share2(g.outline, (x, y) => inWater(l.water, x, y));
     if (wet > 0.2) add2("warning", at4, `${b.id} stands in water (${Math.round(wet * 100)}% of it)`);
-    const onRoad = l.roads.findIndex((r) => r.kind !== "path" && share(g.outline, (x, y) => nearestOnLine(r.pts, x, y).d < r.width / 2) > 0.2);
+    const onRoad = l.roads.findIndex((r) => r.kind !== "path" && share2(g.outline, (x, y) => nearestOnLine(r.pts, x, y).d < r.width / 2) > 0.2);
     if (onRoad >= 0) add2("warning", at4, `${b.id} stands across roads[${onRoad}] (a ${l.roads[onRoad].kind})`);
     for (let j = 0; j < i; j++) {
       const o = l.buildings[j], ob = o.building;
       if (Math.abs(o.cx - g.cx) > (b.w + b.h + ob.w + ob.h) / 2 || Math.abs(o.cy - g.cy) > (b.w + b.h + ob.w + ob.h) / 2) continue;
-      if (share(g.outline, (x, y) => inPolygon(o.outline, x, y)) > 0.05) add2("warning", at4, `${b.id} overlaps ${ob.id} (buildings[${j}])`);
+      if (share2(g.outline, (x, y) => inPolygon(o.outline, x, y)) > 0.05) add2("warning", at4, `${b.id} overlaps ${ob.id} (buildings[${j}])`);
     }
     const outline2 = planOutline(spec, b), levels = new Map((b.floors ?? []).map((f) => [f.level, f]));
     (b.floors ?? []).forEach((fl2, fi) => {
       const fa = `${at4}.floors[${fi}]`;
       fl2.rooms.forEach((r, ri) => {
         const ro = roomOutline(r);
-        if (share(ro, (x, y) => !inPolygon(outline2, x, y)) > 0.1) add2("warning", `${fa}.rooms[${ri}]`, `room ${r.id} reaches outside the footprint`);
+        if (share2(ro, (x, y) => !inPolygon(outline2, x, y)) > 0.1) add2("warning", `${fa}.rooms[${ri}]`, `room ${r.id} reaches outside the footprint`);
       });
       const boxes = (fl2.fixtures ?? []).map((f) => {
         const [w, h] = fixtureSize(f, spec.interior.perCell), turned = Math.abs(Math.round((f.angle ?? 0) / 90)) % 2 === 1;
@@ -17285,8 +19007,8 @@ function lintSettlement(spec, l = layoutSettlement(spec)) {
           if (ox > 0.15 && oy > 0.15) add2("warning", `${fa}.fixtures[${xi}]`, `${f.kind} sits on ${fl2.fixtures[yi].kind} (fixtures[${yi}])`);
         }
         const up = f.kind === "stairs-up" || f.kind === "ladder" || f.kind === "spiral-stairs", down = f.kind === "stairs-down" || f.kind === "trapdoor";
-        for (const [want, dir] of [[up, 1], [down, -1]]) {
-          if (!want) continue;
+        for (const [want2, dir] of [[up, 1], [down, -1]]) {
+          if (!want2) continue;
           const next4 = levels.get(fl2.level + dir);
           if (!next4) {
             if (f.kind !== "ladder" && f.kind !== "spiral-stairs") add2("warning", `${fa}.fixtures[${xi}]`, `${f.kind} on ${fl2.level} leads to level ${fl2.level + dir}, which ${b.id} does not have`);
@@ -17304,13 +19026,13 @@ function lintSettlement(spec, l = layoutSettlement(spec)) {
     });
   });
   spec.overlay.labels.forEach((lb, i) => {
-    if (off(lb.x, lb.y)) add2("warning", `overlay.labels[${i}]`, `"${lb.text}" is off the sheet`);
+    if (off2(lb.x, lb.y)) add2("warning", `overlay.labels[${i}]`, `"${lb.text}" is off the sheet`);
   });
   spec.overlay.symbols.forEach((s2, i) => {
-    if (off(s2.x, s2.y)) add2("warning", `overlay.symbols[${i}]`, `${s2.kind} is off the sheet`);
+    if (off2(s2.x, s2.y)) add2("warning", `overlay.symbols[${i}]`, `${s2.kind} is off the sheet`);
   });
   spec.props.forEach((p2, i) => {
-    if (off(p2.x, p2.y)) add2("warning", `props[${i}]`, `${p2.kind} is off the sheet`);
+    if (off2(p2.x, p2.y)) add2("warning", `props[${i}]`, `${p2.kind} is off the sheet`);
   });
   return out;
 }
@@ -17410,11 +19132,11 @@ function floor(m, o, make2 = false) {
 function editSettlement(m, o) {
   switch (o.op) {
     case "building.add": {
-      const kind = oneOf(o, "kind", BUILDING_KINDS), shape = oneOf(o, "shape", BUILDING_SHAPES, "rect");
+      const kind = oneOf(o, "kind", BUILDING_KINDS), shape2 = oneOf(o, "shape", BUILDING_SHAPES, "rect");
       const id2 = opt(o, "id") ?? nextId(m.buildings, "b");
       if (m.buildings.some((b2) => b2.id === id2)) throw new Error(`building ${id2} already exists`);
-      const box2 = shape === "poly" ? polyBox(pts(o, "points", 3)) : { x: num2(o, "x"), y: num2(o, "y"), w: num2(o, "w"), h: num2(o, "h") };
-      const b = { id: id2, kind, shape, ...box2 };
+      const box2 = shape2 === "poly" ? polyBox(pts(o, "points", 3)) : { x: num2(o, "x"), y: num2(o, "y"), w: num2(o, "w"), h: num2(o, "h") };
+      const b = { id: id2, kind, shape: shape2, ...box2 };
       fields(b, o, BUILDING_FIELDS.filter((k) => k !== "kind" && k !== "shape"));
       m.buildings.push(b);
       return `added ${kind} ${id2} at ${box2.x},${box2.y} (${box2.w}\xD7${box2.h})`;
@@ -17462,11 +19184,11 @@ function editSettlement(m, o) {
       return `removed level ${f.level} of ${b.id}`;
     }
     case "room.add": {
-      const { b, f } = floor(m, o, true), shape = oneOf(o, "shape", ["rect", "circle", "octagon", "cave", "poly"], "rect");
+      const { b, f } = floor(m, o, true), shape2 = oneOf(o, "shape", ["rect", "circle", "octagon", "cave", "poly"], "rect");
       const id2 = opt(o, "id") ?? nextId(f.rooms, `${f.level < 0 ? "c" : "f"}${Math.abs(f.level)}r`);
       if (f.rooms.some((r5) => r5.id === id2)) throw new Error(`room ${id2} already exists on that floor`);
-      const box2 = shape === "poly" ? polyBox(pts(o, "points", 3)) : { x: num2(o, "x"), y: num2(o, "y"), w: num2(o, "w"), h: num2(o, "h") };
-      const r = { id: id2, shape, ...box2, ...shape === "poly" && { points: o.points } };
+      const box2 = shape2 === "poly" ? polyBox(pts(o, "points", 3)) : { x: num2(o, "x"), y: num2(o, "y"), w: num2(o, "w"), h: num2(o, "h") };
+      const r = { id: id2, shape: shape2, ...box2, ...shape2 === "poly" && { points: o.points } };
       fields(r, o, ["label", "number"]);
       f.rooms.push(r);
       return `added room ${id2} to ${b.id} level ${f.level}`;
@@ -17551,7 +19273,7 @@ function editSettlement(m, o) {
       return `added a ${g.kind} to wall ${o.index}`;
     }
     case "area.add": {
-      const a = { kind: oneOf(o, "kind", AREA_KINDS), points: pts(o, "points", 3) };
+      const a = { kind: oneOf(o, "kind", AREA_KINDS2), points: pts(o, "points", 3) };
       fields(a, o, ["id", "label", "origin"]);
       m.areas.push(a);
       return `added a ${a.kind} (area ${m.areas.length - 1})`;
@@ -17593,9 +19315,9 @@ function editSettlement(m, o) {
     case "tree.rm":
     case "label.rm":
     case "symbol.rm": {
-      const key2 = o.op.split(".")[0], list6 = key2 === "label" ? m.overlay.labels : key2 === "symbol" ? m.overlay.symbols : key2 === "road" ? m.roads : key2 === "water" ? m.water : key2 === "wall" ? m.walls : key2 === "area" ? m.areas : m.trees;
-      list6.splice(at(list6, o.index, key2), 1);
-      return `removed ${key2} ${o.index}`;
+      const key3 = o.op.split(".")[0], list6 = key3 === "label" ? m.overlay.labels : key3 === "symbol" ? m.overlay.symbols : key3 === "road" ? m.roads : key3 === "water" ? m.water : key3 === "wall" ? m.walls : key3 === "area" ? m.areas : m.trees;
+      list6.splice(at(list6, o.index, key3), 1);
+      return `removed ${key3} ${o.index}`;
     }
   }
   throw new Error(`no edit ${JSON.stringify(o.op)}: ${SETTLEMENT_OPS.join(", ")}`);
@@ -17678,7 +19400,7 @@ var init_edit2 = __esm({
 // ../artgen-mapgen/src/settlement/index.ts
 var settlement_exports = {};
 __export(settlement_exports, {
-  AREA_KINDS: () => AREA_KINDS,
+  AREA_KINDS: () => AREA_KINDS2,
   BUILDING_KINDS: () => BUILDING_KINDS,
   BUILDING_MODES: () => BUILDING_MODES,
   BUILDING_SHAPES: () => BUILDING_SHAPES,
@@ -17796,7 +19518,7 @@ function shaped(layer, type, pts2, closed, props2, name) {
 }
 function dungeonTiles(spec) {
   const l = layoutDungeon(spec), W3 = spec.cols, H = spec.rows, cells = new Uint8Array(W3 * H);
-  const FLOOR = 1, WALL = 2, DOOR = 3, YARD = 4;
+  const FLOOR = 1, WALL = 2, DOOR2 = 3, YARD = 4;
   const rooms = l.rooms.filter((g) => g.room.fill !== "cellar");
   for (let y = 0; y < H; y++) for (let x = 0; x < W3; x++) {
     const px = x + 0.5, py = y + 0.5;
@@ -17815,7 +19537,7 @@ function dungeonTiles(spec) {
   }
   for (const d of l.doors) {
     const a = d.angle * Math.PI / 180, x = Math.floor(d.x + Math.cos(a) * 0.5), y = Math.floor(d.y + Math.sin(a) * 0.5);
-    if (x >= 0 && y >= 0 && x < W3 && y < H && cells[y * W3 + x] === FLOOR) cells[y * W3 + x] = DOOR;
+    if (x >= 0 && y >= 0 && x < W3 && y < H && cells[y * W3 + x] === FLOOR) cells[y * W3 + x] = DOOR2;
   }
   const walls = layoutWalls(spec, l);
   const wallCell = new Uint8Array(W3 * H);
@@ -17825,7 +19547,7 @@ function dungeonTiles(spec) {
     let near3 = false;
     for (let dy = -1; dy <= 1 && !near3; dy++) for (let dx = -1; dx <= 1 && !near3; dx++) {
       const nx = x + dx, ny = y + dy;
-      if (nx >= 0 && ny >= 0 && nx < W3 && ny < H && (cells[ny * W3 + nx] === FLOOR || cells[ny * W3 + nx] === DOOR)) near3 = true;
+      if (nx >= 0 && ny >= 0 && nx < W3 && ny < H && (cells[ny * W3 + nx] === FLOOR || cells[ny * W3 + nx] === DOOR2)) near3 = true;
     }
     if (!near3) {
       for (const w of walls) if (nearestOnLine([...w.ring, w.ring[0], w.ring[1]], x + 0.5, y + 0.5).d < w.thickness / 2) {
@@ -18075,23 +19797,23 @@ function bindTiles(cls, pack, id2, asset, atlases) {
   return { class: cls, source: `${pack}/${id2}`, view: asset.view, size: [asset.size[0], asset.size[1]], ...asset.autotile && { autotile: asset.autotile }, tiles };
 }
 function buildSheet(g, o) {
-  const shape = o.shape ?? (g.grid === "hex" ? "hex" : "square"), bindings = o.bindings ?? [];
-  if (g.grid === "hex" && shape !== "hex") throw new Error("a hex map exports with hex tiles");
+  const shape2 = o.shape ?? (g.grid === "hex" ? "hex" : "square"), bindings = o.bindings ?? [];
+  if (g.grid === "hex" && shape2 !== "hex") throw new Error("a hex map exports with hex tiles");
   for (const b of bindings) {
     if (!g.classes.some((c) => c.id === b.class)) throw new Error(`no class ${JSON.stringify(b.class)} in this ${g.source} (have: ${g.classes.map((c) => c.id).join(", ")})`);
-    if (b.autotile && shape === "hex") throw new Error(`${b.source}: autotile sets are square; a hex map takes plain tiles`);
+    if (b.autotile && shape2 === "hex") throw new Error(`${b.source}: autotile sets are square; a hex map takes plain tiles`);
   }
   const first = bindings[0];
   let tileW, tileH, imageH;
   if (first) {
     tileW = first.size[0];
-    tileH = shape === "diamond" ? tileW / 2 : shape === "hex" ? hexHeight(tileW) : first.size[1];
+    tileH = shape2 === "diamond" ? tileW / 2 : shape2 === "hex" ? hexHeight(tileW) : first.size[1];
     imageH = Math.max(...bindings.map((b) => b.size[1]));
     for (const b of bindings) if (b.size[0] !== tileW) throw new Error(`tiles of different widths: ${first.source} is ${tileW} px, ${b.source} ${b.size[0]} px`);
-    if (shape === "diamond" && tileW % 2) throw new Error(`iso tiles must be an even width (${first.source} is ${tileW} px)`);
+    if (shape2 === "diamond" && tileW % 2) throw new Error(`iso tiles must be an even width (${first.source} is ${tileW} px)`);
   } else {
-    tileW = o.tile ?? (shape === "diamond" ? 32 : 16);
-    tileH = shape === "diamond" ? tileW / 2 : shape === "hex" ? hexHeight(tileW) : tileW;
+    tileW = o.tile ?? (shape2 === "diamond" ? 32 : 16);
+    tileH = shape2 === "diamond" ? tileW / 2 : shape2 === "hex" ? hexHeight(tileW) : tileW;
     imageH = tileH;
   }
   if (!Number.isInteger(tileW) || tileW < 2 || tileW > 512 || !Number.isInteger(tileH)) throw new Error(`tile size ${tileW}\xD7${tileH}: whole pixels from 2 to 512`);
@@ -18104,7 +19826,7 @@ function buildSheet(g, o) {
     }));
     else {
       tiles.push({ id: tiles.length, class: c.id, variant: 0, index: 0, flat: true });
-      images.push(flatTile(shape, tileW, tileH, c.color));
+      images.push(flatTile(shape2, tileW, tileH, c.color));
     }
   }
   const columns = Math.min(tiles.length, Math.max(1, Math.ceil(Math.sqrt(tiles.length))) * (tileW < 24 ? 2 : 1)), rows3 = Math.ceil(tiles.length / columns);
@@ -18112,7 +19834,7 @@ function buildSheet(g, o) {
   images.forEach((img, i) => image2.blit(img, i % columns * imageW, Math.floor(i / columns) * imageH + (imageH - img.h)));
   return {
     name: o.name,
-    shape,
+    shape: shape2,
     tileW,
     tileH,
     imageW,
@@ -18123,11 +19845,11 @@ function buildSheet(g, o) {
     bindings: bindings.map((b) => ({ class: b.class, source: b.source, ...b.autotile && { autotile: b.autotile }, variants: b.tiles.length }))
   };
 }
-function flatTile(shape, w, h, color) {
+function flatTile(shape2, w, h, color) {
   const g = new Grid(w, h);
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
     const px = x + 0.5 - w / 2, py = y + 0.5 - h / 2;
-    const inside3 = shape === "square" ? true : shape === "diamond" ? Math.abs(px) / (w / 2) + Math.abs(py) / (h / 2) <= 1 : Math.abs(py) <= h / 2 && Math.abs(px) <= w / 2 - Math.abs(py) / (h / 2) * (w / 4);
+    const inside3 = shape2 === "square" ? true : shape2 === "diamond" ? Math.abs(px) / (w / 2) + Math.abs(py) / (h / 2) <= 1 : Math.abs(py) <= h / 2 && Math.abs(px) <= w / 2 - Math.abs(py) / (h / 2) * (w / 4);
     if (inside3) g.set(x, y, color);
   }
   return g;
@@ -18144,8 +19866,8 @@ function resolveTiles(g, sheet, seed = 0) {
     const v = g.cells[y * g.cols + x];
     if (!v) continue;
     const variants2 = byClass.get(g.classes[v - 1].id), row = variants2[variants2.length > 1 ? cellHash(x, y, variants2.length, seed) : 0];
-    const layout2 = row[0].autotile;
-    const index = layout2 ? autotileIndexOf(layout2, neighbourMask(x, y, (nx, ny) => nx < 0 || ny < 0 || nx >= g.cols || ny >= g.rows || g.cells[ny * g.cols + nx] === v)) : 0;
+    const layout3 = row[0].autotile;
+    const index = layout3 ? autotileIndexOf(layout3, neighbourMask(x, y, (nx, ny) => nx < 0 || ny < 0 || nx >= g.cols || ny >= g.rows || g.cells[ny * g.cols + nx] === v)) : 0;
     out[y * g.cols + x] = row[index].id;
   }
   return out;
@@ -18193,12 +19915,12 @@ function objectPixels(sheet, orientation) {
   return (x, y) => [x * sheet.tileW, y * sheet.tileH];
 }
 function tiledObject(o, id2, at4) {
-  const [x, y] = at4(o.x, o.y), origin = at4(0, 0);
+  const [x, y] = at4(o.x, o.y), origin2 = at4(0, 0);
   const rel4 = (pts2) => {
     const out = [];
     for (let i = 0; i < pts2.length; i += 2) {
       const [px, py] = at4(pts2[i], pts2[i + 1]);
-      out.push({ x: r23(px - origin[0]), y: r23(py - origin[1]) });
+      out.push({ x: r23(px - origin2[0]), y: r23(py - origin2[1]) });
     }
     return out;
   };
@@ -18266,9 +19988,9 @@ function tiledMap(g, sheet, o) {
     layers
   };
 }
-function wangId(layout2, mask) {
+function wangId(layout3, mask) {
   const bits2 = [N, NE, E, SE, S, SW, W, NW];
-  return bits2.map((b, i) => layout2 === "wang16" && i % 2 ? 0 : mask & b ? 1 : 2);
+  return bits2.map((b, i) => layout3 === "wang16" && i % 2 ? 0 : mask & b ? 1 : 2);
 }
 function tiledTileset(g, sheet, o) {
   const solid = new Map(g.classes.map((c) => [c.id, !!c.solid]));
@@ -18278,18 +20000,18 @@ function tiledTileset(g, sheet, o) {
     properties: props({ class: t.class, solid: solid.get(t.class), ...t.variant && { variant: t.variant }, ...t.autotile && { autotile: t.autotile, index: t.index }, ...t.flat && { placeholder: true } })
   }));
   const wangsets = sheet.bindings.filter((b) => b.autotile).map((b) => {
-    const layout2 = b.autotile, cls = g.classes.find((c) => c.id === b.class), mine = sheet.tiles.filter((t) => t.class === b.class);
-    const full = mine.find((t) => t.index === (layout2 === "blob47" ? BLOB47.length - 1 : 15));
+    const layout3 = b.autotile, cls = g.classes.find((c) => c.id === b.class), mine = sheet.tiles.filter((t) => t.class === b.class);
+    const full = mine.find((t) => t.index === (layout3 === "blob47" ? BLOB47.length - 1 : 15));
     const isolated = mine.find((t) => t.index === 0);
     return {
       name: b.class,
-      type: layout2 === "blob47" ? "mixed" : "edge",
+      type: layout3 === "blob47" ? "mixed" : "edge",
       tile: full.id,
       colors: [
         { name: cls.name, color: cls.color, tile: full.id, probability: 1 },
         { name: "other", color: "#808080", tile: isolated.id, probability: 1 }
       ],
-      wangtiles: mine.map((t) => ({ tileid: t.id, wangid: wangId(layout2, autotileMask(layout2, t.index)) }))
+      wangtiles: mine.map((t) => ({ tileid: t.id, wangid: wangId(layout3, autotileMask(layout3, t.index)) }))
     };
   });
   const rows3 = Math.ceil(sheet.tiles.length / sheet.columns);
@@ -18413,9 +20135,9 @@ var init_tiled = __esm({
 });
 
 // ../artgen-mapgen/src/tilemap/ldtk.ts
-function stableIid(key2) {
+function stableIid(key3) {
   const lanes = [2166136261, 16777619, 2654435769, 2246822507].map((h, k) => {
-    for (let i = 0; i < key2.length; i++) h = Math.imul(h ^ key2.charCodeAt(i) ^ k * 131, 16777619) >>> 0;
+    for (let i = 0; i < key3.length; i++) h = Math.imul(h ^ key3.charCodeAt(i) ^ k * 131, 16777619) >>> 0;
     return (h >>> 0).toString(16).padStart(8, "0");
   }).join("");
   return `${lanes.slice(0, 8)}-${lanes.slice(8, 12)}-4${lanes.slice(13, 16)}-${(parseInt(lanes[16], 16) & 3 | 8).toString(16)}${lanes.slice(17, 20)}-${lanes.slice(20, 32)}`;
@@ -18475,7 +20197,7 @@ function ldtkProject(g, sheet, o) {
   if (g.grid !== "square" || sheet.shape !== "square") throw new Error("LDtk has square grids only: export an isometric or hex map to Tiled");
   if (sheet.imageW !== sheet.tileW || sheet.imageH !== sheet.tileH || sheet.tileW !== sheet.tileH) throw new Error(`LDtk tiles are square cells (these are ${sheet.imageW}\xD7${sheet.imageH} px)`);
   if (o.tiles.length !== g.cols * g.rows) throw new Error("tiles: one per cell");
-  const G = sheet.tileW, key2 = `${g.source}:${g.id}`;
+  const G = sheet.tileW, key3 = `${g.source}:${g.id}`;
   let uid = 1;
   const next4 = () => uid++;
   const levelUid = next4(), tilesetUid = next4(), objectsUid = next4(), tilesUid = next4(), classesUid = next4();
@@ -18509,7 +20231,7 @@ function ldtkProject(g, sheet, o) {
       const was = fields2.get(name), now = kindOf(v);
       fields2.set(name, !was || was === now ? now : was === "Int" && now === "Float" ? "Float" : was === "Float" && now === "Int" ? "Float" : "String");
     }
-    if (mine.some(outlineOf)) {
+    if (mine.some(outlineOf2)) {
       fields2.set("outline", "String");
       fields2.set("points", "Array<Point>");
     }
@@ -18596,7 +20318,7 @@ function ldtkProject(g, sheet, o) {
     layerDef("Tiles", "Tiles", tilesUid, { tilesetDefUid: tilesetUid }),
     layerDef("Classes", "IntGrid", classesUid, { intGridValues: g.classes.map((c, i) => ({ value: i + 1, identifier: ldtkIdent(c.id), color: c.color, tile: null, groupUid: 0 })) })
   ];
-  const levelIid = stableIid(`${key2}:level`), worldIid = stableIid(`${key2}:world`);
+  const levelIid = stableIid(`${key3}:level`), worldIid = stableIid(`${key3}:world`);
   const instance = (identifier, type, defUid, extra) => ({
     __cHei: g.rows,
     __cWid: g.cols,
@@ -18611,7 +20333,7 @@ function ldtkProject(g, sheet, o) {
     autoLayerTiles: [],
     entityInstances: [],
     gridTiles: [],
-    iid: stableIid(`${key2}:layer:${identifier}`),
+    iid: stableIid(`${key3}:layer:${identifier}`),
     intGridCsv: [],
     layerDefUid: defUid,
     levelId: levelUid,
@@ -18624,7 +20346,7 @@ function ldtkProject(g, sheet, o) {
     ...extra
   });
   const entityInstances = g.objects.map((x, n) => {
-    const e = entities.find((t) => t.type === x.type), pts2 = outlineOf(x);
+    const e = entities.find((t) => t.type === x.type), pts2 = outlineOf2(x);
     const abs = pts2 ? pts2.map((v, i) => v + (i % 2 ? x.y : x.x)) : [x.x, x.y];
     const xs = abs.filter((_, i) => i % 2 === 0), ys = abs.filter((_, i) => i % 2 === 1);
     const bx = Math.min(...xs), by = Math.min(...ys), bw = Math.max(...xs) - bx, bh = Math.max(...ys) - by;
@@ -18644,7 +20366,7 @@ function ldtkProject(g, sheet, o) {
       __smartColor: e.def.color,
       __worldX: px[0],
       __worldY: px[1],
-      iid: stableIid(`${key2}:entity:${n}`),
+      iid: stableIid(`${key3}:entity:${n}`),
       width,
       height,
       defUid: e.def.uid,
@@ -18687,7 +20409,7 @@ function ldtkProject(g, sheet, o) {
   };
   return {
     __header__: { fileType: "LDtk Project JSON", app: "LDtk", doc: "https://ldtk.io/json", schema: "https://ldtk.io/files/JSON_SCHEMA.json", appAuthor: "Sebastien Benard", appVersion: LDTK_VERSION, url: "https://ldtk.io" },
-    iid: stableIid(`${key2}:project`),
+    iid: stableIid(`${key3}:project`),
     jsonVersion: LDTK_VERSION,
     appBuildId: 0,
     nextUid: uid,
@@ -18732,22 +20454,22 @@ function hsl(h, s2, l) {
   };
   return `#${[f(0), f(8), f(4)].map((v) => v.toString(16).padStart(2, "0")).join("").toUpperCase()}`;
 }
-var LDTK_VERSION, FIELD_TYPE, kindOf, outlineOf, r24;
+var LDTK_VERSION, FIELD_TYPE, kindOf, outlineOf2, r24;
 var init_ldtk = __esm({
   "../artgen-mapgen/src/tilemap/ldtk.ts"() {
     "use strict";
     LDTK_VERSION = "1.5.3";
     FIELD_TYPE = { Int: "F_Int", Float: "F_Float", String: "F_String", Bool: "F_Bool", "Array<Point>": "F_Point" };
     kindOf = (v) => typeof v === "boolean" ? "Bool" : typeof v === "number" ? Number.isInteger(v) ? "Int" : "Float" : "String";
-    outlineOf = (o) => o.polygon ?? o.polyline;
+    outlineOf2 = (o) => o.polygon ?? o.polyline;
     r24 = (v) => Math.round(v * 100) / 100;
   }
 });
 
 // ../artgen-mapgen/src/tilemap/export.ts
 function editorJson(v) {
-  const flat2 = (x) => x === null || typeof x !== "object" || (Array.isArray(x) ? x : Object.values(x)).every((y) => y === null || typeof y !== "object");
-  const short = (x) => flat2(x) || Array.isArray(x) && x.every((y) => flat2(y) && JSON.stringify(y).length <= 80) && x.length <= 64;
+  const flat3 = (x) => x === null || typeof x !== "object" || (Array.isArray(x) ? x : Object.values(x)).every((y) => y === null || typeof y !== "object");
+  const short = (x) => flat3(x) || Array.isArray(x) && x.every((y) => flat3(y) && JSON.stringify(y).length <= 80) && x.length <= 64;
   const out = (x, pad) => {
     if (x === null || typeof x !== "object" || short(x)) return JSON.stringify(x);
     const inner = pad + " ";
@@ -19017,20 +20739,20 @@ function checkMapDirection(raw) {
   if (!Number.isInteger(r.version) || r.version < 0) e.push("version: a whole number, 0 or more");
   if (r.status !== "draft" && r.status !== "locked") e.push("status: draft or locked");
   if (r.status === "locked" && !(r.version >= 1)) e.push("version: 1 or more when locked");
-  for (const [key2, names] of [["themes", THEME_NAMES], ["symbols", SYMBOL_NAMES]]) {
-    const o = r[key2];
+  for (const [key3, names] of [["themes", THEME_NAMES], ["symbols", SYMBOL_NAMES]]) {
+    const o = r[key3];
     if (o === void 0) continue;
     if (!o || typeof o !== "object" || Array.isArray(o)) {
-      e.push(`${key2}: an object keyed by ${KINDS2.join(", ")}`);
+      e.push(`${key3}: an object keyed by ${KINDS2.join(", ")}`);
       continue;
     }
     for (const [k, v] of Object.entries(o)) {
       if (!KINDS2.includes(k)) {
-        e.push(`${key2}.${k}: not a kind (${KINDS2.join(", ")})`);
+        e.push(`${key3}.${k}: not a kind (${KINDS2.join(", ")})`);
         continue;
       }
       const have = names[k];
-      if (key2 === "themes") {
+      if (key3 === "themes") {
         if (typeof v !== "string" || !have.includes(v)) e.push(`themes.${k}: one of ${have.join(", ")}`);
       } else if (!Array.isArray(v) || v.some((s2) => typeof s2 !== "string" || !have.includes(s2))) e.push(`symbols.${k}: a list of ${k} symbol kinds${Array.isArray(v) ? ` (not ${v.filter((s2) => !have.includes(s2)).join(", ")})` : ""}`);
     }
@@ -19103,6 +20825,343 @@ var init_direction2 = __esm({
   }
 });
 
+// ../artgen-mapgen/src/schema.ts
+function schemaKeys(s2, at4 = "") {
+  const out = [];
+  const walk = (node, path) => {
+    if (path && typeof node.description === "string" && node.description) out.push([path, node.description]);
+    const props2 = node.properties;
+    if (props2) for (const [k, v] of Object.entries(props2)) walk(v, path ? `${path}.${k}` : k);
+    if (node.items && typeof node.items === "object") walk({ ...node.items, description: "" }, `${path}[]`);
+    for (const alt of [...node.anyOf ?? [], ...node.oneOf ?? []]) walk({ ...alt, description: "" }, path);
+  };
+  walk(s2, at4);
+  const seen = /* @__PURE__ */ new Set();
+  return out.filter(([p2]) => seen.has(p2) ? false : (seen.add(p2), true));
+}
+var num3, int, str2, bool, oneOf2, arr, obj, anyOf, point, points, line2, origin, href, furniture2, side, doorPair2, corridorEnd2, DUNGEON_SCHEMA, DUNGEON_CHECKS, GRAPH_SCHEMA, shape, MAP_SCHEMA, fixture, floor2, SETTLEMENT_SCHEMA, SCHEMAS;
+var init_schema = __esm({
+  "../artgen-mapgen/src/schema.ts"() {
+    "use strict";
+    init_spec2();
+    init_graph();
+    init_lint();
+    init_spec();
+    init_spec3();
+    num3 = (description, o = {}) => ({ type: "number", description, ...o });
+    int = (description, o = {}) => ({ type: "integer", description, ...o });
+    str2 = (description, o = {}) => ({ type: "string", description, ...o });
+    bool = (description) => ({ type: "boolean", description });
+    oneOf2 = (description, values) => ({ enum: [...values], description });
+    arr = (description, items, o = {}) => ({ type: "array", description, items, ...o });
+    obj = (description, properties, required = []) => ({ type: "object", description, properties, ...required.length && { required }, additionalProperties: false });
+    anyOf = (description, ...options) => ({ description, anyOf: options });
+    point = (description) => arr(description, { type: "number" }, { minItems: 2, maxItems: 2 });
+    points = (description) => arr(`${description} (x,y pairs)`, { type: "number" }, { minItems: 6 });
+    line2 = (description) => arr(`${description} (x,y pairs)`, { type: "number" }, { minItems: 4 });
+    origin = str2("who wrote the entry; a sync replaces its own origin's entries and keeps the rest (none: a hand entry)");
+    href = str2("a link from it in the SVG: http(s)://\u2026, a relative path or #anchor");
+    furniture2 = obj("where the title, scale bar, compass and legend go: over the map, in a band outside it, or in the band only when they would cover something", {
+      place: oneOf2("over (default), outside or auto", ["over", "outside", "auto"]),
+      side: oneOf2("the band's side", ["bottom", "right"])
+    }, ["place"]);
+    side = oneOf2("a wall: n (top), e, s or w", SIDES);
+    doorPair2 = arr("the door at each end, from then to: a kind, or null for an open passage", anyOf("", oneOf2("", DOOR_KINDS), { type: "null" }), { minItems: 2, maxItems: 2 });
+    corridorEnd2 = anyOf(
+      "a corridor end: a room, a point, or another corridor",
+      obj("a room: from its anchor; through its `side` wall, `offset` cells along it from its top or left edge; or from `port`, a point on its wall", {
+        room: str2("the room's id"),
+        side,
+        offset: num3("cells along the side wall from the room's top or left edge (goes with side)", { minimum: 0 }),
+        port: point("a point on the room's wall the corridor leaves from, its door set along the wall (moved onto the outline when off it)")
+      }, ["room"]),
+      obj("a point: a dead end, or the way off the map", {
+        at: point("the point (cells)"),
+        exit: obj("where it leads: the corridor fades out over `fade` cells and a boxed note says so", { text: str2("the note"), href, fade: num3("cells it fades over (default 3)", { minimum: 0, maximum: 20 }) }, ["text"])
+      }, ["at"]),
+      obj("a junction on another corridor's centre line, nearest the other end (or `near`)", { corridor: str2("the joined corridor's id"), near: point("the point on it to meet nearest") }, ["corridor"])
+    );
+    DUNGEON_SCHEMA = {
+      $schema: "https://json-schema.org/draft/2020-12/schema",
+      title: "artgen dungeon file",
+      ...obj(`a dungeon map, format ${DUNGEON_FORMAT}: rooms, the corridors that join them, doors in shared walls, an overlay of labels and symbols. Cells: x right, y down.`, {
+        id: str2("letters, digits, - and _"),
+        version: int(`the format version (${DUNGEON_FORMAT}; older files are migrated on read)`, { minimum: 1 }),
+        cols: int(`columns, 4..${MAX_SIDE2}`, { minimum: 4, maximum: MAX_SIDE2 }),
+        rows: int(`rows, 4..${MAX_SIDE2}`, { minimum: 4, maximum: MAX_SIDE2 }),
+        seed: num3("the generator seed"),
+        title: str2("the title"),
+        gen: obj("generator settings (`dungeon gen`)", {
+          rooms: num3("rooms to generate, 1..80"),
+          minSize: num3("the smallest room side, cells"),
+          maxSize: num3("the largest room side, cells"),
+          caves: num3("the share of cave rooms, 0..1"),
+          round: num3("the share of round and octagonal rooms, 0..1"),
+          loops: num3("extra corridors beyond a tree, 0..1"),
+          doors: num3("the share of corridor ends with a door, 0..1"),
+          corridorWidth: num3("corridor width, cells"),
+          spacing: num3("empty cells between rooms"),
+          entrance: bool("a corridor from the first room off the nearest edge"),
+          layout: oneOf2("scatter (default), dense (rooms side by side) or blocks", GEN_LAYOUTS),
+          density: num3("dense: the share of the sheet filled")
+        }),
+        grid: obj("the grid: a line every `size` cells, a fainter one at every cell with `sub`, on the floor or everywhere", { show: bool("draw it"), size: num3("cells between lines (2 = 10 ft at 5 ft a cell)"), sub: bool("a line at every cell too"), clip: oneOf2("floor (default) or all", ["floor", "all"]) }),
+        style: obj("how it is drawn", {
+          hatch: oneOf2("rock hatching: a band along the walls, everywhere, or none", HATCH_STYLES),
+          band: num3("cells of the hatched band, 0..6"),
+          wall: num3("wall weight, 0.2..4"),
+          sharedWalls: anyOf(`walls where two floors meet: true (default) between any two units, "rooms" between rooms only (format 1's true), false none`, { type: "boolean" }, { const: "rooms" }),
+          rock: oneOf2("the rock: hatch (as hatch says; default), solid (rockColor) or none", ROCK_STYLES),
+          rockColor: str2("solid rock's colour, #rrggbb (default #bdbdbd)"),
+          partition: num3("the weight of the walls between floors, like wall (default: wall), 0.2..4")
+        }),
+        scale: obj("the scale", { perCell: num3("map units in one cell (5)"), unit: str2("the unit (ft)") }),
+        numbers: bool("room number badges"),
+        scaleBar: bool("the scale bar"),
+        compass: bool("the compass"),
+        legend: bool("a key of the symbols used"),
+        furniture: furniture2,
+        rooms: arr("the rooms", obj("a room", {
+          id: str2("letters, digits, - and _"),
+          shape: oneOf2("the shape", ROOM_SHAPES),
+          x: num3("the box's left (cells)"),
+          y: num3("the box's top"),
+          w: num3("the box's width, at least 1"),
+          h: num3("the box's height, at least 1"),
+          points: points("a poly's outline, cells; x, y, w, h are then its box"),
+          seed: num3("a cave's outline seed (default: from its id)"),
+          label: str2("its name"),
+          number: anyOf("its badge's number, or false to hide it (default: file order)", { type: "number" }, { const: false }),
+          fill: oneOf2("what it is: floor (default), building, yard or cellar", ROOM_FILLS),
+          href,
+          origin,
+          hand: arr("fields a hand edit changed on an entry of some origin; a sync reports them", { type: "string" }),
+          anchor: point("where its {room} corridors start and its badge sits (default: the centre, or a poly's deepest point)"),
+          labelAt: anyOf("where its number and name stand: by a wall, at the anchor (c), or [dx, dy] from it; unset, they move off what they would lie on", oneOf2("", ["c", "n", "s", "w", "e"]), point("")),
+          cut: num3("an octagon's corner cut, a share of its shorter side, exactly (default: 0.3 of it to the half cell)", { exclusiveMinimum: 0, exclusiveMaximum: 0.5 }),
+          orient: oneOf2("a hexagon: flat (points east and west; default) or pointy", ["flat", "pointy"]),
+          exits: arr("ways out of the map inside the room", obj("a stair or an arrow by a wall or at a point, and its note", { kind: oneOf2("the mark", ROOM_EXIT_KINDS), side, at: point("the mark's point"), angle: num3("degrees, 0 east, clockwise (default: toward its wall)"), text: str2("the note under it") }, ["kind"]))
+        }, ["id", "shape", "x", "y", "w", "h"])),
+        corridors: arr("the corridors", obj("a corridor", {
+          id: str2("a name other corridors can join"),
+          from: corridorEnd2,
+          to: corridorEnd2,
+          width: num3("width in cells, 0.5..6 (default 1)"),
+          span: num3("width in the scale unit, in place of width (10 for a 10 ft passage)"),
+          route: oneOf2("auto (straight when the rooms line up, else an elbow), hv, vh, straight, around (round the rooms on the grid) or maze (on the lattice of its width, off other corridors)", ROUTES),
+          maze: obj("route maze: cells kept off rooms' walls (0 or 1; default 0 where walls are drawn along corridors), a bend's cost, the noise's seed", { clearance: oneOf2("", [0, 1]), bend: num3("", { minimum: 0 }), seed: num3("") }),
+          via: line2("its bends, in order"),
+          curve: oneOf2("a smooth curve through the bends", CURVES),
+          style: oneOf2("built (default) or natural (rough walls)", CORRIDOR_STYLES),
+          seed: num3("a natural passage's seed"),
+          doors: doorPair2,
+          origin
+        }, ["from", "to"])),
+        connections: arr("doors and openings in the walls rooms share", obj("a connection", {
+          a: str2("a room"),
+          b: str2("the room it touches"),
+          at: point("a point on their shared wall (default: the middle of its longest stretch)"),
+          kind: oneOf2("a door kind or open", [...DOOR_KINDS, "open"]),
+          width: num3("the opening, cells (default 1)"),
+          origin
+        }, ["a", "b"])),
+        blocks: arr("shapes split into rooms that share walls", obj("a block", {
+          id: str2("its id"),
+          shape: oneOf2("the shape", BLOCK_SHAPES),
+          x: num3("left"),
+          y: num3("top"),
+          w: num3("width"),
+          h: num3("height"),
+          points: points("a poly's outline"),
+          split: obj("how it splits", { mode: oneOf2("bsp, rows, cols, grid or cuts", SPLIT_MODES), min: num3("about the size of each room, cells"), cuts: obj("where to cut", { x: arr("x lines", { type: "number" }), y: arr("y lines", { type: "number" }) }), seed: num3("the seed") }, ["mode"]),
+          doors: num3("the share of extra connections, 0..1"),
+          origin
+        }, ["id", "shape", "x", "y", "w", "h", "split"])),
+        overlay: obj("labels and symbols", {
+          labels: arr("labels", obj("a label", { text: str2("the text"), x: num3("x"), y: num3("y"), kind: oneOf2("name (bold), note (italic) or area (spaced capitals)", LABEL_KINDS2), size: num3("a factor on its size"), angle: num3("degrees"), href, origin }, ["text", "x", "y", "kind"])),
+          symbols: arr("symbols", obj("a symbol", { kind: str2("a symbol kind (`artgen dungeon symbols`)"), x: num3("x"), y: num3("y"), scale: num3("a factor on its size"), angle: num3("degrees, 0 east, clockwise on the page"), origin }, ["kind", "x", "y"]))
+        }, ["labels", "symbols"]),
+        underlay: obj("a terrain map under the rooms", { map: str2("the map file's path, from this file's folder"), origin: point("the map unit at the dungeon's top-left"), scale: num3("map units in one cell"), theme: oneOf2("color or bw", ["color", "bw"]) }, ["map", "origin", "scale"]),
+        walls: arr("enclosing walls with towers and gates", obj("a wall", {
+          id: str2("its id"),
+          rooms: arr("the rooms it goes round (their hull plus inset)", { type: "string" }),
+          poly: points("its own line"),
+          thickness: num3("cells, at most 4"),
+          inset: num3("cells round the rooms (default 1)"),
+          towers: obj("towers", { shape: oneOf2("round or square", ["round", "square"]), size: num3("cells across (default 3)"), at: anyOf("at the corners or at these vertices", { const: "corners" }, arr("", { type: "integer" })) }, ["shape"]),
+          gates: arr("gates", obj("a gate", { at: point("near the wall"), kind: oneOf2("gate or postern", ["gate", "postern"]), room: str2("the room it opens into"), width: num3("cells") }, ["at", "kind"])),
+          origin
+        })),
+        bounds: points("the ground the level occupies: the rock and grid are drawn inside it and its edge is drawn"),
+        areas: arr("rock and voids within the level, which no floor may take", obj("an area", { points: points("its outline"), kind: oneOf2("rock or void", AREA_KINDS), label: str2("a note at its middle"), origin }, ["points", "kind"]))
+      }, ["id", "cols", "rows", "seed", "rooms", "corridors"])
+    };
+    DUNGEON_CHECKS = { ...CHECK_IDS };
+    GRAPH_SCHEMA = {
+      $schema: "https://json-schema.org/draft/2020-12/schema",
+      title: "artgen dungeon layout graph",
+      ...obj("rooms and the ways between them, laid out by `artgen dungeon layout` in a footprint (cells)", {
+        id: str2("the dungeon's id"),
+        title: str2("its title"),
+        rooms: arr("the rooms", obj("a room", {
+          id: str2("its id (letters, digits, ., - and _)"),
+          w: num3("width, cells"),
+          h: num3("height, cells"),
+          shape: oneOf2("the shape (round is drawn as a circle)", GRAPH_SHAPES),
+          points: arr("a poly's outline, cells from its box's centre (x,y pairs)", { type: "number" }),
+          label: str2("its name (default: its id)"),
+          turns: bool("may lie in any quarter turn or mirror of itself"),
+          hall: bool("shows its name alone: its label is shorter"),
+          against: obj("set against another room: its centre dx, dy cells from that room's", { room: str2(""), dx: num3(""), dy: num3("") }, ["room", "dx", "dy"]),
+          over: obj("must stand over this box (cells, the footprint's frame)", { x: num3(""), y: num3(""), w: num3(""), h: num3("") }, ["x", "y", "w", "h"])
+        }, ["id", "w", "h"])),
+        ways: arr("the ways", obj("a way", {
+          a: str2("a room"),
+          b: str2("another room"),
+          bearing: num3("degrees clockwise from north: b lies this way from a"),
+          wall: num3("degrees clockwise from north: the wall a's door stands on"),
+          doors: doorPair2,
+          style: oneOf2("built (default) or natural", CORRIDOR_STYLES),
+          label: str2("a note")
+        }, ["a", "b"])),
+        width: num3("the passage width in cells, the lattice (default 2)"),
+        scale: obj("the scale", { perCell: num3(""), unit: str2("") }),
+        footprint: anyOf("a square's side in cells, or a polygon (x,y cells); unset, the least square `fill` allows", { type: "number" }, arr("", { type: "number" })),
+        keepOut: arr("polygons no room or passage may take", arr("", { type: "number" })),
+        fill: arr("[least, most] share of the ground the rooms cover (default [0.35, 0.55])", { type: "number" }, { minItems: 2, maxItems: 2 }),
+        passages: num3("the share of ways run as passages (default 0.35)"),
+        detour: num3("cells a way may walk past the straight line between its rooms"),
+        seed: num3("the seed (default 1)"),
+        tries: int("packings tried at each side (default 12)"),
+        margin: num3("cells round the footprint in the file (default 2)"),
+        clearance: oneOf2("0 (default) or 1: cells a passage keeps off walls", [0, 1])
+      }, ["rooms", "ways"])
+    };
+    shape = anyOf("where it applies", obj("a disc", { circle: arr("[x, y, r]", { type: "number" }, { minItems: 3, maxItems: 3 }) }, ["circle"]), obj("a polygon", { poly: points("") }, ["poly"]), obj("a brush stroke", { stroke: line2(""), width: num3("") }, ["stroke", "width"]));
+    MAP_SCHEMA = {
+      $schema: "https://json-schema.org/draft/2020-12/schema",
+      title: "artgen terrain map file",
+      ...obj(`a terrain map, format ${MAP_FORMAT}: generator settings, edits and an overlay. Map units: one grid cell.`, {
+        id: str2("its id"),
+        version: int("the format version", { minimum: 1 }),
+        preset: oneOf2("regional (a hex crawl) or local (a battle map)", PRESETS2),
+        cols: int(`columns, 4..${MAX_SIDE}`),
+        rows: int(`rows, 4..${MAX_SIDE}`),
+        seed: num3("the seed"),
+        title: str2("the title"),
+        gen: obj("generator settings", {
+          land: oneOf2("mixed, island or inland", LAND_MODES),
+          sea: num3("the share under water, 0..0.9"),
+          moisture: num3("dry (0) to wet (1)"),
+          roughness: num3("smooth (0) to rugged (1)"),
+          relief: num3("flat (0) to peaked (1)"),
+          rivers: num3("generated rivers"),
+          simplify: num3("merges small patches (0 keeps all)"),
+          feature: num3("a hill's or valley's size, map units")
+        }),
+        topo: obj("contours", { maxElevation: num3("the highest ground, topo units"), interval: num3("between contours"), majorEvery: num3("every nth contour is major"), unit: str2("the height unit"), labels: bool("label the major contours") }),
+        grid: obj("the grid", { type: oneOf2("hex, square or none", GRID_TYPES), size: num3("map units a cell"), coords: bool("cell names") }),
+        scale: obj("the scale", { perCell: num3("scale units a map unit"), unit: str2("mi, ft, \u2026") }),
+        legend: bool("a key"),
+        scaleBar: bool("a scale bar"),
+        compass: bool("a compass"),
+        edits: arr("edits, in order", anyOf(
+          "an edit",
+          obj("paint terrain", { op: { const: "paint" }, terrain: oneOf2("", TERRAINS), shape, origin }, ["op", "terrain", "shape"]),
+          obj("raise or lower the ground", { op: { const: "elevate" }, amount: num3("-1..1 of the height range"), shape, origin }, ["op", "amount", "shape"]),
+          obj("a river", { op: { const: "river" }, points: line2(""), width: num3("at its last point, map units"), delta: bool("a delta where it ends in water (default true)"), origin }, ["op", "points"]),
+          obj("a road", { op: { const: "road" }, points: line2(""), origin }, ["op", "points"])
+        )),
+        require: arr("what the ground must be (`map check` measures each)", anyOf(
+          "a requirement",
+          obj("a share of terrain", { id: str2(""), kind: { const: "terrain" }, area: shape, terrain: oneOf2("", TERRAINS), share: num3("0..1"), blend: num3(""), origin }, ["id", "kind", "area", "terrain", "share"]),
+          obj("heights", { id: str2(""), kind: { const: "height" }, area: shape, low: num3(""), high: num3(""), share: num3(""), blend: num3(""), origin }, ["id", "kind", "area", "low", "high"]),
+          obj("a stream or a road", { id: str2(""), kind: { const: "path" }, path: oneOf2("", ["stream", "road"]), points: line2(""), tolerance: num3(""), width: num3(""), delta: bool(""), blend: num3(""), origin }, ["id", "kind", "path", "points"]),
+          obj("no generated river", { id: str2(""), kind: { const: "clear" }, area: shape, blend: num3(""), origin }, ["id", "kind", "area"])
+        )),
+        overlay: obj("labels and symbols", {
+          labels: arr("labels", obj("a label", { text: str2(""), x: num3(""), y: num3(""), kind: oneOf2("", LABEL_KINDS), size: num3(""), angle: num3(""), origin }, ["text", "x", "y", "kind"])),
+          symbols: arr("symbols", obj("a symbol", { kind: str2("`artgen map symbols`"), x: num3(""), y: num3(""), scale: num3(""), angle: num3(""), origin }, ["kind", "x", "y"]))
+        }, ["labels", "symbols"])
+      }, ["id", "cols", "rows", "seed"])
+    };
+    fixture = obj("furniture or a site prop", { kind: str2("`artgen settlement fixtures`"), x: num3("centre x"), y: num3("centre y"), w: num3("width (default: the kind's)"), h: num3("height"), angle: num3("degrees"), label: str2(""), origin }, ["kind", "x", "y"]);
+    floor2 = obj("one storey", {
+      level: int("0 ground, 1 up, -1 cellar"),
+      name: str2(""),
+      rooms: DUNGEON_SCHEMA.properties.rooms,
+      connections: DUNGEON_SCHEMA.properties.connections,
+      doors: arr("doors in the outer wall", obj("a door", { at: point(""), kind: oneOf2("", [...DOOR_KINDS, "open"]), width: num3("") }, ["at"])),
+      windows: arr("windows", obj("a window", { at: point(""), width: num3("") }, ["at"])),
+      fixtures: arr("furniture", fixture),
+      origin
+    }, ["level", "rooms"]);
+    SETTLEMENT_SCHEMA = {
+      $schema: "https://json-schema.org/draft/2020-12/schema",
+      title: "artgen settlement file",
+      ...obj(`a settlement, format ${SETTLEMENT_FORMAT}: roads, water, walls, buildings with their floors, areas, trees and props. Cells: x right, y down.`, {
+        id: str2("its id"),
+        version: int("the format version", { minimum: 1 }),
+        kind: oneOf2("", SETTLEMENT_KINDS),
+        cols: int(`columns, 4..${MAX_SIDE3}`),
+        rows: int(`rows, 4..${MAX_SIDE3}`),
+        seed: num3(""),
+        title: str2(""),
+        ground: oneOf2("", GROUNDS),
+        gen: obj("generator settings", { buildings: num3(""), density: num3("0..1"), streets: oneOf2("", STREET_PLANS), wall: oneOf2("", GEN_WALLS), water: oneOf2("", GEN_WATERS), trees: num3("0..1"), fields: num3("0..1"), market: bool(""), castle: bool(""), interiors: bool("") }),
+        grid: obj("the grid", { show: bool(""), size: num3("cells between lines"), sub: bool("") }),
+        scale: obj("the scale", { perCell: num3(""), unit: str2("") }),
+        interior: obj("the plans' cell", { perCell: num3("") }),
+        numbers: bool(""),
+        scaleBar: bool(""),
+        compass: bool(""),
+        legend: bool(""),
+        furniture: furniture2,
+        roads: arr("roads", obj("a road", { id: str2(""), kind: oneOf2("", ROAD_KINDS), points: line2(""), width: num3("cells"), curve: oneOf2("", CURVES2), label: str2(""), origin }, ["kind", "points"])),
+        water: arr("water", obj("a water line or area", { id: str2(""), kind: oneOf2("", WATER_KINDS), points: line2(""), width: num3(""), origin }, ["kind", "points"])),
+        walls: arr("walls", obj("a wall", {
+          id: str2(""),
+          kind: oneOf2("", WALL_KINDS),
+          points: line2(""),
+          closed: bool(""),
+          thickness: num3(""),
+          towers: obj("towers", { shape: oneOf2("", TOWER_SHAPES), size: num3(""), at: anyOf("", { const: "corners" }, arr("", { type: "integer" })), every: num3("") }, ["shape"]),
+          gates: arr("gates", obj("a gate", { at: point(""), kind: oneOf2("", GATE_KINDS2), width: num3(""), drawbridge: bool(""), label: str2("") }, ["at", "kind"])),
+          origin
+        }, ["kind", "points"])),
+        buildings: arr("buildings", obj("a building", {
+          id: str2(""),
+          kind: oneOf2("", BUILDING_KINDS),
+          shape: oneOf2("", BUILDING_SHAPES),
+          x: num3(""),
+          y: num3(""),
+          w: num3(""),
+          h: num3(""),
+          points: points(""),
+          wing: point("an L's or T's wing, cells"),
+          angle: num3("degrees about the box's centre"),
+          roof: oneOf2("", ROOFS),
+          stories: num3(""),
+          label: str2(""),
+          number: anyOf("", { type: "number" }, { const: false }),
+          href,
+          floors: arr("its floors", floor2),
+          origin
+        }, ["id", "kind", "shape", "x", "y", "w", "h"])),
+        areas: arr("areas", obj("an area", { id: str2(""), kind: oneOf2("", AREA_KINDS2), points: points(""), label: str2(""), origin }, ["kind", "points"])),
+        trees: arr("trees and rocks", obj("a tree", { kind: oneOf2("", TREE_KINDS), x: num3(""), y: num3(""), size: num3(""), origin }, ["kind", "x", "y"])),
+        props: arr("site props", fixture),
+        underlay: obj("a terrain map under it", { map: str2(""), origin: point(""), scale: num3(""), theme: oneOf2("", ["color", "bw"]) }, ["map", "origin", "scale"]),
+        overlay: obj("labels and symbols", {
+          labels: arr("labels", obj("a label", { text: str2(""), x: num3(""), y: num3(""), kind: oneOf2("", LABEL_KINDS3), size: num3(""), angle: num3(""), href, origin }, ["text", "x", "y", "kind"])),
+          symbols: arr("symbols", obj("a symbol", { kind: str2(""), x: num3(""), y: num3(""), scale: num3(""), angle: num3(""), origin }, ["kind", "x", "y"]))
+        }, ["labels", "symbols"])
+      }, ["id", "cols", "rows", "seed"])
+    };
+    SCHEMAS = { dungeon: DUNGEON_SCHEMA, map: MAP_SCHEMA, settlement: SETTLEMENT_SCHEMA, graph: GRAPH_SCHEMA };
+  }
+});
+
 // ../artgen-mapgen/src/index.ts
 var init_src4 = __esm({
   "../artgen-mapgen/src/index.ts"() {
@@ -19119,21 +21178,22 @@ var init_src4 = __esm({
     init_workflow();
     init_direction2();
     init_grid();
+    init_schema();
   }
 });
 
 // ../artgen-core/src/render.ts
 function makeLib(dir, kind, stage, seed = 1, onScene, onRig) {
   const rampList = Object.values(dir.pal);
-  const line2 = (g) => dir.line.outer === "none" ? g : dir.line.outer === "selout" ? selout(g, rampList, dir.outline) : outline(g, dir.outline);
-  const sceneOpts = { light: dir.camera.light, bands: dir.shading.bands, outlineColor: dir.outline, shadowColor: dir.shadow, applyLine: line2 };
+  const line3 = (g) => dir.line.outer === "none" ? g : dir.line.outer === "selout" ? selout(g, rampList, dir.outline) : outline(g, dir.outline);
+  const sceneOpts = { light: dir.camera.light, bands: dir.shading.bands, outlineColor: dir.outline, shadowColor: dir.shadow, applyLine: line3 };
   return {
     Grid,
     /** Pixels per metre of world height (rev 9): a brief's `height` × this is how tall the body is drawn. Read when asked (a direction without a character scale has none). */
     get pxPerMetre() {
       return pxPerMetre(dir);
     },
-    line: line2,
+    line: line3,
     post: {
       ...post_exports,
       outline: (g, color = dir.outline, diag = false) => outline(g, color, diag),
@@ -19167,7 +21227,7 @@ function makeLib(dir, kind, stage, seed = 1, onScene, onRig) {
           shadow: null
         });
         if (outline2 === true) {
-          g = line2(g);
+          g = line3(g);
           stage?.("outline", g);
         }
         if (rest.shadow) {
@@ -19178,18 +21238,18 @@ function makeLib(dir, kind, stage, seed = 1, onScene, onRig) {
       }
     },
     iso: { ...iso_exports, groundShadow: (g, cx, cy, rx) => groundShadow(g, cx, cy, rx, dir.shadow) },
-    voxel: { Voxels, face, model: (opts = {}) => new Voxels({ ...opts, outlineColor: dir.outline, shadowColor: dir.shadow, applyLine: line2 }) },
+    voxel: { Voxels, face, model: (opts = {}) => new Voxels({ ...opts, outlineColor: dir.outline, shadowColor: dir.shadow, applyLine: line3 }) },
     /** T2+ (S1): 2D scenes and 3D mode, bound to the direction. */
     t2: {
       scene: (w, h, opts = {}) => {
-        const s2 = new Scene2D(w, h, { dir, palette: kindPalette(dir, kind), line: line2 }, { stage, ...opts });
+        const s2 = new Scene2D(w, h, { dir, palette: kindPalette(dir, kind), line: line3 }, { stage, ...opts });
         onScene?.(s2);
         return s2;
       },
       scene3d: (opts = {}) => {
         const s2 = new Scene3D(dir, opts), render11 = s2.render.bind(s2), slices = s2.slices.bind(s2);
-        s2.render = (w, h, o, l = line2) => render11(w, h, o, l);
-        s2.slices = (w, h, o = {}) => slices(w, h, { line: line2, ...o });
+        s2.render = (w, h, o, l = line3) => render11(w, h, o, l);
+        s2.slices = (w, h, o = {}) => slices(w, h, { line: line3, ...o });
         onScene?.(s2);
         return s2;
       },
@@ -19203,7 +21263,7 @@ function makeLib(dir, kind, stage, seed = 1, onScene, onRig) {
     tex: {
       material: (name, o) => material(name, dir, { ...o, w: o.size[0], h: o.size[1], seed: o.seed ?? seed }).grid,
       materialResult: (name, o) => material(name, dir, { seed, ...o }),
-      autotile: (layout2, index, o) => autotile(dir, layout2, index, o),
+      autotile: (layout3, index, o) => autotile(dir, layout3, index, o),
       autotileMask,
       autotileCount,
       isoFloor: isoFloorTile,
@@ -19227,8 +21287,8 @@ function makeLib(dir, kind, stage, seed = 1, onScene, onRig) {
       plans: RIG_PLANS,
       bodyPlan: BODY_PLAN,
       proportions: PROPORTIONS,
-      body: (plan, ctx, o = {}) => {
-        const r = bodyRig(plan, { ...ctx, ...o });
+      body: (plan2, ctx, o = {}) => {
+        const r = bodyRig(plan2, { ...ctx, ...o });
         onRig?.({ plan: r.plan, set: r.set, lengths: r.lengths });
         return r;
       },
@@ -19237,8 +21297,8 @@ function makeLib(dir, kind, stage, seed = 1, onScene, onRig) {
        * `rig.pose(ctx.state, ctx.t)` with `bone` on each and pass the pose to `t2.scene3d({ k, pose })`: `artgen rig` skins the
        * mesh of the bind pose (idle, t = 0) to these bones and exports the clips.
        */
-      body3d: (plan, o) => {
-        const r = bodyRig3d(plan, o);
+      body3d: (plan2, o) => {
+        const r = bodyRig3d(plan2, o);
         onRig?.({ plan: r.plan, set: r.set, lengths: r.lengths });
         return r;
       }
@@ -19250,18 +21310,18 @@ function makeLib(dir, kind, stage, seed = 1, onScene, onRig) {
     fx: {
       presets: PRESET_NAMES,
       preset: (name, o, override) => preset(name, o, override),
-      particles: (layers, o) => particles(dir, { ...o, layers, seed: o.seed ?? seed, line: o.line === false ? false : line2 }),
+      particles: (layers, o) => particles(dir, { ...o, layers, seed: o.seed ?? seed, line: o.line === false ? false : line3 }),
       simulate: (layers, o) => simulate(dir, { ...o, layers, seed: o.seed ?? seed }),
       draw: drawParticles,
       colors: (names) => colorRun(dir, names),
-      cycle: (g, colors, shift) => paletteCycle(dir, g, colors, shift),
+      cycle: (g, colors, shift2) => paletteCycle(dir, g, colors, shift2),
       /** Flame body: a noise-licked teardrop banded hot core → cool rim, seamless over t (no outline: add particles, then `line`). */
       flame: (o) => flame(dir, { seed, ...o }),
       /** The direction's outer line (after compositing flame + particles). */
-      line: line2
+      line: line3
     },
     /** Procedural pass (S2) over a T2+ scene or a finished grid. */
-    proc: (source) => new Proc(source, { dir, seed, line: line2 }, stage),
+    proc: (source) => new Proc(source, { dir, seed, line: line3 }, stage),
     /** RotSprite (R6d): a copy of `g` turned `deg` degrees clockwise about `o.pivot` (default the centre); `o.size` makes a larger frame. Colours stay the input's. */
     rotsprite: (g, deg, o) => rotsprite(g, deg, o),
     palette: palette_exports,
@@ -19286,10 +21346,10 @@ function renderAsset(mod4, { dir, brief, seed = 1, variant = 0, params = {}, sta
   const mirror = mod4.meta?.mirror !== false && !from, cells = [], cache2 = /* @__PURE__ */ new Map(), lint = /* @__PURE__ */ new Set(), rigs = {};
   const allParams = resolveParams(mod4.params, variant, params);
   const renderCell = (state, facing, frame) => {
-    const key2 = `${state}/${facing}/${frame}`;
+    const key3 = `${state}/${facing}/${frame}`;
     let n = 0;
     const stage = stages ? (name, g) => {
-      stages.set(`${key2}/${n++}-${name}`, g.clone());
+      stages.set(`${key3}/${n++}-${name}`, g.clone());
     } : void 0;
     const scenes = [], built = [];
     const tm = timing[state], ct = cellTiming(frame, tm.n, tm.sub, tm.durations);
@@ -19318,14 +21378,14 @@ function renderAsset(mod4, { dir, brief, seed = 1, variant = 0, params = {}, sta
     const anchors2 = mod4.anchors?.(ctx);
     for (const sc of scenes) {
       for (const m of sc.lint()) lint.add(m);
-      onScene?.(key2, sc);
+      onScene?.(key3, sc);
     }
-    if (grid5.w !== size2[0] || grid5.h !== size2[1]) throw new Error(`${brief.id} ${key2}: rendered ${grid5.w}x${grid5.h}, brief size is ${size2.join("x")}`);
+    if (grid5.w !== size2[0] || grid5.h !== size2[1]) throw new Error(`${brief.id} ${key3}: rendered ${grid5.w}x${grid5.h}, brief size is ${size2.join("x")}`);
     const seen = /* @__PURE__ */ new Set(), mine = built.filter((r) => {
       const k = JSON.stringify(r);
       return !seen.has(k) && !!seen.add(k);
     });
-    if (mine.length) rigs[key2] = mine;
+    if (mine.length) rigs[key3] = mine;
     return {
       state,
       facing,
@@ -19361,25 +21421,25 @@ function renderAsset(mod4, { dir, brief, seed = 1, variant = 0, params = {}, sta
   };
   for (const state of states2) for (const facing of facings) for (let frame = 0; frame < frames[state]; frame++) {
     if (from && facing !== from) {
-      const key2 = `${state}/${from}/${frame}`;
-      let e = cache2.get(key2);
+      const key3 = `${state}/${from}/${frame}`;
+      let e = cache2.get(key3);
       if (!e) {
         e = renderCell(state, from, frame);
-        cache2.set(key2, e);
+        cache2.set(key3, e);
       }
-      if (rigs[key2]) rigs[`${state}/${facing}/${frame}`] = rigs[key2];
+      if (rigs[key3]) rigs[`${state}/${facing}/${frame}`] = rigs[key3];
       cells.push(rotateCell(e, facing, ((FACING_DEG[facing] - FACING_DEG[from]) % 360 + 360) % 360));
       continue;
     }
     const src = mirrorFacing(facing);
     if (mirror && facing.includes("w") && facings.includes(src)) {
-      const key2 = `${state}/${src}/${frame}`;
-      let e = cache2.get(key2);
+      const key3 = `${state}/${src}/${frame}`;
+      let e = cache2.get(key3);
       if (!e) {
         e = renderCell(state, src, frame);
-        cache2.set(key2, e);
+        cache2.set(key3, e);
       }
-      if (rigs[key2]) rigs[`${state}/${facing}/${frame}`] = rigs[key2];
+      if (rigs[key3]) rigs[`${state}/${facing}/${frame}`] = rigs[key3];
       const anchors2 = e.anchors && Object.fromEntries(Object.entries(e.anchors).map(([k, [x, y]]) => [k, [size2[0] - 1 - x, y]]));
       cells.push({
         state,
@@ -19393,11 +21453,11 @@ function renderAsset(mod4, { dir, brief, seed = 1, variant = 0, params = {}, sta
         ...e.logical !== void 0 && { logical: e.logical, sub: e.sub }
       });
     } else {
-      const key2 = `${state}/${facing}/${frame}`;
-      let c = cache2.get(key2);
+      const key3 = `${state}/${facing}/${frame}`;
+      let c = cache2.get(key3);
       if (!c) {
         c = renderCell(state, facing, frame);
-        cache2.set(key2, c);
+        cache2.set(key3, c);
       }
       cells.push(c);
     }
@@ -19467,7 +21527,7 @@ function isShadowPixel(d, i, shadow) {
 }
 function measure2(g, { symAxis = "x", palette, shadow = "rgba(0,0,0,0.35)" }) {
   const { w, h, d } = g, pal = new Set(palette), sh = parseColor(shadow);
-  let filled = 0, partial = 0, offPal = 0, orphans = 0, edge = 0, edgeDark = 0, symHit = 0, symTot = 0;
+  let filled = 0, partial = 0, offPal = 0, orphans = 0, edge2 = 0, edgeDark = 0, symHit = 0, symTot = 0;
   const colors = /* @__PURE__ */ new Set();
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
     const i = (y * w + x) * 4, a = d[i + 3];
@@ -19481,7 +21541,7 @@ function measure2(g, { symAxis = "x", palette, shadow = "rgba(0,0,0,0.35)" }) {
     const n = [g.get(x + 1, y), g.get(x - 1, y), g.get(x, y + 1), g.get(x, y - 1)];
     if (n.every((v) => v !== c)) orphans++;
     if (n.some((v) => !v)) {
-      edge++;
+      edge2++;
       if (luma(d[i], d[i + 1], d[i + 2]) < 70) edgeDark++;
     }
     const mx = symAxis === "x" ? w - 1 - x : x, my = symAxis === "x" ? y : h - 1 - y;
@@ -19497,7 +21557,7 @@ function measure2(g, { symAxis = "x", palette, shadow = "rgba(0,0,0,0.35)" }) {
     aaPartialPct: pct2(partial),
     offPalettePct: pct2(offPal),
     orphanPct: pct2(orphans),
-    outlinePct: edge ? +(100 * edgeDark / edge).toFixed(1) : 0,
+    outlinePct: edge2 ? +(100 * edgeDark / edge2).toFixed(1) : 0,
     symmetryPct: symTot ? +(100 * symHit / symTot).toFixed(1) : 0,
     hygiene: 0
   };
@@ -19727,10 +21787,10 @@ function repetitionMetric(g) {
     s2 += (v - mean3) ** 2;
     m = Math.max(m, Math.abs(v - mean3));
   }
-  const counts = /* @__PURE__ */ new Map(), key2 = (i) => g.d[i * 4] << 16 | g.d[i * 4 + 1] << 8 | g.d[i * 4 + 2];
-  for (let i = 0; i < w * h; i++) counts.set(key2(i), (counts.get(key2(i)) ?? 0) + 1);
+  const counts = /* @__PURE__ */ new Map(), key3 = (i) => g.d[i * 4] << 16 | g.d[i * 4 + 1] << 8 | g.d[i * 4 + 2];
+  for (let i = 0; i < w * h; i++) counts.set(key3(i), (counts.get(key3(i)) ?? 0) + 1);
   const mark = new Float32Array(w * h);
-  for (let i = 0; i < w * h; i++) if (counts.get(key2(i)) / (w * h) < 0.12) {
+  for (let i = 0; i < w * h; i++) if (counts.get(key3(i)) / (w * h) < 0.12) {
     const d = Math.abs(L2[i] - lmean);
     if (d > 25) mark[i] = d;
   }
@@ -19761,7 +21821,7 @@ function repetitionMetric(g) {
         c += mark[p2];
       }
       blobContrast.push(c / blob2.length);
-      blobRare.push(blob2.length >= 3 && blob2.every((p2) => counts.get(key2(p2)) / (w * h) < 0.015));
+      blobRare.push(blob2.length >= 3 && blob2.every((p2) => counts.get(key3(p2)) / (w * h) < 0.015));
     }
   }
   const sorted = [...blobContrast].sort((a, b) => a - b), median = sorted.length ? sorted[sorted.length >> 1] : 0;
@@ -19907,16 +21967,16 @@ function conformance(input) {
     return g.d[i + 3] > 0 && !isShadowPixel(g.d, i, shadowRGBA);
   };
   const colors = /* @__PURE__ */ new Set();
-  let off = 0, partial = 0;
+  let off2 = 0, partial = 0;
   for (const g of frames) for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) {
     if (!opaque(g, x, y)) continue;
     const c = g.get(x, y);
     colors.add(c);
-    if (!allowed2.has(c)) off++;
+    if (!allowed2.has(c)) off2++;
     if (g.alpha(x, y) < 255) partial++;
   }
   const max2 = kind ? dir.palette.perKindMax[kind] : void 0;
-  if (off) add2("palette", "fail", `${off} off-palette pixels`);
+  if (off2) add2("palette", "fail", `${off2} off-palette pixels`);
   else if (max2 && colors.size > max2) add2("palette", "fail", `${colors.size} colours > perKindMax.${kind} ${max2}`);
   else add2("palette", "pass", `${colors.size} colours, all in ${kind && dir.palette.perKind[kind] ? `${kind} ramps` : "direction ramps"}`);
   if (!size2) add2("scale", "skip", "no expected size");
@@ -19926,18 +21986,18 @@ function conformance(input) {
   }
   add2("aa", partial ? "fail" : "pass", partial ? `${partial} partial-alpha pixels` : "no partial alpha");
   const darkest = new Set(Object.values(dir.palette.ramps).map((r) => normHex(r[r.length - 1])));
-  let edge = 0, inked = 0;
+  let edge2 = 0, inked = 0;
   const laid = wraps ? frames.map((g) => periodicPatch(g) ?? g) : frames;
   for (const g of laid) for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) {
     if (!opaque(g, x, y) || !N45.some(([dx, dy]) => !opaque(g, x + dx, y + dy))) continue;
-    edge++;
+    edge2++;
     const c = g.get(x, y);
     if (c === outline2 || dir.line.outer === "selout" && darkest.has(c)) inked++;
   }
-  const share2 = edge ? inked / edge : 0, pctS = `${(100 * share2).toFixed(1)}% of ${edge} edge px`;
-  if (!edge) add2("line", "skip", wraps ? `${kind}: no silhouette once laid` : "empty frames");
-  else if (dir.line.outer === "none") add2("line", share2 <= th.lineNoneMax ? "pass" : "fail", `outline-coloured edge ${pctS} (want none)`);
-  else add2("line", share2 >= th.lineMin ? "pass" : "fail", `${dir.line.outer} edge ${pctS} (min ${100 * th.lineMin}%)`);
+  const share3 = edge2 ? inked / edge2 : 0, pctS = `${(100 * share3).toFixed(1)}% of ${edge2} edge px`;
+  if (!edge2) add2("line", "skip", wraps ? `${kind}: no silhouette once laid` : "empty frames");
+  else if (dir.line.outer === "none") add2("line", share3 <= th.lineNoneMax ? "pass" : "fail", `outline-coloured edge ${pctS} (want none)`);
+  else add2("line", share3 >= th.lineMin ? "pass" : "fail", `${dir.line.outer} edge ${pctS} (min ${100 * th.lineMin}%)`);
   const lx = Math.sign(dir.camera.light[0]), ly = Math.sign(dir.camera.light[1]);
   const isLine = (g, x, y) => {
     const c = g.get(x, y);
@@ -19984,13 +22044,13 @@ function conformance(input) {
   if (!input.height) add2("height", "skip", "no real-world height in the brief");
   else if (kind && (TILE_KINDS.has(kind) || LAYER_KINDS.has(kind))) add2("height", "skip", `${kind}: ground plane or scenery`);
   else {
-    const want = input.height.metres * input.height.pxPerMetre, got = drawnHeight(input.height.frames ?? frames.slice(0, 1)), dev = (got - want) / want;
-    const h = input.height, fits = !size2 || want <= size2[1];
+    const want2 = input.height.metres * input.height.pxPerMetre, got = drawnHeight(input.height.frames ?? frames.slice(0, 1)), dev = (got - want2) / want2;
+    const h = input.height, fits = !size2 || want2 <= size2[1];
     const figure = th.heightFail !== void 0 && !!kind && FIGURE_KINDS.has(kind) && h.view !== "fp" && !LOW_BODIES.has(h.body ?? ""), limit = figure ? th.heightFail : th.heightTolerance;
     add2(
       "height",
       Math.abs(dev) <= limit ? "pass" : figure ? "fail" : "flag",
-      `${got} px drawn, ${want.toFixed(1)} px expected for ${input.height.metres} m (${dev >= 0 ? "+" : ""}${Math.round(dev * 100)} %, limit \xB1${Math.round(limit * 100)} %)${fits ? "" : `; the ${size2[1]} px frame is too short for it`}`
+      `${got} px drawn, ${want2.toFixed(1)} px expected for ${input.height.metres} m (${dev >= 0 ? "+" : ""}${Math.round(dev * 100)} %, limit \xB1${Math.round(limit * 100)} %)${fits ? "" : `; the ${size2[1]} px frame is too short for it`}`
     );
   }
   if (kind && TILE_KINDS.has(kind)) {
@@ -20049,29 +22109,29 @@ function checker(g, x, y, w, h, s2 = 8) {
     g.fill(x + i, y + j, Math.min(s2, w - i), Math.min(s2, h - j), (i + j) / s2 % 2 ? "#2a2a33" : "#33333d");
 }
 function layout(o, k) {
-  let W3 = PAD2 * 2 + textWidth(o.title, TXT2), H = PAD2 + LAB + PAD2 / 2;
+  let W3 = PAD3 * 2 + textWidth(o.title, TXT2), H = PAD3 + LAB + PAD3 / 2;
   const rows3 = o.rows.map((r) => {
     const s2 = Math.max(1, Math.round(r.scale * k)), sw = r.grid.w * s2, sh = r.grid.h * s2;
-    const sil = r.silhouette === false ? 0 : PAD2 + r.grid.w * silScale(s2);
-    W3 = Math.max(W3, PAD2 * 4 + r.grid.w + sw * 2 + sil, PAD2 * 2 + textWidth(r.label, TXT2));
+    const sil = r.silhouette === false ? 0 : PAD3 + r.grid.w * silScale(s2);
+    W3 = Math.max(W3, PAD3 * 4 + r.grid.w + sw * 2 + sil, PAD3 * 2 + textWidth(r.label, TXT2));
     const y = H;
-    H += LAB + sh + PAD2;
+    H += LAB + sh + PAD3;
     return { r, s: s2, sw, sh, y };
   });
   const as = Math.max(1, Math.round((o.anchorScale ?? 3) * k)), anchors2 = o.anchors ?? [];
   let ay = 0;
   if (anchors2.length) {
     ay = H;
-    const aw = anchors2.reduce((n, a) => n + a.grid.w * as + PAD2, PAD2);
+    const aw = anchors2.reduce((n, a) => n + a.grid.w * as + PAD3, PAD3);
     W3 = Math.max(W3, aw);
-    H += LAB + Math.max(...anchors2.map((a) => a.grid.h * as)) + LAB + PAD2;
+    H += LAB + Math.max(...anchors2.map((a) => a.grid.h * as)) + LAB + PAD3;
   }
   const refs = (o.refs ?? []).map((r) => ({ label: r.label, grid: refThumb(r.grid, k) }));
   let ry = 0;
   if (refs.length) {
     ry = H;
-    W3 = Math.max(W3, refs.reduce((n, r) => n + Math.max(r.grid.w, textWidth(r.label, TXT2)) + PAD2, PAD2));
-    H += LAB + Math.max(...refs.map((r) => r.grid.h)) + LAB + PAD2;
+    W3 = Math.max(W3, refs.reduce((n, r) => n + Math.max(r.grid.w, textWidth(r.label, TXT2)) + PAD3, PAD3));
+    H += LAB + Math.max(...refs.map((r) => r.grid.h)) + LAB + PAD3;
   }
   return { W: W3, H, rows: rows3, as, ay, refs, ry };
 }
@@ -20083,54 +22143,54 @@ function reviewSheet(o) {
     L2 = layout(o, k);
   }
   const g = new Grid(L2.W, L2.H).fill(0, 0, L2.W, L2.H, BG2);
-  drawText(g, PAD2, PAD2, o.title, TITLE2, TXT2);
+  drawText(g, PAD3, PAD3, o.title, TITLE2, TXT2);
   for (const { r, s: s2, sw, sh, y } of L2.rows) {
-    drawText(g, PAD2, y, r.label, FG2, TXT2);
+    drawText(g, PAD3, y, r.label, FG2, TXT2);
     const top = y + LAB, big = r.grid.scale(s2);
-    checker(g, PAD2, top, r.grid.w, r.grid.h, 4);
-    g.over(r.grid, PAD2, top);
-    const x2 = PAD2 * 2 + r.grid.w;
+    checker(g, PAD3, top, r.grid.w, r.grid.h, 4);
+    g.over(r.grid, PAD3, top);
+    const x2 = PAD3 * 2 + r.grid.w;
     checker(g, x2, top, sw, sh);
     g.over(big, x2, top);
-    const x3 = x2 + sw + PAD2;
+    const x3 = x2 + sw + PAD3;
     g.fill(x3, top, sw, sh, r.bg ?? "#000000");
     if (r.context) g.over(r.context.scale(s2), x3, top);
     g.over(big, x3, top);
     if (r.silhouette !== false) {
-      const ss = silScale(s2), x4 = x3 + sw + PAD2;
+      const ss = silScale(s2), x4 = x3 + sw + PAD3;
       g.fill(x4, top, r.grid.w * ss, r.grid.h * ss, SIL_BG);
       g.over(silhouette(r.grid).scale(ss), x4, top);
     }
   }
   if (o.anchors?.length) {
-    drawText(g, PAD2, L2.ay, "ANCHORS", FG2, TXT2);
-    let x = PAD2;
+    drawText(g, PAD3, L2.ay, "ANCHORS", FG2, TXT2);
+    let x = PAD3;
     for (const a of o.anchors) {
       const top = L2.ay + LAB, big = a.grid.scale(L2.as);
       checker(g, x, top, big.w, big.h);
       g.over(big, x, top);
       drawText(g, x, top + big.h + 4, a.label, FG2, TXT2);
-      x += big.w + PAD2;
+      x += big.w + PAD3;
     }
   }
   if (L2.refs.length) {
-    drawText(g, PAD2, L2.ry, "REFERENCES", FG2, TXT2);
-    let x = PAD2;
+    drawText(g, PAD3, L2.ry, "REFERENCES", FG2, TXT2);
+    let x = PAD3;
     for (const r of L2.refs) {
       const top = L2.ry + LAB;
       checker(g, x, top, r.grid.w, r.grid.h);
       g.over(r.grid, x, top);
       drawText(g, x, top + r.grid.h + 4, r.label, FG2, TXT2);
-      x += Math.max(r.grid.w, textWidth(r.label, TXT2)) + PAD2;
+      x += Math.max(r.grid.w, textWidth(r.label, TXT2)) + PAD3;
     }
   }
   return g;
 }
 function contactSheet(title, items, scale2, cols, maxEdge = 1568) {
   const size2 = (sc) => {
-    const cw = Array.from({ length: cols }, (_, c) => Math.max(0, ...items.filter((_2, n) => n % cols === c).map((i) => Math.max(i.grid.w * sc, textWidth(i.label, TXT2)))) + PAD2);
-    const rh = Array.from({ length: Math.ceil(items.length / cols) }, (_, r) => Math.max(...items.slice(r * cols, r * cols + cols).map((i) => i.grid.h * sc)) + LAB + PAD2);
-    const W3 = Math.max(PAD2 + cw.reduce((a, b) => a + b, 0), PAD2 * 2 + textWidth(title, TXT2)), H = PAD2 + LAB + rh.reduce((a, b) => a + b, 0) + PAD2;
+    const cw = Array.from({ length: cols }, (_, c) => Math.max(0, ...items.filter((_2, n) => n % cols === c).map((i) => Math.max(i.grid.w * sc, textWidth(i.label, TXT2)))) + PAD3);
+    const rh = Array.from({ length: Math.ceil(items.length / cols) }, (_, r) => Math.max(...items.slice(r * cols, r * cols + cols).map((i) => i.grid.h * sc)) + LAB + PAD3);
+    const W3 = Math.max(PAD3 + cw.reduce((a, b) => a + b, 0), PAD3 * 2 + textWidth(title, TXT2)), H = PAD3 + LAB + rh.reduce((a, b) => a + b, 0) + PAD3;
     return { cw, rh, W: W3, H };
   };
   let s2 = scale2, L2 = size2(s2);
@@ -20139,10 +22199,10 @@ function contactSheet(title, items, scale2, cols, maxEdge = 1568) {
     L2 = size2(s2);
   }
   const g = new Grid(L2.W, L2.H).fill(0, 0, L2.W, L2.H, BG2);
-  drawText(g, PAD2, PAD2, title, TITLE2, TXT2);
+  drawText(g, PAD3, PAD3, title, TITLE2, TXT2);
   items.forEach((it, n) => {
     const c = n % cols, r = Math.floor(n / cols), big = it.grid.scale(s2);
-    const x = PAD2 + L2.cw.slice(0, c).reduce((a, b) => a + b, 0), y = PAD2 + LAB + L2.rh.slice(0, r).reduce((a, b) => a + b, 0);
+    const x = PAD3 + L2.cw.slice(0, c).reduce((a, b) => a + b, 0), y = PAD3 + LAB + L2.rh.slice(0, r).reduce((a, b) => a + b, 0);
     if (it.bg) g.fill(x, y, big.w, big.h, it.bg);
     else checker(g, x, y, big.w, big.h);
     if (it.context) g.over(it.context.scale(s2), x, y);
@@ -20151,7 +22211,7 @@ function contactSheet(title, items, scale2, cols, maxEdge = 1568) {
   });
   return g;
 }
-var SIL_BG, SIL_INK, silScale, REF_BOX, refThumb, PAD2, TXT2, LAB, BG2, FG2, TITLE2;
+var SIL_BG, SIL_INK, silScale, REF_BOX, refThumb, PAD3, TXT2, LAB, BG2, FG2, TITLE2;
 var init_sheet2 = __esm({
   "../artgen-core/src/qa/sheet.ts"() {
     "use strict";
@@ -20166,7 +22226,7 @@ var init_sheet2 = __esm({
       const box2 = Math.max(24, Math.round(REF_BOX * k)), s2 = Math.min(3, Math.floor(box2 / Math.max(g.w, g.h)));
       return s2 >= 1 ? g.scale(s2) : fitGrid(g, box2, box2);
     };
-    PAD2 = 12;
+    PAD3 = 12;
     TXT2 = 2;
     LAB = GLYPH_H * TXT2 + 6;
     BG2 = "#16161c";
@@ -20220,7 +22280,7 @@ function packRects(sizes, opts = {}) {
   while (todo.length) {
     const area3 = todo.reduce((n, s2) => n + (s2.w + pad) * (s2.h + pad), 0);
     let done = false;
-    for (let side = 16; side <= max2 && !done; side *= 2) for (const [W3, H] of [[side, side / 2], [side, side]]) {
+    for (let side2 = 16; side2 <= max2 && !done; side2 *= 2) for (const [W3, H] of [[side2, side2 / 2], [side2, side2]]) {
       if (W3 * H < area3 || H < 1) continue;
       const r5 = tryPack(todo, W3, H);
       if (!r5.rest.length) {
@@ -20458,10 +22518,10 @@ var init_contract = __esm({
 
 // ../artgen-core/src/w2/placeholder.ts
 function defaultRamp(kind, dir) {
-  const R3 = dir.palette.ramps, want = RAMP_FOR[kind];
-  if (want) {
-    if (R3[want]) return want;
-    const m = dir.palette.materials[want];
+  const R3 = dir.palette.ramps, want2 = RAMP_FOR[kind];
+  if (want2) {
+    if (R3[want2]) return want2;
+    const m = dir.palette.materials[want2];
     if (m && R3[m]) return m;
   }
   return (dir.palette.perKind[kind] ?? Object.keys(R3)).find((n) => R3[n]) ?? Object.keys(R3)[0];
@@ -20545,8 +22605,8 @@ function parsePlaceholder(raw, brief, dir) {
 }
 function placeholderChecks(ph, brief, dir) {
   const c = (id2, status2, detail) => ({ id: id2, status: status2, detail, stage: "placeholder" });
-  const want = resolveSize(dir, brief.size, brief.kind), [w, h] = ph.size, out = [];
-  out.push(ph.size[0] === want[0] && ph.size[1] === want[1] ? c("ph-size", "pass", `${w}x${h}`) : c("ph-size", "fail", `${w}x${h}, the brief's size is ${want.join("x")}`));
+  const want2 = resolveSize(dir, brief.size, brief.kind), [w, h] = ph.size, out = [];
+  out.push(ph.size[0] === want2[0] && ph.size[1] === want2[1] ? c("ph-size", "pass", `${w}x${h}`) : c("ph-size", "fail", `${w}x${h}, the brief's size is ${want2.join("x")}`));
   out.push(ph.pivot[0] >= 0 && ph.pivot[1] >= 0 && ph.pivot[0] < w && ph.pivot[1] < h ? c("ph-pivot", "pass", `pivot ${ph.pivot.join(",")}`) : c("ph-pivot", "fail", `pivot ${ph.pivot.join(",")} is outside the ${w}x${h} frame`));
   const out2 = [];
   if (!inside2(ph.body, ph.size)) out2.push("body");
@@ -20554,8 +22614,8 @@ function placeholderChecks(ph, brief, dir) {
   if (ph.collision && !inside2(ph.collision, ph.size)) out2.push("collision");
   if (out2.length) out.push(c("ph-box", "fail", `${out2.join(", ")} outside the ${w}x${h} frame`));
   else if (brief.height && isStanding(brief) && !LOW.has(brief.body ?? "")) {
-    const want2 = brief.height * pxPerMetre(dir), dev = Math.abs(ph.body.h - want2) / want2;
-    out.push(dev > 0.2 ? c("ph-box", "flag", `body ${ph.body.h} px tall, ${Math.round(want2)} px for ${brief.height} m (${Math.round(dev * 100)}% off)`) : c("ph-box", "pass", `body ${ph.body.h} px tall`));
+    const want3 = brief.height * pxPerMetre(dir), dev = Math.abs(ph.body.h - want3) / want3;
+    out.push(dev > 0.2 ? c("ph-box", "flag", `body ${ph.body.h} px tall, ${Math.round(want3)} px for ${brief.height} m (${Math.round(dev * 100)}% off)`) : c("ph-box", "pass", `body ${ph.body.h} px tall`));
   } else out.push(c("ph-box", "pass", "body, footprint and collision inside the frame"));
   out.push(dir.palette.ramps[ph.ramp] ? c("ph-ramp", "pass", ph.ramp) : c("ph-ramp", "fail", `${ph.ramp} is not a ramp of the direction (${Object.keys(dir.palette.ramps).join(", ")})`));
   return out;
@@ -20571,7 +22631,7 @@ function placeholderModule(ph) {
     meta: { notes: "placeholder", mirror: false },
     render(ctx) {
       const [w, h] = ctx.size, g = new Grid(w, h), ramp2 = ctx.dir.pal[ph.ramp] ?? Object.values(ctx.dir.pal)[0], top = ramp2.length - 1;
-      const k = Math.max(0, ctx.brief.states?.indexOf(ctx.state) ?? 0), off = k === 0 ? 0 : Math.ceil(k / 2) * (k % 2 ? -1 : 1);
+      const k = Math.max(0, ctx.brief.states?.indexOf(ctx.state) ?? 0), off2 = k === 0 ? 0 : Math.ceil(k / 2) * (k % 2 ? -1 : 1);
       const step = (i) => ramp2[Math.max(0, Math.min(top, i))], mid = ramp2.length >> 1;
       const bob = ctx.frame % 2 && ph.body.y > 0 ? -1 : 0;
       if (ph.footprint) {
@@ -20584,7 +22644,7 @@ function placeholderModule(ph) {
       const b = ph.body, by = b.y + bob, layer = new Grid(w, h), round6 = b.w > 6 && b.h > 6;
       for (let y = by; y < by + b.h; y++) for (let x = b.x; x < b.x + b.w; x++) {
         if (round6 && (x === b.x || x === b.x + b.w - 1) && (y === by || y === by + b.h - 1)) continue;
-        layer.set(x, y, step(mid + off));
+        layer.set(x, y, step(mid + off2));
       }
       const tk = TICK[facing8(ctx.facing)] ?? TICK.s;
       const tx = b.x + (tk[0] < 0 ? 0 : tk[0] > 0 ? b.w - 2 : b.w - 2 >> 1), ty = by + (tk[1] < 0 ? 0 : tk[1] > 0 ? b.h - 2 : b.h - 2 >> 1);
@@ -20627,17 +22687,17 @@ function canonicalJson(x) {
   return JSON.stringify(x) ?? "null";
 }
 function shapeMask(g, dir) {
-  const line2 = /* @__PURE__ */ new Set();
+  const line3 = /* @__PURE__ */ new Set();
   if (dir.line.outer !== "none") {
-    line2.add(normHex(dir.palette.outline));
+    line3.add(normHex(dir.palette.outline));
     if (dir.line.outer === "selout") {
-      for (const r of Object.values(dir.palette.ramps)) if (r.length) line2.add(normHex(r[r.length - 1]));
+      for (const r of Object.values(dir.palette.ramps)) if (r.length) line3.add(normHex(r[r.length - 1]));
     }
   }
   const { w, h } = g, m = new Uint8Array(w * h);
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
     if (g.alpha(x, y) !== 255) continue;
-    if (line2.size && N46.some(([dx, dy]) => g.inb(x + dx, y + dy) && g.alpha(x + dx, y + dy) !== 255) && line2.has(g.get(x, y))) continue;
+    if (line3.size && N46.some(([dx, dy]) => g.inb(x + dx, y + dy) && g.alpha(x + dx, y + dy) !== 255) && line3.has(g.get(x, y))) continue;
     m[y * w + x] = 1;
   }
   return m;
@@ -20645,10 +22705,10 @@ function shapeMask(g, dir) {
 function stageKeys(r, dir, o = {}) {
   const keys = {};
   if (o.placeholder) keys.placeholder = new Digest().str(canonicalJson(o.placeholder)).hex();
-  const shape = new Digest().str(r.size.join("x")), look = new Digest(), anim2 = new Digest(), light = new Digest();
+  const shape2 = new Digest().str(r.size.join("x")), look = new Digest(), anim2 = new Digest(), light = new Digest();
   let lit = false;
   for (const c of r.cells) {
-    shape.str(cellId(c)).bytes(shapeMask(c.grid, dir));
+    shape2.str(cellId(c)).bytes(shapeMask(c.grid, dir));
     look.str(c.grid.hash());
     anim2.str(cellId(c));
     for (const [k, [x, y]] of Object.entries(c.anchors ?? {}).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)) anim2.str(`${k}=${r25(x)},${r25(y)}`);
@@ -20657,7 +22717,7 @@ function stageKeys(r, dir, o = {}) {
       light.str(c.normal.hash());
     } else light.str("-");
   }
-  keys.shape = shape.hex();
+  keys.shape = shape2.hex();
   const rig3 = rigKey(r);
   if (rig3) keys.rig = rig3;
   keys.decorate = look.hex();
@@ -20840,13 +22900,13 @@ function shapeChecks(r, dir, o) {
   else {
     const first = /* @__PURE__ */ new Map();
     for (const x of r.cells) if (x.state === r.states[0] && x.frame === 0 && !first.has(x.facing)) first.set(x.facing, masks.get(x));
-    const same2 = [];
+    const same3 = [];
     for (const [i, a] of r.facings.entries()) for (const b of r.facings.slice(i + 1)) {
       const ma = first.get(a), mb = first.get(b);
       if (!ma || !mb || mirrorFacing(a) === b) continue;
-      if (iou(ma, mb) >= 0.97 && ma.some(Boolean)) same2.push(`${a}/${b}`);
+      if (iou(ma, mb) >= 0.97 && ma.some(Boolean)) same3.push(`${a}/${b}`);
     }
-    out.push(same2.length ? c("shape-facings", "flag", `${same2.slice(0, 4).join(", ")}${same2.length > 4 ? ` +${same2.length - 4}` : ""}: not mirrors, yet the silhouettes match (they read the same)`) : c("shape-facings", "pass", "every facing has its own silhouette"));
+    out.push(same3.length ? c("shape-facings", "flag", `${same3.slice(0, 4).join(", ")}${same3.length > 4 ? ` +${same3.length - 4}` : ""}: not mirrors, yet the silhouettes match (they read the same)`) : c("shape-facings", "pass", "every facing has its own silhouette"));
   }
   return out;
 }
@@ -20865,7 +22925,7 @@ function stageReport(r, dir, o) {
   };
 }
 function shapeSheet(r, dir, o) {
-  const [w, h] = r.size, PAD5 = 12, TXT5 = 2, LAB3 = GLYPH_H * TXT5 + 6, K = 3, maxW = Math.min(o.maxEdge ?? 1568, 960);
+  const [w, h] = r.size, PAD6 = 12, TXT5 = 2, LAB3 = GLYPH_H * TXT5 + 6, K = 3, maxW = Math.min(o.maxEdge ?? 1568, 960);
   const drawn = r.facings.filter((f) => r.cells.some((c) => c.state === r.states[0] && c.facing === f && c.frame === 0 && !c.mirrored));
   const cells = drawn.map((f) => r.cells.find((c) => c.state === r.states[0] && c.facing === f && c.frame === 0));
   const maskGrid = (c) => {
@@ -20874,14 +22934,14 @@ function shapeSheet(r, dir, o) {
     for (let i = 0; i < m.length; i++) if (m[i]) g2.set(i % w, i / w | 0, SHAPE_INK);
     return g2;
   };
-  const colW = w + PAD5 + w * K + PAD5 * 2, perRow = Math.max(1, Math.floor((maxW - PAD5) / colW)), nRows = Math.ceil(cells.length / perRow), rowH = LAB3 + h * K + PAD5;
+  const colW = w + PAD6 + w * K + PAD6 * 2, perRow = Math.max(1, Math.floor((maxW - PAD6) / colW)), nRows = Math.ceil(cells.length / perRow), rowH = LAB3 + h * K + PAD6;
   const lines2 = o.checks.map((c) => `${c.id} ${c.status.toUpperCase()} ${c.detail}`);
-  const W3 = Math.max(PAD5 * 2 + textWidth(o.title, TXT5), PAD5 + Math.min(perRow, cells.length) * colW, ...lines2.map((l) => Math.min(PAD5 * 2 + textWidth(l, TXT5), maxW)));
-  const H = PAD5 + LAB3 + nRows * rowH + (lines2.length ? lines2.length * LAB3 + PAD5 : 0);
+  const W3 = Math.max(PAD6 * 2 + textWidth(o.title, TXT5), PAD6 + Math.min(perRow, cells.length) * colW, ...lines2.map((l) => Math.min(PAD6 * 2 + textWidth(l, TXT5), maxW)));
+  const H = PAD6 + LAB3 + nRows * rowH + (lines2.length ? lines2.length * LAB3 + PAD6 : 0);
   const g = new Grid(W3, H).fill(0, 0, W3, H, SHEET_BG);
-  drawText(g, PAD5, PAD5, o.title, "#ffffff", TXT5);
+  drawText(g, PAD6, PAD6, o.title, "#ffffff", TXT5);
   cells.forEach((c, i) => {
-    const x = PAD5 + i % perRow * colW, top = PAD5 + LAB3 + Math.floor(i / perRow) * rowH, y = top + LAB3, base = maskGrid(c), big = base.scale(K);
+    const x = PAD6 + i % perRow * colW, top = PAD6 + LAB3 + Math.floor(i / perRow) * rowH, y = top + LAB3, base = maskGrid(c), big = base.scale(K);
     if (o.placeholder) {
       const b = o.placeholder.body, [px, py] = o.placeholder.pivot;
       for (let t = 0; t < b.w * K; t++) {
@@ -20899,11 +22959,11 @@ function shapeSheet(r, dir, o) {
     }
     drawText(g, x, top, `${r.states[0]}/${c.facing}`, SHEET_FG, TXT5);
     g.blit(base, x, y);
-    g.blit(big, x + w + PAD5, y);
+    g.blit(big, x + w + PAD6, y);
   });
-  let ty = PAD5 + LAB3 + nRows * rowH;
+  let ty = PAD6 + LAB3 + nRows * rowH;
   for (const [i, l] of lines2.entries()) {
-    drawText(g, PAD5, ty + 2, l, o.checks[i].status === "fail" ? "#ff6b6b" : o.checks[i].status === "flag" ? "#ffc857" : SHEET_FG, TXT5);
+    drawText(g, PAD6, ty + 2, l, o.checks[i].status === "fail" ? "#ff6b6b" : o.checks[i].status === "flag" ? "#ffc857" : SHEET_FG, TXT5);
     ty += LAB3;
   }
   return g;
@@ -21058,8 +23118,8 @@ function planPasses(input) {
       });
   }
   const shapeGate = (cand, next4, nextPass) => {
-    const sh2 = stageState(input.ledger, "shape"), key2 = input.stageKeys?.[cand]?.shape;
-    if (key2 !== void 0 && sh2.approvedKey === key2) return void 0;
+    const sh2 = stageState(input.ledger, "shape"), key3 = input.stageKeys?.[cand]?.shape;
+    if (key3 !== void 0 && sh2.approvedKey === key3) return void 0;
     const iReject = sh2.latest?.verdict === "reject" ? lastIdx(input.ledger, (e) => e.type === "stage" && e.stage === "shape" && e.verdict === "reject") : -1;
     if (iReject >= 0 && iReject > lastIdx(input.ledger, (e) => e.type === "score" && !e.blind && e.version === cand))
       return { action: "write-base", version: next4, pass: nextPass, from: cand, why: `the user rejected the shape of ${cand}${sh2.latest?.note ? `: "${sh2.latest.note}"` : ""} \u2014 redraw the silhouette and form before any decoration` };
@@ -21069,8 +23129,8 @@ function planPasses(input) {
       stage: "shape",
       version: cand,
       pass: "g",
-      ...key2 && { key: key2 },
-      why: `waiting for the user: shape gate on ${cand}: build the shape sheet (\`artgen review ${asset} --version ${cand} --stage shape\`), show it to the user, wait for \`artgen stage approve ${asset} shape\` or \`artgen stage reject ${asset} shape --note \u2026\`${old && key2 !== void 0 && old.key !== key2 ? `; the silhouette changed since the approved one (${String(old.version ?? "earlier version")})` : ""}`
+      ...key3 && { key: key3 },
+      why: `waiting for the user: shape gate on ${cand}: build the shape sheet (\`artgen review ${asset} --version ${cand} --stage shape\`), show it to the user, wait for \`artgen stage approve ${asset} shape\` or \`artgen stage reject ${asset} shape --note \u2026\`${old && key3 !== void 0 && old.key !== key3 ? `; the silhouette changed since the approved one (${String(old.version ?? "earlier version")})` : ""}`
     };
   };
   const unscored = [...bases, ...finishes].find((v) => !scores.has(v.name));
@@ -21270,13 +23330,13 @@ function makePx(dc, record = () => {
      * Char-map patch (T1 `blit`): `rows` of characters, `.` transparent, `_` clears the pixel, others look up a
      * token in `key`. `anchor: 'center'` (default) centres the map on `at`; `'topleft'` puts its corner there.
      */
-    patch(g, at4, rows3, key2, o2 = {}) {
+    patch(g, at4, rows3, key3, o2 = {}) {
       const h = rows3.length, w = Math.max(...rows3.map((r) => r.length));
       const x0 = o2.anchor === "topleft" ? at4[0] : at4[0] - (w >> 1), y0 = o2.anchor === "topleft" ? at4[1] : at4[1] - (h >> 1);
       const under = [];
       for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) under.push(tokenOf(g.get(x0 + x, y0 + y)));
       const cols = {};
-      for (const [ch, t] of Object.entries(key2)) cols[ch] = color(t);
+      for (const [ch, t] of Object.entries(key3)) cols[ch] = color(t);
       rows3.forEach((r, y) => [...r].forEach((ch, x) => {
         if (ch === ".") return;
         if (ch === "_") g.clear(x0 + x, y0 + y);
@@ -21284,7 +23344,7 @@ function makePx(dc, record = () => {
         else throw new Error(`patch: no key for ${JSON.stringify(ch)}`);
         guard.add(`${x0 + x},${y0 + y}`);
       }));
-      record({ anchor: at4.anchor, x: x0, y: y0, w, h, under, rows: rows3, key: key2, mode: o2.anchor ?? "center" });
+      record({ anchor: at4.anchor, x: x0, y: y0, w, h, under, rows: rows3, key: key3, mode: o2.anchor ?? "center" });
       return g;
     },
     fix: {
@@ -21483,8 +23543,8 @@ function applyFinish(r, mod4, dir) {
   const keyOf = (c) => `${c.state}/${c.facing}/${c.frame}`;
   const sources = r.cells.filter((c) => !c.mirrored);
   for (const c of sources) {
-    const guard = /* @__PURE__ */ new Set(), cellKey = keyOf(c);
-    const px = makePx(dc, (p2) => patches.push({ cell: cellKey, ...p2 }), guard, { isoTile });
+    const guard = /* @__PURE__ */ new Set(), cellKey2 = keyOf(c);
+    const px = makePx(dc, (p2) => patches.push({ cell: cellKey2, ...p2 }), guard, { isoTile });
     const anchors2 = c.anchors ?? {};
     const ctx = {
       dir: dc,
@@ -21495,25 +23555,25 @@ function applyFinish(r, mod4, dir) {
       anchors: anchors2,
       at(name, dx = 0, dy = 0) {
         const a = anchors2[name];
-        if (!a) throw new Error(`finish: cell ${cellKey} has no anchor ${JSON.stringify(name)}`);
+        if (!a) throw new Error(`finish: cell ${cellKey2} has no anchor ${JSON.stringify(name)}`);
         return Object.assign([a[0] + dx, a[1] + dy], { anchor: dx || dy ? `${name}${dx >= 0 ? "+" : ""}${dx},${dy >= 0 ? "+" : ""}${dy}` : name });
       },
       key: (state, frame = 0, facing) => c.state === state && c.frame === frame && (facing === void 0 || c.facing === facing),
       protect: (...pts2) => pts2.forEach(([x, y]) => guard.add(`${x},${y}`))
     };
     const g = c.grid.clone();
-    done.set(cellKey, mod4.finish(g, ctx) ?? g);
+    done.set(cellKey2, mod4.finish(g, ctx) ?? g);
   }
   const anchored = patches.filter((p2) => p2.anchor && !p2.replay);
   for (const c of sources) {
     const k = keyOf(c), own = new Set(patches.filter((p2) => p2.cell === k).map((p2) => p2.anchor));
     for (const p2 of anchored) {
       if (p2.cell === k || own.has(p2.anchor) || p2.cell.split("/")[1] !== c.facing) continue;
-      const [name, off] = splitAnchor(p2.anchor), a = c.anchors?.[name];
+      const [name, off2] = splitAnchor(p2.anchor), a = c.anchors?.[name];
       if (!a) continue;
       const g = done.get(k), px = makePx(dc, (rec) => patches.push({ cell: k, ...rec, replay: true }), void 0, { isoTile });
       const src = p2;
-      px.patch(g, Object.assign([a[0] + off[0], a[1] + off[1]], { anchor: p2.anchor }), src.rows, src.key, { anchor: src.mode });
+      px.patch(g, Object.assign([a[0] + off2[0], a[1] + off2[1]], { anchor: p2.anchor }), src.rows, src.key, { anchor: src.mode });
       own.add(p2.anchor);
     }
   }
@@ -21575,9 +23635,9 @@ var init_finish = __esm({
 // ../artgen-core/src/w1/candidates.ts
 function moodProfile(iv) {
   const text3 = [iv.pitch, iv.genre ?? "", iv.era ?? "", ...iv.mood ?? []].join(" ").toLowerCase();
-  let key2, accent, ground2, growth, sat = 1, light = 1;
+  let key3, accent, ground2, growth, sat = 1, light = 1;
   for (const [re, v] of WORDS) if (re.test(text3)) {
-    if (v.key && !key2) key2 = v.key;
+    if (v.key && !key3) key3 = v.key;
     if (v.accent && !accent) accent = v.accent;
     if (v.ground && !ground2) ground2 = v.ground;
     if (v.growth && !growth) growth = v.growth;
@@ -21586,9 +23646,9 @@ function moodProfile(iv) {
   }
   const h = hashString(text3);
   const hue = parseInt(h.slice(0, 4), 16) % 360;
-  key2 ??= { h: hue, s: 0.4, l: 0.42 };
-  accent ??= { h: (key2.h + 150 + parseInt(h.slice(4, 6), 16) % 60) % 360, s: 0.8, l: 0.58 };
-  return { key: key2, accent, ground: ground2, growth, sat: Math.min(1.5, sat), light: Math.min(1.2, light) };
+  key3 ??= { h: hue, s: 0.4, l: 0.42 };
+  accent ??= { h: (key3.h + 150 + parseInt(h.slice(4, 6), 16) % 60) % 360, s: 0.8, l: 0.58 };
+  return { key: key3, accent, ground: ground2, growth, sat: Math.min(1.5, sat), light: Math.min(1.2, light) };
 }
 function roleBases(m, a) {
   const kh = (m.key.h + a.keyShift + 360) % 360, ah = (m.accent.h + a.keyShift * 0.5 + 360) % 360;
@@ -21634,8 +23694,8 @@ function candidate(iv, arch, index) {
   if (iv.colors?.length && index === 0) bases = rolesFromColors(iv.colors, bases);
   const ramps = {};
   for (const r of ROLES3) ramps[r] = generateRamp(fromHsl(bases[r]), { steps: r === "glow" ? 2 : arch.steps, hueShift: arch.hueShift, contrast: r === "glow" ? 0.25 : arch.contrast });
-  const key2 = bases.cloth, outline2 = fromHsl({ h: (key2.h + 330) % 360, s: Math.min(0.5, key2.s * 0.8), l: 0.08 });
-  const shadow = fromHsl({ h: (key2.h + 330) % 360, s: 0.4, l: 0.06 });
+  const key3 = bases.cloth, outline2 = fromHsl({ h: (key3.h + 330) % 360, s: Math.min(0.5, key3.s * 0.8), l: 0.08 });
+  const shadow = fromHsl({ h: (key3.h + 330) % 360, s: 0.4, l: 0.06 });
   const view = iv.view ?? "topdown";
   const scalePreset = typeof iv.scale === "object" ? null : SCALES[iv.scale ?? "medium"];
   const scale2 = scalePreset ? { ...view === "iso" ? scalePreset.iso : scalePreset.default } : { ...iv.scale };
@@ -21851,7 +23911,7 @@ function tileField(tile2, n) {
   return g;
 }
 function styleTile(title, columns, { scale: scale2 = 4, maxEdge = 1568 } = {}) {
-  const layout2 = (sc2) => {
+  const layout3 = (sc2) => {
     const cols = columns.map((c) => {
       const p2 = c.probes, sw = Math.max(6, sc2 * 3);
       const pal = swatches(null, 0, 0, c.dir, sw, false);
@@ -21869,20 +23929,20 @@ function styleTile(title, columns, { scale: scale2 = 4, maxEdge = 1568 } = {}) {
       const h = LINE2 + c.notes.length * LINE2 + 6 + pal.h + 8 + LINE2 + Math.max(p2.character.h * sc2, p2.character.h) + 8 + LINE2 + p2.prop.h * sc2 + 8 + LINE2 + field.h * sc2 + 8 + LINE2 + Math.max(0, ...p2.effect.map((f) => f.h * sc2)) + 8;
       return { c, w, h, sw, field };
     });
-    const W3 = PAD3 + cols.reduce((n, c) => n + c.w + PAD3 * 2, 0), H = PAD3 + LINE2 + PAD3 + Math.max(...cols.map((c) => c.h)) + PAD3;
-    return { cols, W: Math.max(W3, PAD3 * 2 + textWidth(title, TXT3)), H };
+    const W3 = PAD4 + cols.reduce((n, c) => n + c.w + PAD4 * 2, 0), H = PAD4 + LINE2 + PAD4 + Math.max(...cols.map((c) => c.h)) + PAD4;
+    return { cols, W: Math.max(W3, PAD4 * 2 + textWidth(title, TXT3)), H };
   };
-  let sc = scale2, L2 = layout2(sc);
+  let sc = scale2, L2 = layout3(sc);
   while (Math.max(L2.W, L2.H) > maxEdge && sc > 1) {
     sc--;
-    L2 = layout2(sc);
+    L2 = layout3(sc);
   }
   const g = new Grid(L2.W, L2.H).fill(0, 0, L2.W, L2.H, BG3);
-  drawText(g, PAD3, PAD3, title, TITLE3, TXT3);
-  let x = PAD3;
+  drawText(g, PAD4, PAD4, title, TITLE3, TXT3);
+  let x = PAD4;
   for (const { c, w, sw, field } of L2.cols) {
     const bg = c.background ?? c.dir.background ?? "#202028", p2 = c.probes;
-    let y = PAD3 + LINE2 + PAD3;
+    let y = PAD4 + LINE2 + PAD4;
     drawText(g, x, y, c.label, TITLE3, TXT3);
     y += LINE2;
     for (const n of c.notes) {
@@ -21919,8 +23979,8 @@ function styleTile(title, columns, { scale: scale2 = 4, maxEdge = 1568 } = {}) {
       g.over(b, fxX, y);
       fxX += b.w + 4;
     }
-    x += w + PAD3 * 2;
-    if (x - PAD3 < g.w) g.fill(x - PAD3 - 1, PAD3 + LINE2, 1, g.h - PAD3 * 2 - LINE2, "#2c2c36");
+    x += w + PAD4 * 2;
+    if (x - PAD4 < g.w) g.fill(x - PAD4 - 1, PAD4 + LINE2, 1, g.h - PAD4 * 2 - LINE2, "#2c2c36");
   }
   return g;
 }
@@ -21953,11 +24013,11 @@ function styleSheet(dir, anchors2, { scale: scale2 = 4, maxEdge = 1568 } = {}) {
   const rules = [...dir.rules.do.map((r) => `DO   ${r}`), ...dir.rules.dont.map((r) => `DONT ${r}`)];
   const build = (sc2) => {
     const sw = 10, pal2 = swatches(null, 0, 0, dir, sw, true), light = lightDiagram(dir, 14);
-    const rulerW = sizes.reduce((n, { k, s: s2 }) => n + Math.max(s2[0], textWidth(k, TXT3)) + PAD3, 0), rulerH = LINE2 + Math.max(...sizes.map(({ s: s2 }) => s2[1]), 0) + 8;
-    const anchorsW = anchors2.reduce((n, a) => n + a.grid.w * (sc2 + 1) + 6 + PAD3, 0), anchorsH = anchors2.length ? LINE2 + Math.max(...anchors2.map((a) => a.grid.h * sc2)) + LINE2 + 8 : 0;
+    const rulerW = sizes.reduce((n, { k, s: s2 }) => n + Math.max(s2[0], textWidth(k, TXT3)) + PAD4, 0), rulerH = LINE2 + Math.max(...sizes.map(({ s: s2 }) => s2[1]), 0) + 8;
+    const anchorsW = anchors2.reduce((n, a) => n + a.grid.w * (sc2 + 1) + 6 + PAD4, 0), anchorsH = anchors2.length ? LINE2 + Math.max(...anchors2.map((a) => a.grid.h * sc2)) + LINE2 + 8 : 0;
     const textLines = [...pitch, ...notes, ...settings2, ...rules];
-    const W3 = PAD3 * 2 + Math.max(pal2.w + PAD3 * 2 + light.w * 3, rulerW, anchorsW, ...textLines.map((l) => textWidth(l, TXT3)), textWidth(`${dir.id} v${dir.version}`, TXT3 * 2));
-    const H = PAD3 + LINE2 * 2 + (pitch.length + notes.length) * LINE2 + 8 + LINE2 + Math.max(pal2.h, light.h * 3) + 8 + LINE2 + settings2.length * LINE2 + 8 + rulerH + anchorsH + (rules.length ? LINE2 + rules.length * LINE2 : 0) + PAD3;
+    const W3 = PAD4 * 2 + Math.max(pal2.w + PAD4 * 2 + light.w * 3, rulerW, anchorsW, ...textLines.map((l) => textWidth(l, TXT3)), textWidth(`${dir.id} v${dir.version}`, TXT3 * 2));
+    const H = PAD4 + LINE2 * 2 + (pitch.length + notes.length) * LINE2 + 8 + LINE2 + Math.max(pal2.h, light.h * 3) + 8 + LINE2 + settings2.length * LINE2 + 8 + rulerH + anchorsH + (rules.length ? LINE2 + rules.length * LINE2 : 0) + PAD4;
     return { W: W3, H, sw, light };
   };
   let sc = scale2, L2 = build(sc);
@@ -21966,34 +24026,34 @@ function styleSheet(dir, anchors2, { scale: scale2 = 4, maxEdge = 1568 } = {}) {
     L2 = build(sc);
   }
   const g = new Grid(L2.W, L2.H).fill(0, 0, L2.W, L2.H, BG3);
-  let y = PAD3;
-  drawText(g, PAD3, y, `${dir.id} v${dir.version} (${dir.status})`, TITLE3, TXT3 * 2);
+  let y = PAD4;
+  drawText(g, PAD4, y, `${dir.id} v${dir.version} (${dir.status})`, TITLE3, TXT3 * 2);
   y += LINE2 * 2;
   for (const l of pitch) {
-    drawText(g, PAD3, y, l, FG3, TXT3);
+    drawText(g, PAD4, y, l, FG3, TXT3);
     y += LINE2;
   }
   for (const l of notes) {
-    drawText(g, PAD3, y, l, DIM2, TXT3);
+    drawText(g, PAD4, y, l, DIM2, TXT3);
     y += LINE2;
   }
   y += 8;
-  drawText(g, PAD3, y, "PALETTE", FG3, TXT3);
-  const pal = swatches(g, PAD3, y + LINE2, dir, L2.sw, true);
-  const lx = PAD3 + pal.w + PAD3 * 2;
+  drawText(g, PAD4, y, "PALETTE", FG3, TXT3);
+  const pal = swatches(g, PAD4, y + LINE2, dir, L2.sw, true);
+  const lx = PAD4 + pal.w + PAD4 * 2;
   drawText(g, lx, y, "LIGHT", FG3, TXT3);
   const lg = L2.light.scale(3);
   g.fill(lx, y + LINE2, lg.w, lg.h, bg);
   g.over(lg, lx, y + LINE2);
   y += LINE2 + Math.max(pal.h, lg.h) + 8;
-  drawText(g, PAD3, y, "SETTINGS", FG3, TXT3);
+  drawText(g, PAD4, y, "SETTINGS", FG3, TXT3);
   y += LINE2;
   for (const l of settings2) {
-    drawText(g, PAD3, y, l, DIM2, TXT3);
+    drawText(g, PAD4, y, l, DIM2, TXT3);
     y += LINE2;
   }
   y += 8;
-  let x = PAD3;
+  let x = PAD4;
   const maxH = Math.max(...sizes.map(({ s: s2 }) => s2[1]), 0);
   for (const { k, s: s2 } of sizes) {
     drawText(g, x, y, k, DIM2, TXT3);
@@ -22007,13 +24067,13 @@ function styleSheet(dir, anchors2, { scale: scale2 = 4, maxEdge = 1568 } = {}) {
       g.set(x, top + j, "#5a5a66");
       g.set(x + s2[0] - 1, top + j, "#5a5a66");
     }
-    x += Math.max(s2[0], textWidth(k, TXT3)) + PAD3;
+    x += Math.max(s2[0], textWidth(k, TXT3)) + PAD4;
   }
   y += LINE2 + maxH + 8;
   if (anchors2.length) {
-    drawText(g, PAD3, y, "ANCHORS", FG3, TXT3);
+    drawText(g, PAD4, y, "ANCHORS", FG3, TXT3);
     y += LINE2;
-    x = PAD3;
+    x = PAD4;
     const rowH = Math.max(...anchors2.map((a) => a.grid.h * sc));
     for (const a of anchors2) {
       checker(g, x, y, a.grid.w, a.grid.h, 4);
@@ -22022,21 +24082,21 @@ function styleSheet(dir, anchors2, { scale: scale2 = 4, maxEdge = 1568 } = {}) {
       g.fill(bx, y, big.w, big.h, bg);
       g.over(big, bx, y);
       drawText(g, x, y + rowH + 4, a.label, DIM2, TXT3);
-      x = bx + big.w + PAD3;
+      x = bx + big.w + PAD4;
     }
     y += rowH + LINE2 + 8;
   }
   if (rules.length) {
-    drawText(g, PAD3, y, "RULES", FG3, TXT3);
+    drawText(g, PAD4, y, "RULES", FG3, TXT3);
     y += LINE2;
     for (const r of rules) {
-      drawText(g, PAD3, y, r, r.startsWith("DO ") ? "#9fd39a" : "#e39a9a", TXT3);
+      drawText(g, PAD4, y, r, r.startsWith("DO ") ? "#9fd39a" : "#e39a9a", TXT3);
       y += LINE2;
     }
   }
   return g;
 }
-var PAD3, TXT3, LINE2, BG3, FG3, DIM2, TITLE3, paletteLuma;
+var PAD4, TXT3, LINE2, BG3, FG3, DIM2, TITLE3, paletteLuma;
 var init_sheets = __esm({
   "../artgen-core/src/w1/sheets.ts"() {
     "use strict";
@@ -22045,7 +24105,7 @@ var init_sheets = __esm({
     init_font();
     init_grid();
     init_sheet2();
-    PAD3 = 12;
+    PAD4 = 12;
     TXT3 = 2;
     LINE2 = GLYPH_H * TXT3 + 6;
     BG3 = "#16161c";
@@ -22136,11 +24196,11 @@ var require_visit = __commonJS({
     visit.BREAK = BREAK;
     visit.SKIP = SKIP;
     visit.REMOVE = REMOVE;
-    function visit_(key2, node, visitor, path) {
-      const ctrl = callVisitor(key2, node, visitor, path);
+    function visit_(key3, node, visitor, path) {
+      const ctrl = callVisitor(key3, node, visitor, path);
       if (identity.isNode(ctrl) || identity.isPair(ctrl)) {
-        replaceNode(key2, path, ctrl);
-        return visit_(key2, ctrl, visitor, path);
+        replaceNode(key3, path, ctrl);
+        return visit_(key3, ctrl, visitor, path);
       }
       if (typeof ctrl !== "symbol") {
         if (identity.isCollection(node)) {
@@ -22184,11 +24244,11 @@ var require_visit = __commonJS({
     visitAsync.BREAK = BREAK;
     visitAsync.SKIP = SKIP;
     visitAsync.REMOVE = REMOVE;
-    async function visitAsync_(key2, node, visitor, path) {
-      const ctrl = await callVisitor(key2, node, visitor, path);
+    async function visitAsync_(key3, node, visitor, path) {
+      const ctrl = await callVisitor(key3, node, visitor, path);
       if (identity.isNode(ctrl) || identity.isPair(ctrl)) {
-        replaceNode(key2, path, ctrl);
-        return visitAsync_(key2, ctrl, visitor, path);
+        replaceNode(key3, path, ctrl);
+        return visitAsync_(key3, ctrl, visitor, path);
       }
       if (typeof ctrl !== "symbol") {
         if (identity.isCollection(node)) {
@@ -22238,27 +24298,27 @@ var require_visit = __commonJS({
       }
       return visitor;
     }
-    function callVisitor(key2, node, visitor, path) {
+    function callVisitor(key3, node, visitor, path) {
       if (typeof visitor === "function")
-        return visitor(key2, node, path);
+        return visitor(key3, node, path);
       if (identity.isMap(node))
-        return visitor.Map?.(key2, node, path);
+        return visitor.Map?.(key3, node, path);
       if (identity.isSeq(node))
-        return visitor.Seq?.(key2, node, path);
+        return visitor.Seq?.(key3, node, path);
       if (identity.isPair(node))
-        return visitor.Pair?.(key2, node, path);
+        return visitor.Pair?.(key3, node, path);
       if (identity.isScalar(node))
-        return visitor.Scalar?.(key2, node, path);
+        return visitor.Scalar?.(key3, node, path);
       if (identity.isAlias(node))
-        return visitor.Alias?.(key2, node, path);
+        return visitor.Alias?.(key3, node, path);
       return void 0;
     }
-    function replaceNode(key2, path, node) {
+    function replaceNode(key3, path, node) {
       const parent = path[path.length - 1];
       if (identity.isCollection(parent)) {
-        parent.items[key2] = node;
+        parent.items[key3] = node;
       } else if (identity.isPair(parent)) {
-        if (key2 === "key")
+        if (key3 === "key")
           parent.key = node;
         else
           parent.value = node;
@@ -22326,13 +24386,13 @@ var require_directives = __commonJS({
        * @param onError - May be called even if the action was successful
        * @returns `true` on success
        */
-      add(line2, onError) {
+      add(line3, onError) {
         if (this.atNextDocument) {
           this.yaml = { explicit: _Directives.defaultYaml.explicit, version: "1.1" };
           this.tags = Object.assign({}, _Directives.defaultTags);
           this.atNextDocument = false;
         }
-        const parts = line2.trim().split(/[ \t]+/);
+        const parts = line3.trim().split(/[ \t]+/);
         const name = parts.shift();
         switch (name) {
           case "%TAG": {
@@ -22519,7 +24579,7 @@ var require_anchors = __commonJS({
 var require_applyReviver = __commonJS({
   "../../node_modules/yaml/dist/doc/applyReviver.js"(exports) {
     "use strict";
-    function applyReviver(reviver, obj, key2, val) {
+    function applyReviver(reviver, obj2, key3, val) {
       if (val && typeof val === "object") {
         if (Array.isArray(val)) {
           for (let i = 0, len3 = val.length; i < len3; ++i) {
@@ -22559,7 +24619,7 @@ var require_applyReviver = __commonJS({
           }
         }
       }
-      return reviver.call(obj, key2, val);
+      return reviver.call(obj2, key3, val);
     }
     exports.applyReviver = applyReviver;
   }
@@ -22815,7 +24875,7 @@ var require_createNode = __commonJS({
       if (value instanceof String || value instanceof Number || value instanceof Boolean || typeof BigInt !== "undefined" && value instanceof BigInt) {
         value = value.valueOf();
       }
-      const { aliasDuplicateObjects, onAnchor, onTagObj, schema, sourceObjects } = ctx;
+      const { aliasDuplicateObjects, onAnchor, onTagObj, schema: schema2, sourceObjects } = ctx;
       let ref = void 0;
       if (aliasDuplicateObjects && value && typeof value === "object") {
         ref = sourceObjects.get(value);
@@ -22829,7 +24889,7 @@ var require_createNode = __commonJS({
       }
       if (tagName?.startsWith("!!"))
         tagName = defaultTagPrefix + tagName.slice(2);
-      let tagObj = findTagObject(value, tagName, schema.tags);
+      let tagObj = findTagObject(value, tagName, schema2.tags);
       if (!tagObj) {
         if (value && typeof value.toJSON === "function") {
           value = value.toJSON();
@@ -22840,7 +24900,7 @@ var require_createNode = __commonJS({
             ref.node = node2;
           return node2;
         }
-        tagObj = value instanceof Map ? schema[identity.MAP] : Symbol.iterator in Object(value) ? schema[identity.SEQ] : schema[identity.MAP];
+        tagObj = value instanceof Map ? schema2[identity.MAP] : Symbol.iterator in Object(value) ? schema2[identity.SEQ] : schema2[identity.MAP];
       }
       if (onTagObj) {
         onTagObj(tagObj);
@@ -22866,7 +24926,7 @@ var require_Collection = __commonJS({
     var createNode = require_createNode();
     var identity = require_identity();
     var Node = require_Node();
-    function collectionFromPath(schema, path, value) {
+    function collectionFromPath(schema2, path, value) {
       let v = value;
       for (let i = path.length - 1; i >= 0; --i) {
         const k = path[i];
@@ -22884,16 +24944,16 @@ var require_Collection = __commonJS({
         onAnchor: () => {
           throw new Error("This should not happen, please report a bug.");
         },
-        schema,
+        schema: schema2,
         sourceObjects: /* @__PURE__ */ new Map()
       });
     }
     var isEmptyPath = (path) => path == null || typeof path === "object" && !!path[Symbol.iterator]().next().done;
     var Collection = class extends Node.NodeBase {
-      constructor(type, schema) {
+      constructor(type, schema2) {
         super(type);
         Object.defineProperty(this, "schema", {
-          value: schema,
+          value: schema2,
           configurable: true,
           enumerable: false,
           writable: true
@@ -22904,11 +24964,11 @@ var require_Collection = __commonJS({
        *
        * @param schema - If defined, overwrites the original's schema
        */
-      clone(schema) {
+      clone(schema2) {
         const copy = Object.create(Object.getPrototypeOf(this), Object.getOwnPropertyDescriptors(this));
-        if (schema)
-          copy.schema = schema;
-        copy.items = copy.items.map((it) => identity.isNode(it) || identity.isPair(it) ? it.clone(schema) : it);
+        if (schema2)
+          copy.schema = schema2;
+        copy.items = copy.items.map((it) => identity.isNode(it) || identity.isPair(it) ? it.clone(schema2) : it);
         if (this.range)
           copy.range = this.range.slice();
         return copy;
@@ -22922,14 +24982,14 @@ var require_Collection = __commonJS({
         if (isEmptyPath(path))
           this.add(value);
         else {
-          const [key2, ...rest] = path;
-          const node = this.get(key2, true);
+          const [key3, ...rest] = path;
+          const node = this.get(key3, true);
           if (identity.isCollection(node))
             node.addIn(rest, value);
           else if (node === void 0 && this.schema)
-            this.set(key2, collectionFromPath(this.schema, rest, value));
+            this.set(key3, collectionFromPath(this.schema, rest, value));
           else
-            throw new Error(`Expected YAML collection at ${key2}. Remaining path: ${rest}`);
+            throw new Error(`Expected YAML collection at ${key3}. Remaining path: ${rest}`);
         }
       }
       /**
@@ -22937,14 +24997,14 @@ var require_Collection = __commonJS({
        * @returns `true` if the item was found and removed.
        */
       deleteIn(path) {
-        const [key2, ...rest] = path;
+        const [key3, ...rest] = path;
         if (rest.length === 0)
-          return this.delete(key2);
-        const node = this.get(key2, true);
+          return this.delete(key3);
+        const node = this.get(key3, true);
         if (identity.isCollection(node))
           return node.deleteIn(rest);
         else
-          throw new Error(`Expected YAML collection at ${key2}. Remaining path: ${rest}`);
+          throw new Error(`Expected YAML collection at ${key3}. Remaining path: ${rest}`);
       }
       /**
        * Returns item at `key`, or `undefined` if not found. By default unwraps
@@ -22952,8 +25012,8 @@ var require_Collection = __commonJS({
        * `true` (collections are always returned intact).
        */
       getIn(path, keepScalar) {
-        const [key2, ...rest] = path;
-        const node = this.get(key2, true);
+        const [key3, ...rest] = path;
+        const node = this.get(key3, true);
         if (rest.length === 0)
           return !keepScalar && identity.isScalar(node) ? node.value : node;
         else
@@ -22971,10 +25031,10 @@ var require_Collection = __commonJS({
        * Checks if the collection includes a value with the key `key`.
        */
       hasIn(path) {
-        const [key2, ...rest] = path;
+        const [key3, ...rest] = path;
         if (rest.length === 0)
-          return this.has(key2);
-        const node = this.get(key2, true);
+          return this.has(key3);
+        const node = this.get(key3, true);
         return identity.isCollection(node) ? node.hasIn(rest) : false;
       }
       /**
@@ -22982,17 +25042,17 @@ var require_Collection = __commonJS({
        * boolean to add/remove the item from the set.
        */
       setIn(path, value) {
-        const [key2, ...rest] = path;
+        const [key3, ...rest] = path;
         if (rest.length === 0) {
-          this.set(key2, value);
+          this.set(key3, value);
         } else {
-          const node = this.get(key2, true);
+          const node = this.get(key3, true);
           if (identity.isCollection(node))
             node.setIn(rest, value);
           else if (node === void 0 && this.schema)
-            this.set(key2, collectionFromPath(this.schema, rest, value));
+            this.set(key3, collectionFromPath(this.schema, rest, value));
           else
-            throw new Error(`Expected YAML collection at ${key2}. Remaining path: ${rest}`);
+            throw new Error(`Expected YAML collection at ${key3}. Remaining path: ${rest}`);
         }
       }
     };
@@ -23006,13 +25066,13 @@ var require_Collection = __commonJS({
 var require_stringifyComment = __commonJS({
   "../../node_modules/yaml/dist/stringify/stringifyComment.js"(exports) {
     "use strict";
-    var stringifyComment = (str2) => str2.replace(/^(?!$)(?: $)?/gm, "#");
+    var stringifyComment = (str3) => str3.replace(/^(?!$)(?: $)?/gm, "#");
     function indentComment(comment, indent) {
       if (/^\n+$/.test(comment))
         return comment.substring(1);
       return indent ? comment.replace(/^(?! *$)/gm, indent) : comment;
     }
-    var lineComment = (str2, indent, comment) => str2.endsWith("\n") ? indentComment(comment, indent) : comment.includes("\n") ? "\n" + indentComment(comment, indent) : (str2.endsWith(" ") ? "" : " ") + comment;
+    var lineComment = (str3, indent, comment) => str3.endsWith("\n") ? indentComment(comment, indent) : comment.includes("\n") ? "\n" + indentComment(comment, indent) : (str3.endsWith(" ") ? "" : " ") + comment;
     exports.indentComment = indentComment;
     exports.lineComment = lineComment;
     exports.stringifyComment = stringifyComment;
@@ -23166,16 +25226,16 @@ var require_stringifyString = __commonJS({
       lineWidth: ctx.options.lineWidth,
       minContentWidth: ctx.options.minContentWidth
     });
-    var containsDocumentMarker = (str2) => /^(%|---|\.\.\.)/m.test(str2);
-    function lineLengthOverLimit(str2, lineWidth, indentLength) {
+    var containsDocumentMarker = (str3) => /^(%|---|\.\.\.)/m.test(str3);
+    function lineLengthOverLimit(str3, lineWidth, indentLength) {
       if (!lineWidth || lineWidth < 0)
         return false;
       const limit = lineWidth - indentLength;
-      const strLen = str2.length;
+      const strLen = str3.length;
       if (strLen <= limit)
         return false;
       for (let i = 0, start = 0; i < strLen; ++i) {
-        if (str2[i] === "\n") {
+        if (str3[i] === "\n") {
           if (i - start > limit)
             return true;
           start = i + 1;
@@ -23192,11 +25252,11 @@ var require_stringifyString = __commonJS({
       const { implicitKey } = ctx;
       const minMultiLineLength = ctx.options.doubleQuotedMinMultiLineLength;
       const indent = ctx.indent || (containsDocumentMarker(value) ? "  " : "");
-      let str2 = "";
+      let str3 = "";
       let start = 0;
       for (let i = 0, ch = json2[i]; ch; ch = json2[++i]) {
         if (ch === " " && json2[i + 1] === "\\" && json2[i + 2] === "n") {
-          str2 += json2.slice(start, i) + "\\ ";
+          str3 += json2.slice(start, i) + "\\ ";
           i += 1;
           start = i;
           ch = "\\";
@@ -23205,38 +25265,38 @@ var require_stringifyString = __commonJS({
           switch (json2[i + 1]) {
             case "u":
               {
-                str2 += json2.slice(start, i);
+                str3 += json2.slice(start, i);
                 const code = json2.substr(i + 2, 4);
                 switch (code) {
                   case "0000":
-                    str2 += "\\0";
+                    str3 += "\\0";
                     break;
                   case "0007":
-                    str2 += "\\a";
+                    str3 += "\\a";
                     break;
                   case "000b":
-                    str2 += "\\v";
+                    str3 += "\\v";
                     break;
                   case "001b":
-                    str2 += "\\e";
+                    str3 += "\\e";
                     break;
                   case "0085":
-                    str2 += "\\N";
+                    str3 += "\\N";
                     break;
                   case "00a0":
-                    str2 += "\\_";
+                    str3 += "\\_";
                     break;
                   case "2028":
-                    str2 += "\\L";
+                    str3 += "\\L";
                     break;
                   case "2029":
-                    str2 += "\\P";
+                    str3 += "\\P";
                     break;
                   default:
                     if (code.substr(0, 2) === "00")
-                      str2 += "\\x" + code.substr(2);
+                      str3 += "\\x" + code.substr(2);
                     else
-                      str2 += json2.substr(i, 6);
+                      str3 += json2.substr(i, 6);
                 }
                 i += 5;
                 start = i + 1;
@@ -23246,14 +25306,14 @@ var require_stringifyString = __commonJS({
               if (implicitKey || json2[i + 2] === '"' || json2.length < minMultiLineLength) {
                 i += 1;
               } else {
-                str2 += json2.slice(start, i) + "\n\n";
+                str3 += json2.slice(start, i) + "\n\n";
                 while (json2[i + 2] === "\\" && json2[i + 3] === "n" && json2[i + 4] !== '"') {
-                  str2 += "\n";
+                  str3 += "\n";
                   i += 2;
                 }
-                str2 += indent;
+                str3 += indent;
                 if (json2[i + 2] === " ")
-                  str2 += "\\";
+                  str3 += "\\";
                 i += 1;
                 start = i + 1;
               }
@@ -23262,8 +25322,8 @@ var require_stringifyString = __commonJS({
               i += 1;
           }
       }
-      str2 = start ? str2 + json2.slice(start) : json2;
-      return implicitKey ? str2 : foldFlowLines.foldFlowLines(str2, indent, foldFlowLines.FOLD_QUOTED, getFoldOptions(ctx, false));
+      str3 = start ? str3 + json2.slice(start) : json2;
+      return implicitKey ? str3 : foldFlowLines.foldFlowLines(str3, indent, foldFlowLines.FOLD_QUOTED, getFoldOptions(ctx, false));
     }
     function singleQuotedString(value, ctx) {
       if (ctx.options.singleQuote === false || ctx.implicitKey && value.includes("\n") || /[ \t]\n|\n[ \t]/.test(value))
@@ -23391,15 +25451,15 @@ ${indent}${start}${value}${end}`;
           return quotedString(value, ctx);
         }
       }
-      const str2 = value.replace(/\n+/g, `$&
+      const str3 = value.replace(/\n+/g, `$&
 ${indent}`);
       if (actualString) {
-        const test = (tag) => tag.default && tag.tag !== "tag:yaml.org,2002:str" && tag.test?.test(str2);
+        const test = (tag) => tag.default && tag.tag !== "tag:yaml.org,2002:str" && tag.test?.test(str3);
         const { compat, tags } = ctx.doc.schema;
         if (tags.some(test) || compat?.some(test))
           return quotedString(value, ctx);
       }
-      return implicitKey ? str2 : foldFlowLines.foldFlowLines(str2, indent, foldFlowLines.FOLD_FLOW, getFoldOptions(ctx, false));
+      return implicitKey ? str3 : foldFlowLines.foldFlowLines(str3, indent, foldFlowLines.FOLD_FLOW, getFoldOptions(ctx, false));
     }
     function stringifyString(item, ctx, onComment, onChompKeep) {
       const { implicitKey, inFlow } = ctx;
@@ -23495,10 +25555,10 @@ var require_stringify = __commonJS({
           return match.find((t) => t.format === item.format) ?? match[0];
       }
       let tagObj = void 0;
-      let obj;
+      let obj2;
       if (identity.isScalar(item)) {
-        obj = item.value;
-        let match = tags.filter((t) => t.identify?.(obj));
+        obj2 = item.value;
+        let match = tags.filter((t) => t.identify?.(obj2));
         if (match.length > 1) {
           const testMatch = match.filter((t) => t.test);
           if (testMatch.length > 0)
@@ -23506,11 +25566,11 @@ var require_stringify = __commonJS({
         }
         tagObj = match.find((t) => t.format === item.format) ?? match.find((t) => !t.format);
       } else {
-        obj = item;
-        tagObj = tags.find((t) => t.nodeClass && obj instanceof t.nodeClass);
+        obj2 = item;
+        tagObj = tags.find((t) => t.nodeClass && obj2 instanceof t.nodeClass);
       }
       if (!tagObj) {
-        const name = obj?.constructor?.name ?? (obj === null ? "null" : typeof obj);
+        const name = obj2?.constructor?.name ?? (obj2 === null ? "null" : typeof obj2);
         throw new Error(`Tag not resolved for ${name} value`);
       }
       return tagObj;
@@ -23551,11 +25611,11 @@ var require_stringify = __commonJS({
       const props2 = stringifyProps(node, tagObj, ctx);
       if (props2.length > 0)
         ctx.indentAtStart = (ctx.indentAtStart ?? 0) + props2.length + 1;
-      const str2 = typeof tagObj.stringify === "function" ? tagObj.stringify(node, ctx, onComment, onChompKeep) : identity.isScalar(node) ? stringifyString.stringifyString(node, ctx, onComment, onChompKeep) : node.toString(ctx, onComment, onChompKeep);
+      const str3 = typeof tagObj.stringify === "function" ? tagObj.stringify(node, ctx, onComment, onChompKeep) : identity.isScalar(node) ? stringifyString.stringifyString(node, ctx, onComment, onChompKeep) : node.toString(ctx, onComment, onChompKeep);
       if (!props2)
-        return str2;
-      return identity.isScalar(node) || str2[0] === "{" || str2[0] === "[" ? `${props2} ${str2}` : `${props2}
-${ctx.indent}${str2}`;
+        return str3;
+      return identity.isScalar(node) || str3[0] === "{" || str3[0] === "[" ? `${props2} ${str3}` : `${props2}
+${ctx.indent}${str3}`;
     }
     exports.createStringifyContext = createStringifyContext;
     exports.stringify = stringify2;
@@ -23570,19 +25630,19 @@ var require_stringifyPair = __commonJS({
     var Scalar = require_Scalar();
     var stringify2 = require_stringify();
     var stringifyComment = require_stringifyComment();
-    function stringifyPair({ key: key2, value }, ctx, onComment, onChompKeep) {
+    function stringifyPair({ key: key3, value }, ctx, onComment, onChompKeep) {
       const { allNullValues, doc: doc2, indent, indentStep, options: { commentString, indentSeq, simpleKeys } } = ctx;
-      let keyComment = identity.isNode(key2) && key2.comment || null;
+      let keyComment = identity.isNode(key3) && key3.comment || null;
       if (simpleKeys) {
         if (keyComment) {
           throw new Error("With simple keys, key nodes cannot have comments");
         }
-        if (identity.isCollection(key2) || !identity.isNode(key2) && typeof key2 === "object") {
+        if (identity.isCollection(key3) || !identity.isNode(key3) && typeof key3 === "object") {
           const msg = "With simple keys, collection cannot be used as a key value";
           throw new Error(msg);
         }
       }
-      let explicitKey = !simpleKeys && (!key2 || keyComment && value == null && !ctx.inFlow || identity.isCollection(key2) || (identity.isScalar(key2) ? key2.type === Scalar.Scalar.BLOCK_FOLDED || key2.type === Scalar.Scalar.BLOCK_LITERAL : typeof key2 === "object"));
+      let explicitKey = !simpleKeys && (!key3 || keyComment && value == null && !ctx.inFlow || identity.isCollection(key3) || (identity.isScalar(key3) ? key3.type === Scalar.Scalar.BLOCK_FOLDED || key3.type === Scalar.Scalar.BLOCK_LITERAL : typeof key3 === "object"));
       ctx = Object.assign({}, ctx, {
         allNullValues: false,
         implicitKey: !explicitKey && (simpleKeys || !allNullValues),
@@ -23590,8 +25650,8 @@ var require_stringifyPair = __commonJS({
       });
       let keyCommentDone = false;
       let chompKeep = false;
-      let str2 = stringify2.stringify(key2, ctx, () => keyCommentDone = true, () => chompKeep = true);
-      if (!explicitKey && !ctx.inFlow && str2.length > 1024) {
+      let str3 = stringify2.stringify(key3, ctx, () => keyCommentDone = true, () => chompKeep = true);
+      if (!explicitKey && !ctx.inFlow && str3.length > 1024) {
         if (simpleKeys)
           throw new Error("With simple keys, single line scalar must not span more than 1024 characters");
         explicitKey = true;
@@ -23600,27 +25660,27 @@ var require_stringifyPair = __commonJS({
         if (allNullValues || value == null) {
           if (keyCommentDone && onComment)
             onComment();
-          return str2 === "" ? "?" : explicitKey ? `? ${str2}` : str2;
+          return str3 === "" ? "?" : explicitKey ? `? ${str3}` : str3;
         }
       } else if (allNullValues && !simpleKeys || value == null && explicitKey) {
-        str2 = `? ${str2}`;
+        str3 = `? ${str3}`;
         if (keyComment && !keyCommentDone) {
-          str2 += stringifyComment.lineComment(str2, ctx.indent, commentString(keyComment));
+          str3 += stringifyComment.lineComment(str3, ctx.indent, commentString(keyComment));
         } else if (chompKeep && onChompKeep)
           onChompKeep();
-        return str2;
+        return str3;
       }
       if (keyCommentDone)
         keyComment = null;
       if (explicitKey) {
         if (keyComment)
-          str2 += stringifyComment.lineComment(str2, ctx.indent, commentString(keyComment));
-        str2 = `? ${str2}
+          str3 += stringifyComment.lineComment(str3, ctx.indent, commentString(keyComment));
+        str3 = `? ${str3}
 ${indent}:`;
       } else {
-        str2 = `${str2}:`;
+        str3 = `${str3}:`;
         if (keyComment)
-          str2 += stringifyComment.lineComment(str2, ctx.indent, commentString(keyComment));
+          str3 += stringifyComment.lineComment(str3, ctx.indent, commentString(keyComment));
       }
       let vsb, vcb, valueComment;
       if (identity.isNode(value)) {
@@ -23636,7 +25696,7 @@ ${indent}:`;
       }
       ctx.implicitKey = false;
       if (!explicitKey && !keyComment && identity.isScalar(value))
-        ctx.indentAtStart = str2.length + 1;
+        ctx.indentAtStart = str3.length + 1;
       chompKeep = false;
       if (!indentSeq && indentStep.length >= 2 && !ctx.inFlow && !explicitKey && identity.isSeq(value) && !value.flow && !value.tag && !value.anchor) {
         ctx.indent = ctx.indent.substring(2);
@@ -23680,16 +25740,16 @@ ${ctx.indent}`;
       } else if (valueStr === "" || valueStr[0] === "\n") {
         ws = "";
       }
-      str2 += ws + valueStr;
+      str3 += ws + valueStr;
       if (ctx.inFlow) {
         if (valueCommentDone && onComment)
           onComment();
       } else if (valueComment && !valueCommentDone) {
-        str2 += stringifyComment.lineComment(str2, ctx.indent, commentString(valueComment));
+        str3 += stringifyComment.lineComment(str3, ctx.indent, commentString(valueComment));
       } else if (chompKeep && onChompKeep) {
         onChompKeep();
       }
-      return str2;
+      return str3;
     }
     exports.stringifyPair = stringifyPair;
   }
@@ -23734,7 +25794,7 @@ var require_merge = __commonJS({
       }),
       stringify: () => MERGE_KEY
     };
-    var isMergeKey = (ctx, key2) => (merge2.identify(key2) || identity.isScalar(key2) && (!key2.type || key2.type === Scalar.Scalar.PLAIN) && merge2.identify(key2.value)) && ctx?.doc.schema.tags.some((tag) => tag.tag === merge2.tag && tag.default);
+    var isMergeKey = (ctx, key3) => (merge2.identify(key3) || identity.isScalar(key3) && (!key3.type || key3.type === Scalar.Scalar.PLAIN) && merge2.identify(key3.value)) && ctx?.doc.schema.tags.some((tag) => tag.tag === merge2.tag && tag.default);
     function addMergeToJSMap(ctx, map, value) {
       const source = resolveAliasValue(ctx, value);
       if (identity.isSeq(source))
@@ -23751,14 +25811,14 @@ var require_merge = __commonJS({
       if (!identity.isMap(source))
         throw new Error("Merge sources must be maps or map aliases");
       const srcMap = source.toJSON(null, ctx, Map);
-      for (const [key2, value2] of srcMap) {
+      for (const [key3, value2] of srcMap) {
         if (map instanceof Map) {
-          if (!map.has(key2))
-            map.set(key2, value2);
+          if (!map.has(key3))
+            map.set(key3, value2);
         } else if (map instanceof Set) {
-          map.add(key2);
-        } else if (!Object.prototype.hasOwnProperty.call(map, key2)) {
-          Object.defineProperty(map, key2, {
+          map.add(key3);
+        } else if (!Object.prototype.hasOwnProperty.call(map, key3)) {
+          Object.defineProperty(map, key3, {
             value: value2,
             writable: true,
             enumerable: true,
@@ -23786,19 +25846,19 @@ var require_addPairToJSMap = __commonJS({
     var stringify2 = require_stringify();
     var identity = require_identity();
     var toJS = require_toJS();
-    function addPairToJSMap(ctx, map, { key: key2, value }) {
-      if (identity.isNode(key2) && key2.addToJSMap)
-        key2.addToJSMap(ctx, map, value);
-      else if (merge2.isMergeKey(ctx, key2))
+    function addPairToJSMap(ctx, map, { key: key3, value }) {
+      if (identity.isNode(key3) && key3.addToJSMap)
+        key3.addToJSMap(ctx, map, value);
+      else if (merge2.isMergeKey(ctx, key3))
         merge2.addMergeToJSMap(ctx, map, value);
       else {
-        const jsKey = toJS.toJS(key2, "", ctx);
+        const jsKey = toJS.toJS(key3, "", ctx);
         if (map instanceof Map) {
           map.set(jsKey, toJS.toJS(value, jsKey, ctx));
         } else if (map instanceof Set) {
           map.add(jsKey);
         } else {
-          const stringKey = stringifyKey(key2, jsKey, ctx);
+          const stringKey = stringifyKey(key3, jsKey, ctx);
           const jsValue = toJS.toJS(value, stringKey, ctx);
           if (stringKey in map)
             Object.defineProperty(map, stringKey, {
@@ -23813,19 +25873,19 @@ var require_addPairToJSMap = __commonJS({
       }
       return map;
     }
-    function stringifyKey(key2, jsKey, ctx) {
+    function stringifyKey(key3, jsKey, ctx) {
       if (jsKey === null)
         return "";
       if (typeof jsKey !== "object")
         return String(jsKey);
-      if (identity.isNode(key2) && ctx?.doc) {
+      if (identity.isNode(key3) && ctx?.doc) {
         const strCtx = stringify2.createStringifyContext(ctx.doc, {});
         strCtx.anchors = /* @__PURE__ */ new Set();
         for (const node of ctx.anchors.keys())
           strCtx.anchors.add(node.anchor);
         strCtx.inFlow = true;
         strCtx.inStringifyKey = true;
-        const strKey = key2.toString(strCtx);
+        const strKey = key3.toString(strCtx);
         if (!ctx.mapKeyWarned) {
           let jsonStr = JSON.stringify(strKey);
           if (jsonStr.length > 40)
@@ -23849,24 +25909,24 @@ var require_Pair = __commonJS({
     var stringifyPair = require_stringifyPair();
     var addPairToJSMap = require_addPairToJSMap();
     var identity = require_identity();
-    function createPair(key2, value, ctx) {
-      const k = createNode.createNode(key2, void 0, ctx);
+    function createPair(key3, value, ctx) {
+      const k = createNode.createNode(key3, void 0, ctx);
       const v = createNode.createNode(value, void 0, ctx);
       return new Pair(k, v);
     }
     var Pair = class _Pair {
-      constructor(key2, value = null) {
+      constructor(key3, value = null) {
         Object.defineProperty(this, identity.NODE_TYPE, { value: identity.PAIR });
-        this.key = key2;
+        this.key = key3;
         this.value = value;
       }
-      clone(schema) {
-        let { key: key2, value } = this;
-        if (identity.isNode(key2))
-          key2 = key2.clone(schema);
+      clone(schema2) {
+        let { key: key3, value } = this;
+        if (identity.isNode(key3))
+          key3 = key3.clone(schema2);
         if (identity.isNode(value))
-          value = value.clone(schema);
-        return new _Pair(key2, value);
+          value = value.clone(schema2);
+        return new _Pair(key3, value);
       }
       toJSON(_, ctx) {
         const pair2 = ctx?.mapAsMap ? /* @__PURE__ */ new Map() : {};
@@ -23916,31 +25976,31 @@ var require_stringifyCollection = __commonJS({
           }
         }
         chompKeep = false;
-        let str3 = stringify2.stringify(item, itemCtx, () => comment2 = null, () => chompKeep = true);
+        let str4 = stringify2.stringify(item, itemCtx, () => comment2 = null, () => chompKeep = true);
         if (comment2)
-          str3 += stringifyComment.lineComment(str3, itemIndent, commentString(comment2));
+          str4 += stringifyComment.lineComment(str4, itemIndent, commentString(comment2));
         if (chompKeep && comment2)
           chompKeep = false;
-        lines2.push(blockItemPrefix + str3);
+        lines2.push(blockItemPrefix + str4);
       }
-      let str2;
+      let str3;
       if (lines2.length === 0) {
-        str2 = flowChars.start + flowChars.end;
+        str3 = flowChars.start + flowChars.end;
       } else {
-        str2 = lines2[0];
+        str3 = lines2[0];
         for (let i = 1; i < lines2.length; ++i) {
-          const line2 = lines2[i];
-          str2 += line2 ? `
-${indent}${line2}` : "\n";
+          const line3 = lines2[i];
+          str3 += line3 ? `
+${indent}${line3}` : "\n";
         }
       }
       if (comment) {
-        str2 += "\n" + stringifyComment.indentComment(commentString(comment), indent);
+        str3 += "\n" + stringifyComment.indentComment(commentString(comment), indent);
         if (onComment)
           onComment();
       } else if (chompKeep && onChompKeep)
         onChompKeep();
-      return str2;
+      return str3;
     }
     function stringifyFlowCollection({ items }, ctx, { flowChars, itemIndent }) {
       const { indent, indentStep, flowCollectionPadding: fcPadding, options: { commentString } } = ctx;
@@ -23983,21 +26043,21 @@ ${indent}${line2}` : "\n";
         }
         if (comment)
           reqNewline = true;
-        let str2 = stringify2.stringify(item, itemCtx, () => comment = null);
-        reqNewline || (reqNewline = lines2.length > linesAtValue || str2.includes("\n"));
+        let str3 = stringify2.stringify(item, itemCtx, () => comment = null);
+        reqNewline || (reqNewline = lines2.length > linesAtValue || str3.includes("\n"));
         if (i < items.length - 1) {
-          str2 += ",";
+          str3 += ",";
         } else if (ctx.options.trailingComma) {
           if (ctx.options.lineWidth > 0) {
-            reqNewline || (reqNewline = lines2.reduce((sum2, line2) => sum2 + line2.length + 2, 2) + (str2.length + 2) > ctx.options.lineWidth);
+            reqNewline || (reqNewline = lines2.reduce((sum2, line3) => sum2 + line3.length + 2, 2) + (str3.length + 2) > ctx.options.lineWidth);
           }
           if (reqNewline) {
-            str2 += ",";
+            str3 += ",";
           }
         }
         if (comment)
-          str2 += stringifyComment.lineComment(str2, itemIndent, commentString(comment));
-        lines2.push(str2);
+          str3 += stringifyComment.lineComment(str3, itemIndent, commentString(comment));
+        lines2.push(str3);
         linesAtValue = lines2.length;
       }
       const { start, end } = flowChars;
@@ -24005,15 +26065,15 @@ ${indent}${line2}` : "\n";
         return start + end;
       } else {
         if (!reqNewline) {
-          const len3 = lines2.reduce((sum2, line2) => sum2 + line2.length + 2, 2);
+          const len3 = lines2.reduce((sum2, line3) => sum2 + line3.length + 2, 2);
           reqNewline = ctx.options.lineWidth > 0 && len3 > ctx.options.lineWidth;
         }
         if (reqNewline) {
-          let str2 = start;
-          for (const line2 of lines2)
-            str2 += line2 ? `
-${indentStep}${indent}${line2}` : "\n";
-          return `${str2}
+          let str3 = start;
+          for (const line3 of lines2)
+            str3 += line3 ? `
+${indentStep}${indent}${line3}` : "\n";
+          return `${str3}
 ${indent}${end}`;
         } else {
           return `${start}${fcPadding}${lines2.join(" ")}${fcPadding}${end}`;
@@ -24042,11 +26102,11 @@ var require_YAMLMap = __commonJS({
     var identity = require_identity();
     var Pair = require_Pair();
     var Scalar = require_Scalar();
-    function findPair(items, key2) {
-      const k = identity.isScalar(key2) ? key2.value : key2;
+    function findPair(items, key3) {
+      const k = identity.isScalar(key3) ? key3.value : key3;
       for (const it of items) {
         if (identity.isPair(it)) {
-          if (it.key === key2 || it.key === k)
+          if (it.key === key3 || it.key === k)
             return it;
           if (identity.isScalar(it.key) && it.key.value === k)
             return it;
@@ -24058,34 +26118,34 @@ var require_YAMLMap = __commonJS({
       static get tagName() {
         return "tag:yaml.org,2002:map";
       }
-      constructor(schema) {
-        super(identity.MAP, schema);
+      constructor(schema2) {
+        super(identity.MAP, schema2);
         this.items = [];
       }
       /**
        * A generic collection parsing method that can be extended
        * to other node classes that inherit from YAMLMap
        */
-      static from(schema, obj, ctx) {
+      static from(schema2, obj2, ctx) {
         const { keepUndefined, replacer } = ctx;
-        const map = new this(schema);
-        const add2 = (key2, value) => {
+        const map = new this(schema2);
+        const add2 = (key3, value) => {
           if (typeof replacer === "function")
-            value = replacer.call(obj, key2, value);
-          else if (Array.isArray(replacer) && !replacer.includes(key2))
+            value = replacer.call(obj2, key3, value);
+          else if (Array.isArray(replacer) && !replacer.includes(key3))
             return;
           if (value !== void 0 || keepUndefined)
-            map.items.push(Pair.createPair(key2, value, ctx));
+            map.items.push(Pair.createPair(key3, value, ctx));
         };
-        if (obj instanceof Map) {
-          for (const [key2, value] of obj)
-            add2(key2, value);
-        } else if (obj && typeof obj === "object") {
-          for (const key2 of Object.keys(obj))
-            add2(key2, obj[key2]);
+        if (obj2 instanceof Map) {
+          for (const [key3, value] of obj2)
+            add2(key3, value);
+        } else if (obj2 && typeof obj2 === "object") {
+          for (const key3 of Object.keys(obj2))
+            add2(key3, obj2[key3]);
         }
-        if (typeof schema.sortMapEntries === "function") {
-          map.items.sort(schema.sortMapEntries);
+        if (typeof schema2.sortMapEntries === "function") {
+          map.items.sort(schema2.sortMapEntries);
         }
         return map;
       }
@@ -24122,23 +26182,23 @@ var require_YAMLMap = __commonJS({
           this.items.push(_pair);
         }
       }
-      delete(key2) {
-        const it = findPair(this.items, key2);
+      delete(key3) {
+        const it = findPair(this.items, key3);
         if (!it)
           return false;
         const del = this.items.splice(this.items.indexOf(it), 1);
         return del.length > 0;
       }
-      get(key2, keepScalar) {
-        const it = findPair(this.items, key2);
+      get(key3, keepScalar) {
+        const it = findPair(this.items, key3);
         const node = it?.value;
         return (!keepScalar && identity.isScalar(node) ? node.value : node) ?? void 0;
       }
-      has(key2) {
-        return !!findPair(this.items, key2);
+      has(key3) {
+        return !!findPair(this.items, key3);
       }
-      set(key2, value) {
-        this.add(new Pair.Pair(key2, value), true);
+      set(key3, value) {
+        this.add(new Pair.Pair(key3, value), true);
       }
       /**
        * @param ctx - Conversion context, originally set in Document#toJS()
@@ -24192,7 +26252,7 @@ var require_map = __commonJS({
           onError("Expected a mapping for this tag");
         return map2;
       },
-      createNode: (schema, obj, ctx) => YAMLMap.YAMLMap.from(schema, obj, ctx)
+      createNode: (schema2, obj2, ctx) => YAMLMap.YAMLMap.from(schema2, obj2, ctx)
     };
     exports.map = map;
   }
@@ -24212,8 +26272,8 @@ var require_YAMLSeq = __commonJS({
       static get tagName() {
         return "tag:yaml.org,2002:seq";
       }
-      constructor(schema) {
-        super(identity.SEQ, schema);
+      constructor(schema2) {
+        super(identity.SEQ, schema2);
         this.items = [];
       }
       add(value) {
@@ -24227,15 +26287,15 @@ var require_YAMLSeq = __commonJS({
        *
        * @returns `true` if the item was found and removed.
        */
-      delete(key2) {
-        const idx = asItemIndex(key2);
+      delete(key3) {
+        const idx = asItemIndex(key3);
         if (typeof idx !== "number")
           return false;
         const del = this.items.splice(idx, 1);
         return del.length > 0;
       }
-      get(key2, keepScalar) {
-        const idx = asItemIndex(key2);
+      get(key3, keepScalar) {
+        const idx = asItemIndex(key3);
         if (typeof idx !== "number")
           return void 0;
         const it = this.items[idx];
@@ -24247,8 +26307,8 @@ var require_YAMLSeq = __commonJS({
        * `key` must contain a representation of an integer for this to succeed.
        * It may be wrapped in a `Scalar`.
        */
-      has(key2) {
-        const idx = asItemIndex(key2);
+      has(key3) {
+        const idx = asItemIndex(key3);
         return typeof idx === "number" && idx < this.items.length;
       }
       /**
@@ -24258,10 +26318,10 @@ var require_YAMLSeq = __commonJS({
        * If `key` does not contain a representation of an integer, this will throw.
        * It may be wrapped in a `Scalar`.
        */
-      set(key2, value) {
-        const idx = asItemIndex(key2);
+      set(key3, value) {
+        const idx = asItemIndex(key3);
         if (typeof idx !== "number")
-          throw new Error(`Expected a valid index, not ${key2}.`);
+          throw new Error(`Expected a valid index, not ${key3}.`);
         const prev = this.items[idx];
         if (identity.isScalar(prev) && Scalar.isScalarValue(value))
           prev.value = value;
@@ -24288,15 +26348,15 @@ var require_YAMLSeq = __commonJS({
           onComment
         });
       }
-      static from(schema, obj, ctx) {
+      static from(schema2, obj2, ctx) {
         const { replacer } = ctx;
-        const seq = new this(schema);
-        if (obj && Symbol.iterator in Object(obj)) {
+        const seq = new this(schema2);
+        if (obj2 && Symbol.iterator in Object(obj2)) {
           let i = 0;
-          for (let it of obj) {
+          for (let it of obj2) {
             if (typeof replacer === "function") {
-              const key2 = obj instanceof Set ? it : String(i++);
-              it = replacer.call(obj, key2, it);
+              const key3 = obj2 instanceof Set ? it : String(i++);
+              it = replacer.call(obj2, key3, it);
             }
             seq.items.push(createNode.createNode(it, void 0, ctx));
           }
@@ -24304,8 +26364,8 @@ var require_YAMLSeq = __commonJS({
         return seq;
       }
     };
-    function asItemIndex(key2) {
-      let idx = identity.isScalar(key2) ? key2.value : key2;
+    function asItemIndex(key3) {
+      let idx = identity.isScalar(key3) ? key3.value : key3;
       if (idx && typeof idx === "string")
         idx = Number(idx);
       return typeof idx === "number" && Number.isInteger(idx) && idx >= 0 ? idx : null;
@@ -24330,7 +26390,7 @@ var require_seq = __commonJS({
           onError("Expected a sequence for this tag");
         return seq2;
       },
-      createNode: (schema, obj, ctx) => YAMLSeq2.YAMLSeq.from(schema, obj, ctx)
+      createNode: (schema2, obj2, ctx) => YAMLSeq2.YAMLSeq.from(schema2, obj2, ctx)
     };
     exports.seq = seq;
   }
@@ -24345,7 +26405,7 @@ var require_string = __commonJS({
       identify: (value) => typeof value === "string",
       default: true,
       tag: "tag:yaml.org,2002:str",
-      resolve: (str2) => str2,
+      resolve: (str3) => str3,
       stringify(item, ctx, onComment, onChompKeep) {
         ctx = Object.assign({ actualString: true }, ctx);
         return stringifyString.stringifyString(item, ctx, onComment, onChompKeep);
@@ -24383,7 +26443,7 @@ var require_bool = __commonJS({
       default: true,
       tag: "tag:yaml.org,2002:bool",
       test: /^(?:[Tt]rue|TRUE|[Ff]alse|FALSE)$/,
-      resolve: (str2) => new Scalar.Scalar(str2[0] === "t" || str2[0] === "T"),
+      resolve: (str3) => new Scalar.Scalar(str3[0] === "t" || str3[0] === "T"),
       stringify({ source, value }, ctx) {
         if (source && boolTag.test.test(source)) {
           const sv = source[0] === "t" || source[0] === "T";
@@ -24435,7 +26495,7 @@ var require_float = __commonJS({
       default: true,
       tag: "tag:yaml.org,2002:float",
       test: /^(?:[-+]?\.(?:inf|Inf|INF)|\.nan|\.NaN|\.NAN)$/,
-      resolve: (str2) => str2.slice(-3).toLowerCase() === "nan" ? NaN : str2[0] === "-" ? Number.NEGATIVE_INFINITY : Number.POSITIVE_INFINITY,
+      resolve: (str3) => str3.slice(-3).toLowerCase() === "nan" ? NaN : str3[0] === "-" ? Number.NEGATIVE_INFINITY : Number.POSITIVE_INFINITY,
       stringify: stringifyNumber.stringifyNumber
     };
     var floatExp = {
@@ -24444,7 +26504,7 @@ var require_float = __commonJS({
       tag: "tag:yaml.org,2002:float",
       format: "EXP",
       test: /^[-+]?(?:\.[0-9]+|[0-9]+(?:\.[0-9]*)?)[eE][-+]?[0-9]+$/,
-      resolve: (str2) => parseFloat(str2),
+      resolve: (str3) => parseFloat(str3),
       stringify(node) {
         const num5 = Number(node.value);
         return isFinite(num5) ? num5.toExponential() : stringifyNumber.stringifyNumber(node);
@@ -24455,11 +26515,11 @@ var require_float = __commonJS({
       default: true,
       tag: "tag:yaml.org,2002:float",
       test: /^[-+]?(?:\.[0-9]+|[0-9]+\.[0-9]*)$/,
-      resolve(str2) {
-        const node = new Scalar.Scalar(parseFloat(str2));
-        const dot6 = str2.indexOf(".");
-        if (dot6 !== -1 && str2[str2.length - 1] === "0")
-          node.minFractionDigits = str2.length - dot6 - 1;
+      resolve(str3) {
+        const node = new Scalar.Scalar(parseFloat(str3));
+        const dot6 = str3.indexOf(".");
+        if (dot6 !== -1 && str3[str3.length - 1] === "0")
+          node.minFractionDigits = str3.length - dot6 - 1;
         return node;
       },
       stringify: stringifyNumber.stringifyNumber
@@ -24476,7 +26536,7 @@ var require_int = __commonJS({
     "use strict";
     var stringifyNumber = require_stringifyNumber();
     var intIdentify = (value) => typeof value === "bigint" || Number.isInteger(value);
-    var intResolve = (str2, offset, radix, { intAsBigInt }) => intAsBigInt ? BigInt(str2) : parseInt(str2.substring(offset), radix);
+    var intResolve = (str3, offset, radix, { intAsBigInt }) => intAsBigInt ? BigInt(str3) : parseInt(str3.substring(offset), radix);
     function intStringify(node, radix, prefix) {
       const { value } = node;
       if (intIdentify(value) && value >= 0)
@@ -24489,15 +26549,15 @@ var require_int = __commonJS({
       tag: "tag:yaml.org,2002:int",
       format: "OCT",
       test: /^0o[0-7]+$/,
-      resolve: (str2, _onError, opt2) => intResolve(str2, 2, 8, opt2),
+      resolve: (str3, _onError, opt2) => intResolve(str3, 2, 8, opt2),
       stringify: (node) => intStringify(node, 8, "0o")
     };
-    var int = {
+    var int2 = {
       identify: intIdentify,
       default: true,
       tag: "tag:yaml.org,2002:int",
       test: /^[-+]?[0-9]+$/,
-      resolve: (str2, _onError, opt2) => intResolve(str2, 0, 10, opt2),
+      resolve: (str3, _onError, opt2) => intResolve(str3, 0, 10, opt2),
       stringify: stringifyNumber.stringifyNumber
     };
     var intHex = {
@@ -24506,10 +26566,10 @@ var require_int = __commonJS({
       tag: "tag:yaml.org,2002:int",
       format: "HEX",
       test: /^0x[0-9a-fA-F]+$/,
-      resolve: (str2, _onError, opt2) => intResolve(str2, 2, 16, opt2),
+      resolve: (str3, _onError, opt2) => intResolve(str3, 2, 16, opt2),
       stringify: (node) => intStringify(node, 16, "0x")
     };
-    exports.int = int;
+    exports.int = int2;
     exports.intHex = intHex;
     exports.intOct = intOct;
   }
@@ -24523,23 +26583,23 @@ var require_schema = __commonJS({
     var _null = require_null();
     var seq = require_seq();
     var string = require_string();
-    var bool = require_bool();
+    var bool2 = require_bool();
     var float = require_float();
-    var int = require_int();
-    var schema = [
+    var int2 = require_int();
+    var schema2 = [
       map.map,
       seq.seq,
       string.string,
       _null.nullTag,
-      bool.boolTag,
-      int.intOct,
-      int.int,
-      int.intHex,
+      bool2.boolTag,
+      int2.intOct,
+      int2.int,
+      int2.intHex,
       float.floatNaN,
       float.floatExp,
       float.float
     ];
-    exports.schema = schema;
+    exports.schema = schema2;
   }
 });
 
@@ -24559,7 +26619,7 @@ var require_schema2 = __commonJS({
         identify: (value) => typeof value === "string",
         default: true,
         tag: "tag:yaml.org,2002:str",
-        resolve: (str2) => str2,
+        resolve: (str3) => str3,
         stringify: stringifyJSON
       },
       {
@@ -24576,7 +26636,7 @@ var require_schema2 = __commonJS({
         default: true,
         tag: "tag:yaml.org,2002:bool",
         test: /^true$|^false$/,
-        resolve: (str2) => str2 === "true",
+        resolve: (str3) => str3 === "true",
         stringify: stringifyJSON
       },
       {
@@ -24584,7 +26644,7 @@ var require_schema2 = __commonJS({
         default: true,
         tag: "tag:yaml.org,2002:int",
         test: /^-?(?:0|[1-9][0-9]*)$/,
-        resolve: (str2, _onError, { intAsBigInt }) => intAsBigInt ? BigInt(str2) : parseInt(str2, 10),
+        resolve: (str3, _onError, { intAsBigInt }) => intAsBigInt ? BigInt(str3) : parseInt(str3, 10),
         stringify: ({ value }) => intIdentify(value) ? value.toString() : JSON.stringify(value)
       },
       {
@@ -24592,7 +26652,7 @@ var require_schema2 = __commonJS({
         default: true,
         tag: "tag:yaml.org,2002:float",
         test: /^-?(?:0|[1-9][0-9]*)(?:\.[0-9]*)?(?:[eE][-+]?[0-9]+)?$/,
-        resolve: (str2) => parseFloat(str2),
+        resolve: (str3) => parseFloat(str3),
         stringify: stringifyJSON
       }
     ];
@@ -24600,13 +26660,13 @@ var require_schema2 = __commonJS({
       default: true,
       tag: "",
       test: /^/,
-      resolve(str2, onError) {
-        onError(`Unresolved plain scalar ${JSON.stringify(str2)}`);
-        return str2;
+      resolve(str3, onError) {
+        onError(`Unresolved plain scalar ${JSON.stringify(str3)}`);
+        return str3;
       }
     };
-    var schema = [map.map, seq.seq].concat(jsonScalars, jsonError);
-    exports.schema = schema;
+    var schema2 = [map.map, seq.seq].concat(jsonScalars, jsonError);
+    exports.schema = schema2;
   }
 });
 
@@ -24634,10 +26694,10 @@ var require_binary = __commonJS({
         if (typeof node_buffer.Buffer === "function") {
           return node_buffer.Buffer.from(src, "base64");
         } else if (typeof atob === "function") {
-          const str2 = atob(src.replace(/[\n\r]/g, ""));
-          const buffer = new Uint8Array(str2.length);
-          for (let i = 0; i < str2.length; ++i)
-            buffer[i] = str2.charCodeAt(i);
+          const str3 = atob(src.replace(/[\n\r]/g, ""));
+          const buffer = new Uint8Array(str3.length);
+          for (let i = 0; i < str3.length; ++i)
+            buffer[i] = str3.charCodeAt(i);
           return buffer;
         } else {
           onError("This environment does not support reading binary tags; either Buffer or atob is required");
@@ -24648,28 +26708,28 @@ var require_binary = __commonJS({
         if (!value)
           return "";
         const buf = value;
-        let str2;
+        let str3;
         if (typeof node_buffer.Buffer === "function") {
-          str2 = buf instanceof node_buffer.Buffer ? buf.toString("base64") : node_buffer.Buffer.from(buf.buffer).toString("base64");
+          str3 = buf instanceof node_buffer.Buffer ? buf.toString("base64") : node_buffer.Buffer.from(buf.buffer).toString("base64");
         } else if (typeof btoa === "function") {
           let s2 = "";
           for (let i = 0; i < buf.length; ++i)
             s2 += String.fromCharCode(buf[i]);
-          str2 = btoa(s2);
+          str3 = btoa(s2);
         } else {
           throw new Error("This environment does not support writing binary tags; either Buffer or btoa is required");
         }
         type ?? (type = Scalar.Scalar.BLOCK_LITERAL);
         if (type !== Scalar.Scalar.QUOTE_DOUBLE) {
           const lineWidth = Math.max(ctx.options.lineWidth - ctx.indent.length, ctx.options.minContentWidth);
-          const n = Math.ceil(str2.length / lineWidth);
+          const n = Math.ceil(str3.length / lineWidth);
           const lines2 = new Array(n);
           for (let i = 0, o = 0; i < n; ++i, o += lineWidth) {
-            lines2[i] = str2.substr(o, lineWidth);
+            lines2[i] = str3.substr(o, lineWidth);
           }
-          str2 = lines2.join(type === Scalar.Scalar.BLOCK_LITERAL ? "\n" : " ");
+          str3 = lines2.join(type === Scalar.Scalar.BLOCK_LITERAL ? "\n" : " ");
         }
-        return stringifyString.stringifyString({ comment, type, value: str2 }, ctx, onComment, onChompKeep);
+        return stringifyString.stringifyString({ comment, type, value: str3 }, ctx, onComment, onChompKeep);
       }
     };
     exports.binary = binary;
@@ -24710,34 +26770,34 @@ ${cn.comment}` : item.comment;
         onError("Expected a sequence for this tag");
       return seq;
     }
-    function createPairs(schema, iterable, ctx) {
+    function createPairs(schema2, iterable, ctx) {
       const { replacer } = ctx;
-      const pairs3 = new YAMLSeq2.YAMLSeq(schema);
+      const pairs3 = new YAMLSeq2.YAMLSeq(schema2);
       pairs3.tag = "tag:yaml.org,2002:pairs";
       let i = 0;
       if (iterable && Symbol.iterator in Object(iterable))
         for (let it of iterable) {
           if (typeof replacer === "function")
             it = replacer.call(iterable, String(i++), it);
-          let key2, value;
+          let key3, value;
           if (Array.isArray(it)) {
             if (it.length === 2) {
-              key2 = it[0];
+              key3 = it[0];
               value = it[1];
             } else
               throw new TypeError(`Expected [key, value] tuple: ${it}`);
           } else if (it && it instanceof Object) {
             const keys = Object.keys(it);
             if (keys.length === 1) {
-              key2 = keys[0];
-              value = it[key2];
+              key3 = keys[0];
+              value = it[key3];
             } else {
               throw new TypeError(`Expected tuple with one key, not ${keys.length} keys`);
             }
           } else {
-            key2 = it;
+            key3 = it;
           }
-          pairs3.items.push(Pair.createPair(key2, value, ctx));
+          pairs3.items.push(Pair.createPair(key3, value, ctx));
         }
       return pairs3;
     }
@@ -24784,21 +26844,21 @@ var require_omap = __commonJS({
         if (ctx?.onCreate)
           ctx.onCreate(map);
         for (const pair2 of this.items) {
-          let key2, value;
+          let key3, value;
           if (identity.isPair(pair2)) {
-            key2 = toJS.toJS(pair2.key, "", ctx);
-            value = toJS.toJS(pair2.value, key2, ctx);
+            key3 = toJS.toJS(pair2.key, "", ctx);
+            value = toJS.toJS(pair2.value, key3, ctx);
           } else {
-            key2 = toJS.toJS(pair2, "", ctx);
+            key3 = toJS.toJS(pair2, "", ctx);
           }
-          if (map.has(key2))
+          if (map.has(key3))
             throw new Error("Ordered maps must not include duplicate keys");
-          map.set(key2, value);
+          map.set(key3, value);
         }
         return map;
       }
-      static from(schema, iterable, ctx) {
-        const pairs$1 = pairs2.createPairs(schema, iterable, ctx);
+      static from(schema2, iterable, ctx) {
+        const pairs$1 = pairs2.createPairs(schema2, iterable, ctx);
         const omap2 = new this();
         omap2.items = pairs$1.items;
         return omap2;
@@ -24814,18 +26874,18 @@ var require_omap = __commonJS({
       resolve(seq, onError) {
         const pairs$1 = pairs2.resolvePairs(seq, onError);
         const seenKeys = [];
-        for (const { key: key2 } of pairs$1.items) {
-          if (identity.isScalar(key2)) {
-            if (seenKeys.includes(key2.value)) {
-              onError(`Ordered maps must not include duplicate keys: ${key2.value}`);
+        for (const { key: key3 } of pairs$1.items) {
+          if (identity.isScalar(key3)) {
+            if (seenKeys.includes(key3.value)) {
+              onError(`Ordered maps must not include duplicate keys: ${key3.value}`);
             } else {
-              seenKeys.push(key2.value);
+              seenKeys.push(key3.value);
             }
           }
         }
         return Object.assign(new YAMLOMap(), pairs$1);
       },
-      createNode: (schema, iterable, ctx) => YAMLOMap.from(schema, iterable, ctx)
+      createNode: (schema2, iterable, ctx) => YAMLOMap.from(schema2, iterable, ctx)
     };
     exports.YAMLOMap = YAMLOMap;
     exports.omap = omap;
@@ -24875,7 +26935,7 @@ var require_float2 = __commonJS({
       default: true,
       tag: "tag:yaml.org,2002:float",
       test: /^(?:[-+]?\.(?:inf|Inf|INF)|\.nan|\.NaN|\.NAN)$/,
-      resolve: (str2) => str2.slice(-3).toLowerCase() === "nan" ? NaN : str2[0] === "-" ? Number.NEGATIVE_INFINITY : Number.POSITIVE_INFINITY,
+      resolve: (str3) => str3.slice(-3).toLowerCase() === "nan" ? NaN : str3[0] === "-" ? Number.NEGATIVE_INFINITY : Number.POSITIVE_INFINITY,
       stringify: stringifyNumber.stringifyNumber
     };
     var floatExp = {
@@ -24884,7 +26944,7 @@ var require_float2 = __commonJS({
       tag: "tag:yaml.org,2002:float",
       format: "EXP",
       test: /^[-+]?(?:[0-9][0-9_]*)?(?:\.[0-9_]*)?[eE][-+]?[0-9]+$/,
-      resolve: (str2) => parseFloat(str2.replace(/_/g, "")),
+      resolve: (str3) => parseFloat(str3.replace(/_/g, "")),
       stringify(node) {
         const num5 = Number(node.value);
         return isFinite(num5) ? num5.toExponential() : stringifyNumber.stringifyNumber(node);
@@ -24895,11 +26955,11 @@ var require_float2 = __commonJS({
       default: true,
       tag: "tag:yaml.org,2002:float",
       test: /^[-+]?(?:[0-9][0-9_]*)?\.[0-9_]*$/,
-      resolve(str2) {
-        const node = new Scalar.Scalar(parseFloat(str2.replace(/_/g, "")));
-        const dot6 = str2.indexOf(".");
+      resolve(str3) {
+        const node = new Scalar.Scalar(parseFloat(str3.replace(/_/g, "")));
+        const dot6 = str3.indexOf(".");
         if (dot6 !== -1) {
-          const f = str2.substring(dot6 + 1).replace(/_/g, "");
+          const f = str3.substring(dot6 + 1).replace(/_/g, "");
           if (f[f.length - 1] === "0")
             node.minFractionDigits = f.length;
         }
@@ -24919,34 +26979,34 @@ var require_int2 = __commonJS({
     "use strict";
     var stringifyNumber = require_stringifyNumber();
     var intIdentify = (value) => typeof value === "bigint" || Number.isInteger(value);
-    function intResolve(str2, offset, radix, { intAsBigInt }) {
-      const sign = str2[0];
+    function intResolve(str3, offset, radix, { intAsBigInt }) {
+      const sign = str3[0];
       if (sign === "-" || sign === "+")
         offset += 1;
-      str2 = str2.substring(offset).replace(/_/g, "");
+      str3 = str3.substring(offset).replace(/_/g, "");
       if (intAsBigInt) {
         switch (radix) {
           case 2:
-            str2 = `0b${str2}`;
+            str3 = `0b${str3}`;
             break;
           case 8:
-            str2 = `0o${str2}`;
+            str3 = `0o${str3}`;
             break;
           case 16:
-            str2 = `0x${str2}`;
+            str3 = `0x${str3}`;
             break;
         }
-        const n2 = BigInt(str2);
+        const n2 = BigInt(str3);
         return sign === "-" ? BigInt(-1) * n2 : n2;
       }
-      const n = parseInt(str2, radix);
+      const n = parseInt(str3, radix);
       return sign === "-" ? -1 * n : n;
     }
     function intStringify(node, radix, prefix) {
       const { value } = node;
       if (intIdentify(value)) {
-        const str2 = value.toString(radix);
-        return value < 0 ? "-" + prefix + str2.substr(1) : prefix + str2;
+        const str3 = value.toString(radix);
+        return value < 0 ? "-" + prefix + str3.substr(1) : prefix + str3;
       }
       return stringifyNumber.stringifyNumber(node);
     }
@@ -24956,7 +27016,7 @@ var require_int2 = __commonJS({
       tag: "tag:yaml.org,2002:int",
       format: "BIN",
       test: /^[-+]?0b[0-1_]+$/,
-      resolve: (str2, _onError, opt2) => intResolve(str2, 2, 2, opt2),
+      resolve: (str3, _onError, opt2) => intResolve(str3, 2, 2, opt2),
       stringify: (node) => intStringify(node, 2, "0b")
     };
     var intOct = {
@@ -24965,15 +27025,15 @@ var require_int2 = __commonJS({
       tag: "tag:yaml.org,2002:int",
       format: "OCT",
       test: /^[-+]?0[0-7_]+$/,
-      resolve: (str2, _onError, opt2) => intResolve(str2, 1, 8, opt2),
+      resolve: (str3, _onError, opt2) => intResolve(str3, 1, 8, opt2),
       stringify: (node) => intStringify(node, 8, "0")
     };
-    var int = {
+    var int2 = {
       identify: intIdentify,
       default: true,
       tag: "tag:yaml.org,2002:int",
       test: /^[-+]?[0-9][0-9_]*$/,
-      resolve: (str2, _onError, opt2) => intResolve(str2, 0, 10, opt2),
+      resolve: (str3, _onError, opt2) => intResolve(str3, 0, 10, opt2),
       stringify: stringifyNumber.stringifyNumber
     };
     var intHex = {
@@ -24982,10 +27042,10 @@ var require_int2 = __commonJS({
       tag: "tag:yaml.org,2002:int",
       format: "HEX",
       test: /^[-+]?0x[0-9a-fA-F_]+$/,
-      resolve: (str2, _onError, opt2) => intResolve(str2, 2, 16, opt2),
+      resolve: (str3, _onError, opt2) => intResolve(str3, 2, 16, opt2),
       stringify: (node) => intStringify(node, 16, "0x")
     };
-    exports.int = int;
+    exports.int = int2;
     exports.intBin = intBin;
     exports.intHex = intHex;
     exports.intOct = intOct;
@@ -25000,18 +27060,18 @@ var require_set = __commonJS({
     var Pair = require_Pair();
     var YAMLMap = require_YAMLMap();
     var YAMLSet = class _YAMLSet extends YAMLMap.YAMLMap {
-      constructor(schema) {
-        super(schema);
+      constructor(schema2) {
+        super(schema2);
         this.tag = _YAMLSet.tag;
       }
-      add(key2) {
+      add(key3) {
         let pair2;
-        if (identity.isPair(key2))
-          pair2 = key2;
-        else if (key2 && typeof key2 === "object" && "key" in key2 && "value" in key2 && key2.value === null)
-          pair2 = new Pair.Pair(key2.key, null);
+        if (identity.isPair(key3))
+          pair2 = key3;
+        else if (key3 && typeof key3 === "object" && "key" in key3 && "value" in key3 && key3.value === null)
+          pair2 = new Pair.Pair(key3.key, null);
         else
-          pair2 = new Pair.Pair(key2, null);
+          pair2 = new Pair.Pair(key3, null);
         const prev = YAMLMap.findPair(this.items, pair2.key);
         if (!prev)
           this.items.push(pair2);
@@ -25020,18 +27080,18 @@ var require_set = __commonJS({
        * If `keepPair` is `true`, returns the Pair matching `key`.
        * Otherwise, returns the value of that Pair's key.
        */
-      get(key2, keepPair) {
-        const pair2 = YAMLMap.findPair(this.items, key2);
+      get(key3, keepPair) {
+        const pair2 = YAMLMap.findPair(this.items, key3);
         return !keepPair && identity.isPair(pair2) ? identity.isScalar(pair2.key) ? pair2.key.value : pair2.key : pair2;
       }
-      set(key2, value) {
+      set(key3, value) {
         if (typeof value !== "boolean")
           throw new Error(`Expected boolean value for set(key, value) in a YAML set, not ${typeof value}`);
-        const prev = YAMLMap.findPair(this.items, key2);
+        const prev = YAMLMap.findPair(this.items, key3);
         if (prev && !value) {
           this.items.splice(this.items.indexOf(prev), 1);
         } else if (!prev && value) {
-          this.items.push(new Pair.Pair(key2));
+          this.items.push(new Pair.Pair(key3));
         }
       }
       toJSON(_, ctx) {
@@ -25045,9 +27105,9 @@ var require_set = __commonJS({
         else
           throw new Error("Set items must all have null values");
       }
-      static from(schema, iterable, ctx) {
+      static from(schema2, iterable, ctx) {
         const { replacer } = ctx;
-        const set3 = new this(schema);
+        const set3 = new this(schema2);
         if (iterable && Symbol.iterator in Object(iterable))
           for (let value of iterable) {
             if (typeof replacer === "function")
@@ -25064,7 +27124,7 @@ var require_set = __commonJS({
       nodeClass: YAMLSet,
       default: false,
       tag: "tag:yaml.org,2002:set",
-      createNode: (schema, iterable, ctx) => YAMLSet.from(schema, iterable, ctx),
+      createNode: (schema2, iterable, ctx) => YAMLSet.from(schema2, iterable, ctx),
       resolve(map, onError) {
         if (identity.isMap(map)) {
           if (map.hasAllNullValues(true))
@@ -25086,9 +27146,9 @@ var require_timestamp = __commonJS({
   "../../node_modules/yaml/dist/schema/yaml-1.1/timestamp.js"(exports) {
     "use strict";
     var stringifyNumber = require_stringifyNumber();
-    function parseSexagesimal(str2, asBigInt) {
-      const sign = str2[0];
-      const parts = sign === "-" || sign === "+" ? str2.substring(1) : str2;
+    function parseSexagesimal(str3, asBigInt) {
+      const sign = str3[0];
+      const parts = sign === "-" || sign === "+" ? str3.substring(1) : str3;
       const num5 = (n) => asBigInt ? BigInt(n) : Number(n);
       const res = parts.replace(/_/g, "").split(":").reduce((res2, p2) => res2 * num5(60) + num5(p2), num5(0));
       return sign === "-" ? num5(-1) * res : res;
@@ -25125,7 +27185,7 @@ var require_timestamp = __commonJS({
       tag: "tag:yaml.org,2002:int",
       format: "TIME",
       test: /^[-+]?[0-9][0-9_]*(?::[0-5]?[0-9])+$/,
-      resolve: (str2, _onError, { intAsBigInt }) => parseSexagesimal(str2, intAsBigInt),
+      resolve: (str3, _onError, { intAsBigInt }) => parseSexagesimal(str3, intAsBigInt),
       stringify: stringifySexagesimal
     };
     var floatTime = {
@@ -25134,7 +27194,7 @@ var require_timestamp = __commonJS({
       tag: "tag:yaml.org,2002:float",
       format: "TIME",
       test: /^[-+]?[0-9][0-9_]*(?::[0-5]?[0-9])+\.[0-9_]*$/,
-      resolve: (str2) => parseSexagesimal(str2, false),
+      resolve: (str3) => parseSexagesimal(str3, false),
       stringify: stringifySexagesimal
     };
     var timestamp = {
@@ -25145,8 +27205,8 @@ var require_timestamp = __commonJS({
       // may be omitted altogether, resulting in a date format. In such a case, the time part is
       // assumed to be 00:00:00Z (start of day, UTC).
       test: RegExp("^([0-9]{4})-([0-9]{1,2})-([0-9]{1,2})(?:(?:t|T|[ \\t]+)([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2}(\\.[0-9]+)?)(?:[ \\t]*(Z|[-+][012]?[0-9](?::[0-9]{2})?))?)?$"),
-      resolve(str2) {
-        const match = str2.match(timestamp.test);
+      resolve(str3) {
+        const match = str3.match(timestamp.test);
         if (!match)
           throw new Error("!!timestamp expects a date, starting with yyyy-mm-dd");
         const [, year, month, day, hour, minute, second] = match.map(Number);
@@ -25178,25 +27238,25 @@ var require_schema3 = __commonJS({
     var seq = require_seq();
     var string = require_string();
     var binary = require_binary();
-    var bool = require_bool2();
+    var bool2 = require_bool2();
     var float = require_float2();
-    var int = require_int2();
+    var int2 = require_int2();
     var merge2 = require_merge();
     var omap = require_omap();
     var pairs2 = require_pairs();
     var set2 = require_set();
     var timestamp = require_timestamp();
-    var schema = [
+    var schema2 = [
       map.map,
       seq.seq,
       string.string,
       _null.nullTag,
-      bool.trueTag,
-      bool.falseTag,
-      int.intBin,
-      int.intOct,
-      int.int,
-      int.intHex,
+      bool2.trueTag,
+      bool2.falseTag,
+      int2.intBin,
+      int2.intOct,
+      int2.int,
+      int2.intHex,
       float.floatNaN,
       float.floatExp,
       float.float,
@@ -25209,7 +27269,7 @@ var require_schema3 = __commonJS({
       timestamp.floatTime,
       timestamp.timestamp
     ];
-    exports.schema = schema;
+    exports.schema = schema2;
   }
 });
 
@@ -25221,10 +27281,10 @@ var require_tags = __commonJS({
     var _null = require_null();
     var seq = require_seq();
     var string = require_string();
-    var bool = require_bool();
+    var bool2 = require_bool();
     var float = require_float();
-    var int = require_int();
-    var schema = require_schema();
+    var int2 = require_int();
+    var schema2 = require_schema();
     var schema$1 = require_schema2();
     var binary = require_binary();
     var merge2 = require_merge();
@@ -25234,7 +27294,7 @@ var require_tags = __commonJS({
     var set2 = require_set();
     var timestamp = require_timestamp();
     var schemas = /* @__PURE__ */ new Map([
-      ["core", schema.schema],
+      ["core", schema2.schema],
       ["failsafe", [map.map, seq.seq, string.string]],
       ["json", schema$1.schema],
       ["yaml11", schema$2.schema],
@@ -25242,14 +27302,14 @@ var require_tags = __commonJS({
     ]);
     var tagsByName = {
       binary: binary.binary,
-      bool: bool.boolTag,
+      bool: bool2.boolTag,
       float: float.float,
       floatExp: float.floatExp,
       floatNaN: float.floatNaN,
       floatTime: timestamp.floatTime,
-      int: int.int,
-      intHex: int.intHex,
-      intOct: int.intOct,
+      int: int2.int,
+      intHex: int2.intHex,
+      intOct: int2.intOct,
       intTime: timestamp.intTime,
       map: map.map,
       merge: merge2.merge,
@@ -25278,7 +27338,7 @@ var require_tags = __commonJS({
         if (Array.isArray(customTags))
           tags = [];
         else {
-          const keys = Array.from(schemas.keys()).filter((key2) => key2 !== "yaml11").map((key2) => JSON.stringify(key2)).join(", ");
+          const keys = Array.from(schemas.keys()).filter((key3) => key3 !== "yaml11").map((key3) => JSON.stringify(key3)).join(", ");
           throw new Error(`Unknown schema "${schemaName}"; use one of ${keys} or define customTags array`);
         }
       }
@@ -25294,7 +27354,7 @@ var require_tags = __commonJS({
         const tagObj = typeof tag === "string" ? tagsByName[tag] : tag;
         if (!tagObj) {
           const tagName = JSON.stringify(tag);
-          const keys = Object.keys(tagsByName).map((key2) => JSON.stringify(key2)).join(", ");
+          const keys = Object.keys(tagsByName).map((key3) => JSON.stringify(key3)).join(", ");
           throw new Error(`Unknown custom tag ${tagName}; use one of ${keys}`);
         }
         if (!tags2.includes(tagObj))
@@ -25318,9 +27378,9 @@ var require_Schema = __commonJS({
     var tags = require_tags();
     var sortMapEntriesByKey = (a, b) => a.key < b.key ? -1 : a.key > b.key ? 1 : 0;
     var Schema = class _Schema {
-      constructor({ compat, customTags, merge: merge2, resolveKnownTags, schema, sortMapEntries, toStringDefaults }) {
+      constructor({ compat, customTags, merge: merge2, resolveKnownTags, schema: schema2, sortMapEntries, toStringDefaults }) {
         this.compat = Array.isArray(compat) ? tags.getTags(compat, "compat") : compat ? tags.getTags(null, compat) : null;
-        this.name = typeof schema === "string" && schema || "core";
+        this.name = typeof schema2 === "string" && schema2 || "core";
         this.knownTags = resolveKnownTags ? tags.coreKnownTags : {};
         this.tags = tags.getTags(customTags, this.name, merge2);
         this.toStringOptions = toStringDefaults ?? null;
@@ -25558,8 +27618,8 @@ var require_Document = __commonJS({
        * Convert a key and a value into a `Pair` using the current schema,
        * recursively wrapping all values as `Scalar` or `Collection` nodes.
        */
-      createPair(key2, value, options = {}) {
-        const k = this.createNode(key2, null, options);
+      createPair(key3, value, options = {}) {
+        const k = this.createNode(key3, null, options);
         const v = this.createNode(value, null, options);
         return new Pair.Pair(k, v);
       }
@@ -25567,8 +27627,8 @@ var require_Document = __commonJS({
        * Removes a value from the document.
        * @returns `true` if the item was found and removed.
        */
-      delete(key2) {
-        return assertCollection(this.contents) ? this.contents.delete(key2) : false;
+      delete(key3) {
+        return assertCollection(this.contents) ? this.contents.delete(key3) : false;
       }
       /**
        * Removes a value from the document.
@@ -25588,8 +27648,8 @@ var require_Document = __commonJS({
        * scalar values from their surrounding node; to disable set `keepScalar` to
        * `true` (collections are always returned intact).
        */
-      get(key2, keepScalar) {
-        return identity.isCollection(this.contents) ? this.contents.get(key2, keepScalar) : void 0;
+      get(key3, keepScalar) {
+        return identity.isCollection(this.contents) ? this.contents.get(key3, keepScalar) : void 0;
       }
       /**
        * Returns item at `path`, or `undefined` if not found. By default unwraps
@@ -25604,8 +27664,8 @@ var require_Document = __commonJS({
       /**
        * Checks if the document includes a value with the key `key`.
        */
-      has(key2) {
-        return identity.isCollection(this.contents) ? this.contents.has(key2) : false;
+      has(key3) {
+        return identity.isCollection(this.contents) ? this.contents.has(key3) : false;
       }
       /**
        * Checks if the document includes a value at `path`.
@@ -25619,11 +27679,11 @@ var require_Document = __commonJS({
        * Sets a value in this document. For `!!set`, `value` needs to be a
        * boolean to add/remove the item from the set.
        */
-      set(key2, value) {
+      set(key3, value) {
         if (this.contents == null) {
-          this.contents = Collection.collectionFromPath(this.schema, [key2], value);
+          this.contents = Collection.collectionFromPath(this.schema, [key3], value);
         } else if (assertCollection(this.contents)) {
-          this.contents.set(key2, value);
+          this.contents.set(key3, value);
         }
       }
       /**
@@ -25755,10 +27815,10 @@ var require_errors = __commonJS({
       if (error.pos[0] === -1)
         return;
       error.linePos = error.pos.map((pos) => lc2.linePos(pos));
-      const { line: line2, col } = error.linePos[0];
-      error.message += ` at line ${line2}, column ${col}`;
+      const { line: line3, col } = error.linePos[0];
+      error.message += ` at line ${line3}, column ${col}`;
       let ci = col - 1;
-      let lineStr = src.substring(lc2.lineStarts[line2 - 1], lc2.lineStarts[line2]).replace(/[\n\r]+$/, "");
+      let lineStr = src.substring(lc2.lineStarts[line3 - 1], lc2.lineStarts[line3]).replace(/[\n\r]+$/, "");
       if (ci >= 60 && lineStr.length > 80) {
         const trimStart = Math.min(ci - 39, lineStr.length - 79);
         lineStr = "\u2026" + lineStr.substring(trimStart);
@@ -25766,8 +27826,8 @@ var require_errors = __commonJS({
       }
       if (lineStr.length > 80)
         lineStr = lineStr.substring(0, 79) + "\u2026";
-      if (line2 > 1 && /^ *$/.test(lineStr.substring(0, ci))) {
-        let prev = src.substring(lc2.lineStarts[line2 - 2], lc2.lineStarts[line2 - 1]);
+      if (line3 > 1 && /^ *$/.test(lineStr.substring(0, ci))) {
+        let prev = src.substring(lc2.lineStarts[line3 - 2], lc2.lineStarts[line3 - 1]);
         if (prev.length > 80)
           prev = prev.substring(0, 79) + "\u2026\n";
         lineStr = prev + lineStr;
@@ -25775,7 +27835,7 @@ var require_errors = __commonJS({
       if (/[^ ]/.test(lineStr)) {
         let count = 1;
         const end = error.linePos[1];
-        if (end?.line === line2 && end.col > col) {
+        if (end?.line === line3 && end.col > col) {
           count = Math.max(1, Math.min(end.col - col, 80 - ci));
         }
         const pointer = " ".repeat(ci) + "^".repeat(count);
@@ -25931,24 +27991,24 @@ var require_resolve_props = __commonJS({
 var require_util_contains_newline = __commonJS({
   "../../node_modules/yaml/dist/compose/util-contains-newline.js"(exports) {
     "use strict";
-    function containsNewline(key2) {
-      if (!key2)
+    function containsNewline(key3) {
+      if (!key3)
         return null;
-      switch (key2.type) {
+      switch (key3.type) {
         case "alias":
         case "scalar":
         case "double-quoted-scalar":
         case "single-quoted-scalar":
-          if (key2.source.includes("\n"))
+          if (key3.source.includes("\n"))
             return true;
-          if (key2.end) {
-            for (const st of key2.end)
+          if (key3.end) {
+            for (const st of key3.end)
               if (st.type === "newline")
                 return true;
           }
           return false;
         case "flow-collection":
-          for (const it of key2.items) {
+          for (const it of key3.items) {
             for (const st of it.start)
               if (st.type === "newline")
                 return true;
@@ -26022,10 +28082,10 @@ var require_resolve_block_map = __commonJS({
       let offset = bm.offset;
       let commentEnd = null;
       for (const collItem of bm.items) {
-        const { start, key: key2, sep: sep3, value } = collItem;
+        const { start, key: key3, sep: sep3, value } = collItem;
         const keyProps = resolveProps.resolveProps(start, {
           indicator: "explicit-key-ind",
-          next: key2 ?? sep3?.[0],
+          next: key3 ?? sep3?.[0],
           offset,
           onError,
           parentIndent: bm.indent,
@@ -26033,10 +28093,10 @@ var require_resolve_block_map = __commonJS({
         });
         const implicitKey = !keyProps.found;
         if (implicitKey) {
-          if (key2) {
-            if (key2.type === "block-seq")
+          if (key3) {
+            if (key3.type === "block-seq")
               onError(offset, "BLOCK_AS_IMPLICIT_KEY", "A block sequence may not be used as an implicit map key");
-            else if ("indent" in key2 && key2.indent !== bm.indent)
+            else if ("indent" in key3 && key3.indent !== bm.indent)
               onError(offset, "BAD_INDENT", startColMsg);
           }
           if (!keyProps.anchor && !keyProps.tag && !sep3) {
@@ -26049,17 +28109,17 @@ var require_resolve_block_map = __commonJS({
             }
             continue;
           }
-          if (keyProps.newlineAfterProp || utilContainsNewline.containsNewline(key2)) {
-            onError(key2 ?? start[start.length - 1], "MULTILINE_IMPLICIT_KEY", "Implicit keys need to be on a single line");
+          if (keyProps.newlineAfterProp || utilContainsNewline.containsNewline(key3)) {
+            onError(key3 ?? start[start.length - 1], "MULTILINE_IMPLICIT_KEY", "Implicit keys need to be on a single line");
           }
         } else if (keyProps.found?.indent !== bm.indent) {
           onError(offset, "BAD_INDENT", startColMsg);
         }
         ctx.atKey = true;
         const keyStart = keyProps.end;
-        const keyNode = key2 ? composeNode(ctx, key2, keyProps, onError) : composeEmptyNode(ctx, keyStart, start, null, keyProps, onError);
+        const keyNode = key3 ? composeNode(ctx, key3, keyProps, onError) : composeEmptyNode(ctx, keyStart, start, null, keyProps, onError);
         if (ctx.schema.compat)
-          utilFlowIndentCheck.flowIndentCheck(bm.indent, key2, onError);
+          utilFlowIndentCheck.flowIndentCheck(bm.indent, key3, onError);
         ctx.atKey = false;
         if (utilMapIncludes.mapIncludes(ctx, map.items, keyNode))
           onError(keyStart, "DUPLICATE_KEY", "Map keys must be unique");
@@ -26069,7 +28129,7 @@ var require_resolve_block_map = __commonJS({
           offset: keyNode.range[2],
           onError,
           parentIndent: bm.indent,
-          startOnNewline: !key2 || key2.type === "block-scalar"
+          startOnNewline: !key3 || key3.type === "block-scalar"
         });
         offset = valueProps.end;
         if (valueProps.found) {
@@ -26233,11 +28293,11 @@ var require_resolve_flow_collection = __commonJS({
       let offset = fc.offset + fc.start.source.length;
       for (let i = 0; i < fc.items.length; ++i) {
         const collItem = fc.items[i];
-        const { start, key: key2, sep: sep3, value } = collItem;
+        const { start, key: key3, sep: sep3, value } = collItem;
         const props2 = resolveProps.resolveProps(start, {
           flow: fcName,
           indicator: "explicit-key-ind",
-          next: key2 ?? sep3?.[0],
+          next: key3 ?? sep3?.[0],
           offset,
           onError,
           parentIndent: fc.indent,
@@ -26258,9 +28318,9 @@ var require_resolve_flow_collection = __commonJS({
             offset = props2.end;
             continue;
           }
-          if (!isMap2 && ctx.options.strict && utilContainsNewline.containsNewline(key2))
+          if (!isMap2 && ctx.options.strict && utilContainsNewline.containsNewline(key3))
             onError(
-              key2,
+              key3,
               // checked by containsNewline()
               "MULTILINE_IMPLICIT_KEY",
               "Implicit keys of flow sequence pairs need to be on a single line"
@@ -26307,8 +28367,8 @@ var require_resolve_flow_collection = __commonJS({
         } else {
           ctx.atKey = true;
           const keyStart = props2.end;
-          const keyNode = key2 ? composeNode(ctx, key2, props2, onError) : composeEmptyNode(ctx, keyStart, start, null, props2, onError);
-          if (isBlock(key2))
+          const keyNode = key3 ? composeNode(ctx, key3, props2, onError) : composeEmptyNode(ctx, keyStart, start, null, props2, onError);
+          if (isBlock(key3))
             onError(keyNode.range, "BLOCK_IN_FLOW", blockMsg);
           ctx.atKey = false;
           const valueProps = resolveProps.resolveProps(sep3 ?? [], {
@@ -26724,8 +28784,8 @@ var require_resolve_flow_scalar = __commonJS({
       return unfoldLines(source.slice(1, -1)).replace(/''/g, "'");
     }
     function unfoldLines(source) {
-      const line2 = /(.*?)\r?\n/sy;
-      let match = line2.exec(source);
+      const line3 = /(.*?)\r?\n/sy;
+      let match = line3.exec(source);
       if (!match)
         return source;
       let trimEnd, trimBoth;
@@ -26738,8 +28798,8 @@ var require_resolve_flow_scalar = __commonJS({
       }
       let res = match[1].replace(trimEnd, "");
       let sep3 = " ";
-      let pos = line2.lastIndex;
-      while (match = line2.exec(source)) {
+      let pos = line3.lastIndex;
+      while (match = line3.exec(source)) {
         const lm = match[1].replace(trimBoth, "");
         if (lm === "") {
           if (sep3 === "\n")
@@ -26750,7 +28810,7 @@ var require_resolve_flow_scalar = __commonJS({
           res += sep3 + lm;
           sep3 = " ";
         }
-        pos = line2.lastIndex;
+        pos = line3.lastIndex;
       }
       const last = /[ \t]*(.*)/sy;
       last.lastIndex = pos;
@@ -26909,11 +28969,11 @@ var require_compose_scalar = __commonJS({
         scalar.comment = comment;
       return scalar;
     }
-    function findScalarTagByName(schema, value, tagName, tagToken, onError) {
+    function findScalarTagByName(schema2, value, tagName, tagToken, onError) {
       if (tagName === "!")
-        return schema[identity.SCALAR];
+        return schema2[identity.SCALAR];
       const matchWithTest = [];
-      for (const tag of schema.tags) {
+      for (const tag of schema2.tags) {
         if (!tag.collection && tag.tag === tagName) {
           if (tag.default && tag.test)
             matchWithTest.push(tag);
@@ -26924,18 +28984,18 @@ var require_compose_scalar = __commonJS({
       for (const tag of matchWithTest)
         if (tag.test?.test(value))
           return tag;
-      const kt = schema.knownTags[tagName];
+      const kt = schema2.knownTags[tagName];
       if (kt && !kt.collection) {
-        schema.tags.push(Object.assign({}, kt, { default: false, test: void 0 }));
+        schema2.tags.push(Object.assign({}, kt, { default: false, test: void 0 }));
         return kt;
       }
       onError(tagToken, "TAG_RESOLVE_FAILED", `Unresolved tag: ${tagName}`, tagName !== "tag:yaml.org,2002:str");
-      return schema[identity.SCALAR];
+      return schema2[identity.SCALAR];
     }
-    function findScalarTagByTest({ atKey, directives, schema }, value, token, onError) {
-      const tag = schema.tags.find((tag2) => (tag2.default === true || atKey && tag2.default === "key") && tag2.test?.test(value)) || schema[identity.SCALAR];
-      if (schema.compat) {
-        const compat = schema.compat.find((tag2) => tag2.default && tag2.test?.test(value)) ?? schema[identity.SCALAR];
+    function findScalarTagByTest({ atKey, directives, schema: schema2 }, value, token, onError) {
+      const tag = schema2.tags.find((tag2) => (tag2.default === true || atKey && tag2.default === "key") && tag2.test?.test(value)) || schema2[identity.SCALAR];
+      if (schema2.compat) {
+        const compat = schema2.compat.find((tag2) => tag2.default && tag2.test?.test(value)) ?? schema2[identity.SCALAR];
         if (tag.tag !== compat.tag) {
           const ts = directives.tagString(tag.tag);
           const cs = directives.tagString(compat.tag);
@@ -27458,9 +29518,9 @@ var require_cst_scalar = __commonJS({
         ];
         if (!addEndtoBlockProps(props2, "end" in token ? token.end : void 0))
           props2.push({ type: "newline", offset: -1, indent, source: "\n" });
-        for (const key2 of Object.keys(token))
-          if (key2 !== "type" && key2 !== "offset")
-            delete token[key2];
+        for (const key3 of Object.keys(token))
+          if (key3 !== "type" && key3 !== "offset")
+            delete token[key3];
         Object.assign(token, { type: "block-scalar", indent, props: props2, source: body3 });
       }
     }
@@ -27508,9 +29568,9 @@ var require_cst_scalar = __commonJS({
         default: {
           const indent = "indent" in token ? token.indent : -1;
           const end = "end" in token && Array.isArray(token.end) ? token.end.filter((st) => st.type === "space" || st.type === "comment" || st.type === "newline") : [];
-          for (const key2 of Object.keys(token))
-            if (key2 !== "type" && key2 !== "offset")
-              delete token[key2];
+          for (const key3 of Object.keys(token))
+            if (key3 !== "type" && key3 !== "offset")
+              delete token[key3];
           Object.assign(token, { type, indent, source, end });
         }
       }
@@ -27565,12 +29625,12 @@ var require_cst_stringify = __commonJS({
         }
       }
     }
-    function stringifyItem({ start, key: key2, sep: sep3, value }) {
+    function stringifyItem({ start, key: key3, sep: sep3, value }) {
       let res = "";
       for (const st of start)
         res += st.source;
-      if (key2)
-        res += stringifyToken(key2);
+      if (key3)
+        res += stringifyToken(key3);
       if (sep3)
         for (const st of sep3)
           res += st.source;
@@ -27880,40 +29940,40 @@ var require_lexer = __commonJS({
         }
       }
       *parseStream() {
-        let line2 = this.getLine();
-        if (line2 === null)
+        let line3 = this.getLine();
+        if (line3 === null)
           return this.setNext("stream");
-        if (line2[0] === cst.BOM) {
+        if (line3[0] === cst.BOM) {
           yield* this.pushCount(1);
-          line2 = line2.substring(1);
+          line3 = line3.substring(1);
         }
-        if (line2[0] === "%") {
-          let dirEnd = line2.length;
-          let cs = line2.indexOf("#");
+        if (line3[0] === "%") {
+          let dirEnd = line3.length;
+          let cs = line3.indexOf("#");
           while (cs !== -1) {
-            const ch = line2[cs - 1];
+            const ch = line3[cs - 1];
             if (ch === " " || ch === "	") {
               dirEnd = cs - 1;
               break;
             } else {
-              cs = line2.indexOf("#", cs + 1);
+              cs = line3.indexOf("#", cs + 1);
             }
           }
           while (true) {
-            const ch = line2[dirEnd - 1];
+            const ch = line3[dirEnd - 1];
             if (ch === " " || ch === "	")
               dirEnd -= 1;
             else
               break;
           }
           const n = (yield* this.pushCount(dirEnd)) + (yield* this.pushSpaces(true));
-          yield* this.pushCount(line2.length - n);
+          yield* this.pushCount(line3.length - n);
           this.pushNewline();
           return "stream";
         }
         if (this.atLineEnd()) {
           const sp = yield* this.pushSpaces(true);
-          yield* this.pushCount(line2.length - sp);
+          yield* this.pushCount(line3.length - sp);
           yield* this.pushNewline();
           return "stream";
         }
@@ -27954,13 +30014,13 @@ var require_lexer = __commonJS({
       }
       *parseDocument() {
         yield* this.pushSpaces(true);
-        const line2 = this.getLine();
-        if (line2 === null)
+        const line3 = this.getLine();
+        if (line3 === null)
           return this.setNext("doc");
         let n = yield* this.pushIndicators();
-        switch (line2[n]) {
+        switch (line3[n]) {
           case "#":
-            yield* this.pushCount(line2.length - n);
+            yield* this.pushCount(line3.length - n);
           // fallthrough
           case void 0:
             yield* this.pushNewline();
@@ -27985,7 +30045,7 @@ var require_lexer = __commonJS({
           case ">":
             n += yield* this.parseBlockScalarHeader();
             n += yield* this.pushSpaces(true);
-            yield* this.pushCount(line2.length - n);
+            yield* this.pushCount(line3.length - n);
             yield* this.pushNewline();
             return yield* this.parseBlockScalar();
           default:
@@ -28005,11 +30065,11 @@ var require_lexer = __commonJS({
           }
           sp += yield* this.pushSpaces(true);
         } while (nl + sp > 0);
-        const line2 = this.getLine();
-        if (line2 === null)
+        const line3 = this.getLine();
+        if (line3 === null)
           return this.setNext("flow");
-        if (indent !== -1 && indent < this.indentNext && line2[0] !== "#" || indent === 0 && (line2.startsWith("---") || line2.startsWith("...")) && isEmpty(line2[3])) {
-          const atFlowEndMarker = indent === this.indentNext - 1 && this.flowLevel === 1 && (line2[0] === "]" || line2[0] === "}");
+        if (indent !== -1 && indent < this.indentNext && line3[0] !== "#" || indent === 0 && (line3.startsWith("---") || line3.startsWith("...")) && isEmpty(line3[3])) {
+          const atFlowEndMarker = indent === this.indentNext - 1 && this.flowLevel === 1 && (line3[0] === "]" || line3[0] === "}");
           if (!atFlowEndMarker) {
             this.flowLevel = 0;
             yield cst.FLOW_END;
@@ -28017,17 +30077,17 @@ var require_lexer = __commonJS({
           }
         }
         let n = 0;
-        while (line2[n] === ",") {
+        while (line3[n] === ",") {
           n += yield* this.pushCount(1);
           n += yield* this.pushSpaces(true);
           this.flowKey = false;
         }
         n += yield* this.pushIndicators();
-        switch (line2[n]) {
+        switch (line3[n]) {
           case void 0:
             return "flow";
           case "#":
-            yield* this.pushCount(line2.length - n);
+            yield* this.pushCount(line3.length - n);
             return "flow";
           case "{":
           case "[":
@@ -28902,7 +30962,7 @@ var require_parser = __commonJS({
                   });
                 } else if (isFlowToken(it.key) && !includesToken(it.sep, "newline")) {
                   const start2 = getFirstKeyStartProps(it.start);
-                  const key2 = it.key;
+                  const key3 = it.key;
                   const sep3 = it.sep;
                   sep3.push(this.sourceToken);
                   delete it.key;
@@ -28911,7 +30971,7 @@ var require_parser = __commonJS({
                     type: "block-map",
                     offset: this.offset,
                     indent: this.indent,
-                    items: [{ start: start2, key: key2, sep: sep3 }]
+                    items: [{ start: start2, key: key3, sep: sep3 }]
                   });
                 } else if (start.length > 0) {
                   it.sep = it.sep.concat(start, this.sourceToken);
@@ -29630,19 +31690,19 @@ function silhouetteOverlap(a, b) {
   }
   return u ? i / u : 0;
 }
-function page(items, bodies, o, key2) {
+function page(items, bodies, o, key3) {
   const Z = o.scale;
   const gap = 6, W3 = bodies.reduce((s2, b) => s2 + b.w + gap, gap), H = Math.max(1, ...bodies.map((b) => b.h)) + 4;
-  const line2 = new Grid(W3, H).fill(0, 0, W3, H, o.bg);
+  const line3 = new Grid(W3, H).fill(0, 0, W3, H, o.bg);
   let x = gap;
   items.forEach((it, i) => {
     const b = bodies[i];
-    for (let j = 0; j < b.h; j++) for (let k = 0; k < b.w; k++) if (b.mask[j * b.w + k]) line2.set(x + k, H - 2 - b.h + j, it.grid.get(b.x0 + k, b.y0 + j));
+    for (let j = 0; j < b.h; j++) for (let k = 0; k < b.w; k++) if (b.mask[j * b.w + k]) line3.set(x + k, H - 2 - b.h + j, it.grid.get(b.x0 + k, b.y0 + j));
     x += b.w + gap;
   });
   const lineup = new Grid(W3 * Z + 20, H * Z + H + 30).fill(0, 0, W3 * Z + 20, H * Z + H + 30, o.bg);
-  lineup.blit(line2, 10, 10);
-  lineup.blit(line2.scale(Z), 10, H + 20);
+  lineup.blit(line3, 10, 10);
+  lineup.blit(line3.scale(Z), 10, H + 20);
   const r = rng(o.seed), order = items.map((_, i) => i);
   for (let i = order.length - 1; i > 0; i--) {
     const j = Math.floor(r() * (i + 1));
@@ -29652,7 +31712,7 @@ function page(items, bodies, o, key2) {
   const silhouettes = new Grid(cols * cell3, Math.max(1, rows3) * (cell3 + 12)).fill(0, 0, cols * cell3, Math.max(1, rows3) * (cell3 + 12), "#d8d8d8");
   order.forEach((ix, n) => {
     const b = bodies[ix], cx = n % cols * cell3, cy = Math.floor(n / cols) * (cell3 + 12), L2 = rosterLabel(o.from + n);
-    key2[L2] = items[ix].id;
+    key3[L2] = items[ix].id;
     drawText(silhouettes, cx + 4, cy + 3, L2, "#000000", 1);
     const ox = cx + (cell3 - b.w * S3 >> 1), oy = cy + 12 + cell3 - 8 - b.h * S3;
     for (let j = 0; j < b.h; j++) for (let k = 0; k < b.w; k++) if (b.mask[j * b.w + k]) {
@@ -29663,10 +31723,10 @@ function page(items, bodies, o, key2) {
   return { lineup, silhouettes, ids: items.map((it) => it.id) };
 }
 function roster(items, o) {
-  const tol = o.tolerance ?? 0.2, fail = o.heightFail ?? tol, bodies = items.map((it) => body(it.grid)), key2 = {};
+  const tol = o.tolerance ?? 0.2, fail = o.heightFail ?? tol, bodies = items.map((it) => body(it.grid)), key3 = {};
   const pages = [];
   for (let i = 0; i < Math.max(1, items.length); i += ROSTER_PAGE)
-    pages.push(page(items.slice(i, i + ROSTER_PAGE), bodies.slice(i, i + ROSTER_PAGE), { bg: o.bg, seed: (o.seed ?? 1) + i, scale: o.scale ?? 4, from: i }, key2));
+    pages.push(page(items.slice(i, i + ROSTER_PAGE), bodies.slice(i, i + ROSTER_PAGE), { bg: o.bg, seed: (o.seed ?? 1) + i, scale: o.scale ?? 4, from: i }, key3));
   const sizes = items.map((it, i) => {
     const drawn = it.drawn ?? bodies[i].h;
     if (!it.height) return { id: it.id, kind: it.kind, drawn, flag: false };
@@ -29676,18 +31736,18 @@ function roster(items, o) {
   const pairs2 = [];
   for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) pairs2.push({ a: items[i].id, b: items[j].id, overlap: Math.round(silhouetteOverlap(bodies[i], bodies[j]) * 1e3) / 1e3 });
   pairs2.sort((p2, q) => q.overlap - p2.overlap);
-  return { lineup: pages[0].lineup, silhouettes: pages[0].silhouettes, pages, key: key2, sizes, pairs: pairs2.slice(0, o.topPairs ?? 5) };
+  return { lineup: pages[0].lineup, silhouettes: pages[0].silhouettes, pages, key: key3, sizes, pairs: pairs2.slice(0, o.topPairs ?? 5) };
 }
-function rosterIssues(review2, key2) {
+function rosterIssues(review2, key3) {
   const out = {}, push = (id2, s2) => {
     (out[id2] ??= []).push(s2);
   };
   for (const s2 of review2.silhouettes ?? []) {
-    const id2 = key2[s2.letter];
+    const id2 = key3[s2.letter];
     if (!id2) throw new Error(`roster record: no silhouette ${JSON.stringify(s2.letter)} on the last roster sheet`);
     if (s2.readability <= 2) push(id2, `silhouette reads as "${s2.guess}" (${s2.readability}/5)`);
   }
-  const ids = new Set(Object.values(key2));
+  const ids = new Set(Object.values(key3));
   for (const l of review2.lineup ?? []) {
     if (!ids.has(l.id)) throw new Error(`roster record: ${l.id} was not on the last roster sheet`);
     if (l.scale && l.scale !== "ok") push(l.id, `lineup: ${l.scale}${l.scaleNote ? ` \u2014 ${l.scaleNote}` : ""}`);
@@ -29722,22 +31782,22 @@ function recommend(sets, o = {}) {
   const recs = [], finals = /* @__PURE__ */ new Map(), feedback2 = /* @__PURE__ */ new Set(), blind = [];
   const currentPasses = /* @__PURE__ */ new Map();
   for (const set2 of sets) {
-    const kindOf2 = new Map(set2.metas.map((m) => [m.id, m.kind])), key2 = (id2) => `${set2.project}\0${id2}`;
+    const kindOf2 = new Map(set2.metas.map((m) => [m.id, m.kind])), key3 = (id2) => `${set2.project}\0${id2}`;
     const reviewModel = /* @__PURE__ */ new Map();
     for (const e of set2.ledger) if (e.type === "score" && !e.blind && typeof e.reviewModel === "string") reviewModel.set(`${e.asset}\0${e.version}`, e.reviewModel);
     for (const r of passRecords(set2.ledger)) {
       const kind = kindOf2.get(r.asset);
-      if (kind) recs.push({ ...r, key: key2(r.asset), kind, reviewModel: reviewModel.get(`${r.asset}\0${r.version}`) });
+      if (kind) recs.push({ ...r, key: key3(r.asset), kind, reviewModel: reviewModel.get(`${r.asset}\0${r.version}`) });
     }
     for (const e of set2.ledger) {
-      if (e.type === "status" && e.status === "final" && kindOf2.has(e.asset)) finals.set(key2(e.asset), kindOf2.get(e.asset));
-      if (e.type === "feedback" && e.by === "user" && kindOf2.has(e.asset)) feedback2.add(key2(e.asset));
+      if (e.type === "status" && e.status === "final" && kindOf2.has(e.asset)) finals.set(key3(e.asset), kindOf2.get(e.asset));
+      if (e.type === "feedback" && e.by === "user" && kindOf2.has(e.asset)) feedback2.add(key3(e.asset));
     }
     const own = /* @__PURE__ */ new Map(), bl = /* @__PURE__ */ new Map();
     for (const e of set2.ledger) if (e.type === "score" && typeof e.score === "number" && e.version && kindOf2.has(e.asset)) (e.blind ? bl : own).set(`${e.asset}\0${e.version}`, e.score);
     for (const [k, b] of bl) if (own.has(k)) {
       const id2 = k.split("\0")[0];
-      blind.push({ key: key2(id2), kind: kindOf2.get(id2), gap: own.get(k) - b });
+      blind.push({ key: key3(id2), kind: kindOf2.get(id2), gap: own.get(k) - b });
     }
     if (set2.config) for (const m of set2.metas) {
       const c = set2.config.budget, v = c.perKind?.[m.kind]?.revisionPasses ?? (m.importance && c.tiers?.[m.importance]?.revisionPasses) ?? c.revisionPasses;
@@ -29944,19 +32004,19 @@ function nearestToken(dir, hex) {
 function restyleDiff(before, after, from, to) {
   if (before.w !== after.w || before.h !== after.h) throw new Error(`restyle diff: size changed ${before.w}x${before.h} \u2192 ${after.w}x${after.h}`);
   const ta = tokenizer(from), tb = tokenizer(to), map = /* @__PURE__ */ new Map();
-  let changed = 0, opaque = 0, same2 = 0;
+  let changed = 0, opaque = 0, same3 = 0;
   for (let y = 0; y < before.h; y++) for (let x = 0; x < before.w; x++) {
     const a = before.get(x, y), b = after.get(x, y);
     if (a !== b || before.alpha(x, y) !== after.alpha(x, y)) changed++;
     if (before.alpha(x, y) === 255 || after.alpha(x, y) === 255) {
       opaque++;
-      if (ta(before, x, y) === tb(after, x, y)) same2++;
+      if (ta(before, x, y) === tb(after, x, y)) same3++;
       const k = a ?? "none";
       map.set(k, (map.get(k) ?? /* @__PURE__ */ new Set()).add(b ?? "none"));
     }
   }
   const mapping = Object.fromEntries([...map].map(([k, v]) => [k, [...v]]));
-  return { changedPct: Math.round(1e3 * changed / (before.w * before.h)) / 10, tokenSame: opaque ? Math.round(1e3 * same2 / opaque) / 1e3 : 1, consistent: [...map.values()].every((s2) => s2.size === 1), mapping };
+  return { changedPct: Math.round(1e3 * changed / (before.w * before.h)) / 10, tokenSame: opaque ? Math.round(1e3 * same3 / opaque) / 1e3 : 1, consistent: [...map.values()].every((s2) => s2.size === 1), mapping };
 }
 function tokenDiffMask(before, after, from, to) {
   const ta = tokenizer(from), tb = tokenizer(to), g = new Grid(after.w, after.h);
@@ -29968,9 +32028,9 @@ function tokenDiffMask(before, after, from, to) {
 }
 function restyleSheet(title, rows3, scale2 = 3, maxEdge = 1568) {
   const size2 = (s3) => {
-    const cw = Math.max(...rows3.map((r) => r.after.w * s3), textWidth("token diff", TXT4)) + PAD4;
-    const W3 = Math.max(PAD4 + cw * 3, PAD4 * 2 + textWidth(title, TXT4), ...rows3.map((r) => PAD4 * 2 + textWidth(r.label, TXT4)));
-    const H = PAD4 + LAB2 * 2 + rows3.reduce((n, r) => n + LAB2 + r.after.h * s3 + PAD4, 0);
+    const cw = Math.max(...rows3.map((r) => r.after.w * s3), textWidth("token diff", TXT4)) + PAD5;
+    const W3 = Math.max(PAD5 + cw * 3, PAD5 * 2 + textWidth(title, TXT4), ...rows3.map((r) => PAD5 * 2 + textWidth(r.label, TXT4)));
+    const H = PAD5 + LAB2 * 2 + rows3.reduce((n, r) => n + LAB2 + r.after.h * s3 + PAD5, 0);
     return { cw, W: W3, H };
   };
   let s2 = scale2, L2 = size2(s2);
@@ -29979,19 +32039,19 @@ function restyleSheet(title, rows3, scale2 = 3, maxEdge = 1568) {
     L2 = size2(s2);
   }
   const g = new Grid(L2.W, L2.H).fill(0, 0, L2.W, L2.H, BG4);
-  drawText(g, PAD4, PAD4, title, "#ffffff", TXT4);
-  ["before", "after", "token diff"].forEach((h, i) => drawText(g, PAD4 + i * L2.cw, PAD4 + LAB2, h, FG4, TXT4));
-  let y = PAD4 + LAB2 * 2;
+  drawText(g, PAD5, PAD5, title, "#ffffff", TXT4);
+  ["before", "after", "token diff"].forEach((h, i) => drawText(g, PAD5 + i * L2.cw, PAD5 + LAB2, h, FG4, TXT4));
+  let y = PAD5 + LAB2 * 2;
   for (const r of rows3) {
-    drawText(g, PAD4, y, r.label, FG4, TXT4);
+    drawText(g, PAD5, y, r.label, FG4, TXT4);
     const top = y + LAB2;
     [r.before, r.after, r.mask].forEach((im, i) => {
-      const big = im.scale(s2), x = PAD4 + i * L2.cw;
+      const big = im.scale(s2), x = PAD5 + i * L2.cw;
       if (r.bg && i < 2) g.fill(x, top, big.w, big.h, r.bg);
       else checker(g, x, top, big.w, big.h);
       g.over(big, x, top);
     });
-    y = top + r.after.h * s2 + PAD4;
+    y = top + r.after.h * s2 + PAD5;
   }
   return g;
 }
@@ -30013,7 +32073,7 @@ function editOps(current, edited, dir) {
   }
   return { ops, snapped };
 }
-var PAD4, TXT4, LAB2, BG4, FG4;
+var PAD5, TXT4, LAB2, BG4, FG4;
 var init_edit3 = __esm({
   "../artgen-core/src/w2/edit.ts"() {
     "use strict";
@@ -30022,7 +32082,7 @@ var init_edit3 = __esm({
     init_font();
     init_grid();
     init_sheet2();
-    PAD4 = 10;
+    PAD5 = 10;
     TXT4 = 2;
     LAB2 = GLYPH_H * TXT4 + 6;
     BG4 = "#16161c";
@@ -30254,14 +32314,14 @@ function numbers2(v, what, pairs2 = true) {
   return xs;
 }
 function shapeFrom(o) {
-  const arr = (v, what, pairs2 = true) => Array.isArray(v) ? v.map(Number) : numbers2(v, what, pairs2);
+  const arr2 = (v, what, pairs2 = true) => Array.isArray(v) ? v.map(Number) : numbers2(v, what, pairs2);
   if (o.circle !== void 0) {
-    const c = arr(o.circle, "--circle x,y,r", false);
+    const c = arr2(o.circle, "--circle x,y,r", false);
     if (c.length !== 3) throw new Error("--circle: x,y,r");
     return { circle: [c[0], c[1], c[2]] };
   }
-  if (o.poly !== void 0) return { poly: arr(o.poly, "--poly") };
-  if (o.stroke !== void 0) return { stroke: arr(o.stroke, "--stroke"), width: Number(o.width ?? 1) };
+  if (o.poly !== void 0) return { poly: arr2(o.poly, "--poly") };
+  if (o.stroke !== void 0) return { stroke: arr2(o.stroke, "--stroke"), width: Number(o.width ?? 1) };
   throw new Error("a shape is required: --circle x,y,r | --poly x,y,x,y,\u2026 | --stroke x,y,\u2026 --width w");
 }
 function parseLayers(v, names = map_exports.MAP_LAYERS) {
@@ -30293,7 +32353,7 @@ function describeMap(m) {
 }
 function describeMapFacts(r) {
   const { scale: scale2, height } = r.unit, out = [`${r.id}: ${r.size.cols}\xD7${r.size.rows} cells; heights in ${height}, distances in cells (${scale2})`];
-  const share2 = (s2) => s2.map((x) => `${x.terrain} ${x.share}%`).join(", ");
+  const share3 = (s2) => s2.map((x) => `${x.terrain} ${x.share}%`).join(", ");
   const hi = (h) => `${h.height} ${height} at ${at3(h.at)}${h.prominence ? ` (stands ${h.prominence} ${height} clear)` : ""}`;
   for (const p2 of r.points ?? []) {
     out.push(`at ${at3(p2.at)}: ${p2.terrain}, ${p2.height} ${height}, slope ${p2.slope.band ?? "?"} (${p2.slope.gradient} ${height}/${scale2})`);
@@ -30301,12 +32361,12 @@ function describeMapFacts(r) {
     if (p2.above) out.push(`  ${p2.above.value === null ? `no ${p2.above.of} to measure from` : `${p2.above.value} ${height} above the ${p2.above.of === "river" ? "river" : "lowest ground"}`}${p2.above.reference ? ` (${hi(p2.above.reference)})` : ""}`);
   }
   for (const a of r.areas ?? []) {
-    out.push(`area ${a.area.map(at3).join(" ")}: ${share2(a.terrain)}; lowest ${hi(a.lowest)}, highest ${hi(a.highest)}`);
+    out.push(`area ${a.area.map(at3).join(" ")}: ${share3(a.terrain)}; lowest ${hi(a.lowest)}, highest ${hi(a.highest)}`);
     for (const c of [...a.rivers, ...a.roads]) out.push(`  ${c.name}${c.source ? ` (${c.source})` : ""}: ${c.enters ? `in at ${at3(c.enters)}` : "starts inside"}, ${c.leaves ? `out at ${at3(c.leaves)}` : "ends inside"}, ${km(c.length, scale2)}`);
   }
   const f = r.features;
   if (f) {
-    out.push(`terrain: ${share2(f.terrain)}; lowest ${hi(f.lowest)}, highest ${hi(f.highest)}`);
+    out.push(`terrain: ${share3(f.terrain)}; lowest ${hi(f.lowest)}, highest ${hi(f.highest)}`);
     for (const [what, lines2] of [["river", f.rivers], ["generated river", f.generatedRivers], ["road", f.roads]])
       for (const l of lines2) out.push(`${what} ${l.name}: ${km(l.length, scale2)}, ${l.points.length} points from ${at3(l.points[0])} to ${at3(l.points[l.points.length - 1])}`);
     out.push(`hilltops: ${f.hilltops.map(hi).join("; ") || "none"}`, `hollows: ${f.hollows.map(hi).join("; ") || "none"}`);
@@ -30361,7 +32421,7 @@ function updateDungeon(p2, ref, change) {
   writeDungeon(p2, next4, ref);
   return next4;
 }
-function checkDungeonFile(p2, ref) {
+function checkDungeonFile(p2, ref, raise = []) {
   const f = dungeonFile(p2, ref);
   let raw;
   try {
@@ -30371,7 +32431,8 @@ function checkDungeonFile(p2, ref) {
     return { file: shown2(p2, f), ok: false, errors: [{ path: "", message: missing ? `no such file: ${shown2(p2, f)}` : `not JSON: ${e.message}` }], warnings: [] };
   }
   const r = dungeon_exports.checkDungeon(raw), errors = [...r.errors], warnings = [];
-  if (!errors.length) for (const x of dungeon_exports.lintDungeon(dungeon_exports.parseDungeon(raw))) (x.severity === "error" ? errors : warnings).push({ path: x.path, message: x.message });
+  const raised = (id2) => raise.includes("all") || raise.includes(id2);
+  if (!errors.length) for (const x of dungeon_exports.lintDungeon(dungeon_exports.parseDungeon(raw))) (x.severity === "error" || raised(x.id) ? errors : warnings).push({ path: x.path, message: x.message, id: x.id });
   const u = raw?.underlay;
   if (!errors.some((e) => e.path.startsWith("underlay")) && u && typeof u.map === "string" && !existsSync4(resolve3(dirname3(f), u.map)))
     errors.push({ path: "underlay.map", message: `no such map file ${u.map}` });
@@ -30385,16 +32446,16 @@ function readUnderlay(p2, ref, m) {
   return { map: spec, field: map_exports.generateMap(spec) };
 }
 async function renderDungeonFiles(p2, ref, o = {}) {
-  const m = readDungeon(p2, ref), layout2 = dungeon_exports.layoutDungeon(m), id2 = typeof ref === "string" ? ref : fileStem(ref.file);
+  const m = readDungeon(p2, ref), layout3 = dungeon_exports.layoutDungeon(m), id2 = typeof ref === "string" ? ref : fileStem(ref.file);
   const out = o.out ?? (typeof ref === "string" ? join4(dungeonsDir(p2), id2, "out") : dirname3(dungeonFile(p2, ref)));
   const formats2 = o.formats ?? ["svg", "png"], files = [];
   if (o.fit && o.ppu !== void 0) throw new Error("--fit and --ppu both set the scale: use one");
   if (o.crop && o.rooms?.length) throw new Error("--crop and --room both set the window: use one");
   if (o.margin !== void 0 && !o.rooms?.length) throw new Error("--margin goes with --room");
-  const window = o.rooms?.length ? dungeon_exports.roomCrop(m, o.rooms, o.margin, layout2) : o.crop;
+  const window = o.rooms?.length ? dungeon_exports.roomCrop(m, o.rooms, o.margin, layout3) : o.crop;
   const crop3 = clampCrop(window ?? [0, 0, m.cols, m.rows], m.cols, m.rows), unit4 = o.fit?.unit ?? "px";
   const pageScale = o.pageScale ?? (o.fit ? PX_PER_MM : void 0), underlay = readUnderlay(p2, ref, m);
-  const view = { layers: o.layers, layout: layout2, ...window && { crop: crop3 }, pageScale };
+  const view = { layers: o.layers, layout: layout3, ...window && { crop: crop3 }, pageScale };
   let ppu = o.fit ? fitPpu(crop3[2], crop3[3], o.fit) : o.ppu ?? 40;
   const fits = (k) => {
     const r = dungeon_exports.dungeonRenderSize(m, { ...view, ppu: k }), f = o.fit.unit === "mm" ? PX_PER_MM : 1;
@@ -30421,12 +32482,15 @@ async function renderDungeonFiles(p2, ref, o = {}) {
     writeFileSync3(`${base}.png`, encodePNG(rasterizeSvg(svg4, size2[0], size2[1])));
     files.push(`${base}.png`);
   }
-  return { files: files.map((f) => relative2(process.cwd(), f)), rooms: m.rooms.length, corridors: m.corridors.length, doors: layout2.doors.length, size: size2, crop: crop3, ppu, svg: svgSize([0, 0, px.width, px.height], 1, unit4), pageScale: pageScale ?? null, unplaced: dungeon_exports.dungeonLabelLayout(m, ppu, pageScale, layout2).unplaced };
+  return { files: files.map((f) => relative2(process.cwd(), f)), rooms: m.rooms.length, corridors: m.corridors.length, doors: layout3.doors.length, size: size2, crop: crop3, ppu, svg: svgSize([0, 0, px.width, px.height], 1, unit4), pageScale: pageScale ?? null, unplaced: [
+    ...dungeon_exports.roomLabelLayout(m, layout3, { ppu, pageScale }).filter((r) => !r.placed).map((r) => ({ room: m.rooms[r.room].id, text: m.rooms[r.room].label ?? String(layout3.rooms[r.room].number ?? "") })),
+    ...dungeon_exports.dungeonLabelLayout(dungeon_exports.withMarks(m, layout3).spec, ppu, pageScale, layout3).unplaced
+  ] };
 }
 function warningLines(m, max2 = 5) {
   const found = dungeon_exports.lintDungeon(m);
   if (!found.length) return [];
-  const lines2 = found.slice(0, max2).map((x) => `  ${x.severity}: ${x.path}: ${x.message}`);
+  const lines2 = found.slice(0, max2).map((x) => `  ${x.severity}: ${x.path}: ${x.message} [${x.id}]`);
   if (found.length > max2) lines2.push(`  \u2026 ${found.length - max2} more (artgen dungeon check ${m.id})`);
   return lines2;
 }
@@ -30436,7 +32500,7 @@ function describeDungeon(m) {
   return [
     `${m.id}${m.title ? ` "${m.title}"` : ""}: ${m.cols}\xD7${m.rows} cells of ${m.scale.perCell} ${m.scale.unit}, seed ${m.seed}`,
     `  gen: rooms ${g.rooms}, size ${g.minSize}..${g.maxSize}, caves ${g.caves}, round ${g.round}, loops ${g.loops}, doors ${g.doors}, corridor width ${g.corridorWidth}, spacing ${g.spacing}, entrance ${g.entrance ? "on" : "off"}${g.layout && g.layout !== "scatter" ? `, layout ${g.layout}${g.layout === "dense" ? ` (density ${g.density ?? 0.5})` : ""}` : ""}`,
-    `  grid: ${m.grid.show ? `size ${gridFt(m.grid.size)}, sub-grid ${m.grid.sub && m.grid.size > 1 ? `${gridFt(1)}` : "off"}, ${m.grid.clip === "floor" ? "on the floor" : "everywhere"}` : "off"}; hatch ${m.style.hatch}${m.style.hatch === "band" ? ` (${m.style.band} cells)` : ""}; shared walls ${dungeon_exports.sharedWallsOn(m) ? "on" : "off"}${m.style.sharedWalls === void 0 ? " (auto)" : ""}; numbers ${m.numbers ? "on" : "off"}, scale bar ${m.scaleBar ? "on" : "off"}, compass ${m.compass ? "on" : "off"}`,
+    `  grid: ${m.grid.show ? `size ${gridFt(m.grid.size)}, sub-grid ${m.grid.sub && m.grid.size > 1 ? `${gridFt(1)}` : "off"}, ${m.grid.clip === "floor" ? "on the floor" : "everywhere"}` : "off"}; hatch ${m.style.hatch}${m.style.hatch === "band" ? ` (${m.style.band} cells)` : ""}; shared walls ${dungeon_exports.corridorWallsOn(m) ? "on" : dungeon_exports.sharedWallsOn(m) ? "between rooms" : "off"}${m.style.sharedWalls === void 0 ? " (default)" : ""}; numbers ${m.numbers ? "on" : "off"}, scale bar ${m.scaleBar ? "on" : "off"}, compass ${m.compass ? "on" : "off"}`,
     ...m.furniture && m.furniture.place !== "over" ? [`  furniture: ${m.furniture.place}, band ${m.furniture.side ?? "bottom"}`] : [],
     `  rooms (${m.rooms.length}):${m.rooms.map((r) => `
     ${r.id}: ${r.shape} ${r.w}\xD7${r.h} at ${r.x},${r.y}${r.fill && r.fill !== "floor" ? `, ${r.fill}` : ""}${r.number === false ? ", no number" : r.number !== void 0 ? `, #${r.number}` : ""}${r.label ? ` "${r.label}"` : ""}${r.href ? ` \u2192 ${r.href}` : ""}`).join("")}`,
@@ -30470,7 +32534,7 @@ function describeDungeonFacts(r) {
   ${g.kind} at ${g.at.join(",")} (wall at ${g.angle}\xB0, ${g.width} wide, ${g.towers} towers${g.room ? `, opens into ${g.room}` : ""})`).join("")}`)
   ].join("\n");
 }
-var dungeonsDir, shown2, dungeonSummary, cornerPoint2, corridorEnd2, doorPair2, gridMode2, endText;
+var dungeonsDir, shown2, dungeonSummary, cornerPoint2, corridorEnd3, doorPair3, gridMode2, endText;
 var init_dungeon2 = __esm({
   "../artgen-cli/src/dungeon.ts"() {
     "use strict";
@@ -30481,7 +32545,7 @@ var init_dungeon2 = __esm({
     dungeonsDir = (p2) => join4(p2.art, "dungeons");
     shown2 = (p2, f) => relative2(p2?.root ?? process.cwd(), f);
     dungeonSummary = (m) => ({ id: m.id, size: `${m.cols}x${m.rows}`, ...m.title && { title: m.title }, rooms: m.rooms.length, corridors: m.corridors.length, labels: m.overlay.labels.length, symbols: m.overlay.symbols.length });
-    ({ cornerPoint: cornerPoint2, corridorEnd: corridorEnd2, doorPair: doorPair2, gridMode: gridMode2 } = dungeon_exports);
+    ({ cornerPoint: cornerPoint2, corridorEnd: corridorEnd3, doorPair: doorPair3, gridMode: gridMode2 } = dungeon_exports);
     endText = (e) => "room" in e ? `${e.room}${e.side ? `.${e.side}${e.offset !== void 0 ? `+${e.offset}` : ""}` : ""}` : "at" in e ? `(${e.at.join(",")})${e.exit ? ` "${e.exit.text}"` : ""}` : `corridor ${e.corridor}`;
   }
 });
@@ -30559,7 +32623,7 @@ async function renderSettlementFiles(p2, ref, o = {}) {
   const out = o.out ?? (typeof ref === "string" ? join5(settlementsDir(p2), id2, "out") : dirname4(settlementFile(p2, ref)));
   const formats2 = o.formats ?? ["svg", "png"], themes = o.themes ?? ["color"];
   if (o.fit && o.ppu !== void 0) throw new Error("--fit and --ppu both set the scale: use one");
-  const underlay = readSettlementUnderlay(p2, ref, m), layout2 = settlement_exports.layoutSettlement(m);
+  const underlay = readSettlementUnderlay(p2, ref, m), layout3 = settlement_exports.layoutSettlement(m);
   const jobs = [];
   if (o.plans) {
     jobs.push({ view: "site" });
@@ -30574,7 +32638,7 @@ async function renderSettlementFiles(p2, ref, o = {}) {
   for (const job of jobs) {
     const sheet = job.view === "plan" ? settlement_exports.planSheet(m, m.buildings.find((b) => b.id === job.building)) : { cols: m.cols, rows: m.rows };
     const crop3 = clampCrop(o.crop ?? [0, 0, sheet.cols, sheet.rows], sheet.cols, sheet.rows), unit4 = o.fit?.unit ?? "px", pageScale = o.pageScale ?? (o.fit ? PX_PER_MM : void 0);
-    const view = { view: job.view, ...job.building && { building: job.building }, ...job.floor !== void 0 && { floor: job.floor }, buildings: o.buildings, layers: o.layers, ...job.view === "site" && { layout: layout2 }, ...o.crop && { crop: crop3 }, pageScale };
+    const view = { view: job.view, ...job.building && { building: job.building }, ...job.floor !== void 0 && { floor: job.floor }, buildings: o.buildings, layers: o.layers, ...job.view === "site" && { layout: layout3 }, ...o.crop && { crop: crop3 }, pageScale };
     let ppu = o.fit ? fitPpu(crop3[2], crop3[3], o.fit) : o.ppu ?? (job.view === "plan" ? 40 : 24);
     if (o.fit) {
       const f = o.fit.unit === "mm" ? PX_PER_MM : 1, fits = (k) => {
@@ -30768,8 +32832,8 @@ function diffVersions(p2, kind, id2, a, b) {
   return { from, to, changes: diffJson(read(from), read(to)) };
 }
 async function renderPng(kind, file, theme, out, text3) {
-  const size2 = workflow_exports.sizeOf(text3), edge = size2 ? Math.max(size2.cols, size2.rows) : 30, ref = { file };
-  const ppu = Math.max(4, Math.min({ map: 40, dungeon: 40, settlement: 24 }[kind], Math.floor(RENDER_EDGE / edge)));
+  const size2 = workflow_exports.sizeOf(text3), edge2 = size2 ? Math.max(size2.cols, size2.rows) : 30, ref = { file };
+  const ppu = Math.max(4, Math.min({ map: 40, dungeon: 40, settlement: 24 }[kind], Math.floor(RENDER_EDGE / edge2)));
   if (kind === "map") return resolve5((await renderMapFiles(null, ref, { themes: [theme], formats: ["png"], ppu, out })).files[0]);
   if (kind === "dungeon") return resolve5((await renderDungeonFiles(null, ref, { formats: ["png"], ppu, out })).files[0]);
   return resolve5((await renderSettlementFiles(null, ref, { themes: [theme], formats: ["png"], ppu, out }))[0].files[0]);
@@ -31434,8 +33498,8 @@ function stageModel(a, pass) {
 function anchorsFor(a) {
   if (!a.project || !a.dir.anchors?.length) return [];
   const all = a.dir.anchors.map((f) => ({ label: basename2(f, ".png"), file: resolve6(a.project.art, f) })).filter((x) => existsSync9(x.file));
-  const same2 = all.filter((x) => x.label === a.brief.kind || a.brief.kind === "creature" && x.label === "character" || ["tileset", "texture"].includes(a.brief.kind) && x.label === "tile");
-  return (same2.length ? same2 : all).map((x) => ({ label: `anchor ${x.label}`, grid: readGrid(x.file) }));
+  const same3 = all.filter((x) => x.label === a.brief.kind || a.brief.kind === "creature" && x.label === "character" || ["tileset", "texture"].includes(a.brief.kind) && x.label === "tile");
+  return (same3.length ? same3 : all).map((x) => ({ label: `anchor ${x.label}`, grid: readGrid(x.file) }));
 }
 function finalHash(a, version) {
   const v = parseVersion(version);
@@ -32149,7 +34213,7 @@ function reviewOf(a, final) {
   return { reviewer: typeof own?.reviewer === "string" ? own.reviewer : void 0, blind: blindScores(ledger).get(final)?.score };
 }
 async function gallery(p2, opts = {}) {
-  const dir = requireLocked(p2), want = opts.statuses ?? ["final"], rows3 = (await projectStatus(p2, opts.ids)).filter((r) => r.final && (opts.ids?.length || want.includes(r.status)));
+  const dir = requireLocked(p2), want2 = opts.statuses ?? ["final"], rows3 = (await projectStatus(p2, opts.ids)).filter((r) => r.final && (opts.ids?.length || want2.includes(r.status)));
   const items = [], assets = [];
   for (const r of rows3) {
     const a = openAsset(join14(p2.root, r.path)), v = await renderVersion(a, r.final);
@@ -32222,10 +34286,10 @@ function rosterRecord(p2, file, reviewer = "self") {
   const ledgerAll = parseLedger(existsSync14(ledgerFile(p2)) ? readFileSync13(ledgerFile(p2), "utf8") : "");
   const run2 = [...ledgerAll].reverse().find((e) => e.type === "roster" && e.asset === "roster" && e.key);
   if (!run2) throw new Error("roster record: run `artgen roster` first");
-  const review2 = readJson(resolve9(file)), key2 = run2.key, versions = run2.versions;
-  const issues = rosterIssues(review2, key2);
-  for (const id2 of Object.values(key2)) {
-    const s2 = (review2.silhouettes ?? []).find((x) => key2[x.letter] === id2);
+  const review2 = readJson(resolve9(file)), key3 = run2.key, versions = run2.versions;
+  const issues = rosterIssues(review2, key3);
+  for (const id2 of Object.values(key3)) {
+    const s2 = (review2.silhouettes ?? []).find((x) => key3[x.letter] === id2);
     appendLedger(ledgerFile(p2), { type: "roster", asset: id2, version: versions[id2], issues: issues[id2] ?? [], ...s2 && { readability: s2.readability, guess: s2.guess }, reviewer, by: "agent" });
   }
   appendLedger(ledgerFile(p2), { type: "roster", asset: "roster", recorded: true, notes: review2.notes ?? [], reviewer, by: "agent" });
@@ -32310,8 +34374,8 @@ async function exportPacks(p2, o = {}) {
       const b = briefs.find((x) => x.id === r.id);
       if (!(ok(r.status) || standIn(r)) || !inPack(b, pack, def.include)) continue;
       if (!ok(r.status)) {
-        const a2 = openAsset(join14(p2.root, r.path)), ph = effectivePlaceholder(a2), key2 = placeholderKey(ph);
-        inputs.push({ brief: a2.brief, view: a2.brief.view ?? dir.camera.view, renders: [renderAsset(placeholderModule(ph), { dir: a2.dir, brief: a2.brief })], version: "placeholder", sourceHash: key2, placeholder: true });
+        const a2 = openAsset(join14(p2.root, r.path)), ph = effectivePlaceholder(a2), key3 = placeholderKey(ph);
+        inputs.push({ brief: a2.brief, view: a2.brief.view ?? dir.camera.view, renders: [renderAsset(placeholderModule(ph), { dir: a2.dir, brief: a2.brief })], version: "placeholder", sourceHash: key3, placeholder: true });
         continue;
       }
       const a = openAsset(join14(p2.root, r.path)), n = Math.max(1, b.variants ?? 1), renders = [];
@@ -32409,13 +34473,13 @@ async function importEdit(p2, id2, png, o = {}) {
     const c = cells[idx], e = editOps(c.grid, grid5, dir);
     if (!e.ops.length) continue;
     snapped += e.snapped;
-    const key2 = c.mirrored ? `${c.state}/${mirrorFacing(c.facing)}/${c.frame}` : `${c.state}/${c.facing}/${c.frame}`;
+    const key3 = c.mirrored ? `${c.state}/${mirrorFacing(c.facing)}/${c.frame}` : `${c.state}/${c.facing}/${c.frame}`;
     const ops = c.mirrored ? e.ops.map(([x, y, t]) => [w - 1 - x, y, t]) : e.ops;
-    if (edits[key2]) {
+    if (edits[key3]) {
       conflicts += ops.length;
       if (c.mirrored) continue;
     }
-    edits[key2] = ops;
+    edits[key3] = ops;
     pixels += ops.length;
   }
   if (!pixels) throw new Error(`${png}: no pixel differs from ${row.final}`);
@@ -32593,7 +34657,7 @@ var init_registry = __esm({
       list: (item, doc2, o = {}) => ({ kind: "list", item, doc: doc2, ...o }),
       points: (doc2, o = {}) => ({ kind: "points", doc: doc2, ...o }),
       size: (doc2, o = {}) => ({ kind: "size", doc: doc2, ...o }),
-      json: (schema, doc2, o = {}) => ({ kind: "json", schema, doc: doc2, ...o })
+      json: (schema2, doc2, o = {}) => ({ kind: "json", schema: schema2, doc: doc2, ...o })
     };
     mcpName = (op) => mcpOf(op)?.name ?? op.name.replace(/[.-]/g, "_");
     KIND_SCHEMA = {
@@ -32622,11 +34686,13 @@ var init_cli = __esm({
 });
 
 // ../artgen-cli/src/version.ts
-var VERSION;
+var VERSION, BUILD_SHA, VERSION_LINE;
 var init_version = __esm({
   "../artgen-cli/src/version.ts"() {
     "use strict";
-    VERSION = true ? "0.11.0" : "dev";
+    VERSION = true ? "0.12.0" : "dev";
+    BUILD_SHA = true ? "98ac9cb" : void 0;
+    VERSION_LINE = BUILD_SHA ? `${VERSION} (${BUILD_SHA})` : VERSION;
   }
 });
 
@@ -32665,9 +34731,9 @@ function candidates(p2, id2) {
   return out;
 }
 function briefOf(yaml, id2) {
-  const blocks2 = yaml.split(/\r?\n/).reduce((acc, line2) => {
-    if (/^- /.test(line2)) acc.push([line2]);
-    else acc.at(-1)?.push(line2);
+  const blocks2 = yaml.split(/\r?\n/).reduce((acc, line3) => {
+    if (/^- /.test(line3)) acc.push([line3]);
+    else acc.at(-1)?.push(line3);
     return acc;
   }, []);
   if (!blocks2.length) return void 0;
@@ -32687,11 +34753,12 @@ function caseMd(o) {
     "",
     ...o.format !== void 0 ? [`format: ${o.kind} ${o.format}`] : [`kind: ${o.kind}`],
     `consumer: ${o.consumer.name} at ${o.consumer.commit} (${o.consumer.branch}), reported with \`artgen report\``,
-    `artgen: ${VERSION}${o.mapgen ? `, maps ${o.mapgen}` : ""}`,
+    `artgen: ${VERSION_LINE}${o.mapgen ? `, maps ${o.mapgen}` : ""}`,
     ...o.asset ? [`asset: ${o.asset}`] : [],
     "",
     o.note || "(no note given)",
     "",
+    ...o.madeBy ? ["Made by the consumer with:", "", "```sh", o.madeBy, "```", "", "Checked with:", ""] : [],
     "```sh",
     o.command,
     "```",
@@ -32736,9 +34803,10 @@ async function writeBundle(p2, target, o = {}) {
     ({ kind, file: input } = { kind: found[0].kind, file: found[0].file });
     id2 = target;
   }
-  const root = p2?.root ?? dirname12(input), consumer = consumerOf(root);
-  const dir = resolve10(o.out ?? (p2 ? freshDir(join15(p2.art, "feedback"), `${dateOf(now)}-${id2}`) : freshDir(dirname12(input), `feedback-${dateOf(now)}-${id2}`)));
+  const root = p2?.root ?? run(dirname12(input), "rev-parse", "--show-toplevel") ?? dirname12(input), consumer = consumerOf(root);
+  const dir = resolve10(o.out ?? (p2 ? freshDir(join15(p2.art, "feedback"), `${dateOf(now)}-${id2}`) : freshDir(join15(root, "artgen-feedback"), `${dateOf(now)}-${id2}`)));
   mkdirSync11(dir, { recursive: true });
+  if (!p2 && !o.out && !existsSync15(join15(root, "artgen-feedback", ".gitignore"))) writeFileSync14(join15(root, "artgen-feedback", ".gitignore"), "*\n");
   const files = [], put = (rel4, text3) => {
     mkdirSync11(dirname12(join15(dir, rel4)), { recursive: true });
     writeFileSync14(join15(dir, rel4), text3);
@@ -32821,9 +34889,9 @@ async function writeBundle(p2, target, o = {}) {
     }
     command = `node tools/artgen/artgen-maps.js ${kind} check --file ${INPUT[kind]} --json`;
   }
-  const md = caseMd({ id: id2, kind, format, note, command, consumer, mapgen, check: check4, render: render11, asset: assetPath2 });
+  const md = caseMd({ id: id2, kind, format, note, command, madeBy: o.madeBy?.trim() || void 0, consumer, mapgen, check: check4, render: render11, asset: assetPath2 });
   put("case.md", md);
-  put("report.json", JSON.stringify({ schema: 1, id: id2, kind, ...format !== void 0 && { format }, artgen: VERSION, ...mapgen && { installed: mapgen }, consumer, note, check: check4, render: render11, createdAt: now.toISOString(), command }, null, 2) + "\n");
+  put("report.json", JSON.stringify({ schema: 1, id: id2, kind, ...format !== void 0 && { format }, artgen: VERSION, build: VERSION_LINE, ...mapgen && { installed: mapgen }, consumer, note, check: check4, render: render11, createdAt: now.toISOString(), command, ...o.madeBy && { madeBy: o.madeBy } }, null, 2) + "\n");
   const title = `[artgen report] ${kind} ${id2}${note ? `: ${note.split("\n")[0].slice(0, 60)}` : ""}`;
   const inputText = kind === "asset" ? void 0 : readFileSync14(join15(dir, INPUT[kind]), "utf8");
   const inline = inputText !== void 0 && inputText.length <= INLINE_MAX;
@@ -32920,8 +34988,8 @@ function exportsIn(paths) {
     } catch {
       throw new Error(`${f}: not JSON`);
     }
-    const schema = j?.schema;
-    if (schema !== 1 && schema !== METRICS_SCHEMA || typeof j.repo !== "string") throw new Error(`${f}: not an artgen metrics export (schema 1 or ${METRICS_SCHEMA})`);
+    const schema2 = j?.schema;
+    if (schema2 !== 1 && schema2 !== METRICS_SCHEMA || typeof j.repo !== "string") throw new Error(`${f}: not an artgen metrics export (schema 1 or ${METRICS_SCHEMA})`);
     out.push(j);
   };
   const walk = (x) => {
@@ -32953,10 +35021,10 @@ function script(a, b) {
   let tail = 0;
   while (tail < a.length - head && tail < b.length - head && a[a.length - 1 - tail] === b[b.length - 1 - tail]) tail++;
   const x = a.slice(head, a.length - tail), y = b.slice(head, b.length - tail);
-  if ((x.length + 1) * (y.length + 1) > MAX_CELLS) return [...a.slice(0, head).map((line2) => ({ t: " ", line: line2 })), ...x.map((line2) => ({ t: "-", line: line2 })), ...y.map((line2) => ({ t: "+", line: line2 })), ...a.slice(a.length - tail).map((line2) => ({ t: " ", line: line2 }))];
+  if ((x.length + 1) * (y.length + 1) > MAX_CELLS) return [...a.slice(0, head).map((line3) => ({ t: " ", line: line3 })), ...x.map((line3) => ({ t: "-", line: line3 })), ...y.map((line3) => ({ t: "+", line: line3 })), ...a.slice(a.length - tail).map((line3) => ({ t: " ", line: line3 }))];
   const w = y.length + 1, len3 = new Uint32Array((x.length + 1) * w);
   for (let i2 = x.length - 1; i2 >= 0; i2--) for (let j2 = y.length - 1; j2 >= 0; j2--) len3[i2 * w + j2] = x[i2] === y[j2] ? len3[(i2 + 1) * w + j2 + 1] + 1 : Math.max(len3[(i2 + 1) * w + j2], len3[i2 * w + j2 + 1]);
-  const ops = a.slice(0, head).map((line2) => ({ t: " ", line: line2 }));
+  const ops = a.slice(0, head).map((line3) => ({ t: " ", line: line3 }));
   let i = 0, j = 0;
   while (i < x.length || j < y.length) {
     if (i < x.length && j < y.length && x[i] === y[j]) {
@@ -32966,7 +35034,7 @@ function script(a, b) {
     } else if (j < y.length && (i === x.length || len3[i * w + j + 1] >= len3[(i + 1) * w + j])) ops.push({ t: "+", line: y[j++] });
     else ops.push({ t: "-", line: x[i++] });
   }
-  for (const line2 of a.slice(a.length - tail)) ops.push({ t: " ", line: line2 });
+  for (const line3 of a.slice(a.length - tail)) ops.push({ t: " ", line: line3 });
   return ops;
 }
 function unifiedDiff(path, before, after, context = 3) {
@@ -33949,7 +36017,7 @@ var init_slice = __esm({
 // ../artgen-imagekit/src/svg.ts
 function ringToD(r, precision = 2, map = PIXEL_CENTRES) {
   const p2 = r.points, parts = [];
-  for (let i = 0; i < p2.length; i += 2) parts.push(`${i === 0 ? "M" : "L"}${num3(p2[i] * map.sx + map.ox, precision)} ${num3(p2[i + 1] * map.sy + map.oy, precision)}`);
+  for (let i = 0; i < p2.length; i += 2) parts.push(`${i === 0 ? "M" : "L"}${num4(p2[i] * map.sx + map.ox, precision)} ${num4(p2[i + 1] * map.sy + map.oy, precision)}`);
   return parts.join(" ") + " Z";
 }
 function shapeDs(t, precision = 2, map) {
@@ -33963,12 +36031,12 @@ function traceToSvg(t, o = {}) {
   lines2.push("</svg>", "");
   return lines2.join("\n");
 }
-var HEX2, num3, PIXEL_CENTRES;
+var HEX2, num4, PIXEL_CENTRES;
 var init_svg2 = __esm({
   "../artgen-imagekit/src/svg.ts"() {
     "use strict";
     HEX2 = /^#[0-9a-fA-F]{6}$/;
-    num3 = (v, precision) => String(Number(v.toFixed(precision)));
+    num4 = (v, precision) => String(Number(v.toFixed(precision)));
     PIXEL_CENTRES = { sx: 1, sy: 1, ox: 0.5, oy: 0.5 };
   }
 });
@@ -34252,24 +36320,25 @@ serving ${project2.art} \u2014 Ctrl-C to stop`);
         file: p.str("a map, dungeon or settlement file by path, in place of the id", { mcp: false }),
         kind: p.oneOf(BUNDLE_KINDS, "which one the id (or file) is, when it could be more than one"),
         note: p.str("what is wrong or missing, in your words"),
-        out: p.str("the folder to write the bundle to (default art/feedback/<date>-<id>/)", { mcp: false }),
+        out: p.str("the folder to write the bundle to (default art/feedback/<date>-<id>/, or with --file artgen-feedback/<date>-<id>/ at the repo root)", { mcp: false }),
+        made_by: p.str("the command that wrote the file (your converter), for the case", { mcp: false }),
         no_render: p.bool("leave the render out"),
         issue: p.bool("open the issue on the artgen repo with the bundle (needs GH_TOKEN or GITHUB_TOKEN; without one, prints the link to open)", { mcp: false }),
         repo: p.str(`the repo the issue goes to (default ${DEFAULT_REPO})`, { mcp: false })
       },
       async run(i, ctx) {
-        const pr = ctx.findProject(), b = await writeBundle(pr, i.id, { file: i.file, kind: i.kind, note: i.note, out: i.out, noRender: i.no_render, repo: i.repo });
+        const pr = ctx.findProject(), b = await writeBundle(pr, i.id, { file: i.file, kind: i.kind, note: i.note, out: i.out, madeBy: i.made_by, noRender: i.no_render, repo: i.repo });
         const token = process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN;
         const issue = i.issue && token ? await openIssue(b, i.repo ?? DEFAULT_REPO, token) : void 0;
         return { dir: ctx.rel(b.dir), id: b.id, kind: b.kind, files: b.files, check: b.check, link: b.link, ...issue && { issue } };
       },
       cli: {
-        usage: '       artgen report <id> [--kind asset|map|dungeon|settlement] [--file path] [--note "..."] [--no-render] [--issue]   a feedback bundle for the artgen repo (art/feedback/); --issue sends it',
+        usage: '       artgen report <id> [--kind asset|map|dungeon|settlement] [--file path] [--note "..."] [--made-by "your command"] [--no-render] [--issue]   a feedback bundle for the artgen repo (art/feedback/, or artgen-feedback/ with --file); --issue sends it',
         text: (r, i) => [
           `feedback bundle: ${r.dir} (${r.files.length} files)`,
           `  check: ${r.check}`,
           r.issue ? `issue opened: ${r.issue}` : i.issue ? `no GH_TOKEN or GITHUB_TOKEN here, so nothing was sent. To send it, open:
-${r.link}` : `read ${r.dir}/ISSUE.md, then send it: artgen report ${r.id} --issue (without a token this prints the link to open)`
+${r.link}` : `read ${r.dir}/ISSUE.md, then send it: artgen report ${i.file ? `--file ${i.file}` : r.id} --issue (without a token this prints the link to open)`
         ].join("\n")
       },
       mcp: {},
@@ -34454,7 +36523,7 @@ async function renderPreview(r, i, ctx) {
   const look = typeof i.ppu === "number" ? files.filter((f) => f.endsWith(".png")) : (await renderDungeonFiles(P2, i.id, { ppu: 24, layers, formats: ["png"], out: join21(P2.art, "dungeons", i.id, "out", "preview") })).files.map((f) => ctx.rel(f));
   return [text({ ...r, files }), ...look.map((f) => pngFile(join21(P2.root, f)))];
 }
-var V, next, CELLS, numberOf, findRoom2, GEN_PARAMS, GEN_KEYS, list3, symbols, show3, create, update, grid2, style, gen, OPS_DOC, edit, roomCmd, link, corridorOf, unlink, door, block, connect, disconnect, fit, label, symbol, check, overlay, render7, facts, sync, DUNGEON_OPS_LIST;
+var V, next, CELLS, numberOf, findRoom2, GEN_PARAMS, GEN_KEYS, list3, symbols, show3, create, update, grid2, style, gen, OPS_DOC, edit, roomCmd, link, corridorOf, unlink, door, block, connect, disconnect, fit, label, symbol, check, overlay, render7, facts, sync, layout2, DUNGEON_OPS_LIST;
 var init_maps_dungeon = __esm({
   "../artgen-cli/src/ops/maps-dungeon.ts"() {
     "use strict";
@@ -34570,9 +36639,9 @@ var init_maps_dungeon = __esm({
           const [w, h] = i.room_size ?? [Number(i.w ?? 8), Number(i.h ?? 8)];
           const exits = (i.exits ?? []).map((e) => {
             if (typeof e !== "string") return e;
-            const [side, kind, ...note] = e.split(":");
-            if (!["n", "e", "s", "w"].includes(side)) throw new Error("--exits: sides n, e, s, w, each optionally :door kind and :a note (n,e:secret,s:none:To the caves)");
-            return { side, door: kind === void 0 || kind === "" ? void 0 : dungeon_exports.doorPair(kind)[0], ...note.length && { text: note.join(":") } };
+            const [side2, kind, ...note] = e.split(":");
+            if (!["n", "e", "s", "w"].includes(side2)) throw new Error("--exits: sides n, e, s, w, each optionally :door kind and :a note (n,e:secret,s:none:To the caves)");
+            return { side: side2, door: kind === void 0 || kind === "" ? void 0 : dungeon_exports.doorPair(kind)[0], ...note.length && { text: note.join(":") } };
           });
           m = dungeon_exports.singleRoom(m, { shape: i.shape ?? "rect", w, h, exits, label: typeof i.label === "string" ? i.label : void 0, number: numberOf(i.number) });
         } else if (i.mode !== "empty" && i.empty !== true) m = dungeon_exports.generateDungeon(m);
@@ -34614,7 +36683,9 @@ ${next(i, r.dungeon.id)}`,
         compass: p.bool("show the compass", { style: "onoff" }),
         cols: p.num("columns"),
         rows: p.num("rows"),
-        furniture: p.json({ type: "object" }, "where the title, scale bar, compass and legend go, as JSON: {place, side}")
+        furniture: p.json({ type: "object" }, "where the title, scale bar, compass and legend go, as JSON: {place, side}"),
+        bounds: p.str(`x,y,x,y,\u2026: the level's ground, a polygon the rock and grid are drawn in ("none" removes it)`),
+        areas: p.json({ type: "array" }, "rock and voids within the level, as JSON: [{points, kind: rock|void, label?}] ([] removes them)")
       },
       run(i, ctx) {
         return updateDungeon(projectOf(i, ctx), refOf(i), (m) => {
@@ -34631,11 +36702,17 @@ ${next(i, r.dungeon.id)}`,
           if (typeof i.scale_bar === "boolean") m.scaleBar = i.scale_bar;
           if (typeof i.compass === "boolean") m.compass = i.compass;
           if (typeof i.cols === "number") m.cols = i.cols;
+          if (i.bounds === "none") delete m.bounds;
+          else if (typeof i.bounds === "string") m.bounds = i.bounds.split(",").map(Number);
+          if (Array.isArray(i.areas)) {
+            if (i.areas.length) m.areas = i.areas;
+            else delete m.areas;
+          }
           if (typeof i.rows === "number") m.rows = i.rows;
         });
       },
       cli: {
-        usage: `       artgen dungeon update <id> [--grid-size 10] [--grid-unit ft] [--sub-grid on|off] [--show-grid on|off] [--grid-mode 10|5|10+5|none] [--grid|--style|--scale|--gen|--furniture '<json>'] [--title "..."] [--numbers on|off] [--scale-bar on|off] [--compass on|off] [--cols n] [--rows n]`,
+        usage: `       artgen dungeon update <id> [--grid-size 10] [--grid-unit ft] [--sub-grid on|off] [--show-grid on|off] [--grid-mode 10|5|10+5|none] [--grid|--style|--scale|--gen|--furniture '<json>'] [--title "..."] [--numbers on|off] [--scale-bar on|off] [--compass on|off] [--cols n] [--rows n] [--bounds x,y,\u2026|none] [--areas '<json>']`,
         text: (m, i) => `${describeDungeon(m)}
 ${next(i, m.id)}`,
         json: (m) => V(m)
@@ -34701,14 +36778,21 @@ ${next(i, m.id)}`,
         unit: p.str("the scale unit, e.g. ft"),
         furniture: p.oneOf(dungeon_exports.FURNITURE_PLACES, "over | outside | auto"),
         furniture_side: p.oneOf(dungeon_exports.FURNITURE_SIDES, "bottom | right"),
-        shared_walls: p.str("on | off | auto")
+        shared_walls: p.str("on (walls wherever two floors touch, the default) | rooms (between rooms only) | off | auto (the default)"),
+        rock: p.oneOf(dungeon_exports.ROCK_STYLES, "hatch | solid | none"),
+        rock_color: p.str("the colour of solid rock, #rrggbb"),
+        partition: p.num("the weight of the walls between floors (default: the wall weight)")
       },
       run(i, ctx) {
         return updateDungeon(projectOf(i, ctx), refOf(i), (m) => {
           if (i.hatch) m.style.hatch = i.hatch;
           if (i.band !== void 0) m.style.band = i.band;
           if (i.wall !== void 0) m.style.wall = i.wall;
+          if (i.rock) m.style.rock = i.rock;
+          if (i.rock_color) m.style.rockColor = i.rock_color;
+          if (i.partition !== void 0) m.style.partition = i.partition;
           if (i.shared_walls === "auto") delete m.style.sharedWalls;
+          else if (i.shared_walls === "rooms") m.style.sharedWalls = "rooms";
           else if (i.shared_walls !== void 0) m.style.sharedWalls = onOff(i.shared_walls);
           if (i.title !== void 0) {
             if (i.title) m.title = i.title;
@@ -34717,16 +36801,16 @@ ${next(i, m.id)}`,
           for (const k of ["numbers", "scale_bar", "compass", "legend"]) if (i[k] !== void 0) m[k === "scale_bar" ? "scaleBar" : k] = i[k];
           if (i.per_cell !== void 0) m.scale.perCell = i.per_cell;
           if (i.unit) m.scale.unit = i.unit;
-          const place2 = i.furniture, side = i.furniture_side;
-          if (place2 !== void 0 || side !== void 0) {
-            const f = { place: place2 ?? m.furniture?.place ?? "outside", ...(side ?? m.furniture?.side) && { side: side ?? m.furniture?.side } };
+          const place2 = i.furniture, side2 = i.furniture_side;
+          if (place2 !== void 0 || side2 !== void 0) {
+            const f = { place: place2 ?? m.furniture?.place ?? "outside", ...(side2 ?? m.furniture?.side) && { side: side2 ?? m.furniture?.side } };
             if (f.place === "over" && !f.side) delete m.furniture;
             else m.furniture = f;
           }
         });
       },
       cli: {
-        usage: '       artgen dungeon style <id> [--hatch band|full|none] [--band n] [--wall f] [--numbers on|off] [--scale-bar on|off] [--compass on|off] [--legend on|off] [--title "..."] [--per-cell n] [--unit ft] [--furniture over|outside|auto] [--furniture-side bottom|right] [--shared-walls on|off|auto]',
+        usage: '       artgen dungeon style <id> [--hatch band|full|none] [--band n] [--wall f] [--numbers on|off] [--scale-bar on|off] [--compass on|off] [--legend on|off] [--title "..."] [--per-cell n] [--unit ft] [--furniture over|outside|auto] [--furniture-side bottom|right] [--shared-walls on|rooms|off|auto] [--rock hatch|solid|none] [--rock-color #rrggbb] [--partition f]',
         text: (m, i) => `${describeDungeon(m)}
 ${next(i, m.id)}`,
         json: (m) => V(m)
@@ -34754,6 +36838,12 @@ ${next(i, m.id)}`,
           applyGenFlags(m, i);
           if (i.gen && typeof i.gen === "object") Object.assign(m.gen, i.gen);
           if (typeof i.cols === "number") m.cols = i.cols;
+          if (i.bounds === "none") delete m.bounds;
+          else if (typeof i.bounds === "string") m.bounds = i.bounds.split(",").map(Number);
+          if (Array.isArray(i.areas)) {
+            if (i.areas.length) m.areas = i.areas;
+            else delete m.areas;
+          }
           if (typeof i.rows === "number") m.rows = i.rows;
           return dungeon_exports.generateDungeon(dungeon_exports.parseDungeon(m));
         });
@@ -34776,7 +36866,7 @@ ${next(i, m.id)}`,
       module: "maps",
       effect: "write",
       summary: "Change a dungeon's rooms and corridors with a list of edits, in order.",
-      description: `Change a dungeon's rooms and corridors, in order. Coordinates are cells (x right, y down; 1 cell = 5 ft); a point is [x,y], "x,y" or a cell name "C4". ops: {op:"add_room", shape: rect|circle|octagon|cave|poly, at: top-left, w, h, points? (poly: [x,y,\u2026]), label?, number? (false hides it), href? (a link from its number and name: http(s), a relative path or #anchor), id?} | {op:"move_room", room, at} | {op:"set_room", room, shape?, w?, h?, label?, number?, href? ("" removes it)} | {op:"remove_room", room} (and its corridors) | {op:"add_block", shape: rect|octagon|circle|hex|poly, at, w, h, points?, split?: bsp|rows|cols|grid|cuts, min? (cells, about the size of each room), cuts?: {x?: [], y?: []}, seed?, doors? (0..1, extra doors), id?} (one shape split into rooms that share walls, with doors and openings between them; its rooms are ordinary rooms, ids <block>-1, <block>-2, \u2026) | {op:"split_block", id, split?, min?, seed?} (split again: a new seed unless given) | {op:"remove_block", id} | {op:"link", from: room id, point or "corridor:<id>", to: the same (a point is an exit or dead end; past the map edge it runs off the map; a corridor is a junction on its centre line), from_side?/to_side?: n|e|s|w (leave the room by that wall), from_offset?/to_offset? (cells along that wall), width?, route?: auto|hv|vh|straight|around (around: along the grid, round the rooms in the way), via?: [x,y,\u2026], curve?: "smooth", style?: "natural" (rough cave-like walls), seed?, id? (a name other corridors can join), exit?: {text, href?, fade?} (to a point past the edge: the corridor fades out and a boxed note says where it leads), doors?: [kind|null, kind|null]} | {op:"unlink", index} | {op:"connect", a: room, b: room, kind?: door|secret|locked|portcullis|arch|open, at?: a point on their shared wall, width?} (a door or opening in the wall two touching rooms share; touching rooms without one keep the wall) | {op:"disconnect", index} | {op:"door", index, end: from|to, kind: door|secret|locked|portcullis|arch|null} | {op:"fit", margin?}.`,
+      description: `Change a dungeon's rooms and corridors, in order. Coordinates are cells (x right, y down; 1 cell = 5 ft); a point is [x,y], "x,y" or a cell name "C4". ops: {op:"add_room", shape: rect|circle|octagon|hexagon|cave|poly, at: top-left, cut? (an octagon's corner cut, a share of its shorter side), orient? (a hexagon: flat|pointy), exits? ([{kind: stairs-up|stairs-down|arrow, side?: n|e|s|w, at?: [x,y], text?}]: ways out of the map inside the room), w, h, points? (poly: [x,y,\u2026]), label?, number? (false hides it), href? (a link from its number and name: http(s), a relative path or #anchor), anchor? ([x,y]: where its corridors start and its badge sits), label_at? (n|s|w|e|c or [dx,dy]: where its number and name stand; unset, they move off symbols and other labels), id?} | {op:"move_room", room, at} | {op:"set_room", room, shape?, w?, h?, label?, number?, href? ("" removes it)} | {op:"remove_room", room} (and its corridors) | {op:"add_block", shape: rect|octagon|circle|hex|poly, at, w, h, points?, split?: bsp|rows|cols|grid|cuts, min? (cells, about the size of each room), cuts?: {x?: [], y?: []}, seed?, doors? (0..1, extra doors), id?} (one shape split into rooms that share walls, with doors and openings between them; its rooms are ordinary rooms, ids <block>-1, <block>-2, \u2026) | {op:"split_block", id, split?, min?, seed?} (split again: a new seed unless given) | {op:"remove_block", id} | {op:"link", from: room id, point or "corridor:<id>", to: the same (a point is an exit or dead end; past the map edge it runs off the map; a corridor is a junction on its centre line), from_side?/to_side?: n|e|s|w (leave the room by that wall), from_offset?/to_offset? (cells along that wall), from_port?/to_port?: [x,y] (leave or enter the room at that point on its wall, the door set along the wall), width?, span? (width in the scale unit, in place of width), route?: auto|hv|vh|straight|around|maze (around: along the grid, round the rooms in the way; maze: on the lattice of its width, round the rooms and off the other corridors), via?: [x,y,\u2026], curve?: "smooth", style?: "natural" (rough cave-like walls), seed?, id? (a name other corridors can join), exit?: {text, href?, fade?} (to a point past the edge: the corridor fades out and a boxed note says where it leads), doors?: [kind|null, kind|null]} | {op:"unlink", index} | {op:"connect", a: room, b: room, kind?: door|secret|locked|portcullis|arch|open, at?: a point on their shared wall, width?} (a door or opening in the wall two touching rooms share; touching rooms without one keep the wall) | {op:"disconnect", index} | {op:"door", index, end: from|to, kind: door|secret|locked|portcullis|arch|null} | {op:"fit", margin?}.`,
       params: {
         id: idParam("the dungeon id", "dungeon edit: <id>"),
         path: pathParam("dungeon"),
@@ -34817,6 +36907,11 @@ ${next(i, m.id)}`,
         room_id: p.str("add: the new room's id (default r<n>)"),
         fill: p.oneOf(dungeon_exports.ROOM_FILLS, "floor | building | yard | cellar"),
         href: p.str('a link from the number and name (set: "none" removes it)'),
+        anchor: p.str(`x,y: where the room's corridors start and its badge sits (set: "none" removes it)`),
+        label_at: p.str(`n | s | w | e | c, or dx,dy: where the room's number and name stand (set: "none" lets them move)`),
+        cut: p.num("an octagon's corner cut, a share of its shorter side (0..0.5)"),
+        orient: p.oneOf(["flat", "pointy"], "a hexagon: flat (points east and west) | pointy (points north and south)"),
+        exits: p.json({ type: "array" }, "ways out of the map inside the room, as JSON: [{kind: stairs-up|stairs-down|arrow, side: n|e|s|w or at: [x,y], text?}]"),
         origin: p.str("add: who wrote it (a sync replaces its own)"),
         shape: p.oneOf(["rect", "circle", "octagon", "cave"], "set: the new shape", { error: "rect, circle, octagon or cave" })
       },
@@ -34826,20 +36921,23 @@ ${next(i, m.id)}`,
         const m = updateDungeon(P2, refOf(i), (m2) => {
           const rid = i.target;
           if (i.action === "add") {
-            const shape = rid;
-            if (!dungeon_exports.ROOM_SHAPES.includes(shape)) throw new Error(`dungeon room <id> add <shape>: one of ${dungeon_exports.ROOM_SHAPES.join(", ")}`);
+            const shape2 = rid;
+            if (!dungeon_exports.ROOM_SHAPES.includes(shape2)) throw new Error(`dungeon room <id> add <shape>: one of ${dungeon_exports.ROOM_SHAPES.join(", ")}`);
             const n = numberOf(i.number);
             let o;
-            if (shape === "poly") o = { op: "add_room", shape, points: needPoints(i.points, "--points") };
+            if (shape2 === "poly") o = { op: "add_room", shape: shape2, points: needPoints(i.points, "--points") };
             else {
               if (!i.at || !i.size) throw new Error("dungeon room <id> add <shape> --at x,y|C4 --size WxH");
-              o = { op: "add_room", shape, at: i.at, w: i.size[0], h: i.size[1] };
+              o = { op: "add_room", shape: shape2, at: i.at, w: i.size[0], h: i.size[1] };
             }
             if (i.room_id !== void 0) o.id = i.room_id;
             if (i.label) o.label = i.label;
             if (n !== void 0) o.number = n;
             if (i.fill) o.fill = i.fill;
             if (i.href) o.href = i.href;
+            if (i.anchor) o.anchor = i.anchor;
+            if (i.label_at) o.label_at = i.label_at;
+            for (const k of ["cut", "orient", "exits"]) if (i[k] !== void 0) o[k] = i[k];
             Object.assign(o, originOf(i.origin));
             summary = dungeon_exports.editDungeon(m2, o);
           } else if (i.action === "move") {
@@ -34857,7 +36955,12 @@ ${next(i, m.id)}`,
               ...i.label !== void 0 && { label: i.label },
               ...n !== void 0 && { number: n },
               ...i.fill && { fill: i.fill },
-              ...i.href !== void 0 && { href: i.href === "none" ? "" : i.href }
+              ...i.href !== void 0 && { href: i.href === "none" ? "" : i.href },
+              ...i.anchor !== void 0 && { anchor: i.anchor === "none" ? null : i.anchor },
+              ...i.label_at !== void 0 && { label_at: i.label_at === "none" ? null : i.label_at },
+              ...i.cut !== void 0 && { cut: i.cut },
+              ...i.orient !== void 0 && { orient: i.orient },
+              ...i.exits !== void 0 && { exits: i.exits }
             });
           } else if (i.action === "rm") {
             findRoom2(m2, rid);
@@ -34867,7 +36970,7 @@ ${next(i, m.id)}`,
         return { m, summary };
       },
       cli: {
-        usage: '       artgen dungeon room <id> add <shape> --at x,y|C4 --size WxH [--points x,y,\u2026] [--label "..."] [--number n|off] [--room-id r9] [--fill floor|building|yard|cellar] [--href url] [--origin name] | move <rid> --at x,y | set <rid> [--shape s] [--size WxH] [--label "..."] [--number n|off] [--fill f] [--href url|none] | rm <rid>',
+        usage: `       artgen dungeon room <id> add <shape> --at x,y|C4 --size WxH [--points x,y,\u2026] [--label "..."] [--number n|off] [--room-id r9] [--fill floor|building|yard|cellar] [--href url] [--anchor x,y] [--label-at n|s|w|e|c|dx,dy] [--cut f] [--orient flat|pointy] [--exits '<json>'] [--origin name] | move <rid> --at x,y | set <rid> [--shape s] [--size WxH] [--label "..."] [--number n|off] [--fill f] [--href url|none] [--anchor x,y|none] [--label-at n|s|w|e|c|dx,dy|none] | rm <rid>`,
         text: (r, i) => [`${r.m.id}: ${r.summary} (${r.m.rooms.length} rooms)`, ...warningLines(r.m), next(i, r.m.id)].join("\n"),
         json: (r) => V(r.m.rooms)
       },
@@ -34885,13 +36988,16 @@ ${next(i, m.id)}`,
         from: p.str("a room id, a block id, or corridor:<id>", { positional: true, required: "dungeon link <id> <room|corridor:id> <room|x,y|C4|corridor:id>" }),
         to: p.str("a room id, a block id, corridor:<id>, or a point x,y | C4", { positional: true, required: "dungeon link <id> <room|corridor:id> <room|x,y|C4|corridor:id>" }),
         width: p.num("corridor width in cells"),
-        route: p.oneOf(dungeon_exports.ROUTES, "auto | hv | vh | straight | around"),
+        span: p.num("corridor width in the scale unit (10 for a 10 ft passage), in place of --width"),
+        route: p.oneOf(dungeon_exports.ROUTES, "auto | hv | vh | straight | around | maze"),
         via: p.points("bend points x,y,\u2026"),
         doors: p.str("door,none: the doors at the two ends"),
         from_side: p.str("n | e | s | w: leave the first room by that wall"),
         from_offset: p.num("cells along that wall"),
         to_side: p.str("n | e | s | w: enter the second room by that wall"),
         to_offset: p.num("cells along that wall"),
+        from_port: p.str("x,y: leave the first room from that point on its wall (its door set along the wall)"),
+        to_port: p.str("x,y: enter the second room at that point on its wall"),
         curve: p.oneOf(dungeon_exports.CURVES, "none | smooth"),
         style: p.oneOf(dungeon_exports.CORRIDOR_STYLES, "built | natural"),
         seed: p.num("the seed of a natural corridor's walls"),
@@ -34903,12 +37009,12 @@ ${next(i, m.id)}`,
       },
       run(i, ctx) {
         const P2 = projectOf(i, ctx);
-        let line2 = "";
+        let line3 = "";
         const m = updateDungeon(P2, refOf(i), (m2) => {
           const [, eb] = dungeon_exports.linkEnds(m2, i.from, i.to), doors = dungeon_exports.doorPair(i.doors);
           const exit = i.exit !== void 0 ? { text: i.exit, ...i.exit_href && { href: i.exit_href }, ...i.fade !== void 0 && { fade: i.fade } } : void 0;
           if (exit && !("at" in dungeon_exports.corridorEnd(m2, eb))) throw new Error("--exit: the second end must be a point (x,y or a cell name), where the corridor leaves the map");
-          line2 = dungeon_exports.editDungeon(m2, {
+          line3 = dungeon_exports.editDungeon(m2, {
             op: "link",
             from: i.from,
             to: i.to,
@@ -34917,8 +37023,11 @@ ${next(i, m.id)}`,
             from_offset: i.from_offset,
             to_side: i.to_side,
             to_offset: i.to_offset,
+            ...i.from_port && { from_port: i.from_port },
+            ...i.to_port && { to_port: i.to_port },
             ...exit && { exit },
             width: i.width,
+            ...i.span !== void 0 && { span: i.span },
             route: i.route,
             via: i.via,
             doors,
@@ -34928,10 +37037,10 @@ ${next(i, m.id)}`,
             ...originOf(i.origin)
           });
         });
-        return { m, line: line2 };
+        return { m, line: line3 };
       },
       cli: {
-        usage: '       artgen dungeon link <id> <room|corridor:id> <room|x,y|C4|corridor:id> [--width 1] [--route auto|hv|vh|straight|around] [--via x,y,\u2026] [--doors door,none] [--from-side n|e|s|w] [--from-offset n] [--to-side \u2026] [--to-offset n] [--curve smooth] [--style natural] [--seed n] [--id name] [--exit "To the caves" [--exit-href url] [--fade 3]] [--origin name]',
+        usage: '       artgen dungeon link <id> <room|corridor:id> <room|x,y|C4|corridor:id> [--width 1 | --span 10] [--route auto|hv|vh|straight|around|maze] [--via x,y,\u2026] [--doors door,none] [--from-side n|e|s|w] [--from-offset n] [--to-side \u2026] [--to-offset n] [--from-port x,y] [--to-port x,y] [--curve smooth] [--style natural] [--seed n] [--id name] [--exit "To the caves" [--exit-href url] [--fade 3]] [--origin name]',
         text: (r, i) => [`${r.m.id}: ${r.line}`, ...warningLines(r.m), next(i, r.m.id)].join("\n"),
         json: (r) => V(r.m.corridors)
       },
@@ -35062,11 +37171,11 @@ ${next(i, m.id)}`,
         origin: p.str("who wrote it (a sync replaces its own)")
       },
       run(i, ctx) {
-        let line2 = "";
+        let line3 = "";
         const m = updateDungeon(projectOf(i, ctx), refOf(i), (m2) => {
-          line2 = dungeon_exports.editDungeon(m2, { op: "connect", a: i.a, b: i.b, ...i.at && { at: i.at }, ...i.kind && { kind: i.kind }, ...i.width !== void 0 && { width: i.width }, ...originOf(i.origin) });
+          line3 = dungeon_exports.editDungeon(m2, { op: "connect", a: i.a, b: i.b, ...i.at && { at: i.at }, ...i.kind && { kind: i.kind }, ...i.width !== void 0 && { width: i.width }, ...originOf(i.origin) });
         });
-        return { m, line: line2 };
+        return { m, line: line3 };
       },
       cli: {
         usage: "       artgen dungeon connect <id> <room> <room> [--kind door|secret|locked|portcullis|arch|open] [--at x,y] [--width 1] | disconnect <id> <i>   a door or opening in the wall two touching rooms share",
@@ -35172,17 +37281,25 @@ ${next(i, m.id)}`, json: (m) => V({ cols: m.cols, rows: m.rows }) },
       module: "maps",
       effect: "read",
       summary: "Check a dungeon file: every error with its JSON path, then drawing errors and warnings.",
-      description: "Check a dungeon: every error in its file with the JSON path (a field out of range, a room id that is not there), then drawing errors and warnings (a room outline that crosses itself, rooms laid over each other, a corridor through a room it does not join or across another, a door never drawn, a mark off the sheet or on a room number). Fix errors before rendering; look at each warning.",
-      params: { id: idParam("the dungeon id", "dungeon check: <id>"), path: pathParam("dungeon") },
-      run: (i, ctx) => checkDungeonFile(projectOf(i, ctx), refOf(i)),
+      description: `Check a dungeon: every error in its file with the JSON path (a field out of range, a room id that is not there), then drawing errors and warnings, each with the id of its kind (${Object.keys(dungeon_exports.CHECK_IDS).join(", ")}). Fix errors before rendering; look at each warning. errors: ids of warnings to report as errors (or "all").`,
+      params: {
+        id: idParam("the dungeon id", "dungeon check: <id>"),
+        path: pathParam("dungeon"),
+        errors: { kind: "list", item: "string", doc: "warning ids to report as errors (or all): door-off-wall,rooms-merge", schema: { type: "array", items: { type: "string" } } }
+      },
+      run(i, ctx) {
+        const raise = i.errors ?? [], ids = Object.keys(dungeon_exports.CHECK_IDS);
+        for (const id2 of raise) if (id2 !== "all" && !ids.includes(id2)) throw new Error(`--errors: ${id2} is not a check id (${ids.join(", ")}, or all)`);
+        return checkDungeonFile(projectOf(i, ctx), refOf(i), raise);
+      },
       cli: {
-        usage: "       artgen dungeon check <id> [--json]   every error in the file with its JSON path, then drawing errors and warnings (a room outline that crosses itself, rooms laid over each other, a corridor through a room it does not join or across another, a door never drawn, a mark off the sheet or on a badge); exits 1 when there are errors",
+        usage: "       artgen dungeon check <id> [--errors id,id|all] [--json]   every error in the file with its JSON path, then drawing errors and warnings, each with its id (door-off-wall, rooms-merge, corridor-along-wall, through-room, \u2026: artgen schema dungeon --checks); --errors reports those warnings as errors; exits 1 when there are errors",
         text(r) {
           const n = (k, w) => `${k} ${w}${k === 1 ? "" : "s"}`;
           return [
             r.ok ? `${r.file}: ok${r.warnings.length ? `, ${n(r.warnings.length, "warning")}` : ""}` : `${r.file}: ${n(r.errors.length, "error")}${r.warnings.length ? `, ${n(r.warnings.length, "warning")}` : ""}`,
-            ...r.errors.map((e) => `  error: ${e.path || "(file)"}: ${e.message}`),
-            ...r.warnings.map((e) => `  warning: ${e.path || "(file)"}: ${e.message}`)
+            ...r.errors.map((e) => `  error: ${e.path || "(file)"}: ${e.message}${e.id ? ` [${e.id}]` : ""}`),
+            ...r.warnings.map((e) => `  warning: ${e.path || "(file)"}: ${e.message}${e.id ? ` [${e.id}]` : ""}`)
           ].join("\n");
         },
         json: (r) => V(r),
@@ -35261,7 +37378,7 @@ ${next(i, m.id)}`, json: (m) => V({ cols: m.cols, rows: m.rows }) },
           "       artgen dungeon render <id> [--format svg|png|both] [--ppu 40 | --fit 180x260mm|px] [--page-scale px/mm] [--crop x,y,w,h] [--room id|F.3 \u2026 [--margin 2]] [--layers grid=off,labels=off] [--out dir]",
           "         (--room, repeated, crops round those rooms, their doors and the first --margin cells of each corridor)"
         ],
-        text: (r, i) => [`${i.path ?? i.id} ${r.size.join("\xD7")} px, ${r.ppu} px a cell, window ${r.crop.join(",")}: ${r.rooms} rooms, ${r.corridors} corridors, ${r.doors} doors`, ...r.unplaced.map((u) => `  no free spot for label ${u.index} "${u.text}"`), ...r.files.map((f) => `  ${f}`)].join("\n"),
+        text: (r, i) => [`${i.path ?? i.id} ${r.size.join("\xD7")} px, ${r.ppu} px a cell, window ${r.crop.join(",")}: ${r.rooms} rooms, ${r.corridors} corridors, ${r.doors} doors`, ...r.unplaced.map((u) => u.room !== void 0 ? `  no free spot for room ${u.room}'s label "${u.text}"` : `  no free spot for label ${u.index} "${u.text}"`), ...r.files.map((f) => `  ${f}`)].join("\n"),
         json: (r) => V(r)
       },
       mcp: { content: renderPreview },
@@ -35303,7 +37420,60 @@ ${next(i, m.id)}`, json: (m) => V({ cols: m.cols, rows: m.rows }) },
       mcp: { exclude: "reads --from by path (consumer tooling)" },
       python: {}
     });
-    DUNGEON_OPS_LIST = [list3, symbols, show3, create, update, grid2, style, gen, edit, roomCmd, block, link, unlink, door, connect, disconnect, fit, label, symbol, check, overlay, render7, facts, sync];
+    layout2 = defineOp({
+      name: "dungeon.layout",
+      module: "maps",
+      effect: "write",
+      summary: "Lay rooms out to a graph inside a footprint and route a passage or a door for every way.",
+      description: "Lay a dungeon out from a graph: its rooms (id, w and h in cells, shape rect|cave|round|octagon|hexagon|poly, turns?, against?, over?), its ways (a, b, bearing? to keep, wall? the bearing of the wall it leaves a by, doors?: [kind|null, kind|null], style?), the passage width in cells (the lattice), a footprint (a square's side in cells or a polygon), keep-out polygons, fill [least, most], passages (the share of ways run as passages), detour (cells a way may walk past the straight line), seed and tries. The rooms are packed close, touching where a door through the shared wall will do; every way is a connection or a corridor routed on the lattice, round the rooms. Writes a new dungeon file (format 2); the report says the side, the fill and any way no passage fitted.",
+      params: {
+        id: idParam("the new dungeon's id", "dungeon layout: <id> (or --file)"),
+        path: pathParam("dungeon"),
+        graph_file: p.str("the graph, a JSON file", { flag: "--graph", mcp: false }),
+        graph: p.json({ type: "object" }, "the graph: {rooms, ways, width?, footprint?, keepOut?, fill?, passages?, detour?, seed?, tries?}", { cli: false }),
+        footprint: p.str("a square's side in cells, or a polygon x,y,x,y,\u2026 (cells)"),
+        keep_out: p.str("a polygon x,y,\u2026 no room or passage may take"),
+        fill: p.str("least,most share of the ground the rooms cover (one number: least and most alike)"),
+        passages: p.num("the share of ways run as passages, 0..1"),
+        detour: p.num("cells a way may walk past the straight line between its rooms"),
+        seed: p.num("the seed"),
+        tries: p.num("packings tried at each side (default 12)"),
+        width: p.num("the passage width in cells, the lattice (default 2)"),
+        clearance: p.num("0 (default) lets a passage run along a wall, 1 keeps it a lattice cell off"),
+        force: p.bool("overwrite an existing file (with --file)", { mcp: false })
+      },
+      run(i, ctx) {
+        const P2 = projectOf(i, ctx), g = { ...i.graph_file ? readJson(i.graph_file) : i.graph };
+        if (!g.rooms) throw new Error("dungeon layout: a graph is required (--graph file.json)");
+        const nums4 = (s2) => s2.split(",").map(Number);
+        if (typeof i.footprint === "string") {
+          const v = nums4(i.footprint);
+          g.footprint = v.length === 1 ? v[0] : v;
+        }
+        if (typeof i.keep_out === "string") g.keepOut = [...g.keepOut ?? [], nums4(i.keep_out)];
+        if (typeof i.fill === "string") {
+          const v = nums4(i.fill);
+          g.fill = [v[0], v[1] ?? v[0]];
+        }
+        for (const k of ["passages", "detour", "seed", "tries", "width", "clearance"]) if (typeof i[k] === "number") g[k] = i[k];
+        g.id = i.path ? i.id ?? fileId(i.path) : i.id;
+        const started = Date.now(), { spec, report: report2 } = dungeon_exports.layoutGraph(g);
+        return { ...createDungeon(P2, spec, i.force === true, i.path ? { file: i.path } : void 0), report: { ...report2, seconds: Math.round((Date.now() - started) / 100) / 10 } };
+      },
+      cli: {
+        usage: "       artgen dungeon layout <id>|--file out.json --graph g.json [--footprint 40|x,y,\u2026] [--keep-out x,y,\u2026] [--fill 0.35,0.55] [--passages 0.35] [--detour n] [--seed n] [--tries 12] [--width 2] [--clearance 0|1] [--force]   rooms packed to a graph in a footprint, every way a door or a routed passage",
+        text: (r, i) => [
+          `${r.file}: ${r.dungeon.rooms.length} rooms in a square ${r.report.side} cells across, rooms ${Math.round(r.report.fill * 100)}% of the ground; ${r.report.passages} passages, ${r.report.walls} doors through shared walls (${r.report.seconds} s)`,
+          ...r.report.left.map((w) => `  no passage fits the way from ${w}`),
+          ...r.report.detours.map((d) => `  ${d.a} to ${d.b} walks ${d.extra} cells past its detour`),
+          next(i, r.dungeon.id)
+        ].join("\n"),
+        json: (r) => V({ file: r.file, report: r.report, dungeon: r.dungeon })
+      },
+      mcp: { content: (r) => [text({ file: r.file, report: r.report, summary: describeDungeon(r.dungeon) })] },
+      python: {}
+    });
+    DUNGEON_OPS_LIST = [list3, symbols, show3, create, update, grid2, style, gen, edit, roomCmd, block, link, unlink, door, connect, disconnect, fit, label, symbol, check, overlay, render7, facts, sync, layout2];
   }
 });
 
@@ -35513,7 +37683,7 @@ ${next2(i, m.id)}`,
         const m = updateMap(projectOf(i, ctx), refOf(i), (m2) => {
           if (i.op !== void 0) {
             if (i.ops !== void 0 || i.undo !== void 0) throw new Error("map edit: give an <op>, or --ops / --undo, not both");
-            const shape = () => shapeFrom({ circle: i.circle, poly: i.poly, stroke: i.stroke, width: i.width });
+            const shape2 = () => shapeFrom({ circle: i.circle, poly: i.poly, stroke: i.stroke, width: i.width });
             if (i.op === "undo") {
               const e = m2.edits.pop();
               if (!e) throw new Error(`${m2.id}: no edits to undo`);
@@ -35522,8 +37692,8 @@ ${next2(i, m.id)}`,
             }
             if (i.op === "paint") {
               if (!map_exports.TERRAINS.includes(i.terrain)) throw new Error(`--terrain: one of ${map_exports.TERRAINS.join(", ")}`);
-              m2.edits.push({ op: i.op, terrain: i.terrain, shape: shape() });
-            } else if (i.op === "elevate") m2.edits.push({ op: i.op, amount: i.amount ?? 0.2, shape: shape() });
+              m2.edits.push({ op: i.op, terrain: i.terrain, shape: shape2() });
+            } else if (i.op === "elevate") m2.edits.push({ op: i.op, amount: i.amount ?? 0.2, shape: shape2() });
             else if (i.op === "river") m2.edits.push({ op: i.op, points: needPoints(i.points, "--points"), ...numFlag(i.width, "--width") !== void 0 && { width: numFlag(i.width, "--width") }, ...i.delta === false && { delta: false } });
             else if (i.op === "road") m2.edits.push({ op: i.op, points: needPoints(i.points, "--points") });
             else throw new Error("map edit <id> paint|elevate|river|road|undo");
@@ -35829,7 +37999,7 @@ ${next2(i, m.id)}`, json: (m) => V2(m) },
 
 // ../artgen-cli/src/ops/maps-trace.ts
 import { resolve as resolve15 } from "node:path";
-function toCells(r, scale2, ox, oy) {
+function toCells2(r, scale2, ox, oy) {
   const out = [];
   for (let k = 0; k < r.points.length; k += 2) out.push(Math.round(((r.points[k] + 0.5) * scale2 + ox) * 100) / 100, Math.round(((r.points[k + 1] + 0.5) * scale2 + oy) * 100) / 100);
   return out;
@@ -35860,27 +38030,27 @@ var init_maps_trace = __esm({
         ...traceParams()
       },
       run(i, ctx) {
-        const terrain = i.terrain ?? "grass", holeTerrain = i.hole_terrain ?? "water", origin = i.origin ?? "trace";
+        const terrain = i.terrain ?? "grass", holeTerrain = i.hole_terrain ?? "water", origin2 = i.origin ?? "trace";
         if (!map_exports.TERRAINS.includes(terrain) || !map_exports.TERRAINS.includes(holeTerrain)) throw new Error(`--terrain, --hole-terrain: one of ${map_exports.TERRAINS.join(", ")}`);
         const t = traceImage(readPicture(resolve15(i.image)), traceOptions(i));
         let added = 0, removed = 0;
         const m = updateMap(projectOf(i, ctx), refOf(i), (m2) => {
           const scale2 = Math.min(m2.cols / t.width, m2.rows / t.height), ox = (m2.cols - t.width * scale2) / 2, oy = (m2.rows - t.height * scale2) / 2;
           if (i.replace) {
-            const keep = m2.edits.filter((e) => e.origin !== origin);
+            const keep = m2.edits.filter((e) => e.origin !== origin2);
             removed = m2.edits.length - keep.length;
             m2.edits = keep;
           }
           for (const s2 of t.shapes) {
-            m2.edits.push({ op: "paint", terrain, shape: { poly: toCells(s2.outer, scale2, ox, oy) }, origin });
+            m2.edits.push({ op: "paint", terrain, shape: { poly: toCells2(s2.outer, scale2, ox, oy) }, origin: origin2 });
             added++;
             for (const h of s2.holes) {
-              m2.edits.push({ op: "paint", terrain: holeTerrain, shape: { poly: toCells(h, scale2, ox, oy) }, origin });
+              m2.edits.push({ op: "paint", terrain: holeTerrain, shape: { poly: toCells2(h, scale2, ox, oy) }, origin: origin2 });
               added++;
             }
           }
         });
-        return { m, added, removed, trace: traceSummary(t), origin };
+        return { m, added, removed, trace: traceSummary(t), origin: origin2 };
       },
       cli: {
         usage: "       artgen map trace <id> <image.png> [--terrain grass] [--hole-terrain water] [--origin trace] [--replace]   (+ the artgen trace flags: --threshold --invert --blur --smoothing --simplify --min-area --holes --max-paths)",
@@ -36175,7 +38345,7 @@ async function renderPreview3(rs, i, ctx) {
   const look = typeof i.ppu === "number" ? files.filter((f) => f.endsWith(".png")) : (await renderSettlementFiles(P2, i.id, { ...o, ppu: o.view === "plan" ? 28 : Math.max(4, Math.min(16, Math.round(1100 / Math.max(spec.cols, spec.rows)))), formats: ["png"], out: join23(P2.art, "settlements", i.id, "out", "preview") })).flatMap((r) => r.files.map((f) => ctx.rel(f)));
   return [text({ ...rs[0], files }), ...look.map((f) => pngFile(join23(P2.root, f)))];
 }
-var V3, next3, CELLS2, numberOf2, pointOf, OBJ, GEN_PARAMS2, list5, symbols3, fixtures, show5, create3, gen3, update3, edit3, editText, editJson, id, level, LEVEL, AT, SIZE, BUILDING_PARAMS, building2, interior, floor2, room2, KINDS_DOOR, connect2, disconnect2, openingParams, door2, windowOp, fixture, prop, LINE_PARAMS, road, water, wall, area, tree, grid4, style2, label3, symbol3, overlay3, check3, facts3, renderOptions, render9, SETTLEMENT_OPS_LIST;
+var V3, next3, CELLS2, numberOf2, pointOf, OBJ, GEN_PARAMS2, list5, symbols3, fixtures, show5, create3, gen3, update3, edit3, editText, editJson, id, level, LEVEL, AT, SIZE, BUILDING_PARAMS, building2, interior, floor3, room2, KINDS_DOOR, connect2, disconnect2, openingParams, door2, windowOp, fixture2, prop, LINE_PARAMS, road, water, wall, area, tree, grid4, style2, label3, symbol3, overlay3, check3, facts3, renderOptions, render9, SETTLEMENT_OPS_LIST;
 var init_maps_settlement = __esm({
   "../artgen-cli/src/ops/maps-settlement.ts"() {
     "use strict";
@@ -36314,9 +38484,9 @@ var init_maps_settlement = __esm({
         if (i.interiors === true) base.gen.interiors = true;
         const at4 = i.path ? { file: i.path } : sid;
         if (typeof i.map === "string" && i.map) {
-          const mp = mapForSettlement(P2, at4, i.map), mspec = map_exports.parseMap(readJson(mp.path)), origin = Array.isArray(i.at) ? [Number(i.at[0]), Number(i.at[1])] : pointOf(i.at, "--at", false) ?? [0, 0];
+          const mp = mapForSettlement(P2, at4, i.map), mspec = map_exports.parseMap(readJson(mp.path)), origin2 = Array.isArray(i.at) ? [Number(i.at[0]), Number(i.at[1])] : pointOf(i.at, "--at", false) ?? [0, 0];
           const scale2 = Math.round(base.scale.perCell * settlement_exports.feetIn(base.scale.unit) / (mspec.scale.perCell * settlement_exports.feetIn(mspec.scale.unit)) * 1e4) / 1e4;
-          base.underlay = { map: mp.rel, origin, scale: scale2 };
+          base.underlay = { map: mp.rel, origin: origin2, scale: scale2 };
         }
         const spec = settlement_exports.parseSettlement(base);
         const m = i.mode === "empty" || i.empty === true ? spec : (() => {
@@ -36514,7 +38684,7 @@ ${next3(i, m.id)}`,
       { id: id("interior: <id>"), building: p.str("the building id", { positional: true }), action: p.str("clear", { positional: true }), seed: p.num("the layout seed"), stories: p.num("storeys") },
       (i) => [i.action === "clear" ? { op: "interior.clear", id: i.building } : { op: "interior", id: i.building, ...i.seed !== void 0 && { seed: i.seed }, ...i.stories !== void 0 && { stories: i.stories } }]
     );
-    floor2 = sugar(
+    floor3 = sugar(
       "floor",
       "Add or remove a floor of a building.",
       '       artgen settlement floor <id> <bid> add|rm --level n [--name "..."]',
@@ -36578,7 +38748,7 @@ ${next3(i, m.id)}`,
       { id: id("window: <id>"), ...openingParams() },
       (i) => [{ op: "window", building: i.building, level: level(i), at: pointOf(i.at, "--at"), ...i.kind && { kind: i.kind }, ...i.width !== void 0 && { width: i.width } }]
     );
-    fixture = sugar(
+    fixture2 = sugar(
       "fixture",
       "Add or remove a piece of furniture on a building's floor.",
       '       artgen settlement fixture <id> <bid> add <kind> --at x,y [--level n] [--size WxH] [--angle deg] [--label "..."] | rm <i> [--level n]',
@@ -36829,13 +38999,13 @@ ${next3(i, m.id)}`,
       edit3,
       building2,
       interior,
-      floor2,
+      floor3,
       room2,
       connect2,
       disconnect2,
       door2,
       windowOp,
-      fixture,
+      fixture2,
       prop,
       road,
       water,
@@ -37042,7 +39212,7 @@ var init_maps_tilemap = __esm({
 });
 
 // ../artgen-cli/src/ops/maps.ts
-var formats, MAP_OPS, MAP_NOTE, MAP_USAGE;
+var formats, schema, MAP_OPS, MAP_NOTE, MAP_USAGE;
 var init_maps2 = __esm({
   "../artgen-cli/src/ops/maps.ts"() {
     "use strict";
@@ -37066,7 +39236,26 @@ var init_maps2 = __esm({
       mcp: {},
       python: {}
     });
-    MAP_OPS = [...MAP_MAP_OPS, ...MAP_TRACE_OPS, ...DUNGEON_OPS_LIST, ...SETTLEMENT_OPS_LIST, ...TILEMAP_OPS, formats, ...WORKFLOW_OPS];
+    schema = defineOp({
+      name: "schema",
+      module: "maps",
+      effect: "read",
+      summary: "The JSON Schema of a dungeon, map or settlement file, or of a layout graph; --keys lists every key with its line, --checks the dungeon check ids.",
+      description: "The JSON Schema (draft 2020-12) of a file the map engines read: dungeon, map, settlement, or graph (the input of dungeon layout). keys: every key path with what it means instead; checks: the ids of dungeon check's findings with what each means.",
+      params: {
+        kind: p.oneOf(["dungeon", "map", "settlement", "graph"], "dungeon | map | settlement | graph", { positional: true, required: "schema <dungeon|map|settlement|graph>" }),
+        keys: p.bool("list every key path with its line instead of the schema"),
+        checks: p.bool("list the dungeon check ids instead")
+      },
+      run: (i) => i.checks ? { checks: DUNGEON_CHECKS } : i.keys ? { keys: schemaKeys(SCHEMAS[i.kind]).map(([key3, line3]) => ({ key: key3, line: line3 })) } : SCHEMAS[i.kind],
+      cli: {
+        usage: "       artgen schema dungeon|map|settlement|graph [--keys] [--checks]   the file's JSON Schema; --keys every key with its line; --checks the ids dungeon check gives",
+        text: (r) => r.checks ? Object.entries(r.checks).map(([k, v]) => `${k.padEnd(22)} ${v}`).join("\n") : r.keys ? r.keys.map((k) => `${k.key.padEnd(34)} ${k.line}`).join("\n") : JSON.stringify(r, null, 2)
+      },
+      mcp: {},
+      python: {}
+    });
+    MAP_OPS = [...MAP_MAP_OPS, ...MAP_TRACE_OPS, ...DUNGEON_OPS_LIST, ...SETTLEMENT_OPS_LIST, ...TILEMAP_OPS, formats, schema, ...WORKFLOW_OPS];
     MAP_NOTE = "       (map, dungeon and settlement commands take --file <path> in place of <id>: no project needed; renders go beside the file or to --out)";
     MAP_USAGE = `${MAP_OPS.flatMap(usageLines).join("\n")}
 ${MAP_NOTE}`;
@@ -37381,9 +39570,9 @@ async function animPreview(a, o = {}) {
 }
 function fxRun(dir, name, o) {
   const dc = dirContext(dir), [w, h] = o.size, fps = o.fps ?? dir.effects.fps, duration = o.frames * 1e3 / fps, sc = o.scale ?? 4;
-  const line2 = dir.line.outer === "none" ? false : (g) => dir.line.outer === "selout" ? post_exports.selout(g, Object.values(dc.pal), dc.outline) : post_exports.outline(g, dc.outline);
+  const line3 = dir.line.outer === "none" ? false : (g) => dir.line.outer === "selout" ? post_exports.selout(g, Object.values(dc.pal), dc.outline) : post_exports.outline(g, dc.outline);
   const layers = preset(name, { w, h, duration });
-  const frames = Array.from({ length: o.frames }, (_, i) => particles(dc, { w, h, t: i / o.frames, duration, layers, seed: o.seed ?? 1, line: line2 }));
+  const frames = Array.from({ length: o.frames }, (_, i) => particles(dc, { w, h, t: i / o.frames, duration, layers, seed: o.seed ?? 1, line: line3 }));
   mkdirSync18(o.out, { recursive: true });
   const strip2 = new Grid(o.frames * (w + 1) - 1, h);
   frames.forEach((f, i) => strip2.blit(f, i * (w + 1), 0));
@@ -37417,31 +39606,31 @@ function placeholderRun(a, o = {}) {
   writeFileSync23(file, JSON.stringify(ph, null, 2) + "\n");
   const r = renderAsset(placeholderModule(ph), { dir: a.dir, brief: a.brief }), png = join27(outDir(a), "placeholder.png"), sc = a.brief.review?.scale ?? 4;
   writeGrid(png, strip(r).scale(sc));
-  const key2 = placeholderKey(ph);
-  appendLedger(a.ledgerPath, { type: "stage", asset: a.brief.id, stage: "placeholder", event: "written", key: key2, by: "agent" });
-  return { file, png, key: key2, placeholder: ph, checks: placeholderChecks(ph, a.brief, a.dir) };
+  const key3 = placeholderKey(ph);
+  appendLedger(a.ledgerPath, { type: "stage", asset: a.brief.id, stage: "placeholder", event: "written", key: key3, by: "agent" });
+  return { file, png, key: key3, placeholder: ph, checks: placeholderChecks(ph, a.brief, a.dir) };
 }
 async function stagesRun(a, version) {
   const r = await renderVersion(a, version), ledger = ledgerFor(a), keys = r.stages.keys;
   const approval = [...ledger].reverse().find((e) => e.type === "approve" && e.by === "user" && e.stages && typeof e.stages === "object");
   const states2 = Object.fromEntries(STAGES.map((s2) => {
-    const key2 = keys[s2];
-    if (key2 === void 0) return [s2, "n/a"];
+    const key3 = keys[s2];
+    if (key3 === void 0) return [s2, "n/a"];
     if (s2 === "placeholder" || s2 === "shape") {
       const sv = stageState(ledger, s2);
-      if (sv.latest?.key === key2) return [s2, sv.latest.verdict === "approve" ? "approved" : "rejected"];
+      if (sv.latest?.key === key3) return [s2, sv.latest.verdict === "approve" ? "approved" : "rejected"];
       return [s2, stageVerdicts(ledger, s2).some((v) => v.verdict === "approve") ? "changed" : "new"];
     }
     const was = approval?.stages?.[s2];
-    return [s2, was === void 0 ? "new" : was === key2 ? "approved" : "changed"];
+    return [s2, was === void 0 ? "new" : was === key3 ? "approved" : "changed"];
   }));
   return { id: a.brief.id, version, keys, states: states2, checks: r.stages.checks, gates: gatesOf(a) };
 }
 async function stageVerdict(a, stage, verdict2, o = {}) {
-  let version = o.version, key2, checks;
+  let version = o.version, key3, checks;
   if (stage === "placeholder") {
     const ph = effectivePlaceholder(a);
-    key2 = placeholderKey(ph);
+    key3 = placeholderKey(ph);
     checks = placeholderChecks(ph, a.brief, a.dir);
     version = void 0;
   } else {
@@ -37455,7 +39644,7 @@ async function stageVerdict(a, stage, verdict2, o = {}) {
       if (!version) throw new Error(`${a.brief.id}: no scored base to ${verdict2} the ${stage} of \u2014 pass --version`);
     }
     const r = await renderVersion(a, version);
-    key2 = r.stages.keys.shape;
+    key3 = r.stages.keys.shape;
     checks = r.stages.checks.filter((c) => c.stage === "shape");
   }
   const failing = checks.filter((c) => c.status === "fail");
@@ -37465,7 +39654,7 @@ async function stageVerdict(a, stage, verdict2, o = {}) {
     asset: a.brief.id,
     stage,
     verdict: verdict2,
-    key: key2,
+    key: key3,
     ...version && { version },
     ...o.note && { note: o.note },
     ...verdict2 === "approve" && failing.length && { forced: true },
@@ -38371,8 +40560,8 @@ next: artgen make ${r.brief.id}`
       run(i, ctx) {
         const pr = ctx.project(), dir = ctx.surface === "mcp" ? requireLocked(pr) : lockedDirection(pr);
         if (!dir) throw new Error("brief lint: lock a direction first (it checks briefs against its ramps and templates)");
-        const want = Array.isArray(i.ids) ? i.ids : void 0;
-        return readBriefs(pr).filter((b) => !want?.length || want.includes(b.id)).map((b) => ({ id: b.id, warnings: briefWarnings(b, dir) })).filter((r) => r.warnings.length);
+        const want2 = Array.isArray(i.ids) ? i.ids : void 0;
+        return readBriefs(pr).filter((b) => !want2?.length || want2.includes(b.id)).map((b) => ({ id: b.id, warnings: briefWarnings(b, dir) })).filter((r) => r.warnings.length);
       },
       cli: { usage: [], text: (rows3) => rows3.length ? rows3.map((r) => `${r.id}:
 ${r.warnings.map((w) => `  ${w}`).join("\n")}`).join("\n") : "no brief warnings" },
@@ -38834,7 +41023,7 @@ function meanColor(img, m) {
   }
   return n ? [r / n, g / n, b / n] : [128, 128, 128];
 }
-var PLACE, rolesFor, num4, traceBase, isPicture, cut, IMAGE_ART_OPS;
+var PLACE, rolesFor, num42, traceBase, isPicture, cut, IMAGE_ART_OPS;
 var init_art_image = __esm({
   "../artgen-cli/src/ops/art-image.ts"() {
     "use strict";
@@ -38848,7 +41037,7 @@ var init_art_image = __esm({
     init_registry();
     PLACE = "writes a file from a picture by path outside the art/ sandbox";
     rolesFor = (dir, kind) => (kind && dir.palette.perKind[kind] || Object.keys(dir.palette.ramps)).filter((r) => dir.palette.ramps[r]);
-    num4 = (v) => String(Math.round(v * 1e4) / 1e4);
+    num42 = (v) => String(Math.round(v * 1e4) / 1e4);
     traceBase = defineOp({
       name: "trace-base",
       module: "art",
@@ -38880,7 +41069,7 @@ var init_art_image = __esm({
         const bw = Math.max(1, x1 - x0), bh = Math.max(1, y1 - y0), scale2 = Math.min((W3 - 2 * margin) / bw, (H - 2 * margin) / bh);
         if (!(scale2 > 0)) throw new Error(`--margin ${margin} leaves no room in a ${W3}x${H} frame`);
         const ox = (W3 - bw * scale2) / 2 - x0 * scale2, oy = (i.anchor === "bottom" ? H - margin - bh * scale2 : (H - bh * scale2) / 2) - y0 * scale2;
-        const ring2 = (r) => `[${Array.from(r.points, (v, k) => num4(k % 2 ? (v * scale2 + oy) / H : (v * scale2 + ox) / W3)).join(",")}]`;
+        const ring2 = (r) => `[${Array.from(r.points, (v, k) => num42(k % 2 ? (v * scale2 + oy) / H : (v * scale2 + ox) / W3)).join(",")}]`;
         const n = Math.max(0, ...versionsIn(a).map((v) => parseVersion(v)).filter((v) => v?.kind === "base").map((v) => v.n)) + 1, version = `base.v${n}`;
         const file = join31(a.path, `${version}.js`), holes = t.shapes.reduce((c, s2) => c + s2.holes.length, 0), from = String(i.image).split(/[\\/]/).pop().replace(/[^\w.\- ]/g, "_");
         const source = [
@@ -38971,10 +41160,10 @@ next: artgen render ${r.asset} --version ${r.version}, then review it`,
           id2 = a.brief.id;
           source = `${a.brief.id} ${version}`;
         }
-        const flat2 = i.fill === "flat", colored = flat2 ? silhouetteImage(mask, normHex(i.color ?? "#000000")) : applyMask(img, mask);
+        const flat3 = i.fill === "flat", colored = flat3 ? silhouetteImage(mask, normHex(i.color ?? "#000000")) : applyMask(img, mask);
         const token = cropToken(colored, { padding: i.padding ?? 8, square: i.square === true, scale: i.scale ?? 1 });
         writePicture(out, token);
-        return { id: id2, source, out, width: token.w, height: token.h, fill: flat2 ? "flat" : "art" };
+        return { id: id2, source, out, width: token.w, height: token.h, fill: flat3 ? "flat" : "art" };
       },
       cli: {
         usage: "       artgen cut <asset|image.png> [--out file.png] [--fill art|flat] [--color #rrggbb] [--padding px] [--square] [--scale n]   (asset: [--version v] [--draft] [--state s] [--facing f] [--frame n]; picture: [--threshold otsu|0-255] [--invert] [--smoothing n] [--keep-all])",
@@ -39077,9 +41266,9 @@ function parseReviewComment(text3, ids) {
       if (raw.replace(/^[\s>]+/, "")) ignored.push(raw.trim());
       continue;
     }
-    const line2 = raw.replace(/^[\s*\-+]+(?=\S)/, "").replace(/^\d+[.)]\s+/, "").replace(/[`*]/g, "").trim();
-    if (!line2) continue;
-    const ap = line2.match(/^approve\s+(.+)$/i), fb = line2.match(/^([\w-]+)\s*:\s*(?:(base|finish|shape|placeholder)\s*:\s*)?(.+)$/i);
+    const line3 = raw.replace(/^[\s*\-+]+(?=\S)/, "").replace(/^\d+[.)]\s+/, "").replace(/[`*]/g, "").trim();
+    if (!line3) continue;
+    const ap = line3.match(/^approve\s+(.+)$/i), fb = line3.match(/^([\w-]+)\s*:\s*(?:(base|finish|shape|placeholder)\s*:\s*)?(.+)$/i);
     const st = ap?.[1].trim().match(/^([\w-]+)\s+(shape|placeholder)(?:\s+(?:[—–-]\s+|#\s+)(.*))?$/i);
     if (st && known.has(st[1]) && !known.has(st[2].toLowerCase())) {
       actions.push({ type: "stage-approve", id: st[1], stage: st[2].toLowerCase(), note: (st[3] ?? "").trim() });
@@ -39515,11 +41704,11 @@ __export(server_exports, {
 import { existsSync as existsSync28, readdirSync as readdirSync14 } from "node:fs";
 import { isAbsolute, join as join34, relative as relative13, resolve as resolve20 } from "node:path";
 function mcpTool(op) {
-  const m = mcpOf(op), schema = inputSchema(op), known = new Set(Object.keys(schema.properties));
+  const m = mcpOf(op), schema2 = inputSchema(op), known = new Set(Object.keys(schema2.properties));
   return {
     name: mcpName(op),
     description: op.description ?? op.summary,
-    inputSchema: schema,
+    inputSchema: schema2,
     annotations: { readOnlyHint: op.effect === "read" },
     // only the arguments the schema lists reach the operation: a command-line-only one (`path`, `ledger`, `out`, `across`) names a file outside the sandbox
     async run(given, p2) {
@@ -39587,13 +41776,13 @@ function serve(input = process.stdin, output = process.stdout, cwd = process.cwd
     buf += chunk3;
     let i;
     while ((i = buf.indexOf("\n")) >= 0) {
-      const line2 = buf.slice(0, i).trim();
+      const line3 = buf.slice(0, i).trim();
       buf = buf.slice(i + 1);
-      if (!line2) continue;
+      if (!line3) continue;
       chain = chain.then(async () => {
         let msg;
         try {
-          msg = JSON.parse(line2);
+          msg = JSON.parse(line3);
         } catch {
           write2({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "parse error" } });
           return;
