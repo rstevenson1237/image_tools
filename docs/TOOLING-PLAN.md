@@ -823,7 +823,7 @@ faster for the phases after it.
     exports from other repos are added by hand, not fetched; Firefox and Safari themselves; the web map editors do not take their forms from the registry
     (they edit through their own shared vocabularies).
 
-### R9 — The dungeon engine to a consumer's brief (L) — proposed 2026-11-02
+### R9 — The dungeon engine to a consumer's brief (L) — built 2026-11-02, released in 0.12.0
 - setting_builder's report 2 lists what its dungeon levels needed from the engine, and the ~1,400 lines of Python it
   wrote instead. The plan, in phases D0–D7, is [`DUNGEON-PLAN.md`](DUNGEON-PLAN.md). D0 fixes six install and
   feedback-loop faults found while installing `7c2f5fc` as setting_builder's `maps` module.

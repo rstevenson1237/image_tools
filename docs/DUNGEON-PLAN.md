@@ -1,6 +1,7 @@
 # Dungeon engine plan: the consumer's report 2 (R9)
 
-Status: proposal, 2026-11-02. Nothing here is built.
+Status: built, 2026-11-02, released in artgen 0.12.0 (mapgen 0.12.0, dungeon format 2). §9 says what was built and where it
+differs from the plan.
 
 Source: setting_builder's `plans/dungeon-maps/report-artgen.md` ("report 2"), written against artgen-maps 0.11.0 built
 from `1eb8e45`. It was checked again against `7c2f5fc`, the build now on `artgen-dist`. Since `1eb8e45` the dungeon engine
@@ -185,3 +186,28 @@ for D3's wall ports. D5 can be moved up if a consumer is blocked on undocumented
   seed's output as facts, not pixels.
 - **The consumer keeps its own rules.** The setting's own rules (BRIEF.md's detour, where a stair goes) stay in
   setting_builder and are passed as parameters. The engine takes numbers, not setting terms.
+
+## 9. Built (2026-11-02)
+
+Every phase is built, in the order D0, D1, D2, D3, D4, D7, D6, D5 (D7 before D6: the router needs its `bounds` and `areas`).
+What differs from the plan above:
+
+- **D0.** `report --file` writes to `artgen-feedback/<date>-<id>/` at the repo root, and the folder holds its own `.gitignore` (`*`)
+  rather than the installer editing the consumer's. The build is recorded in `modules.json` and `MANIFEST.json`; `VERSION` stays the
+  release. `--claude-md none` and a files-layout CLAUDE.md fragment for maps-only repos with no `art/`.
+- **D1.** One more check than planned: `reenters-room` (a corridor that leaves a room and runs back into it over rock, the L's notch
+  case of A13). `check --errors id,…|all` raises chosen warnings. `doors-stacked` compares the doors' openings as segments, so two doors
+  meeting corner to corner at a room's corner are not stacked.
+- **D2.** `style.sharedWalls` takes `true | "rooms" | false`; the 1 -> 2 migration writes `"rooms"` (format 1's `true`) or `false`, so
+  every format 1 file draws as before, byte for byte (tested on the generated and Keep renders).
+- **D3.** The end is `{room, port: [x, y]}`, not `{room, at}`: `at` already marks a point end everywhere in the engine. An `auto`
+  corridor between rooms that line up runs straight only where the run starts inside both rooms.
+- **D4.** A moved label's middle stays inside its room; in a narrow hall a label overhangs the walls wherever it stands.
+- **D5.** The schemas are declared once (`schema.ts`) and held to the validators by a test that records every key each validator reads;
+  the validators are not generated from them (their messages are part of what consumers read). `formats --json` keeps its shape; the side
+  limits are in the schemas.
+- **D6.** The router (`router.ts`) and the packer (`graph.ts`) are ports of `route.py` and `pack.py`. A layout routes with clearance 0
+  (a passage may run along a wall, which D2 now draws), which is what lets H.a pack at all. Measured on setting_builder's ten levels at the
+  brief's footprints, 12 tries each: every way routes, none past its detour, `check` clean, 1.4 to 9.6 s a block on one core (G and H
+  over the 5 s target; `pack.py` took about 30 s on four cores). With the footprint unset the rooms reach about 55% of the square.
+- **D7.** As planned; `formats --json` is unchanged (see D5).
