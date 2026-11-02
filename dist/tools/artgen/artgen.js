@@ -2377,8 +2377,8 @@ var init_resvg_wasm = __esm({
           wasm.renderedimage_asPng(retptr, this.__wbg_ptr);
           var r0 = getInt32Memory0()[retptr / 4 + 0];
           var r13 = getInt32Memory0()[retptr / 4 + 1];
-          var r24 = getInt32Memory0()[retptr / 4 + 2];
-          if (r24) {
+          var r26 = getInt32Memory0()[retptr / 4 + 2];
+          if (r26) {
             throw takeObject(r13);
           }
           return takeObject(r0);
@@ -2422,8 +2422,8 @@ var init_resvg_wasm = __esm({
           wasm.resvg_new(retptr, addHeapObject(svg4), ptr0, len0, isLikeNone(custom_font_buffers) ? 0 : addHeapObject(custom_font_buffers));
           var r0 = getInt32Memory0()[retptr / 4 + 0];
           var r13 = getInt32Memory0()[retptr / 4 + 1];
-          var r24 = getInt32Memory0()[retptr / 4 + 2];
-          if (r24) {
+          var r26 = getInt32Memory0()[retptr / 4 + 2];
+          if (r26) {
             throw takeObject(r13);
           }
           this.__wbg_ptr = r0 >>> 0;
@@ -2458,8 +2458,8 @@ var init_resvg_wasm = __esm({
           wasm.resvg_render(retptr, this.__wbg_ptr);
           var r0 = getInt32Memory0()[retptr / 4 + 0];
           var r13 = getInt32Memory0()[retptr / 4 + 1];
-          var r24 = getInt32Memory0()[retptr / 4 + 2];
-          if (r24) {
+          var r26 = getInt32Memory0()[retptr / 4 + 2];
+          if (r26) {
             throw takeObject(r13);
           }
           return RenderedImage.__wrap(r0);
@@ -2525,8 +2525,8 @@ var init_resvg_wasm = __esm({
           wasm.resvg_imagesToResolve(retptr, this.__wbg_ptr);
           var r0 = getInt32Memory0()[retptr / 4 + 0];
           var r13 = getInt32Memory0()[retptr / 4 + 1];
-          var r24 = getInt32Memory0()[retptr / 4 + 2];
-          if (r24) {
+          var r26 = getInt32Memory0()[retptr / 4 + 2];
+          if (r26) {
             throw takeObject(r13);
           }
           return takeObject(r0);
@@ -2933,9 +2933,9 @@ function parsePath(d, tol = 0.5) {
     if (t === void 0 || /^[a-zA-Z]$/.test(t)) throw new Error(`path: expected a number near token ${i} in "${d.slice(0, 40)}"`);
     return +t;
   };
-  const pt3 = (rel3) => {
+  const pt3 = (rel4) => {
     const x = num5(), y = num5();
-    return rel3 ? [cur[0] + x, cur[1] + y] : [x, y];
+    return rel4 ? [cur[0] + x, cur[1] + y] : [x, y];
   };
   const lineTo = (p2) => {
     if (!sub6) {
@@ -2948,13 +2948,13 @@ function parsePath(d, tol = 0.5) {
   while (i < toks.length) {
     if (/[a-zA-Z]/.test(toks[i])) cmd = toks[i++];
     else if (!cmd) throw new Error(`path: data must start with a command: "${d.slice(0, 40)}"`);
-    const rel3 = cmd === cmd.toLowerCase(), C3 = cmd.toUpperCase();
+    const rel4 = cmd === cmd.toLowerCase(), C3 = cmd.toUpperCase();
     if (C3 === "M") {
-      cur = pt3(rel3);
+      cur = pt3(rel4);
       start = cur;
       sub6 = [cur];
       out.push(sub6);
-      cmd = rel3 ? "l" : "L";
+      cmd = rel4 ? "l" : "L";
       lastCtrl = null;
       lastCmd = "M";
       continue;
@@ -2969,19 +2969,19 @@ function parsePath(d, tol = 0.5) {
       lastCmd = "Z";
       continue;
     }
-    if (C3 === "L") lineTo(pt3(rel3));
+    if (C3 === "L") lineTo(pt3(rel4));
     else if (C3 === "H") {
       const x = num5();
-      lineTo([rel3 ? cur[0] + x : x, cur[1]]);
+      lineTo([rel4 ? cur[0] + x : x, cur[1]]);
     } else if (C3 === "V") {
       const y = num5();
-      lineTo([cur[0], rel3 ? cur[1] + y : y]);
+      lineTo([cur[0], rel4 ? cur[1] + y : y]);
     } else if (C3 === "C" || C3 === "S") {
       const p0 = cur;
       let c1;
-      if (C3 === "C") c1 = pt3(rel3);
+      if (C3 === "C") c1 = pt3(rel4);
       else c1 = lastCtrl && (lastCmd === "C" || lastCmd === "S") ? [2 * p0[0] - lastCtrl[0], 2 * p0[1] - lastCtrl[1]] : p0;
-      const c2 = pt3(rel3), p3 = pt3(rel3);
+      const c2 = pt3(rel4), p3 = pt3(rel4);
       const n = segs(Math.hypot(c1[0] - p0[0], c1[1] - p0[1]) + Math.hypot(c2[0] - c1[0], c2[1] - c1[1]) + Math.hypot(p3[0] - c2[0], p3[1] - c2[1]), tol);
       for (let k = 1; k <= n; k++) {
         const t = k / n, u = 1 - t;
@@ -2990,8 +2990,8 @@ function parsePath(d, tol = 0.5) {
       lastCtrl = c2;
     } else if (C3 === "Q" || C3 === "T") {
       const p0 = cur;
-      const c = C3 === "Q" ? pt3(rel3) : lastCtrl && (lastCmd === "Q" || lastCmd === "T") ? [2 * p0[0] - lastCtrl[0], 2 * p0[1] - lastCtrl[1]] : p0;
-      const p2 = pt3(rel3);
+      const c = C3 === "Q" ? pt3(rel4) : lastCtrl && (lastCmd === "Q" || lastCmd === "T") ? [2 * p0[0] - lastCtrl[0], 2 * p0[1] - lastCtrl[1]] : p0;
+      const p2 = pt3(rel4);
       const n = segs(Math.hypot(c[0] - p0[0], c[1] - p0[1]) + Math.hypot(p2[0] - c[0], p2[1] - c[1]), tol);
       for (let k = 1; k <= n; k++) {
         const t = k / n, u = 1 - t;
@@ -2999,7 +2999,7 @@ function parsePath(d, tol = 0.5) {
       }
       lastCtrl = c;
     } else if (C3 === "A") {
-      const rx0 = num5(), ry0 = num5(), rotDeg = num5(), large = num5(), sweep2 = num5(), p2 = pt3(rel3);
+      const rx0 = num5(), ry0 = num5(), rotDeg = num5(), large = num5(), sweep2 = num5(), p2 = pt3(rel4);
       arcTo(cur, p2, rx0, ry0, rotDeg, !!large, !!sweep2, tol).forEach(lineTo);
       lastCtrl = null;
     } else throw new Error(`path: unsupported command ${cmd}`);
@@ -3060,10 +3060,10 @@ function capsulePts(a, b, r0, r13 = r0, tol = 0.25) {
   const off = Math.asin(Math.max(-1, Math.min(1, (r0 - r13) / len3))) * 180 / Math.PI;
   return [...ellipsePts(b[0], b[1], r13, r13, tol, ang - 90 + off, ang + 90 - off), ...ellipsePts(a[0], a[1], r0, r0, tol, ang + 90 - off, ang + 270 + off)];
 }
-function starPts(cx, cy, r, r24, n, rotDeg = -90) {
+function starPts(cx, cy, r, r26, n, rotDeg = -90) {
   const out = [];
   for (let k = 0; k < n * 2; k++) {
-    const t = (rotDeg + k * 180 / n) * Math.PI / 180, rr = k % 2 ? r24 : r;
+    const t = (rotDeg + k * 180 / n) * Math.PI / 180, rr = k % 2 ? r26 : r;
     out.push([cx + rr * Math.cos(t), cy + rr * Math.sin(t)]);
   }
   return out;
@@ -3226,9 +3226,9 @@ var init_geom = __esm({
       }
       /** Grow by `r` samples (Euclidean). */
       dilate(r) {
-        const out = new _Mask(this.w, this.h, this.s), e = this.windowEdt(Math.ceil(r), 1, false), r24 = r * r + 1e-6;
+        const out = new _Mask(this.w, this.h, this.s), e = this.windowEdt(Math.ceil(r), 1, false), r26 = r * r + 1e-6;
         if (e) {
-          for (let y = 0; y < e.wh; y++) for (let x = 0; x < e.ww; x++) if (e.dist[y * e.ww + x] <= r24) out.d[(y + e.y0) * this.w + x + e.x0] = 1;
+          for (let y = 0; y < e.wh; y++) for (let x = 0; x < e.ww; x++) if (e.dist[y * e.ww + x] <= r26) out.d[(y + e.y0) * this.w + x + e.x0] = 1;
         }
         return out;
       }
@@ -3410,7 +3410,7 @@ var init_raster = __esm({
       /** Build a raster from finished pixels: each colour maps to the first direction ramp holding it. */
       static fromGrid(g, ramps, ink, bands2 = 99) {
         const byColor = /* @__PURE__ */ new Map();
-        for (const [name, r4] of Object.entries(ramps)) r4.forEach((c, i) => {
+        for (const [name, r5] of Object.entries(ramps)) r5.forEach((c, i) => {
           const k = normHex(c);
           if (!byColor.has(k)) byColor.set(k, [name, i]);
         });
@@ -3605,7 +3605,7 @@ function parseDirection(input) {
 }
 function dirContext(dir) {
   const pal = {};
-  for (const [k, r4] of Object.entries(dir.palette.ramps)) pal[k] = r4.map(normHex);
+  for (const [k, r5] of Object.entries(dir.palette.ramps)) pal[k] = r5.map(normHex);
   const [r, g, b] = parseColor(dir.palette.shadow.color);
   return { ...dir, pal, outline: normHex(dir.palette.outline), shadow: `rgba(${r},${g},${b},${dir.palette.shadow.alpha})` };
 }
@@ -3703,6 +3703,30 @@ var init_camera = __esm({
   }
 });
 
+// ../artgen-primitives/src/lib/viewmap.ts
+function tileShapeProblem(view, w, h) {
+  const m = VIEW_MAPS[view];
+  if (!m) return `the ${view} view has no tile maps (have: ${Object.keys(VIEW_MAPS).join(", ")})`;
+  if (m.tile === "diamond") return w % 2 ? `iso tiles are an even width (${w} px)` : h < w / 2 ? `an iso tile is at least half as tall as it is wide (${w}\xD7${h} px)` : null;
+  if (h < w) return `a ${view} tile is at least as tall as it is wide (${w}\xD7${h} px)`;
+  return (view === "topdown" || view === "fp" || view === "stack") && h !== w ? `a ${view} tile is square (${w}\xD7${h} px)` : null;
+}
+var SQUARE, VIEW_MAPS;
+var init_viewmap = __esm({
+  "../artgen-primitives/src/lib/viewmap.ts"() {
+    "use strict";
+    SQUARE = { tiled: "orthogonal", tile: "square", ldtk: true };
+    VIEW_MAPS = {
+      topdown: SQUARE,
+      oblique: SQUARE,
+      stack: SQUARE,
+      side: SQUARE,
+      fp: SQUARE,
+      iso: { tiled: "isometric", tile: "diamond", ldtk: false }
+    };
+  }
+});
+
 // ../artgen-scene/src/views/views.ts
 function tones(dir, ramp2) {
   const r = dir.palette.ramps[ramp2] ?? Object.values(dir.palette.ramps)[0];
@@ -3769,19 +3793,101 @@ function parallaxStrip(layers, viewW, offsets = [0, 24, 48]) {
 function viewContext(view, w, h, dir) {
   return VIEW_MODULES[view]?.context?.(w, h, dir);
 }
-var VIEW_MODULES;
+var KINDS, VIEW_MODULES;
 var init_views = __esm({
   "../artgen-scene/src/views/views.ts"() {
     "use strict";
     init_grid();
     init_iso();
+    init_viewmap();
+    init_viewmap();
+    KINDS = (view, kinds) => kinds.map((k) => `${view}/${k}`);
     VIEW_MODULES = {
-      topdown: { id: "topdown", projection: "orthographic, straight down", anchor: "center", sort: "none (or y)", runtime: ["ArtSprite.face"], render3d: { renderer: "raster", view: "topdown" } },
-      oblique: { id: "oblique", projection: "top + front face; a cube shows top : front = (1/frontRatio \u2212 1) : 1, heights at full size", anchor: "feet", sort: "by ground row (y), then z", runtime: ["obliqueToScreen", "obliqueDepth"], context: obliqueRoom, render3d: { renderer: "raster", view: "oblique" } },
-      iso: { id: "iso", projection: "2:1 dimetric: x \u2192 (2, 1), y \u2192 (\u22122, 1), z \u2192 (0, \u22122) px", anchor: "feet", sort: "x + y, then z", runtime: ["isoToScreen", "screenToIso", "depthKey"], context: (w, h) => isoFloor(w, h), render3d: { renderer: "cubes", view: "iso" } },
-      stack: { id: "stack", projection: "voxel z-slices, top-down; drawn rotated and stepped up", anchor: "center", sort: "y of the base", runtime: ["pack.stack", "StackSprite"], render3d: { renderer: "raster", view: "topdown" } },
-      side: { id: "side", projection: "orthographic side view; parallax layers scroll by depth", anchor: "feet", sort: "layer, then x", runtime: ["parallaxTiles"], context: sideStrip, render3d: { renderer: "raster", view: "side" } },
-      fp: { id: "fp", projection: "raycaster: assets are wall / floor textures, 8-direction billboards and view-models", anchor: "feet", sort: "distance (raycaster)", runtime: ["three billboards", "tileTexture"], render3d: { renderer: "raster", view: "billboard" } }
+      topdown: {
+        id: "topdown",
+        projection: "orthographic, straight down",
+        anchor: "center",
+        sort: "none (or y)",
+        runtime: ["ArtSprite.face", "TileSet"],
+        render3d: { renderer: "raster", view: "topdown" },
+        brief: true,
+        probes: KINDS("topdown", ["character", "prop", "tile", "effect"]),
+        checks: ["tile-shape"],
+        map: VIEW_MAPS.topdown
+      },
+      oblique: {
+        id: "oblique",
+        projection: "top + front face; a cube shows top : front = (1/frontRatio \u2212 1) : 1, heights at full size",
+        anchor: "feet",
+        sort: "by ground row (y), then z",
+        runtime: ["obliqueToScreen", "obliqueDepth"],
+        context: obliqueRoom,
+        render3d: { renderer: "raster", view: "oblique" },
+        brief: true,
+        probes: KINDS("topdown", ["character", "prop", "tile", "effect"]),
+        checks: ["tile-shape"],
+        map: VIEW_MAPS.oblique
+      },
+      iso: {
+        id: "iso",
+        projection: "2:1 dimetric: x \u2192 (2, 1), y \u2192 (\u22122, 1), z \u2192 (0, \u22122) px",
+        anchor: "feet",
+        sort: "x + y, then z",
+        runtime: ["isoToScreen", "screenToIso", "depthKey"],
+        context: (w, h) => isoFloor(w, h),
+        render3d: { renderer: "cubes", view: "iso" },
+        brief: true,
+        probes: KINDS("iso", ["character", "prop", "tile", "effect"]),
+        checks: ["tile-shape"],
+        map: VIEW_MAPS.iso
+      },
+      stack: {
+        id: "stack",
+        projection: "voxel z-slices, top-down; drawn rotated and stepped up",
+        anchor: "center",
+        sort: "y of the base",
+        runtime: ["pack.stack", "StackSprite"],
+        render3d: { renderer: "raster", view: "topdown" },
+        brief: true,
+        probes: KINDS("topdown", ["character", "prop", "tile", "effect"]),
+        checks: ["tile-shape"],
+        map: VIEW_MAPS.stack
+      },
+      side: {
+        id: "side",
+        projection: "orthographic side view; parallax layers scroll by depth",
+        anchor: "feet",
+        sort: "layer, then x",
+        runtime: ["parallaxTiles"],
+        context: sideStrip,
+        render3d: { renderer: "raster", view: "side" },
+        brief: true,
+        probes: KINDS("topdown", ["character", "prop", "tile", "effect"]),
+        checks: ["tile-shape"],
+        map: VIEW_MAPS.side
+      },
+      fp: {
+        id: "fp",
+        projection: "raycaster: assets are wall / floor textures, 8-direction billboards and view-models",
+        anchor: "feet",
+        sort: "distance (raycaster)",
+        runtime: ["three billboards", "tileTexture"],
+        render3d: { renderer: "raster", view: "billboard" },
+        brief: true,
+        probes: KINDS("fp", ["character", "texture", "effect", "viewmodel"]),
+        checks: ["tile-shape"],
+        map: VIEW_MAPS.fp
+      },
+      free: {
+        id: "free",
+        projection: "perspective orbit camera: any yaw, pitch and distance; assets are meshes (.glb) with baked textures",
+        anchor: "feet",
+        sort: "depth buffer",
+        runtime: ["GLTFLoader (a static .glb from artgen mesh)", "voxelModel", "riggedModel"],
+        brief: false,
+        probes: ["fp/character-rigged"],
+        checks: ["mesh-closed", "mesh-budget", "mesh-scale", "uv-bounds", "uv-overlap", "texel-density", "skin-weights", "skin-bound", "clip-lengths", "skin-stretch", "lod-budget"]
+      }
     };
   }
 });
@@ -4386,7 +4492,7 @@ var init_lsystem = __esm({
   }
 });
 
-// ../artgen-scene/src/tex/autotile.ts
+// ../artgen-primitives/src/lib/autobits.ts
 function reduceCorners(m) {
   let r = m & (N | E | S | W);
   if (m & NE && m & N && m & E) r |= NE;
@@ -4394,6 +4500,15 @@ function reduceCorners(m) {
   if (m & SW && m & S && m & W) r |= SW;
   if (m & NW && m & N && m & W) r |= NW;
   return r;
+}
+function neighbourMask(x, y, same2) {
+  let m = 0;
+  for (const [dx, dy, bit] of NEIGHBOURS) if (same2(x + dx, y + dy)) m |= bit;
+  return m;
+}
+function autotileIndexOf(layout2, mask) {
+  if (layout2 === "wang16") return (mask & N ? 1 : 0) | (mask & E ? 2 : 0) | (mask & S ? 4 : 0) | (mask & W ? 8 : 0);
+  return BLOB_INDEX.get(reduceCorners(mask & 255));
 }
 function autotileMask(layout2, index) {
   if (layout2 === "blob47") {
@@ -4404,6 +4519,32 @@ function autotileMask(layout2, index) {
   if (index < 0 || index > 15) throw new Error(`wang16 has 16 tiles (index ${index})`);
   return (index & 1 ? N : 0) | (index & 2 ? E : 0) | (index & 4 ? S : 0) | (index & 8 ? W : 0);
 }
+function cellHash(x, y, n, seed = 0) {
+  let h = (Math.imul(x | 0, 668265261) ^ Math.imul(y | 0, 374761393) ^ Math.imul(seed | 0, 2654435761)) >>> 0;
+  h = Math.imul(h ^ h >>> 15, 2246822507) >>> 0;
+  h = Math.imul(h ^ h >>> 13, 3266489909) >>> 0;
+  return n > 0 ? ((h ^ h >>> 16) >>> 0) % n : 0;
+}
+var N, NE, E, SE, S, SW, W, NW, NEIGHBOURS, BLOB47, BLOB_INDEX, autotileCount;
+var init_autobits = __esm({
+  "../artgen-primitives/src/lib/autobits.ts"() {
+    "use strict";
+    N = 1;
+    NE = 2;
+    E = 4;
+    SE = 8;
+    S = 16;
+    SW = 32;
+    W = 64;
+    NW = 128;
+    NEIGHBOURS = [[0, -1, N], [1, -1, NE], [1, 0, E], [1, 1, SE], [0, 1, S], [-1, 1, SW], [-1, 0, W], [-1, -1, NW]];
+    BLOB47 = [...new Set(Array.from({ length: 256 }, (_, m) => reduceCorners(m)))].sort((a, b) => a - b);
+    BLOB_INDEX = new Map(BLOB47.map((m, i) => [m, i]));
+    autotileCount = (layout2) => layout2 === "blob47" ? 47 : 16;
+  }
+});
+
+// ../artgen-scene/src/tex/autotile.ts
 function autotileCovers(m, x, y, s2, o) {
   const px = x + 0.5, py = y + 0.5, { inset, wobble, seed } = o;
   const along2 = (t, k) => wobble * (pGradient(t, 0, { w: s2, h: s2, cells: 2, octaves: 2, seed: seed + k }) - 0.5) * 2;
@@ -4492,26 +4633,13 @@ function autotileMap(tiles, layout2, base, cells = 8, seed = 3) {
   }
   return g;
 }
-function autotileIndexOf(layout2, mask) {
-  if (layout2 === "wang16") return (mask & N ? 1 : 0) | (mask & E ? 2 : 0) | (mask & S ? 4 : 0) | (mask & W ? 8 : 0);
-  return BLOB47.indexOf(reduceCorners(mask & 255));
-}
-var N, NE, E, SE, S, SW, W, NW, BLOB47, autotileCount;
 var init_autotile = __esm({
   "../artgen-scene/src/tex/autotile.ts"() {
     "use strict";
     init_grid();
     init_noise();
-    N = 1;
-    NE = 2;
-    E = 4;
-    SE = 8;
-    S = 16;
-    SW = 32;
-    W = 64;
-    NW = 128;
-    BLOB47 = [...new Set(Array.from({ length: 256 }, (_, m) => reduceCorners(m)))].sort((a, b) => a - b);
-    autotileCount = (layout2) => layout2 === "blob47" ? 47 : 16;
+    init_autobits();
+    init_autobits();
   }
 });
 
@@ -4519,8 +4647,8 @@ var init_autotile = __esm({
 function inv3(m) {
   const [a, b, c] = m, det = dot3(a, cross3(b, c));
   if (Math.abs(det) < 1e-12) throw new Error("voxel raster: degenerate camera");
-  const r0 = cross3(b, c), r13 = cross3(c, a), r24 = cross3(a, b);
-  return [[r0[0] / det, r13[0] / det, r24[0] / det], [r0[1] / det, r13[1] / det, r24[1] / det], [r0[2] / det, r13[2] / det, r24[2] / det]];
+  const r0 = cross3(b, c), r13 = cross3(c, a), r26 = cross3(a, b);
+  return [[r0[0] / det, r13[0] / det, r26[0] / det], [r0[1] / det, r13[1] / det, r26[1] / det], [r0[2] / det, r13[2] / det, r26[2] / det]];
 }
 function smoothNormal(g, v, r) {
   let x = 0, y = 0, z = 0;
@@ -4943,7 +5071,7 @@ function voxelGlb(set2, o = {}) {
   const quads = greedyMesh(set2), s2 = o.scale ?? 0.1, g = new VoxelGrid(set2), [cx, cy] = g.pivot();
   const toGl = (p2) => [(p2[0] - cx) * s2, p2[2] * s2, (p2[1] - cy) * s2];
   const nToGl = (n) => [n[0], n[2], n[1]];
-  const bins = [], json = {
+  const bins = [], json2 = {
     asset: { version: "2.0", generator: "artgen" },
     scene: 0,
     scenes: [{ nodes: [0] }],
@@ -4957,10 +5085,10 @@ function voxelGlb(set2, o = {}) {
   let offset = 0;
   const view = (bytes, target) => {
     const pad = (4 - bytes.length % 4) % 4;
-    json.bufferViews.push({ buffer: 0, byteOffset: offset, byteLength: bytes.length, target });
+    json2.bufferViews.push({ buffer: 0, byteOffset: offset, byteLength: bytes.length, target });
     bins.push([...bytes, ...new Array(pad).fill(0)]);
     offset += bytes.length + pad;
-    return json.bufferViews.length - 1;
+    return json2.bufferViews.length - 1;
   };
   set2.mats.forEach((ramp2, mi) => {
     const qs = quads.filter((q) => q.mat === mi);
@@ -4981,23 +5109,23 @@ function voxelGlb(set2, o = {}) {
     });
     const pv = view(new Uint8Array(pos.buffer), 34962), nv = view(new Uint8Array(nor.buffer), 34962), iv = view(new Uint8Array(idx.buffer), 34963);
     const acc = (bufferView, componentType, count, type, extra = {}) => {
-      json.accessors.push({ bufferView, componentType, count, type, ...extra });
-      return json.accessors.length - 1;
+      json2.accessors.push({ bufferView, componentType, count, type, ...extra });
+      return json2.accessors.length - 1;
     };
     const [r, gg, b] = parseColor(ramp2[ramp2.length >> 1]);
-    json.materials.push({ name: `mat${mi}`, pbrMetallicRoughness: { baseColorFactor: [srgbToLinear(r), srgbToLinear(gg), srgbToLinear(b), 1], metallicFactor: 0, roughnessFactor: 1 } });
-    json.meshes[0].primitives.push({
+    json2.materials.push({ name: `mat${mi}`, pbrMetallicRoughness: { baseColorFactor: [srgbToLinear(r), srgbToLinear(gg), srgbToLinear(b), 1], metallicFactor: 0, roughnessFactor: 1 } });
+    json2.meshes[0].primitives.push({
       attributes: { POSITION: acc(pv, 5126, qs.length * 4, "VEC3", { min, max: max2 }), NORMAL: acc(nv, 5126, qs.length * 4, "VEC3") },
       indices: acc(iv, 5125, qs.length * 6, "SCALAR"),
-      material: json.materials.length - 1
+      material: json2.materials.length - 1
     });
   });
   const bin = new Uint8Array(bins.flat());
-  json.buffers.push({ byteLength: bin.length });
-  return glbBytes(json, bin);
+  json2.buffers.push({ byteLength: bin.length });
+  return glbBytes(json2, bin);
 }
-function glbBytes(json, bin) {
-  let text2 = JSON.stringify(json);
+function glbBytes(json2, bin) {
+  let text2 = JSON.stringify(json2);
   while (text2.length % 4) text2 += " ";
   const jb = new TextEncoder().encode(text2), total = 12 + 8 + jb.length + 8 + bin.length;
   const out = new Uint8Array(total), dv = new DataView(out.buffer);
@@ -5056,8 +5184,8 @@ var init_scene = __esm({
         return this;
       }
       /** Convenience: a group node. */
-      group(props, children) {
-        return { ...props, type: "group", children };
+      group(props2, children) {
+        return { ...props2, type: "group", children };
       }
       get mode() {
         const m = this.opts.mode ?? "auto";
@@ -6181,12 +6309,12 @@ function rig(def) {
     order.push(n);
   };
   names.forEach((n) => visit(n));
-  const fk = (rel3, root) => {
+  const fk = (rel4, root) => {
     const out = {};
     for (const n of order) {
       const b = def.bones[n], par = b.parent ? out[b.parent] : void 0;
       const base = par ? add(par.a, sub(par.b, par.a), b.at ?? 1) : root;
-      const a = b.offset ? add(base, b.offset) : base, angle = (par?.angle ?? 0) + rel3[n];
+      const a = b.offset ? add(base, b.offset) : base, angle = (par?.angle ?? 0) + rel4[n];
       out[n] = { name: n, a, b: add(a, dirOf(angle), b.len), angle, len: b.len };
     }
     return out;
@@ -6195,18 +6323,18 @@ function rig(def) {
     def,
     order,
     pose(angles = {}, o = {}) {
-      const rel3 = {};
-      for (const n of order) rel3[n] = angles[n] ?? def.bones[n].angle ?? 0;
+      const rel4 = {};
+      for (const n of order) rel4[n] = angles[n] ?? def.bones[n].angle ?? 0;
       const root = o.root ?? def.root;
-      let bones = fk(rel3, root);
+      let bones = fk(rel4, root);
       for (const [end, { target, bend = 1 }] of Object.entries(o.ik ?? {})) {
         const lo = def.bones[end], up = lo?.parent;
         if (!lo || !up) throw new Error(`rig: IK needs an end bone with a parent (${end})`);
         if ((lo.at ?? 1) !== 1 || lo.offset) throw new Error(`rig: IK bone ${end} must start at its parent's end`);
         const gp = def.bones[up].parent, s2 = bones[up].a, [a1, a2] = solveTwoBone(s2, def.bones[up].len, lo.len, target, bend);
-        rel3[up] = a1 - (gp ? bones[gp].angle : 0);
-        rel3[end] = a2 - a1;
-        bones = fk(rel3, root);
+        rel4[up] = a1 - (gp ? bones[gp].angle : 0);
+        rel4[end] = a2 - a1;
+        bones = fk(rel4, root);
       }
       const get = (n) => {
         const b = bones[n];
@@ -6215,7 +6343,7 @@ function rig(def) {
       };
       return {
         bones,
-        angles: rel3,
+        angles: rel4,
         end: (n) => get(n).b,
         start: (n) => get(n).a,
         bone: get,
@@ -6320,7 +6448,7 @@ function bodyRig(plan, o) {
   const solve = (state, t, ov) => {
     const clip = spec.clip(STATE_ALIAS[state] ?? state, t);
     const angles = { ...clip.angles, ...ov?.angles }, ik = { ...clip.ik, ...ov?.ik };
-    const p3 = {}, rel3 = {};
+    const p3 = {}, rel4 = {};
     spec.groups.forEach((g, gi) => {
       const names = Object.keys(g.bones), gik = Object.fromEntries(Object.entries(ik).filter(([n]) => names.includes(n)));
       const pose = rigs[gi].pose(angles, { ...gi === 0 && clip.root && { root: clip.root }, ik: gik });
@@ -6336,10 +6464,10 @@ function bodyRig(plan, o) {
       for (const n of names) {
         const b = pose.bone(n);
         p3[n] = [map(b.a, n, 0), map(b.b, n, 1)];
-        rel3[n] = pose.angles[n];
+        rel4[n] = pose.angles[n];
       }
     });
-    return { p3, rel: rel3 };
+    return { p3, rel: rel4 };
   };
   let fc = 0;
   if (pl !== "biped") {
@@ -6352,7 +6480,7 @@ function bodyRig(plan, o) {
   };
   const depthOf = (p2) => (p2[0] - fc) * front + p2[2] * sx;
   const posed = (state, t, ov) => {
-    const { p3, rel: rel3 } = solve(state, t, ov), bones = {}, dep = {};
+    const { p3, rel: rel4 } = solve(state, t, ov), bones = {}, dep = {};
     for (const [n, [a3, b3]] of Object.entries(p3)) {
       const a = proj(a3), b = proj(b3);
       bones[n] = { name: n, a, b, angle: angOf2(b[0] - a[0], b[1] - a[1]), len: Math.hypot(b[0] - a[0], b[1] - a[1]) };
@@ -6365,7 +6493,7 @@ function bodyRig(plan, o) {
     };
     return {
       bones,
-      angles: rel3,
+      angles: rel4,
       bone: get,
       end: (n) => get(n).b,
       start: (n) => get(n).a,
@@ -6455,12 +6583,12 @@ var init_rigs = __esm({
         }
         const stride = H * 0.11, lift = H * 0.03, armSwing = 12;
         const clip = (state, t) => {
-          const rel3 = {}, ik = {};
+          const rel4 = {}, ik = {};
           let root = [0, 0];
           const arms = (swing, elbow = (_) => 4) => {
             for (const s2 of ["L", "R"]) {
-              rel3[`arm${s2}_up`] = 180 + swing(s2);
-              rel3[`arm${s2}_lo`] = elbow(s2);
+              rel4[`arm${s2}_up`] = 180 + swing(s2);
+              rel4[`arm${s2}_lo`] = elbow(s2);
             }
           };
           if (state === "walk") {
@@ -6471,22 +6599,22 @@ var init_rigs = __esm({
           } else if (state === "attack") {
             const a = hold([[0, 150], [0.3, 160], [0.55, 45], [0.8, 20], [1, 150]], t), lo = hold([[0, 30], [0.3, 40], [0.55, 6], [0.8, 10], [1, 30]], t);
             arms((s2) => s2 === "R" ? a : -12, (s2) => s2 === "R" ? lo : 10);
-            rel3.spine = hold([[0, -4], [0.3, 6], [0.55, -10], [0.8, -3], [1, -4]], t);
+            rel4.spine = hold([[0, -4], [0.3, 6], [0.55, -10], [0.8, -3], [1, -4]], t);
             root = [0, 0];
           } else if (state === "hurt") {
             const k = Math.sin(Math.PI * Math.min(1, t * 1.6));
-            rel3.spine = 12 * k;
-            rel3.head = -8 * k;
-            rel3.neck = 4 * k;
+            rel4.spine = 12 * k;
+            rel4.head = -8 * k;
+            rel4.neck = 4 * k;
             arms((s2) => (s2 === "R" ? -48 : 44) * k, () => 14 * k);
             root = [-0.06 * H * k, 0];
           } else {
             const b = pingpong(t);
-            rel3.spine = -2.5 * b;
-            rel3.neck = 2.5 * b;
+            rel4.spine = -2.5 * b;
+            rel4.neck = 2.5 * b;
             arms((s2) => (s2 === "L" ? 1 : -1) * 2 * b);
           }
-          return { angles: rel3, ik, root };
+          return { angles: rel4, ik, root };
         };
         return {
           groups: [{ plane: "side", sign: 1, bones, z, origin: [0, leg, 0] }],
@@ -6512,33 +6640,33 @@ var init_rigs = __esm({
         }
         const down = leg + barrel / 2, stride = H * 0.15, lift = H * 0.09;
         const clip = (state, t) => {
-          const rel3 = {}, ik = {};
+          const rel4 = {}, ik = {};
           let root = [0, 0];
           if (state === "walk") {
             const fs = legs.map(([n, x0, off]) => ({ n, f: foot(t, off, x0, down, stride, lift), bend: n[3] === "F" ? -1 : 1 }));
             for (const { n, f, bend } of fs) ik[`${n}_lo`] = { target: f, bend };
             root = [0, Math.max(...fs.map((x) => sag(leg, x.f[0] - legs.find((l) => l[0] === x.n)[1]))) * 1.6];
-            rel3.neck = 50 + 4 * sin(t, 0.25);
-            rel3.head = -42 - 5 * sin(t, 0.25);
-            rel3.tail = 155 + 14 * sin(t, 0.1);
+            rel4.neck = 50 + 4 * sin(t, 0.25);
+            rel4.head = -42 - 5 * sin(t, 0.25);
+            rel4.tail = 155 + 14 * sin(t, 0.1);
           } else if (state === "attack") {
             const k = hold([[0, 0], [0.3, -0.5], [0.55, 1], [0.85, 0.2], [1, 0]], t);
             root = [H * 0.22 * k, 0];
-            rel3.neck = 50 - 28 * Math.max(0, k);
-            rel3.head = -42 + 14 * Math.max(0, k) + 10 * Math.min(0, k);
+            rel4.neck = 50 - 28 * Math.max(0, k);
+            rel4.head = -42 + 14 * Math.max(0, k) + 10 * Math.min(0, k);
           } else if (state === "hurt") {
             const k = Math.sin(Math.PI * Math.min(1, t * 1.6));
             root = [-H * 0.14 * k, 0];
-            rel3.neck = 50 + 22 * k;
-            rel3.head = -42 + 18 * k;
-            rel3.tail = 155 + 25 * k;
+            rel4.neck = 50 + 22 * k;
+            rel4.head = -42 + 18 * k;
+            rel4.tail = 155 + 25 * k;
           } else {
             const b = pingpong(t);
-            rel3.neck = 50 - 4 * b;
-            rel3.head = -42 + 3 * b;
-            rel3.tail = 155 + 8 * b;
+            rel4.neck = 50 - 4 * b;
+            rel4.head = -42 + 3 * b;
+            rel4.tail = 155 + 8 * b;
           }
-          return { angles: rel3, ik, root };
+          return { angles: rel4, ik, root };
         };
         return { groups: [{ plane: "side", sign: 1, bones, z, origin: [0, down, 0] }], clip, anchorBones: { head: ["head", 0.4], tail: ["tail", 1] } };
       },
@@ -6560,22 +6688,22 @@ var init_rigs = __esm({
         });
         const clip = (state, t) => {
           const hovering = !["walk", "attack", "hurt"].includes(state), amp = hovering ? 38 : 58, beat = sin(t), lag = sin(t, -0.18);
-          const rel3 = {}, bob = round6(-beat * (hovering ? 0.6 : 0.9));
+          const rel4 = {}, bob = round6(-beat * (hovering ? 0.6 : 0.9));
           for (const s2 of ["L", "R"]) {
-            rel3[`wing${s2}`] = 90 + amp * beat;
-            rel3[`wing${s2}_tip`] = -0.55 * amp * lag - 10;
+            rel4[`wing${s2}`] = 90 + amp * beat;
+            rel4[`wing${s2}_tip`] = -0.55 * amp * lag - 10;
           }
           let root = [0, bob * (H / 8)];
           if (state === "attack") {
             const k = hold([[0, 0], [0.3, -0.5], [0.55, 1], [0.85, 0.2], [1, 0]], t);
             root = [H * 0.35 * k, root[1]];
-            rel3.head = -15 - 25 * Math.max(0, k);
+            rel4.head = -15 - 25 * Math.max(0, k);
           } else if (state === "hurt") {
             const k = Math.sin(Math.PI * Math.min(1, t * 1.6));
             root = [-H * 0.25 * k, root[1] + H * 0.12 * k];
-            rel3.head = -15 + 25 * k;
+            rel4.head = -15 + 25 * k;
           }
-          return { angles: rel3, root };
+          return { angles: rel4, root };
         };
         return { groups: [side, wing("L"), wing("R")], clip, anchorBones: { head: ["head", 0.4] } };
       },
@@ -6586,8 +6714,8 @@ var init_rigs = __esm({
         const clip = (state, t) => {
           const moving = state === "walk", amp = moving ? A : state === "attack" || state === "hurt" ? A * 0.5 : A * 0.35;
           const heading = (i) => -90 + amp * (moving ? sin(t, -i / 7 * 1.15) : sin(t, -i / 7 * 0.5) * (i / 7));
-          const rel3 = {};
-          for (let i = 0; i < n; i++) rel3[`seg${i}`] = heading(i) - (i ? heading(i - 1) : 0);
+          const rel4 = {};
+          for (let i = 0; i < n; i++) rel4[`seg${i}`] = heading(i) - (i ? heading(i - 1) : 0);
           let k = 1, root = [0, 0];
           if (state === "attack") {
             const s2 = hold([[0, 0], [0.3, -0.4], [0.55, 1], [0.85, 0.3], [1, 0]], t);
@@ -6601,7 +6729,7 @@ var init_rigs = __esm({
           const up = (j) => rear * k * Math.max(0, 1 - j / 2.4) ** 1.5;
           const lift = {};
           for (let i = 0; i < n; i++) lift[`seg${i}`] = [up(i), up(i + 1)];
-          return { angles: rel3, root, lift };
+          return { angles: rel4, root, lift };
         };
         return { groups: [{ plane: "ground", sign: 1, bones, z: {}, origin: [0, 0, 0] }], clip, anchorBones: { head: ["seg0", 0], tail: [`seg${n - 1}`, 1] } };
       },
@@ -7886,7 +8014,7 @@ function meshGlb(r, o) {
   ];
   const images = [r.textures.color, r.textures.normal, r.textures.orm].map((g) => ({ bufferView: view(encodePNG(g)), mimeType: "image/png" }));
   const unlit = r.look === "baked", name = o.name ?? "mesh";
-  const json = {
+  const json2 = {
     asset: { version: "2.0", generator: "artgen" },
     ...unlit && { extensionsUsed: ["KHR_materials_unlit"] },
     scene: 0,
@@ -7902,7 +8030,7 @@ function meshGlb(r, o) {
     buffers: [{ byteLength: w.length }],
     extras: { artgen: { budget: r.budget, triangles: idx.length / 3, mode: r.mode, look: r.look, texelsPerUnit: r.texels, atlas: r.atlas, metresPerUnit: s2 } }
   };
-  return glbBytes(json, w.bin());
+  return glbBytes(json2, w.bin());
 }
 function materialOf(name, look, first) {
   return {
@@ -7916,15 +8044,15 @@ function readGlb(bytes) {
   const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   if (bytes.length < 20 || dv.getUint32(0, true) !== 1179937895) throw new Error("not a binary glTF (.glb) file");
   if (dv.getUint32(4, true) !== 2) throw new Error(`glTF version ${dv.getUint32(4, true)}: only 2 is read`);
-  let o = 12, json, bin = new Uint8Array(0);
+  let o = 12, json2, bin = new Uint8Array(0);
   while (o + 8 <= bytes.length) {
     const n = dv.getUint32(o, true), type = dv.getUint32(o + 4, true), body3 = bytes.subarray(o + 8, o + 8 + n);
-    if (type === 1313821514) json = JSON.parse(new TextDecoder().decode(body3));
+    if (type === 1313821514) json2 = JSON.parse(new TextDecoder().decode(body3));
     else if (type === 5130562) bin = body3;
     o += 8 + n;
   }
-  if (!json) throw new Error("glb: no JSON chunk");
-  return { json, bin };
+  if (!json2) throw new Error("glb: no JSON chunk");
+  return { json: json2, bin };
 }
 function accessor(g, i) {
   const a = g.json.accessors?.[i];
@@ -8382,7 +8510,7 @@ function riggedGlb(m, o) {
     return { name: c.state, samplers, channels };
   });
   const unlit = m.lods[0].result.look === "baked";
-  const json = {
+  const json2 = {
     asset: { version: "2.0", generator: "artgen" },
     ...unlit && { extensionsUsed: ["KHR_materials_unlit"] },
     scene: 0,
@@ -8409,7 +8537,7 @@ function riggedGlb(m, o) {
       }
     }
   };
-  return glbBytes(json, w.bin());
+  return glbBytes(json2, w.bin());
 }
 function posedView(m, pose, lod = 0) {
   const l = m.lods[Math.min(lod, m.lods.length - 1)], bones = "rig" in pose ? pose.bones : pose;
@@ -8460,8 +8588,8 @@ function triBoxOverlap(c, h, a, b, d) {
   for (const ed of e) for (let ax = 0; ax < 3; ax++) {
     const axis = cross5([ax === 0 ? 1 : 0, ax === 1 ? 1 : 0, ax === 2 ? 1 : 0], ed);
     if (Math.abs(axis[0]) + Math.abs(axis[1]) + Math.abs(axis[2]) < 1e-12) continue;
-    const p0 = dot5(v0, axis), p1 = dot5(v1, axis), p2 = dot5(v2, axis), r4 = h * (Math.abs(axis[0]) + Math.abs(axis[1]) + Math.abs(axis[2]));
-    if (Math.min(p0, p1, p2) > r4 || Math.max(p0, p1, p2) < -r4) return false;
+    const p0 = dot5(v0, axis), p1 = dot5(v1, axis), p2 = dot5(v2, axis), r5 = h * (Math.abs(axis[0]) + Math.abs(axis[1]) + Math.abs(axis[2]));
+    if (Math.min(p0, p1, p2) > r5 || Math.max(p0, p1, p2) < -r5) return false;
   }
   for (let ax = 0; ax < 3; ax++) if (Math.min(v0[ax], v1[ax], v2[ax]) > h || Math.max(v0[ax], v1[ax], v2[ax]) < -h) return false;
   const n = cross5(e[0], e[1]), r = h * (Math.abs(n[0]) + Math.abs(n[1]) + Math.abs(n[2]));
@@ -10427,7 +10555,7 @@ function generateMap(spec) {
   for (const ed of spec.edits) if (ed.op === "elevate") eachCovered(field, ed.shape, true, (i, c) => {
     raw[i] = Math.max(0, Math.min(1.2, raw[i] + ed.amount * c));
   });
-  const shaped = spec.require?.length ? shapeGround(spec, field, raw, seaLevel, riverWidth(spec) / 2 + 0.6) : null;
+  const shaped2 = spec.require?.length ? shapeGround(spec, field, raw, seaLevel, riverWidth(spec) / 2 + 0.6) : null;
   const water2 = new Uint8Array(N3), elev = new Float32Array(N3);
   for (let n = 0; n < N3; n++) {
     if (raw[n] < seaLevel) water2[n] = 1;
@@ -10441,7 +10569,7 @@ function generateMap(spec) {
       open[i] = v;
     });
   }
-  const mains = traceRivers(spec, fillDepressions(raw, w, h, water2), elev, open, w, h, res, wet, shaped?.blocked ?? null).map((r) => ({ ...r, width: riverWidth(spec), source: "generated" }));
+  const mains = traceRivers(spec, fillDepressions(raw, w, h, water2), elev, open, w, h, res, wet, shaped2?.blocked ?? null).map((r) => ({ ...r, width: riverWidth(spec), source: "generated" }));
   for (const ed of spec.edits) if (ed.op === "river") mains.push({ pts: smoothLine(ed.points, res), width: ed.width ?? riverWidth(spec), mouth: ed.delta !== false, source: "edit" });
   for (const s2 of streamsOf(spec)) mains.push({ pts: smoothLine(streamCurve(s2.points), res), width: s2.width ?? riverWidth(spec), mouth: s2.delta !== false, source: "required", for: s2.id });
   const roads = [];
@@ -10462,7 +10590,7 @@ function generateMap(spec) {
     }
     const m = 0.5 + (pGradient(i + w, j + h, mopts) - 0.5) * 1.8 + nearB[n] * 0.25 + (g.moisture - 0.5) * 0.9 - elev[n] * 0.12;
     const wet01 = Math.max(0, Math.min(1, m));
-    terrain[n] = classify(elev[n], shaped ? shaped.moisture(n, wet01) : wet01, spec.preset === "local");
+    terrain[n] = classify(elev[n], shaped2 ? shaped2.moisture(n, wet01) : wet01, spec.preset === "local");
   }
   const minArea = Math.round(Math.pow(g.simplify * res * 0.55, 2));
   const simple = simplifyTerrain(terrain, w, h, Math.ceil(g.simplify), minArea);
@@ -10473,14 +10601,14 @@ function generateMap(spec) {
     });
   }
   for (let n = 0; n < N3; n++) if (isWater(simple[n])) elev[n] = 0;
-  const shown4 = (x, y) => {
+  const shown5 = (x, y) => {
     const i = Math.floor(x * res), j = Math.floor(y * res);
     return i >= 0 && j >= 0 && i < w && j < h && isWater(simple[j * w + i]);
   };
   const rivers = mains.map((m) => {
-    let fit2 = m.mouth ? toShore(m.pts, shown4) : null;
+    let fit2 = m.mouth ? toShore(m.pts, shown5) : null;
     if (fit2 && m.source === "required" && fit2.length < m.pts.length) fit2 = null;
-    if (fit2 && m.source === "generated" && shaped?.clear.length && touches(fit2, shaped.clear.map((c) => c.area))) fit2 = null;
+    if (fit2 && m.source === "generated" && shaped2?.clear.length && touches(fit2, shaped2.clear.map((c) => c.area))) fit2 = null;
     return { ...riverRibbon(fit2 ?? m.pts, m.width, !!fit2), source: m.source, ...m.for !== void 0 && { for: m.for } };
   });
   return { res, w, h, elevation: elev, terrain: simple, rivers, roads };
@@ -10759,8 +10887,8 @@ var init_page = __esm({
 });
 
 // ../artgen-primitives/src/lib/svgdraw.ts
-function haloText(text2, x, y, size2, color, th, attrs = "") {
-  const a = `x="${n1(x)}" y="${n1(y)}" font-size="${n1(size2)}" text-anchor="middle" ${attrs}`;
+function haloText(text2, x, y, size2, color, th, attrs2 = "") {
+  const a = `x="${n1(x)}" y="${n1(y)}" font-size="${n1(size2)}" text-anchor="middle" ${attrs2}`;
   return `<text ${a} fill="none" stroke="${th.halo}" stroke-width="${n1(size2 * 0.22)}" stroke-linejoin="round" stroke-opacity="0.9">${esc(text2)}</text><text ${a} fill="${color}">${esc(text2)}</text>`;
 }
 function compassSvg(cx, cy, r, u, th) {
@@ -10924,9 +11052,9 @@ function renderMapSvg(spec, o = {}) {
     const at4 = mapLabelLayout(spec, k, o.pageScale).at;
     const g = spec.overlay.labels.map((l, i) => {
       const base = labelSize(l, u, o.pageScale), lx = at4[i].x / k, ly = at4[i].y / k;
-      const attrs = l.kind === "region" ? `font-weight="700" letter-spacing="${n1(base * 0.18)}"` : l.kind === "water" ? 'font-style="italic"' : l.kind === "place" ? 'font-weight="700"' : "";
+      const attrs2 = l.kind === "region" ? `font-weight="700" letter-spacing="${n1(base * 0.18)}"` : l.kind === "water" ? 'font-style="italic"' : l.kind === "place" ? 'font-weight="700"' : "";
       const text2 = l.kind === "region" ? l.text.toUpperCase() : l.text;
-      const t = haloText(text2, lx * k, ly * k + base * 0.35, base, th.label[l.kind], th, attrs);
+      const t = haloText(text2, lx * k, ly * k + base * 0.35, base, th.label[l.kind], th, attrs2);
       return l.angle ? `<g transform="rotate(${n1(l.angle)} ${n1(lx * k)} ${n1(ly * k)})">${t}</g>` : t;
     }).join("");
     parts.push(`<g id="labels">${g}</g>`);
@@ -11025,7 +11153,7 @@ function ground(spec, f) {
     return { map: m, scale: rnd(m * per) };
   };
   const pt3 = (x, y) => [rnd(x), rnd(y)];
-  const shown4 = (height2) => roundTo(height2, step);
+  const shown5 = (height2) => roundTo(height2, step);
   const sample3 = (i, j) => f.elevation[Math.min(h - 1, Math.max(0, j)) * w + Math.min(w - 1, Math.max(0, i))];
   const height = (x, y) => {
     const u = x * res - 0.5, v = y * res - 0.5, i = Math.floor(u), j = Math.floor(v), fx2 = u - i, fy = v - j;
@@ -11067,7 +11195,7 @@ function ground(spec, f) {
     if (!n) return null;
     return { name: n.line.name, ...n.line.source && { source: n.line.source }, distance: length(n.d), at: pt3(...n.at), ...kind === "river" && { within: n.d <= n.width / 2 }, rawAt: n.at };
   };
-  return { res, w, h, rnd, length, pt: pt3, shown: shown4, height, terrainAt, centre, slope, lines: lines2, near: near3 };
+  return { res, w, h, rnd, length, pt: pt3, shown: shown5, height, terrainAt, centre, slope, lines: lines2, near: near3 };
 }
 function shares(f, ids) {
   const count = new Array(TERRAINS.length).fill(0);
@@ -12989,11 +13117,11 @@ function generateBlocks(spec) {
     return Math.abs(dx) > Math.abs(dy) ? dx > 0 ? "e" : "w" : dy > 0 ? "s" : "n";
   };
   const port = (b, other) => {
-    const side2 = facing(b, other), own = out.rooms.filter((r4) => r4.origin === `block:${b.id}` && r4.shape === "rect");
-    const edge = (r4) => side2 === "e" ? r4.x + r4.w === Math.ceil(b.x + b.w) : side2 === "w" ? r4.x === Math.floor(b.x) : side2 === "s" ? r4.y + r4.h === Math.ceil(b.y + b.h) : r4.y === Math.floor(b.y);
-    const on = own.filter(edge), o = c(other), d = (r4) => Math.hypot(r4.x + r4.w / 2 - o[0], r4.y + r4.h / 2 - o[1]);
+    const side2 = facing(b, other), own = out.rooms.filter((r5) => r5.origin === `block:${b.id}` && r5.shape === "rect");
+    const edge = (r5) => side2 === "e" ? r5.x + r5.w === Math.ceil(b.x + b.w) : side2 === "w" ? r5.x === Math.floor(b.x) : side2 === "s" ? r5.y + r5.h === Math.ceil(b.y + b.h) : r5.y === Math.floor(b.y);
+    const on = own.filter(edge), o = c(other), d = (r5) => Math.hypot(r5.x + r5.w / 2 - o[0], r5.y + r5.h / 2 - o[1]);
     if (!on.length) return { room: blockRoomNear(out, b.id, o[0], o[1]) };
-    return { room: on.reduce((m, r4) => d(r4) < d(m) ? r4 : m).id, side: side2 };
+    return { room: on.reduce((m, r5) => d(r5) < d(m) ? r5 : m).id, side: side2 };
   };
   out.corridors = links.map(([i, j]) => ({ from: port(bs[i], bs[j]), to: port(bs[j], bs[i]), route: "around", width: g.corridorWidth, doors: ["door", "door"] }));
   if (g.entrance && out.rooms.length) out.corridors.unshift(entrance(spec, edgeRoom(spec, out.rooms), "door"));
@@ -13460,8 +13588,8 @@ function renderDungeonSvg(spec, o = {}) {
     const at4 = dungeonLabelLayout(spec, k, o.pageScale, l, on.numbers).at;
     const g = spec.overlay.labels.map((lb, i) => {
       const base = labelSize2(lb, u, o.pageScale), lx = at4[i].x / k, ly = at4[i].y / k;
-      const attrs = lb.kind === "area" ? `font-weight="700" letter-spacing="${n1(base * 0.16)}"` : lb.kind === "name" ? 'font-weight="700"' : 'font-style="italic"';
-      const tx = haloText(lb.kind === "area" ? lb.text.toUpperCase() : lb.text, lx * k, ly * k + base * 0.35, base, INK2, TH, attrs);
+      const attrs2 = lb.kind === "area" ? `font-weight="700" letter-spacing="${n1(base * 0.16)}"` : lb.kind === "name" ? 'font-weight="700"' : 'font-style="italic"';
+      const tx = haloText(lb.kind === "area" ? lb.text.toUpperCase() : lb.text, lx * k, ly * k + base * 0.35, base, INK2, TH, attrs2);
       return linked(lb.href, lb.angle ? `<g transform="rotate(${n1(lb.angle)} ${n1(lx * k)} ${n1(ly * k)})">${tx}</g>` : tx);
     }).join("");
     parts.push(`<g id="labels">${g}</g>`);
@@ -15316,8 +15444,8 @@ function labelSize3(l, u, pageScale) {
 }
 function labelSvg(l, k, u, p2, pageScale) {
   const fs = labelSize3(l, u, pageScale), text2 = l.kind === "area" ? l.text.toUpperCase() : l.text;
-  const attrs = l.kind === "area" ? `font-weight="700" letter-spacing="${n1(fs * 0.16)}"` : l.kind === "name" ? 'font-weight="700"' : 'font-style="italic"';
-  const t = haloText(text2, l.x * k, l.y * k + fs * 0.35, fs, p2.ink, { halo: p2.halo }, attrs);
+  const attrs2 = l.kind === "area" ? `font-weight="700" letter-spacing="${n1(fs * 0.16)}"` : l.kind === "name" ? 'font-weight="700"' : 'font-style="italic"';
+  const t = haloText(text2, l.x * k, l.y * k + fs * 0.35, fs, p2.ink, { halo: p2.halo }, attrs2);
   const out = l.angle ? `<g transform="rotate(${n1(l.angle)} ${n1(l.x * k)} ${n1(l.y * k)})">${t}</g>` : t;
   return l.href ? `<a href="${esc(l.href)}">${out}</a>` : out;
 }
@@ -16638,7 +16766,7 @@ function editSettlement(m, o) {
     case "room.add": {
       const { b, f } = floor(m, o, true), shape = oneOf(o, "shape", ["rect", "circle", "octagon", "cave", "poly"], "rect");
       const id2 = opt(o, "id") ?? nextId(f.rooms, `${f.level < 0 ? "c" : "f"}${Math.abs(f.level)}r`);
-      if (f.rooms.some((r4) => r4.id === id2)) throw new Error(`room ${id2} already exists on that floor`);
+      if (f.rooms.some((r5) => r5.id === id2)) throw new Error(`room ${id2} already exists on that floor`);
       const box2 = shape === "poly" ? polyBox(pts(o, "points", 3)) : { x: num2(o, "x"), y: num2(o, "y"), w: num2(o, "w"), h: num2(o, "h") };
       const r = { id: id2, shape, ...box2, ...shape === "poly" && { points: o.points } };
       fields(r, o, ["label", "number"]);
@@ -16953,6 +17081,1073 @@ var init_settlement = __esm({
   }
 });
 
+// ../artgen-mapgen/src/tilemap/grid.ts
+function classAt(g, x, y) {
+  if (x < 0 || y < 0 || x >= g.cols || y >= g.rows) return void 0;
+  const v = g.cells[y * g.cols + x];
+  return v ? g.classes[v - 1] : void 0;
+}
+function classCounts(g) {
+  const out = Object.fromEntries(g.classes.map((c) => [c.id, 0]));
+  for (const v of g.cells) if (v) out[g.classes[v - 1].id]++;
+  return out;
+}
+function shaped(layer, type, pts2, closed, props2, name) {
+  const x = r4(pts2[0]), y = r4(pts2[1]);
+  return { layer, type, ...name && { name }, x, y, [closed ? "polygon" : "polyline"]: rel(pts2, x, y), props: props2 };
+}
+function dungeonTiles(spec) {
+  const l = layoutDungeon(spec), W3 = spec.cols, H = spec.rows, cells = new Uint8Array(W3 * H);
+  const FLOOR = 1, WALL = 2, DOOR = 3, YARD = 4;
+  const rooms = l.rooms.filter((g) => g.room.fill !== "cellar");
+  for (let y = 0; y < H; y++) for (let x = 0; x < W3; x++) {
+    const px = x + 0.5, py = y + 0.5;
+    let v = 0;
+    for (const g of rooms) if (inPolygon(g.outline, px, py)) {
+      v = g.room.fill === "yard" ? YARD : FLOOR;
+      if (v === FLOOR) break;
+    }
+    if (!v) for (const c of l.corridors) {
+      if (c.outline ? inPolygon(c.outline, px, py) : c.pts.length >= 4 && nearestOnLine(c.pts, px, py).d < c.width / 2) {
+        v = FLOOR;
+        break;
+      }
+    }
+    cells[y * W3 + x] = v;
+  }
+  for (const d of l.doors) {
+    const a = d.angle * Math.PI / 180, x = Math.floor(d.x + Math.cos(a) * 0.5), y = Math.floor(d.y + Math.sin(a) * 0.5);
+    if (x >= 0 && y >= 0 && x < W3 && y < H && cells[y * W3 + x] === FLOOR) cells[y * W3 + x] = DOOR;
+  }
+  const walls = layoutWalls(spec, l);
+  const wallCell = new Uint8Array(W3 * H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W3; x++) {
+    const i = y * W3 + x;
+    if (cells[i]) continue;
+    let near3 = false;
+    for (let dy = -1; dy <= 1 && !near3; dy++) for (let dx = -1; dx <= 1 && !near3; dx++) {
+      const nx = x + dx, ny = y + dy;
+      if (nx >= 0 && ny >= 0 && nx < W3 && ny < H && (cells[ny * W3 + nx] === FLOOR || cells[ny * W3 + nx] === DOOR)) near3 = true;
+    }
+    if (!near3) {
+      for (const w of walls) if (nearestOnLine([...w.ring, w.ring[0], w.ring[1]], x + 0.5, y + 0.5).d < w.thickness / 2) {
+        near3 = true;
+        break;
+      }
+    }
+    if (near3) wallCell[i] = 1;
+  }
+  for (let i = 0; i < cells.length; i++) if (wallCell[i]) cells[i] = WALL;
+  const objects = [];
+  for (const g of l.rooms) {
+    const r = g.room;
+    objects.push({ ...shaped("rooms", "room", g.outline, true, clean({ id: r.id, number: g.number, label: r.label, fill: r.fill ?? "floor", shape: r.shape, href: r.href }), r.label ?? r.id) });
+  }
+  l.corridors.forEach((c, i) => {
+    if (c.pts.length >= 4) objects.push(shaped("corridors", "corridor", c.pts, false, clean({ id: spec.corridors[i].id, width: c.width, style: spec.corridors[i].style ?? "built" }), spec.corridors[i].id));
+  });
+  for (const d of l.doors) objects.push({ layer: "doors", type: "door", name: d.kind, x: r4(d.x), y: r4(d.y), angle: r4(d.angle), props: clean({ kind: d.kind, width: d.width, corridor: d.corridor >= 0 ? d.corridor : void 0, connection: d.connection }) });
+  for (const c of l.connections) if (c.kind === "open") objects.push({ layer: "doors", type: "opening", name: "open", x: r4(c.x), y: r4(c.y), angle: r4(c.angle), props: clean({ kind: "open", width: c.width, a: c.a, b: c.b }) });
+  for (const p2 of l.partitions) objects.push(shaped("walls", "wall", p2, false, { kind: "shared" }));
+  for (const w of walls) {
+    objects.push(shaped("walls", "curtain", w.ring, true, clean({ id: w.id, thickness: w.thickness })));
+    for (const t of w.towers) objects.push({ layer: "walls", type: "tower", x: r4(t.x), y: r4(t.y), props: { shape: t.shape, size: t.size } });
+    for (const gt of w.gates) objects.push({ layer: "walls", type: "gate", x: r4(gt.x), y: r4(gt.y), props: clean({ kind: gt.kind }) });
+  }
+  for (const e of layoutExits(spec, l)) objects.push({ layer: "exits", type: "exit", name: e.exit.text, x: r4(e.edge[0]), y: r4(e.edge[1]), props: clean({ text: e.exit.text, href: e.exit.href, offMap: e.off }) });
+  for (const lb of spec.overlay.labels) objects.push({ layer: "labels", type: "label", name: lb.text, x: lb.x, y: lb.y, text: lb.text, ...lb.angle && { angle: lb.angle }, props: clean({ kind: lb.kind, size: lb.size, href: lb.href }) });
+  for (const s2 of spec.overlay.symbols) objects.push({ layer: "symbols", type: "symbol", name: s2.kind, x: s2.x, y: s2.y, ...s2.angle && { angle: s2.angle }, props: clean({ kind: s2.kind, scale: s2.scale }) });
+  return {
+    source: "dungeon",
+    id: spec.id,
+    ...spec.title && { title: spec.title },
+    format: DUNGEON_FORMAT,
+    cols: W3,
+    rows: H,
+    cell: { size: spec.scale.perCell, unit: spec.scale.unit },
+    grid: "square",
+    classes: DUNGEON_CLASSES,
+    cells,
+    objects
+  };
+}
+function hexLayout(spec) {
+  const s2 = spec.grid.size, R3 = s2 / Math.sqrt(3);
+  const cols = Math.max(1, Math.ceil((spec.cols - R3) / (1.5 * R3) + 1e-9)), rows3 = Math.max(1, Math.ceil(spec.rows / s2 - 1e-9));
+  return { cols, rows: rows3, R: R3, s: s2, centre: (c, r) => [R3 + c * 1.5 * R3, s2 / 2 + r * s2 + (c % 2 ? s2 / 2 : 0)] };
+}
+function mapTiles(spec, field = generateMap(spec), o = {}) {
+  const theme = THEME.color, classes = TERRAINS.map((t) => ({ id: t, name: TERRAIN_NAMES[t], color: theme.terrain[t].fill, ...(t === "deep" || t === "rock") && { solid: true } }));
+  const hex = spec.grid.type === "hex" && !o.cell;
+  const unit4 = o.cell ?? (spec.grid.type === "square" ? spec.grid.size : 1);
+  const count = new Uint32Array(TERRAINS.length);
+  const majority = (x0, y0, x1, y1, inside3) => {
+    count.fill(0);
+    const i0 = Math.max(0, Math.floor(x0 * field.res)), i1 = Math.min(field.w - 1, Math.ceil(x1 * field.res)), j0 = Math.max(0, Math.floor(y0 * field.res)), j1 = Math.min(field.h - 1, Math.ceil(y1 * field.res));
+    let any = false;
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+      const sx = (i + 0.5) / field.res, sy = (j + 0.5) / field.res;
+      if (sx < x0 || sx >= x1 || sy < y0 || sy >= y1 || !inside3(sx, sy)) continue;
+      count[field.terrain[j * field.w + i]]++;
+      any = true;
+    }
+    if (!any) {
+      const i = Math.min(field.w - 1, Math.max(0, Math.floor((x0 + x1) / 2 * field.res))), j = Math.min(field.h - 1, Math.max(0, Math.floor((y0 + y1) / 2 * field.res)));
+      return field.terrain[j * field.w + i] + 1;
+    }
+    let best = 0;
+    for (let k = 1; k < count.length; k++) if (count[k] > count[best]) best = k;
+    return best + 1;
+  };
+  let cols, rows3, cells;
+  if (hex) {
+    const h3 = hexLayout(spec), r26 = (h3.s / 2) ** 2;
+    cols = h3.cols;
+    rows3 = h3.rows;
+    cells = new Uint8Array(cols * rows3);
+    for (let r = 0; r < rows3; r++) for (let c = 0; c < cols; c++) {
+      const [cx, cy] = h3.centre(c, r);
+      cells[r * cols + c] = majority(cx - h3.R, cy - h3.s / 2, cx + h3.R, cy + h3.s / 2, (x, y) => (x - cx) ** 2 + (y - cy) ** 2 <= r26);
+    }
+  } else {
+    cols = Math.max(1, Math.ceil(spec.cols / unit4 - 1e-9));
+    rows3 = Math.max(1, Math.ceil(spec.rows / unit4 - 1e-9));
+    cells = new Uint8Array(cols * rows3);
+    for (let y = 0; y < rows3; y++) for (let x = 0; x < cols; x++) cells[y * cols + x] = majority(x * unit4, y * unit4, (x + 1) * unit4, (y + 1) * unit4, () => true);
+  }
+  const h = hex ? hexLayout(spec) : void 0;
+  const toCell = (pts2) => pts2.map((v, i) => h ? i % 2 ? v / h.s : (v - h.R) / (1.5 * h.R) + 0.5 : v / unit4);
+  const per = h ? h.s : unit4;
+  const objects = [];
+  field.rivers.forEach((rv, i) => objects.push(shaped("water", "river", toCell(rv.pts), false, clean({ width: r4(Math.max(...rv.widths) / per), mouth: rv.mouth }), `river ${i + 1}`)));
+  field.roads.forEach((rd, i) => objects.push(shaped("roads", "road", toCell(rd.pts), false, clean({ width: r4(rd.width / per), for: rd.for }), `road ${i + 1}`)));
+  for (const lb of spec.overlay.labels) {
+    const [x, y] = toCell([lb.x, lb.y]);
+    objects.push({ layer: "labels", type: "label", name: lb.text, x: r4(x), y: r4(y), text: lb.text, ...lb.angle && { angle: lb.angle }, props: clean({ kind: lb.kind, size: lb.size }) });
+  }
+  for (const s2 of spec.overlay.symbols) {
+    const [x, y] = toCell([s2.x, s2.y]);
+    objects.push({ layer: "symbols", type: "symbol", name: s2.kind, x: r4(x), y: r4(y), ...s2.angle && { angle: s2.angle }, props: clean({ kind: s2.kind, scale: s2.scale }) });
+  }
+  return {
+    source: "map",
+    id: spec.id,
+    ...spec.title && { title: spec.title },
+    format: MAP_FORMAT,
+    cols,
+    rows: rows3,
+    cell: { size: r4((hex ? spec.grid.size : unit4) * spec.scale.perCell), unit: spec.scale.unit },
+    grid: hex ? "hex" : "square",
+    classes,
+    cells,
+    objects
+  };
+}
+function settlementTiles(spec) {
+  const pal = PALETTES.color, l = layoutSettlement(spec), W3 = spec.cols, H = spec.rows;
+  const areaKinds = [...new Set(spec.areas.map((a) => a.kind))].sort();
+  const classes = [
+    { id: "ground", name: `Ground (${spec.ground})`, color: pal.ground[spec.ground] },
+    { id: "road", name: "Road", color: pal.road.street.fill },
+    { id: "water", name: "Water", color: pal.water, solid: true },
+    { id: "bridge", name: "Bridge", color: pal.road.highway.fill },
+    { id: "wall", name: "Wall", color: "#6f675a", solid: true },
+    { id: "building", name: "Building", color: pal.roof.tile, solid: true },
+    ...areaKinds.map((k) => ({ id: `area-${k}`, name: k[0].toUpperCase() + k.slice(1), color: pal.area[k].fill === "none" ? pal.ground[spec.ground] : pal.area[k].fill }))
+  ];
+  const at4 = Object.fromEntries(classes.map((c, i) => [c.id, i + 1]));
+  const cells = new Uint8Array(W3 * H);
+  const onLine = (pts2, closed, x, y, half) => pts2.length >= 4 && nearestOnLine(closed ? [...pts2, pts2[0], pts2[1]] : pts2, x, y).d < half;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W3; x++) {
+    const px = x + 0.5, py = y + 0.5;
+    let v = at4.ground;
+    for (const a of spec.areas) if (inPolygon(a.points, px, py)) v = at4[`area-${a.kind}`];
+    if (inWater(l.water, px, py)) v = at4.water;
+    for (const r of l.roads) if (onLine(r.pts, false, px, py, Math.max(0.5, r.width / 2))) {
+      v = at4.road;
+      break;
+    }
+    for (const b of l.bridges) if (nearestOnLine([b.x0, b.y0, b.x1, b.y1], px, py).d < Math.max(0.5, b.width / 2)) {
+      v = at4.bridge;
+      break;
+    }
+    for (const w of l.walls) if (onLine(w.pts, w.closed, px, py, Math.max(0.5, w.thickness / 2))) {
+      const gate = w.gates.some((g) => Math.hypot(g.x - px, g.y - py) < g.width / 2 + 0.5);
+      v = gate ? at4.road : at4.wall;
+      break;
+    }
+    for (const b of l.buildings) if (inPolygon(b.outline, px, py)) {
+      v = at4.building;
+      break;
+    }
+    cells[y * W3 + x] = v;
+  }
+  const objects = [];
+  for (const b of l.buildings) objects.push(shaped("buildings", "building", b.outline, true, clean({ id: b.building.id, kind: b.building.kind, number: b.number, label: b.building.label, roof: roofTone(b.building.kind), stories: b.building.stories, floors: b.building.floors?.length, href: b.building.href }), b.building.label ?? b.building.id));
+  l.roads.forEach((r, i) => objects.push(shaped("roads", "road", r.pts, false, clean({ id: spec.roads[i].id, kind: r.kind, width: r4(r.width), label: spec.roads[i].label }), spec.roads[i].label ?? spec.roads[i].id)));
+  l.water.forEach((w, i) => objects.push(shaped("water", w.kind, w.pts, w.area || w.closed, clean({ id: spec.water[i].id, kind: w.kind, width: w.area ? void 0 : r4(w.width) }), spec.water[i].id)));
+  for (const w of l.walls) {
+    objects.push(shaped("walls", "wall", w.pts, w.closed, clean({ id: spec.walls[w.index].id, kind: w.kind, thickness: r4(w.thickness) }), spec.walls[w.index].id));
+    for (const t of w.towers) objects.push({ layer: "walls", type: "tower", x: r4(t.x), y: r4(t.y), props: { shape: t.shape, size: r4(t.size) } });
+    for (const g of w.gates) objects.push({ layer: "walls", type: "gate", name: g.kind, x: r4(g.x), y: r4(g.y), angle: r4(g.angle), props: clean({ kind: g.kind, width: r4(g.width), drawbridge: g.drawbridge > 0 || void 0 }) });
+  }
+  spec.areas.forEach((a) => {
+    const b = bboxOf(a.points);
+    if (b.w > 0) objects.push(shaped("areas", "area", a.points, true, clean({ id: a.id, kind: a.kind, label: a.label }), a.label ?? a.id));
+  });
+  for (const t of [...spec.trees, ...l.areaTrees]) objects.push({ layer: "trees", type: t.kind, x: r4(t.x), y: r4(t.y), props: clean({ kind: t.kind, size: t.size && r4(t.size) }) });
+  for (const p2 of spec.props) objects.push({ layer: "props", type: "prop", name: p2.kind, x: r4(p2.x), y: r4(p2.y), ...p2.angle && { angle: p2.angle }, props: clean({ kind: p2.kind, label: p2.label }) });
+  for (const lb of spec.overlay.labels) objects.push({ layer: "labels", type: "label", name: lb.text, x: lb.x, y: lb.y, text: lb.text, ...lb.angle && { angle: lb.angle }, props: clean({ kind: lb.kind, size: lb.size, href: lb.href }) });
+  for (const s2 of spec.overlay.symbols) objects.push({ layer: "symbols", type: "symbol", name: s2.kind, x: s2.x, y: s2.y, ...s2.angle && { angle: s2.angle }, props: clean({ kind: s2.kind, scale: s2.scale }) });
+  return {
+    source: "settlement",
+    id: spec.id,
+    ...spec.title && { title: spec.title },
+    format: SETTLEMENT_FORMAT,
+    cols: W3,
+    rows: H,
+    cell: { size: spec.scale.perCell, unit: spec.scale.unit },
+    grid: "square",
+    classes,
+    cells,
+    objects
+  };
+}
+function tilesetTiles(id2, cls, o = {}) {
+  const n = o.size ?? 10, seed = o.seed ?? 3, cells = new Uint8Array(n * n);
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    const dx = x - (n - 1) / 2, dy = y - (n - 1) / 2;
+    cells[y * n + x] = !o.island || Math.hypot(dx * 1.1, dy) < n * 0.36 + Math.sin(x * 1.7 + y * 2.3 + seed) * 0.9 ? 1 : 0;
+  }
+  return { source: "tileset", id: id2, format: 1, cols: n, rows: n, cell: { size: 1, unit: "cell" }, grid: "square", classes: [cls], cells, objects: [] };
+}
+var rel, r4, bboxOf, clean, DUNGEON_CLASSES;
+var init_grid2 = __esm({
+  "../artgen-mapgen/src/tilemap/grid.ts"() {
+    "use strict";
+    init_spec2();
+    init_layout();
+    init_walls();
+    init_exits();
+    init_geom2();
+    init_spec();
+    init_generate();
+    init_theme();
+    init_spec3();
+    init_layout2();
+    init_theme2();
+    rel = (pts2, x, y) => pts2.map((v, i) => +(v - (i % 2 ? y : x)).toFixed(4));
+    r4 = (v) => +v.toFixed(4);
+    bboxOf = (pts2) => {
+      const xs = pts2.filter((_, i) => i % 2 === 0), ys = pts2.filter((_, i) => i % 2 === 1);
+      return { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
+    };
+    clean = (o) => Object.fromEntries(Object.entries(o).filter((e) => e[1] !== void 0 && e[1] !== null && e[1] !== ""));
+    DUNGEON_CLASSES = [
+      { id: "floor", name: "Floor", color: "#d8d2c4" },
+      { id: "wall", name: "Wall", color: "#3a3632", solid: true },
+      { id: "door", name: "Door", color: "#9a6a3a" },
+      { id: "yard", name: "Open ground", color: "#b9c79a" }
+    ];
+  }
+});
+
+// ../artgen-mapgen/src/tilemap/tileset.ts
+function bindTiles(cls, pack, id2, asset, atlases) {
+  if (!["tile", "tileset", "texture"].includes(asset.kind)) throw new Error(`${pack}/${id2} is a ${asset.kind}: bind a tile, tileset or texture`);
+  const state = Object.keys(asset.states)[0], swaps = Object.keys(asset.swaps ?? {}).length;
+  const variants2 = Math.max(1, asset.variants.length - swaps);
+  const count = asset.autotile ? autotileCount(asset.autotile) : 1;
+  const tiles = [];
+  for (let v = 0; v < variants2; v++) {
+    const row = [];
+    for (let i = 0; i < count; i++) {
+      const frame = asset.autotile && asset.map ? asset.map[i] ?? i : i;
+      const f = asset.frames.find((e) => e[6] === state && e[5] === 0 && e[7] === frame && e[8] === v);
+      if (!f) {
+        if (v > 0 && i === 0) break;
+        throw new Error(`${pack}/${id2}: no frame ${frame} of ${state}${v ? ` (variant ${asset.variants[v]})` : ""} in the pack`);
+      }
+      const atlas = atlases[f[0]];
+      if (!atlas) throw new Error(`${pack}/${id2}: atlas ${f[0]} is missing`);
+      row.push(atlas.crop(f[1], f[2], f[3], f[4]));
+    }
+    if (row.length === count) tiles.push(row);
+  }
+  return { class: cls, source: `${pack}/${id2}`, view: asset.view, size: [asset.size[0], asset.size[1]], ...asset.autotile && { autotile: asset.autotile }, tiles };
+}
+function buildSheet(g, o) {
+  const shape = o.shape ?? (g.grid === "hex" ? "hex" : "square"), bindings = o.bindings ?? [];
+  if (g.grid === "hex" && shape !== "hex") throw new Error("a hex map exports with hex tiles");
+  for (const b of bindings) {
+    if (!g.classes.some((c) => c.id === b.class)) throw new Error(`no class ${JSON.stringify(b.class)} in this ${g.source} (have: ${g.classes.map((c) => c.id).join(", ")})`);
+    if (b.autotile && shape === "hex") throw new Error(`${b.source}: autotile sets are square; a hex map takes plain tiles`);
+  }
+  const first = bindings[0];
+  let tileW, tileH, imageH;
+  if (first) {
+    tileW = first.size[0];
+    tileH = shape === "diamond" ? tileW / 2 : shape === "hex" ? hexHeight(tileW) : first.size[1];
+    imageH = Math.max(...bindings.map((b) => b.size[1]));
+    for (const b of bindings) if (b.size[0] !== tileW) throw new Error(`tiles of different widths: ${first.source} is ${tileW} px, ${b.source} ${b.size[0]} px`);
+    if (shape === "diamond" && tileW % 2) throw new Error(`iso tiles must be an even width (${first.source} is ${tileW} px)`);
+  } else {
+    tileW = o.tile ?? (shape === "diamond" ? 32 : 16);
+    tileH = shape === "diamond" ? tileW / 2 : shape === "hex" ? hexHeight(tileW) : tileW;
+    imageH = tileH;
+  }
+  if (!Number.isInteger(tileW) || tileW < 2 || tileW > 512 || !Number.isInteger(tileH)) throw new Error(`tile size ${tileW}\xD7${tileH}: whole pixels from 2 to 512`);
+  const imageW = tileW, tiles = [], images = [];
+  for (const c of g.classes) {
+    const b = bindings.find((x) => x.class === c.id);
+    if (b) b.tiles.forEach((row, variant) => row.forEach((img, index) => {
+      tiles.push({ id: tiles.length, class: c.id, variant, index, ...b.autotile && { autotile: b.autotile } });
+      images.push(img);
+    }));
+    else {
+      tiles.push({ id: tiles.length, class: c.id, variant: 0, index: 0, flat: true });
+      images.push(flatTile(shape, tileW, tileH, c.color));
+    }
+  }
+  const columns = Math.min(tiles.length, Math.max(1, Math.ceil(Math.sqrt(tiles.length))) * (tileW < 24 ? 2 : 1)), rows3 = Math.ceil(tiles.length / columns);
+  const image2 = new Grid(columns * imageW, rows3 * imageH);
+  images.forEach((img, i) => image2.blit(img, i % columns * imageW, Math.floor(i / columns) * imageH + (imageH - img.h)));
+  return {
+    name: o.name,
+    shape,
+    tileW,
+    tileH,
+    imageW,
+    imageH,
+    columns,
+    tiles,
+    image: image2,
+    bindings: bindings.map((b) => ({ class: b.class, source: b.source, ...b.autotile && { autotile: b.autotile }, variants: b.tiles.length }))
+  };
+}
+function flatTile(shape, w, h, color) {
+  const g = new Grid(w, h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const px = x + 0.5 - w / 2, py = y + 0.5 - h / 2;
+    const inside3 = shape === "square" ? true : shape === "diamond" ? Math.abs(px) / (w / 2) + Math.abs(py) / (h / 2) <= 1 : Math.abs(py) <= h / 2 && Math.abs(px) <= w / 2 - Math.abs(py) / (h / 2) * (w / 4);
+    if (inside3) g.set(x, y, color);
+  }
+  return g;
+}
+function resolveTiles(g, sheet, seed = 0) {
+  const out = new Int32Array(g.cols * g.rows).fill(-1);
+  const byClass = /* @__PURE__ */ new Map();
+  for (const t of sheet.tiles) {
+    const rows3 = byClass.get(t.class) ?? [];
+    (rows3[t.variant] ??= [])[t.index] = t;
+    byClass.set(t.class, rows3);
+  }
+  for (let y = 0; y < g.rows; y++) for (let x = 0; x < g.cols; x++) {
+    const v = g.cells[y * g.cols + x];
+    if (!v) continue;
+    const variants2 = byClass.get(g.classes[v - 1].id), row = variants2[variants2.length > 1 ? cellHash(x, y, variants2.length, seed) : 0];
+    const layout2 = row[0].autotile;
+    const index = layout2 ? autotileIndexOf(layout2, neighbourMask(x, y, (nx, ny) => nx < 0 || ny < 0 || nx >= g.cols || ny >= g.rows || g.cells[ny * g.cols + nx] === v)) : 0;
+    out[y * g.cols + x] = row[index].id;
+  }
+  return out;
+}
+function previewTiles(g, sheet, tiles, background2) {
+  const { tileW: tw, tileH: th, imageW: iw, imageH: ih, columns } = sheet, lift = ih - th;
+  let W3, H, at4;
+  if (sheet.shape === "diamond") {
+    W3 = (g.cols + g.rows) * (tw / 2);
+    H = (g.cols + g.rows) * (th / 2) + lift;
+    at4 = (x, y) => [(x - y + g.rows - 1) * (tw / 2), (x + y) * (th / 2)];
+  } else if (sheet.shape === "hex") {
+    W3 = Math.ceil((g.cols - 1) * 0.75 * tw + tw);
+    H = g.rows * th + Math.ceil(th / 2) + lift;
+    at4 = (x, y) => [Math.round(x * 0.75 * tw), y * th + (x % 2 ? Math.round(th / 2) : 0)];
+  } else {
+    W3 = g.cols * tw;
+    H = g.rows * th + lift;
+    at4 = (x, y) => [x * tw, y * th];
+  }
+  const out = new Grid(W3, H);
+  if (background2) out.fill(0, 0, W3, H, background2);
+  for (let y = 0; y < g.rows; y++) for (let x = 0; x < g.cols; x++) {
+    const t = tiles[y * g.cols + x];
+    if (t < 0) continue;
+    const [px, py] = at4(x, y), src = sheet.image.crop(t % columns * iw, Math.floor(t / columns) * ih, iw, ih);
+    out.over(src, px, py);
+  }
+  return out;
+}
+var hexHeight;
+var init_tileset = __esm({
+  "../artgen-mapgen/src/tilemap/tileset.ts"() {
+    "use strict";
+    init_grid();
+    init_autobits();
+    hexHeight = (w) => Math.round(w * Math.sqrt(3) / 2);
+  }
+});
+
+// ../artgen-mapgen/src/tilemap/tiled.ts
+function objectPixels(sheet, orientation) {
+  if (orientation === "isometric") return (x, y) => [x * sheet.tileH, y * sheet.tileH];
+  if (orientation === "hexagonal") return (x, y) => [(x - 0.5) * 0.75 * sheet.tileW + sheet.tileW / 2, y * sheet.tileH];
+  return (x, y) => [x * sheet.tileW, y * sheet.tileH];
+}
+function tiledObject(o, id2, at4) {
+  const [x, y] = at4(o.x, o.y), origin = at4(0, 0);
+  const rel4 = (pts2) => {
+    const out = [];
+    for (let i = 0; i < pts2.length; i += 2) {
+      const [px, py] = at4(pts2[i], pts2[i + 1]);
+      out.push({ x: r23(px - origin[0]), y: r23(py - origin[1]) });
+    }
+    return out;
+  };
+  const base = { id: id2, name: o.name ?? "", type: o.type, x: r23(x), y: r23(y), width: 0, height: 0, rotation: o.angle ?? 0, visible: true };
+  if (o.polygon) base.polygon = rel4(o.polygon);
+  else if (o.polyline) base.polyline = rel4(o.polyline);
+  else if (o.text !== void 0) {
+    const w = Math.max(16, o.text.length * 7), h = 16;
+    Object.assign(base, { x: r23(x - w / 2), y: r23(y - h / 2), width: w, height: h, text: { text: o.text, wrap: true, halign: "center", valign: "center", pixelsize: 12 } });
+  } else if (o.w !== void 0 && o.h !== void 0) {
+    const [ex, ey] = at4(o.x + o.w, o.y + o.h);
+    Object.assign(base, { width: r23(ex - x), height: r23(ey - y) });
+  } else base.point = true;
+  const p2 = props(o.props);
+  if (p2.length) base.properties = p2;
+  return base;
+}
+function tiledMap(g, sheet, o) {
+  if (o.tiles.length !== g.cols * g.rows) throw new Error("tiles: one per cell");
+  if (o.orientation === "hexagonal" && sheet.shape !== "hex") throw new Error("a hexagonal map needs hex tiles");
+  if (o.orientation === "isometric" && sheet.shape !== "diamond") throw new Error("an isometric map needs diamond tiles");
+  const at4 = objectPixels(sheet, o.orientation);
+  let layerId = 1, objectId = 1;
+  const layers = [{
+    id: layerId++,
+    name: "ground",
+    type: "tilelayer",
+    x: 0,
+    y: 0,
+    width: g.cols,
+    height: g.rows,
+    opacity: 1,
+    visible: true,
+    data: Array.from(o.tiles, (t) => t < 0 ? 0 : t + 1)
+  }];
+  const groups = [...new Set(g.objects.map((x) => x.layer))];
+  for (const name of groups) layers.push({
+    id: layerId++,
+    name,
+    type: "objectgroup",
+    draworder: "topdown",
+    x: 0,
+    y: 0,
+    opacity: 1,
+    visible: true,
+    objects: g.objects.filter((x) => x.layer === name).map((x) => tiledObject(x, objectId++, at4))
+  });
+  return {
+    type: "map",
+    version: TILED_VERSION,
+    tiledversion: TILED_APP,
+    orientation: o.orientation,
+    renderorder: "right-down",
+    width: g.cols,
+    height: g.rows,
+    tilewidth: sheet.tileW,
+    tileheight: sheet.tileH,
+    infinite: false,
+    ...o.orientation === "hexagonal" && { hexsidelength: Math.round(sheet.tileW / 2), staggeraxis: "x", staggerindex: "odd" },
+    nextlayerid: layerId,
+    nextobjectid: objectId,
+    compressionlevel: -1,
+    properties: props({ source: g.source, id: g.id, ...g.title && { title: g.title }, format: g.format, cellSize: g.cell.size, cellUnit: g.cell.unit, ...o.properties }),
+    tilesets: [{ firstgid: 1, source: o.tilesetFile }],
+    layers
+  };
+}
+function wangId(layout2, mask) {
+  const bits2 = [N, NE, E, SE, S, SW, W, NW];
+  return bits2.map((b, i) => layout2 === "wang16" && i % 2 ? 0 : mask & b ? 1 : 2);
+}
+function tiledTileset(g, sheet, o) {
+  const solid = new Map(g.classes.map((c) => [c.id, !!c.solid]));
+  const tiles = sheet.tiles.map((t) => ({
+    id: t.id,
+    type: t.class,
+    properties: props({ class: t.class, solid: solid.get(t.class), ...t.variant && { variant: t.variant }, ...t.autotile && { autotile: t.autotile, index: t.index }, ...t.flat && { placeholder: true } })
+  }));
+  const wangsets = sheet.bindings.filter((b) => b.autotile).map((b) => {
+    const layout2 = b.autotile, cls = g.classes.find((c) => c.id === b.class), mine = sheet.tiles.filter((t) => t.class === b.class);
+    const full = mine.find((t) => t.index === (layout2 === "blob47" ? BLOB47.length - 1 : 15));
+    const isolated = mine.find((t) => t.index === 0);
+    return {
+      name: b.class,
+      type: layout2 === "blob47" ? "mixed" : "edge",
+      tile: full.id,
+      colors: [
+        { name: cls.name, color: cls.color, tile: full.id, probability: 1 },
+        { name: "other", color: "#808080", tile: isolated.id, probability: 1 }
+      ],
+      wangtiles: mine.map((t) => ({ tileid: t.id, wangid: wangId(layout2, autotileMask(layout2, t.index)) }))
+    };
+  });
+  const rows3 = Math.ceil(sheet.tiles.length / sheet.columns);
+  return {
+    type: "tileset",
+    version: TILED_VERSION,
+    tiledversion: TILED_APP,
+    name: sheet.name,
+    tilewidth: sheet.imageW,
+    tileheight: sheet.imageH,
+    tilecount: sheet.tiles.length,
+    columns: sheet.columns,
+    margin: 0,
+    spacing: 0,
+    image: o.image,
+    imagewidth: sheet.columns * sheet.imageW,
+    imageheight: rows3 * sheet.imageH,
+    ...sheet.shape === "diamond" && { grid: { orientation: "isometric", width: sheet.tileW, height: sheet.tileH } },
+    properties: props({ generator: "artgen", ...Object.fromEntries(sheet.bindings.map((b) => [`bind.${b.class}`, b.source])) }),
+    tiles,
+    ...wangsets.length && { wangsets }
+  };
+}
+function propsXml(p2, pad) {
+  if (!p2?.length) return "";
+  return `${pad}<properties>
+${p2.map((x) => `${pad} <property${attrs({ name: x.name, type: x.type === "string" ? void 0 : x.type, value: x.type === "bool" ? String(x.value) : x.value })}/>`).join("\n")}
+${pad}</properties>
+`;
+}
+function tmx(map) {
+  const head = attrs({
+    version: map.version,
+    tiledversion: map.tiledversion,
+    orientation: map.orientation,
+    renderorder: map.renderorder,
+    width: map.width,
+    height: map.height,
+    tilewidth: map.tilewidth,
+    tileheight: map.tileheight,
+    infinite: 0,
+    hexsidelength: map.hexsidelength,
+    staggeraxis: map.staggeraxis,
+    staggerindex: map.staggerindex,
+    nextlayerid: map.nextlayerid,
+    nextobjectid: map.nextobjectid
+  });
+  let s2 = `<?xml version="1.0" encoding="UTF-8"?>
+<map${head}>
+${propsXml(map.properties, " ")}`;
+  for (const t of map.tilesets) s2 += ` <tileset firstgid="${t.firstgid}" source="${esc2(t.source)}"/>
+`;
+  for (const l of map.layers) {
+    if (l.type === "tilelayer") {
+      const rows3 = [];
+      for (let y = 0; y < l.height; y++) rows3.push(l.data.slice(y * l.width, (y + 1) * l.width).join(","));
+      s2 += ` <layer${attrs({ id: l.id, name: l.name, width: l.width, height: l.height })}>
+  <data encoding="csv">
+${rows3.join(",\n")}
+</data>
+ </layer>
+`;
+    } else {
+      s2 += ` <objectgroup${attrs({ id: l.id, name: l.name })}>
+`;
+      for (const o of l.objects) {
+        const a = attrs({ id: o.id, name: o.name || void 0, type: o.type, x: o.x, y: o.y, width: o.width || void 0, height: o.height || void 0, rotation: o.rotation || void 0 });
+        const inner = propsXml(o.properties, "   ") + (o.polygon ? `   <polygon points="${o.polygon.map((p2) => `${p2.x},${p2.y}`).join(" ")}"/>
+` : "") + (o.polyline ? `   <polyline points="${o.polyline.map((p2) => `${p2.x},${p2.y}`).join(" ")}"/>
+` : "") + (o.point ? "   <point/>\n" : "") + (o.text ? `   <text${attrs({ pixelsize: o.text.pixelsize, wrap: 1, halign: o.text.halign, valign: o.text.valign })}>${esc2(o.text.text)}</text>
+` : "");
+        s2 += inner ? `  <object${a}>
+${inner}  </object>
+` : `  <object${a}/>
+`;
+      }
+      s2 += " </objectgroup>\n";
+    }
+  }
+  return s2 + "</map>\n";
+}
+function tsx(ts) {
+  let s2 = `<?xml version="1.0" encoding="UTF-8"?>
+<tileset${attrs({ version: ts.version, tiledversion: ts.tiledversion, name: ts.name, tilewidth: ts.tilewidth, tileheight: ts.tileheight, tilecount: ts.tilecount, columns: ts.columns })}>
+`;
+  if (ts.grid) s2 += ` <grid${attrs({ orientation: ts.grid.orientation, width: ts.grid.width, height: ts.grid.height })}/>
+`;
+  s2 += propsXml(ts.properties, " ");
+  s2 += ` <image${attrs({ source: ts.image, width: ts.imagewidth, height: ts.imageheight })}/>
+`;
+  for (const t of ts.tiles) s2 += ` <tile${attrs({ id: t.id, type: t.type })}>
+${propsXml(t.properties, "  ")} </tile>
+`;
+  if (ts.wangsets) {
+    s2 += " <wangsets>\n";
+    for (const w of ts.wangsets) {
+      s2 += `  <wangset${attrs({ name: w.name, type: w.type, tile: w.tile })}>
+`;
+      for (const c of w.colors) s2 += `   <wangcolor${attrs({ name: c.name, color: c.color, tile: c.tile, probability: c.probability })}/>
+`;
+      for (const t of w.wangtiles) s2 += `   <wangtile tileid="${t.tileid}" wangid="${t.wangid.join(",")}"/>
+`;
+      s2 += "  </wangset>\n";
+    }
+    s2 += " </wangsets>\n";
+  }
+  return s2 + "</tileset>\n";
+}
+var TILED_VERSION, TILED_APP, props, r23, esc2, attrs;
+var init_tiled = __esm({
+  "../artgen-mapgen/src/tilemap/tiled.ts"() {
+    "use strict";
+    init_autobits();
+    TILED_VERSION = "1.10";
+    TILED_APP = "1.10.2";
+    props = (o) => Object.entries(o).sort(([a], [b]) => a.localeCompare(b)).map(([name, value]) => ({ name, type: typeof value === "boolean" ? "bool" : typeof value === "number" ? Number.isInteger(value) ? "int" : "float" : "string", value }));
+    r23 = (v) => Math.round(v * 100) / 100;
+    esc2 = (s2) => String(s2).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    attrs = (o) => Object.entries(o).filter(([, v]) => v !== void 0).map(([k, v]) => ` ${k}="${esc2(v)}"`).join("");
+  }
+});
+
+// ../artgen-mapgen/src/tilemap/ldtk.ts
+function stableIid(key2) {
+  const lanes = [2166136261, 16777619, 2654435769, 2246822507].map((h, k) => {
+    for (let i = 0; i < key2.length; i++) h = Math.imul(h ^ key2.charCodeAt(i) ^ k * 131, 16777619) >>> 0;
+    return (h >>> 0).toString(16).padStart(8, "0");
+  }).join("");
+  return `${lanes.slice(0, 8)}-${lanes.slice(8, 12)}-4${lanes.slice(13, 16)}-${(parseInt(lanes[16], 16) & 3 | 8).toString(16)}${lanes.slice(17, 20)}-${lanes.slice(20, 32)}`;
+}
+function ldtkIdent(s2) {
+  const t = s2.replace(/[^A-Za-z0-9_]+/g, "_").replace(/^_+|_+$/g, "");
+  const u = t ? t[0].toUpperCase() + t.slice(1) : "X";
+  return /^[A-Za-z_]/.test(u) ? u : `_${u}`;
+}
+function fieldDef(identifier, kind, uid) {
+  const isArray = kind === "Array<Point>";
+  return {
+    identifier,
+    doc: null,
+    __type: kind,
+    uid,
+    type: FIELD_TYPE[kind],
+    isArray,
+    canBeNull: true,
+    arrayMinLength: null,
+    arrayMaxLength: null,
+    editorDisplayMode: isArray ? "PointPath" : "Hidden",
+    editorDisplayScale: 1,
+    editorDisplayPos: "Above",
+    editorLinkStyle: "StraightArrow",
+    editorDisplayColor: null,
+    editorAlwaysShow: false,
+    editorShowInWorld: true,
+    editorCutLongValues: true,
+    editorTextSuffix: null,
+    editorTextPrefix: null,
+    useForSmartColor: false,
+    exportToToc: false,
+    searchable: false,
+    min: null,
+    max: null,
+    regex: null,
+    acceptFileTypes: null,
+    defaultOverride: null,
+    textLanguageMode: null,
+    symmetricalRef: false,
+    autoChainRef: true,
+    allowOutOfLevelRef: true,
+    allowedRefs: "OnlySame",
+    allowedRefsEntityUid: null,
+    allowedRefTags: [],
+    tilesetUid: null
+  };
+}
+function fieldInstance(identifier, kind, defUid, value) {
+  if (value === void 0 || value === null) return { __identifier: identifier, __type: kind, __value: null, __tile: null, defUid, realEditorValues: [] };
+  if (kind === "String" && typeof value !== "string") value = String(value);
+  const real = kind === "Array<Point>" ? value.map((p2) => ({ id: "V_String", params: [`${p2.cx},${p2.cy}`] })) : [{ id: kind === "Int" ? "V_Int" : kind === "Float" ? "V_Float" : kind === "Bool" ? "V_Bool" : "V_String", params: [value] }];
+  return { __identifier: identifier, __type: kind, __value: value, __tile: null, defUid, realEditorValues: real };
+}
+function ldtkProject(g, sheet, o) {
+  if (g.grid !== "square" || sheet.shape !== "square") throw new Error("LDtk has square grids only: export an isometric or hex map to Tiled");
+  if (sheet.imageW !== sheet.tileW || sheet.imageH !== sheet.tileH || sheet.tileW !== sheet.tileH) throw new Error(`LDtk tiles are square cells (these are ${sheet.imageW}\xD7${sheet.imageH} px)`);
+  if (o.tiles.length !== g.cols * g.rows) throw new Error("tiles: one per cell");
+  const G = sheet.tileW, key2 = `${g.source}:${g.id}`;
+  let uid = 1;
+  const next4 = () => uid++;
+  const levelUid = next4(), tilesetUid = next4(), objectsUid = next4(), tilesUid = next4(), classesUid = next4();
+  const rows3 = Math.ceil(sheet.tiles.length / sheet.columns), solid = new Set(g.classes.filter((c) => c.solid).map((c) => c.id));
+  const tileset2 = {
+    __cWid: sheet.columns,
+    __cHei: rows3,
+    identifier: ldtkIdent(sheet.name),
+    uid: tilesetUid,
+    relPath: o.image,
+    embedAtlas: null,
+    pxWid: sheet.columns * G,
+    pxHei: rows3 * G,
+    tileGridSize: G,
+    spacing: 0,
+    padding: 0,
+    tags: [],
+    tagsSourceEnumUid: null,
+    enumTags: [],
+    customData: sheet.tiles.map((t) => ({ tileId: t.id, data: JSON.stringify({ class: t.class, ...solid.has(t.class) && { solid: true }, ...t.variant && { variant: t.variant }, ...t.autotile && { autotile: t.autotile, index: t.index }, ...t.flat && { placeholder: true } }) })),
+    savedSelections: [],
+    cachedPixelData: null
+  };
+  const types = [...new Set(g.objects.map((x) => x.type))];
+  const entities = types.map((type, k) => {
+    const mine = g.objects.filter((x) => x.type === type), fields2 = /* @__PURE__ */ new Map();
+    fields2.set("name", "String");
+    if (mine.some((x) => x.text !== void 0)) fields2.set("text", "String");
+    if (mine.some((x) => x.angle)) fields2.set("angle", "Float");
+    for (const x of mine) for (const [name, v] of Object.entries(x.props)) {
+      const was = fields2.get(name), now = kindOf(v);
+      fields2.set(name, !was || was === now ? now : was === "Int" && now === "Float" ? "Float" : was === "Float" && now === "Int" ? "Float" : "String");
+    }
+    if (mine.some(outlineOf)) {
+      fields2.set("outline", "String");
+      fields2.set("points", "Array<Point>");
+    }
+    const defs = [...fields2].map(([name, kind]) => ({ name, kind, uid: next4() }));
+    const hue = k * 137.5 % 360, color = hsl(hue, 0.55, 0.5);
+    return {
+      type,
+      defs,
+      def: {
+        identifier: ldtkIdent(type),
+        uid: next4(),
+        tags: [mine[0].layer],
+        exportToToc: false,
+        allowOutOfBounds: true,
+        doc: null,
+        width: G,
+        height: G,
+        resizableX: true,
+        resizableY: true,
+        minWidth: null,
+        maxWidth: null,
+        minHeight: null,
+        maxHeight: null,
+        keepAspectRatio: false,
+        tileOpacity: 1,
+        fillOpacity: 0.08,
+        lineOpacity: 1,
+        hollow: true,
+        color,
+        renderMode: "Rectangle",
+        showName: true,
+        tilesetId: null,
+        tileRenderMode: "FitInside",
+        tileRect: null,
+        uiTileRect: null,
+        nineSliceBorders: [],
+        maxCount: 0,
+        limitScope: "PerLevel",
+        limitBehavior: "MoveLastOne",
+        pivotX: 0,
+        pivotY: 0,
+        fieldDefs: defs.map((d) => fieldDef(d.name, d.kind, d.uid))
+      }
+    };
+  });
+  const layerDef = (identifier, type, uidL, extra = {}) => ({
+    __type: type,
+    identifier,
+    type,
+    uid: uidL,
+    doc: null,
+    uiColor: null,
+    gridSize: G,
+    guideGridWid: 0,
+    guideGridHei: 0,
+    displayOpacity: 1,
+    inactiveOpacity: 0.6,
+    hideInList: false,
+    hideFieldsWhenInactive: true,
+    canSelectWhenInactive: true,
+    renderInWorldView: true,
+    pxOffsetX: 0,
+    pxOffsetY: 0,
+    parallaxFactorX: 0,
+    parallaxFactorY: 0,
+    parallaxScaling: true,
+    requiredTags: [],
+    excludedTags: [],
+    autoTilesKilledByOtherLayerUid: null,
+    uiFilterTags: [],
+    useAsyncRender: false,
+    intGridValues: [],
+    intGridValuesGroups: [],
+    autoRuleGroups: [],
+    autoSourceLayerDefUid: null,
+    tilesetDefUid: null,
+    tilePivotX: 0,
+    tilePivotY: 0,
+    biomeFieldUid: null,
+    ...extra
+  });
+  const layers = [
+    layerDef("Objects", "Entities", objectsUid),
+    layerDef("Tiles", "Tiles", tilesUid, { tilesetDefUid: tilesetUid }),
+    layerDef("Classes", "IntGrid", classesUid, { intGridValues: g.classes.map((c, i) => ({ value: i + 1, identifier: ldtkIdent(c.id), color: c.color, tile: null, groupUid: 0 })) })
+  ];
+  const levelIid = stableIid(`${key2}:level`), worldIid = stableIid(`${key2}:world`);
+  const instance = (identifier, type, defUid, extra) => ({
+    __cHei: g.rows,
+    __cWid: g.cols,
+    __gridSize: G,
+    __identifier: identifier,
+    __opacity: 1,
+    __pxTotalOffsetX: 0,
+    __pxTotalOffsetY: 0,
+    __tilesetDefUid: null,
+    __tilesetRelPath: null,
+    __type: type,
+    autoLayerTiles: [],
+    entityInstances: [],
+    gridTiles: [],
+    iid: stableIid(`${key2}:layer:${identifier}`),
+    intGridCsv: [],
+    layerDefUid: defUid,
+    levelId: levelUid,
+    optionalRules: [],
+    overrideTilesetUid: null,
+    pxOffsetX: 0,
+    pxOffsetY: 0,
+    seed: 0,
+    visible: true,
+    ...extra
+  });
+  const entityInstances = g.objects.map((x, n) => {
+    const e = entities.find((t) => t.type === x.type), pts2 = outlineOf(x);
+    const abs = pts2 ? pts2.map((v, i) => v + (i % 2 ? x.y : x.x)) : [x.x, x.y];
+    const xs = abs.filter((_, i) => i % 2 === 0), ys = abs.filter((_, i) => i % 2 === 1);
+    const bx = Math.min(...xs), by = Math.min(...ys), bw = Math.max(...xs) - bx, bh = Math.max(...ys) - by;
+    const px = [Math.round(bx * G), Math.round(by * G)], size2 = (v) => v ? Math.max(1, Math.round(v * G)) : G;
+    const width = size2(pts2 ? bw : x.w), height = size2(pts2 ? bh : x.h);
+    const values = { name: x.name ?? null, text: x.text, angle: x.angle, ...x.props };
+    if (pts2) {
+      values.outline = Array.from({ length: abs.length / 2 }, (_, i) => `${r24(abs[2 * i])},${r24(abs[2 * i + 1])}`).join(" ");
+      values.points = Array.from({ length: abs.length / 2 }, (_, i) => ({ cx: Math.max(0, Math.min(g.cols - 1, Math.floor(abs[2 * i]))), cy: Math.max(0, Math.min(g.rows - 1, Math.floor(abs[2 * i + 1]))) }));
+    }
+    return {
+      __identifier: e.def.identifier,
+      __grid: [Math.floor(px[0] / G), Math.floor(px[1] / G)],
+      __pivot: [0, 0],
+      __tags: e.def.tags,
+      __tile: null,
+      __smartColor: e.def.color,
+      __worldX: px[0],
+      __worldY: px[1],
+      iid: stableIid(`${key2}:entity:${n}`),
+      width,
+      height,
+      defUid: e.def.uid,
+      px,
+      fieldInstances: e.defs.map((d) => fieldInstance(d.name, d.kind, d.uid, values[d.name]))
+    };
+  });
+  const gridTiles = [];
+  for (let y = 0; y < g.rows; y++) for (let x = 0; x < g.cols; x++) {
+    const t = o.tiles[y * g.cols + x];
+    if (t < 0) continue;
+    gridTiles.push({ px: [x * G, y * G], src: [t % sheet.columns * G, Math.floor(t / sheet.columns) * G], f: 0, t, d: [y * g.cols + x], a: 1 });
+  }
+  const level2 = {
+    identifier: ldtkIdent(g.id),
+    iid: levelIid,
+    uid: levelUid,
+    worldX: 0,
+    worldY: 0,
+    worldDepth: 0,
+    pxWid: g.cols * G,
+    pxHei: g.rows * G,
+    __bgColor: "#1E1E24",
+    bgColor: null,
+    useAutoIdentifier: false,
+    bgRelPath: null,
+    bgPos: null,
+    bgPivotX: 0.5,
+    bgPivotY: 0.5,
+    __smartColor: "#ADADB5",
+    __bgPos: null,
+    externalRelPath: null,
+    fieldInstances: [],
+    __neighbours: [],
+    layerInstances: [
+      instance("Objects", "Entities", objectsUid, { entityInstances }),
+      instance("Tiles", "Tiles", tilesUid, { __tilesetDefUid: tilesetUid, __tilesetRelPath: o.image, gridTiles }),
+      instance("Classes", "IntGrid", classesUid, { intGridCsv: Array.from(g.cells) })
+    ]
+  };
+  return {
+    __header__: { fileType: "LDtk Project JSON", app: "LDtk", doc: "https://ldtk.io/json", schema: "https://ldtk.io/files/JSON_SCHEMA.json", appAuthor: "Sebastien Benard", appVersion: LDTK_VERSION, url: "https://ldtk.io" },
+    iid: stableIid(`${key2}:project`),
+    jsonVersion: LDTK_VERSION,
+    appBuildId: 0,
+    nextUid: uid,
+    identifierStyle: "Capitalize",
+    toc: [],
+    worldLayout: "Free",
+    worldGridWidth: g.cols * G,
+    worldGridHeight: g.rows * G,
+    defaultLevelWidth: g.cols * G,
+    defaultLevelHeight: g.rows * G,
+    defaultPivotX: 0,
+    defaultPivotY: 0,
+    defaultGridSize: G,
+    defaultEntityWidth: G,
+    defaultEntityHeight: G,
+    bgColor: "#40465B",
+    defaultLevelBgColor: "#1E1E24",
+    minifyJson: false,
+    externalLevels: false,
+    exportTiled: false,
+    simplifiedExport: false,
+    imageExportMode: "None",
+    exportLevelBg: true,
+    pngFilePattern: null,
+    backupOnSave: false,
+    backupLimit: 10,
+    backupRelPath: null,
+    levelNamePattern: "Level_%idx",
+    tutorialDesc: null,
+    customCommands: [],
+    flags: [],
+    dummyWorldIid: worldIid,
+    defs: { layers, entities: entities.map((e) => e.def), tilesets: [tileset2], enums: [], externalEnums: [], levelFields: [] },
+    levels: [level2],
+    worlds: []
+  };
+}
+function hsl(h, s2, l) {
+  const a = s2 * Math.min(l, 1 - l), f = (n) => {
+    const k = (n + h / 30) % 12;
+    return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1))));
+  };
+  return `#${[f(0), f(8), f(4)].map((v) => v.toString(16).padStart(2, "0")).join("").toUpperCase()}`;
+}
+var LDTK_VERSION, FIELD_TYPE, kindOf, outlineOf, r24;
+var init_ldtk = __esm({
+  "../artgen-mapgen/src/tilemap/ldtk.ts"() {
+    "use strict";
+    LDTK_VERSION = "1.5.3";
+    FIELD_TYPE = { Int: "F_Int", Float: "F_Float", String: "F_String", Bool: "F_Bool", "Array<Point>": "F_Point" };
+    kindOf = (v) => typeof v === "boolean" ? "Bool" : typeof v === "number" ? Number.isInteger(v) ? "Int" : "Float" : "String";
+    outlineOf = (o) => o.polygon ?? o.polyline;
+    r24 = (v) => Math.round(v * 100) / 100;
+  }
+});
+
+// ../artgen-mapgen/src/tilemap/export.ts
+function editorJson(v) {
+  const flat2 = (x) => x === null || typeof x !== "object" || (Array.isArray(x) ? x : Object.values(x)).every((y) => y === null || typeof y !== "object");
+  const short = (x) => flat2(x) || Array.isArray(x) && x.every((y) => flat2(y) && JSON.stringify(y).length <= 80) && x.length <= 64;
+  const out = (x, pad) => {
+    if (x === null || typeof x !== "object" || short(x)) return JSON.stringify(x);
+    const inner = pad + " ";
+    if (Array.isArray(x)) return x.length ? `[
+${x.map((y) => inner + out(y, inner)).join(",\n")}
+${pad}]` : "[]";
+    const e = Object.entries(x).filter(([, y]) => y !== void 0);
+    return e.length ? `{
+${e.map(([k, y]) => `${inner}${JSON.stringify(k)}: ${out(y, inner)}`).join(",\n")}
+${pad}}` : "{}";
+  };
+  return `${out(v, "")}
+`;
+}
+function exportTilemap(g, o = {}) {
+  const stem = o.name ?? g.id;
+  const views = [...new Set((o.bindings ?? []).map((b) => b.view))];
+  if (!o.view && views.length > 1) throw new Error(`the bound tiles are drawn for different views (${views.join(", ")}): say which with --view`);
+  const view = o.view ?? views[0] ?? "topdown", vm = VIEW_MAPS[view];
+  if (!vm) throw new Error(`no tile maps for the ${view} view (have: ${Object.keys(VIEW_MAPS).join(", ")})`);
+  const checks = [];
+  for (const b of o.bindings ?? []) {
+    const problem = tileShapeProblem(view, b.size[0], b.size[1]);
+    if (problem) throw new Error(`tile-shape: ${b.source} for ${b.class}: ${problem}`);
+    checks.push({ id: "tile-shape", class: b.class, source: b.source, status: "pass", detail: `${b.size[0]}\xD7${b.size[1]} px fits the ${view} cell` });
+  }
+  const orientation = g.grid === "hex" ? "hexagonal" : vm.tiled;
+  const to = o.to ?? (orientation === "orthogonal" ? ["tiled", "ldtk"] : ["tiled"]);
+  if (g.grid === "hex" && vm.tile !== "square") throw new Error(`a hex map is drawn flat: it has no ${view} export`);
+  if (to.includes("ldtk") && (orientation !== "orthogonal" || !vm.ldtk)) throw new Error(`LDtk has square grids only: export the ${orientation} map with --to tiled`);
+  const sheet = buildSheet(g, { name: `${stem}-tiles`, shape: orientation === "isometric" ? "diamond" : orientation === "hexagonal" ? "hex" : "square", tile: o.tile, bindings: o.bindings });
+  const tiles = resolveTiles(g, sheet, o.seed ?? 0), image2 = `${stem}-tiles.png`;
+  const files = [{ name: image2, data: encodePNG(sheet.image) }, { name: `${stem}-preview.png`, data: encodePNG(previewTiles(g, sheet, tiles, "#1e1e24")) }];
+  if (to.includes("tiled")) {
+    const tsFile = `${stem}.${o.xml ? "tsx" : "tsj"}`;
+    const map = tiledMap(g, sheet, { orientation, tilesetFile: tsFile, image: image2, tiles, properties: { generator: "artgen", view, ...o.properties } });
+    const ts = tiledTileset(g, sheet, { image: image2 });
+    files.push({ name: `${stem}.${o.xml ? "tmx" : "tmj"}`, data: o.xml ? tmx(map) : json(map) }, { name: tsFile, data: o.xml ? tsx(ts) : json(ts) });
+  }
+  if (to.includes("ldtk")) files.push({ name: `${stem}.ldtk`, data: json(ldtkProject(g, sheet, { image: image2, tiles })) });
+  return { files, sheet, tiles, orientation, view, checks, counts: classCounts(g) };
+}
+var json;
+var init_export = __esm({
+  "../artgen-mapgen/src/tilemap/export.ts"() {
+    "use strict";
+    init_png();
+    init_viewmap();
+    init_grid2();
+    init_tileset();
+    init_tiled();
+    init_ldtk();
+    json = editorJson;
+  }
+});
+
+// ../artgen-mapgen/src/tilemap/index.ts
+var tilemap_exports = {};
+__export(tilemap_exports, {
+  DUNGEON_CLASSES: () => DUNGEON_CLASSES,
+  LDTK_VERSION: () => LDTK_VERSION,
+  TILED_VERSION: () => TILED_VERSION,
+  bindTiles: () => bindTiles,
+  buildSheet: () => buildSheet,
+  classAt: () => classAt,
+  classCounts: () => classCounts,
+  dungeonTiles: () => dungeonTiles,
+  editorJson: () => editorJson,
+  exportTilemap: () => exportTilemap,
+  flatTile: () => flatTile,
+  hexHeight: () => hexHeight,
+  hexLayout: () => hexLayout,
+  ldtkIdent: () => ldtkIdent,
+  ldtkProject: () => ldtkProject,
+  mapTiles: () => mapTiles,
+  objectPixels: () => objectPixels,
+  previewTiles: () => previewTiles,
+  resolveTiles: () => resolveTiles,
+  settlementTiles: () => settlementTiles,
+  stableIid: () => stableIid,
+  tiledMap: () => tiledMap,
+  tiledTileset: () => tiledTileset,
+  tilesetTiles: () => tilesetTiles,
+  tmx: () => tmx,
+  tsx: () => tsx,
+  wangId: () => wangId
+});
+var init_tilemap = __esm({
+  "../artgen-mapgen/src/tilemap/index.ts"() {
+    "use strict";
+    init_grid2();
+    init_tileset();
+    init_tiled();
+    init_ldtk();
+    init_export();
+  }
+});
+
 // ../artgen-mapgen/src/workflow.ts
 var workflow_exports = {};
 __export(workflow_exports, {
@@ -17101,7 +18296,7 @@ var direction_exports = {};
 __export(direction_exports, {
   DEFAULT_THEME: () => DEFAULT_THEME,
   DIRECTION_FILE: () => DIRECTION_FILE,
-  KINDS: () => KINDS,
+  KINDS: () => KINDS2,
   SYMBOL_NAMES: () => SYMBOL_NAMES,
   THEME_NAMES: () => THEME_NAMES,
   checkMapDirection: () => checkMapDirection,
@@ -17128,12 +18323,12 @@ function checkMapDirection(raw) {
     const o = r[key2];
     if (o === void 0) continue;
     if (!o || typeof o !== "object" || Array.isArray(o)) {
-      e.push(`${key2}: an object keyed by ${KINDS.join(", ")}`);
+      e.push(`${key2}: an object keyed by ${KINDS2.join(", ")}`);
       continue;
     }
     for (const [k, v] of Object.entries(o)) {
-      if (!KINDS.includes(k)) {
-        e.push(`${key2}.${k}: not a kind (${KINDS.join(", ")})`);
+      if (!KINDS2.includes(k)) {
+        e.push(`${key2}.${k}: not a kind (${KINDS2.join(", ")})`);
         continue;
       }
       const have = names[k];
@@ -17156,7 +18351,7 @@ function parseThemeFlag(v) {
   const out = {};
   for (const part of v.split(",").map((s2) => s2.trim()).filter(Boolean)) {
     const [k, t] = part.split("=");
-    if (!KINDS.includes(k) || !t) throw new Error(`--theme: kind=theme pairs, e.g. map=bw,settlement=color (kinds: ${KINDS.join(", ")})`);
+    if (!KINDS2.includes(k) || !t) throw new Error(`--theme: kind=theme pairs, e.g. map=bw,settlement=color (kinds: ${KINDS2.join(", ")})`);
     if (!THEME_NAMES[k].includes(t)) throw new Error(`--theme ${k}: one of ${THEME_NAMES[k].join(", ")}`);
     out[k] = t;
   }
@@ -17166,7 +18361,7 @@ function parseSymbolsFlag(v) {
   const out = {};
   for (const part of v.split(";").map((s2) => s2.trim()).filter(Boolean)) {
     const [k, list6 = ""] = part.split("=");
-    if (!KINDS.includes(k)) throw new Error(`--symbols: kind=symbol,symbol (kinds: ${KINDS.join(", ")})`);
+    if (!KINDS2.includes(k)) throw new Error(`--symbols: kind=symbol,symbol (kinds: ${KINDS2.join(", ")})`);
     const names = list6.split(",").map((s2) => s2.trim()).filter(Boolean), bad = names.filter((n) => !SYMBOL_NAMES[k].includes(n));
     if (bad.length) throw new Error(`--symbols ${k}: no such symbol ${bad.join(", ")} (have: ${SYMBOL_NAMES[k].join(", ")})`);
     out[k] = names;
@@ -17175,13 +18370,13 @@ function parseSymbolsFlag(v) {
 }
 function editMapDirection(d, o) {
   const symbols4 = { ...d.symbols, ...o.symbols };
-  for (const k of KINDS) if (symbols4[k] && !symbols4[k].length) delete symbols4[k];
+  for (const k of KINDS2) if (symbols4[k] && !symbols4[k].length) delete symbols4[k];
   return { ...d, status: "draft", themes: { ...d.themes, ...o.themes }, symbols: symbols4, ...o.note !== void 0 && (o.note ? { note: o.note } : {}) };
 }
 function formatMapDirection(d) {
   return JSON.stringify({ id: d.id, version: d.version, status: d.status, themes: d.themes, symbols: d.symbols, ...d.note && { note: d.note } }, null, 2) + "\n";
 }
-var DIRECTION_FILE, KINDS, THEME_NAMES, SYMBOL_NAMES, DEFAULT_THEME, newMapDirection, lockedMapDirection, directionRef, themeFor, symbolsFor, lockMapDirection;
+var DIRECTION_FILE, KINDS2, THEME_NAMES, SYMBOL_NAMES, DEFAULT_THEME, newMapDirection, lockedMapDirection, directionRef, themeFor, symbolsFor, lockMapDirection;
 var init_direction2 = __esm({
   "../artgen-mapgen/src/direction.ts"() {
     "use strict";
@@ -17191,7 +18386,7 @@ var init_direction2 = __esm({
     init_symbols2();
     init_render3();
     DIRECTION_FILE = "map-direction.json";
-    KINDS = ["map", "dungeon", "settlement"];
+    KINDS2 = ["map", "dungeon", "settlement"];
     THEME_NAMES = { map: THEMES, dungeon: ["bw"], settlement: THEMES2 };
     SYMBOL_NAMES = { map: SYMBOL_KINDS, dungeon: SYMBOL_KINDS2, settlement: SYMBOL_KINDS3 };
     DEFAULT_THEME = { map: "color", dungeon: "bw", settlement: "color" };
@@ -17222,6 +18417,7 @@ var init_src4 = __esm({
     init_svg();
     init_view2();
     init_view2();
+    init_tilemap();
     init_workflow();
     init_direction2();
     init_grid();
@@ -18328,11 +19524,11 @@ function packRects(sizes, opts = {}) {
     let done = false;
     for (let side = 16; side <= max2 && !done; side *= 2) for (const [W3, H] of [[side, side / 2], [side, side]]) {
       if (W3 * H < area3 || H < 1) continue;
-      const r4 = tryPack(todo, W3, H);
-      if (!r4.rest.length) {
+      const r5 = tryPack(todo, W3, H);
+      if (!r5.rest.length) {
         const b2 = bins.length;
-        placed.push(...r4.out.map((p2) => ({ ...p2, bin: b2 })));
-        bins.push(fitBin(r4.out, W3, H));
+        placed.push(...r5.out.map((p2) => ({ ...p2, bin: b2 })));
+        bins.push(fitBin(r5.out, W3, H));
         todo = [];
         done = true;
         break;
@@ -18757,7 +19953,7 @@ function stageKeys(r, dir, o = {}) {
     shape.str(cellId(c)).bytes(shapeMask(c.grid, dir));
     look.str(c.grid.hash());
     anim2.str(cellId(c));
-    for (const [k, [x, y]] of Object.entries(c.anchors ?? {}).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)) anim2.str(`${k}=${r23(x)},${r23(y)}`);
+    for (const [k, [x, y]] of Object.entries(c.anchors ?? {}).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)) anim2.str(`${k}=${r25(x)},${r25(y)}`);
     if (c.normal) {
       lit = true;
       light.str(c.normal.hash());
@@ -18769,7 +19965,7 @@ function stageKeys(r, dir, o = {}) {
   keys.decorate = look.hex();
   const decal = decalKey(r);
   if (decal) keys.decal = decal;
-  if (lit) keys.lighting = light.str(dir.camera.light.map(r23).join(",")).hex();
+  if (lit) keys.lighting = light.str(dir.camera.light.map(r25).join(",")).hex();
   const rotate3 = o.rotate ?? r.brief.rotate;
   if (rotate3) keys.rotation = new Digest().str(`${r.facings.join(",")}|${rotate3}|${r.brief.rotateFrom ?? "e"}`).hex();
   keys.animation = anim2.str(canonicalJson({ ...briefContract(r.brief, dir), anchors: [] })).hex();
@@ -18779,7 +19975,7 @@ function rigKey(r) {
   if (!r.rigs) return void 0;
   const seen = /* @__PURE__ */ new Set(), d = new Digest();
   for (const c of r.cells) for (const g of r.rigs[cellId(c)] ?? []) {
-    const s2 = `${g.plan}|${Object.keys(g.lengths).sort().map((b) => `${b}=${r23(g.lengths[b])}`).join(",")}`;
+    const s2 = `${g.plan}|${Object.keys(g.lengths).sort().map((b) => `${b}=${r25(g.lengths[b])}`).join(",")}`;
     if (!seen.has(s2)) {
       seen.add(s2);
       d.str(s2);
@@ -18830,7 +20026,7 @@ function rigChecks(r) {
   const bad = [...lo.keys()].map((k) => ({ k, d: hi.get(k)[0] - lo.get(k)[0] })).filter((x) => x.d > RIG_LENGTH_TOL).sort((a2, b2) => b2.d - a2.d);
   if (!bad.length) return [c("pass", `${lo.size} bone lengths the same in every cell (within ${RIG_LENGTH_TOL} px)`)];
   const w = bad[0].k.split(":"), [a, ia] = lo.get(bad[0].k), [b, ib] = hi.get(bad[0].k);
-  return [c("fail", `${w[1]} bone ${w[2]} is ${r23(a)} px in ${ia} and ${r23(b)} px in ${ib}${bad.length > 1 ? ` (and ${bad.length - 1} more bone${bad.length > 2 ? "s" : ""})` : ""}: build the rig once per cell from fixed proportions`)];
+  return [c("fail", `${w[1]} bone ${w[2]} is ${r25(a)} px in ${ia} and ${r25(b)} px in ${ib}${bad.length > 1 ? ` (and ${bad.length - 1} more bone${bad.length > 2 ? "s" : ""})` : ""}: build the rig once per cell from fixed proportions`)];
 }
 function pieceCount(g) {
   const { w, h } = g, seen = new Uint8Array(w * h), st = [];
@@ -19014,7 +20210,7 @@ function shapeSheet(r, dir, o) {
   }
   return g;
 }
-var Digest, N46, cellId, r23, RIG_LENGTH_TOL, ROTATION_CLIP_MAX, ROTATION_AREA_MAX, countOpaque, SHAPE_READ_MAX, FILLS, stageCheckLabels, placeholderKey, SHAPE_BG, SHAPE_INK, GUIDE, SHEET_BG, SHEET_FG;
+var Digest, N46, cellId, r25, RIG_LENGTH_TOL, ROTATION_CLIP_MAX, ROTATION_AREA_MAX, countOpaque, SHAPE_READ_MAX, FILLS, stageCheckLabels, placeholderKey, SHAPE_BG, SHAPE_INK, GUIDE, SHEET_BG, SHEET_FG;
 var init_stages2 = __esm({
   "../artgen-core/src/qa/stages.ts"() {
     "use strict";
@@ -19053,7 +20249,7 @@ var init_stages2 = __esm({
     };
     N46 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
     cellId = (c) => `${c.state}/${c.facing}/${c.frame}`;
-    r23 = (n) => (Math.round(n * 100) / 100).toFixed(2);
+    r25 = (n) => (Math.round(n * 100) / 100).toFixed(2);
     RIG_LENGTH_TOL = 0.5;
     ROTATION_CLIP_MAX = 0.02;
     ROTATION_AREA_MAX = 0.1;
@@ -19202,9 +20398,9 @@ function planPasses(input) {
   const baseOf2 = (v) => parseVersion(v)?.kind === "finish" ? input.finishBase?.[v] ?? best.version : v;
   const open = fb?.filter((f) => !vs.some((v) => v.name === f.opens)).pop();
   if (open) {
-    const shown4 = open.on && vs.some((v) => v.name === open.on) ? baseOf2(open.on) : bound ?? best.version, who = open.by === "agent" ? `${open.source ?? "agent"} note` : "user feedback";
-    if (open.route === "base") return state({ action: "write-base", version: open.opens, pass: pid(open.opens), from: shown4, why: `${who} (form, proportion, colour): new base from ${shown4}, the version ${open.by === "agent" ? "the note is about" : "the user saw"}${userWords(open)}` });
-    return state({ action: "write-finish", version: open.opens, pass: pid(open.opens), base: shown4, why: `${who} (pixels): finish revision on ${shown4}${userWords(open)}` });
+    const shown5 = open.on && vs.some((v) => v.name === open.on) ? baseOf2(open.on) : bound ?? best.version, who = open.by === "agent" ? `${open.source ?? "agent"} note` : "user feedback";
+    if (open.route === "base") return state({ action: "write-base", version: open.opens, pass: pid(open.opens), from: shown5, why: `${who} (form, proportion, colour): new base from ${shown5}, the version ${open.by === "agent" ? "the note is about" : "the user saw"}${userWords(open)}` });
+    return state({ action: "write-finish", version: open.opens, pass: pid(open.opens), base: shown5, why: `${who} (pixels): finish revision on ${shown5}${userWords(open)}` });
   }
   const iApprove = input.ledger.map((e) => e.type === "approve" && e.by === "user").lastIndexOf(true);
   const approved = iApprove >= 0 ? input.ledger[iApprove].version : void 0;
@@ -21292,27 +22488,27 @@ var require_stringifyString = __commonJS({
       return true;
     }
     function doubleQuotedString(value, ctx) {
-      const json = JSON.stringify(value);
+      const json2 = JSON.stringify(value);
       if (ctx.options.doubleQuotedAsJSON)
-        return json;
+        return json2;
       const { implicitKey } = ctx;
       const minMultiLineLength = ctx.options.doubleQuotedMinMultiLineLength;
       const indent = ctx.indent || (containsDocumentMarker(value) ? "  " : "");
       let str2 = "";
       let start = 0;
-      for (let i = 0, ch = json[i]; ch; ch = json[++i]) {
-        if (ch === " " && json[i + 1] === "\\" && json[i + 2] === "n") {
-          str2 += json.slice(start, i) + "\\ ";
+      for (let i = 0, ch = json2[i]; ch; ch = json2[++i]) {
+        if (ch === " " && json2[i + 1] === "\\" && json2[i + 2] === "n") {
+          str2 += json2.slice(start, i) + "\\ ";
           i += 1;
           start = i;
           ch = "\\";
         }
         if (ch === "\\")
-          switch (json[i + 1]) {
+          switch (json2[i + 1]) {
             case "u":
               {
-                str2 += json.slice(start, i);
-                const code = json.substr(i + 2, 4);
+                str2 += json2.slice(start, i);
+                const code = json2.substr(i + 2, 4);
                 switch (code) {
                   case "0000":
                     str2 += "\\0";
@@ -21342,23 +22538,23 @@ var require_stringifyString = __commonJS({
                     if (code.substr(0, 2) === "00")
                       str2 += "\\x" + code.substr(2);
                     else
-                      str2 += json.substr(i, 6);
+                      str2 += json2.substr(i, 6);
                 }
                 i += 5;
                 start = i + 1;
               }
               break;
             case "n":
-              if (implicitKey || json[i + 2] === '"' || json.length < minMultiLineLength) {
+              if (implicitKey || json2[i + 2] === '"' || json2.length < minMultiLineLength) {
                 i += 1;
               } else {
-                str2 += json.slice(start, i) + "\n\n";
-                while (json[i + 2] === "\\" && json[i + 3] === "n" && json[i + 4] !== '"') {
+                str2 += json2.slice(start, i) + "\n\n";
+                while (json2[i + 2] === "\\" && json2[i + 3] === "n" && json2[i + 4] !== '"') {
                   str2 += "\n";
                   i += 2;
                 }
                 str2 += indent;
-                if (json[i + 2] === " ")
+                if (json2[i + 2] === " ")
                   str2 += "\\";
                 i += 1;
                 start = i + 1;
@@ -21368,7 +22564,7 @@ var require_stringifyString = __commonJS({
               i += 1;
           }
       }
-      str2 = start ? str2 + json.slice(start) : json;
+      str2 = start ? str2 + json2.slice(start) : json2;
       return implicitKey ? str2 : foldFlowLines.foldFlowLines(str2, indent, foldFlowLines.FOLD_QUOTED, getFoldOptions(ctx, false));
     }
     function singleQuotedString(value, ctx) {
@@ -21624,16 +22820,16 @@ var require_stringify = __commonJS({
     function stringifyProps(node, tagObj, { anchors: anchors$1, doc: doc2 }) {
       if (!doc2.directives)
         return "";
-      const props = [];
+      const props2 = [];
       const anchor = (identity.isScalar(node) || identity.isCollection(node)) && node.anchor;
       if (anchor && anchors2.anchorIsValid(anchor)) {
         anchors$1.add(anchor);
-        props.push(`&${anchor}`);
+        props2.push(`&${anchor}`);
       }
       const tag = node.tag ?? (tagObj.default ? null : tagObj.tag);
       if (tag)
-        props.push(doc2.directives.tagString(tag));
-      return props.join(" ");
+        props2.push(doc2.directives.tagString(tag));
+      return props2.join(" ");
     }
     function stringify2(item, ctx, onComment, onChompKeep) {
       if (identity.isPair(item))
@@ -21654,13 +22850,13 @@ var require_stringify = __commonJS({
       let tagObj = void 0;
       const node = identity.isNode(item) ? item : ctx.doc.createNode(item, { onTagObj: (o) => tagObj = o });
       tagObj ?? (tagObj = getTagObject(ctx.doc.schema.tags, node));
-      const props = stringifyProps(node, tagObj, ctx);
-      if (props.length > 0)
-        ctx.indentAtStart = (ctx.indentAtStart ?? 0) + props.length + 1;
+      const props2 = stringifyProps(node, tagObj, ctx);
+      if (props2.length > 0)
+        ctx.indentAtStart = (ctx.indentAtStart ?? 0) + props2.length + 1;
       const str2 = typeof tagObj.stringify === "function" ? tagObj.stringify(node, ctx, onComment, onChompKeep) : identity.isScalar(node) ? stringifyString.stringifyString(node, ctx, onComment, onChompKeep) : node.toString(ctx, onComment, onChompKeep);
-      if (!props)
+      if (!props2)
         return str2;
-      return identity.isScalar(node) || str2[0] === "{" || str2[0] === "[" ? `${props} ${str2}` : `${props}
+      return identity.isScalar(node) || str2[0] === "{" || str2[0] === "[" ? `${props2} ${str2}` : `${props2}
 ${ctx.indent}${str2}`;
     }
     exports.createStringifyContext = createStringifyContext;
@@ -23790,11 +24986,11 @@ var require_Document = __commonJS({
           throw new Error(`With a null YAML version, the { schema: Schema } option is required`);
       }
       // json & jsonArg are only used from toJSON()
-      toJS({ json, jsonArg, mapAsMap, maxAliasCount, onAnchor, reviver } = {}) {
+      toJS({ json: json2, jsonArg, mapAsMap, maxAliasCount, onAnchor, reviver } = {}) {
         const ctx = {
           anchors: /* @__PURE__ */ new Map(),
           doc: this,
-          keep: !json,
+          keep: !json2,
           mapAsMap: mapAsMap === true,
           mapKeyWarned: false,
           maxAliasCount: typeof maxAliasCount === "number" ? maxAliasCount : 100
@@ -24234,7 +25430,7 @@ var require_resolve_block_seq = __commonJS({
       let offset = bs.offset;
       let commentEnd = null;
       for (const { start, value } of bs.items) {
-        const props = resolveProps.resolveProps(start, {
+        const props2 = resolveProps.resolveProps(start, {
           indicator: "seq-item-ind",
           next: value,
           offset,
@@ -24242,20 +25438,20 @@ var require_resolve_block_seq = __commonJS({
           parentIndent: bs.indent,
           startOnNewline: true
         });
-        if (!props.found) {
-          if (props.anchor || props.tag || value) {
+        if (!props2.found) {
+          if (props2.anchor || props2.tag || value) {
             if (value?.type === "block-seq")
-              onError(props.end, "BAD_INDENT", "All sequence items must start at the same column");
+              onError(props2.end, "BAD_INDENT", "All sequence items must start at the same column");
             else
               onError(offset, "MISSING_CHAR", "Sequence item without - indicator");
           } else {
-            commentEnd = props.end;
-            if (props.comment)
-              seq.comment = props.comment;
+            commentEnd = props2.end;
+            if (props2.comment)
+              seq.comment = props2.comment;
             continue;
           }
         }
-        const node = value ? composeNode(ctx, value, props, onError) : composeEmptyNode(ctx, props.end, start, null, props, onError);
+        const node = value ? composeNode(ctx, value, props2, onError) : composeEmptyNode(ctx, props2.end, start, null, props2, onError);
         if (ctx.schema.compat)
           utilFlowIndentCheck.flowIndentCheck(bs.indent, value, onError);
         offset = node.range[2];
@@ -24340,7 +25536,7 @@ var require_resolve_flow_collection = __commonJS({
       for (let i = 0; i < fc.items.length; ++i) {
         const collItem = fc.items[i];
         const { start, key: key2, sep: sep3, value } = collItem;
-        const props = resolveProps.resolveProps(start, {
+        const props2 = resolveProps.resolveProps(start, {
           flow: fcName,
           indicator: "explicit-key-ind",
           next: key2 ?? sep3?.[0],
@@ -24349,19 +25545,19 @@ var require_resolve_flow_collection = __commonJS({
           parentIndent: fc.indent,
           startOnNewline: false
         });
-        if (!props.found) {
-          if (!props.anchor && !props.tag && !sep3 && !value) {
-            if (i === 0 && props.comma)
-              onError(props.comma, "UNEXPECTED_TOKEN", `Unexpected , in ${fcName}`);
+        if (!props2.found) {
+          if (!props2.anchor && !props2.tag && !sep3 && !value) {
+            if (i === 0 && props2.comma)
+              onError(props2.comma, "UNEXPECTED_TOKEN", `Unexpected , in ${fcName}`);
             else if (i < fc.items.length - 1)
-              onError(props.start, "UNEXPECTED_TOKEN", `Unexpected empty item in ${fcName}`);
-            if (props.comment) {
+              onError(props2.start, "UNEXPECTED_TOKEN", `Unexpected empty item in ${fcName}`);
+            if (props2.comment) {
               if (coll.comment)
-                coll.comment += "\n" + props.comment;
+                coll.comment += "\n" + props2.comment;
               else
-                coll.comment = props.comment;
+                coll.comment = props2.comment;
             }
-            offset = props.end;
+            offset = props2.end;
             continue;
           }
           if (!isMap2 && ctx.options.strict && utilContainsNewline.containsNewline(key2))
@@ -24373,12 +25569,12 @@ var require_resolve_flow_collection = __commonJS({
             );
         }
         if (i === 0) {
-          if (props.comma)
-            onError(props.comma, "UNEXPECTED_TOKEN", `Unexpected , in ${fcName}`);
+          if (props2.comma)
+            onError(props2.comma, "UNEXPECTED_TOKEN", `Unexpected , in ${fcName}`);
         } else {
-          if (!props.comma)
-            onError(props.start, "MISSING_CHAR", `Missing , between ${fcName} items`);
-          if (props.comment) {
+          if (!props2.comma)
+            onError(props2.start, "MISSING_CHAR", `Missing , between ${fcName} items`);
+          if (props2.comment) {
             let prevItemComment = "";
             loop: for (const st of start) {
               switch (st.type) {
@@ -24400,20 +25596,20 @@ var require_resolve_flow_collection = __commonJS({
                 prev.comment += "\n" + prevItemComment;
               else
                 prev.comment = prevItemComment;
-              props.comment = props.comment.substring(prevItemComment.length + 1);
+              props2.comment = props2.comment.substring(prevItemComment.length + 1);
             }
           }
         }
-        if (!isMap2 && !sep3 && !props.found) {
-          const valueNode = value ? composeNode(ctx, value, props, onError) : composeEmptyNode(ctx, props.end, sep3, null, props, onError);
+        if (!isMap2 && !sep3 && !props2.found) {
+          const valueNode = value ? composeNode(ctx, value, props2, onError) : composeEmptyNode(ctx, props2.end, sep3, null, props2, onError);
           coll.items.push(valueNode);
           offset = valueNode.range[2];
           if (isBlock(value))
             onError(valueNode.range, "BLOCK_IN_FLOW", blockMsg);
         } else {
           ctx.atKey = true;
-          const keyStart = props.end;
-          const keyNode = key2 ? composeNode(ctx, key2, props, onError) : composeEmptyNode(ctx, keyStart, start, null, props, onError);
+          const keyStart = props2.end;
+          const keyNode = key2 ? composeNode(ctx, key2, props2, onError) : composeEmptyNode(ctx, keyStart, start, null, props2, onError);
           if (isBlock(key2))
             onError(keyNode.range, "BLOCK_IN_FLOW", blockMsg);
           ctx.atKey = false;
@@ -24427,7 +25623,7 @@ var require_resolve_flow_collection = __commonJS({
             startOnNewline: false
           });
           if (valueProps.found) {
-            if (!isMap2 && !props.found && ctx.options.strict) {
+            if (!isMap2 && !props2.found && ctx.options.strict) {
               if (sep3)
                 for (const st of sep3) {
                   if (st === valueProps.found)
@@ -24437,7 +25633,7 @@ var require_resolve_flow_collection = __commonJS({
                     break;
                   }
                 }
-              if (props.start < valueProps.found.offset - 1024)
+              if (props2.start < valueProps.found.offset - 1024)
                 onError(valueProps.found, "KEY_OVER_1024_CHARS", "The : indicator must be at most 1024 chars after the start of an implicit flow sequence key");
             }
           } else if (value) {
@@ -24527,11 +25723,11 @@ var require_compose_collection = __commonJS({
         coll.tag = tagName;
       return coll;
     }
-    function composeCollection(CN, ctx, token, props, onError) {
-      const tagToken = props.tag;
+    function composeCollection(CN, ctx, token, props2, onError) {
+      const tagToken = props2.tag;
       const tagName = !tagToken ? null : ctx.directives.tagName(tagToken.source, (msg) => onError(tagToken, "TAG_RESOLVE_FAILED", msg));
       if (token.type === "block-seq") {
-        const { anchor, newlineAfterProp: nl } = props;
+        const { anchor, newlineAfterProp: nl } = props2;
         const lastProp = anchor && tagToken ? anchor.offset > tagToken.offset ? anchor : tagToken : anchor ?? tagToken;
         if (lastProp && (!nl || nl.offset < lastProp.offset)) {
           const message = "Missing newline after block sequence props";
@@ -24679,12 +25875,12 @@ var require_resolve_block_scalar = __commonJS({
       const end = start + header.length + scalar.source.length;
       return { value, type, comment: header.comment, range: [start, end, end] };
     }
-    function parseBlockScalarHeader({ offset, props }, strict, onError) {
-      if (props[0].type !== "block-scalar-header") {
-        onError(props[0], "IMPOSSIBLE", "Block scalar header not found");
+    function parseBlockScalarHeader({ offset, props: props2 }, strict, onError) {
+      if (props2[0].type !== "block-scalar-header") {
+        onError(props2[0], "IMPOSSIBLE", "Block scalar header not found");
         return null;
       }
-      const { source } = props[0];
+      const { source } = props2[0];
       const mode = source[0];
       let indent = 0;
       let chomp = "";
@@ -24706,8 +25902,8 @@ var require_resolve_block_scalar = __commonJS({
       let hasSpace = false;
       let comment = "";
       let length = source.length;
-      for (let i = 1; i < props.length; ++i) {
-        const token = props[i];
+      for (let i = 1; i < props2.length; ++i) {
+        const token = props2[i];
         switch (token.type) {
           case "space":
             hasSpace = true;
@@ -24763,7 +25959,7 @@ var require_resolve_flow_scalar = __commonJS({
       const { offset, type, source, end } = scalar;
       let _type;
       let value;
-      const _onError = (rel3, code, msg) => onError(offset + rel3, code, msg);
+      const _onError = (rel4, code, msg) => onError(offset + rel4, code, msg);
       switch (type) {
         case "scalar":
           _type = Scalar.Scalar.PLAIN;
@@ -25096,9 +26292,9 @@ var require_compose_node = __commonJS({
     var resolveEnd = require_resolve_end();
     var utilEmptyScalarPosition = require_util_empty_scalar_position();
     var CN = { composeNode, composeEmptyNode };
-    function composeNode(ctx, token, props, onError) {
+    function composeNode(ctx, token, props2, onError) {
       const atKey = ctx.atKey;
-      const { spaceBefore, comment, anchor, tag } = props;
+      const { spaceBefore, comment, anchor, tag } = props2;
       let node;
       let isSrcToken = true;
       switch (token.type) {
@@ -25119,7 +26315,7 @@ var require_compose_node = __commonJS({
         case "block-seq":
         case "flow-collection":
           try {
-            node = composeCollection.composeCollection(CN, ctx, token, props, onError);
+            node = composeCollection.composeCollection(CN, ctx, token, props2, onError);
             if (anchor)
               node.anchor = anchor.source.substring(1);
           } catch (error) {
@@ -25133,7 +26329,7 @@ var require_compose_node = __commonJS({
           isSrcToken = false;
         }
       }
-      node ?? (node = composeEmptyNode(ctx, token.offset, void 0, null, props, onError));
+      node ?? (node = composeEmptyNode(ctx, token.offset, void 0, null, props2, onError));
       if (anchor && node.anchor === "")
         onError(anchor, "BAD_ALIAS", "Anchor cannot be an empty string");
       if (atKey && ctx.options.stringKeys && (!identity.isScalar(node) || typeof node.value !== "string" || node.tag && node.tag !== "tag:yaml.org,2002:str")) {
@@ -25209,7 +26405,7 @@ var require_compose_doc = __commonJS({
         options: doc2.options,
         schema: doc2.schema
       };
-      const props = resolveProps.resolveProps(start, {
+      const props2 = resolveProps.resolveProps(start, {
         indicator: "doc-start",
         next: value ?? end?.[0],
         offset,
@@ -25217,12 +26413,12 @@ var require_compose_doc = __commonJS({
         parentIndent: 0,
         startOnNewline: true
       });
-      if (props.found) {
+      if (props2.found) {
         doc2.directives.docStart = true;
-        if (value && (value.type === "block-map" || value.type === "block-seq") && !props.hasNewline)
-          onError(props.end, "MISSING_CHAR", "Block collection cannot start on same line with directives-end marker");
+        if (value && (value.type === "block-map" || value.type === "block-seq") && !props2.hasNewline)
+          onError(props2.end, "MISSING_CHAR", "Block collection cannot start on same line with directives-end marker");
       }
-      doc2.contents = value ? composeNode.composeNode(ctx, value, props, onError) : composeNode.composeEmptyNode(ctx, props.end, start, null, props, onError);
+      doc2.contents = value ? composeNode.composeNode(ctx, value, props2, onError) : composeNode.composeEmptyNode(ctx, props2.end, start, null, props2, onError);
       const contentEnd = doc2.contents.range[2];
       const re = resolveEnd.resolveEnd(end, contentEnd, false, onError);
       if (re.comment)
@@ -25487,12 +26683,12 @@ var require_cst_scalar = __commonJS({
           const he = source.indexOf("\n");
           const head = source.substring(0, he);
           const body3 = source.substring(he + 1) + "\n";
-          const props = [
+          const props2 = [
             { type: "block-scalar-header", offset, indent, source: head }
           ];
-          if (!addEndtoBlockProps(props, end))
-            props.push({ type: "newline", offset: -1, indent, source: "\n" });
-          return { type: "block-scalar", offset, indent, props, source: body3 };
+          if (!addEndtoBlockProps(props2, end))
+            props2.push({ type: "newline", offset: -1, indent, source: "\n" });
+          return { type: "block-scalar", offset, indent, props: props2, source: body3 };
         }
         case '"':
           return { type: "double-quoted-scalar", offset, indent, source, end };
@@ -25559,27 +26755,27 @@ var require_cst_scalar = __commonJS({
       } else {
         const { offset } = token;
         const indent = "indent" in token ? token.indent : -1;
-        const props = [
+        const props2 = [
           { type: "block-scalar-header", offset, indent, source: head }
         ];
-        if (!addEndtoBlockProps(props, "end" in token ? token.end : void 0))
-          props.push({ type: "newline", offset: -1, indent, source: "\n" });
+        if (!addEndtoBlockProps(props2, "end" in token ? token.end : void 0))
+          props2.push({ type: "newline", offset: -1, indent, source: "\n" });
         for (const key2 of Object.keys(token))
           if (key2 !== "type" && key2 !== "offset")
             delete token[key2];
-        Object.assign(token, { type: "block-scalar", indent, props, source: body3 });
+        Object.assign(token, { type: "block-scalar", indent, props: props2, source: body3 });
       }
     }
-    function addEndtoBlockProps(props, end) {
+    function addEndtoBlockProps(props2, end) {
       if (end)
         for (const st of end)
           switch (st.type) {
             case "space":
             case "comment":
-              props.push(st);
+              props2.push(st);
               break;
             case "newline":
-              props.push(st);
+              props2.push(st);
               return true;
           }
       return false;
@@ -27617,8 +28813,8 @@ function upsertBrief(text2, brief) {
     doc2.contents = fresh;
   }
   if (!(0, import_yaml.isSeq)(seq)) throw new Error("briefs.yaml: must be a list of briefs");
-  const clean = JSON.parse(JSON.stringify(brief));
-  const node = doc2.createNode(clean);
+  const clean2 = JSON.parse(JSON.stringify(brief));
+  const node = doc2.createNode(clean2);
   for (const pair2 of node.items) {
     const v = pair2.value;
     if (((0, import_yaml.isSeq)(v) || (0, import_yaml.isMap)(v)) && (v.items?.length ?? 0) <= 8) v.flow = true;
@@ -27828,22 +29024,22 @@ function recommend(sets, o = {}) {
   const recs = [], finals = /* @__PURE__ */ new Map(), feedback2 = /* @__PURE__ */ new Set(), blind = [];
   const currentPasses = /* @__PURE__ */ new Map();
   for (const set2 of sets) {
-    const kindOf = new Map(set2.metas.map((m) => [m.id, m.kind])), key2 = (id2) => `${set2.project}\0${id2}`;
+    const kindOf2 = new Map(set2.metas.map((m) => [m.id, m.kind])), key2 = (id2) => `${set2.project}\0${id2}`;
     const reviewModel = /* @__PURE__ */ new Map();
     for (const e of set2.ledger) if (e.type === "score" && !e.blind && typeof e.reviewModel === "string") reviewModel.set(`${e.asset}\0${e.version}`, e.reviewModel);
     for (const r of passRecords(set2.ledger)) {
-      const kind = kindOf.get(r.asset);
+      const kind = kindOf2.get(r.asset);
       if (kind) recs.push({ ...r, key: key2(r.asset), kind, reviewModel: reviewModel.get(`${r.asset}\0${r.version}`) });
     }
     for (const e of set2.ledger) {
-      if (e.type === "status" && e.status === "final" && kindOf.has(e.asset)) finals.set(key2(e.asset), kindOf.get(e.asset));
-      if (e.type === "feedback" && e.by === "user" && kindOf.has(e.asset)) feedback2.add(key2(e.asset));
+      if (e.type === "status" && e.status === "final" && kindOf2.has(e.asset)) finals.set(key2(e.asset), kindOf2.get(e.asset));
+      if (e.type === "feedback" && e.by === "user" && kindOf2.has(e.asset)) feedback2.add(key2(e.asset));
     }
     const own = /* @__PURE__ */ new Map(), bl = /* @__PURE__ */ new Map();
-    for (const e of set2.ledger) if (e.type === "score" && typeof e.score === "number" && e.version && kindOf.has(e.asset)) (e.blind ? bl : own).set(`${e.asset}\0${e.version}`, e.score);
+    for (const e of set2.ledger) if (e.type === "score" && typeof e.score === "number" && e.version && kindOf2.has(e.asset)) (e.blind ? bl : own).set(`${e.asset}\0${e.version}`, e.score);
     for (const [k, b] of bl) if (own.has(k)) {
       const id2 = k.split("\0")[0];
-      blind.push({ key: key2(id2), kind: kindOf.get(id2), gap: own.get(k) - b });
+      blind.push({ key: key2(id2), kind: kindOf2.get(id2), gap: own.get(k) - b });
     }
     if (set2.config) for (const m of set2.metas) {
       const c = set2.config.budget, v = c.perKind?.[m.kind]?.revisionPasses ?? (m.importance && c.tiers?.[m.importance]?.revisionPasses) ?? c.revisionPasses;
@@ -29439,7 +30635,7 @@ function readDirection(p2) {
 }
 function checksOf(p2, kind, id2, text2) {
   const { dir } = subjectPaths(p2, kind, id2);
-  return workflow_exports.checkSource(kind, text2, { exists: (rel3) => existsSync6(resolve5(dir, rel3)), symbols: direction_exports.symbolsFor(readDirection(p2), kind) });
+  return workflow_exports.checkSource(kind, text2, { exists: (rel4) => existsSync6(resolve5(dir, rel4)), symbols: direction_exports.symbolsFor(readDirection(p2), kind) });
 }
 function subjectState(p2, kind, id2) {
   const paths = subjectPaths(p2, kind, id2), text2 = readWorking(p2, kind, id2), direction2 = readDirection(p2), entries = entriesOf(p2, kind, id2);
@@ -29531,10 +30727,10 @@ async function reviewSubject(p2, kind, id2, o = {}) {
 function writeSheet(p2, kind, id2) {
   const st = subjectState(p2, kind, id2), checks = checksOf(p2, kind, id2, st.text), { sheet, refs, warnings } = sheetOf(p2, st, st.text, checks);
   mkdirSync5(st.paths.out, { recursive: true });
-  const png = join6(st.paths.out, "sheet.png"), json = join6(st.paths.out, "sheet.json");
+  const png = join6(st.paths.out, "sheet.png"), json2 = join6(st.paths.out, "sheet.json");
   writeFileSync5(png, encodePNG(renderDataSheet(sheet, { refs })));
-  writeFileSync5(json, JSON.stringify(sheet, null, 2) + "\n");
-  return { png: relRoot(p2, png), pngFile: png, json: relRoot(p2, json), sheet, markdown: dataSheetMarkdown(sheet), warnings };
+  writeFileSync5(json2, JSON.stringify(sheet, null, 2) + "\n");
+  return { png: relRoot(p2, png), pngFile: png, json: relRoot(p2, json2), sheet, markdown: dataSheetMarkdown(sheet), warnings };
 }
 function feedbackSubject(p2, kind, id2, o) {
   const st = subjectState(p2, kind, id2), entry = feedbackEntry({ kind, id: id2, key: st.paths.key, latest: st.versions[st.versions.length - 1] }, o);
@@ -30223,7 +31419,7 @@ function reduceCorners2(m) {
   if (m & NW2 && m & N2 && m & W2) r |= NW2;
   return r;
 }
-var N2, NE2, E3, SE2, S2, SW2, W2, NW2, BLOB472, BLOB_INDEX;
+var N2, NE2, E3, SE2, S2, SW2, W2, NW2, BLOB472, BLOB_INDEX2;
 var init_autotile2 = __esm({
   "../artgen-runtime/src/autotile.ts"() {
     "use strict";
@@ -30236,7 +31432,7 @@ var init_autotile2 = __esm({
     W2 = 64;
     NW2 = 128;
     BLOB472 = [...new Set(Array.from({ length: 256 }, (_, m) => reduceCorners2(m)))].sort((a, b) => a - b);
-    BLOB_INDEX = new Map(BLOB472.map((m, i) => [m, i]));
+    BLOB_INDEX2 = new Map(BLOB472.map((m, i) => [m, i]));
   }
 });
 
@@ -30454,7 +31650,7 @@ function ensureProbes(p2, view) {
     const d = probeDir(p2, kind);
     if (existsSync12(join12(d, "brief.json"))) continue;
     const r = newAsset(d, { id: `probe-${kind}`, kind, view });
-    created.push(...r.files.map((f) => rel(p2, f)));
+    created.push(...r.files.map((f) => rel2(p2, f)));
     if (r.template.fallback) fallbacks.push(`${kind}: ${view} has no template yet, used ${r.template.view}/${r.template.kind}`);
   }
   return { created, fallbacks };
@@ -30466,11 +31662,11 @@ function writeCandidates(p2, iv) {
   dirs.forEach((d, i) => {
     const name = "abc"[i], file = join12(cdir(p2), `${name}.json`);
     writeJson(file, d);
-    out.push({ name, file: rel(p2, file), summary: [d.theme.notes ?? "", ...describeDirection(d)] });
+    out.push({ name, file: rel2(p2, file), summary: [d.theme.notes ?? "", ...describeDirection(d)] });
   });
   const probes = ensureProbes(p2, iv.view ?? "topdown");
   appendLedger(ledgerPath2(p2), { type: "note", asset: "direction", note: `candidates ${out.map((c) => c.name).join(", ")} from interview`, by: "agent" });
-  return { interview: rel(p2, ivFile), candidates: out, probes: probes.created, fallbacks: probes.fallbacks };
+  return { interview: rel2(p2, ivFile), candidates: out, probes: probes.created, fallbacks: probes.fallbacks };
 }
 function probeVersion(a) {
   const vs = versionsIn(a);
@@ -30513,7 +31709,7 @@ async function writeTile(p2, names) {
   const dirs = list6.map((n) => loadCandidate(p2, n)), lumas = dirs.map(paletteLuma);
   let minGap = Infinity;
   for (let i = 0; i < lumas.length; i++) for (let j = i + 1; j < lumas.length; j++) minGap = Math.min(minGap, Math.abs(lumas[i] - lumas[j]));
-  return { path: rel(p2, path), round: round6, tokens, columns: info, distinct: { pairs: new Set(hashes).size, minLumaGap: Number.isFinite(minGap) ? Math.round(minGap * 10) / 10 : 0 } };
+  return { path: rel2(p2, path), round: round6, tokens, columns: info, distinct: { pairs: new Set(hashes).size, minLumaGap: Number.isFinite(minGap) ? Math.round(minGap * 10) / 10 : 0 } };
 }
 function writeMix(p2, base, take, name) {
   const n = name ?? `mix${candidateNames(p2).filter((c) => c.startsWith("mix")).length + 1}`;
@@ -30527,7 +31723,7 @@ function writeMix(p2, base, take, name) {
   const file = join12(cdir(p2), `${n}.json`);
   writeJson(file, d);
   appendLedger(ledgerPath2(p2), { type: "note", asset: "direction", note: d.theme.notes, by: "user" });
-  return { name: n, file: rel(p2, file), dir: d };
+  return { name: n, file: rel2(p2, file), dir: d };
 }
 function writeDraft(p2, from, name = "next") {
   const src = from ? loadCandidate(p2, from) : lockedDirection(p2);
@@ -30535,7 +31731,7 @@ function writeDraft(p2, from, name = "next") {
   const d = { ...JSON.parse(JSON.stringify(src)), status: "draft" };
   const file = join12(cdir(p2), `${name}.json`);
   writeJson(file, d);
-  return { name, file: rel(p2, file) };
+  return { name, file: rel2(p2, file) };
 }
 async function writeAnchors(p2) {
   const dir = lockedDirection(p2);
@@ -30563,7 +31759,7 @@ async function writeAnchors(p2) {
   writeGrid(sheet, styleSheet({ ...dir, anchors: files }, list6));
   const versions = Object.fromEntries(Object.entries(renders).map(([k, r]) => [k, r.version]));
   appendLedger(ledgerPath2(p2), { type: "note", asset: "direction", version: `v${dir.version}`, note: `anchors from probes ${Object.entries(versions).map(([k, v]) => `${k} ${v}`).join(", ")}`, by: "agent" });
-  return { anchors: files.map((f) => `art/${f}`), sheet: rel(p2, sheet), versions, gates: Object.fromEntries(Object.entries(renders).map(([k, r]) => [k, r.report.pass])) };
+  return { anchors: files.map((f) => `art/${f}`), sheet: rel2(p2, sheet), versions, gates: Object.fromEntries(Object.entries(renders).map(([k, r]) => [k, r.report.pass])) };
 }
 async function lock(p2, name, opts = {}) {
   const chosen = loadCandidate(p2, name), prev = lockedDirection(p2);
@@ -30575,7 +31771,7 @@ async function lock(p2, name, opts = {}) {
   appendLedger(ledgerPath2(p2), { type: "approve", asset: "direction", version: `v${d.version}`, note: `locked ${name}${opts.note ? `: ${opts.note}` : ""}`, direction: { id: d.id, version: d.version }, by: "user" });
   const anchors2 = await writeAnchors(p2);
   writeJson(directionFile(p2, d.version), readJson(file));
-  return { direction: lockedDirection(p2), file: rel(p2, file), ...anchors2 };
+  return { direction: lockedDirection(p2), file: rel2(p2, file), ...anchors2 };
 }
 function show2(p2) {
   const locked = lockedDirection(p2);
@@ -30583,7 +31779,7 @@ function show2(p2) {
     const raw = readJson(join12(cdir(p2), `${n}.json`)), r = validateDirection(raw);
     return r.ok ? { name: n, id: r.direction.id, status: r.direction.status, summary: describeDirection(r.direction) } : { name: n, id: "?", status: "invalid", summary: r.errors.slice(0, 3) };
   });
-  const tiles = existsSync12(cdir(p2)) ? readdirSync7(cdir(p2)).filter((f) => /^style-tile-r\d+\.png$/.test(f)).sort((a, b) => parseInt(a.slice(12)) - parseInt(b.slice(12))).map((f) => rel(p2, join12(cdir(p2), f))) : [];
+  const tiles = existsSync12(cdir(p2)) ? readdirSync7(cdir(p2)).filter((f) => /^style-tile-r\d+\.png$/.test(f)).sort((a, b) => parseInt(a.slice(12)) - parseInt(b.slice(12))).map((f) => rel2(p2, join12(cdir(p2), f))) : [];
   const probes = {};
   for (const k of PROBE_KINDS) if (existsSync12(join12(probeDir(p2, k), "brief.json"))) {
     const a = { path: probeDir(p2, k), brief: readJson(join12(probeDir(p2, k), "brief.json")), dir: void 0, ledgerPath: ledgerPath2(p2) };
@@ -30592,7 +31788,7 @@ function show2(p2) {
   const history2 = existsSync12(ledgerPath2(p2)) ? ledgerFor({ brief: { id: "direction" }, ledgerPath: ledgerPath2(p2) }).length : 0;
   return { locked, candidates: candidates3, tiles, probes, history: history2 };
 }
-var cdir, probeDir, ledgerPath2, rel, directionFile, readInterview;
+var cdir, probeDir, ledgerPath2, rel2, directionFile, readInterview;
 var init_w1 = __esm({
   "../artgen-cli/src/w1.ts"() {
     "use strict";
@@ -30604,7 +31800,7 @@ var init_w1 = __esm({
     cdir = (p2) => join12(p2.art, "candidates");
     probeDir = (p2, kind) => join12(p2.art, "probes", kind);
     ledgerPath2 = (p2) => join12(p2.art, "ledger.jsonl");
-    rel = (p2, f) => relative7(p2.root, f).split("\\").join("/");
+    rel2 = (p2, f) => relative7(p2.root, f).split("\\").join("/");
     directionFile = (p2, version) => join12(p2.art, "directions", `v${version}.json`);
     readInterview = (file) => {
       const iv = JSON.parse(readFileSync12(file, "utf8"));
@@ -30682,7 +31878,7 @@ function scaffoldAsset(p2, b, dir) {
 }
 async function assetRow(p2, b) {
   const path = assetPathOf(p2, b);
-  const base = { id: b.id, kind: b.kind, path: rel2(p2, path), issues: effectObjectIssues(b).map((x) => `brief: ${x}`), imageTokens: 0 };
+  const base = { id: b.id, kind: b.kind, path: rel3(p2, path), issues: effectObjectIssues(b).map((x) => `brief: ${x}`), imageTokens: 0 };
   if (!existsSync13(join13(path, "base.v1.js")) && !versionsInPath(path).length) {
     if (gatesFor(projectConfig(p2).review.gates, b).includes("placeholder")) {
       const a2 = openAsset(path), st2 = await passState(a2);
@@ -30745,7 +31941,7 @@ async function make(p2, ids, o = {}) {
   for (const b of briefs) {
     const gateOpen = !existsSync13(join13(assetPathOf(p2, b), "base.v1.js")) && (await assetRow(p2, b)).next?.action === "stage-gate";
     const sc = gateOpen ? { path: assetPathOf(p2, b), created: false, template: "" } : scaffoldAsset(p2, b, dir);
-    if (sc.created) scaffolded.push(rel2(p2, join13(sc.path, "base.v1.js")));
+    if (sc.created) scaffolded.push(rel3(p2, join13(sc.path, "base.v1.js")));
     let row = await assetRow(p2, b);
     const a = openAsset(sc.path), ledger = ledgerFor(a);
     if (row.next?.action === "review") {
@@ -30816,7 +32012,7 @@ async function gallery(p2, opts = {}) {
     const page2 = items.slice(i, i + 12), sheet = contactSheet(`${dir.id} v${dir.version}: finished assets ${i + 1}-${i + page2.length} of ${items.length} (score, b blind score, !issues; BELOW BAR under ${projectConfig(p2).review.approveMin})`, page2, 4, Math.min(4, page2.length));
     const f = join13(p2.art, "sheets", `gallery-${n0 + i / 12}.png`);
     writeGrid(f, sheet);
-    sheets.push(rel2(p2, f));
+    sheets.push(rel3(p2, f));
     tokens += imageTokens(sheet.w, sheet.h);
   }
   appendLedger(ledgerFile(p2), { type: "review", asset: "gallery", sheet: sheets.join(","), imageTokens: tokens, assets: assets.map((x) => x.id), by: "agent" });
@@ -30856,7 +32052,7 @@ async function rosterRun(p2, o = {}) {
     const sfx = many ? `-${i + 1}` : "";
     writeGrid(f(`roster-lineup${sfx}.png`), pg.lineup);
     writeGrid(f(`roster-silhouettes${sfx}.png`), pg.silhouettes);
-    sheets.push(rel2(p2, f(`roster-lineup${sfx}.png`)), rel2(p2, f(`roster-silhouettes${sfx}.png`)));
+    sheets.push(rel3(p2, f(`roster-lineup${sfx}.png`)), rel3(p2, f(`roster-silhouettes${sfx}.png`)));
     tokens += imageTokens(pg.lineup.w, pg.lineup.h) + imageTokens(pg.silhouettes.w, pg.silhouettes.h);
   });
   writeJson(f("roster-assets.json"), {
@@ -30866,7 +32062,7 @@ async function rosterRun(p2, o = {}) {
     assets: [...items].sort((a, b) => a.id.localeCompare(b.id)).map((it) => ({ id: it.id, kind: it.kind, notes: it.notes ?? "", ...it.height && { height: it.height } }))
   });
   appendLedger(ledgerFile(p2), { type: "roster", asset: "roster", stage, key: res.key, versions, seed, sizes: res.sizes, pairs: res.pairs, sheet: sheets.map((x) => relative8(p2.art, join13(p2.root, x)).split("\\").join("/")).join(","), imageTokens: tokens, by: "agent" });
-  return { lineup: sheets[0], silhouettes: sheets[1], sheets, assets: rel2(p2, f("roster-assets.json")), tokens, seed, stage, sizes: res.sizes, pairs: res.pairs, skipped };
+  return { lineup: sheets[0], silhouettes: sheets[1], sheets, assets: rel3(p2, f("roster-assets.json")), tokens, seed, stage, sizes: res.sizes, pairs: res.pairs, skipped };
 }
 function rosterRecord(p2, file, reviewer = "self") {
   const ledgerAll = parseLedger(existsSync13(ledgerFile(p2)) ? readFileSync13(ledgerFile(p2), "utf8") : "");
@@ -30996,7 +32192,7 @@ game code indexes these states and frames (art/contracts/<id>.json). Restore the
     built.normals?.forEach((g, i) => writeGrid(join13(pdir, built.manifest.normals[i]), g));
     writeJson(join13(pdir, "pack.json"), built.manifest);
     for (const inp of inputs) appendLedger(ledgerFile(p2), { type: "export", asset: inp.brief.id, version: inp.version, sourceHash: inp.sourceHash, pack, direction: { id: dir.id, version: dir.version }, ...inp.draft && { draft: true }, ...inp.placeholder && { placeholder: true }, by: "agent" });
-    out.push({ pack, dir: rel2(p2, pdir), atlases: built.manifest.atlases.map((f) => rel2(p2, join13(pdir, f))), assets: inputs.map((i) => i.brief.id), drafts: built.manifest.drafts ?? [], ...built.manifest.placeholders && { placeholders: built.manifest.placeholders } });
+    out.push({ pack, dir: rel3(p2, pdir), atlases: built.manifest.atlases.map((f) => rel3(p2, join13(pdir, f))), assets: inputs.map((i) => i.brief.id), drafts: built.manifest.drafts ?? [], ...built.manifest.placeholders && { placeholders: built.manifest.placeholders } });
     const pub = cfg.export.packDir.replace(/\\/g, "/").replace(/^\.?\/?/, "");
     forTs.push({ manifest: built.manifest, url: pub.startsWith("public/") || pub === "public" ? `/${pub.slice(7)}${pub.length > 7 ? "/" : ""}${pack}/pack.json`.replace(/\/+/g, "/") : `${pub}/${pack}/pack.json` });
   }
@@ -31010,7 +32206,7 @@ game code indexes these states and frames (art/contracts/<id>.json). Restore the
     writeFileSync12(tsFile, assetsTs(forTs));
   }
   const runtime = o.runtime ? vendorRuntime(p2, { force: o.force, generator: o.generator }) : void 0;
-  return { packs: out, assetsTs: forTs.length ? rel2(p2, tsFile) : "", skipped, contracts: contracts.map((c) => c.change), ...runtime && { runtime } };
+  return { packs: out, assetsTs: forTs.length ? rel3(p2, tsFile) : "", skipped, contracts: contracts.map((c) => c.change), ...runtime && { runtime } };
 }
 async function restyle(p2, o = {}) {
   const to = requireLocked(p2), from = directionVersion(p2, o.from ?? to.version - 1);
@@ -31031,7 +32227,7 @@ async function restyle(p2, o = {}) {
   const sheet = restyleSheet(`restyle ${from.id} v${from.version} -> ${to.id} v${to.version}`, sheetRows);
   const f = join13(p2.art, "sheets", `restyle-v${from.version}-v${to.version}.png`);
   writeGrid(f, sheet);
-  return { from: from.version, to: to.version, sheet: rel2(p2, f), tokens: imageTokens(sheet.w, sheet.h), assets };
+  return { from: from.version, to: to.version, sheet: rel3(p2, f), tokens: imageTokens(sheet.w, sheet.h), assets };
 }
 async function importEdit(p2, id2, png, o = {}) {
   const b = readBriefs(p2).find((x) => x.id === id2);
@@ -31090,9 +32286,9 @@ ${prev ? "  g = prev.finish(g, ctx) ?? g;\n" : ""}  for (const [x, y, t] of EDIT
   return g;
 }
 `);
-  appendLedger(ledgerFile(p2), { type: "import-edit", asset: id2, version: `finish.v${n}`, on: row.final, file: rel2(p2, resolve8(png)), pixels, snapped, by: "user" });
+  appendLedger(ledgerFile(p2), { type: "import-edit", asset: id2, version: `finish.v${n}`, on: row.final, file: rel3(p2, resolve8(png)), pixels, snapped, by: "user" });
   appendLedger(ledgerFile(p2), { type: "feedback", asset: id2, route: "finish", opens: `finish.v${n}`, on: row.final, note: `hand edit: ${pixels} px (import-edit)`, by: "user" });
-  return { file: rel2(p2, file), pixels, cells: Object.keys(edits).length, snapped, conflicts };
+  return { file: rel3(p2, file), pixels, cells: Object.keys(edits).length, snapped, conflicts };
 }
 function crop(g, x0, y0, w, h) {
   const out = new Grid(w, h);
@@ -31135,7 +32331,7 @@ function pooledAnalytics(dirs, o = {}) {
   if (o.apply) {
     const f = join13(o.apply.art, "artgen.config.json"), raw = readJson(f), next4 = applyRecommendations(mergeConfig(raw), r.patch);
     writeJson(f, { ...raw, budget: { ...raw.budget, ...next4.budget.perKind && { perKind: next4.budget.perKind } }, models: next4.models });
-    applied = rel2(o.apply, f);
+    applied = rel3(o.apply, f);
   }
   return { report: r, markdown: recommendMarkdown(r, o.title), ...applied && { applied } };
 }
@@ -31144,13 +32340,13 @@ function writeAssetSheet(p2, id2) {
   if (!b) throw new Error(`no brief ${id2}`);
   const dir = requireLocked(p2), folder = assetPathOf(p2, b), bj = join13(folder, "brief.json"), local2 = existsSync13(bj) ? readJson(bj) : {};
   const brief = { ...local2, ...b }, sheet = assetDataSheet(brief, dir, budgetFor(projectConfig(p2), brief, dir), readContract(p2, id2)), { refs, warnings } = loadRefs(p2, brief.refs ?? []);
-  const png = join13(folder, "out", "sheet.png"), json = join13(folder, "out", "sheet.json");
+  const png = join13(folder, "out", "sheet.png"), json2 = join13(folder, "out", "sheet.json");
   mkdirSync10(dirname11(png), { recursive: true });
   writeFileSync12(png, encodePNG(renderDataSheet(sheet, { refs })));
-  writeFileSync12(json, JSON.stringify(sheet, null, 2) + "\n");
-  return { png: rel2(p2, png), pngFile: png, json: rel2(p2, json), sheet, markdown: dataSheetMarkdown(sheet), warnings };
+  writeFileSync12(json2, JSON.stringify(sheet, null, 2) + "\n");
+  return { png: rel3(p2, png), pngFile: png, json: rel3(p2, json2), sheet, markdown: dataSheetMarkdown(sheet), warnings };
 }
-var briefsFile, ledgerFile, rel2, contractFile, allowed, assetPathOf, versionsInPath, DONE, readdirCount, parseAll;
+var briefsFile, ledgerFile, rel3, contractFile, allowed, assetPathOf, versionsInPath, DONE, readdirCount, parseAll;
 var init_w2 = __esm({
   "../artgen-cli/src/w2.ts"() {
     "use strict";
@@ -31166,7 +32362,7 @@ var init_w2 = __esm({
     init_workflow2();
     briefsFile = (p2) => join13(p2.art, "briefs.yaml");
     ledgerFile = (p2) => join13(p2.art, "ledger.jsonl");
-    rel2 = (p2, f) => relative8(p2.root, f).split("\\").join("/");
+    rel3 = (p2, f) => relative8(p2.root, f).split("\\").join("/");
     contractFile = (p2, id2) => join13(p2.art, "contracts", `${id2}.json`);
     allowed = (list6, id2) => !!list6 && (list6.includes("*") || list6.includes(id2));
     assetPathOf = (p2, b) => join13(p2.art, briefDir(b));
@@ -31325,7 +32521,7 @@ function parseCli(ops, argv, io = {}) {
   const params = Object.entries(op.params).filter(([, par]) => par.cli !== false);
   const flags2 = new Map(params.filter(([, par]) => !par.positional).map(([k, par]) => [flagOf(k, par), [k, par]]));
   const values = {}, positionals = [];
-  let json = false, root;
+  let json2 = false, root;
   for (let i = 0; i < tokens.length; i++) {
     const t = tokens[i];
     if (!t.startsWith("--")) {
@@ -31333,7 +32529,7 @@ function parseCli(ops, argv, io = {}) {
       continue;
     }
     if (t === "--json") {
-      json = true;
+      json2 = true;
       continue;
     }
     if (t === "--root") {
@@ -31375,17 +32571,17 @@ function parseCli(ops, argv, io = {}) {
     if (!par.required || values[k] !== void 0 || fileMode && k === "id") continue;
     throw new Error(typeof par.required === "string" ? par.required : par.positional ? `${cmd}: <${k}> is required` : `${flagOf(k, par)} is required`);
   }
-  return { op, values, json, root, help: false };
+  return { op, values, json: json2, root, help: false };
 }
 async function runCli(ops, argv, io) {
-  const { op, values, json, root, help } = parseCli(ops, argv, io), cli = cliOf(op);
+  const { op, values, json: json2, root, help } = parseCli(ops, argv, io), cli = cliOf(op);
   if (help) {
     io.log(opHelp(op));
     return 0;
   }
   const r = await op.run(values, io.ctx(root));
-  if (cli.output) cli.output(r, values, { json, log: io.log });
-  else io.log(json ? JSON.stringify(cli.json ? cli.json(r, values) : r, null, 2) : cli.text ? cli.text(r, values) : JSON.stringify(r, null, 2));
+  if (cli.output) cli.output(r, values, { json: json2, log: io.log });
+  else io.log(json2 ? JSON.stringify(cli.json ? cli.json(r, values) : r, null, 2) : cli.text ? cli.text(r, values) : JSON.stringify(r, null, 2));
   return cli.exit ? cli.exit(r, values) : 0;
 }
 var isSwitch;
@@ -31515,10 +32711,10 @@ async function writeBundle(p2, target, o = {}) {
   const root = p2?.root ?? dirname12(input), consumer = consumerOf(root);
   const dir = resolve9(o.out ?? (p2 ? freshDir(join14(p2.art, "feedback"), `${dateOf(now)}-${id2}`) : freshDir(dirname12(input), `feedback-${dateOf(now)}-${id2}`)));
   mkdirSync11(dir, { recursive: true });
-  const files = [], put = (rel3, text2) => {
-    mkdirSync11(dirname12(join14(dir, rel3)), { recursive: true });
-    writeFileSync13(join14(dir, rel3), text2);
-    files.push(rel3);
+  const files = [], put = (rel4, text2) => {
+    mkdirSync11(dirname12(join14(dir, rel4)), { recursive: true });
+    writeFileSync13(join14(dir, rel4), text2);
+    files.push(rel4);
   };
   const mapgen = (() => {
     try {
@@ -31995,9 +33191,9 @@ async function startUiServer(o) {
       throw new HttpError(400, "bad address");
     }
     if (decoded.includes("\0")) throw new HttpError(400, "bad address");
-    const rel3 = decoded.replace(/^\/+/, "") || "index.html";
-    const base = o.shared && (rel3 === "resvg.wasm" || /^fonts\/[^/]+$/.test(rel3)) ? resolve12(o.shared) : ui;
-    const f = resolve12(base, rel3);
+    const rel4 = decoded.replace(/^\/+/, "") || "index.html";
+    const base = o.shared && (rel4 === "resvg.wasm" || /^fonts\/[^/]+$/.test(rel4)) ? resolve12(o.shared) : ui;
+    const f = resolve12(base, rel4);
     if (f !== base && !f.startsWith(base + sep2)) throw new HttpError(403, "outside the web tools");
     if (!statSync3(f, { throwIfNoEntry: false })?.isFile()) throw new HttpError(404, "not found");
     send(res, 200, req.method === "HEAD" ? "" : readFileSync17(f), TYPES[extname3(f).toLowerCase()] ?? "application/octet-stream", { "cache-control": "no-cache" });
@@ -35694,6 +36890,195 @@ ${next3(i, m.id)}`,
   }
 });
 
+// ../artgen-cli/src/tilemap.ts
+import { existsSync as existsSync20, mkdirSync as mkdirSync16, readFileSync as readFileSync21, writeFileSync as writeFileSync19 } from "node:fs";
+import { dirname as dirname18, join as join23, relative as relative10, resolve as resolve15 } from "node:path";
+function loadPack2(path) {
+  const file = path.endsWith(".json") ? resolve15(path) : join23(resolve15(path), "pack.json");
+  if (!existsSync20(file)) throw new Error(`no pack at ${path} (an exported pack.json, e.g. public/assets/main/pack.json)`);
+  const manifest = JSON.parse(readFileSync21(file, "utf8"));
+  if (manifest.format !== 1 || !manifest.assets || !Array.isArray(manifest.atlases)) throw new Error(`${path}: not an artgen pack.json`);
+  return { name: manifest.pack, dir: dirname18(file), manifest };
+}
+function bind(pk, cls, asset) {
+  const a = pk.manifest.assets[asset];
+  if (!a) throw new Error(`no asset ${JSON.stringify(asset)} in pack ${pk.name} (tiles: ${Object.entries(pk.manifest.assets).filter(([, v]) => ["tile", "tileset", "texture"].includes(v.kind)).map(([k]) => k).join(", ") || "none"})`);
+  pk.atlases ??= pk.manifest.atlases.map((n) => decodePNG(new Uint8Array(readFileSync21(join23(pk.dir, n)))));
+  return tilemap_exports.bindTiles(cls, pk.name, asset, a, pk.atlases);
+}
+function parseTileBindings(v) {
+  return (v ?? []).flatMap((s2) => s2.split(",")).filter(Boolean).map((s2) => {
+    const m = /^([\w-]+)=([\w-]+)$/.exec(s2.trim());
+    if (!m) throw new Error(`--tiles: class=asset (e.g. floor=mud), not ${JSON.stringify(s2)}`);
+    return [m[1], m[2]];
+  });
+}
+function write(out, files) {
+  mkdirSync16(out, { recursive: true });
+  return files.map((f) => {
+    const path = join23(out, f.name);
+    writeFileSync19(path, f.data);
+    return path;
+  });
+}
+function summarise(p2, g, r, paths) {
+  return {
+    source: g.source,
+    id: g.id,
+    size: [g.cols, g.rows],
+    grid: g.grid,
+    view: r.view,
+    orientation: r.orientation,
+    tile: [r.sheet.tileW, r.sheet.tileH],
+    tiles: r.sheet.tiles.length,
+    bound: r.sheet.bindings,
+    counts: r.counts,
+    objects: g.objects.length,
+    checks: r.checks,
+    files: paths.map((f) => shown4(p2, f))
+  };
+}
+function exportTilemapFiles(p2, kind, ref, o = {}) {
+  const id2 = typeof ref === "string" ? ref : fileStem(ref.file);
+  if (o.cell !== void 0 && kind !== "map") throw new Error("--cell is for terrain maps (dungeons and settlements are one tile a cell)");
+  let g, file, dir;
+  if (kind === "dungeon") {
+    g = tilemap_exports.dungeonTiles(readDungeon(p2, ref));
+    file = dungeonFile(p2, ref);
+    dir = typeof ref === "string" ? join23(dungeonsDir(p2), id2, "out") : dirname18(file);
+  } else if (kind === "settlement") {
+    g = tilemap_exports.settlementTiles(readSettlement(p2, ref));
+    file = settlementFile(p2, ref);
+    dir = typeof ref === "string" ? join23(settlementsDir(p2), id2, "out") : dirname18(file);
+  } else {
+    const m = readMap(p2, ref);
+    if (o.cell !== void 0 && !(o.cell > 0)) throw new Error("--cell: map units per cell, above 0");
+    g = tilemap_exports.mapTiles(m, map_exports.generateMap(m), { cell: o.cell });
+    file = mapFile(p2, ref);
+    dir = typeof ref === "string" ? join23(mapsDir(p2), id2, "out") : dirname18(file);
+  }
+  const pairs2 = parseTileBindings(o.tiles);
+  if (pairs2.length && !o.pack) throw new Error("--tiles needs --pack <pack.json>");
+  const pk = o.pack ? loadPack2(o.pack) : void 0, bindings = pairs2.map(([c, a]) => bind(pk, c, a));
+  const to = editors(o.to);
+  const r = tilemap_exports.exportTilemap(g, { to, xml: o.xml, view: o.view, tile: o.tile, bindings, seed: o.seed, name: id2 });
+  return summarise(p2, g, r, write(o.out ?? dir, r.files));
+}
+function exportTilesetFiles(o) {
+  const pk = loadPack2(o.pack), b = bind(pk, o.asset, o.asset);
+  const g = tilemap_exports.tilesetTiles(o.asset, { id: o.asset, name: o.asset, color: "#808080" }, { size: o.size, island: !!b.autotile });
+  const to = editors(o.to);
+  const r = tilemap_exports.exportTilemap(g, { to, xml: o.xml, view: o.view, bindings: [b], name: o.asset });
+  return summarise(null, g, r, write(o.out ?? join23(pk.dir, "tilesets"), r.files));
+}
+function tilemapText(r) {
+  const counts = Object.entries(r.counts).filter(([, n]) => n).map(([k, n]) => `${k} ${n}`).join(", ");
+  return [
+    `${r.source} ${r.id} ${r.size.join("\xD7")} ${r.grid === "hex" ? "hexes" : "cells"}: ${r.view} view, ${r.orientation}, ${r.tile.join("\xD7")} px tiles, ${r.tiles} in the tileset, ${r.objects} objects`,
+    `  cells: ${counts || "none"}`,
+    ...r.bound.map((b) => `  ${b.class} \u2190 ${b.source}${b.autotile ? ` (${b.autotile})` : ""}${b.variants > 1 ? `, ${b.variants} variants` : ""}`),
+    ...r.checks.map((c) => `  ${c.id.padEnd(12)} ${c.status}  ${c.class}: ${c.detail}`),
+    ...r.files.map((f) => `  ${f}`)
+  ].join("\n");
+}
+var shown4, editors;
+var init_tilemap2 = __esm({
+  "../artgen-cli/src/tilemap.ts"() {
+    "use strict";
+    init_maps();
+    init_dungeon2();
+    init_map2();
+    init_settlement2();
+    init_projectfs();
+    shown4 = (p2, f) => relative10(p2?.root ?? process.cwd(), f);
+    editors = (v) => v === "both" ? ["tiled", "ldtk"] : v ? [v] : void 0;
+  }
+});
+
+// ../artgen-cli/src/ops/maps-tilemap.ts
+function exportOp(kind, what, extra = {}, usage, about2) {
+  return defineOp({
+    name: `${kind}.export`,
+    module: "maps",
+    effect: "render",
+    summary: `Export a ${what} as a tile map for Tiled (.tmj / .tmx) and LDtk (.ldtk): a class per cell, tiles from a pack or flat colours, objects for its named things.`,
+    description: about2,
+    params: {
+      id: idParam(`the ${what} id`, `${kind} export: <id>`),
+      path: pathParam(kind),
+      ...shared(),
+      pack: p.str("an exported pack (its pack.json or folder) to take tiles from"),
+      tiles: { kind: "string", doc: "class=asset: draw a class with a tile asset of the pack (a tile, a tileset with an autotile layout, or a texture); repeat or comma-separate", repeat: true },
+      tile: p.int("cell width in px when no tiles are bound (default 16; iso 32)"),
+      seed: p.int("seed of the variant pick (the runtime's cellHash)"),
+      ...extra,
+      out: p.str("the folder to write into (default the map's out/, or beside --file)")
+    },
+    run: (i, ctx) => exportTilemapFiles(projectOf(i, ctx), kind, refOf(i), { to: i.to, xml: i.xml, view: i.view, tile: i.tile, pack: i.pack, tiles: i.tiles, seed: i.seed, cell: i.cell, out: i.out }),
+    cli: { usage, text: (r) => tilemapText(r) },
+    mcp: MCP,
+    python: {}
+  });
+}
+var VIEWS3, MCP, shared, dungeonExport, mapExport, settlementExport, tileset, TILEMAP_OPS;
+var init_maps_tilemap = __esm({
+  "../artgen-cli/src/ops/maps-tilemap.ts"() {
+    "use strict";
+    init_tilemap2();
+    init_maps_shared();
+    init_registry();
+    VIEWS3 = "topdown, oblique, iso, stack, side or fp: Tiled's orientation and the tile shape (default: the bound tiles' view, else topdown)";
+    MCP = { exclude: "writes map files for a game or a level editor; run from the CLI" };
+    shared = () => ({
+      to: p.oneOf(["tiled", "ldtk", "both"], "which editor: tiled, ldtk or both (default both; Tiled only for iso and hex maps)", { error: "tiled, ldtk or both" }),
+      xml: p.bool("Tiled as .tmx / .tsx (default .tmj / .tsj)"),
+      view: p.str(VIEWS3)
+    });
+    dungeonExport = exportOp(
+      "dungeon",
+      "dungeon",
+      {},
+      "       artgen dungeon export <id> [--to tiled|ldtk|both] [--xml] [--view topdown|iso|\u2026] [--pack pack.json --tiles floor=\u2026,wall=\u2026] [--tile px] [--seed n] [--out dir]",
+      "A dungeon as a tile map: floor, wall (every empty cell next to a floor), door and yard cells; rooms, corridors, doors, shared walls, exits, labels and symbols as objects."
+    );
+    mapExport = exportOp(
+      "map",
+      "terrain map",
+      { cell: p.num("map units per cell (default: the square grid's size, the hex grid, or 1)") },
+      "       artgen map export <id> [--to tiled|ldtk|both] [--xml] [--cell units] [--pack pack.json --tiles grass=\u2026] [--tile px] [--out dir]   (a hex grid exports hexagonal, to Tiled)",
+      "A terrain map as a tile map: the terrain most of each cell has (a hex grid exports as Tiled's staggered hexagons); rivers, roads, labels and symbols as objects."
+    );
+    settlementExport = exportOp(
+      "settlement",
+      "settlement",
+      {},
+      "       artgen settlement export <id> [--to tiled|ldtk|both] [--xml] [--view \u2026] [--pack pack.json --tiles ground=\u2026,road=\u2026] [--tile px] [--out dir]",
+      "A settlement's site as a tile map: ground, area, water, road, bridge, wall and building cells; buildings, roads, water, walls, towers, gates, trees and props as objects."
+    );
+    tileset = defineOp({
+      name: "tileset",
+      module: "maps",
+      effect: "render",
+      summary: "Export a tile asset of a pack as a tileset for Tiled (with a wang set for an autotile layout) and LDtk, with a sample map of it.",
+      params: {
+        asset: p.str("the tile, tileset or texture asset in the pack", { positional: true, required: "tileset: <asset> --pack <pack.json>" }),
+        pack: p.str("the exported pack (its pack.json or folder)", { required: "tileset: --pack <pack.json> (an exported pack)" }),
+        ...shared(),
+        size: p.int("the sample map's side in cells (default 10)"),
+        out: p.str("the folder to write into (default <pack folder>/tilesets)")
+      },
+      run: (i) => exportTilesetFiles({ pack: i.pack, asset: i.asset, to: i.to, xml: i.xml, view: i.view, size: i.size, out: i.out }),
+      cli: {
+        usage: "       artgen tileset <asset> --pack pack.json [--to tiled|ldtk|both] [--xml] [--view \u2026] [--size n] [--out dir]   (a pack's tile asset as a Tiled / LDtk tileset)",
+        text: (r) => tilemapText(r)
+      },
+      mcp: MCP,
+      python: {}
+    });
+    TILEMAP_OPS = [dungeonExport, mapExport, settlementExport, tileset];
+  }
+});
+
 // ../artgen-cli/src/ops/maps.ts
 var formats, MAP_OPS, MAP_NOTE, MAP_USAGE;
 var init_maps2 = __esm({
@@ -35705,6 +37090,7 @@ var init_maps2 = __esm({
     init_maps_trace();
     init_maps_workflow();
     init_maps_settlement();
+    init_maps_tilemap();
     init_registry();
     formats = defineOp({
       name: "formats",
@@ -35718,7 +37104,7 @@ var init_maps2 = __esm({
       mcp: {},
       python: {}
     });
-    MAP_OPS = [...MAP_MAP_OPS, ...MAP_TRACE_OPS, ...DUNGEON_OPS_LIST, ...SETTLEMENT_OPS_LIST, formats, ...WORKFLOW_OPS];
+    MAP_OPS = [...MAP_MAP_OPS, ...MAP_TRACE_OPS, ...DUNGEON_OPS_LIST, ...SETTLEMENT_OPS_LIST, ...TILEMAP_OPS, formats, ...WORKFLOW_OPS];
     MAP_NOTE = "       (map, dungeon and settlement commands take --file <path> in place of <id>: no project needed; renders go beside the file or to --out)";
     MAP_USAGE = `${MAP_OPS.flatMap(usageLines).join("\n")}
 ${MAP_NOTE}`;
@@ -35747,8 +37133,8 @@ ${CORE_OPS.flatMap(usageLines).join("\n")}`;
 
 // ../artgen-cli/src/mesh.ts
 import { createHash as createHash4 } from "node:crypto";
-import { existsSync as existsSync20, mkdirSync as mkdirSync16, readFileSync as readFileSync21, writeFileSync as writeFileSync19 } from "node:fs";
-import { basename as basename8, dirname as dirname18, join as join23, relative as relative10, resolve as resolve15 } from "node:path";
+import { existsSync as existsSync21, mkdirSync as mkdirSync17, readFileSync as readFileSync22, writeFileSync as writeFileSync20 } from "node:fs";
+import { basename as basename8, dirname as dirname19, join as join24, relative as relative11, resolve as resolve16 } from "node:path";
 async function scene3dOf(a, o = {}) {
   const version = o.version ?? versionsIn(a).filter((v) => v.startsWith("base.")).pop();
   if (!version) throw new Error(`${a.brief.id}: no base version`);
@@ -35780,16 +37166,16 @@ async function rigExport(a, o = {}) {
     return { state, duration: Math.round(ms) / 1e3, loop: d.loop };
   });
   const m = buildRigged(scene, { ...set2, lods: o.lods ?? a.brief.mesh?.lods, keys: o.keys ?? a.brief.mesh?.keys, clips }), mpu = o.scale ?? metresPerUnit(scene, a.dir);
-  const out = o.out ?? join23(a.path, "out"), id2 = a.brief.id, glb = join23(out, `${id2}.rigged.glb`), strip2 = join23(out, `${id2}-clips.png`);
-  mkdirSync16(out, { recursive: true });
-  writeFileSync19(glb, riggedGlb(m, { name: id2, metresPerUnit: mpu }));
+  const out = o.out ?? join24(a.path, "out"), id2 = a.brief.id, glb = join24(out, `${id2}.rigged.glb`), strip2 = join24(out, `${id2}-clips.png`);
+  mkdirSync17(out, { recursive: true });
+  writeFileSync20(glb, riggedGlb(m, { name: id2, metresPerUnit: mpu }));
   writeGrid(strip2, clipStrip(m, { light: worldLight(a.dir).light, background: background(a) }));
   const r0 = m.lods[0].result, checks = riggedChecks(m, { budget: set2.budget, metresPerUnit: mpu, height: a.brief.height });
   return {
     asset: id2,
     version,
-    glb: relative10(process.cwd(), glb),
-    clips: relative10(process.cwd(), strip2),
+    glb: relative11(process.cwd(), glb),
+    clips: relative11(process.cwd(), strip2),
     plan: m.rig.set,
     bones: m.skeleton.bones,
     states: clips,
@@ -35805,17 +37191,17 @@ async function rigExport(a, o = {}) {
 }
 async function meshExport(a, o = {}) {
   const { scene, cell: cell3, version } = await scene3dOf(a, o), set2 = settingsOf(a, o), r = buildMesh(scene, set2), mpu = o.scale ?? metresPerUnit(scene, a.dir);
-  const out = o.out ?? join23(a.path, "out"), id2 = a.brief.id, glb = join23(out, `${id2}.mesh.glb`), tt = join23(out, `${id2}-turntable.png`);
-  mkdirSync16(out, { recursive: true });
-  writeFileSync19(glb, meshGlb(r, { name: id2, metresPerUnit: mpu }));
+  const out = o.out ?? join24(a.path, "out"), id2 = a.brief.id, glb = join24(out, `${id2}.mesh.glb`), tt = join24(out, `${id2}-turntable.png`);
+  mkdirSync17(out, { recursive: true });
+  writeFileSync20(glb, meshGlb(r, { name: id2, metresPerUnit: mpu }));
   writeGrid(tt, turntable(viewOfMesh(r), { light: worldLight(a.dir).light, background: background(a) }));
   const checks = meshChecks(r.mesh, { budget: set2.budget, atlas: r.atlas, texels: r.texels, metresPerUnit: mpu, height: a.brief.height });
   return {
     asset: id2,
     version,
     cell: cell3,
-    glb: relative10(process.cwd(), glb),
-    turntable: relative10(process.cwd(), tt),
+    glb: relative11(process.cwd(), glb),
+    turntable: relative11(process.cwd(), tt),
     triangles: r.mesh.indices.length / 3,
     vertices: r.mesh.positions.length / 3,
     budget: set2.budget,
@@ -35866,7 +37252,7 @@ function writeCells(c, k, into, src, warnings) {
   const a = into.asset, roles = rolesOf(into.dir, a?.brief.kind), { model, mats } = snapToVox(c, into.dir, roles), bytes = encodeVox(model);
   const base = { from: src.from, size: c.size, voxels: c.cells.length, k, mats, warnings };
   if (a) {
-    const n = Math.max(0, ...versionsIn(a).map((v) => parseVersion(v)).filter((v) => v?.kind === "base").map((v) => v.n)) + 1, version = `base.v${n}`, file2 = join23(a.path, `${version}.js`);
+    const n = Math.max(0, ...versionsIn(a).map((v) => parseVersion(v)).filter((v) => v?.kind === "base").map((v) => v.n)) + 1, version = `base.v${n}`, file2 = join24(a.path, `${version}.js`);
     const view = a.brief.view ?? a.dir.camera.view, pass = passOf(a, version), list6 = Object.values(mats).join(", "), name = basename8(src.from).replace(/[^\w.\- ]/g, "_");
     const draw = view === "stack" ? "  return model(ctx).slices(w, h)[ctx.frame] ?? new ctx.lib.Grid(w, h);" : `  return model(ctx).render(w, h, { renderer: 'raster', view: ${JSON.stringify(view === "fp" ? "billboard" : view)}, facing: ctx.facing${view === "topdown" ? ", at: [w / 2, h / 2]" : ""} });`;
     const source = [
@@ -35888,21 +37274,21 @@ function writeCells(c, k, into, src, warnings) {
       "}",
       ""
     ].join("\n");
-    writeFileSync19(file2, source);
-    const hash3 = src.file ? createHash4("sha256").update(readFileSync21(src.file)).digest("hex").slice(0, 16) : void 0;
+    writeFileSync20(file2, source);
+    const hash3 = src.file ? createHash4("sha256").update(readFileSync22(src.file)).digest("hex").slice(0, 16) : void 0;
     appendLedger(into.ledger ?? a.ledgerPath, { type: "note", asset: a.brief.id, version, by: "agent", note: `${version} ${src.tool === "convert" ? "converted" : "extruded"} from ${name}`, source: { tool: src.tool, from: name, ...hash3 && { sha256: hash3 }, ...src.options, k } });
-    return { ...base, asset: a.brief.id, version, file: relative10(process.cwd(), file2) };
+    return { ...base, asset: a.brief.id, version, file: relative11(process.cwd(), file2) };
   }
   if (into.to === "mesh") {
-    const s2 = new Scene3D(dirContext(into.dir), { k }).addVox(model, { mats }), r = buildMesh(s2, { budget: meshBudget() }), file2 = resolve15(into.out ?? `${src.from.replace(/\.[^.]+$/, "")}.mesh.glb`);
-    mkdirSync16(dirname18(file2), { recursive: true });
-    writeFileSync19(file2, meshGlb(r, { name: basename8(file2).replace(/\.mesh\.glb$|\.glb$/, ""), metresPerUnit: 2 / pxPerMetre(into.dir) }));
-    return { ...base, file: relative10(process.cwd(), file2), triangles: r.mesh.indices.length / 3 };
+    const s2 = new Scene3D(dirContext(into.dir), { k }).addVox(model, { mats }), r = buildMesh(s2, { budget: meshBudget() }), file2 = resolve16(into.out ?? `${src.from.replace(/\.[^.]+$/, "")}.mesh.glb`);
+    mkdirSync17(dirname19(file2), { recursive: true });
+    writeFileSync20(file2, meshGlb(r, { name: basename8(file2).replace(/\.mesh\.glb$|\.glb$/, ""), metresPerUnit: 2 / pxPerMetre(into.dir) }));
+    return { ...base, file: relative11(process.cwd(), file2), triangles: r.mesh.indices.length / 3 };
   }
-  const file = resolve15(into.out ?? `${src.from.replace(/\.[^.]+$/, "")}.vox`);
-  mkdirSync16(dirname18(file), { recursive: true });
-  writeFileSync19(file, bytes);
-  return { ...base, file: relative10(process.cwd(), file) };
+  const file = resolve16(into.out ?? `${src.from.replace(/\.[^.]+$/, "")}.vox`);
+  mkdirSync17(dirname19(file), { recursive: true });
+  writeFileSync20(file, bytes);
+  return { ...base, file: relative11(process.cwd(), file) };
 }
 function voxK(a, size2) {
   if (a.brief.height) return size2[2] / (a.brief.height * pxPerMetre(a.dir) / 2);
@@ -35918,8 +37304,8 @@ function voxK(a, size2) {
   return Math.ceil(k * 100) / 100;
 }
 function convertFile(file, into, o = {}) {
-  if (!existsSync20(file)) throw new Error(`${file}: not found`);
-  const path = resolve15(file), bytes = new Uint8Array(readFileSync21(path)), unitsPerMetre = pxPerMetre(into.dir) / 2, warnings = [];
+  if (!existsSync21(file)) throw new Error(`${file}: not found`);
+  const path = resolve16(file), bytes = new Uint8Array(readFileSync22(path)), unitsPerMetre = pxPerMetre(into.dir) / 2, warnings = [];
   if (/\.vox$/i.test(file)) {
     const m = decodeVox(bytes);
     if (!m.voxels.length) throw new Error(`${file}: no voxels`);
@@ -35966,9 +37352,9 @@ async function extrudeRun(target, into, o = {}) {
     g = (await renderVersion(a, version)).render.cells[0].grid;
     from = `${a.brief.id} ${version}`;
   } else {
-    if (!existsSync20(target)) throw new Error(`${target}: not found`);
-    file = resolve15(target);
-    g = decodePNG(new Uint8Array(readFileSync21(file)));
+    if (!existsSync21(target)) throw new Error(`${target}: not found`);
+    file = resolve16(target);
+    g = decodePNG(new Uint8Array(readFileSync22(file)));
   }
   return writeCells(extrudeGrid(g, depth), 2, into, { from, tool: "extrude", file, options: { depth } }, []);
 }
@@ -35993,45 +37379,45 @@ var init_mesh = __esm({
 });
 
 // ../artgen-cli/src/p6.ts
-import { mkdirSync as mkdirSync17, writeFileSync as writeFileSync20 } from "node:fs";
-import { join as join24, relative as relative11 } from "node:path";
+import { mkdirSync as mkdirSync18, writeFileSync as writeFileSync21 } from "node:fs";
+import { join as join25, relative as relative12 } from "node:path";
 async function voxelExport(a, o = {}) {
   const { scene, cell: cell3 } = await scene3dOf(a, o);
-  const set2 = scene.voxelSet(), vox = voxFromSet(set2), out = o.out ?? join24(a.path, "out");
-  mkdirSync17(out, { recursive: true });
-  const id2 = a.brief.id, voxFile = join24(out, `${id2}.vox`), glbFile = join24(out, `${id2}.glb`);
-  writeFileSync20(voxFile, encodeVox(vox));
-  writeFileSync20(glbFile, voxelGlb(set2, { scale: o.scale ?? 0.1, name: id2 }));
-  return { vox: relative11(process.cwd(), voxFile), glb: relative11(process.cwd(), glbFile), voxels: set2.cells.length, materials: set2.mats.length, size: vox.size, cell: cell3 };
+  const set2 = scene.voxelSet(), vox = voxFromSet(set2), out = o.out ?? join25(a.path, "out");
+  mkdirSync18(out, { recursive: true });
+  const id2 = a.brief.id, voxFile = join25(out, `${id2}.vox`), glbFile = join25(out, `${id2}.glb`);
+  writeFileSync21(voxFile, encodeVox(vox));
+  writeFileSync21(glbFile, voxelGlb(set2, { scale: o.scale ?? 0.1, name: id2 }));
+  return { vox: relative12(process.cwd(), voxFile), glb: relative12(process.cwd(), glbFile), voxels: set2.cells.length, materials: set2.mats.length, size: vox.size, cell: cell3 };
 }
 function textureRun(dir, name, o) {
   if (!MATERIALS.includes(name)) throw new Error(`unknown material ${name} (have: ${MATERIALS.join(", ")})`);
   const [w, h] = o.size, t = material(name, dirContext(dir), { w, h, seed: o.seed, ramps: o.ramps, scale: o.scale });
   const pre = new Grid(w * 3, h * 3);
   for (let j = 0; j < 3; j++) for (let i = 0; i < 3; i++) pre.blit(t.grid, i * w, j * h);
-  const files = [join24(o.out, `${name}.png`), join24(o.out, `${name}.n.png`), join24(o.out, `${name}-3x3@4x.png`)];
+  const files = [join25(o.out, `${name}.png`), join25(o.out, `${name}.n.png`), join25(o.out, `${name}-3x3@4x.png`)];
   writeGrid(files[0], t.grid);
   writeGrid(files[1], t.normal);
   writeGrid(files[2], pre.scale(4));
   const repetition = repetitionMetric(t.grid);
-  return { files: files.map((f) => relative11(process.cwd(), f)), seam: seamMetric(t.grid), repetition, issues: repetitionIssues(repetition), ramps: t.ramps };
+  return { files: files.map((f) => relative12(process.cwd(), f)), seam: seamMetric(t.grid), repetition, issues: repetitionIssues(repetition), ramps: t.ramps };
 }
 async function animPreview(a, o = {}) {
   const version = o.version ?? versionsIn(a).pop();
   if (!version) throw new Error(`${a.brief.id}: no versions yet`);
-  const { render: r } = await renderVersion(a, version), out = o.out ?? join24(a.path, "out"), sc = o.scale ?? a.brief.review?.scale ?? 4;
+  const { render: r } = await renderVersion(a, version), out = o.out ?? join25(a.path, "out"), sc = o.scale ?? a.brief.review?.scale ?? 4;
   const defs = stateDefs(a.brief, a.dir, Object.fromEntries(r.states.map((s2) => [s2, r.frames[s2] / Math.max(1, Math.floor(a.brief.anims?.[s2]?.sub ?? 1))])));
   const states2 = o.state ? [o.state] : r.states, facings = o.facing ? [o.facing] : [r.facings[0]];
   for (const s2 of states2) if (!r.states.includes(s2)) throw new Error(`${a.brief.id}: no state ${s2} (has ${r.states.join(", ")})`);
   for (const f of facings) if (!r.facings.includes(f)) throw new Error(`${a.brief.id}: no facing ${f} (has ${r.facings.join(", ")})`);
-  mkdirSync17(out, { recursive: true });
+  mkdirSync18(out, { recursive: true });
   const res = { files: [], states: [] };
   for (const s2 of states2) for (const f of facings) {
     const frames = r.cells.filter((c) => c.state === s2 && c.facing === f).sort((x, y) => x.frame - y.frame).map((c) => c.grid.scale(sc)), d = displayDurations(defs[s2]);
-    const base = join24(out, `${a.brief.id}-${version}-${s2}-${f}`);
-    writeFileSync20(`${base}.gif`, encodeGIF(frames, d));
-    writeFileSync20(`${base}.apng`, encodeAPNG(frames, d));
-    res.files.push(relative11(process.cwd(), `${base}.gif`), relative11(process.cwd(), `${base}.apng`));
+    const base = join25(out, `${a.brief.id}-${version}-${s2}-${f}`);
+    writeFileSync21(`${base}.gif`, encodeGIF(frames, d));
+    writeFileSync21(`${base}.apng`, encodeAPNG(frames, d));
+    res.files.push(relative12(process.cwd(), `${base}.gif`), relative12(process.cwd(), `${base}.apng`));
     res.states.push({ state: s2, facing: f, frames: frames.length, ms: d.reduce((x, y) => x + y, 0) });
   }
   return res;
@@ -36041,16 +37427,16 @@ function fxRun(dir, name, o) {
   const line2 = dir.line.outer === "none" ? false : (g) => dir.line.outer === "selout" ? post_exports.selout(g, Object.values(dc.pal), dc.outline) : post_exports.outline(g, dc.outline);
   const layers = preset(name, { w, h, duration });
   const frames = Array.from({ length: o.frames }, (_, i) => particles(dc, { w, h, t: i / o.frames, duration, layers, seed: o.seed ?? 1, line: line2 }));
-  mkdirSync17(o.out, { recursive: true });
+  mkdirSync18(o.out, { recursive: true });
   const strip2 = new Grid(o.frames * (w + 1) - 1, h);
   frames.forEach((f, i) => strip2.blit(f, i * (w + 1), 0));
-  const files = [join24(o.out, `${name}.png`), join24(o.out, `${name}-onion@${sc}x.png`), join24(o.out, `${name}.gif`), join24(o.out, `${name}.apng`)];
+  const files = [join25(o.out, `${name}.png`), join25(o.out, `${name}-onion@${sc}x.png`), join25(o.out, `${name}.gif`), join25(o.out, `${name}.apng`)];
   writeGrid(files[0], strip2);
   writeGrid(files[1], onionSkin(frames).scale(sc));
   const big = frames.map((f) => f.scale(sc)), d = frames.map(() => Math.round(1e3 / fps));
-  writeFileSync20(files[2], encodeGIF(big, d));
-  writeFileSync20(files[3], encodeAPNG(big, d));
-  return { files: files.map((f) => relative11(process.cwd(), f)), fill: fillQA(frames, dir), frames: o.frames };
+  writeFileSync21(files[2], encodeGIF(big, d));
+  writeFileSync21(files[3], encodeAPNG(big, d));
+  return { files: files.map((f) => relative12(process.cwd(), f)), fill: fillQA(frames, dir), frames: o.frames };
 }
 var init_p6 = __esm({
   "../artgen-cli/src/p6.ts"() {
@@ -36063,10 +37449,10 @@ var init_p6 = __esm({
 });
 
 // ../artgen-cli/src/report.ts
-import { existsSync as existsSync21, readdirSync as readdirSync12, writeFileSync as writeFileSync21 } from "node:fs";
-import { join as join25, resolve as resolve16 } from "node:path";
+import { existsSync as existsSync22, readdirSync as readdirSync12, writeFileSync as writeFileSync22 } from "node:fs";
+import { join as join26, resolve as resolve17 } from "node:path";
 function assetDirs(root) {
-  return readdirSync12(root, { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync21(join25(root, d.name, "brief.json"))).map((d) => join25(root, d.name));
+  return readdirSync12(root, { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync22(join26(root, d.name, "brief.json"))).map((d) => join26(root, d.name));
 }
 async function report(root, opts = {}) {
   const assets = assetDirs(root).map((p2) => openAsset(p2));
@@ -36121,8 +37507,8 @@ Price basis (same as artlab): $${PRICE2.inPerM}/M input (review images), $${PRIC
 Totals: ${tot.out} output tok, ${tot.inp} review tok, est. $${cost(tot.out, tot.inp).toFixed(3)}. Average gain from revisions ${avg((s2) => s2.revisionGain)}, from the finishing pass ${avg((s2) => s2.finishGain)}. ${summaries.filter((s2) => s2.met).length}/${summaries.length} assets at or above target.
 `;
   if (opts.out) {
-    writeFileSync21(opts.out, md);
-    await finalComparison(assets, summaries, resolve16(opts.out, "..", "final-comparison.png"));
+    writeFileSync22(opts.out, md);
+    await finalComparison(assets, summaries, resolve17(opts.out, "..", "final-comparison.png"));
   }
   return { markdown: md, summaries };
 }
@@ -36134,7 +37520,7 @@ async function finalComparison(assets, summaries, path) {
     const fin = (await renderVersion(a, s2.final)).strip, R3 = a.brief.review ?? {};
     const ctx = (g) => R3.iso ? iso_exports.isoFloor(g.w, g.h) : void 0;
     if (a.brief.reference) {
-      const ref = readGrid(resolve16(a.path, a.brief.reference));
+      const ref = readGrid(resolve17(a.path, a.brief.reference));
       items.push({ label: `${a.brief.id} ref ${s2.target ?? ""}`, grid: ref, bg: R3.bg, context: ctx(ref) });
     }
     items.push({ label: `${a.brief.id} ${s2.final} ${s2.finish ?? s2.bestRevision?.score ?? ""}`, grid: fin, bg: R3.bg, context: ctx(fin) });
@@ -36154,16 +37540,16 @@ var init_report = __esm({
 });
 
 // ../artgen-cli/src/stages.ts
-import { existsSync as existsSync22, mkdirSync as mkdirSync18, writeFileSync as writeFileSync22 } from "node:fs";
-import { dirname as dirname19, join as join26 } from "node:path";
+import { existsSync as existsSync23, mkdirSync as mkdirSync19, writeFileSync as writeFileSync23 } from "node:fs";
+import { dirname as dirname20, join as join27 } from "node:path";
 function placeholderRun(a, o = {}) {
   const file = placeholderPath(a);
-  if (existsSync22(file) && !o.force) throw new Error(`${a.brief.id}: ${file} exists \u2014 pass --force to write the defaults over it`);
+  if (existsSync23(file) && !o.force) throw new Error(`${a.brief.id}: ${file} exists \u2014 pass --force to write the defaults over it`);
   if (a.project) ensureAssetDir(a.project, a.brief, a.dir);
-  else mkdirSync18(a.path, { recursive: true });
+  else mkdirSync19(a.path, { recursive: true });
   const ph = { ...defaultPlaceholder(a.brief, a.dir), ...o.size && { size: o.size }, ...o.pivot && { pivot: o.pivot }, ...o.ramp && { ramp: o.ramp } };
-  writeFileSync22(file, JSON.stringify(ph, null, 2) + "\n");
-  const r = renderAsset(placeholderModule(ph), { dir: a.dir, brief: a.brief }), png = join26(outDir(a), "placeholder.png"), sc = a.brief.review?.scale ?? 4;
+  writeFileSync23(file, JSON.stringify(ph, null, 2) + "\n");
+  const r = renderAsset(placeholderModule(ph), { dir: a.dir, brief: a.brief }), png = join27(outDir(a), "placeholder.png"), sc = a.brief.review?.scale ?? 4;
   writeGrid(png, strip(r).scale(sc));
   const key2 = placeholderKey(ph);
   appendLedger(a.ledgerPath, { type: "stage", asset: a.brief.id, stage: "placeholder", event: "written", key: key2, by: "agent" });
@@ -36232,8 +37618,8 @@ async function shapeReview(a, version) {
   }
   const checks = cur.stages.checks.filter((c) => c.stage === "shape"), R3 = a.brief.review ?? {};
   const sheet = shapeSheet(cur.render, a.dir, { title: `${R3.label ?? a.brief.id} - ${version} shape`, placeholder, checks, maxEdge: cfg?.budget?.maxSheetEdge });
-  const path = join26(outDir(a), `shape-${version}.png`), tokens = imageTokens(sheet.w, sheet.h);
-  mkdirSync18(dirname19(path), { recursive: true });
+  const path = join27(outDir(a), `shape-${version}.png`), tokens = imageTokens(sheet.w, sheet.h);
+  mkdirSync19(dirname20(path), { recursive: true });
   writeGrid(path, sheet);
   appendLedger(a.ledgerPath, { type: "review", asset: a.brief.id, version, pass: passOf(a, version), stage: "shape", sheet: relPath(a, path), imageTokens: tokens, by: "agent" });
   return { path, tokens, render: cur, stage: "shape", checks };
@@ -36263,8 +37649,8 @@ var init_stages3 = __esm({
 });
 
 // ../artgen-cli/src/ops/art-shared.ts
-import { existsSync as existsSync23 } from "node:fs";
-import { join as join27 } from "node:path";
+import { existsSync as existsSync24 } from "node:fs";
+import { join as join28 } from "node:path";
 function versionOf(ctx, a, i, mcpEmpty) {
   if (typeof i.version === "string") return i.version;
   const vs = versionsIn(a);
@@ -36273,11 +37659,11 @@ function versionOf(ctx, a, i, mcpEmpty) {
   return vs[vs.length - 1];
 }
 function toolDirection(cmd, project2, override) {
-  const file = override ?? (project2 ? join27(project2.art, "direction.json") : void 0);
+  const file = override ?? (project2 ? join28(project2.art, "direction.json") : void 0);
   const fix = "lock one first (artgen direction candidates \u2192 tile \u2192 lock, or /artgen-direction in Claude Code), or pass --direction <file|benchmark>";
-  if (override && !existsSync23(override) && ["benchmark", "alt"].includes(override)) return { p: project2, dir: resolveDirection(override) };
-  if (override && !existsSync23(override)) throw new Error(`${cmd}: --direction ${override}: no such file (or bench direction: benchmark, alt)`);
-  if (!file || !existsSync23(file)) throw new Error(`${cmd}: no art direction found \u2014 ${fix}`);
+  if (override && !existsSync24(override) && ["benchmark", "alt"].includes(override)) return { p: project2, dir: resolveDirection(override) };
+  if (override && !existsSync24(override)) throw new Error(`${cmd}: --direction ${override}: no such file (or bench direction: benchmark, alt)`);
+  if (!file || !existsSync24(file)) throw new Error(`${cmd}: no art direction found \u2014 ${fix}`);
   const raw = readJson(file), v = validateDirection(raw);
   if (!v.ok) throw new Error(raw?.status === "draft" && !override ? `${cmd}: the art direction is still a draft \u2014 ${fix}` : `${cmd}: ${file} is not a valid direction:
   ${v.errors.join("\n  ")}`);
@@ -36317,12 +37703,12 @@ var init_art_shared = __esm({
     statusTable = (rows3) => rows3.map((r) => `  ${r.id.padEnd(16)} ${r.status.padEnd(11)} ${r.final ? `${r.final} ${r.score ?? "-"}${r.blind !== void 0 ? ` b${r.blind}` : ""}${r.gate === false ? " GATE FAIL" : ""}${r.belowBar ? " BELOW BAR" : ""}${r.top ? ` final\u2260best (${r.top.version} ${r.top.score})` : ""}` : r.next ? stepName(r.next) : ""}${r.issues.length ? `
 ${r.issues.map((i) => `      issue: ${i}`).join("\n")}` : ""}`).join("\n");
     packetLine = (x) => `  ${x.id.padEnd(16)} ${stepName(x.step)}${x.writes.length ? ` \u2192 writes ${x.writes.join(", ")}` : ""}${x.resume ? " (resume: written, never reviewed \u2014 check it, complete it, review it)" : ""}`;
-    projectPng = (ctx, f) => pngFile(join27(ctx.project().root, f));
+    projectPng = (ctx, f) => pngFile(join28(ctx.project().root, f));
   }
 });
 
 // ../artgen-cli/src/ops/art-asset.ts
-import { join as join28 } from "node:path";
+import { join as join29 } from "node:path";
 var PASS_NEXT, passRows, nextLine, passStatus, passNext, render10, review, conformance2, score, variants, reportOp2, voxel, anim, texture, fx, bench;
 var init_art_asset = __esm({
   "../artgen-cli/src/ops/art-asset.ts"() {
@@ -36387,8 +37773,8 @@ var init_art_asset = __esm({
         const r = await renderVersion(a, version, { variant, stages });
         let files = [];
         if (ctx.surface === "cli") {
-          files = writeRender(a, r, variant ? join28(a.path, "out", `variant-${variant}`) : void 0);
-          if (stages) for (const [k, g] of stages) writeGrid(join28(a.path, "out", "stages", version, `${k.replace(/\//g, "_")}.png`), g);
+          files = writeRender(a, r, variant ? join29(a.path, "out", `variant-${variant}`) : void 0);
+          if (stages) for (const [k, g] of stages) writeGrid(join29(a.path, "out", "stages", version, `${k.replace(/\//g, "_")}.png`), g);
         }
         return { id: a.brief.id, version, r, files };
       },
@@ -36591,7 +37977,7 @@ var init_art_asset = __esm({
           m[k] = v;
           return m;
         }, {}) : i.ramps;
-        const out = mcp ? join28(pr.art, "sheets", "textures") : i.out ?? (pr ? join28(pr.art, "sheets", "textures") : "artgen-out");
+        const out = mcp ? join29(pr.art, "sheets", "textures") : i.out ?? (pr ? join29(pr.art, "sheets", "textures") : "artgen-out");
         return { material: i.material, size: size2, r: textureRun(dir, i.material, { size: size2, seed: typeof i.seed === "number" ? i.seed : void 0, ramps, scale: typeof i.scale === "number" ? i.scale : void 0, out }) };
       },
       cli: {
@@ -36633,7 +38019,7 @@ var init_art_asset = __esm({
         if (i.list === true || mcp && !i.preset) return { list: PRESET_NAMES };
         if (!i.preset) throw new Error("fx: name a preset (artgen fx --list)");
         const { p: pr, dir } = mcp ? { p: ctx.project(), dir: typeof i.direction === "string" ? resolveDirection(ctx.direction(i.direction)) : requireLocked(ctx.project()) } : toolDirection("fx", ctx.findProject(), i.direction);
-        const size2 = sizeOf2(i.size), out = mcp ? join28(pr.art, "sheets", "fx") : i.out ?? (pr ? join28(pr.art, "sheets", "fx") : "artgen-out");
+        const size2 = sizeOf2(i.size), out = mcp ? join29(pr.art, "sheets", "fx") : i.out ?? (pr ? join29(pr.art, "sheets", "fx") : "artgen-out");
         return { preset: i.preset, size: size2, r: fxRun(dir, i.preset, { size: size2, frames: typeof i.frames === "number" ? i.frames : 8, seed: typeof i.seed === "number" ? i.seed : void 0, scale: typeof i.scale === "number" ? i.scale : void 0, out }) };
       },
       cli: {
@@ -36682,13 +38068,13 @@ var init_art_asset = __esm({
 });
 
 // ../artgen-cli/src/ops/art-direction.ts
-import { existsSync as existsSync24, readFileSync as readFileSync22 } from "node:fs";
-import { join as join29 } from "node:path";
+import { existsSync as existsSync25, readFileSync as readFileSync23 } from "node:fs";
+import { join as join30 } from "node:path";
 function readColors(src, n = 16) {
   if (/^#?[0-9a-f]{6}(,#?[0-9a-f]{6})*$/i.test(src)) return src.split(",").map((c) => "#" + c.replace("#", "").toLowerCase());
-  if (!existsSync24(src)) throw new Error(`${src}: not found`);
+  if (!existsSync25(src)) throw new Error(`${src}: not found`);
   if (src.endsWith(".png")) return extractPalette(readGrid(src), n).colors;
-  const t = readFileSync22(src, "utf8");
+  const t = readFileSync23(src, "utf8");
   return src.endsWith(".gpl") ? parseGpl(t) : parseHexPalette(t);
 }
 var init, candidates2, directionShow, tile, mix, lockOp, anchors, draft, validate, swatch, paletteFile, paletteImport, paletteExtract, ramp, newOp, finish2;
@@ -36738,7 +38124,7 @@ var init_art_direction = __esm({
         from: p.str("an interview file (default art/interview.json)")
       },
       run(i, ctx) {
-        const pr = ctx.project(), base = i.from ? readInterview(i.from) : existsSync24(join29(pr.art, "interview.json")) ? readJson(join29(pr.art, "interview.json")) : {};
+        const pr = ctx.project(), base = i.from ? readInterview(i.from) : existsSync25(join30(pr.art, "interview.json")) ? readJson(join30(pr.art, "interview.json")) : {};
         const iv = {
           ...base,
           pitch: i.pitch ?? base.pitch ?? "",
@@ -36883,7 +38269,7 @@ style sheet: ${r.sheet}`
       effect: "read",
       summary: "Check a direction file against the direction format.",
       params: { file: p.str("the direction file", { positional: true, required: true }) },
-      run: (i) => validateDirection(JSON.parse(readFileSync22(i.file, "utf8"))),
+      run: (i) => validateDirection(JSON.parse(readFileSync23(i.file, "utf8"))),
       cli: {
         usage: "       artgen direction validate <file>",
         // prints the same lines with --json
@@ -36912,7 +38298,7 @@ style sheet: ${r.sheet}`
       run(i, ctx) {
         const colors = readColors(i.file, i.n ?? 16), ramps = rampsFromColors(colors);
         if (i.interview) {
-          const f = join29(ctx.project().art, "interview.json"), iv = existsSync24(f) ? readJson(f) : { pitch: "" };
+          const f = join30(ctx.project().art, "interview.json"), iv = existsSync25(f) ? readJson(f) : { pitch: "" };
           writeJson(f, { ...iv, colors });
         }
         if (i.swatch) swatch(colors, i.swatch);
@@ -36958,12 +38344,12 @@ ${Object.entries(r.ramps).map(([k, x]) => `  ${k}: ${x.join(" ")}`).join("\n")}$
       run(i, ctx) {
         const pr = ctx.findProject(), view = i.view ?? (pr && (() => {
           try {
-            return readJson(join29(pr.art, "direction.json")).camera?.view;
+            return readJson(join30(pr.art, "direction.json")).camera?.view;
           } catch {
             return void 0;
           }
         })()) ?? "topdown";
-        const path = i.dir ?? (pr ? join29(pr.art, "assets", i.kind, i.id) : i.id);
+        const path = i.dir ?? (pr ? join30(pr.art, "assets", i.kind, i.id) : i.id);
         return { id: i.id, path, ...newAsset(path, { id: i.id, kind: i.kind, view, size: sizeKey(i.size), states: i.states, directions: i.directions, notes: i.notes }) };
       },
       cli: {
@@ -36991,8 +38377,8 @@ next: edit base.v1.js for the brief, then artgen review ${r.path}`,
 });
 
 // ../artgen-cli/src/ops/art-production.ts
-import { writeFileSync as writeFileSync23 } from "node:fs";
-var ROSTER_SKILL, briefAdd, briefList, briefRm, briefLint, makeOp, status, galleryOp, sheetOp, feedbackOp, approveOp, roster2, rosterRecordOp, exportOp, restyleOp, importEditOp, analytics2;
+import { writeFileSync as writeFileSync24 } from "node:fs";
+var ROSTER_SKILL, briefAdd, briefList, briefRm, briefLint, makeOp, status, galleryOp, sheetOp, feedbackOp, approveOp, roster2, rosterRecordOp, exportOp2, restyleOp, importEditOp, analytics2;
 var init_art_production = __esm({
   "../artgen-cli/src/ops/art-production.ts"() {
     "use strict";
@@ -37323,7 +38709,7 @@ note for the user: ${warn.join("; ")}` : ""}`;
       mcp: { exclude: ROSTER_SKILL },
       python: {}
     });
-    exportOp = defineOp({
+    exportOp2 = defineOp({
       name: "export",
       module: "art",
       effect: "write",
@@ -37411,13 +38797,13 @@ next: artgen review ${id2}`,
         const across2 = i.across;
         if (across2) {
           if (!across2.length) throw new Error("analytics --across <project root>[,<root>\u2026]: the projects (or bench folders with a ledger.jsonl) to pool");
-          const r4 = pooledAnalytics(across2, { apply: i.apply ? ctx.project() : void 0, minAssets: i.min_assets });
-          if (i.out) writeFileSync23(i.out, r4.markdown);
-          return { markdown: r4.markdown + (r4.applied ? `
-applied to ${r4.applied}` : ""), data: { ...r4.report, ...r4.applied && { applied: r4.applied } } };
+          const r5 = pooledAnalytics(across2, { apply: i.apply ? ctx.project() : void 0, minAssets: i.min_assets });
+          if (i.out) writeFileSync24(i.out, r5.markdown);
+          return { markdown: r5.markdown + (r5.applied ? `
+applied to ${r5.applied}` : ""), data: { ...r5.report, ...r5.applied && { applied: r5.applied } } };
         }
         const r = projectAnalytics(ctx.project());
-        if (i.out) writeFileSync23(i.out, r.markdown);
+        if (i.out) writeFileSync24(i.out, r.markdown);
         return { markdown: r.markdown, data: r.report };
       },
       cli: {
@@ -37558,8 +38944,8 @@ var init_art_stages = __esm({
 });
 
 // ../artgen-cli/src/ops/art-image.ts
-import { existsSync as existsSync25, writeFileSync as writeFileSync24 } from "node:fs";
-import { join as join30, resolve as resolve17 } from "node:path";
+import { existsSync as existsSync26, writeFileSync as writeFileSync25 } from "node:fs";
+import { join as join31, resolve as resolve18 } from "node:path";
 function nearestRole2(ramps, roles, rgb) {
   let best = "", bd = Infinity;
   for (const role of roles) {
@@ -37613,7 +38999,7 @@ var init_art_image = __esm({
         ledger: ledgerParam()
       },
       async run(i, ctx) {
-        const a = assetOf(ctx, i), img = readPicture(resolve17(i.image)), opts = { ...defaultTraceOptions, ...traceOptions(i) }, t = traceImage(img, opts);
+        const a = assetOf(ctx, i), img = readPicture(resolve18(i.image)), opts = { ...defaultTraceOptions, ...traceOptions(i) }, t = traceImage(img, opts);
         if (!t.shapes.length) throw new Error(`${i.image}: nothing to trace (try --invert, a different --threshold, or a lower --min-area)`);
         const roles = rolesFor(a.dir, a.brief.kind), role = i.mat ?? nearestRole2(a.dir.palette.ramps, roles, meanColor(img, binarize(img, opts).binary));
         if (!roles.includes(role)) throw new Error(`--mat ${role}: one of ${roles.join(", ")}`);
@@ -37630,7 +39016,7 @@ var init_art_image = __esm({
         const ox = (W3 - bw * scale2) / 2 - x0 * scale2, oy = (i.anchor === "bottom" ? H - margin - bh * scale2 : (H - bh * scale2) / 2) - y0 * scale2;
         const ring2 = (r) => `[${Array.from(r.points, (v, k) => num4(k % 2 ? (v * scale2 + oy) / H : (v * scale2 + ox) / W3)).join(",")}]`;
         const n = Math.max(0, ...versionsIn(a).map((v) => parseVersion(v)).filter((v) => v?.kind === "base").map((v) => v.n)) + 1, version = `base.v${n}`;
-        const file = join30(a.path, `${version}.js`), holes = t.shapes.reduce((c, s2) => c + s2.holes.length, 0), from = String(i.image).split(/[\\/]/).pop().replace(/[^\w.\- ]/g, "_");
+        const file = join31(a.path, `${version}.js`), holes = t.shapes.reduce((c, s2) => c + s2.holes.length, 0), from = String(i.image).split(/[\\/]/).pop().replace(/[^\w.\- ]/g, "_");
         const source = [
           `// ${a.brief.id} ${version} (${passOf(a, version)}) \u2014 traced from ${from} by \`artgen trace-base\`: ${t.shapes.length} shape${t.shapes.length === 1 ? "" : "s"}${holes ? `, ${holes} hole${holes === 1 ? "" : "s"}` : ""}, fitted to the ${W3}x${H} frame.`,
           "// This is the silhouette and nothing more. Shape it (split it into parts, set the materials, add the details and the face) in the next pass.",
@@ -37649,7 +39035,7 @@ var init_art_image = __esm({
           "}",
           ""
         ].join("\n");
-        writeFileSync24(file, source);
+        writeFileSync25(file, source);
         return { asset: a.brief.id, file, version, mat: role, trace: traceSummary(t), size: [W3, H] };
       },
       cli: {
@@ -37661,7 +39047,7 @@ next: artgen render ${r.asset} --version ${r.version}, then review it`,
       mcp: { exclude: PLACE },
       python: {}
     });
-    isPicture = (s2) => typeof s2 === "string" && /\.png$/i.test(s2) && existsSync25(s2);
+    isPicture = (s2) => typeof s2 === "string" && /\.png$/i.test(s2) && existsSync26(s2);
     cut = defineOp({
       name: "cut",
       module: "art",
@@ -37691,12 +39077,12 @@ next: artgen render ${r.asset} --version ${r.version}, then review it`,
         if (i.threshold !== void 0 && i.threshold !== "otsu" && !(Number.isFinite(+i.threshold) && +i.threshold >= 0 && +i.threshold <= 255)) throw new Error("--threshold: otsu or a grey level from 0 to 255");
         if (i.scale !== void 0 && !(i.scale >= 1 && i.scale <= 32)) throw new Error("--scale: a whole number from 1 to 32");
         let img, mask, out, id2, source;
-        if (/\.png$/i.test(i.target) && !existsSync25(i.target)) throw new Error(`${i.target}: not found`);
+        if (/\.png$/i.test(i.target) && !existsSync26(i.target)) throw new Error(`${i.target}: not found`);
         if (isPicture(i.target)) {
-          const file = resolve17(i.target);
+          const file = resolve18(i.target);
           img = readPicture(file);
           mask = silhouetteMask(img, [], { threshold: i.threshold === void 0 || i.threshold === "otsu" ? "otsu" : +i.threshold, invert: i.invert === true, smoothing: i.smoothing ?? 5, keepLargestBlob: !i.keep_all });
-          out = resolve17(i.out ?? `${stemOf2(file)}-token.png`);
+          out = resolve18(i.out ?? `${stemOf2(file)}-token.png`);
           id2 = stemOf2(file).split(/[\\/]/).pop();
           source = file;
         } else {
@@ -37715,7 +39101,7 @@ next: artgen render ${r.asset} --version ${r.version}, then review it`,
           if (!cell3) throw new Error(`${a.brief.id} ${version}: no cell ${i.state ?? r.states[0]}/${i.facing ?? r.facings[0]}/${i.frame ?? 0} (states ${r.states.join(", ")}; facings ${r.facings.join(", ")}; frames 0\u2013${Math.max(...Object.values(r.frames)) - 1})`);
           img = cell3.grid;
           mask = alphaMask(img);
-          out = resolve17(i.out ?? join30(a.project?.art ?? a.path, a.project ? "tokens" : "", `${a.brief.id}.png`));
+          out = resolve18(i.out ?? join31(a.project?.art ?? a.path, a.project ? "tokens" : "", `${a.brief.id}.png`));
           id2 = a.brief.id;
           source = `${a.brief.id} ${version}`;
         }
@@ -37737,32 +39123,32 @@ next: artgen render ${r.asset} --version ${r.version}, then review it`,
 });
 
 // ../artgen-cli/src/loop/pr-review.ts
-import { copyFileSync as copyFileSync4, existsSync as existsSync26, mkdirSync as mkdirSync19, readdirSync as readdirSync13, rmSync as rmSync2, writeFileSync as writeFileSync25 } from "node:fs";
-import { join as join31, resolve as resolve18 } from "node:path";
+import { copyFileSync as copyFileSync4, existsSync as existsSync27, mkdirSync as mkdirSync20, readdirSync as readdirSync13, rmSync as rmSync2, writeFileSync as writeFileSync26 } from "node:fs";
+import { join as join32, resolve as resolve19 } from "node:path";
 function sheetFor(p2, row, version) {
-  const a = openAsset(join31(p2.root, row.path)), s2 = [...ledgerFor(a)].reverse().find((e) => e.type === "review" && e.version === version && !e.stage && typeof e.sheet === "string")?.sheet;
+  const a = openAsset(join32(p2.root, row.path)), s2 = [...ledgerFor(a)].reverse().find((e) => e.type === "review" && e.version === version && !e.stage && typeof e.sheet === "string")?.sheet;
   if (!s2) return void 0;
-  const f = resolve18(p2.art, String(s2).split(",")[0]);
-  return existsSync26(f) ? f : void 0;
+  const f = resolve19(p2.art, String(s2).split(",")[0]);
+  return existsSync27(f) ? f : void 0;
 }
 async function prepareReview(p2, o = {}) {
   const all = await projectStatus(p2, o.ids), rows3 = all.filter((r) => r.final && (o.ids?.length || r.status === "final"));
-  const dir = join31(p2.art, "review");
-  if (existsSync26(dir)) {
-    for (const f of readdirSync13(dir)) if (/^[\w-]+-(base|finish)\.v\d+(-shape)?\.png$|^[\w-]+-placeholder\.png$|^REVIEW\.md$/.test(f)) rmSync2(join31(dir, f));
+  const dir = join32(p2.art, "review");
+  if (existsSync27(dir)) {
+    for (const f of readdirSync13(dir)) if (/^[\w-]+-(base|finish)\.v\d+(-shape)?\.png$|^[\w-]+-placeholder\.png$|^REVIEW\.md$/.test(f)) rmSync2(join32(dir, f));
   }
-  mkdirSync19(dir, { recursive: true });
+  mkdirSync20(dir, { recursive: true });
   const items = [], missing = [], gates = [];
   for (const r of all) if (r.next?.action === "stage-gate") {
     const g = r.next, id2 = r.id, item = { id: id2, stage: g.stage, ...g.version && { version: g.version }, answer: g.stage === "shape" ? `approve ${id2} shape, or ${id2}: shape: <what to change>` : `approve ${id2} placeholder, or ${id2}: placeholder: <what to change>` };
-    const a = openAsset(join31(p2.root, r.path));
+    const a = openAsset(join32(p2.root, r.path));
     const src = g.stage === "shape" ? (() => {
       const s2 = [...ledgerFor(a)].reverse().find((e) => e.type === "review" && e.stage === "shape" && e.version === g.version && typeof e.sheet === "string")?.sheet;
-      return s2 ? resolve18(p2.art, String(s2)) : void 0;
-    })() : join31(outDir(a), "placeholder.png");
-    if (src && existsSync26(src)) {
+      return s2 ? resolve19(p2.art, String(s2)) : void 0;
+    })() : join32(outDir(a), "placeholder.png");
+    if (src && existsSync27(src)) {
       const name = g.stage === "shape" ? `${id2}-${g.version}-shape.png` : `${id2}-placeholder.png`;
-      copyFileSync4(src, join31(dir, name));
+      copyFileSync4(src, join32(dir, name));
       item.sheet = name;
     }
     gates.push(item);
@@ -37772,15 +39158,15 @@ async function prepareReview(p2, o = {}) {
     const sheet = sheetFor(p2, r, r.final);
     if (sheet) {
       const name = `${r.id}-${r.final}.png`;
-      copyFileSync4(sheet, join31(dir, name));
+      copyFileSync4(sheet, join32(dir, name));
       item.sheet = name;
     } else missing.push(r.id);
-    const fb = [...ledgerFor(openAsset(join31(p2.root, r.path)))].reverse().find((e) => e.type === "feedback" && typeof e.on === "string" && e.on !== r.final);
+    const fb = [...ledgerFor(openAsset(join32(p2.root, r.path)))].reverse().find((e) => e.type === "feedback" && typeof e.on === "string" && e.on !== r.final);
     if (fb) {
       const prev = sheetFor(p2, r, fb.on);
       if (prev) {
         const name = `${r.id}-${fb.on}.png`;
-        copyFileSync4(prev, join31(dir, name));
+        copyFileSync4(prev, join32(dir, name));
         item.before = name;
         item.beforeVersion = fb.on;
       }
@@ -37815,7 +39201,7 @@ async function prepareReview(p2, o = {}) {
     ] : [],
     ""
   ].join("\n");
-  writeFileSync25(join31(dir, "REVIEW.md"), table);
+  writeFileSync26(join32(dir, "REVIEW.md"), table);
   return { dir, table, items, missing, gates };
 }
 function parseReviewComment(text2, ids) {
@@ -37867,7 +39253,7 @@ var init_pr_review = __esm({
 });
 
 // ../artgen-cli/src/ops/art-loop.ts
-import { readFileSync as readFileSync23 } from "node:fs";
+import { readFileSync as readFileSync24 } from "node:fs";
 var prPrepare, prParse, LOOP_ART_OPS;
 var init_art_loop = __esm({
   "../artgen-cli/src/ops/art-loop.ts"() {
@@ -37905,7 +39291,7 @@ ${r.gates.join(", ")} wait at a gate: the reply is approve <id> shape, or <id>: 
       description: `Read the user's pull request comment ("approve goblin", "goblin: arms too long", "goblin: finish: eyes too dark", "approve goblin shape", "goblin: shape: arms too long") into actions: approve, feedback and stage approve / reject calls, with lines naming no brief listed apart. Parse only: the session makes the calls with via: pr, after checking the comment is the user's.`,
       params: { comment: p.str("the comment text; or a file with --file", { positional: true }), file: p.str("read the comment from this file (- for standard input)", { mcp: false }), ids: idsParam("brief ids that count; default every brief") },
       run(i, ctx) {
-        const body3 = typeof i.file === "string" ? readFileSync23(i.file === "-" ? 0 : i.file, "utf8") : typeof i.comment === "string" ? i.comment : void 0;
+        const body3 = typeof i.file === "string" ? readFileSync24(i.file === "-" ? 0 : i.file, "utf8") : typeof i.comment === "string" ? i.comment : void 0;
         if (body3 === void 0) throw new Error("pr parse: give the comment text, or --file <path>");
         const ids = Array.isArray(i.ids) && i.ids.length ? i.ids : readBriefs(ctx.project()).map((b) => b.id);
         return parseReviewComment(body3, ids);
@@ -37926,7 +39312,7 @@ ${r.gates.join(", ")} wait at a gate: the reply is approve <id> shape, or <id>: 
 });
 
 // ../artgen-cli/src/ops/art-mesh.ts
-import { join as join32 } from "node:path";
+import { join as join33 } from "node:path";
 function intoOf(i, ctx, cmd, dir) {
   if (i.asset) {
     const a = ctx.asset(i.asset, { direction: i.direction, ledger: i.ledger });
@@ -38007,7 +39393,7 @@ var init_art_mesh = __esm({
         const a = assetOf(ctx, i), r = await turntableOf(a, { ...settings(i), version: i.version, cell: i.cell, source: i.source, angles: i.angles, pitch: i.pitch, size: i.size });
         let file;
         if (ctx.surface === "cli") {
-          const f = i.out ?? join32(a.path, "out", `${a.brief.id}-turntable-${r.source}.png`);
+          const f = i.out ?? join33(a.path, "out", `${a.brief.id}-turntable-${r.source}.png`);
           writeGrid(f, r.grid);
           file = f;
         }
@@ -38064,7 +39450,7 @@ var init_art_mesh = __esm({
       },
       async run(i, ctx) {
         const picture = /\.png$/i.test(i.target), source = picture ? void 0 : ctx.asset(i.target, { direction: i.direction, ledger: i.ledger });
-        const into = intoOf({ ...i, out: i.out ?? (source ? join32(source.path, "out", `${source.brief.id}-extruded.${i.to === "mesh" ? "mesh.glb" : "vox"}`) : void 0) }, ctx, "extrude", source?.dir);
+        const into = intoOf({ ...i, out: i.out ?? (source ? join33(source.path, "out", `${source.brief.id}-extruded.${i.to === "mesh" ? "mesh.glb" : "vox"}`) : void 0) }, ctx, "extrude", source?.dir);
         return extrudeRun(i.target, { ...into, source }, { depth: i.depth, version: i.version });
       },
       cli: { usage: "       artgen extrude <image.png|asset> [--depth px] [--version v] [--asset id] [--to vox|mesh] [--out file]", text: convertText },
@@ -38159,7 +39545,7 @@ var init_art = __esm({
       texture,
       fx,
       ...IMAGE_ART_OPS,
-      exportOp,
+      exportOp2,
       restyleOp,
       analytics2,
       ...LOOP_ART_OPS,
@@ -38192,7 +39578,7 @@ __export(cli_exports, {
   VERSION: () => VERSION,
   main: () => main
 });
-import { readFileSync as readFileSync24 } from "node:fs";
+import { readFileSync as readFileSync25 } from "node:fs";
 async function main(argv) {
   const [cmd] = argv;
   if (cmd === "--version" || cmd === "version") {
@@ -38208,7 +39594,7 @@ async function main(argv) {
     console.error(`artgen: unknown command '${argv.slice(0, 2).join(" ")}' \u2014 run artgen --help for the list`);
     return 1;
   }
-  return runCli(OPS, argv, { log: (s2) => console.log(s2), ctx: cliCtx, readFile: (f) => readFileSync24(f, "utf8") });
+  return runCli(OPS, argv, { log: (s2) => console.log(s2), ctx: cliCtx, readFile: (f) => readFileSync25(f, "utf8") });
 }
 var HEADER2, FOOTER, USAGE, cliCtx;
 var init_cli2 = __esm({

@@ -6,4 +6,5 @@ Use the terrain-map skill. If this names an existing map (`node "${CLAUDE_PLUGIN
 <id>` and make the change; otherwise ask the few questions the skill lists, create the map, and iterate: render, look at
 the PNG, adjust. Finish with `node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" map render <id> --theme both` and show the user both images and the file paths.
 Before you generate, write the brief (`node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" map brief <id> --text "…"`); when a round is done record it (`node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" map version <id>`), review it (`node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" map review <id>`) and show the user the sheet. Only the user approves or asks for changes (the skill's step 5).
+For a game or a level editor, `node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" map export <id>` writes Tiled and LDtk files (the skill's *For a game or a level editor*).
 Request: $ARGUMENTS

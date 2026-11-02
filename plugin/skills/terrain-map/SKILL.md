@@ -85,6 +85,15 @@ node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" map render <id> [--theme col
 any of `terrain rivers roads contours grid symbols labels legend scale compass title` off — e.g. a clean player copy
 without labels, or a terrain-only image to letter by hand. Give the user the file paths and show the PNGs.
 
+### For a game or a level editor
+```
+node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" map export <id> [--to tiled|ldtk|both] [--xml] [--cell 2] [--pack public/assets/main/pack.json --tiles grass=…,water=…]
+```
+Writes Tiled (`out/<id>.tmj` + `.tsj`, or `--xml`) and LDtk (`out/<id>.ldtk`) files, the tile sheet and a preview: each
+cell is the terrain most of it has (`deep water marsh sand desert grass scrub forest rock snow`); rivers and roads are
+polylines with their width, labels and symbols points. A square grid's cell is the grid's size (`--cell` overrides it);
+a hex grid exports as Tiled's staggered hexagons (Tiled only).
+
 ## 5. Brief, versions, review, and the user's approval
 A terrain map goes through the same steps as a pixel asset: write what it is for, record each round as a version, review it, show it to the user, and let them decide. **Only the user approves**: never run `approve` yourself (over MCP it needs `user_approved`, and only after they said so in this conversation).
 ```

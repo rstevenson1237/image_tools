@@ -92,6 +92,15 @@ node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" settlement facts <id>       
 `--buildings interior` shows every building cut away to its ground floor on the site (good for a castle bailey);
 `roofs` blocks them out (good for a town). Give the user the file paths and show the PNG.
 
+### For a game or a level editor
+```
+node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" settlement export <id> [--to tiled|ldtk|both] [--xml] [--pack public/assets/main/pack.json --tiles ground=…,road=…]
+```
+Writes Tiled and LDtk files of the site, the tile sheet and a preview: each cell is the topmost thing on it (building,
+wall, bridge, road, water, an area by kind, ground); buildings (outline, kind, number, name), roads, water, walls,
+towers, gates, areas, trees and props are objects. Floor plans are not in it: export one as a dungeon if a game needs
+it.
+
 ## Check, then look
 `node "${CLAUDE_PLUGIN_ROOT}/tools/artgen/artgen.js" settlement check <id>` after every round: errors must be fixed; each warning (buildings on each other, in
 water or across a road, a gate far from its wall, furniture outside its building or on other furniture, stairs that
