@@ -7,6 +7,9 @@ the view and kind (`artgen new <id> --kind … --view …`, or `make` from a bri
 - Views: `topdown`, `iso`, `oblique` (top + front face), `stack` (z-slices), `side` (+ parallax `layer` kind), `fp`.
   The review sheet shows each in its context: iso floor, oblique room, side scroll strip, stack turned through 8
   angles, parallax layers scrolled, first-person corridor.
+- Each view is a module (`VIEW_MODULES`): projection, anchor and sort, probe templates, review context, its checks, the
+  runtime helpers, and how a map is laid out for it (Tiled orthogonal, or isometric for `iso`). `free` (the perspective
+  orbit camera) is the module for meshes: no brief names it; any 3D-mode asset reaches it with `artgen mesh` or `rig`.
 - 3D mode: `ctx.lib.t2.scene3d({ k })` + `box / ellipsoid / capsule / slab / sdf / cells` and booleans, rendered with
   `m.render(w, h, { renderer: 'raster', view: 'iso'|'topdown'|'oblique'|'side'|'billboard', facing: ctx.facing,
   scale, at })`. `shade: 'toon'` for organic parts. Any of 4/8/16 facings from one model (`meta.mirror: false`).
@@ -57,6 +60,11 @@ the view and kind (`artgen new <id> --kind … --view …`, or `make` from a bri
 - Autotiles (`brief autotile: wang16|blob47`), iso floor / block tiles, WFC, L-systems: see the tileset templates.
 - Gate flags for tiles: `seam`, `repetition` (visible grid), border contrast; `review.periodic: true` for designed
   repeats (bricks, panels).
+- Tilesets for a level editor: once a tile asset is exported in a pack, `artgen tileset <asset> --pack
+  public/assets/main/pack.json` writes it for Tiled (`.tsj`, or `--xml` for `.tsx`; an autotile set becomes a wang set,
+  so Tiled's terrain brush paints with it) and LDtk (`.ldtk`), on a small sample map. The map commands bind tiles the same
+  way (`artgen dungeon export <id> --pack … --tiles floor=<asset>`). The view's `tile-shape` check refuses tiles that do
+  not fit its cell: square for top-down, a 2:1 diamond (or taller) for iso.
 
 ## Effects
 - Particles: `ctx.lib.fx.particles(layers, { w, h, t: ctx.t, duration: ctx.duration })`. Presets:

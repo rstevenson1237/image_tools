@@ -141,6 +141,10 @@ _OPS: dict[str, tuple[tuple[str, ...], tuple[str, ...], dict[str, tuple[str, str
     "settlement.check": (("settlement", "check"), ("id",), {"file": ("--file", "value")}),
     "settlement.facts": (("settlement", "facts"), ("id",), {"file": ("--file", "value")}),
     "settlement.render": (("settlement", "render"), ("id",), {"file": ("--file", "value"), "view": ("--view", "value"), "building": ("--building", "value"), "floor": ("--floor", "value"), "buildings": ("--buildings", "value"), "theme": ("--theme", "value"), "plans": ("--plans", "switch"), "ppu": ("--ppu", "value"), "layers": ("--layers", "value"), "format": ("--format", "value"), "fit": ("--fit", "value"), "page_scale": ("--page-scale", "value"), "crop": ("--crop", "value"), "out": ("--out", "value")}),
+    "dungeon.export": (("dungeon", "export"), ("id",), {"file": ("--file", "value"), "to": ("--to", "value"), "xml": ("--xml", "switch"), "view": ("--view", "value"), "pack": ("--pack", "value"), "tiles": ("--tiles", "repeat"), "tile": ("--tile", "value"), "seed": ("--seed", "value"), "out": ("--out", "value")}),
+    "map.export": (("map", "export"), ("id",), {"file": ("--file", "value"), "to": ("--to", "value"), "xml": ("--xml", "switch"), "view": ("--view", "value"), "pack": ("--pack", "value"), "tiles": ("--tiles", "repeat"), "tile": ("--tile", "value"), "seed": ("--seed", "value"), "cell": ("--cell", "value"), "out": ("--out", "value")}),
+    "settlement.export": (("settlement", "export"), ("id",), {"file": ("--file", "value"), "to": ("--to", "value"), "xml": ("--xml", "switch"), "view": ("--view", "value"), "pack": ("--pack", "value"), "tiles": ("--tiles", "repeat"), "tile": ("--tile", "value"), "seed": ("--seed", "value"), "out": ("--out", "value")}),
+    "tileset": (("tileset",), ("asset",), {"pack": ("--pack", "value"), "to": ("--to", "value"), "xml": ("--xml", "switch"), "view": ("--view", "value"), "size": ("--size", "value"), "out": ("--out", "value")}),
     "formats": (("formats",), (), {}),
     "map.brief": (("map", "brief"), ("id",), {"text": ("--text", "value"), "refs": ("--refs", "list")}),
     "map.version": (("map", "version"), ("id",), {"note": ("--note", "value")}),
@@ -691,6 +695,22 @@ class Ops:
     def settlement_render(self, id: Optional[str] = None, *, file: Optional[str] = None, view: Optional[Literal["site", "plan"]] = None, building: Optional[str] = None, floor: Optional[float] = None, buildings: Optional[Literal["roofs", "outline", "interior"]] = None, theme: Optional[Literal["color", "bw", "both"]] = None, plans: Optional[bool] = None, ppu: Optional[float] = None, layers: Optional[str] = None, format: Optional[Literal["svg", "png", "both"]] = None, fit: Optional[str] = None, page_scale: Optional[str] = None, crop: Optional[str] = None, out: Optional[str] = None) -> "Result":
         """Render a settlement's site or one building's floor plan to SVG and/or PNG. (artgen settlement render)"""
         return self._op("settlement.render", [id], {"file": file, "view": view, "building": building, "floor": floor, "buildings": buildings, "theme": theme, "plans": plans, "ppu": ppu, "layers": layers, "format": format, "fit": fit, "page_scale": page_scale, "crop": crop, "out": out})
+
+    def dungeon_export(self, id: Optional[str] = None, *, file: Optional[str] = None, to: Optional[Literal["tiled", "ldtk", "both"]] = None, xml: Optional[bool] = None, view: Optional[str] = None, pack: Optional[str] = None, tiles: Optional[Sequence[str]] = None, tile: Optional[int] = None, seed: Optional[int] = None, out: Optional[str] = None) -> "Result":
+        """Export a dungeon as a tile map for Tiled (.tmj / .tmx) and LDtk (.ldtk): a class per cell, tiles from a pack or flat colours, objects for its named things. (artgen dungeon export)"""
+        return self._op("dungeon.export", [id], {"file": file, "to": to, "xml": xml, "view": view, "pack": pack, "tiles": tiles, "tile": tile, "seed": seed, "out": out})
+
+    def map_export(self, id: Optional[str] = None, *, file: Optional[str] = None, to: Optional[Literal["tiled", "ldtk", "both"]] = None, xml: Optional[bool] = None, view: Optional[str] = None, pack: Optional[str] = None, tiles: Optional[Sequence[str]] = None, tile: Optional[int] = None, seed: Optional[int] = None, cell: Optional[float] = None, out: Optional[str] = None) -> "Result":
+        """Export a terrain map as a tile map for Tiled (.tmj / .tmx) and LDtk (.ldtk): a class per cell, tiles from a pack or flat colours, objects for its named things. (artgen map export)"""
+        return self._op("map.export", [id], {"file": file, "to": to, "xml": xml, "view": view, "pack": pack, "tiles": tiles, "tile": tile, "seed": seed, "cell": cell, "out": out})
+
+    def settlement_export(self, id: Optional[str] = None, *, file: Optional[str] = None, to: Optional[Literal["tiled", "ldtk", "both"]] = None, xml: Optional[bool] = None, view: Optional[str] = None, pack: Optional[str] = None, tiles: Optional[Sequence[str]] = None, tile: Optional[int] = None, seed: Optional[int] = None, out: Optional[str] = None) -> "Result":
+        """Export a settlement as a tile map for Tiled (.tmj / .tmx) and LDtk (.ldtk): a class per cell, tiles from a pack or flat colours, objects for its named things. (artgen settlement export)"""
+        return self._op("settlement.export", [id], {"file": file, "to": to, "xml": xml, "view": view, "pack": pack, "tiles": tiles, "tile": tile, "seed": seed, "out": out})
+
+    def tileset(self, asset: str, *, pack: Optional[str] = None, to: Optional[Literal["tiled", "ldtk", "both"]] = None, xml: Optional[bool] = None, view: Optional[str] = None, size: Optional[int] = None, out: Optional[str] = None) -> "Result":
+        """Export a tile asset of a pack as a tileset for Tiled (with a wang set for an autotile layout) and LDtk, with a sample map of it. (artgen tileset)"""
+        return self._op("tileset", [asset], {"pack": pack, "to": to, "xml": xml, "view": view, "size": size, "out": out})
 
     def formats(self) -> "Result":
         """The map, dungeon and settlement file format versions this artgen reads and writes. (artgen formats)"""

@@ -26,6 +26,7 @@
     "accept:images": "node scripts/artgen-image-tools-accept.mjs",
     "accept:lit": "node scripts/artgen-lit-accept.mjs",
     "accept:rig": "node scripts/artgen-rig-accept.mjs",
+    "accept:tilemap": "node scripts/artgen-tilemap-accept.mjs",
     "accept:release": "node scripts/artgen-release-acceptance.mjs",
     "fixtures:install": "npm run build -w artgen-dist && node scripts/artgen-fixtures.mjs"
   },

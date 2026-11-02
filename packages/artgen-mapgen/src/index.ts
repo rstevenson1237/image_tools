@@ -8,6 +8,7 @@ export { initSvg, rasterizeSvg, setSvgFonts } from 'artgen-primitives/lib/svg.ts
 export { parseCrop, parseFit, fitPpu, clampCrop, type Crop, type Fit, type SizeUnit } from 'artgen-primitives/lib/view.ts';
 export { type SyncReport, type SyncConflict } from 'artgen-primitives/lib/sync.ts';
 export { PX_PER_MM } from 'artgen-primitives/lib/view.ts';
+export * as tilemap from './tilemap/index.ts';
 export * as subjects from './workflow.ts';
 export * as mapDirection from './direction.ts';
 export { Grid } from 'artgen-primitives/lib/grid.ts';

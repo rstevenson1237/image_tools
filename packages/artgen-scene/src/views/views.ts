@@ -1,11 +1,13 @@
 /**
  * View modules (SPEC §8, D8): what a view means for the pipeline beyond its camera — the anchor and sort convention
- * the export and runtime use, the context a review shows the asset in, and the runtime helpers that place it. Adding a
- * view is adding an entry here (+ a camera in `camera.ts` when 3D mode renders it); nothing else changes.
+ * the export and runtime use, the probe templates assets start from, the context a review shows the asset in, the
+ * checks the view adds, the runtime helpers that place it and how a map is laid out for it (R7c: Tiled and LDtk).
+ * Adding a view is adding an entry here (+ a camera in `camera.ts` when 3D mode renders it); nothing else changes.
  */
 import type { Direction } from '../direction.ts';
 import { Grid } from 'artgen-primitives/lib/grid.ts';
 import { isoFloor } from 'artgen-primitives/lib/iso.ts';
+import { VIEW_MAPS, type ViewMap } from 'artgen-primitives/lib/viewmap.ts';
 
 export interface ViewModule {
   id: string;
@@ -19,9 +21,19 @@ export interface ViewModule {
   runtime: string[];
   /** Review context drawn under an asset (same size as the image it backs), or undefined for the game background. */
   context?(w: number, h: number, dir: Direction): Grid;
-  /** 3D-mode renderer settings for the view (`renderer`, camera `view`). */
-  render3d: { renderer: 'cubes' | 'raster'; view: string };
+  /** 3D-mode renderer settings for the view (`renderer`, camera `view`); none for the free camera, which shows meshes. */
+  render3d?: { renderer: 'cubes' | 'raster'; view: string };
+  /** Whether a brief may name the view (`free` is for meshes: any 3D-mode asset exports to it with `artgen mesh` / `rig`). */
+  brief: boolean;
+  /** The probe set: the templates (`<view>/<kind>`) the direction's probes and new assets start from for this view. */
+  probes: string[];
+  /** Checks only this view's outputs get (ids): `tile-shape` on its map exports' tiles, the mesh and skin checks on the free camera's models. */
+  checks: string[];
+  /** How a map is laid out for the view (R7c): Tiled's orientation and the tile shape; LDtk only takes square grids. */
+  map?: ViewMap;
 }
+
+export { VIEW_MAPS, tileShapeProblem, type ViewMap } from 'artgen-primitives/lib/viewmap.ts';
 
 /** Darkest and a mid step of a direction ramp (contexts are drawn in the game's own colours, quietly). */
 function tones(dir: Direction, ramp: string): { lo: string; mid: string; hi: string } {
@@ -100,13 +112,38 @@ export function parallaxStrip(layers: { grid: Grid; depth: number }[], viewW: nu
   return out;
 }
 
+const KINDS = (view: string, kinds: string[]) => kinds.map(k => `${view}/${k}`);
+
 export const VIEW_MODULES: Record<string, ViewModule> = {
-  topdown: { id: 'topdown', projection: 'orthographic, straight down', anchor: 'center', sort: 'none (or y)', runtime: ['ArtSprite.face'], render3d: { renderer: 'raster', view: 'topdown' } },
-  oblique: { id: 'oblique', projection: 'top + front face; a cube shows top : front = (1/frontRatio − 1) : 1, heights at full size', anchor: 'feet', sort: 'by ground row (y), then z', runtime: ['obliqueToScreen', 'obliqueDepth'], context: obliqueRoom, render3d: { renderer: 'raster', view: 'oblique' } },
-  iso: { id: 'iso', projection: '2:1 dimetric: x → (2, 1), y → (−2, 1), z → (0, −2) px', anchor: 'feet', sort: 'x + y, then z', runtime: ['isoToScreen', 'screenToIso', 'depthKey'], context: (w, h) => isoFloor(w, h), render3d: { renderer: 'cubes', view: 'iso' } },
-  stack: { id: 'stack', projection: 'voxel z-slices, top-down; drawn rotated and stepped up', anchor: 'center', sort: 'y of the base', runtime: ['pack.stack', 'StackSprite'], render3d: { renderer: 'raster', view: 'topdown' } },
-  side: { id: 'side', projection: 'orthographic side view; parallax layers scroll by depth', anchor: 'feet', sort: 'layer, then x', runtime: ['parallaxTiles'], context: sideStrip, render3d: { renderer: 'raster', view: 'side' } },
-  fp: { id: 'fp', projection: 'raycaster: assets are wall / floor textures, 8-direction billboards and view-models', anchor: 'feet', sort: 'distance (raycaster)', runtime: ['three billboards', 'tileTexture'], render3d: { renderer: 'raster', view: 'billboard' } },
+  topdown: {
+    id: 'topdown', projection: 'orthographic, straight down', anchor: 'center', sort: 'none (or y)', runtime: ['ArtSprite.face', 'TileSet'], render3d: { renderer: 'raster', view: 'topdown' },
+    brief: true, probes: KINDS('topdown', ['character', 'prop', 'tile', 'effect']), checks: ['tile-shape'], map: VIEW_MAPS.topdown,
+  },
+  oblique: {
+    id: 'oblique', projection: 'top + front face; a cube shows top : front = (1/frontRatio − 1) : 1, heights at full size', anchor: 'feet', sort: 'by ground row (y), then z', runtime: ['obliqueToScreen', 'obliqueDepth'], context: obliqueRoom, render3d: { renderer: 'raster', view: 'oblique' },
+    brief: true, probes: KINDS('topdown', ['character', 'prop', 'tile', 'effect']), checks: ['tile-shape'], map: VIEW_MAPS.oblique,
+  },
+  iso: {
+    id: 'iso', projection: '2:1 dimetric: x → (2, 1), y → (−2, 1), z → (0, −2) px', anchor: 'feet', sort: 'x + y, then z', runtime: ['isoToScreen', 'screenToIso', 'depthKey'], context: (w, h) => isoFloor(w, h), render3d: { renderer: 'cubes', view: 'iso' },
+    brief: true, probes: KINDS('iso', ['character', 'prop', 'tile', 'effect']), checks: ['tile-shape'], map: VIEW_MAPS.iso,
+  },
+  stack: {
+    id: 'stack', projection: 'voxel z-slices, top-down; drawn rotated and stepped up', anchor: 'center', sort: 'y of the base', runtime: ['pack.stack', 'StackSprite'], render3d: { renderer: 'raster', view: 'topdown' },
+    brief: true, probes: KINDS('topdown', ['character', 'prop', 'tile', 'effect']), checks: ['tile-shape'], map: VIEW_MAPS.stack,
+  },
+  side: {
+    id: 'side', projection: 'orthographic side view; parallax layers scroll by depth', anchor: 'feet', sort: 'layer, then x', runtime: ['parallaxTiles'], context: sideStrip, render3d: { renderer: 'raster', view: 'side' },
+    brief: true, probes: KINDS('topdown', ['character', 'prop', 'tile', 'effect']), checks: ['tile-shape'], map: VIEW_MAPS.side,
+  },
+  fp: {
+    id: 'fp', projection: 'raycaster: assets are wall / floor textures, 8-direction billboards and view-models', anchor: 'feet', sort: 'distance (raycaster)', runtime: ['three billboards', 'tileTexture'], render3d: { renderer: 'raster', view: 'billboard' },
+    brief: true, probes: KINDS('fp', ['character', 'texture', 'effect', 'viewmodel']), checks: ['tile-shape'], map: VIEW_MAPS.fp,
+  },
+  free: {
+    id: 'free', projection: 'perspective orbit camera: any yaw, pitch and distance; assets are meshes (.glb) with baked textures', anchor: 'feet', sort: 'depth buffer',
+    runtime: ['GLTFLoader (a static .glb from artgen mesh)', 'voxelModel', 'riggedModel'], brief: false, probes: ['fp/character-rigged'],
+    checks: ['mesh-closed', 'mesh-budget', 'mesh-scale', 'uv-bounds', 'uv-overlap', 'texel-density', 'skin-weights', 'skin-bound', 'clip-lengths', 'skin-stretch', 'lod-budget'],
+  },
 };
 
 export function viewModule(view: string): ViewModule {

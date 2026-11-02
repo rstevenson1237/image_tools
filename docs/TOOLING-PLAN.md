@@ -1,6 +1,6 @@
 # Tooling plan: separate, refactor, and build a feedback loop
 
-Status: proposal, 2026-10-27; decisions settled 2026-10-27 and revised 2026-10-29 (§12). R0, R1, R2, R3, R5, R5b, R6, R7a and R7b are built, and R4's code is built but its acceptance run is not (§10); R6's production accept is not run either; the rest is not. It follows on from the finished artgen plan ([`archive/artgen/PLAN.md`](archive/artgen/PLAN.md)) and reuses its
+Status: proposal, 2026-10-27; decisions settled 2026-10-27 and revised 2026-10-29 (§12). R0, R1, R2, R3, R5, R5b, R6, R7a, R7b and R7c are built, and R4's code is built but its acceptance run is not (§10); R6's production accept is not run either; the rest is not. It follows on from the finished artgen plan ([`archive/artgen/PLAN.md`](archive/artgen/PLAN.md)) and reuses its
 decisions (`Dn`) where they still hold.
 
 ## 1. Summary
@@ -97,7 +97,7 @@ it.
 | Review and approval | Versions per task, notes drawn on the frame, status (WIP → review → approved), dashboards | Autodesk Flow Production Tracking (ShotGrid), ftrack, Kitsu | one review model for assets and maps (§7) |
 | Pixel-art tooling | Scriptable editors, batch export, sprite-sheet packing | Aseprite CLI (`--batch`), TexturePacker | already there (pack export). Keep exports importable by these tools |
 | 2D rigs | Bones, skins and a reusable skeleton per body type, retargeted across characters | Spine, DragonBones | a shared rig library (R6) |
-| Map generators | Seeded generator + hand edits + a layered file | Watabou's city/dungeon generators, Azgaar, Dungeondraft, LDtk/Tiled | already there. Add Tiled/LDtk export for game use (R7) |
+| Map generators | Seeded generator + hand edits + a layered file | Watabou's city/dungeon generators, Azgaar, Dungeondraft, LDtk/Tiled | already there. Tiled/LDtk export for game use: built in R7c ([`TILEMAPS.md`](TILEMAPS.md)) |
 | Interchange formats | open, versioned formats | glTF 2.0, OpenUSD, MagicaVoxel `.vox`, Tiled TMX, LDtk JSON | glTF for 3D, keep `.vox`. Format versions already exist |
 | Sharing code into many repos | "copy into your repo" from a registry, with an `add`/`diff` command | shadcn/ui registry, copier (`copier update`, a 3-way merge) | the committed install is this model. Add modules and upstream diffs (§4–5) |
 | Keeping consumers current | bot-opened update pull requests | Renovate, Dependabot | a scheduled update workflow shipped with the install (R3) |
@@ -704,7 +704,7 @@ faster for the phases after it.
     needs model runs and a person answering the gates. Gates on stages after shape; a shape sheet in the web UI (R8); 3D rigs (R7b);
     WebGPU lit sprites; Firefox.
 
-### R7 — Output and camera breadth (L, three sub-phases) — R7a built 2026-10-31, R7b built 2026-11-01
+### R7 — Output and camera breadth (L, three sub-phases) — R7a built 2026-10-31, R7b built 2026-11-01, R7c built 2026-11-02
 - **R7a — true 3D meshes and the free camera.** Turn `Scene3D` primitives into meshes (polygon budget, smooth or
   faceted), add UVs and bake textures (colour, normal, roughness) from the palette and proc layers, and export `.glb`.
   Add a perspective camera and an orbit preview in the web UI for both voxel and mesh assets (three.js is already a
@@ -751,10 +751,36 @@ faster for the phases after it.
     non-humanoid bodies; scored bench runs; clips in the web UI's orbit view.
 - **R7c — map and camera exports.** Add Tiled and LDtk export for maps and tilesets. Each new camera is a view module
   (projection, probe set, context view, check, runtime helper), the plug-in shape D8 already set.
+
+  **Built (2026-11-02):** the design and what was built are in [`TILEMAPS.md`](TILEMAPS.md) (§10).
+  - **Tile grids** (`artgen-mapgen/src/tilemap/`): a dungeon, terrain map or settlement read as one class per cell
+    (floor, wall, door, yard; the ten terrains; ground, road, water, bridge, wall, building and area kinds), sampled at the
+    cell's centre, with its named things as objects (rooms, corridors, doors, shared walls, exits, buildings, rivers,
+    roads, towers, gates, trees, labels, symbols). A terrain map's hex grid stays hexagonal.
+  - **Tilesets:** a class is drawn with a tile asset of an exported pack (variants by the runtime's `cellHash`; an
+    autotile set resolved from the neighbours with the runtime's rule; the bit maths now shared from
+    `artgen-primitives/lib/autobits.ts`), else with a flat tile in its colour, so a map plays before it has art.
+  - **Writers:** Tiled 1.10 (`.tmj` + `.tsj`, or `.tmx` + `.tsx`): a tile layer and an object group per layer, tile
+    classes and `solid` as properties, an autotile set as a wang set; orthogonal, isometric or staggered hexagonal.
+    LDtk 1.5.3 (`.ldtk`): entities with typed fields and point paths, the resolved tiles, an IntGrid of the classes;
+    stable `uid`s and `iid`s. A preview drawn from the tiles.
+  - **Commands:** `artgen dungeon|map|settlement export` and `artgen tileset <asset> --pack` (167 operations), in the
+    maps-only bundle; the map skills gain *For a game or a level editor*.
+  - **Views:** every view module now names its probe templates, its own checks (`tile-shape`; the mesh and skin checks
+    for `free`) and its map layout (`VIEW_MAPS`, in primitives so the maps-only bundle has it). The free camera is the
+    seventh module (`free`: perspective orbit, `.glb` runtime helpers, no brief names it).
+  - **Accept for R7c:** `npm run accept:tilemap` exports eight maps and tilesets (flat, the bench's blob47 grass, the
+    examples' iso floor and swamp tiles; JSON and XML; square, iso and hex). Every Tiled file opens in pytiled-parser,
+    every LDtk file validates against LDtk's schema, every map drawn from its files alone matches its preview pixel
+    for pixel, and the wang set gives every autotiled cell the tile it holds (27 checks).
+  - **Not done:** LDtk auto-layer rules; thin shared walls as cells; settlement floor plans; wall-face resolution for iso
+    and side tiles; a game that loads the exports; the web UI. Tiled and LDtk themselves were not run.
 - **Makes later work faster:** voxel and mesh output share the same primitives, rigs and review, so every cell of the
   output matrix is filled without a new pipeline.
 - **Accept:** every cell in §8's matrix has a template and one bench asset at or above the approval bar; a rigged
   `.glb` character walks in the three.js example game.
+  The second half passes (R7b). The first half does not yet: the oblique, stack and side cells start from the top-down
+  templates (their modules' `probes`), the matrix has no bench asset per cell, and the bench runs are not blind-scored.
 
 ### R8 — Web UI consolidation (M)
 - One shell: project bar, a per-asset stage view (a simple node graph of §8's stages with cache status), a metrics

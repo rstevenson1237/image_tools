@@ -7,4 +7,5 @@ Use the settlement-map skill. If this names an existing settlement (`node tools/
 settlement, and iterate: render, look at the PNG, adjust. Finish with `node tools/artgen/artgen-maps.js settlement render <id>` (and the
 floor plans the user asked for) and show the user the image and the file paths.
 Before you generate, write the brief (`node tools/artgen/artgen-maps.js settlement brief <id> --text "…"`); when a round is done record it (`node tools/artgen/artgen-maps.js settlement version <id>`), review it (`node tools/artgen/artgen-maps.js settlement review <id>`) and show the user the sheet. Only the user approves or asks for changes (the skill's step 5).
+For a game or a level editor, `node tools/artgen/artgen-maps.js settlement export <id>` writes Tiled and LDtk files (the skill's *For a game or a level editor*).
 Request: $ARGUMENTS

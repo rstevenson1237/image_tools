@@ -12,32 +12,8 @@ import type { DirContext } from '../direction.ts';
 import { Grid } from 'artgen-primitives/lib/grid.ts';
 import { pGradient } from 'artgen-primitives/lib/noise.ts';
 
-export const N = 1, NE = 2, E = 4, SE = 8, S = 16, SW = 32, W = 64, NW = 128;
-
-export function reduceCorners(m: number): number {
-  let r = m & (N | E | S | W);
-  if (m & NE && m & N && m & E) r |= NE;
-  if (m & SE && m & S && m & E) r |= SE;
-  if (m & SW && m & S && m & W) r |= SW;
-  if (m & NW && m & N && m & W) r |= NW;
-  return r;
-}
-
-/** The 47 reduced masks, ascending: tile `i` of a blob47 set is drawn for `BLOB47[i]`. */
-export const BLOB47: readonly number[] = [...new Set(Array.from({ length: 256 }, (_, m) => reduceCorners(m)))].sort((a, b) => a - b);
-
-/** 8-bit neighbour mask a tile of a layout is drawn for (`wang16` index bits: N=1, E=2, S=4, W=8). */
-export function autotileMask(layout: 'wang16' | 'blob47', index: number): number {
-  if (layout === 'blob47') {
-    const m = BLOB47[index];
-    if (m === undefined) throw new Error(`blob47 has 47 tiles (index ${index})`);
-    return m;
-  }
-  if (index < 0 || index > 15) throw new Error(`wang16 has 16 tiles (index ${index})`);
-  return (index & 1 ? N : 0) | (index & 2 ? E : 0) | (index & 4 ? S : 0) | (index & 8 ? W : 0);
-}
-
-export const autotileCount = (layout: 'wang16' | 'blob47'): number => (layout === 'blob47' ? 47 : 16);
+export { N, NE, E, SE, S, SW, W, NW, reduceCorners, BLOB47, autotileMask, autotileCount, autotileIndexOf } from 'artgen-primitives/lib/autobits.ts';
+import { N, NE, E, SE, S, SW, W, NW, autotileMask, autotileIndexOf } from 'artgen-primitives/lib/autobits.ts';
 
 export interface AutotileOptions {
   /** The upper terrain and the one beneath, both seamless and the tile's size. */
@@ -144,10 +120,4 @@ export function autotileMap(tiles: Grid[], layout: 'wang16' | 'blob47', base?: G
     g.blit(tiles[autotileIndexOf(layout, m)], x * s, y * s);
   }
   return g;
-}
-
-/** Tile index for an 8-bit neighbour mask (the runtime's `wang16` / `blob47`). */
-export function autotileIndexOf(layout: 'wang16' | 'blob47', mask: number): number {
-  if (layout === 'wang16') return (mask & N ? 1 : 0) | (mask & E ? 2 : 0) | (mask & S ? 4 : 0) | (mask & W ? 8 : 0);
-  return BLOB47.indexOf(reduceCorners(mask & 255));
 }
