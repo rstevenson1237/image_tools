@@ -171,7 +171,7 @@ _OPS: dict[str, tuple[tuple[str, ...], tuple[str, ...], dict[str, tuple[str, str
     "settlement.approve": (("settlement", "approve"), ("id",), {"note": ("--note", "value"), "via": ("--via", "value")}),
     "settlement.status": (("settlement", "status"), ("*ids",), {}),
     "settlement.sheet": (("settlement", "sheet"), ("id",), {}),
-    "report": (("report",), ("id",), {"file": ("--file", "value"), "kind": ("--kind", "value"), "note": ("--note", "value"), "out": ("--out", "value"), "no_render": ("--no-render", "switch"), "issue": ("--issue", "switch"), "repo": ("--repo", "value")}),
+    "report": (("report",), ("id",), {"file": ("--file", "value"), "kind": ("--kind", "value"), "note": ("--note", "value"), "out": ("--out", "value"), "made_by": ("--made-by", "value"), "no_render": ("--no-render", "switch"), "issue": ("--issue", "switch"), "repo": ("--repo", "value")}),
     "upstream": (("upstream",), (), {"base": ("--base", "value"), "out": ("--out", "value"), "repo": ("--repo", "value")}),
     "metrics.export": (("metrics", "export"), (), {"name": ("--name", "value"), "out": ("--out", "value")}),
     "metrics.pool": (("metrics", "pool"), ("*paths",), {"out": ("--out", "value")}),
@@ -816,9 +816,9 @@ class Ops:
         """The settlement's one-page data sheet: out/sheet.png and out/sheet.json. (artgen settlement sheet)"""
         return self._op("settlement.sheet", [id], {})
 
-    def report(self, id: Optional[str] = None, *, file: Optional[str] = None, kind: Optional[Literal["asset", "map", "dungeon", "settlement"]] = None, note: Optional[str] = None, out: Optional[str] = None, no_render: Optional[bool] = None, issue: Optional[bool] = None, repo: Optional[str] = None) -> "Result":
+    def report(self, id: Optional[str] = None, *, file: Optional[str] = None, kind: Optional[Literal["asset", "map", "dungeon", "settlement"]] = None, note: Optional[str] = None, out: Optional[str] = None, made_by: Optional[str] = None, no_render: Optional[bool] = None, issue: Optional[bool] = None, repo: Optional[str] = None) -> "Result":
         """Write a feedback bundle for an asset, map, dungeon or settlement (its files, versions, render, a case.md) to send back to the artgen repo. (artgen report)"""
-        return self._op("report", [id], {"file": file, "kind": kind, "note": note, "out": out, "no_render": no_render, "issue": issue, "repo": repo})
+        return self._op("report", [id], {"file": file, "kind": kind, "note": note, "out": out, "made_by": made_by, "no_render": no_render, "issue": issue, "repo": repo})
 
     def upstream(self, *, base: Optional[str] = None, out: Optional[str] = None, repo: Optional[str] = None) -> "Result":
         """Your local edits to the installed skills, agents, commands and templates as a patch against their sources in the artgen repo. (artgen upstream)"""

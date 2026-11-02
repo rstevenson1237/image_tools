@@ -139,21 +139,30 @@ async function committed(dist, { ui }) {
   const vc = LAYOUTS.committed, tools = join(dist, 'tools', 'artgen'), claude = join(dist, 'claude');
   mkdirSync(dist, { recursive: true });
   const files = {};
-  const module = async (name, run) => {
+  // a module's CLAUDE.md fragment, and its `files` variant (a repo with no art/ project that names its map files with --file)
+  const fragments = (name, vars) => {
+    for (const [src, out] of [['claude-md.md', `${name}.md`], ['claude-md.files.md', `${name}.files.md`]]) {
+      const frag = join(HERE, 'content', name, src);
+      if (!existsSync(frag)) continue;
+      mkdirSync(join(dist, 'claude-md'), { recursive: true });
+      writeFileSync(join(dist, 'claude-md', out), fill(readFileSync(frag, 'utf8'), vars));
+    }
+  };
+  const module = async (name, run, vars = vc) => {
     const before = new Set(walk(dist));
     await run();
     files[name] = walk(dist).filter(f => !before.has(f)).map(f => relative(dist, f).split(sep).join('/')).sort();
-    const frag = join(HERE, 'content', name, 'claude-md.md');
-    if (existsSync(frag)) {
-      mkdirSync(join(dist, 'claude-md'), { recursive: true });
-      writeFileSync(join(dist, 'claude-md', `${name}.md`), fill(readFileSync(frag, 'utf8'), vc));
-    }
+    fragments(name, vars);
   };
-  await module('core', () => { core(tools); moduleContent('core', claude, vc, 'artgen-'); });
+  // core and ui are installed with either program: their text keeps {{ARTGEN}}, which the installer fills (artgen.js with
+  // the art module, else artgen-maps.js)
+  const shared = { ...vc, ARTGEN: '{{ARTGEN}}' };
+  await module('core', () => { core(tools); moduleContent('core', claude, shared, 'artgen-'); }, shared);
   await module('art', async () => { await art(tools); moduleContent('art', claude, vc, 'artgen-'); });
   // the maps skills call the maps-only bundle, so a repo with only this module has everything they use
-  await module('maps', async () => { await mapsBundle(tools); moduleContent('maps', claude, { ...vc, ARTGEN: 'node tools/artgen/artgen-maps.js' }, 'artgen-'); });
-  if (ui) await module('ui', async () => { await buildUi(join(tools, 'ui')); moduleContent('ui', claude, vc, 'artgen-'); });
+  const mv = { ...vc, ARTGEN: 'node tools/artgen/artgen-maps.js' };
+  await module('maps', async () => { await mapsBundle(tools); moduleContent('maps', claude, mv, 'artgen-'); }, mv);
+  if (ui) await module('ui', async () => { await buildUi(join(tools, 'ui')); moduleContent('ui', claude, shared, 'artgen-'); }, shared);
   await module('update-pr', () => {
     mkdirSync(join(dist, 'github', 'workflows'), { recursive: true });
     cpSync(join(HERE, 'content', 'update-pr', 'artgen-update.yml'), join(dist, 'github', 'workflows', 'artgen-update.yml'));
@@ -194,7 +203,7 @@ function moduleIndex(files, dist) {
   }
   const sources = {};
   for (const [f, m] of Object.entries(owner)) { const s = sourceOf(f, m); if (s) sources[f] = s; }
-  return { release: VERSION, modules, sources };
+  return { release: VERSION, build: sourceSha(), modules, sources };
 }
 
 export async function buildDist(out = join(HERE, 'out'), { ui = true } = {}) {

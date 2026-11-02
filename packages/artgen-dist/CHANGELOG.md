@@ -2,6 +2,21 @@
 
 Releases of the committed install (`artgen-dist`), the MCP server, the runtime it vendors and the Python client.
 
+## Unreleased
+
+**Install and feedback (R9 D0, from setting_builder's report 2)**
+- The shared text (the `core` and `ui` commands and CLAUDE.md fragments) names the program the repo has: the installer fills
+  `{{ARTGEN}}` with `node tools/artgen/artgen.js` when `art` is installed, else `node tools/artgen/artgen-maps.js`. `add art` and
+  `remove art` rewrite those files when they are as installed.
+- A maps-only install with no `art/` project (`init --with maps --no-scaffold`) gets a CLAUDE.md section for a repo that writes its own
+  map files and names them with `--file`. `--claude-md none` leaves CLAUDE.md alone, and later `update`s keep to it.
+- `modules.json` and `MANIFEST.json` record the build (the commit) beside the release; `status`, `update` and its `--notes` name both
+  builds when the release is the same. A bundle's `--version` already printed it; `report`'s `case.md` and `report.json` now do too.
+- `CHANGELOG.md` has an `## Unreleased` section for what is merged between releases. `update --notes` includes it, and
+  `scripts/artgen-release.mjs` folds it into the release's section, with the commit subjects under `### Commits`.
+- `report --file` writes the bundle to `artgen-feedback/<date>-<id>/` at the repo root (the git top level, else the file's folder), which
+  ignores itself, instead of beside the file. `--made-by "<command>"` records the consumer's own command that wrote the file.
+
 ## 0.11.0 — 2026-10-25
 
 Settlement maps (villages, towns, cities and castles, with each building's floor plans) join terrain maps and

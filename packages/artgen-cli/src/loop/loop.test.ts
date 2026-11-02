@@ -167,7 +167,18 @@ describe('report', () => {
     writeFileSync(file, JSON.stringify({ ...JSON.parse(readFileSync(join(FIXTURES, 'warren', 'dungeon.json'), 'utf8')), id: '../../x y' }));
     const b = await writeBundle(null, undefined, { file, noRender: true, now: new Date('2026-10-29') });
     expect(b.id).toBe('x-y');
-    expect(b.dir).toBe(join(root, 'feedback-2026-10-29-x-y'));
+    expect(b.dir).toBe(join(root, 'artgen-feedback', '2026-10-29-x-y'));
+    // the folder ignores itself, so the bundle is never committed with the consumer's files
+    expect(readFileSync(join(root, 'artgen-feedback', '.gitignore'), 'utf8')).toBe('*\n');
+  });
+
+  test('the consumer\'s own command goes into case.md (--made-by)', async () => {
+    const root = scratch('made-by'), file = join(root, 'F.a.json');
+    cpSync(join(FIXTURES, 'warren', 'dungeon.json'), file);
+    const b = await writeBundle(null, undefined, { file, noRender: true, madeBy: 'python3 tools/maps.py draw', now: new Date('2026-10-29') });
+    const md = readFileSync(join(b.dir, 'case.md'), 'utf8');
+    expect(md).toContain('Made by the consumer with:\n\n```sh\npython3 tools/maps.py draw\n```');
+    expect(JSON.parse(readFileSync(join(b.dir, 'report.json'), 'utf8')).madeBy).toBe('python3 tools/maps.py draw');
   });
 
   test('the asset\'s brief is cut out of briefs.yaml, and the whole file is said to be copied when it can\'t be', async () => {

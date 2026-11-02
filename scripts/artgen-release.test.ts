@@ -1,6 +1,6 @@
 // The release script's pure parts: version bumps, the map engines' own version line, and the changelog section.
 import { describe, expect, it } from 'vitest';
-import { changelogSection, MAPGEN_PATHS, nextMapgen, nextVersion } from './artgen-release.mjs';
+import { changelogSection, MAPGEN_PATHS, nextMapgen, nextVersion, takeUnreleased } from './artgen-release.mjs';
 
 describe('artgen-release', () => {
   it('bumps a version by name or takes an exact one', () => {
@@ -30,5 +30,14 @@ describe('artgen-release', () => {
 
   it('names what the map engines are made of', () => {
     expect(MAPGEN_PATHS).toEqual(expect.arrayContaining(['packages/artgen-mapgen', 'packages/artgen-primitives']));
+  });
+
+  it('the Unreleased write-up goes first in the release section, the commits after it, and leaves the changelog', () => {
+    const log = '# artgen changelog\n\nintro\n\n## Unreleased\n\n**Dungeons**\n- walls\n\n## 0.11.0 — 2026-10-25\n\n- old\n';
+    const { body, rest } = takeUnreleased(log);
+    expect(body).toBe('**Dungeons**\n- walls');
+    expect(rest).toBe('# artgen changelog\n\nintro\n\n## 0.11.0 — 2026-10-25\n\n- old\n');
+    expect(takeUnreleased('# x\n\n## 0.1.0 — d\n')).toEqual({ body: '', rest: '# x\n\n## 0.1.0 — d\n' });
+    expect(changelogSection('0.12.0', '2026-11-02', ['dungeon: walls'], undefined, body)).toBe('## 0.12.0 — 2026-11-02\n\n**Dungeons**\n- walls\n\n### Commits\n\n- dungeon: walls\n');
   });
 });

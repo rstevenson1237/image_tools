@@ -52,11 +52,25 @@ export function nextMapgen(current, bump, mapgenChanges) {
   return mapgenChanges.length ? nextVersion(current, 'patch') : current;
 }
 
-/** A release's section of the changelog; `mapgen` = { from, to, subjects } for the map engines' version line. */
-export function changelogSection(version, date, subjects, mapgen) {
+/**
+ * The changelog split at its `## Unreleased` section (what was written up as it was merged): that section's body, and the
+ * changelog without it. The body is '' when there is none.
+ */
+export function takeUnreleased(log) {
+  const m = log.match(/^## Unreleased[^\n]*\n([\s\S]*?)(?=^## |(?![\s\S]))/m);
+  if (!m) return { body: '', rest: log };
+  return { body: m[1].trim(), rest: log.slice(0, m.index) + log.slice(m.index + m[0].length) };
+}
+
+/**
+ * A release's section of the changelog; `mapgen` = { from, to, subjects } for the map engines' version line, and `notes` the
+ * written-up `## Unreleased` body, which goes first, with the commit subjects after it under `### Commits`.
+ */
+export function changelogSection(version, date, subjects, mapgen, notes = '') {
   const list = xs => xs.map(s => `- ${s}`).join('\n');
   let out = `## ${version} — ${date}\n\n`;
   if (mapgen) out += mapgen.from === mapgen.to ? `mapgen ${mapgen.to} (unchanged)\n\n` : `mapgen ${mapgen.from} → ${mapgen.to}\n\n`;
+  if (notes) out += `${notes}\n\n### Commits\n\n`;
   out += `${subjects.length ? list(subjects) : '- no changes to the shipped packages'}\n`;
   if (mapgen && mapgen.from !== mapgen.to) out += `\n### mapgen ${mapgen.to}\n\n${mapgen.subjects.length ? list(mapgen.subjects) : '- version bumped by hand'}\n`;
   return out;
@@ -72,17 +86,18 @@ function main(argv) {
   if (tags.includes(`artgen-v${version}`)) throw new Error(`artgen-v${version} is already tagged`);
   const since = tags[0], mapgenFrom = JSON.parse(readFileSync(MAPGEN_PKG, 'utf8')).version, mapgenChanges = changes(since, MAPGEN_PATHS);
   const mapgenTo = nextMapgen(mapgenFrom, mapgenBump, mapgenChanges);
-  const section = changelogSection(version, new Date().toISOString().slice(0, 10), changes(since), { from: mapgenFrom, to: mapgenTo, subjects: mapgenChanges });
+  let log = '';
+  try { log = readFileSync(CHANGELOG, 'utf8'); } catch { /* first release */ }
+  const { body: notes, rest } = takeUnreleased(log);
+  const section = changelogSection(version, new Date().toISOString().slice(0, 10), changes(since), { from: mapgenFrom, to: mapgenTo, subjects: mapgenChanges }, notes);
   console.log(`artgen ${current} → ${version} (changes since ${since ?? 'the start'}), mapgen ${mapgenFrom} → ${mapgenTo}\n\n${section}`);
   if (dry) return 0;
   execFileSync('npm', ['version', version, '-w', 'artgen-dist', '--no-git-tag-version', '--allow-same-version'], { cwd: root, stdio: 'ignore' });
   if (mapgenTo !== mapgenFrom) execFileSync('npm', ['version', mapgenTo, '-w', 'artgen-mapgen', '--no-git-tag-version', '--allow-same-version'], { cwd: root, stdio: 'ignore' });
   writeFileSync(PYPROJECT, readFileSync(PYPROJECT, 'utf8').replace(/^version = "[^"]+"/m, `version = "${version}"`));
   writeFileSync(PYINIT, readFileSync(PYINIT, 'utf8').replace(/^__version__ = "[^"]+"/m, `__version__ = "${version}"`));
-  let log = '';
-  try { log = readFileSync(CHANGELOG, 'utf8'); } catch { /* first release */ }
   const head = '# artgen changelog\n\nReleases of the committed install (`artgen-dist`) and its modules, the MCP server, the runtime it vendors, the library package files and the Python client. The map engines (`mapgen`, the `maps` module) have a version line of their own, named in each section.\n\n';
-  const earlier = log.indexOf('\n## ') >= 0 ? log.slice(log.indexOf('\n## ') + 1) : '';
+  const earlier = rest.indexOf('\n## ') >= 0 ? rest.slice(rest.indexOf('\n## ') + 1) : '';
   writeFileSync(CHANGELOG, head + section + (earlier ? '\n' + earlier : ''));
   console.log(`updated packages/artgen-dist/package.json${mapgenTo !== mapgenFrom ? ', packages/artgen-mapgen/package.json' : ''}, package-lock.json, python/artgen, CHANGELOG.md
 next: commit ("artgen ${version}"), merge to main, then

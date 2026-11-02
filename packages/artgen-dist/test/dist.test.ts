@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, test } from 'vitest';
 import { RUNTIME_VERSION } from 'artgen-runtime';
 import { buildDist, MAPGEN_VERSION, sourceSha } from '../build.mjs';
-import { install, remove, status } from '../src/install.mjs';
+import { changelogSince, install, remove, status } from '../src/install.mjs';
 
 const tmp = mkdtempSync(join(tmpdir(), 'artgen-dist-')), OUT = join(tmp, 'out'), GAME = join(tmp, 'game');
 const node = (args: string[], input?: string) => spawnSync(process.execPath, args, { cwd: GAME, encoding: 'utf8', input, env: { ...process.env, NODE_PATH: '' } });
@@ -334,6 +334,49 @@ describe('modules', () => {
     expect(maps('--version').trim()).toBe(`${MAPGEN_VERSION} (${sourceSha()})`);
     // the skills' commands name the program that is there
     expect(readFileSync(join(dir, '.claude/skills/dungeon-map/SKILL.md'), 'utf8')).toMatch(/node tools\/artgen\/artgen-maps\.js dungeon /);
+  });
+
+  /** Every installed text file (and CLAUDE.md) that names `program`. */
+  const naming = (dir: string, program: string) => [...manifestFiles(dir), 'CLAUDE.md'].filter(f => f.endsWith('.md') && existsSync(join(dir, f)) && readFileSync(join(dir, f), 'utf8').includes(program));
+  const manifestFiles = (dir: string) => Object.keys(manifest(dir).files);
+
+  test('a maps-only install names only the program it has; adding art names the full CLI, removing it goes back', () => {
+    const dir = repo('maps-program');
+    install(dir, { dist: DIST(), modules: ['maps'], ...quiet });
+    expect(naming(dir, 'tools/artgen/artgen.js')).toEqual([]);
+    expect(naming(dir, 'tools/artgen/artgen-maps.js')).toEqual(expect.arrayContaining(['.claude/commands/artgen-report.md', '.claude/commands/artgen-upstream.md', 'CLAUDE.md']));
+    expect(naming(dir, '{{ARTGEN}}')).toEqual([]);
+    install(dir, { dist: DIST(), mode: 'add', modules: ['art'], ...quiet });
+    expect(readFileSync(join(dir, '.claude/commands/artgen-report.md'), 'utf8')).toContain('node tools/artgen/artgen.js report');
+    expect(status(dir, { dist: DIST() }).edited).toEqual([]);
+    remove(dir, ['art'], { dist: DIST(), ...quiet });
+    expect(naming(dir, 'tools/artgen/artgen.js')).toEqual([]);
+    expect(status(dir, { dist: DIST() }).edited).toEqual([]);
+  });
+
+  test('maps only with no art/ project: the CLAUDE.md section is for files named by path; --claude-md none leaves CLAUDE.md alone for good', () => {
+    const dir = repo('maps-files', { 'CLAUDE.md': '# Mine\n' });
+    install(dir, { dist: DIST(), modules: ['maps'], scaffold: false, ...quiet });
+    const md = readFileSync(join(dir, 'CLAUDE.md'), 'utf8');
+    expect(md).toMatch(/names each with `--file <path>`/);
+    expect(md).not.toMatch(/art\/(maps|dungeons|settlements|feedback)\//);
+    expect(existsSync(join(dir, 'art'))).toBe(false);
+    const quietRepo = repo('maps-none', { 'CLAUDE.md': '# Mine\n' });
+    install(quietRepo, { dist: DIST(), modules: ['maps'], scaffold: false, claudeMd: 'none', ...quiet });
+    expect(manifest(quietRepo).claudeMdMode).toBe('none');
+    install(quietRepo, { dist: DIST(), mode: 'update', ...quiet });
+    expect(readFileSync(join(quietRepo, 'CLAUDE.md'), 'utf8')).toBe('# Mine\n');
+  });
+
+  test('the build is recorded, and update notes carry the Unreleased changelog between builds of one release', () => {
+    const dir = repo('build-stamp');
+    install(dir, { dist: DIST(), modules: ['maps'], ...quiet });
+    expect(manifest(dir).build).toBe(sourceSha());
+    expect(status(dir, { dist: DIST() }).installedBuild).toBe(sourceSha());
+    const copy = join(tmp, 'unreleased-dist');
+    cpSync(OUT, copy, { recursive: true });
+    writeFileSync(join(copy, 'CHANGELOG.md'), '# artgen changelog\n\n## Unreleased\n\n- dungeon: walls between corridors\n\n## 0.1.0 — 2026-01-01\n\n- first\n');
+    expect(changelogSince(join(copy, 'dist'), '0.1.0')).toBe('## Unreleased\n\n- dungeon: walls between corridors');
   });
 
   test('add art to a maps-only repo: the art files, the MCP server, the real config and a second CLAUDE.md section arrive; the maps stay', () => {
