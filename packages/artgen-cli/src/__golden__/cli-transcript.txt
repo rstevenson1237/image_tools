@@ -4571,7 +4571,6 @@ exit 0
 $ artgen dungeon link crypt r1 corridor:out1 --from-side e --from-offset 1 --route around --via 10,8,12,8 --root <root>
 exit 0
 crypt: corridor 2: r1 → corridor:out1
-  warning: corridors[2]: crosses corridor 0 at 10.5,6.0 with no junction (the floors join there) [corridors-cross]
 next: artgen dungeon render crypt
 
 $ artgen dungeon link crypt r1 corridor:out1 --from-side e --from-offset 1 --route around --via 10,8,12,8 --root <root> --json
@@ -4638,7 +4637,7 @@ $ artgen dungeon link crypt r1 --root <root>
 threw: dungeon link <id> <room|corridor:id> <room|x,y|C4|corridor:id>
 
 $ artgen dungeon link crypt r1 r9 --route sideways --root <root>
-threw: --route: auto, hv, vh, straight, around
+threw: --route: auto, hv, vh, straight, around, maze
 
 $ artgen dungeon link crypt r1 r9 --curve wavy --root <root>
 threw: --curve: none, smooth
@@ -4661,7 +4660,6 @@ threw: --via: comma-separated numbers in x,y pairs
 $ artgen dungeon door crypt 1 from portcullis --root <root>
 exit 0
 crypt: 3 corridors
-  warning: corridors[2]: crosses corridor 0 at 10.5,6.0 with no junction (the floors join there) [corridors-cross]
 next: artgen dungeon render crypt
 
 $ artgen dungeon door crypt 1 from portcullis --root <root> --json

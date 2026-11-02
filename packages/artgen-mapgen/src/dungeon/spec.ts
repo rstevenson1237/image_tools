@@ -17,8 +17,8 @@ export const DOOR_NAMES: Record<DoorKind, string> = {
   door: 'Door', secret: 'Secret door', locked: 'Locked door', portcullis: 'Portcullis / bars', arch: 'Archway',
 };
 
-/** auto: straight when the rooms line up, else an elbow; hv / vh: across then down / down then across; straight: one line; around: along the grid, round the rooms in the way. */
-export const ROUTES = ['auto', 'hv', 'vh', 'straight', 'around'] as const;
+/** auto: straight when the rooms line up, else an elbow; hv / vh: across then down / down then across; straight: one line; around: along the grid, round the rooms in the way; maze: on the lattice of its width, round the rooms and off the other corridors (`maze.ts`). */
+export const ROUTES = ['auto', 'hv', 'vh', 'straight', 'around', 'maze'] as const;
 export type Route = (typeof ROUTES)[number];
 
 /** A room's walls: north (top), east, south, west. */
@@ -124,6 +124,8 @@ export interface Corridor {
   width?: number;
   /** Width in the scale unit (`scale.unit`: 10 for a 10 ft passage), in place of `width`. */
   span?: number;
+  /** For `route: "maze"`: lattice cells kept off rooms' walls but at the doors (default 0 when walls are drawn along corridors, else 1), what a bend costs, the noise's seed. Read from the first maze corridor of each width. */
+  maze?: { clearance?: number; bend?: number; seed?: number };
   /** auto: straight when the rooms line up, else an elbow; hv: across then down; vh: down then across. */
   route?: Route;
   /** Bend points (x,y pairs) between the two ends; when set the corridor runs straight through them. */
@@ -499,6 +501,7 @@ export function validateDungeon(raw: unknown): string[] {
       else if (!(isNum(c.span) && c.span / per >= 0.5 && c.span / per <= 6)) e.push(`${at}.span: the width in ${m.scale?.unit ?? 'ft'}, 0.5..6 cells (${0.5 * per}..${6 * per})`);
     }
     if (c?.route !== undefined && !ROUTES.includes(c.route)) e.push(`${at}.route: one of ${ROUTES.join(', ')}`);
+    if (c?.maze !== undefined && !(c.maze && typeof c.maze === 'object' && (c.maze.clearance === undefined || c.maze.clearance === 0 || c.maze.clearance === 1) && (c.maze.bend === undefined || (isNum(c.maze.bend) && c.maze.bend >= 0)) && (c.maze.seed === undefined || isNum(c.maze.seed)))) e.push(`${at}.maze: {clearance?: 0 or 1, bend?: 0 or more, seed?}`);
     if (c?.via !== undefined && !(nums(c.via) && c.via.length % 2 === 0)) e.push(`${at}.via: x,y pairs`);
     if (c?.doors !== undefined && !(Array.isArray(c.doors) && c.doors.length === 2 && c.doors.every(d => d === null || DOOR_KINDS.includes(d))))
       e.push(`${at}.doors: [from, to], each null or one of ${DOOR_KINDS.join(', ')}`);

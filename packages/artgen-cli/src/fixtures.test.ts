@@ -210,6 +210,32 @@ describe.each([
   });
 });
 
+describe('setting-builder/layout (R9 D6): the ten packed levels laid out from their graphs', () => {
+  const dir = join(FIXTURES, 'setting-builder', 'layout');
+  test.each(readdirSync(join(dir, 'graphs')).filter(f => f.endsWith('.json')).sort())('%s lays out at its footprint, every way routed, and checks clean', f => {
+    const g = JSON.parse(readFileSync(join(dir, 'graphs', f), 'utf8')) as dungeon.Graph, { spec, report } = dungeon.layoutGraph(g);
+    expect(report.left).toEqual([]);
+    expect(report.detours).toEqual([]);
+    expect(report.side).toBe(g.footprint);
+    expect(spec.connections!.length + spec.corridors.length).toBe(new Set(g.ways.map(w => [w.a, w.b].sort().join('|'))).size);
+    const bad = ['door-off-wall', 'through-room', 'corridors-cross', 'way-no-passage', 'outside-bounds', 'maze-no-route', 'rooms-overlap'];
+    expect(dungeon.lintDungeon(spec).filter(x => bad.includes(x.id) || x.severity === 'error')).toEqual([]);
+    expect(dungeon.dungeonFacts(spec).unreached).toEqual([]);
+  }, 60_000);
+
+  test('G as laid out: 19 rooms, 43% of its square; check finds nothing; it renders the same twice', async () => {
+    const { dir: tmp, file } = bareCopy('setting-builder', 'layout');
+    const r = JSON.parse((await cli('dungeon', 'check', '--file', file, '--json')).out);
+    expect([r.errors, r.warnings]).toEqual([[], []]);
+    const spec = dungeon.parseDungeon(JSON.parse(readFileSync(file, 'utf8')));
+    expect(spec.rooms).toHaveLength(19);
+    expect(Math.round(spec.rooms.reduce((s, x) => s + x.w * x.h, 0) / 2500 * 100)).toBe(43);
+    await cli('dungeon', 'render', '--file', file, '--format', 'svg', '--out', join(tmp, 'a'));
+    await cli('dungeon', 'render', '--file', file, '--format', 'svg', '--out', join(tmp, 'b'));
+    expect(bytes(join(tmp, 'a', 'dungeon.svg')).equals(bytes(join(tmp, 'b', 'dungeon.svg')))).toBe(true);
+  });
+});
+
 describe('setting-builder/bad-file', () => {
   test('check exits non-zero and names both errors by JSON path; the file is left alone', async () => {
     const { file } = bareCopy('setting-builder', 'bad-file'), before = readFileSync(file);

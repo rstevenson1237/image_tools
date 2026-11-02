@@ -9,12 +9,13 @@ import { segmentDistance, sharedEdges, type P } from './geom.ts';
 import { corridorBoundaries } from './floor.ts';
 import { corridorOrder, corridorWallsOn, corridorWidth, sharedWallsOn, type Corridor, type DoorKind, type DungeonSpec, type Room } from './spec.ts';
 import { layoutWalls } from './walls.ts';
+import { routeMazes } from './maze.ts';
 
 export interface RoomGeom { room: Room; index: number; outline: number[]; cx: number; cy: number; number?: number }
 /** Where a corridor leaves a room (on its outline), or its point end; the angle is the direction away from the room. `along` is how far the corridor runs inside the room to get there (cells; 0 at a point end). */
 export interface EndGeom { x: number; y: number; angle: number; along: number }
-/** A corridor's centre line and width, where it leaves each end, and for a natural passage the outline of its floor. */
-export interface CorridorGeom { index: number; pts: number[]; width: number; ends: [EndGeom | null, EndGeom | null]; outline?: number[] }
+/** A corridor's centre line and width, where it leaves each end, and for a natural passage the outline of its floor. `unrouted`: a maze corridor no passage fitted, drawn as an elbow. */
+export interface CorridorGeom { index: number; pts: number[]; width: number; ends: [EndGeom | null, EndGeom | null]; outline?: number[]; unrouted?: boolean }
 /** A door: where it stands, the way through it (degrees) and its width. A corridor's door stands on the room's outer wall; a connection's (`inner`) in the wall two rooms share, with `corridor` -1. */
 export interface DoorGeom { kind: DoorKind; x: number; y: number; angle: number; width: number; corridor: number; connection?: number; inner?: boolean }
 /** A connection between two rooms: where its door or opening is, the way through from `a` to `b`, and the shared wall it is in (null when the rooms share none). */
@@ -189,14 +190,15 @@ const reversed = (p: number[]) => { const out: number[] = []; for (let i = p.len
 const pointEnd = (path: number[]): EndGeom => ({ x: path[0], y: path[1], angle: (Math.atan2(path[1] - path[3], path[0] - path[2]) * 180) / Math.PI, along: 0 });
 
 /** One corridor's geometry: its centre line from end to end, where it leaves each room, and a natural passage's floor. */
-function corridorGeom(c: Corridor, index: number, rooms: RoomGeom[], byId: Map<string, RoomGeom>, lineOf: Map<string, number[]>, spec: DungeonSpec): CorridorGeom {
+function corridorGeom(c: Corridor, index: number, rooms: RoomGeom[], byId: Map<string, RoomGeom>, lineOf: Map<string, number[]>, spec: DungeonSpec, startA?: P, startB?: P): CorridorGeom {
   const width = corridorWidth(c, spec), how = c.route ?? 'auto';
   const simple = (e: Corridor['from']) => 'at' in e || ('room' in e && e.side === undefined && e.port === undefined);
   let pts: number[];
   if (simple(c.from) && simple(c.to)) {
     // rooms by their centres and points: the plain routes, as they always were
     const end = (e: Corridor['from']): RoomGeom | [number, number] => ('room' in e ? byId.get(e.room)! : (e as { at: [number, number] }).at);
-    const a = end(c.from), b = end(c.to), pa: P = Array.isArray(a) ? a : [a.cx, a.cy], pb: P = Array.isArray(b) ? b : [b.cx, b.cy];
+    // a maze corridor starts where the router put it inside each room (behind its door), not at the anchor
+    const a = end(c.from), b = end(c.to), pa: P = startA ?? (Array.isArray(a) ? a : [a.cx, a.cy]), pb: P = startB ?? (Array.isArray(b) ? b : [b.cx, b.cy]);
     pts = c.via?.length ? [...pa, ...c.via, ...pb]
       : how === 'around' ? around(pa, pb, a, b, width, rooms, spec) ?? route(a, b, width, 'auto', rooms)
       : route(a, b, width, how, rooms);
@@ -249,11 +251,22 @@ export function layoutDungeon(spec: DungeonSpec): DungeonLayout {
   });
   const byId = new Map(rooms.map(g => [g.room.id, g]));
   const geoms: CorridorGeom[] = new Array(spec.corridors.length), lineOf = new Map<string, number[]>();
-  // corridors that join others are laid out after them (a file with a ring of joins does not validate)
+  const maze = (c: Corridor) => c.route === 'maze' && 'room' in c.from && 'room' in c.to;
+  // corridors that join others are laid out after them (a file with a ring of joins does not validate); maze corridors last, round the rest
   for (const index of corridorOrder(spec.corridors) ?? spec.corridors.map((_, i) => i)) {
     const c = spec.corridors[index];
+    if (maze(c)) continue;
     geoms[index] = corridorGeom(c, index, rooms, byId, lineOf, spec);
     if (c.id) lineOf.set(c.id, geoms[index].pts);
+  }
+  if (spec.corridors.some(maze)) {
+    const done = new Map(geoms.flatMap((g, i) => (g ? [[i, g] as const] : []))), routed = routeMazes(spec, rooms, done);
+    for (const [index, pts] of routed) {
+      const c = spec.corridors[index];
+      geoms[index] = pts ? corridorGeom({ ...c, route: 'straight', via: pts.slice(2, -2), from: { room: (c.from as { room: string }).room }, to: { room: (c.to as { room: string }).room } }, index, rooms, byId, lineOf, spec, [pts[0], pts[1]], [pts[pts.length - 2], pts[pts.length - 1]])
+        : { ...corridorGeom({ ...c, route: 'auto' }, index, rooms, byId, lineOf, spec), unrouted: true };
+      if (c.id) lineOf.set(c.id, geoms[index].pts);
+    }
   }
   const corridors = geoms, doors: DoorGeom[] = [];
   corridors.forEach((g, index) => g.ends.forEach((p, i) => { const kind = spec.corridors[index].doors?.[i]; if (p && kind) doors.push({ kind, x: p.x, y: p.y, angle: p.angle, width: g.width, corridor: index }); }));

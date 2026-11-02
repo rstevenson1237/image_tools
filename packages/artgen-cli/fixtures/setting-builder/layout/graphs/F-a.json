@@ -1,0 +1,218 @@
+{
+ "id": "F-a",
+ "rooms": [
+  {
+   "id": "F.1",
+   "w": 2.0,
+   "h": 4.0,
+   "shape": "rect",
+   "label": "F.1",
+   "hall": false,
+   "turns": false
+  },
+  {
+   "id": "F.2",
+   "w": 1.2,
+   "h": 14.0,
+   "shape": "rect",
+   "label": "F.2",
+   "hall": true,
+   "turns": false
+  },
+  {
+   "id": "F.3",
+   "w": 8.0,
+   "h": 6.0,
+   "shape": "rect",
+   "label": "F.3",
+   "hall": false,
+   "turns": false
+  },
+  {
+   "id": "F.4",
+   "w": 6.0,
+   "h": 8.0,
+   "shape": "rect",
+   "label": "F.4",
+   "hall": false,
+   "turns": false
+  },
+  {
+   "id": "F.5",
+   "w": 8.0,
+   "h": 8.0,
+   "shape": "rect",
+   "label": "F.5",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "F.6",
+   "w": 8.0,
+   "h": 6.0,
+   "shape": "rect",
+   "label": "F.6",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "F.7",
+   "w": 10.0,
+   "h": 8.0,
+   "shape": "rect",
+   "label": "F.7",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "F.8",
+   "w": 6.0,
+   "h": 6.0,
+   "shape": "rect",
+   "label": "F.8",
+   "hall": false,
+   "turns": false
+  },
+  {
+   "id": "F.9",
+   "w": 8.0,
+   "h": 8.0,
+   "shape": "rect",
+   "label": "F.9",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "F.10",
+   "w": 10.0,
+   "h": 8.0,
+   "shape": "rect",
+   "label": "F.10",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "F.11",
+   "w": 2.0,
+   "h": 2.0,
+   "shape": "rect",
+   "label": "F.11",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "F.12",
+   "w": 6.0,
+   "h": 6.0,
+   "shape": "rect",
+   "label": "F.12",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "F.13",
+   "w": 2.0,
+   "h": 14.0,
+   "shape": "rect",
+   "label": "F.13",
+   "hall": false,
+   "turns": false
+  }
+ ],
+ "ways": [
+  {
+   "a": "F.1",
+   "b": "F.2",
+   "bearing": 307.99873244250466
+  },
+  {
+   "a": "F.1",
+   "b": "F.12",
+   "bearing": 0.0
+  },
+  {
+   "a": "F.2",
+   "b": "F.3",
+   "bearing": 57.44999650780661
+  },
+  {
+   "a": "F.2",
+   "b": "F.4",
+   "bearing": 324.24611274556327
+  },
+  {
+   "a": "F.3",
+   "b": "F.5",
+   "bearing": 319.3987053549955
+  },
+  {
+   "a": "F.3",
+   "b": "F.6",
+   "bearing": 18.43494882292201
+  },
+  {
+   "a": "F.3",
+   "b": "F.12",
+   "bearing": 206.565051177078
+  },
+  {
+   "a": "F.4",
+   "b": "F.5",
+   "bearing": 41.18592516570965
+  },
+  {
+   "a": "F.4",
+   "b": "F.7",
+   "bearing": 255.96375653207352
+  },
+  {
+   "a": "F.4",
+   "b": "F.13",
+   "bearing": 180.0
+  },
+  {
+   "a": "F.5",
+   "b": "F.9",
+   "bearing": 296.565051177078
+  },
+  {
+   "a": "F.6",
+   "b": "F.9",
+   "bearing": 287.35402463626133
+  },
+  {
+   "a": "F.7",
+   "b": "F.8",
+   "bearing": 15.945395900922854
+  },
+  {
+   "a": "F.8",
+   "b": "F.11",
+   "bearing": 63.43494882292201
+  },
+  {
+   "a": "F.9",
+   "b": "F.11",
+   "bearing": 191.3099324740202
+  },
+  {
+   "a": "F.10",
+   "b": "F.12",
+   "bearing": 277.1250163489018
+  }
+ ],
+ "width": 2,
+ "scale": {
+  "perCell": 5,
+  "unit": "ft"
+ },
+ "fill": [
+  0.3,
+  0.45
+ ],
+ "passages": 0.35,
+ "seed": 1,
+ "tries": 12,
+ "detour": 20.0,
+ "footprint": 40.0
+}

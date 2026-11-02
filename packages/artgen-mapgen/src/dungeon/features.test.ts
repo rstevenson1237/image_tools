@@ -417,3 +417,48 @@ describe('smaller drawing options (R9 D7)', () => {
     expect(D.validateDungeon({ ...s, bounds: [1, 1], areas: [{ points: [1, 1, 2, 2, 3, 1], kind: 'lava' as 'rock' }] })).toEqual(['bounds: at least 3 x,y pairs (cells)', 'areas[0].kind: rock or void']);
   });
 });
+
+describe('the maze router and the layout from a graph (R9 D6)', () => {
+  const rect = (id: string, x: number, y: number, w: number, h: number): D.Room => ({ id, shape: 'rect', x, y, w, h });
+
+  test('a maze corridor goes round the room in the way on its lattice, with doors on the walls, and check finds nothing', () => {
+    const s = D.newDungeon('m', { cols: 40, rows: 24, rooms: [rect('a', 2, 8, 6, 6), rect('m', 14, 6, 8, 10), rect('b', 28, 8, 6, 6)], corridors: [{ from: { room: 'a' }, to: { room: 'b' }, route: 'maze', width: 2, doors: ['door', 'door'] }] });
+    const l = D.layoutDungeon(s), pts = l.corridors[0].pts;
+    expect(l.corridors[0].unrouted).toBeUndefined();
+    for (let i = 2; i < pts.length; i += 2) expect(pts[i] === pts[i - 2] || pts[i + 1] === pts[i - 1]).toBe(true);   // on the lattice
+    expect(D.lintDungeon(s)).toEqual([]);
+    expect(D.dungeonFacts(s).doors.map(d => d.on)).toEqual(['wall', 'wall']);
+  });
+
+  test('maze corridors from one room may join; they keep off an unrelated corridor, the bounds and a keep-out area', () => {
+    const rooms = [rect('a', 4, 4, 6, 6), rect('b', 30, 4, 6, 6), rect('c', 30, 24, 6, 6), rect('d', 4, 24, 6, 6)];
+    const s = D.newDungeon('j', {
+      cols: 42, rows: 34, rooms, bounds: [2, 2, 40, 2, 40, 32, 2, 32], areas: [{ points: [14, 12, 26, 12, 26, 20, 14, 20], kind: 'void', label: 'Pit' }],
+      corridors: [{ from: { room: 'a' }, to: { room: 'b' }, route: 'maze', width: 2 }, { from: { room: 'a' }, to: { room: 'c' }, route: 'maze', width: 2 }, { from: { room: 'd' }, to: { room: 'c' }, width: 2 }],
+    });
+    expect(D.layoutDungeon(s).corridors.map(c => c.unrouted ?? false)).toEqual([false, false, false]);
+    expect(D.lintDungeon(s).map(f => f.id)).toEqual([]);
+    // rooms that touch get no maze corridor: a connection joins them
+    const touching = D.newDungeon('t', { cols: 20, rows: 12, rooms: [rect('a', 2, 2, 6, 6), rect('b', 8, 2, 6, 6)], corridors: [{ from: { room: 'a' }, to: { room: 'b' }, route: 'maze', width: 2 }] });
+    expect(D.lintDungeon(touching).map(f => f.id)).toContain('maze-no-route');
+  });
+
+  test('a graph laid out: every way a door through a shared wall or a routed passage, inside the footprint, the same for the same seed', () => {
+    const g: D.Graph = {
+      id: 'g', width: 2, seed: 3, tries: 2, footprint: 30, passages: 0.4,
+      rooms: [{ id: 'X.1', w: 6, h: 4 }, { id: 'X.2', w: 4, h: 4 }, { id: 'X.3', w: 8, h: 6, shape: 'round' }, { id: 'X.4', w: 4, h: 8, turns: true }, { id: 'X.5', w: 6, h: 6, shape: 'octagon' }],
+      ways: [{ a: 'X.1', b: 'X.2', doors: ['door', null] }, { a: 'X.2', b: 'X.3' }, { a: 'X.3', b: 'X.4', doors: ['secret', null] }, { a: 'X.4', b: 'X.5' }, { a: 'X.5', b: 'X.1', bearing: 90 }],
+    };
+    const { spec, report } = D.layoutGraph(g);
+    expect(report.left).toEqual([]);
+    expect(spec.connections!.length + spec.corridors.length).toBe(5);
+    const f = D.dungeonFacts(spec);
+    expect(f.unreached).toEqual([]);
+    expect(f.overlaps).toEqual([]);
+    expect(D.lintDungeon(spec).filter(x => x.severity === 'error')).toEqual([]);
+    expect(D.lintDungeon(spec).map(x => x.id).filter(id => ['door-off-wall', 'through-room', 'outside-bounds', 'corridors-cross', 'way-no-passage'].includes(id))).toEqual([]);
+    expect(spec.rooms.find(r => r.id === 'X-5')).toMatchObject({ shape: 'octagon', cut: 1 / (2 + Math.SQRT2) });
+    expect(JSON.stringify(D.layoutGraph(g).spec)).toBe(JSON.stringify(spec));
+    expect(D.validateGraph({ ...g, rooms: [...g.rooms, { id: 'X.1', w: 0, h: 2 }], ways: [{ a: 'X.1', b: 'nope' }] })).toEqual(['rooms[5].id: X.1 is used twice', 'rooms[5].w: cells, above 0', 'ways[0].b: no room "nope"']);
+  }, 60_000);
+});

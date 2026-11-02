@@ -1,0 +1,535 @@
+{
+  "cols": 54,
+  "rows": 54,
+  "gen": {
+    "rooms": 8,
+    "minSize": 3,
+    "maxSize": 8,
+    "caves": 0.15,
+    "round": 0.1,
+    "loops": 0.25,
+    "doors": 0.6,
+    "corridorWidth": 1,
+    "spacing": 2,
+    "entrance": true
+  },
+  "grid": {
+    "show": true,
+    "size": 2,
+    "sub": true,
+    "clip": "floor"
+  },
+  "style": {
+    "hatch": "full",
+    "band": 0.9,
+    "wall": 1.5,
+    "sharedWalls": true
+  },
+  "scale": {
+    "perCell": 5,
+    "unit": "ft"
+  },
+  "numbers": false,
+  "scaleBar": true,
+  "compass": false,
+  "seed": 1,
+  "id": "dungeon",
+  "version": 2,
+  "rooms": [
+    {
+      "id": "G-1",
+      "shape": "rect",
+      "x": 26,
+      "y": 46,
+      "w": 2,
+      "h": 4,
+      "label": "G.1",
+      "origin": "layout"
+    },
+    {
+      "id": "G-2",
+      "shape": "rect",
+      "x": 24,
+      "y": 44,
+      "w": 16,
+      "h": 2,
+      "label": "G.2",
+      "origin": "layout"
+    },
+    {
+      "id": "G-3",
+      "shape": "rect",
+      "x": 16,
+      "y": 42,
+      "w": 8,
+      "h": 10,
+      "label": "G.3",
+      "origin": "layout"
+    },
+    {
+      "id": "G-4",
+      "shape": "rect",
+      "x": 32,
+      "y": 38,
+      "w": 8,
+      "h": 6,
+      "label": "G.4",
+      "origin": "layout"
+    },
+    {
+      "id": "G-5",
+      "shape": "rect",
+      "x": 24,
+      "y": 28,
+      "w": 6,
+      "h": 6,
+      "label": "G.5",
+      "origin": "layout"
+    },
+    {
+      "id": "G-6",
+      "shape": "rect",
+      "x": 20,
+      "y": 8,
+      "w": 12,
+      "h": 12,
+      "label": "G.6",
+      "origin": "layout"
+    },
+    {
+      "id": "G-7",
+      "shape": "rect",
+      "x": 12,
+      "y": 24,
+      "w": 8,
+      "h": 8,
+      "label": "G.7",
+      "origin": "layout"
+    },
+    {
+      "id": "G-8",
+      "shape": "rect",
+      "x": 32,
+      "y": 14,
+      "w": 8,
+      "h": 8,
+      "label": "G.8",
+      "origin": "layout"
+    },
+    {
+      "id": "G-9",
+      "shape": "rect",
+      "x": 20,
+      "y": 20,
+      "w": 8,
+      "h": 8,
+      "label": "G.9",
+      "origin": "layout"
+    },
+    {
+      "id": "G-10",
+      "shape": "rect",
+      "x": 14,
+      "y": 18,
+      "w": 6,
+      "h": 6,
+      "label": "G.10",
+      "origin": "layout"
+    },
+    {
+      "id": "G-11",
+      "shape": "rect",
+      "x": 16,
+      "y": 38,
+      "w": 6,
+      "h": 4,
+      "label": "G.11",
+      "origin": "layout"
+    },
+    {
+      "id": "G-12",
+      "shape": "circle",
+      "x": 38,
+      "y": 30,
+      "w": 8,
+      "h": 8,
+      "label": "G.12",
+      "origin": "layout"
+    },
+    {
+      "id": "G-13",
+      "shape": "rect",
+      "x": 30,
+      "y": 22,
+      "w": 6,
+      "h": 16,
+      "label": "G.13",
+      "origin": "layout"
+    },
+    {
+      "id": "G-14",
+      "shape": "rect",
+      "x": 50,
+      "y": 24,
+      "w": 2,
+      "h": 18,
+      "label": "G.14",
+      "origin": "layout"
+    },
+    {
+      "id": "G-15",
+      "shape": "rect",
+      "x": 40,
+      "y": 38,
+      "w": 10,
+      "h": 10,
+      "label": "G.15",
+      "origin": "layout"
+    },
+    {
+      "id": "G-16",
+      "shape": "rect",
+      "x": 48,
+      "y": 22,
+      "w": 2,
+      "h": 16,
+      "label": "G.16",
+      "origin": "layout"
+    },
+    {
+      "id": "G-17",
+      "shape": "rect",
+      "x": 38,
+      "y": 22,
+      "w": 10,
+      "h": 8,
+      "label": "G.17",
+      "origin": "layout"
+    },
+    {
+      "id": "G-18",
+      "shape": "rect",
+      "x": 22,
+      "y": 34,
+      "w": 6,
+      "h": 8,
+      "label": "G.18",
+      "origin": "layout"
+    },
+    {
+      "id": "G-19",
+      "shape": "rect",
+      "x": 40,
+      "y": 16,
+      "w": 2,
+      "h": 6,
+      "label": "G.19",
+      "origin": "layout"
+    }
+  ],
+  "corridors": [
+    {
+      "from": {
+        "room": "G-12",
+        "port": [
+          38.077877,
+          33.215575
+        ]
+      },
+      "to": {
+        "room": "G-13",
+        "port": [
+          36,
+          33
+        ]
+      },
+      "via": [
+        37,
+        33
+      ],
+      "width": 2,
+      "doors": [
+        "door",
+        null
+      ],
+      "origin": "layout"
+    },
+    {
+      "from": {
+        "room": "G-12",
+        "port": [
+          45.922123,
+          34.784425
+        ]
+      },
+      "to": {
+        "room": "G-16",
+        "port": [
+          48,
+          35
+        ]
+      },
+      "via": [
+        47,
+        35
+      ],
+      "width": 2,
+      "doors": [
+        "door",
+        null
+      ],
+      "origin": "layout"
+    },
+    {
+      "from": {
+        "room": "G-6",
+        "port": [
+          31,
+          20
+        ]
+      },
+      "to": {
+        "room": "G-13",
+        "port": [
+          31,
+          22
+        ]
+      },
+      "via": [],
+      "width": 2,
+      "doors": [
+        "door",
+        null
+      ],
+      "origin": "layout"
+    },
+    {
+      "from": {
+        "room": "G-6",
+        "port": [
+          20,
+          17
+        ]
+      },
+      "to": {
+        "room": "G-7",
+        "port": [
+          13,
+          24
+        ]
+      },
+      "via": [
+        13,
+        17
+      ],
+      "width": 2,
+      "doors": [
+        "door",
+        null
+      ],
+      "origin": "layout"
+    },
+    {
+      "from": {
+        "room": "G-2",
+        "port": [
+          31,
+          44
+        ]
+      },
+      "to": {
+        "room": "G-13",
+        "port": [
+          31,
+          38
+        ]
+      },
+      "via": [],
+      "width": 2,
+      "doors": [
+        "door",
+        null
+      ],
+      "origin": "layout"
+    }
+  ],
+  "overlay": {
+    "labels": [],
+    "symbols": []
+  },
+  "connections": [
+    {
+      "a": "G-14",
+      "b": "G-16",
+      "at": [
+        50,
+        31
+      ],
+      "kind": "door",
+      "origin": "layout"
+    },
+    {
+      "a": "G-1",
+      "b": "G-2",
+      "at": [
+        27,
+        46
+      ],
+      "kind": "door",
+      "origin": "layout"
+    },
+    {
+      "a": "G-3",
+      "b": "G-11",
+      "at": [
+        19,
+        42
+      ],
+      "kind": "door",
+      "origin": "layout"
+    },
+    {
+      "a": "G-17",
+      "b": "G-19",
+      "at": [
+        41,
+        22
+      ],
+      "kind": "door",
+      "origin": "layout"
+    },
+    {
+      "a": "G-5",
+      "b": "G-18",
+      "at": [
+        26,
+        34
+      ],
+      "kind": "door",
+      "origin": "layout"
+    },
+    {
+      "a": "G-7",
+      "b": "G-10",
+      "at": [
+        17,
+        24
+      ],
+      "kind": "door",
+      "origin": "layout"
+    },
+    {
+      "a": "G-11",
+      "b": "G-18",
+      "at": [
+        22,
+        40
+      ],
+      "kind": "door",
+      "origin": "layout"
+    },
+    {
+      "a": "G-4",
+      "b": "G-15",
+      "at": [
+        40,
+        41
+      ],
+      "kind": "door",
+      "origin": "layout"
+    },
+    {
+      "a": "G-2",
+      "b": "G-3",
+      "at": [
+        24,
+        45
+      ],
+      "kind": "door",
+      "origin": "layout"
+    },
+    {
+      "a": "G-8",
+      "b": "G-19",
+      "at": [
+        40,
+        19
+      ],
+      "kind": "door",
+      "origin": "layout"
+    },
+    {
+      "a": "G-5",
+      "b": "G-13",
+      "at": [
+        30,
+        31
+      ],
+      "kind": "door",
+      "origin": "layout"
+    },
+    {
+      "a": "G-16",
+      "b": "G-17",
+      "at": [
+        48,
+        26
+      ],
+      "kind": "door",
+      "origin": "layout"
+    },
+    {
+      "a": "G-2",
+      "b": "G-4",
+      "at": [
+        36,
+        44
+      ],
+      "kind": "door",
+      "origin": "layout"
+    },
+    {
+      "a": "G-6",
+      "b": "G-9",
+      "at": [
+        24,
+        20
+      ],
+      "kind": "door",
+      "origin": "layout"
+    },
+    {
+      "a": "G-6",
+      "b": "G-8",
+      "at": [
+        32,
+        17
+      ],
+      "kind": "door",
+      "origin": "layout"
+    },
+    {
+      "a": "G-15",
+      "b": "G-16",
+      "at": [
+        49,
+        38
+      ],
+      "kind": "door",
+      "origin": "layout"
+    }
+  ],
+  "bounds": [
+    2,
+    2,
+    52,
+    2,
+    52,
+    52,
+    2,
+    52
+  ],
+  "furniture": {
+    "place": "outside"
+  }
+}

@@ -2297,7 +2297,8 @@ text: {
     "hv",
     "vh",
     "straight",
-    "around"
+    "around",
+    "maze"
   ]
 }
 
@@ -2795,7 +2796,8 @@ text: {
     "hv",
     "vh",
     "straight",
-    "around"
+    "around",
+    "maze"
   ]
 }
 

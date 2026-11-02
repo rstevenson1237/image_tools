@@ -110,6 +110,7 @@ _OPS: dict[str, tuple[tuple[str, ...], tuple[str, ...], dict[str, tuple[str, str
     "dungeon.render": (("dungeon", "render"), ("id",), {"file": ("--file", "value"), "ppu": ("--ppu", "value"), "layers": ("--layers", "value"), "format": ("--format", "value"), "fit": ("--fit", "value"), "page_scale": ("--page-scale", "value"), "crop": ("--crop", "value"), "room": ("--room", "repeat"), "margin": ("--margin", "value"), "out": ("--out", "value")}),
     "dungeon.facts": (("dungeon", "facts"), ("id",), {"file": ("--file", "value")}),
     "dungeon.sync": (("dungeon", "sync"), ("id",), {"origin": ("--origin", "value"), "from_": ("--from", "value"), "file": ("--file", "value")}),
+    "dungeon.layout": (("dungeon", "layout"), ("id",), {"file": ("--file", "value"), "graph": ("--graph", "value"), "footprint": ("--footprint", "value"), "keep_out": ("--keep-out", "value"), "fill": ("--fill", "value"), "passages": ("--passages", "value"), "detour": ("--detour", "value"), "seed": ("--seed", "value"), "tries": ("--tries", "value"), "width": ("--width", "value"), "clearance": ("--clearance", "value"), "force": ("--force", "switch")}),
     "settlement.list": (("settlement", "list"), (), {"file": ("--file", "value")}),
     "settlement.symbols": (("settlement", "symbols"), (), {}),
     "settlement.fixtures": (("settlement", "fixtures"), (), {}),
@@ -520,7 +521,7 @@ class Ops:
         """Add, split again or remove a block: one shape split into rooms that share walls, with doors between them. (artgen dungeon block)"""
         return self._op("dungeon.block", [id, action, target], {"file": file, "at": at, "size": size, "points": points, "split": split, "min": min, "cuts_x": cuts_x, "cuts_y": cuts_y, "seed": seed, "doors": doors, "block_id": block_id})
 
-    def dungeon_link(self, id: Optional[str] = None, from_: Optional[str] = None, to: Optional[str] = None, *, file: Optional[str] = None, width: Optional[float] = None, span: Optional[float] = None, route: Optional[Literal["auto", "hv", "vh", "straight", "around"]] = None, via: Optional[Sequence[float]] = None, doors: Optional[str] = None, from_side: Optional[str] = None, from_offset: Optional[float] = None, to_side: Optional[str] = None, to_offset: Optional[float] = None, from_port: Optional[str] = None, to_port: Optional[str] = None, curve: Optional[Literal["none", "smooth"]] = None, style: Optional[Literal["built", "natural"]] = None, seed: Optional[float] = None, corridor_id: Optional[str] = None, exit: Optional[str] = None, exit_href: Optional[str] = None, fade: Optional[float] = None, origin: Optional[str] = None) -> "Result":
+    def dungeon_link(self, id: Optional[str] = None, from_: Optional[str] = None, to: Optional[str] = None, *, file: Optional[str] = None, width: Optional[float] = None, span: Optional[float] = None, route: Optional[Literal["auto", "hv", "vh", "straight", "around", "maze"]] = None, via: Optional[Sequence[float]] = None, doors: Optional[str] = None, from_side: Optional[str] = None, from_offset: Optional[float] = None, to_side: Optional[str] = None, to_offset: Optional[float] = None, from_port: Optional[str] = None, to_port: Optional[str] = None, curve: Optional[Literal["none", "smooth"]] = None, style: Optional[Literal["built", "natural"]] = None, seed: Optional[float] = None, corridor_id: Optional[str] = None, exit: Optional[str] = None, exit_href: Optional[str] = None, fade: Optional[float] = None, origin: Optional[str] = None) -> "Result":
         """Join two rooms (or a room and a point, or a corridor) with a corridor. (artgen dungeon link)"""
         return self._op("dungeon.link", [id, from_, to], {"file": file, "width": width, "span": span, "route": route, "via": via, "doors": doors, "from_side": from_side, "from_offset": from_offset, "to_side": to_side, "to_offset": to_offset, "from_port": from_port, "to_port": to_port, "curve": curve, "style": style, "seed": seed, "corridor_id": corridor_id, "exit": exit, "exit_href": exit_href, "fade": fade, "origin": origin})
 
@@ -571,6 +572,10 @@ class Ops:
     def dungeon_sync(self, id: Optional[str] = None, *, origin: Optional[str] = None, from_: Optional[str] = None, file: Optional[str] = None) -> "Result":
         """Replace the entries of one origin from a regenerated file, keeping every other. (artgen dungeon sync)"""
         return self._op("dungeon.sync", [id], {"origin": origin, "from_": from_, "file": file})
+
+    def dungeon_layout(self, id: Optional[str] = None, *, file: Optional[str] = None, graph: Optional[str] = None, footprint: Optional[str] = None, keep_out: Optional[str] = None, fill: Optional[str] = None, passages: Optional[float] = None, detour: Optional[float] = None, seed: Optional[float] = None, tries: Optional[float] = None, width: Optional[float] = None, clearance: Optional[float] = None, force: Optional[bool] = None) -> "Result":
+        """Lay rooms out to a graph inside a footprint and route a passage or a door for every way. (artgen dungeon layout)"""
+        return self._op("dungeon.layout", [id], {"file": file, "graph": graph, "footprint": footprint, "keep_out": keep_out, "fill": fill, "passages": passages, "detour": detour, "seed": seed, "tries": tries, "width": width, "clearance": clearance, "force": force})
 
     def settlement_list(self, *, file: Optional[str] = None) -> "Result":
         """List the settlements in the project (or the one named by --file). (artgen settlement list)"""

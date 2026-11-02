@@ -1,0 +1,164 @@
+{
+ "id": "E-a",
+ "rooms": [
+  {
+   "id": "E.1",
+   "w": 2.0,
+   "h": 4.0,
+   "shape": "rect",
+   "label": "E.1",
+   "hall": true,
+   "turns": false
+  },
+  {
+   "id": "E.2",
+   "w": 12.0,
+   "h": 12.0,
+   "shape": "round",
+   "label": "E.2",
+   "hall": false,
+   "turns": false
+  },
+  {
+   "id": "E.3",
+   "w": 10.0,
+   "h": 8.0,
+   "shape": "rect",
+   "label": "E.3",
+   "hall": false,
+   "turns": false
+  },
+  {
+   "id": "E.4",
+   "w": 8.0,
+   "h": 6.0,
+   "shape": "rect",
+   "label": "E.4",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "E.5",
+   "w": 8.0,
+   "h": 6.0,
+   "shape": "rect",
+   "label": "E.5",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "E.6",
+   "w": 6.0,
+   "h": 6.0,
+   "shape": "rect",
+   "label": "E.6",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "E.7",
+   "w": 6.0,
+   "h": 6.0,
+   "shape": "rect",
+   "label": "E.7",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "E.8",
+   "w": 6.0,
+   "h": 6.0,
+   "shape": "rect",
+   "label": "E.8",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "E.9",
+   "w": 4.0,
+   "h": 4.0,
+   "shape": "rect",
+   "label": "E.9",
+   "hall": false,
+   "turns": false
+  }
+ ],
+ "ways": [
+  {
+   "a": "E.1",
+   "b": "E.2",
+   "bearing": 270.0
+  },
+  {
+   "a": "E.2",
+   "b": "E.9",
+   "bearing": 135.0,
+   "wall": 135.0
+  },
+  {
+   "a": "E.2",
+   "b": "E.3",
+   "bearing": 0.0,
+   "wall": 0.0
+  },
+  {
+   "a": "E.2",
+   "b": "E.4",
+   "bearing": 315.0,
+   "wall": 315.0
+  },
+  {
+   "a": "E.2",
+   "b": "E.5",
+   "bearing": 180.0,
+   "wall": 180.0
+  },
+  {
+   "a": "E.2",
+   "b": "E.6",
+   "bearing": 45.0,
+   "wall": 45.0
+  },
+  {
+   "a": "E.2",
+   "b": "E.7",
+   "bearing": 270.0,
+   "wall": 270.0
+  },
+  {
+   "a": "E.2",
+   "b": "E.8",
+   "bearing": 225.0,
+   "wall": 225.0
+  },
+  {
+   "a": "E.3",
+   "b": "E.6",
+   "bearing": 82.8749836510982
+  },
+  {
+   "a": "E.4",
+   "b": "E.7",
+   "bearing": 206.565051177078
+  },
+  {
+   "a": "E.5",
+   "b": "E.8",
+   "bearing": 270.0
+  }
+ ],
+ "width": 2,
+ "scale": {
+  "perCell": 5,
+  "unit": "ft"
+ },
+ "fill": [
+  0.3,
+  0.45
+ ],
+ "passages": 0.35,
+ "seed": 1,
+ "tries": 12,
+ "detour": 20.0,
+ "footprint": 34.0
+}

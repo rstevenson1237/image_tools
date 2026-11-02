@@ -1,0 +1,77 @@
+{
+ "id": "L-a",
+ "rooms": [
+  {
+   "id": "L.1",
+   "w": 4.0,
+   "h": 4.0,
+   "shape": "rect",
+   "label": "L.1",
+   "hall": false,
+   "turns": false
+  },
+  {
+   "id": "L.2",
+   "w": 12.0,
+   "h": 16.0,
+   "shape": "rect",
+   "label": "L.2",
+   "hall": false,
+   "turns": false
+  },
+  {
+   "id": "L.3",
+   "w": 8.0,
+   "h": 8.0,
+   "shape": "round",
+   "label": "L.3",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "L.4",
+   "w": 8.0,
+   "h": 8.0,
+   "shape": "rect",
+   "label": "L.4",
+   "hall": false,
+   "turns": true
+  }
+ ],
+ "ways": [
+  {
+   "a": "L.1",
+   "b": "L.2",
+   "bearing": 296.565051177078
+  },
+  {
+   "a": "L.2",
+   "b": "L.3",
+   "bearing": 251.56505117707798
+  },
+  {
+   "a": "L.2",
+   "b": "L.4",
+   "bearing": 300.9637565320735
+  },
+  {
+   "a": "L.3",
+   "b": "L.4",
+   "bearing": 11.309932474020213
+  }
+ ],
+ "width": 2,
+ "scale": {
+  "perCell": 5,
+  "unit": "ft"
+ },
+ "fill": [
+  0.3,
+  0.45
+ ],
+ "passages": 0.35,
+ "seed": 1,
+ "tries": 12,
+ "detour": 20.0,
+ "footprint": 28.0
+}

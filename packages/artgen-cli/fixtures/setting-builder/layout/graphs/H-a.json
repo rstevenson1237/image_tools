@@ -1,0 +1,220 @@
+{
+ "id": "H-a",
+ "rooms": [
+  {
+   "id": "H.1",
+   "w": 2.0,
+   "h": 4.0,
+   "shape": "rect",
+   "label": "H.1",
+   "hall": false,
+   "turns": false
+  },
+  {
+   "id": "H.2",
+   "w": 1.6,
+   "h": 14.0,
+   "shape": "rect",
+   "label": "H.2",
+   "hall": true,
+   "turns": false
+  },
+  {
+   "id": "H.3",
+   "w": 8.0,
+   "h": 6.0,
+   "shape": "rect",
+   "label": "H.3",
+   "hall": false,
+   "turns": false
+  },
+  {
+   "id": "H.4",
+   "w": 6.0,
+   "h": 8.0,
+   "shape": "rect",
+   "label": "H.4",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "H.5",
+   "w": 8.0,
+   "h": 8.0,
+   "shape": "rect",
+   "label": "H.5",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "H.6",
+   "w": 6.0,
+   "h": 6.0,
+   "shape": "rect",
+   "label": "H.6",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "H.7",
+   "w": 10.0,
+   "h": 8.0,
+   "shape": "rect",
+   "label": "H.7",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "H.8",
+   "w": 6.0,
+   "h": 6.0,
+   "shape": "rect",
+   "label": "H.8",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "H.9",
+   "w": 12.0,
+   "h": 10.0,
+   "shape": "rect",
+   "label": "H.9",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "H.10",
+   "w": 6.0,
+   "h": 6.0,
+   "shape": "rect",
+   "label": "H.10",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "H.11",
+   "w": 8.0,
+   "h": 6.0,
+   "shape": "rect",
+   "label": "H.11",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "H.12",
+   "w": 2.0,
+   "h": 4.0,
+   "shape": "rect",
+   "label": "H.12",
+   "hall": false,
+   "turns": true
+  },
+  {
+   "id": "H.13",
+   "w": 1.6,
+   "h": 14.0,
+   "shape": "rect",
+   "label": "H.13",
+   "hall": true,
+   "turns": false
+  }
+ ],
+ "ways": [
+  {
+   "a": "H.1",
+   "b": "H.2",
+   "bearing": 206.01237591212984
+  },
+  {
+   "a": "H.1",
+   "b": "H.10",
+   "bearing": 237.26477372789242
+  },
+  {
+   "a": "H.2",
+   "b": "H.3",
+   "bearing": 6.84277341263094
+  },
+  {
+   "a": "H.2",
+   "b": "H.4",
+   "bearing": 83.0470425318261
+  },
+  {
+   "a": "H.3",
+   "b": "H.5",
+   "bearing": 97.1250163489018
+  },
+  {
+   "a": "H.3",
+   "b": "H.6",
+   "bearing": 22.5,
+   "wall": 22.5
+  },
+  {
+   "a": "H.3",
+   "b": "H.10",
+   "bearing": 337.5,
+   "wall": 337.5
+  },
+  {
+   "a": "H.4",
+   "b": "H.5",
+   "bearing": 7.125016348901798
+  },
+  {
+   "a": "H.4",
+   "b": "H.7",
+   "bearing": 116.56505117707799
+  },
+  {
+   "a": "H.4",
+   "b": "H.12",
+   "bearing": 198.434948822922
+  },
+  {
+   "a": "H.5",
+   "b": "H.9",
+   "bearing": 41.6335393365702
+  },
+  {
+   "a": "H.6",
+   "b": "H.9",
+   "bearing": 81.2538377374448
+  },
+  {
+   "a": "H.7",
+   "b": "H.8",
+   "bearing": 0.0
+  },
+  {
+   "a": "H.8",
+   "b": "H.11",
+   "bearing": 9.462322208025617
+  },
+  {
+   "a": "H.9",
+   "b": "H.11",
+   "bearing": 180.0
+  },
+  {
+   "a": "H.10",
+   "b": "H.13",
+   "bearing": 244.53665493812838
+  }
+ ],
+ "width": 2,
+ "scale": {
+  "perCell": 5,
+  "unit": "ft"
+ },
+ "fill": [
+  0.3,
+  0.45
+ ],
+ "passages": 0.35,
+ "seed": 1,
+ "tries": 12,
+ "detour": 20.0,
+ "footprint": 40.0
+}

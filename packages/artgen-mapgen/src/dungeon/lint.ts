@@ -32,7 +32,8 @@ export const CHECK_IDS = {
   'end-in-room': 'a corridor ends at a point inside a room',
   'no-length': 'a corridor has no length',
   'through-room': 'a corridor runs through a room it does not join',
-  'corridors-cross': 'two corridors that share no room cross or run into each other with no junction',
+  'corridors-cross': 'two corridors that share no room cross with no junction (corridors that leave one room may join and part)',
+  'maze-no-route': 'a maze corridor found no passage (or its rooms touch, which a connection joins), so it is drawn as an elbow',
   'corridor-along-wall': 'a corridor runs along a room\'s wall with no wall drawn between them, so the floors run together',
   'way-no-passage': 'a way the file states draws no passage: a connection between rooms that share no wall, or a corridor between rooms laid over each other',
   'wall-too-short': 'a shared wall is narrower than the opening in it',
@@ -152,6 +153,7 @@ export function lintDungeon(spec: DungeonSpec, l: DungeonLayout = layoutDungeon(
         if (inside) add('end-in-room', 'warning', `${at}.${side}`, `ends at ${e.at.join(',')}, inside ${inside.room.id}; link to the room instead`);
       }
     });
+    if (c.unrouted) add('maze-no-route', 'warning', at, `no passage fits between its rooms on the lattice${'room' in sc.from && 'room' in sc.to ? ` (if ${sc.from.room} and ${sc.to.room} touch, join them with a connection)` : ''}; it is drawn as an elbow`);
     if (lineLength(c.pts) < 1e-9) add('no-length', 'warning', at, 'the corridor has no length (both ends at one point), so nothing is drawn');
     else if ('room' in sc.from && 'room' in sc.to && c.ends[0] && c.ends[1] && Math.hypot(c.ends[0].x - c.ends[1].x, c.ends[0].y - c.ends[1].y) < 0.05)
       add('way-no-passage', 'warning', at, `${sc.from.room} and ${sc.to.room} touch where it runs, so it draws no passage${sharedWallsOn(spec) ? ' and no opening in their wall' : ''}; join them with a connection`);
@@ -175,8 +177,10 @@ export function lintDungeon(spec: DungeonSpec, l: DungeonLayout = layoutDungeon(
   // corridors that cross with no junction (outside every room)
   const joined = (a: number, b: number) => [spec.corridors[a].from, spec.corridors[a].to].some(e => 'corridor' in e && e.corridor === spec.corridors[b].id)
     || [spec.corridors[b].from, spec.corridors[b].to].some(e => 'corridor' in e && e.corridor === spec.corridors[a].id);
+  // corridors that leave a room in common may join and part there (a junction, as the router lays them)
+  const related = (a: number, b: number) => [...roomsOf(a)].some(r => roomsOf(b).has(r));
   for (let a = 0; a < l.corridors.length; a++) for (let b = a + 1; b < l.corridors.length; b++) {
-    if (joined(a, b)) continue;
+    if (joined(a, b) || related(a, b)) continue;
     const A = l.corridors[a].pts, B = l.corridors[b].pts;
     let found: P | null = null;
     for (let i = 0; i + 3 < A.length && !found; i += 2) for (let j = 0; j + 3 < B.length && !found; j += 2) {

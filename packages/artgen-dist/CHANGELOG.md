@@ -75,6 +75,21 @@ Releases of the committed install (`artgen-dist`), the MCP server, the runtime i
   outside the bounds or on an area (`dungeon update --bounds x,y,… --areas '<json>'`).
 - The settlement overlay takes the `water` label kind, as a terrain map does.
 
+**A router and a layout from a graph (R9 D6)**
+- `route: "maze"`: a corridor routed on the lattice of its width (`router.ts`, ported from setting_builder's `route.py`), round the rooms,
+  off the other corridors, inside `bounds` and off `areas`; it leaves by its `side`, near its `port`, or by the door nearest the other room,
+  and its door stands on the wall. Corridors from one room may join and part but never run beside each other. Where walls are drawn along
+  corridors (the default) a passage may run against a wall; otherwise it keeps a lattice cell off. `corridors[].maze: {clearance, bend, seed}`;
+  `link --route maze`. A maze corridor no passage fits is drawn as an elbow and `check` warns `maze-no-route`.
+- Corridors that leave a room in common may cross or merge with no `corridors-cross` warning: a junction, as the router lays them.
+- `artgen dungeon layout --graph g.json` (MCP `dungeon_layout`): rooms (sizes in cells, shapes, turns, `against`, `over`) and ways (bearing to
+  keep, the wall named, doors) packed in a footprint (a square or a polygon, with keep-out polygons) at a target fill, annealed from a seed
+  and kept only where every way is a door through a shared wall or a routed passage within `detour` (`graph.ts`, ported from `pack.py`).
+  Writes a format 2 file: connections and corridors with ports and bends, the footprint as `bounds`, keep-out as rock `areas`. On setting_builder's
+  ten packed levels every way routes with none past its detour, at 1 to 10 s a block on one core (`pack.py` took about 30 s on four); with the
+  footprint unset the rooms reach 55% of the square, against 36 to 43% in the setting's brief.
+- Consumer fixture `setting-builder/layout`: the ten graphs and G laid out.
+
 ## 0.11.0 — 2026-10-25
 
 Settlement maps (villages, towns, cities and castles, with each building's floor plans) join terrain maps and
