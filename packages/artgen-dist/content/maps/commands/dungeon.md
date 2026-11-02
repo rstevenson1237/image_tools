@@ -7,4 +7,5 @@ Use the dungeon-map skill. If this names an existing dungeon (`{{ARTGEN}} dungeo
 (or the single room), and iterate: render, look at the PNG, adjust. Finish with `{{ARTGEN}} dungeon render <id>` and
 show the user the image and the file paths.
 Before you generate, write the brief (`{{ARTGEN}} dungeon brief <id> --text "…"`); when a round is done record it (`{{ARTGEN}} dungeon version <id>`), review it (`{{ARTGEN}} dungeon review <id>`) and show the user the sheet. Only the user approves or asks for changes (the skill's step 5).
+For a game or a level editor, `{{ARTGEN}} dungeon export <id>` writes Tiled and LDtk files (the skill's *For a game or a level editor*).
 Request: $ARGUMENTS

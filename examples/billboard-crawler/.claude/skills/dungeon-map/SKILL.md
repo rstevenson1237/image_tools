@@ -84,6 +84,18 @@ node tools/artgen/artgen-maps.js dungeon render <id> [--format svg|png|both] [--
 doors are drawn in every copy; for a player handout, make a copy of the dungeon and set them to `none` there. Give the
 user the file paths and show the PNG.
 
+### For a game or a level editor
+```
+node tools/artgen/artgen-maps.js dungeon export <id> [--to tiled|ldtk|both] [--xml] [--view topdown|iso|side|…] [--pack public/assets/main/pack.json --tiles floor=…,wall=…]
+```
+Writes `out/<id>.tmj` + `.tsj` (Tiled; `--xml` for `.tmx` + `.tsx`), `out/<id>.ldtk` (LDtk), the tile sheet and a
+preview drawn from the tiles. One tile a cell: `floor` (rooms and corridors), `wall` (every empty cell next to a floor),
+`door` and `yard`, each as a tile class with `solid` set on walls. Rooms (outline, number, name), corridors, doors, shared
+walls, exits, labels and symbols are objects. With no `--pack` the tiles are flat colours, so a game can load the map
+before it has art; `--tiles floor=<asset>` draws a class with a tile asset of an exported pack (an autotile set resolves
+from the neighbours, as the runtime does, and Tiled gets it as a wang set). `--view iso` makes an isometric Tiled map
+(LDtk has square grids only). Show the user the preview and the file paths.
+
 ## Check, then look
 `node tools/artgen/artgen-maps.js dungeon check <id>` after every round of changes: errors (a room outline that crosses itself) must be fixed;
 each warning (rooms laid over each other, a corridor through a room it does not join or across another, a door that is

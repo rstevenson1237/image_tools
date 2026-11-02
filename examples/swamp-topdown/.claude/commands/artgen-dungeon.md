@@ -7,4 +7,5 @@ Use the dungeon-map skill. If this names an existing dungeon (`node tools/artgen
 (or the single room), and iterate: render, look at the PNG, adjust. Finish with `node tools/artgen/artgen-maps.js dungeon render <id>` and
 show the user the image and the file paths.
 Before you generate, write the brief (`node tools/artgen/artgen-maps.js dungeon brief <id> --text "…"`); when a round is done record it (`node tools/artgen/artgen-maps.js dungeon version <id>`), review it (`node tools/artgen/artgen-maps.js dungeon review <id>`) and show the user the sheet. Only the user approves or asks for changes (the skill's step 5).
+For a game or a level editor, `node tools/artgen/artgen-maps.js dungeon export <id>` writes Tiled and LDtk files (the skill's *For a game or a level editor*).
 Request: $ARGUMENTS
