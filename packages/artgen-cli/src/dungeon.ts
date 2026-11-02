@@ -91,7 +91,8 @@ export function updateDungeon(p: Project | null, ref: DungeonRef, change: (m: Du
  */
 export interface DungeonCheck { file: string; ok: boolean; errors: dungeon.Issue[]; warnings: dungeon.Issue[] }
 
-export function checkDungeonFile(p: Project | null, ref: DungeonRef): DungeonCheck {
+/** `raise`: drawing findings to report as errors, by id (or `all`). */
+export function checkDungeonFile(p: Project | null, ref: DungeonRef, raise: string[] = []): DungeonCheck {
   const f = dungeonFile(p, ref);
   let raw: unknown;
   try { raw = JSON.parse(readFileSync(f, 'utf8')); } catch (e) {
@@ -99,7 +100,8 @@ export function checkDungeonFile(p: Project | null, ref: DungeonRef): DungeonChe
     return { file: shown(p, f), ok: false, errors: [{ path: '', message: missing ? `no such file: ${shown(p, f)}` : `not JSON: ${(e as Error).message}` }], warnings: [] };
   }
   const r = dungeon.checkDungeon(raw), errors = [...r.errors], warnings: dungeon.Issue[] = [];
-  if (!errors.length) for (const x of dungeon.lintDungeon(dungeon.parseDungeon(raw))) (x.severity === 'error' ? errors : warnings).push({ path: x.path, message: x.message });
+  const raised = (id: string) => raise.includes('all') || raise.includes(id);
+  if (!errors.length) for (const x of dungeon.lintDungeon(dungeon.parseDungeon(raw))) (x.severity === 'error' || raised(x.id) ? errors : warnings).push({ path: x.path, message: x.message, id: x.id });
   const u = (raw as { underlay?: { map?: unknown } } | null)?.underlay;
   if (!errors.some(e => e.path.startsWith('underlay')) && u && typeof u.map === 'string' && !existsSync(resolve(dirname(f), u.map)))
     errors.push({ path: 'underlay.map', message: `no such map file ${u.map}` });
@@ -171,7 +173,7 @@ export const endText = (e: dungeon.CorridorEnd): string =>
 export function warningLines(m: DungeonSpec, max = 5): string[] {
   const found = dungeon.lintDungeon(m);
   if (!found.length) return [];
-  const lines = found.slice(0, max).map(x => `  ${x.severity}: ${x.path}: ${x.message}`);
+  const lines = found.slice(0, max).map(x => `  ${x.severity}: ${x.path}: ${x.message} [${x.id}]`);
   if (found.length > max) lines.push(`  … ${found.length - max} more (artgen dungeon check ${m.id})`);
   return lines;
 }

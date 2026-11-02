@@ -508,8 +508,8 @@ export function parseDungeon(raw: unknown): DungeonSpec {
   return m;
 }
 
-/** A problem in a file: where (a JSON path, empty for the file as a whole) and what. */
-export interface Issue { path: string; message: string }
+/** A problem in a file: where (a JSON path, empty for the file as a whole) and what; a drawing finding also has the `id` of its kind. */
+export interface Issue { path: string; message: string; id?: string }
 
 /** A `path: message` string from a validator as an {@link Issue}. */
 export const toIssue = (s: string): Issue => {

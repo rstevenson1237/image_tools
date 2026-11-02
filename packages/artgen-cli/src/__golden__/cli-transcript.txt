@@ -4448,6 +4448,7 @@ threw: dungeon room <id> add|move|set|rm
 $ artgen dungeon room crypt add rect --at C9 --size 5x5 --label Chapel --root <root>
 exit 0
 crypt: added rect room r3 (3 rooms)
+  warning: rooms[2]: r3 touches r1 along 2.5 cells and shared walls are off, so their floors run together; set style.sharedWalls [rooms-merge]
 next: artgen dungeon render crypt
 
 $ artgen dungeon room crypt add rect --at C9 --size 5x5 --label Chapel --root <root> --json
@@ -4495,6 +4496,7 @@ exit 0
 $ artgen dungeon link crypt r1 r9 --doors door,none --route hv --width 2 --origin tables --root <root>
 exit 0
 crypt: corridor 0: r1 → r9
+  warning: rooms[2]: r3 touches r1 along 2.5 cells and shared walls are off, so their floors run together; set style.sharedWalls [rooms-merge]
 next: artgen dungeon render crypt
 
 $ artgen dungeon link crypt r1 r9 --doors door,none --route hv --width 2 --origin tables --root <root> --json
@@ -4523,6 +4525,7 @@ exit 0
 $ artgen dungeon link crypt r9 29,15 --exit To the caves --exit-href http://example.com/out --fade 3 --id out1 --curve smooth --style natural --seed 3 --root <root>
 exit 0
 crypt: corridor 1: r9 → 29,15
+  warning: rooms[2]: r3 touches r1 along 2.5 cells and shared walls are off, so their floors run together; set style.sharedWalls [rooms-merge]
 next: artgen dungeon render crypt
 
 $ artgen dungeon link crypt r9 29,15 --exit To the caves --exit-href http://example.com/out --fade 3 --id out1 --curve smooth --style natural --seed 3 --root <root> --json
@@ -4571,7 +4574,8 @@ exit 0
 $ artgen dungeon link crypt r1 corridor:out1 --from-side e --from-offset 1 --route around --via 10,8,12,8 --root <root>
 exit 0
 crypt: corridor 2: r1 → corridor:out1
-  warning: corridors[2]: crosses corridor 0 at 10.5,6.0 with no junction (the floors join there)
+  warning: rooms[2]: r3 touches r1 along 2.5 cells and shared walls are off, so their floors run together; set style.sharedWalls [rooms-merge]
+  warning: corridors[2]: crosses corridor 0 at 10.5,6.0 with no junction (the floors join there) [corridors-cross]
 next: artgen dungeon render crypt
 
 $ artgen dungeon link crypt r1 corridor:out1 --from-side e --from-offset 1 --route around --via 10,8,12,8 --root <root> --json
@@ -4661,7 +4665,8 @@ threw: --via: comma-separated numbers in x,y pairs
 $ artgen dungeon door crypt 1 from portcullis --root <root>
 exit 0
 crypt: 3 corridors
-  warning: corridors[2]: crosses corridor 0 at 10.5,6.0 with no junction (the floors join there)
+  warning: rooms[2]: r3 touches r1 along 2.5 cells and shared walls are off, so their floors run together; set style.sharedWalls [rooms-merge]
+  warning: corridors[2]: crosses corridor 0 at 10.5,6.0 with no junction (the floors join there) [corridors-cross]
 next: artgen dungeon render crypt
 
 $ artgen dungeon door crypt 1 from portcullis --root <root> --json
@@ -4737,6 +4742,7 @@ threw: dungeon door <id> <index> (corridors 0..2; artgen dungeon show)
 $ artgen dungeon unlink crypt 2 --root <root>
 exit 0
 crypt: 2 corridors
+  warning: rooms[2]: r3 touches r1 along 2.5 cells and shared walls are off, so their floors run together; set style.sharedWalls [rooms-merge]
 next: artgen dungeon render crypt
 
 $ artgen dungeon unlink crypt 2 --root <root> --json
@@ -4792,7 +4798,7 @@ threw: dungeon unlink <id> <index> (corridors 0..1; artgen dungeon show)
 $ artgen dungeon block crypt add hex --at 3,12 --size 12x8 --split grid --min 4 --block-id hx --seed 4 --doors 0.25 --root <root>
 exit 0
 crypt: block hx: 6 rooms, 6 connections
-  warning: rooms[3]: hx-1 lies over r3 (1 cell); the wall between them is not drawn
+  warning: rooms[3]: hx-1 lies over r3 (1 cell); the wall between them is not drawn [rooms-overlap]
 next: artgen dungeon render crypt
 
 $ artgen dungeon block crypt add hex --at 3,12 --size 12x8 --split grid --min 4 --block-id hx --seed 4 --doors 0.25 --root <root> --json
@@ -4834,7 +4840,7 @@ exit 0
 $ artgen dungeon block crypt add rect --at 18,12 --size 8x6 --split cuts --cuts-x 4 --cuts-y 3 --seed 2 --root <root>
 exit 0
 crypt: block b1: 1 rooms, 0 connections
-  warning: rooms[3]: hx-1 lies over r3 (1 cell); the wall between them is not drawn
+  warning: rooms[3]: hx-1 lies over r3 (1 cell); the wall between them is not drawn [rooms-overlap]
 next: artgen dungeon render crypt
 
 $ artgen dungeon block crypt add rect --at 18,12 --size 8x6 --split cuts --cuts-x 4 --cuts-y 3 --seed 2 --root <root> --json
@@ -4896,7 +4902,7 @@ exit 0
 $ artgen dungeon block crypt split hx --seed 5 --split rows --min 3 --doors 0.5 --root <root>
 exit 0
 crypt: block hx: 2 rooms, 1 connections
-  warning: rooms[3]: hx-1 lies over r3 (1 cell); the wall between them is not drawn
+  warning: rooms[3]: hx-1 lies over r3 (1 cell); the wall between them is not drawn [rooms-overlap]
 next: artgen dungeon render crypt
 
 $ artgen dungeon block crypt split hx --seed 5 --split rows --min 3 --doors 0.5 --root <root> --json
@@ -4958,7 +4964,7 @@ exit 0
 $ artgen dungeon link crypt hx b1 --seed 1 --root <root>
 exit 0
 crypt: corridor 2: hx-1 → b1-1
-  warning: rooms[3]: hx-1 lies over r3 (1 cell); the wall between them is not drawn
+  warning: rooms[3]: hx-1 lies over r3 (1 cell); the wall between them is not drawn [rooms-overlap]
 next: artgen dungeon render crypt
 
 $ artgen dungeon link crypt hx b1 --seed 1 --root <root> --json
@@ -5038,7 +5044,7 @@ threw: dungeon block <id> add|split|rm
 $ artgen dungeon block crypt rm b1 --root <root>
 exit 0
 crypt: removed block b1 and its rooms
-  warning: rooms[3]: hx-1 lies over r3 (1 cell); the wall between them is not drawn
+  warning: rooms[3]: hx-1 lies over r3 (1 cell); the wall between them is not drawn [rooms-overlap]
 next: artgen dungeon render crypt
 
 $ artgen dungeon block crypt rm b1 --root <root> --json
@@ -5080,7 +5086,8 @@ exit 0
 $ artgen dungeon connect crypt hx-1 hx-2 --kind secret --width 2 --origin tables --root <root>
 exit 0
 crypt: connection 1: hx-1 ↔ hx-2
-  warning: rooms[3]: hx-1 lies over r3 (1 cell); the wall between them is not drawn
+  warning: rooms[3]: hx-1 lies over r3 (1 cell); the wall between them is not drawn [rooms-overlap]
+  warning: connections[1]: the secret at 9.0,16.0 stands on the door of connections[0] [doors-stacked]
 next: artgen dungeon render crypt
 
 $ artgen dungeon connect crypt hx-1 hx-2 --kind secret --width 2 --origin tables --root <root> --json
@@ -5114,7 +5121,9 @@ threw: invalid dungeon crypt:
 $ artgen dungeon connect crypt hx-2 hx-1 --kind arch --root <root>
 exit 0
 crypt: connection 2: hx-2 ↔ hx-1
-  warning: rooms[3]: hx-1 lies over r3 (1 cell); the wall between them is not drawn
+  warning: rooms[3]: hx-1 lies over r3 (1 cell); the wall between them is not drawn [rooms-overlap]
+  warning: connections[1]: the secret at 9.0,16.0 stands on the door of connections[0] [doors-stacked]
+  warning: connections[2]: the arch at 9.5,16.0 stands on the door of connections[0] [doors-stacked]
 next: artgen dungeon render crypt
 
 $ artgen dungeon connect crypt hx-2 hx-1 --kind arch --root <root> --json
@@ -5179,6 +5188,7 @@ threw: dungeon disconnect <id> <index> (connections 0..1; artgen dungeon show)
 $ artgen dungeon block crypt rm hx --root <root>
 exit 0
 crypt: removed block hx and its rooms
+  warning: rooms[2]: r3 touches r1 along 2.5 cells and shared walls are off, so their floors run together; set style.sharedWalls [rooms-merge]
 next: artgen dungeon render crypt
 
 $ artgen dungeon block crypt rm hx --root <root> --json
@@ -5541,6 +5551,7 @@ threw: --furniture-side: bottom, right
 $ artgen dungeon label crypt Bones --at C4 --kind note --size 1.2 --angle 10 --href #bones --origin tables --root <root>
 exit 0
 crypt: label 0 "Bones"
+  warning: rooms[2]: r3 touches r1 along 2.5 cells and shared walls are off, so their floors run together; set style.sharedWalls [rooms-merge]
 next: artgen dungeon render crypt
 
 $ artgen dungeon label crypt Bones --at C4 --kind note --size 1.2 --angle 10 --href #bones --origin tables --root <root> --json
@@ -5564,6 +5575,7 @@ exit 0
 $ artgen dungeon label crypt Ossuary --at 5,6 --root <root>
 exit 0
 crypt: label 1 "Ossuary"
+  warning: rooms[2]: r3 touches r1 along 2.5 cells and shared walls are off, so their floors run together; set style.sharedWalls [rooms-merge]
 next: artgen dungeon render crypt
 
 $ artgen dungeon label crypt Ossuary --at 5,6 --root <root> --json
@@ -5599,6 +5611,7 @@ threw: --kind: name, note, area
 $ artgen dungeon symbol crypt stairs --at 4,4 --scale 1.5 --angle 90 --root <root>
 exit 0
 crypt: symbol 0 "stairs"
+  warning: rooms[2]: r3 touches r1 along 2.5 cells and shared walls are off, so their floors run together; set style.sharedWalls [rooms-merge]
 next: artgen dungeon render crypt
 
 $ artgen dungeon symbol crypt stairs --at 4,4 --scale 1.5 --angle 90 --root <root> --json
@@ -5619,6 +5632,7 @@ exit 0
 $ artgen dungeon symbol crypt pillar --at 5,5 --origin tables --root <root>
 exit 0
 crypt: symbol 1 "pillar"
+  warning: rooms[2]: r3 touches r1 along 2.5 cells and shared walls are off, so their floors run together; set style.sharedWalls [rooms-merge]
 next: artgen dungeon render crypt
 
 $ artgen dungeon symbol crypt pillar --at 5,5 --origin tables --root <root> --json
@@ -5723,7 +5737,8 @@ exit 0
 
 $ artgen dungeon check crypt --root <root>
 exit 0
-art/dungeons/crypt/dungeon.json: ok
+art/dungeons/crypt/dungeon.json: ok, 1 warning
+  warning: rooms[2]: r3 touches r1 along 2.5 cells and shared walls are off, so their floors run together; set style.sharedWalls [rooms-merge]
 
 $ artgen dungeon check crypt --root <root> --json
 exit 0
@@ -5732,7 +5747,13 @@ exit 0
   "file": "art/dungeons/crypt/dungeon.json",
   "ok": true,
   "errors": [],
-  "warnings": []
+  "warnings": [
+    {
+      "path": "rooms[2]",
+      "message": "r3 touches r1 along 2.5 cells and shared walls are off, so their floors run together; set style.sharedWalls",
+      "id": "rooms-merge"
+    }
+  ]
 }
 
 $ artgen dungeon check vault --root <root>
@@ -5887,7 +5908,15 @@ exit 0
       "length": {
         "map": 9.4,
         "scale": 47
-      }
+      },
+      "path": [
+        8,
+        6,
+        22,
+        6,
+        22,
+        8
+      ]
     },
     {
       "index": 1,
@@ -5913,7 +5942,97 @@ exit 0
       "length": {
         "map": 10.9,
         "scale": 54.5
-      }
+      },
+      "path": [
+        22.5,
+        8.5,
+        22.8,
+        8.5,
+        23.2,
+        8.5,
+        23.5,
+        8.4,
+        23.9,
+        8.4,
+        24.3,
+        8.4,
+        24.7,
+        8.3,
+        25,
+        8.3,
+        25.4,
+        8.2,
+        25.8,
+        8.2,
+        26.2,
+        8.1,
+        26.6,
+        8.1,
+        26.9,
+        8,
+        27.3,
+        8,
+        27.6,
+        8,
+        28,
+        8,
+        28.3,
+        8,
+        28.6,
+        8,
+        28.9,
+        8,
+        29.2,
+        8.1,
+        29.4,
+        8.1,
+        29.6,
+        8.2,
+        29.8,
+        8.4,
+        30,
+        8.5,
+        30.2,
+        8.7,
+        30.3,
+        8.9,
+        30.4,
+        9.1,
+        30.4,
+        9.4,
+        30.5,
+        9.7,
+        30.5,
+        10,
+        30.5,
+        10.3,
+        30.5,
+        10.6,
+        30.5,
+        11,
+        30.4,
+        11.4,
+        30.4,
+        11.7,
+        30.3,
+        12.1,
+        30.3,
+        12.5,
+        30.2,
+        12.9,
+        30.2,
+        13.2,
+        30.1,
+        13.6,
+        30.1,
+        14,
+        30,
+        14.3,
+        30,
+        14.7,
+        30,
+        15
+      ]
     }
   ],
   "exits": [
@@ -5938,6 +6057,245 @@ exit 0
   "overlaps": [],
   "unreached": [
     "r3"
+  ],
+  "doors": [
+    {
+      "kind": "door",
+      "at": [
+        11,
+        6
+      ],
+      "angle": 0,
+      "width": 2,
+      "corridor": 0,
+      "connection": null,
+      "wall": [
+        [
+          "room:r1",
+          "corridor:0"
+        ],
+        [
+          "corridor:0"
+        ]
+      ],
+      "on": "wall"
+    },
+    {
+      "kind": "portcullis",
+      "at": [
+        25.9,
+        8.1
+      ],
+      "angle": 352.6,
+      "width": 1,
+      "corridor": 1,
+      "connection": null,
+      "wall": [
+        [
+          "room:r9",
+          "corridor:1"
+        ],
+        [
+          "corridor:1"
+        ]
+      ],
+      "on": "wall"
+    }
+  ],
+  "floor": {
+    "owners": [
+      "room:r1",
+      "room:r9",
+      "room:r3",
+      "corridor:0",
+      "corridor:1"
+    ],
+    "rows": [
+      [
+        -1,
+        35
+      ],
+      [
+        -1,
+        35
+      ],
+      [
+        -1,
+        35
+      ],
+      [
+        -1,
+        5,
+        0,
+        5,
+        -1,
+        25
+      ],
+      [
+        -1,
+        4,
+        0,
+        7,
+        -1,
+        24
+      ],
+      [
+        -1,
+        4,
+        0,
+        7,
+        3,
+        12,
+        -1,
+        12
+      ],
+      [
+        -1,
+        4,
+        0,
+        7,
+        3,
+        12,
+        -1,
+        12
+      ],
+      [
+        -1,
+        5,
+        0,
+        5,
+        -1,
+        11,
+        3,
+        2,
+        -1,
+        12
+      ],
+      [
+        -1,
+        3,
+        2,
+        5,
+        -1,
+        13,
+        3,
+        2,
+        4,
+        4,
+        -1,
+        2,
+        4,
+        2,
+        -1,
+        4
+      ],
+      [
+        -1,
+        3,
+        2,
+        5,
+        -1,
+        22,
+        4,
+        1,
+        -1,
+        4
+      ],
+      [
+        -1,
+        3,
+        2,
+        5,
+        -1,
+        22,
+        4,
+        1,
+        -1,
+        4
+      ],
+      [
+        -1,
+        3,
+        2,
+        5,
+        -1,
+        22,
+        4,
+        1,
+        -1,
+        4
+      ],
+      [
+        -1,
+        3,
+        2,
+        5,
+        -1,
+        22,
+        4,
+        1,
+        -1,
+        4
+      ],
+      [
+        -1,
+        30,
+        4,
+        1,
+        -1,
+        4
+      ],
+      [
+        -1,
+        30,
+        4,
+        1,
+        -1,
+        4
+      ],
+      [
+        -1,
+        35
+      ],
+      [
+        -1,
+        35
+      ],
+      [
+        -1,
+        35
+      ],
+      [
+        -1,
+        35
+      ]
+    ]
+  },
+  "adjacent": [
+    {
+      "a": "room:r1",
+      "b": "room:r3",
+      "along": {
+        "map": 3,
+        "scale": 15
+      }
+    },
+    {
+      "a": "room:r1",
+      "b": "corridor:0",
+      "along": {
+        "map": 2,
+        "scale": 10
+      }
+    },
+    {
+      "a": "corridor:0",
+      "b": "corridor:1",
+      "along": {
+        "map": 1,
+        "scale": 5
+      }
+    }
   ]
 }
 
@@ -6756,10 +7114,12 @@ exit 0
 $ artgen dungeon room add rect --at 2,2 --size 4x4 --file <root>/pm/D.a.json
 exit 0
 D-a: added rect room r5 (5 rooms)
-  warning: rooms[4]: r5 lies over r1 (6 cells); the wall between them is not drawn
-  warning: corridors[0]: runs through r5, which it does not join (set via or route, or link through r5)
-  warning: corridors[1]: runs through r5, which it does not join (set via or route, or link through r5)
-  warning: corridors[4]: runs through r5, which it does not join (set via or route, or link through r5)
+  warning: rooms[4]: r5 lies over r1 (6 cells); the wall between them is not drawn [rooms-overlap]
+  warning: rooms[4]: r5 touches r3 along 3.0 cells and shared walls are off, so their floors run together; set style.sharedWalls [rooms-merge]
+  warning: corridors[0]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
+  warning: corridors[1]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
+  warning: corridors[4]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
+  … 4 more (artgen dungeon check D-a)
 next: artgen dungeon render --file <root>/pm/D.a.json
 
 $ artgen dungeon room add rect --at 2,2 --size 4x4 --file <root>/pm/D.a.json --json
@@ -6813,11 +7173,12 @@ exit 0
 $ artgen dungeon link r1 23,10 --file <root>/pm/D.a.json
 exit 0
 D-a: corridor 5: r1 → 23,10
-  warning: rooms[4]: r5 lies over r1 (6 cells); the wall between them is not drawn
-  warning: corridors[0]: runs through r5, which it does not join (set via or route, or link through r5)
-  warning: corridors[1]: runs through r5, which it does not join (set via or route, or link through r5)
-  warning: corridors[4]: runs through r5, which it does not join (set via or route, or link through r5)
-  warning: corridors[5]: runs through r5, which it does not join (set via or route, or link through r5)
+  warning: rooms[4]: r5 lies over r1 (6 cells); the wall between them is not drawn [rooms-overlap]
+  warning: rooms[4]: r5 touches r3 along 3.0 cells and shared walls are off, so their floors run together; set style.sharedWalls [rooms-merge]
+  warning: corridors[0]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
+  warning: corridors[1]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
+  warning: corridors[4]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
+  … 5 more (artgen dungeon check D-a)
 next: artgen dungeon render --file <root>/pm/D.a.json
 
 $ artgen dungeon link r1 23,10 --file <root>/pm/D.a.json --json
@@ -7123,11 +7484,12 @@ exit 0
 $ artgen dungeon label Hole --at 3,3 --file <root>/pm/D.a.json
 exit 0
 D-a: label 0 "Hole"
-  warning: rooms[4]: r5 lies over r1 (6 cells); the wall between them is not drawn
-  warning: corridors[0]: runs through r5, which it does not join (set via or route, or link through r5)
-  warning: corridors[1]: runs through r5, which it does not join (set via or route, or link through r5)
-  warning: corridors[4]: runs through r5, which it does not join (set via or route, or link through r5)
-  warning: corridors[5]: runs through r5, which it does not join (set via or route, or link through r5)
+  warning: rooms[4]: r5 lies over r1 (6 cells); the wall between them is not drawn [rooms-overlap]
+  warning: rooms[4]: r5 touches r3 along 3.0 cells and shared walls are off, so their floors run together; set style.sharedWalls [rooms-merge]
+  warning: corridors[0]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
+  warning: corridors[1]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
+  warning: corridors[4]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
+  … 5 more (artgen dungeon check D-a)
 next: artgen dungeon render --file <root>/pm/D.a.json
 
 $ artgen dungeon label Hole --at 3,3 --file <root>/pm/D.a.json --json
@@ -7171,12 +7533,17 @@ exit 0
 
 $ artgen dungeon check --file <root>/pm/D.a.json
 exit 0
-pm/D.a.json: ok, 5 warnings
-  warning: rooms[4]: r5 lies over r1 (6 cells); the wall between them is not drawn
-  warning: corridors[0]: runs through r5, which it does not join (set via or route, or link through r5)
-  warning: corridors[1]: runs through r5, which it does not join (set via or route, or link through r5)
-  warning: corridors[4]: runs through r5, which it does not join (set via or route, or link through r5)
-  warning: corridors[5]: runs through r5, which it does not join (set via or route, or link through r5)
+pm/D.a.json: ok, 10 warnings
+  warning: rooms[4]: r5 lies over r1 (6 cells); the wall between them is not drawn [rooms-overlap]
+  warning: rooms[4]: r5 touches r3 along 3.0 cells and shared walls are off, so their floors run together; set style.sharedWalls [rooms-merge]
+  warning: corridors[0]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
+  warning: corridors[1]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
+  warning: corridors[4]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
+  warning: corridors[5]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
+  warning: corridors[3]: runs along r2's wall for 2.0 cells with no wall drawn between them, so the floors run together [corridor-along-wall]
+  warning: corridors[5]: runs along r2's wall for 0.5 cells with no wall drawn between them, so the floors run together [corridor-along-wall]
+  warning: corridors[1].doors: the door at 5.5,8.0 stands in open floor, not on a wall between two floors [door-off-wall]
+  warning: corridors[4].doors: the secret at 6.0,6.5 stands in open floor, not on a wall between two floors [door-off-wall]
 
 $ artgen dungeon check --file <root>/pm/D.a.json --json
 exit 0
@@ -7188,23 +7555,53 @@ exit 0
   "warnings": [
     {
       "path": "rooms[4]",
-      "message": "r5 lies over r1 (6 cells); the wall between them is not drawn"
+      "message": "r5 lies over r1 (6 cells); the wall between them is not drawn",
+      "id": "rooms-overlap"
+    },
+    {
+      "path": "rooms[4]",
+      "message": "r5 touches r3 along 3.0 cells and shared walls are off, so their floors run together; set style.sharedWalls",
+      "id": "rooms-merge"
     },
     {
       "path": "corridors[0]",
-      "message": "runs through r5, which it does not join (set via or route, or link through r5)"
+      "message": "runs through r5, which it does not join (set via or route, or link through r5)",
+      "id": "through-room"
     },
     {
       "path": "corridors[1]",
-      "message": "runs through r5, which it does not join (set via or route, or link through r5)"
+      "message": "runs through r5, which it does not join (set via or route, or link through r5)",
+      "id": "through-room"
     },
     {
       "path": "corridors[4]",
-      "message": "runs through r5, which it does not join (set via or route, or link through r5)"
+      "message": "runs through r5, which it does not join (set via or route, or link through r5)",
+      "id": "through-room"
     },
     {
       "path": "corridors[5]",
-      "message": "runs through r5, which it does not join (set via or route, or link through r5)"
+      "message": "runs through r5, which it does not join (set via or route, or link through r5)",
+      "id": "through-room"
+    },
+    {
+      "path": "corridors[3]",
+      "message": "runs along r2's wall for 2.0 cells with no wall drawn between them, so the floors run together",
+      "id": "corridor-along-wall"
+    },
+    {
+      "path": "corridors[5]",
+      "message": "runs along r2's wall for 0.5 cells with no wall drawn between them, so the floors run together",
+      "id": "corridor-along-wall"
+    },
+    {
+      "path": "corridors[1].doors",
+      "message": "the door at 5.5,8.0 stands in open floor, not on a wall between two floors",
+      "id": "door-off-wall"
+    },
+    {
+      "path": "corridors[4].doors",
+      "message": "the secret at 6.0,6.5 stands in open floor, not on a wall between two floors",
+      "id": "door-off-wall"
     }
   ]
 }
@@ -7441,7 +7838,15 @@ exit 0
       "length": {
         "map": 2,
         "scale": 10
-      }
+      },
+      "path": [
+        4,
+        6.5,
+        4.5,
+        6.5,
+        4.5,
+        3
+      ]
     },
     {
       "index": 1,
@@ -7459,7 +7864,13 @@ exit 0
       "length": {
         "map": 2,
         "scale": 10
-      }
+      },
+      "path": [
+        5.5,
+        6.5,
+        5.5,
+        13
+      ]
     },
     {
       "index": 2,
@@ -7477,7 +7888,13 @@ exit 0
       "length": {
         "map": 2.3,
         "scale": 11.5
-      }
+      },
+      "path": [
+        6.5,
+        14.5,
+        13.5,
+        14.5
+      ]
     },
     {
       "index": 3,
@@ -7495,7 +7912,15 @@ exit 0
       "length": {
         "map": 7.6,
         "scale": 38
-      }
+      },
+      "path": [
+        13.5,
+        15.5,
+        22.5,
+        15.5,
+        22.5,
+        11.5
+      ]
     },
     {
       "index": 4,
@@ -7513,7 +7938,15 @@ exit 0
       "length": {
         "map": 17,
         "scale": 85
-      }
+      },
+      "path": [
+        4.5,
+        6.5,
+        22.5,
+        6.5,
+        22.5,
+        11.5
+      ]
     },
     {
       "index": 5,
@@ -7534,7 +7967,15 @@ exit 0
       "length": {
         "map": 25.5,
         "scale": 127.5
-      }
+      },
+      "path": [
+        4.5,
+        6.5,
+        24,
+        6.5,
+        24,
+        14
+      ]
     }
   ],
   "exits": [
@@ -7620,6 +8061,497 @@ exit 0
   ],
   "unreached": [
     "r5"
+  ],
+  "doors": [
+    {
+      "kind": "door",
+      "at": [
+        4.5,
+        5
+      ],
+      "angle": 270,
+      "width": 1,
+      "corridor": 0,
+      "connection": null,
+      "wall": [
+        [
+          "room:r1",
+          "corridor:0"
+        ],
+        [
+          "corridor:0"
+        ]
+      ],
+      "on": "wall"
+    },
+    {
+      "kind": "door",
+      "at": [
+        5.5,
+        8
+      ],
+      "angle": 90,
+      "width": 1,
+      "corridor": 1,
+      "connection": null,
+      "wall": [
+        [
+          "room:r1",
+          "room:r5",
+          "corridor:1"
+        ],
+        [
+          "room:r5",
+          "corridor:1"
+        ]
+      ],
+      "on": "open"
+    },
+    {
+      "kind": "secret",
+      "at": [
+        5.5,
+        10
+      ],
+      "angle": 270,
+      "width": 1,
+      "corridor": 1,
+      "connection": null,
+      "wall": [
+        [
+          "room:r3",
+          "corridor:1"
+        ],
+        [
+          "room:r5",
+          "corridor:1"
+        ]
+      ],
+      "on": "wall"
+    },
+    {
+      "kind": "door",
+      "at": [
+        9,
+        14.5
+      ],
+      "angle": 0,
+      "width": 1,
+      "corridor": 2,
+      "connection": null,
+      "wall": [
+        [
+          "room:r3",
+          "corridor:2"
+        ],
+        [
+          "corridor:2"
+        ]
+      ],
+      "on": "wall"
+    },
+    {
+      "kind": "door",
+      "at": [
+        22.5,
+        15
+      ],
+      "angle": 90,
+      "width": 1,
+      "corridor": 3,
+      "connection": null,
+      "wall": [
+        [
+          "room:r2",
+          "corridor:3"
+        ],
+        [
+          "corridor:3"
+        ]
+      ],
+      "on": "wall"
+    },
+    {
+      "kind": "secret",
+      "at": [
+        6,
+        6.5
+      ],
+      "angle": 0,
+      "width": 1,
+      "corridor": 4,
+      "connection": null,
+      "wall": [
+        [
+          "room:r1",
+          "room:r5",
+          "corridor:1",
+          "corridor:4",
+          "corridor:5"
+        ],
+        [
+          "room:r5",
+          "corridor:4",
+          "corridor:5"
+        ]
+      ],
+      "on": "open"
+    },
+    {
+      "kind": "door",
+      "at": [
+        22.5,
+        7
+      ],
+      "angle": 270,
+      "width": 1,
+      "corridor": 4,
+      "connection": null,
+      "wall": [
+        [
+          "room:r2",
+          "corridor:4"
+        ],
+        [
+          "corridor:4",
+          "corridor:5"
+        ]
+      ],
+      "on": "wall"
+    }
+  ],
+  "floor": {
+    "owners": [
+      "room:r1",
+      "room:r2",
+      "room:r3",
+      "room:r4",
+      "room:r5",
+      "corridor:0",
+      "corridor:1",
+      "corridor:2",
+      "corridor:3",
+      "corridor:4",
+      "corridor:5"
+    ],
+    "rows": [
+      [
+        -1,
+        27
+      ],
+      [
+        -1,
+        27
+      ],
+      [
+        -1,
+        4,
+        5,
+        1,
+        -1,
+        22
+      ],
+      [
+        -1,
+        4,
+        5,
+        1,
+        -1,
+        22
+      ],
+      [
+        -1,
+        4,
+        5,
+        1,
+        -1,
+        22
+      ],
+      [
+        -1,
+        2,
+        0,
+        4,
+        -1,
+        21
+      ],
+      [
+        -1,
+        2,
+        0,
+        4,
+        4,
+        1,
+        9,
+        16,
+        10,
+        2,
+        -1,
+        2
+      ],
+      [
+        -1,
+        2,
+        0,
+        4,
+        4,
+        1,
+        -1,
+        13,
+        1,
+        4,
+        10,
+        1,
+        -1,
+        2
+      ],
+      [
+        -1,
+        3,
+        4,
+        4,
+        -1,
+        13,
+        1,
+        4,
+        10,
+        1,
+        -1,
+        2
+      ],
+      [
+        -1,
+        3,
+        4,
+        4,
+        -1,
+        13,
+        1,
+        4,
+        10,
+        1,
+        -1,
+        2
+      ],
+      [
+        -1,
+        4,
+        2,
+        5,
+        -1,
+        11,
+        1,
+        4,
+        10,
+        1,
+        -1,
+        2
+      ],
+      [
+        -1,
+        4,
+        2,
+        5,
+        -1,
+        11,
+        1,
+        4,
+        10,
+        1,
+        -1,
+        2
+      ],
+      [
+        -1,
+        4,
+        2,
+        5,
+        -1,
+        4,
+        3,
+        2,
+        -1,
+        5,
+        1,
+        4,
+        10,
+        1,
+        -1,
+        2
+      ],
+      [
+        -1,
+        4,
+        2,
+        5,
+        -1,
+        3,
+        3,
+        3,
+        -1,
+        5,
+        1,
+        4,
+        10,
+        1,
+        -1,
+        2
+      ],
+      [
+        -1,
+        4,
+        2,
+        5,
+        7,
+        2,
+        3,
+        5,
+        -1,
+        4,
+        1,
+        4,
+        10,
+        1,
+        -1,
+        2
+      ],
+      [
+        -1,
+        4,
+        2,
+        5,
+        -1,
+        2,
+        3,
+        4,
+        8,
+        8,
+        -1,
+        4
+      ],
+      [
+        -1,
+        12,
+        3,
+        3,
+        -1,
+        12
+      ],
+      [
+        -1,
+        12,
+        3,
+        3,
+        -1,
+        12
+      ],
+      [
+        -1,
+        12,
+        3,
+        3,
+        -1,
+        12
+      ],
+      [
+        -1,
+        27
+      ],
+      [
+        -1,
+        27
+      ]
+    ]
+  },
+  "adjacent": [
+    {
+      "a": "room:r1",
+      "b": "room:r5",
+      "along": {
+        "map": 5,
+        "scale": 25
+      }
+    },
+    {
+      "a": "room:r1",
+      "b": "corridor:0",
+      "along": {
+        "map": 1,
+        "scale": 5
+      }
+    },
+    {
+      "a": "room:r2",
+      "b": "corridor:3",
+      "along": {
+        "map": 3,
+        "scale": 15
+      }
+    },
+    {
+      "a": "room:r2",
+      "b": "corridor:4",
+      "along": {
+        "map": 3,
+        "scale": 15
+      }
+    },
+    {
+      "a": "room:r2",
+      "b": "corridor:5",
+      "along": {
+        "map": 9,
+        "scale": 45
+      }
+    },
+    {
+      "a": "room:r3",
+      "b": "room:r5",
+      "along": {
+        "map": 3,
+        "scale": 15
+      }
+    },
+    {
+      "a": "room:r3",
+      "b": "corridor:2",
+      "along": {
+        "map": 1,
+        "scale": 5
+      }
+    },
+    {
+      "a": "room:r4",
+      "b": "corridor:2",
+      "along": {
+        "map": 1,
+        "scale": 5
+      }
+    },
+    {
+      "a": "room:r4",
+      "b": "corridor:3",
+      "along": {
+        "map": 2,
+        "scale": 10
+      }
+    },
+    {
+      "a": "room:r5",
+      "b": "corridor:4",
+      "along": {
+        "map": 1,
+        "scale": 5
+      }
+    },
+    {
+      "a": "corridor:4",
+      "b": "corridor:5",
+      "along": {
+        "map": 1,
+        "scale": 5
+      }
+    }
   ]
 }
 

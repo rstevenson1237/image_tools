@@ -151,8 +151,11 @@ describe('dungeon facts: setting-builder', () => {
     d.corridors = [{ from: { room: 'a' }, to: { room: 'd' }, doors: ['door', null] }, { from: { at: [1, 1] }, to: { room: 'a' } }, { from: { room: 'd' }, to: { at: [30, 5] }, doors: [null, 'secret'] }];
     writeFileSync(f, JSON.stringify(d));
     expect(sorted(await json('dungeon', 'facts', '--file', f))).toEqual([
-      'corridors[].doors[]', 'corridors[].from.at[]', 'corridors[].from.room', 'corridors[].index', 'corridors[].length.map', 'corridors[].length.scale', 'corridors[].to.at[]', 'corridors[].to.room', 'corridors[].width',
+      'adjacent[].a', 'adjacent[].along.map', 'adjacent[].along.scale', 'adjacent[].b',
+      'corridors[].doors[]', 'corridors[].from.at[]', 'corridors[].from.room', 'corridors[].index', 'corridors[].length.map', 'corridors[].length.scale', 'corridors[].path[]', 'corridors[].to.at[]', 'corridors[].to.room', 'corridors[].width',
+      'doors[].angle', 'doors[].at[]', 'doors[].connection', 'doors[].corridor', 'doors[].kind', 'doors[].on', 'doors[].wall[][]', 'doors[].width',
       'exits[].at[]', 'exits[].corridor', 'exits[].distance.map', 'exits[].distance.scale', 'exits[].door', 'exits[].edge', 'exits[].end', 'exits[].room',
+      'floor.owners[]', 'floor.rows[][]',
       'id', 'overlaps[].box.cells.h', 'overlaps[].box.cells.w', 'overlaps[].box.cells.x', 'overlaps[].box.cells.y', 'overlaps[].box.scale.h', 'overlaps[].box.scale.w', 'overlaps[].box.scale.x', 'overlaps[].box.scale.y',
       'overlaps[].cells[][]', 'overlaps[].count', 'overlaps[].rooms[]',
       'rooms[].box.cells.h', 'rooms[].box.cells.w', 'rooms[].box.cells.x', 'rooms[].box.cells.y', 'rooms[].box.scale.h', 'rooms[].box.scale.w', 'rooms[].box.scale.x', 'rooms[].box.scale.y',

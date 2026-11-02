@@ -31,7 +31,7 @@ describe('dungeon facts', () => {
 
   test('a corridor states its ends, doors, width and its length between the rooms it joins', () => {
     const [out, between] = dungeonFacts(spec()).corridors;
-    expect(out).toEqual({ index: 0, from: { room: 'a' }, to: { at: [18, 3.5] }, width: 1, doors: ['door', 'secret'], length: { map: 12, scale: 60 } });
+    expect(out).toEqual({ index: 0, from: { room: 'a' }, to: { at: [18, 3.5] }, width: 1, doors: ['door', 'secret'], length: { map: 12, scale: 60 }, path: [4.5, 3.5, 18, 3.5, 18, 3.5] });
     expect(between).toMatchObject({ index: 1, from: { room: 'b' }, to: { room: 'd' }, doors: [null, null], width: 1 });
     expect(between.length.map).toBeGreaterThanOrEqual(0);
     expect(between.length.scale).toBe(Math.round(between.length.map * 5 * 10) / 10);
@@ -63,5 +63,37 @@ describe('dungeon facts', () => {
   test('the same dungeon gives the same facts, byte for byte', () => {
     const d = spec();
     expect(JSON.stringify(dungeonFacts(d))).toBe(JSON.stringify(dungeonFacts(structuredClone(d))));
+  });
+
+  test('each door says what it stands between: a wall between a room and its corridor, a connection between two rooms', () => {
+    const s = newDungeon('w', {
+      cols: 20, rows: 10, rooms: [{ id: 'a', shape: 'rect', x: 1, y: 1, w: 4, h: 4 }, { id: 'b', shape: 'rect', x: 5, y: 1, w: 4, h: 4 }, { id: 'c', shape: 'rect', x: 14, y: 1, w: 4, h: 4 }],
+      corridors: [{ from: { room: 'b' }, to: { room: 'c' }, doors: ['door', 'locked'] }], connections: [{ a: 'a', b: 'b', kind: 'secret' }],
+    });
+    const f = dungeonFacts(s);
+    expect(f.doors.map(d => [d.kind, d.on, d.wall])).toEqual([
+      ['door', 'wall', [['room:b', 'corridor:0'], ['corridor:0']]],
+      ['locked', 'wall', [['room:c', 'corridor:0'], ['corridor:0']]],
+      ['secret', 'wall', [['room:a'], ['room:b']]],
+    ]);
+    expect(f.doors[0]).toMatchObject({ at: [9, 3.5], angle: 0, width: 1, corridor: 0, connection: null });
+    expect(f.doors[2]).toMatchObject({ at: [5, 3.5], corridor: null, connection: 0 });
+  });
+
+  test('a door in open floor or on rock says so: rooms laid over each other', () => {
+    // the rooms overlap; the only edge they share is their top wall, so the connection's door stands on the outer wall, on rock
+    const s = newDungeon('o', { cols: 12, rows: 8, rooms: [{ id: 'a', shape: 'rect', x: 1, y: 1, w: 6, h: 4 }, { id: 'b', shape: 'rect', x: 4, y: 1, w: 6, h: 4 }], corridors: [], connections: [{ a: 'a', b: 'b', at: [5, 3] }] });
+    // a corridor's door on a's wall, but inside big: the floor runs on through it
+    const t2 = newDungeon('o2', { cols: 14, rows: 8, rooms: [{ id: 'a', shape: 'rect', x: 1, y: 1, w: 4, h: 4 }, { id: 'big', shape: 'rect', x: 4, y: 0, w: 8, h: 7 }], corridors: [{ from: { room: 'a' }, to: { at: [13, 3] }, doors: ['door', null] }] });
+    expect(dungeonFacts(s).doors.map(d => d.on)).toEqual(['rock']);
+    expect(dungeonFacts(t2).doors[0].on).toBe('open');
+  });
+
+  test('the floor: which unit owns each cell, as runs per row, and which units meet', () => {
+    const s = newDungeon('g', { cols: 10, rows: 4, rooms: [{ id: 'a', shape: 'rect', x: 1, y: 0, w: 3, h: 3 }, { id: 'b', shape: 'rect', x: 4, y: 0, w: 2, h: 3 }], corridors: [{ from: { room: 'b' }, to: { at: [9, 1.5] } }] });
+    const f = dungeonFacts(s);
+    expect(f.floor.owners).toEqual(['room:a', 'room:b', 'corridor:0']);
+    expect(f.floor.rows).toEqual([[-1, 1, 0, 3, 1, 2, -1, 4], [-1, 1, 0, 3, 1, 2, 2, 4], [-1, 1, 0, 3, 1, 2, -1, 4], [-1, 10]]);
+    expect(f.adjacent).toEqual([{ a: 'room:a', b: 'room:b', along: { map: 3, scale: 15 } }, { a: 'room:b', b: 'corridor:0', along: { map: 1, scale: 5 } }]);
   });
 });

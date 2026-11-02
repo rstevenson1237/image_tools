@@ -1,7 +1,8 @@
 /**
  * Facts read back from a dungeon (`artgen dungeon facts`): the layout a validator checks and a writer cites, stated as
- * numbers: each room's box, the corridors between them, where they leave the map, which rooms overlap and which no
- * corridor reaches.
+ * numbers: each room's box, the corridors between them and the path each takes, every door and the two floors it stands
+ * between, which unit owns each cell, which units meet, where corridors leave the map, which rooms overlap and which no
+ * corridor reaches. All of it is read from the layout the renderer draws.
  *
  * Everything is in cells and in the map's own scale unit (`scale.unit`). Positions, lengths and distances are rounded
  * to {@link RULES}.position cells, and a scale-unit value is the rounded cell value times `scale.perCell`, to the same
@@ -9,6 +10,7 @@
  * (see `format.ts`).
  */
 import { roundTo } from 'artgen-primitives/lib/round.ts';
+import { adjacency, doorStand, floorGrid, gridRows, ownerName, type DoorStand } from './floor.ts';
 import { inPolygon, layoutDungeon, type DungeonLayout } from './layout.ts';
 import { wallFacts, type WallFacts } from './walls.ts';
 import type { CorridorEnd, DoorKind, DungeonSpec } from './spec.ts';
@@ -57,7 +59,30 @@ export interface CorridorFacts {
   length: Length;
   /** Where it joins another corridor (a `{corridor: id}` end): the corridor's index and the point; absent when it joins none. */
   joins?: { corridor: number; at: Point }[];
+  /** The centre line as drawn, after `via`, `route` and the ports: x,y pairs in cells, from its `from` end to its `to` end. */
+  path: number[];
 }
+
+/**
+ * A door as drawn: where it stands, the way through it (degrees, 0 east, clockwise on the page), its width, what drew it (a
+ * corridor's end or a connection), the units behind and ahead of it (`room:<id>`, `corridor:<index>`; empty for rock), and what
+ * it stands on: `wall` (between two floors), `open` (in open floor), `rock`, or `end` (a corridor's point end).
+ */
+export interface DoorFacts {
+  kind: DoorKind; at: Point; angle: number; width: number;
+  corridor: number | null; connection: number | null;
+  wall: [string[], string[]];
+  on: DoorStand['on'];
+}
+
+/** Two units whose floors meet edge to edge on the grid of cells, and how far (cells, and the scale unit). */
+export interface AdjacentFacts { a: string; b: string; along: Length }
+
+/**
+ * Which unit owns each cell (by its centre): `owners` names them (`room:<id>`, then `corridor:<index>`), and each row of `rows` is
+ * runs of an index into `owners` and a count of cells (-1 is rock): `[-1, 4, 0, 6, -1, 10]` is 4 cells of rock, 6 of the first unit, 10 of rock.
+ */
+export interface FloorFacts { owners: string[]; rows: number[][] }
 
 export interface ExitFacts {
   corridor: number;
@@ -96,6 +121,9 @@ export interface DungeonFacts {
   overlaps: OverlapFacts[];
   /** Rooms no corridor starts or ends at and no connection joins. */
   unreached: string[];
+  doors: DoorFacts[];
+  floor: FloorFacts;
+  adjacent: AdjacentFacts[];
   /** Each wall's corners, towers and gates and the rooms it encloses (only when the file has `walls`). */
   walls?: WallFacts[];
 }
@@ -123,7 +151,7 @@ export function dungeonFacts(spec: DungeonSpec, layout: DungeonLayout = layoutDu
     for (let i = 2; i < geom.pts.length; i += 2) run += Math.hypot(geom.pts[i] - geom.pts[i - 2], geom.pts[i + 1] - geom.pts[i - 1]);
     run = Math.max(0, run - (geom.ends[0]?.along ?? 0) - (geom.ends[1]?.along ?? 0));
     const joins = ends.flatMap((side, k) => { const e = c[side]; if (!('corridor' in e)) return []; const j = spec.corridors.findIndex(x => x.id === e.corridor), p = geom.ends[k]; return j >= 0 && p ? [{ corridor: j, at: pt(p.x, p.y) }] : []; });
-    corridors.push({ index, from: c.from, to: c.to, width: geom.width, doors, length: length(run), ...(joins.length && { joins }) });
+    corridors.push({ index, from: c.from, to: c.to, width: geom.width, doors, length: length(run), ...(joins.length && { joins }), path: geom.pts.map(rnd) });
     ends.forEach((side, k) => {
       const e = c[side], p = geom.ends[k], other = roomOf(c[ends[1 - k]]);
       if ('room' in e) {
@@ -155,9 +183,21 @@ export function dungeonFacts(spec: DungeonSpec, layout: DungeonLayout = layoutDu
     overlaps.push({ rooms: [A.room.id, B.room.id], cells, count: cells.length, box: box({ x: bx, y: by, w: Math.max(...xs) + 1 - bx, h: Math.max(...ys) + 1 - by }) });
   }
 
+  const grid = floorGrid(spec, layout), names = grid.owners.map(o => ownerName(spec, o));
+  const doorFacts: DoorFacts[] = layout.doors.map(d => {
+    const s = doorStand(spec, layout, d);
+    return {
+      kind: d.kind, at: pt(d.x, d.y), angle: roundTo(((d.angle % 360) + 360) % 360, RULES.position), width: d.width,
+      corridor: d.corridor >= 0 ? d.corridor : null, connection: d.connection ?? null,
+      wall: [s.behind.map(o => ownerName(spec, o)), s.ahead.map(o => ownerName(spec, o))], on: s.on,
+    };
+  });
+
   return {
     version: spec.version, id: spec.id, size: { cols: spec.cols, rows: spec.rows }, unit: { map: 'cell', scale: spec.scale.unit }, rules: RULES,
     rooms, corridors, exits, overlaps, unreached: rooms.filter(r => !reached.has(r.id)).map(r => r.id),
+    doors: doorFacts, floor: { owners: names, rows: gridRows(grid) },
+    adjacent: adjacency(grid).map(a => ({ a: names[a.a], b: names[a.b], along: length(a.along) })),
     ...(spec.walls?.length && { walls: wallFacts(spec, layout) }),
   };
 }

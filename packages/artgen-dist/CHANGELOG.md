@@ -17,6 +17,22 @@ Releases of the committed install (`artgen-dist`), the MCP server, the runtime i
 - `report --file` writes the bundle to `artgen-feedback/<date>-<id>/` at the repo root (the git top level, else the file's folder), which
   ignores itself, instead of beside the file. `--made-by "<command>"` records the consumer's own command that wrote the file.
 
+**Dungeon geometry out, defects in (R9 D1)**
+- `dungeon facts` adds each corridor's drawn `path`; `doors[]`, every door with where it stands, the way through it, its width, what drew it,
+  the units behind and ahead of it (`room:<id>`, `corridor:<index>`) and what it stands on (`wall`, `open`, `rock`, or `end` at a point end);
+  `floor`, which unit owns each cell, as runs per row; and `adjacent[]`, the units whose cells meet and how far. All of it is read from the
+  layout the renderer draws (`floor.ts`).
+- Every `dungeon check` finding has a stable `id` (`CHECK_IDS`; `[id]` in the text output). New: `door-off-wall` (a door in open floor or on
+  rock), `doors-stacked` (two openings on each other), `rooms-merge` (floor rooms touching while shared walls are off), `corridor-along-wall`
+  (a corridor's floor on a room's wall with no wall drawn between them), `way-no-passage` (a corridor between rooms that touch, or a connection
+  between rooms that share no wall), `port-outside-room` (a room end whose path starts outside the room) and `reenters-room` (a corridor that
+  leaves a room and runs back into it, over the rock between: the notch of an L). `check --errors id,id|all` reports chosen warnings as errors.
+- Consumer fixtures `setting-builder/g-level` and `h-level` (packed levels, sent with `artgen report --file … --made-by …` and taken in with
+  `npm run intake`): every door on a wall, a path per corridor, and the one `corridor-along-wall` H.a has.
+- Settled with tests (report 2, A17): a sync replaces an origin's corridor whole, so no `side` or `offset` is left behind; rooms meeting in a
+  partial overlap of their walls get the whole shared stretch as a wall, and corner to corner none; an anticlockwise poly lays out as the
+  clockwise one; a connection wider than its wall is drawn whole, and `check` says the wall is too short.
+
 ## 0.11.0 — 2026-10-25
 
 Settlement maps (villages, towns, cities and castles, with each building's floor plans) join terrain maps and

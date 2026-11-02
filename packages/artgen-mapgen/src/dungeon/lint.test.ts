@@ -20,7 +20,7 @@ describe('lintDungeon', () => {
     const off = base({ rooms: [{ id: 'x', shape: 'rect', x: 27, y: 2, w: 6, h: 4 }, { id: 'y', shape: 'rect', x: 40, y: 2, w: 2, h: 2 }] });
     expect(D.lintDungeon(off).map(f => f.message)).toEqual([expect.stringContaining('runs off the sheet'), expect.stringContaining('is off the sheet')]);
     const over = base({ rooms: [{ id: 'a', shape: 'rect', x: 2, y: 2, w: 6, h: 4 }, { id: 'b', shape: 'rect', x: 5, y: 3, w: 6, h: 4 }, { id: 'c', shape: 'rect', x: 4, y: 3, w: 2, h: 2, fill: 'cellar' }] });
-    expect(D.lintDungeon(over)).toEqual([{ severity: 'warning', path: 'rooms[1]', message: expect.stringMatching(/b lies over a \(9 cells\)/) }]);
+    expect(D.lintDungeon(over)).toEqual([{ severity: 'warning', path: 'rooms[1]', id: 'rooms-overlap', message: expect.stringMatching(/b lies over a \(9 cells\)/) }]);
   });
 
   test('corridors: through a third room, crossing another, never leaving a room, ending inside one, a repeated bend', () => {
@@ -51,6 +51,79 @@ describe('lintDungeon', () => {
     });
     expect(paths(s)).toEqual(['warning overlay.symbols[0]', 'warning overlay.symbols[1]', 'warning overlay.labels[1]', 'warning overlay.labels[2]']);
     expect(paths({ ...s, numbers: false })).not.toContain('warning overlay.symbols[0]');
+  });
+});
+
+describe('drawing defects a consumer used to find by rebuilding the floor (R9 D1)', () => {
+  const ids = (s: D.DungeonSpec) => D.lintDungeon(s).map(f => `${f.id} ${f.path}`);
+  test('every finding has an id from CHECK_IDS', () => {
+    const s = base({ rooms: [{ id: 'a', shape: 'rect', x: 2, y: 2, w: 6, h: 4 }, { id: 'b', shape: 'rect', x: 5, y: 3, w: 6, h: 4 }], corridors: [{ from: { room: 'a' }, to: { at: [40, 3] } }] });
+    for (const f of D.lintDungeon(s)) expect(Object.keys(D.CHECK_IDS)).toContain(f.id);
+  });
+
+  test('rooms-merge: floor rooms that touch while shared walls are off', () => {
+    const rooms: D.Room[] = [{ id: 'a', shape: 'rect', x: 2, y: 2, w: 4, h: 4 }, { id: 'b', shape: 'rect', x: 6, y: 2, w: 4, h: 4 }];
+    expect(ids(base({ rooms, style: { ...D.DEFAULTS.style, sharedWalls: false } }))).toEqual(['rooms-merge rooms[1]']);
+    expect(ids(base({ rooms, style: { ...D.DEFAULTS.style, sharedWalls: true } }))).toEqual([]);
+  });
+
+  test('corridor-along-wall: a corridor laid against a room\'s wall, with nothing drawn between them', () => {
+    const rooms: D.Room[] = [{ id: 'a', shape: 'rect', x: 2, y: 2, w: 4, h: 4 }, { id: 'm', shape: 'rect', x: 8, y: 2, w: 6, h: 3 }, { id: 'b', shape: 'rect', x: 16, y: 2, w: 4, h: 4 }];
+    // from a's east wall along m's south wall (y 5) to b: the band y 5..6 touches m along x 8..14
+    const s = base({ rooms, corridors: [{ from: { room: 'a', side: 'e', offset: 3.5 }, to: { room: 'b', side: 'w', offset: 3.5 } }] });
+    expect(D.lintDungeon(s).filter(f => f.id === 'corridor-along-wall').map(f => f.message)).toEqual([expect.stringMatching(/runs along m's wall for 6\.0 cells/)]);
+  });
+
+  test('door-off-wall and doors-stacked: a door in open floor, on rock, or on another door', () => {
+    const rooms: D.Room[] = [{ id: 'a', shape: 'rect', x: 2, y: 2, w: 4, h: 4 }, { id: 'big', shape: 'rect', x: 5, y: 1, w: 8, h: 8 }, { id: 'c', shape: 'rect', x: 20, y: 2, w: 4, h: 4 }];
+    const s = base({ rooms, corridors: [{ from: { room: 'a' }, to: { at: [29, 4] }, doors: ['door', null] }, { from: { room: 'c', side: 'w' }, to: { room: 'big', side: 'e' }, doors: ['door', 'door'] }, { from: { room: 'c', side: 'w' }, to: { at: [16, 4.5] }, doors: ['locked', null] }] });
+    expect(ids(s)).toEqual(expect.arrayContaining(['door-off-wall corridors[0].doors', 'doors-stacked corridors[2].doors']));
+  });
+
+  test('port-outside-room and reenters-room: an L-shaped room\'s corridor that starts outside it, or crosses its notch', () => {
+    const L = [2, 2, 10, 2, 10, 4, 4, 4, 4, 10, 2, 10], a: D.Room = { id: 'a', shape: 'poly', points: L, ...D.polyBox(L) };
+    // the anchor sits in the top arm (6, 3); a room lined up with the bottom arm gets a straight run starting at the anchor's x, outside a
+    const lined = base({ rooms: [a, { id: 'c', shape: 'rect', x: 14, y: 8, w: 4, h: 4 }], corridors: [{ from: { room: 'a' }, to: { room: 'c' }, doors: ['door', null] }] });
+    expect(ids(lined)).toEqual(['port-outside-room corridors[0].from']);
+    // a via from the anchor down into the bottom arm leaves a over the notch and comes back in
+    const notch = base({ rooms: [a, { id: 'b', shape: 'rect', x: 14, y: 8, w: 4, h: 4 }], corridors: [{ from: { room: 'a' }, to: { room: 'b' }, via: [3, 9, 14.5, 9] }] });
+    expect(ids(notch)).toEqual(['reenters-room corridors[0].from']);
+  });
+
+  test('way-no-passage: a corridor between rooms that touch draws nothing; a connection between rooms that share no wall', () => {
+    const rooms: D.Room[] = [{ id: 'a', shape: 'rect', x: 2, y: 2, w: 4, h: 4 }, { id: 'b', shape: 'rect', x: 6, y: 2, w: 4, h: 4 }, { id: 'c', shape: 'rect', x: 20, y: 2, w: 4, h: 4 }];
+    expect(ids(base({ rooms, corridors: [{ from: { room: 'a' }, to: { room: 'b' } }], connections: [{ a: 'a', b: 'c' }] }))).toEqual(['way-no-passage corridors[0]', 'way-no-passage connections[0]']);
+  });
+});
+
+describe('not isolated in report 2 (A17), settled', () => {
+  test('two rooms meeting in a partial overlap of their walls get the whole shared stretch as a wall', () => {
+    const s = base({ style: { ...D.DEFAULTS.style, sharedWalls: true }, rooms: [{ id: 'a', shape: 'rect', x: 2, y: 2, w: 4, h: 4 }, { id: 'b', shape: 'rect', x: 6, y: 4, w: 4, h: 4 }] });
+    expect(D.layoutDungeon(s).partitions).toEqual([[6, 4, 6, 6]]);
+    // corner to corner: no stretch, no wall
+    expect(D.layoutDungeon({ ...s, rooms: [s.rooms[0], { ...s.rooms[1], y: 6 }] }).partitions).toEqual([]);
+  });
+
+  test('sync replaces an origin\'s corridor whole: an end that turns from a side port to a waypointed one keeps no side or offset', () => {
+    const rooms: D.Room[] = [{ id: 'a', shape: 'rect', x: 2, y: 2, w: 4, h: 4, origin: 'tables' }, { id: 'b', shape: 'rect', x: 14, y: 2, w: 4, h: 4, origin: 'tables' }];
+    const old = base({ rooms, corridors: [{ from: { room: 'a', side: 'e', offset: 1.5 }, to: { room: 'b', side: 'w', offset: 1.5 }, origin: 'tables' }] });
+    const fresh = base({ rooms, corridors: [{ from: { room: 'a' }, to: { room: 'b' }, via: [4, 9, 16, 9], origin: 'tables' }] });
+    expect(D.syncDungeon(old, fresh, 'tables').spec.corridors).toEqual([{ from: { room: 'a' }, to: { room: 'b' }, via: [4, 9, 16, 9], origin: 'tables' }]);
+  });
+
+  test('a poly drawn anticlockwise lays out as the clockwise one: the same walls, doors and facts', () => {
+    const cw = [2, 2, 10, 2, 10, 4, 4, 4, 4, 10, 2, 10], ccw: number[] = [];
+    for (let i = cw.length - 2; i >= 0; i -= 2) ccw.push(cw[i], cw[i + 1]);
+    const at = (pts: number[]) => base({ style: { ...D.DEFAULTS.style, sharedWalls: true }, rooms: [{ id: 'a', shape: 'poly', points: pts, ...D.polyBox(pts) }, { id: 'b', shape: 'rect', x: 10, y: 2, w: 4, h: 2 }, { id: 'c', shape: 'rect', x: 14, y: 8, w: 4, h: 4 }], connections: [{ a: 'a', b: 'b' }], corridors: [{ from: { room: 'a' }, to: { room: 'c' }, doors: ['door', null] }] });
+    const seg = (p: number[]) => (p[0] < p[2] || (p[0] === p[2] && p[1] <= p[3]) ? p : [p[2], p[3], p[0], p[1]]);
+    const f = (s: D.DungeonSpec) => { const x = D.dungeonFacts(s); return JSON.stringify([x.doors, x.corridors, x.adjacent, D.layoutDungeon(s).partitions.map(seg)]); };
+    expect(f(at(ccw))).toBe(f(at(cw)));
+  });
+
+  test('a connection wider than the wall the rooms share is drawn whole, and check says the wall is too short', () => {
+    const s = base({ rooms: [{ id: 'a', shape: 'rect', x: 2, y: 2, w: 4, h: 4 }, { id: 'b', shape: 'rect', x: 6, y: 5, w: 4, h: 4 }], connections: [{ a: 'a', b: 'b', width: 2 }] });
+    expect(D.layoutDungeon(s).doors[0]).toMatchObject({ width: 2, inner: true });
+    expect(D.lintDungeon(s).map(f => f.id)).toContain('wall-too-short');
   });
 });
 

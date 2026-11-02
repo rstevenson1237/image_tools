@@ -105,7 +105,7 @@ _OPS: dict[str, tuple[tuple[str, ...], tuple[str, ...], dict[str, tuple[str, str
     "dungeon.fit": (("dungeon", "fit"), ("id",), {"file": ("--file", "value"), "margin": ("--margin", "value")}),
     "dungeon.label": (("dungeon", "label"), ("id", "text"), {"file": ("--file", "value"), "at": ("--at", "value"), "kind": ("--kind", "value"), "size": ("--size", "value"), "angle": ("--angle", "value"), "href": ("--href", "value"), "origin": ("--origin", "value")}),
     "dungeon.symbol": (("dungeon", "symbol"), ("id", "kind"), {"file": ("--file", "value"), "at": ("--at", "value"), "scale": ("--scale", "value"), "angle": ("--angle", "value"), "origin": ("--origin", "value")}),
-    "dungeon.check": (("dungeon", "check"), ("id",), {"file": ("--file", "value")}),
+    "dungeon.check": (("dungeon", "check"), ("id",), {"file": ("--file", "value"), "errors": ("--errors", "list")}),
     "dungeon.overlay": (("dungeon", "overlay"), ("id", "action", "which", "index"), {"file": ("--file", "value"), "add_labels": ("--add-labels", "json"), "add_symbols": ("--add-symbols", "json"), "remove_labels": ("--remove-labels", "list"), "remove_symbols": ("--remove-symbols", "list"), "clear": ("--clear", "value")}),
     "dungeon.render": (("dungeon", "render"), ("id",), {"file": ("--file", "value"), "ppu": ("--ppu", "value"), "layers": ("--layers", "value"), "format": ("--format", "value"), "fit": ("--fit", "value"), "page_scale": ("--page-scale", "value"), "crop": ("--crop", "value"), "room": ("--room", "repeat"), "margin": ("--margin", "value"), "out": ("--out", "value")}),
     "dungeon.facts": (("dungeon", "facts"), ("id",), {"file": ("--file", "value")}),
@@ -552,9 +552,9 @@ class Ops:
         """Add a symbol to a dungeon. (artgen dungeon symbol)"""
         return self._op("dungeon.symbol", [id, kind], {"file": file, "at": at, "scale": scale, "angle": angle, "origin": origin})
 
-    def dungeon_check(self, id: Optional[str] = None, *, file: Optional[str] = None) -> "Result":
+    def dungeon_check(self, id: Optional[str] = None, *, file: Optional[str] = None, errors: Optional[Sequence[str]] = None) -> "Result":
         """Check a dungeon file: every error with its JSON path, then drawing errors and warnings. (artgen dungeon check)"""
-        return self._op("dungeon.check", [id], {"file": file})
+        return self._op("dungeon.check", [id], {"file": file, "errors": errors})
 
     def dungeon_overlay(self, id: Optional[str] = None, action: Optional[str] = None, which: Optional[str] = None, index: Optional[str] = None, *, file: Optional[str] = None, add_labels: Optional[Any] = None, add_symbols: Optional[Any] = None, remove_labels: Optional[Sequence[float]] = None, remove_symbols: Optional[Sequence[float]] = None, clear: Optional[str] = None) -> "Result":
         """Remove or clear labels and symbols on a dungeon, or add them as JSON lists. (artgen dungeon overlay)"""

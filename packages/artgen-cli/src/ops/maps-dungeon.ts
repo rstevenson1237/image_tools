@@ -493,15 +493,22 @@ const symbol = defineOp({
 
 const check = defineOp({
   name: 'dungeon.check', module: 'maps', effect: 'read', summary: 'Check a dungeon file: every error with its JSON path, then drawing errors and warnings.',
-  description: 'Check a dungeon: every error in its file with the JSON path (a field out of range, a room id that is not there), then drawing errors and warnings (a room outline that crosses itself, rooms laid over each other, a corridor through a room it does not join or across another, a door never drawn, a mark off the sheet or on a room number). Fix errors before rendering; look at each warning.',
-  params: { id: idParam('the dungeon id', 'dungeon check: <id>'), path: pathParam('dungeon') },
-  run: (i: Inp, ctx) => checkDungeonFile(projectOf(i, ctx), refOf(i)),
+  description: `Check a dungeon: every error in its file with the JSON path (a field out of range, a room id that is not there), then drawing errors and warnings, each with the id of its kind (${Object.keys(dungeon.CHECK_IDS).join(', ')}). Fix errors before rendering; look at each warning. errors: ids of warnings to report as errors (or "all").`,
+  params: {
+    id: idParam('the dungeon id', 'dungeon check: <id>'), path: pathParam('dungeon'),
+    errors: { kind: 'list', item: 'string', doc: 'warning ids to report as errors (or all): door-off-wall,rooms-merge', schema: { type: 'array', items: { type: 'string' } } } as Param,
+  },
+  run(i: Inp, ctx) {
+    const raise = (i.errors as string[] | undefined) ?? [], ids = Object.keys(dungeon.CHECK_IDS);
+    for (const id of raise) if (id !== 'all' && !ids.includes(id)) throw new Error(`--errors: ${id} is not a check id (${ids.join(', ')}, or all)`);
+    return checkDungeonFile(projectOf(i, ctx), refOf(i), raise);
+  },
   cli: {
-    usage: '       artgen dungeon check <id> [--json]   every error in the file with its JSON path, then drawing errors and warnings (a room outline that crosses itself, rooms laid over each other, a corridor through a room it does not join or across another, a door never drawn, a mark off the sheet or on a badge); exits 1 when there are errors',
+    usage: '       artgen dungeon check <id> [--errors id,id|all] [--json]   every error in the file with its JSON path, then drawing errors and warnings, each with its id (door-off-wall, rooms-merge, corridor-along-wall, through-room, …: artgen schema dungeon --checks); --errors reports those warnings as errors; exits 1 when there are errors',
     text(r) {
       const n = (k: number, w: string) => `${k} ${w}${k === 1 ? '' : 's'}`;
       return [r.ok ? `${r.file}: ok${r.warnings.length ? `, ${n(r.warnings.length, 'warning')}` : ''}` : `${r.file}: ${n(r.errors.length, 'error')}${r.warnings.length ? `, ${n(r.warnings.length, 'warning')}` : ''}`,
-        ...r.errors.map((e: { path: string; message: string }) => `  error: ${e.path || '(file)'}: ${e.message}`), ...r.warnings.map((e: { path: string; message: string }) => `  warning: ${e.path || '(file)'}: ${e.message}`)].join('\n');
+        ...r.errors.map((e: dungeon.Issue) => `  error: ${e.path || '(file)'}: ${e.message}${e.id ? ` [${e.id}]` : ''}`), ...r.warnings.map((e: dungeon.Issue) => `  warning: ${e.path || '(file)'}: ${e.message}${e.id ? ` [${e.id}]` : ''}`)].join('\n');
     },
     json: r => V(r), exit: r => (r.ok ? 0 : 1),
   },
