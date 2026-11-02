@@ -297,7 +297,7 @@ describe('maps/ (the maps-only bundle)', () => {
   test('other commands are not in the bundle', () => {
     const r = maps('render', 'art/assets/character/x');
     expect(r.status).toBe(1);
-    expect(r.stderr).toMatch(/map, dungeon, settlement, formats, ui, report, upstream/);
+    expect(r.stderr).toMatch(/map, dungeon, settlement, formats, schema, ui, report, upstream/);
   });
 });
 

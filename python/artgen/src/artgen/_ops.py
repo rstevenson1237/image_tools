@@ -147,6 +147,7 @@ _OPS: dict[str, tuple[tuple[str, ...], tuple[str, ...], dict[str, tuple[str, str
     "settlement.export": (("settlement", "export"), ("id",), {"file": ("--file", "value"), "to": ("--to", "value"), "xml": ("--xml", "switch"), "view": ("--view", "value"), "pack": ("--pack", "value"), "tiles": ("--tiles", "repeat"), "tile": ("--tile", "value"), "seed": ("--seed", "value"), "out": ("--out", "value")}),
     "tileset": (("tileset",), ("asset",), {"pack": ("--pack", "value"), "to": ("--to", "value"), "xml": ("--xml", "switch"), "view": ("--view", "value"), "size": ("--size", "value"), "out": ("--out", "value")}),
     "formats": (("formats",), (), {}),
+    "schema": (("schema",), ("kind",), {"keys": ("--keys", "switch"), "checks": ("--checks", "switch")}),
     "map.brief": (("map", "brief"), ("id",), {"text": ("--text", "value"), "refs": ("--refs", "list")}),
     "map.version": (("map", "version"), ("id",), {"note": ("--note", "value")}),
     "map.diff": (("map", "diff"), ("id", "a", "b"), {}),
@@ -720,6 +721,10 @@ class Ops:
     def formats(self) -> "Result":
         """The map, dungeon and settlement file format versions this artgen reads and writes. (artgen formats)"""
         return self._op("formats", [], {})
+
+    def schema(self, kind: Literal["dungeon", "map", "settlement", "graph"], *, keys: Optional[bool] = None, checks: Optional[bool] = None) -> "Result":
+        """The JSON Schema of a dungeon, map or settlement file, or of a layout graph; --keys lists every key with its line, --checks the dungeon check ids. (artgen schema)"""
+        return self._op("schema", [kind], {"keys": keys, "checks": checks})
 
     def map_brief(self, id: str, *, text: Optional[str] = None, refs: Optional[Sequence[str]] = None) -> "Result":
         """Show or write the terrain map's brief: what it is for in the user's words, and its reference images. (artgen map brief)"""

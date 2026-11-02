@@ -46,6 +46,8 @@ node tools/artgen/artgen-maps.js dungeon link <id> r4 41,12 --exit "To the river
 node tools/artgen/artgen-maps.js dungeon link <id> r1 r4 --from-side s --to-side n --id main      # leave r1 by its south wall, enter r4 by its north
 node tools/artgen/artgen-maps.js dungeon link <id> corridor:main r3 --to-side s                    # a T: a corridor off the main one into r3's south wall
 node tools/artgen/artgen-maps.js dungeon link <id> r1 r2 --route around                            # along the grid, round the rooms in the way
+node tools/artgen/artgen-maps.js dungeon link <id> r1 r2 --route maze --span 10                     # a 10 ft passage on its own lattice, round the rooms and off the other corridors
+node tools/artgen/artgen-maps.js dungeon link <id> r1 r4 --from-port 4,9.5                          # leave r1 from that point on its wall (an L's far arm, a round room), the door set along the wall
 node tools/artgen/artgen-maps.js dungeon link <id> r4 r7 --style natural --curve smooth --width 2  # a winding cave passage with rough walls
 node tools/artgen/artgen-maps.js dungeon door <id> 3 to portcullis | unlink <id> 3
 node tools/artgen/artgen-maps.js dungeon connect <id> r3 r4 [--kind secret|open] [--at x,y]          # rooms that touch: a door (or an opening) in their shared wall
@@ -53,12 +55,15 @@ node tools/artgen/artgen-maps.js dungeon block <id> add hex --at 2,2 --size 18x1
 node tools/artgen/artgen-maps.js dungeon block <id> split b1 --seed 9 | block <id> rm b1               # another layout of the same block (other rooms keep their numbers) | remove it
 node tools/artgen/artgen-maps.js dungeon link <id> b1 r7 --route around                              # a block id: its room nearest the other end
 node tools/artgen/artgen-maps.js dungeon fit <id> --margin 2                                        # crop the map to the rooms
+node tools/artgen/artgen-maps.js dungeon layout <id> --graph g.json [--footprint 40] [--seed 3]     # a whole level from a graph: rooms packed close, every way a door or a routed passage (artgen schema graph)
 ```
-Corridors start at room centres: rooms that line up get one straight corridor, others an L-shaped elbow (`--route
+Rooms and their ways known up front (a brief, a table, a graph)? Lay the level out with `dungeon layout` and edit from there:
+it packs the rooms in the footprint, touching where a door through the shared wall will do, and routes every other way.
+Corridors start at room anchors (centres, or a poly's deepest point; `room set --anchor x,y` moves it): rooms that line up get one straight corridor, others an L-shaped elbow (`--route
 hv|vh`, or `--via x,y,…` for your own bends). `--from-side`/`--to-side` (and `--from-offset`, cells along the wall) make a
 corridor leave by a given wall; `dungeon check` warns when a corridor runs through a room it does not join: reroute it
-with `--route around`. A corridor opens into a room wherever it meets it. Rooms that touch keep the
-wall between them; `connect` puts a door or an opening in it (dense layouts: rooms side by side, no corridors). Door kinds: `door secret locked portcullis arch` (or `none`). Gen keeps labels and symbols but
+with `--route around`. A corridor opens into a room wherever it meets it. Walls are drawn wherever two floors touch
+(room and room, room and corridor), except where one runs into the other; `connect` puts a door or an opening in it (dense layouts: rooms side by side, no corridors). Door kinds: `door secret locked portcullis arch` (or `none`). Gen keeps labels and symbols but
 replaces every room and corridor: if the user wants "the same dungeon but …", edit — don't regenerate.
 
 ## 3. Grid, numbers, labels and symbols (the follow-up layers)
@@ -73,7 +78,11 @@ node tools/artgen/artgen-maps.js dungeon label <id> "To the river caves" --at 30
 node tools/artgen/artgen-maps.js dungeon room <id> set r3 --href "https://wiki.example/keep#A3"                    # the room's number and name link there
 node tools/artgen/artgen-maps.js dungeon overlay <id> rm label 2 | clear symbols
 ```
-Rooms are numbered in file order on a black badge; set a room's own number or name with `room set`.
+Rooms are numbered in file order on a black badge; set a room's own number or name with `room set`. A room's number and name move
+off a symbol or another room's label to a clear spot by its walls; `room set <rid> --label-at n|s|w|e|c` holds them.
+A stair or a way out inside a room: `room set <rid> --exits '[{"kind":"stairs-down","side":"n","text":"Down to the crypt"}]'`.
+Solid ground instead of hatching: `style --rock solid --rock-color #bdbdbd`; heavier walls between rooms: `style --partition 2`.
+The level's own outline and rock or shafts inside it: `update --bounds x,y,… --areas '[{"points":[…],"kind":"void","label":"Shaft"}]'`.
 
 ## 4. Render and hand over
 ```
@@ -97,9 +106,12 @@ from the neighbours, as the runtime does, and Tiled gets it as a wang set). `--v
 (LDtk has square grids only). Show the user the preview and the file paths.
 
 ## Check, then look
-`node tools/artgen/artgen-maps.js dungeon check <id>` after every round of changes: errors (a room outline that crosses itself) must be fixed;
-each warning (rooms laid over each other, a corridor through a room it does not join or across another, a door that is
-never drawn, a symbol under a room number) is most likely a mistake: fix it or know why it stays.
+`node tools/artgen/artgen-maps.js dungeon check <id>` after every round of changes: errors (a room outline that crosses itself) must be fixed; each
+warning has an id (`[door-off-wall]`, `[through-room]`, `[label-overlap]`, …: `artgen schema dungeon --checks` lists them) and
+is most likely a mistake: fix it or know why it stays. `--errors door-off-wall,through-room` (or `all`) makes chosen ones errors.
+`node tools/artgen/artgen-maps.js dungeon facts <id> --json` reads the level back as numbers: each corridor's path, every door and the two floors it stands
+between, which room or corridor owns each cell. Every key a file can hold, with its line: `artgen schema dungeon --keys`
+(docs: docs/DUNGEON.md in the artgen repo).
 
 ## 5. Brief, versions, review, and the user's approval
 A dungeon goes through the same steps as a pixel asset: write what it is for, record each round as a version, review it, show it to the user, and let them decide. **Only the user approves**: never run `approve` yourself (over MCP it needs `user_approved`, and only after they said so in this conversation).

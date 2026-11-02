@@ -90,6 +90,16 @@ Releases of the committed install (`artgen-dist`), the MCP server, the runtime i
   footprint unset the rooms reach 55% of the square, against 36 to 43% in the setting's brief.
 - Consumer fixture `setting-builder/layout`: the ten graphs and G laid out.
 
+**A schema and a reference (R9 D5)**
+- `artgen schema dungeon|map|settlement|graph`: the file's JSON Schema (draft 2020-12), every key with a line; `--keys` lists every key
+  path with its line, `--checks` the ids `dungeon check` gives. In the maps-only bundle and over MCP (`schema`). A test runs each validator
+  over a full file through a recording proxy and fails on any key it reads that the schema does not declare.
+- `docs/DUNGEON.md`: units and angle conventions, each shape's outline (the octagon's cut, the hexagon, the circle's 64 sides), how a
+  corridor's ends start (`side` and `offset`, the snap to the corridor's width, `port`), the anchor, label placement, walls between floors,
+  maze corridors and layouts, the ground, and what `facts` and `check` read; the key and check lists are written by `npm run gen:ops`.
+- The `dungeon-map` skill: `dungeon layout`, `--route maze`, ports, anchors, label placement, room exits, rock, bounds and areas, check ids,
+  `--errors`, `facts` and `schema`.
+
 ## 0.11.0 — 2026-10-25
 
 Settlement maps (villages, towns, cities and castles, with each building's floor plans) join terrain maps and

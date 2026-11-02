@@ -19,7 +19,7 @@ import {
 } from 'artgen-cli';
 import { RUNTIME_VERSION } from 'artgen-runtime';
 import { buildDist } from '../build.mjs';
-import { distFiles } from '../src/install.mjs';
+import { distFiles, filled } from '../src/install.mjs';
 
 const EXAMPLES = fileURLToPath(new URL('../../../examples/', import.meta.url));
 const FIXTURES = ['swamp-topdown', 'iso-dungeon', 'billboard-crawler'];
@@ -160,7 +160,7 @@ describe.each(FIXTURES)('fixture %s', name => {
     for (const [rel, src] of Object.entries(distFiles(dist, modules) as Record<string, string>)) {
       if (GENERATED.has(rel)) continue;
       const f = join(root, rel);
-      if (!existsSync(f) || sha(readFileSync(f)) !== sha(readFileSync(src))) stale.push(relative(EXAMPLES, f));
+      if (!existsSync(f) || sha(readFileSync(f)) !== sha(filled(rel, readFileSync(src), modules))) stale.push(relative(EXAMPLES, f));
     }
     expect(stale, 'run `npm run fixtures:install` and commit the result').toEqual([]);
   });
