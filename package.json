@@ -16,6 +16,7 @@
     "test:packages": "npm test --workspaces",
     "gen:ops": "node packages/artgen-cli/src/gen-bin.ts",
     "lint:boundaries": "node scripts/check-boundaries.mjs",
+    "compare:dungeon": "node scripts/dungeon-compare.mjs",
     "metrics:baseline": "node scripts/metrics-baseline.mjs",
     "metrics:pool": "node packages/artgen-cli/src/bin.ts metrics pool docs/metrics/pool --out docs/metrics/pool/POOL.md",
     "consumers": "node scripts/artgen-consumer-ci.mjs",
