@@ -15,7 +15,8 @@ import type { MapSpec } from '../map/spec.ts';
 import { PAGE_PT, PAGE_SYMBOL_MM, pageUnit, placeLabels, pointsToPx, textBox, type Box, type PlaceLabel } from 'artgen-primitives/lib/page.ts';
 import { layoutDungeon, type DoorGeom, type DungeonLayout } from './layout.ts';
 import type { DungeonLabel, DungeonSpec, Room } from './spec.ts';
-import { SYMBOLS } from './symbols.ts';
+import { SYMBOLS, symbolScale, symbolSvg } from './symbols.ts';
+import { wavyEdges } from './edging.ts';
 import { layoutExits } from './exits.ts';
 import { area2 } from './geom.ts';
 import { coversContent, placeFurniture, type FurnitureItem, type FurnitureLayout } from './furniture.ts';
@@ -24,10 +25,18 @@ import { nameSize, numberSize, roomLabelLayout } from './roomlabels.ts';
 import { withMarks } from './marks.ts';
 import { layoutWalls } from './walls.ts';
 
-export const DUNGEON_LAYERS = ['underlay', 'rock', 'floors', 'buildings', 'enclosure', 'grid', 'exits', 'doors', 'symbols', 'cellars', 'numbers', 'labels', 'legend', 'title', 'scale', 'compass'] as const;
+export const DUNGEON_LAYERS = ['underlay', 'rock', 'floors', 'buildings', 'enclosure', 'rings', 'grid', 'edging', 'exits', 'doors', 'symbols', 'cellars', 'numbers', 'labels', 'legend', 'title', 'scale', 'compass'] as const;
 export type DungeonLayer = (typeof DUNGEON_LAYERS)[number];
 
-const INK = '#000000', PAPER = '#ffffff', TH = { ink: INK, paper: PAPER, halo: PAPER };
+const INK = '#000000', PAPER = '#ffffff';
+
+/** The colours a map is drawn in (`style.palette`; black on white by default). `rock` falls back to `style.rockColor`. */
+export interface DungeonPalette { paper: string; rock: string; floor: string; ink: string; wall: string; grid: string; /** The grid colour was set, so it is drawn as given, not faint. */ gridSet: boolean }
+const ROCK_COLOR = '#bdbdbd';
+export function paletteOf(spec: Pick<DungeonSpec, 'style'>): DungeonPalette {
+  const p = spec.style.palette ?? {}, ink = p.ink ?? INK;
+  return { paper: PAPER, rock: p.rock ?? spec.style.rockColor ?? ROCK_COLOR, floor: p.floor ?? PAPER, ink, wall: p.wall ?? ink, grid: p.grid ?? ink, gridSet: p.grid !== undefined };
+}
 
 export interface RenderDungeonOptions {
   /** Pixels per cell (default 40). */
@@ -90,12 +99,11 @@ export const LEGEND_NAMES = (kind: string): string => (SYMBOLS[kind] ?? SYMBOLS.
 
 /** How the rock is drawn: `style.rock`, else hatching unless `hatch` is none. */
 export const rockOf = (spec: DungeonSpec): 'hatch' | 'solid' | 'none' => spec.style.rock ?? (spec.style.hatch === 'none' ? 'none' : 'hatch');
-const ROCK_COLOR = '#bdbdbd';
 
 /** Which layers render: everything on, the optional ones as the file says, then the caller's overrides. */
 export function dungeonLayersFor(spec: DungeonSpec, over: Partial<Record<DungeonLayer, boolean>> = {}): Record<DungeonLayer, boolean> {
   const on = Object.fromEntries(DUNGEON_LAYERS.map(l => [l, true])) as Record<DungeonLayer, boolean>;
-  on.rock = rockOf(spec) !== 'none' || !!spec.areas?.length; on.underlay = !!spec.underlay; on.enclosure = !!spec.walls?.length; on.legend = !!spec.legend; on.grid = spec.grid.show; on.numbers = spec.numbers;
+  on.rock = rockOf(spec) !== 'none' || !!spec.areas?.length; on.underlay = !!spec.underlay; on.enclosure = !!spec.walls?.length; on.rings = !!spec.rings?.length; on.edging = spec.rooms.some(r => r.edge === 'wavy'); on.legend = !!spec.legend; on.grid = spec.grid.show; on.numbers = spec.numbers;
   on.scale = spec.scaleBar; on.compass = spec.compass; on.title = !!spec.title;
   return { ...on, ...over };
 }
@@ -104,7 +112,7 @@ export function dungeonLayersFor(spec: DungeonSpec, over: Partial<Record<Dungeon
  * Rock hatching: clusters of three short parallel strokes at random angles (the classic hand-hatched look), in a
  * seamless tile `cells` wide. Fixed seed, so every render of every map hatches the same way.
  */
-function hatchPattern(k: number, cells = 4): string {
+function hatchPattern(k: number, INK: string, cells = 4): string {
   const T = cells * k, r = rng(7), step = 0.5 * k, L = 0.42 * k, gap = 0.11 * k, sw = Math.max(0.8, 0.045 * k);
   let d = '';
   for (let gy = 0; gy < T / step; gy++) for (let gx = 0; gx < T / step; gx++) {
@@ -119,11 +127,21 @@ function hatchPattern(k: number, cells = 4): string {
   return `<pattern id="hatch" patternUnits="userSpaceOnUse" width="${n1(T)}" height="${n1(T)}"><path d="${d}" stroke="${INK}" stroke-width="${n1(sw)}" stroke-linecap="round"/></pattern>`;
 }
 
-function doorSvg(dr: DoorGeom, k: number, t: number, u: number): string {
+function doorSvg(dr: DoorGeom, k: number, t: number, u: number, pal: DungeonPalette, glyph: 'bar' | 'square' = 'bar'): string {
+  const INK = pal.ink, PAPER = pal.floor, TH = { ink: INK, paper: pal.paper, halo: PAPER };
   const W = dr.width * k, d = Math.max(t * 1.5, 0.28 * k), hw = W / 2, sw = n1(Math.max(1, 1.4 * u));
   const rect = (x: number, y: number, w: number, h: number, fill: string) => `<rect x="${n1(x)}" y="${n1(y)}" width="${n1(w)}" height="${n1(h)}" fill="${fill}"${fill === PAPER ? ` stroke="${INK}" stroke-width="${sw}"` : ''}/>`;
+  // a door (or two leaves of a double door) as a thin bar across the opening, or as squares with a jamb each side
+  const leaves = (n: number) => {
+    let out = '';
+    const lw = W / n;
+    for (let i = 0; i < n; i++) out += glyph === 'square' ? rect(-lw / 2, -hw + i * lw, lw, lw, PAPER) : rect(-d / 2, -hw + i * lw, d, lw, PAPER);
+    if (glyph === 'square') { const j = Math.max(2, 0.14 * k); out += rect(-t / 2, -hw - j, t, j, INK) + rect(-t / 2, hw, t, j, INK); }
+    return out;
+  };
   let g = '';
-  if (dr.kind === 'door') g = rect(-d / 2, -hw, d, W, PAPER);
+  if (dr.kind === 'door') g = leaves(1);
+  else if (dr.kind === 'double') g = leaves(2);
   else if (dr.kind === 'locked') g = rect(-d / 2, -hw, d, W, PAPER) + `<path d="M${n1(-d / 2)} 0H${n1(d / 2)}" stroke="${INK}" stroke-width="${n1(Math.max(2, d * 0.35))}"/>`;
   else if (dr.kind === 'secret') g = rect(-t / 2 - 0.5, -hw - 0.5, t + 1, W + 1, INK);
   else if (dr.kind === 'portcullis') {
@@ -151,6 +169,13 @@ export function wrapText(text: string, max: number): string[] {
   return lines.length ? lines : [''];
 }
 
+/** A circle as a closed polygon of points, for a ring. */
+function ringPoints([cx, cy]: [number, number], r: number): number[] {
+  const n = Math.max(24, Math.min(160, Math.round(r * 16))), out: number[] = [];
+  for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2; out.push(cx + Math.cos(a) * r, cy + Math.sin(a) * r); }
+  return out;
+}
+
 /** A ring turned clockwise on screen (the way `roomOutline` draws a rectangle). */
 function clockwise(p: number[]): number[] {
   if (area2(p) >= 0) return p;
@@ -172,6 +197,7 @@ function scaleCells(width: number): number {
 /** The title, scale bar, compass and legend as furniture items, and where each goes (see `furniture.ts`). */
 export function dungeonFurniture(spec: DungeonSpec, o: RenderDungeonOptions = {}, l: DungeonLayout = o.layout ?? layoutDungeon(spec), on = dungeonLayersFor(spec, o.layers)): FurnitureLayout {
   const k = o.ppu ?? 40, u = o.pageScale ? pageUnit(o.pageScale) : k / 40, fr = frameOf(o.crop, spec.cols, spec.rows, k), pad = 12 * u;
+  const pal = paletteOf(spec), INK = pal.ink, PAPER = pal.paper, TH = { ink: INK, paper: PAPER, halo: pal.floor };
   const box = (x: number, y: number, w: number, h: number) => `<rect x="${n1(x)}" y="${n1(y)}" width="${n1(w)}" height="${n1(h)}" rx="${n1(4 * u)}" fill="${PAPER}" stroke="${INK}" stroke-width="${n1(u)}"/>`;
   const items: FurnitureItem[] = [];
 
@@ -185,7 +211,7 @@ export function dungeonFurniture(spec: DungeonSpec, o: RenderDungeonOptions = {}
           let g = box(x, y, w, h);
           kinds.forEach((kind, i) => {
             const sy = y + 6 * u + i * rh + rh / 2, sym = SYMBOLS[kind] ?? SYMBOLS.trap;
-            g += `<g transform="translate(${n1(x + 18 * u)} ${n1(sy)}) scale(${((18 * u) / 20).toFixed(3)})">${sym.svg.replaceAll('{ink}', INK).replaceAll('{fill}', PAPER)}</g>`;
+            g += `<g transform="translate(${n1(x + 18 * u)} ${n1(sy)}) scale(${((18 * u) / 20).toFixed(3)})">${sym.svg.replaceAll('{ink}', INK).replaceAll('{fill}', pal.floor)}</g>`;
             g += `<text x="${n1(x + 36 * u)}" y="${n1(sy + fs * 0.35)}" font-size="${n1(fs)}" fill="${INK}">${esc(LEGEND_NAMES(kind))}</text>`;
           });
           return `<g id="legend">${g}</g>`;
@@ -231,7 +257,9 @@ export function dungeonRenderSize(spec: DungeonSpec, o: RenderDungeonOptions = {
 export function renderDungeonSvg(file: DungeonSpec, o: RenderDungeonOptions = {}): string {
   const l = o.layout ?? layoutDungeon(file), spec = withMarks(file, l).spec, on = dungeonLayersFor(spec, o.layers);
   const k = o.ppu ?? 40, W = spec.cols * k, H = spec.rows * k, u = o.pageScale ? pageUnit(o.pageScale) : k / 40, t = 0.14 * k * spec.style.wall, fr = frameOf(o.crop, spec.cols, spec.rows, k);
-  const tp = 0.14 * k * (spec.style.partition ?? spec.style.wall), rock = rockOf(spec), rockFill = spec.style.rockColor ?? ROCK_COLOR;
+  const tp = 0.14 * k * (spec.style.partition ?? spec.style.wall), rock = rockOf(spec), pal = paletteOf(spec), rockFill = pal.rock;
+  // the paper, the ink (labels, doors, symbols), the floor, and the walls (the ink unless the palette says)
+  const INK = pal.ink, PAPER = pal.paper, FLOOR = pal.floor, WALL = pal.wall, TH = { ink: INK, paper: PAPER, halo: FLOOR };
   const parts: string[] = [`<rect width="${W}" height="${H}" fill="${PAPER}"/>`], defs: string[] = [];
   // floor shapes: the floor rooms and natural passages (filled), and built corridors (stroked to their width)
   // every ring turns the same way, so where floors overlap the non-zero fill adds them up instead of cutting a hole
@@ -245,7 +273,7 @@ export function renderDungeonSvg(file: DungeonSpec, o: RenderDungeonOptions = {}
   const inBounds = (g: string) => (spec.bounds ? `<g clip-path="url(#bounds-clip)">${g}</g>` : g);
   if (on.rock) {
     const hatched = rock === 'hatch' || spec.areas?.some(a => a.kind === 'rock');
-    if (hatched) defs.push(hatchPattern(k));
+    if (hatched) defs.push(hatchPattern(k, INK));
     const band = spec.style.band * k;
     let g = rock === 'solid' ? `<rect width="${W}" height="${H}" fill="${rockFill}"/>`
       : rock === 'none' ? ''
@@ -266,8 +294,16 @@ export function renderDungeonSvg(file: DungeonSpec, o: RenderDungeonOptions = {}
     (roomD ? `<path d="${roomD}" fill="${fill}"${extra ? ` stroke="${fill}" stroke-width="${n1(extra * 2)}" stroke-linejoin="miter"` : ''}/>` : '') +
     corr.map(c => `<path d="${c.d}" fill="none" stroke="${fill}" stroke-width="${n1(c.w + extra * 2)}" stroke-linecap="square" stroke-linejoin="miter"/>`).join('');
   // the walls rooms share: drawn over the floor, as thick as an outer wall shows, with the openings left out
-  const inner = l.partitions.length ? `<path id="partitions" d="${l.partitions.map(p => `M${n1(p[0] * k)} ${n1(p[1] * k)}L${n1(p[2] * k)} ${n1(p[3] * k)}`).join('')}" stroke="${INK}" stroke-width="${n1(tp * 1.1)}" stroke-linecap="square" fill="none"/>` : '';
-  if (on.floors) parts.push(`<g id="floors"><g id="walls">${floor(INK, t)}</g><g id="floor">${floor(PAPER, 0)}</g>${inner}</g>`);
+  // the walls rooms share, grouped by their stroke: the plain wall, a wall of its own weight, a dashed one
+  const groups = new Map<string, { weight: number; dashed: boolean; d: string }>();
+  l.partitions.forEach((p, i) => {
+    const st = l.partitionStyle?.[i] ?? null, weight = st?.weight !== undefined ? 0.14 * k * st.weight : tp, dashed = !!st?.dashed, key = `${n1(weight)}${dashed ? 'd' : ''}`;
+    const g = groups.get(key) ?? { weight, dashed, d: '' };
+    g.d += `M${n1(p[0] * k)} ${n1(p[1] * k)}L${n1(p[2] * k)} ${n1(p[3] * k)}`;
+    groups.set(key, g);
+  });
+  const inner = [...groups.values()].map((g, i) => `<path id="partitions${i ? `-${i}` : ''}" d="${g.d}" stroke="${WALL}" stroke-width="${n1(g.weight * 1.1)}" stroke-linecap="${g.dashed ? 'butt' : 'square'}"${g.dashed ? ` stroke-dasharray="${n1(0.34 * k)} ${n1(0.22 * k)}"` : ''} fill="none"/>`).join('');
+  if (on.floors) parts.push(`<g id="floors"><g id="walls">${floor(WALL, t)}</g><g id="floor">${floor(FLOOR, 0)}</g>${inner}</g>`);
 
   const ofFill = (f: string) => l.rooms.filter(g => fillOf(g.room) === f);
   if (on.buildings && ofFill('building').length) {
@@ -277,7 +313,7 @@ export function renderDungeonSvg(file: DungeonSpec, o: RenderDungeonOptions = {}
       // the roof's ridge runs along the long side, a cell short of each end
       const long = r.w >= r.h, inset = Math.min(0.5, (long ? r.h : r.w) / 2), ridge = r.shape === 'rect' || r.shape === 'octagon' ? (long
         ? `M${n1((r.x + inset) * k)} ${n1((r.y + r.h / 2) * k)}H${n1((r.x + r.w - inset) * k)}` : `M${n1((r.x + r.w / 2) * k)} ${n1((r.y + inset) * k)}V${n1((r.y + r.h - inset) * k)}`) : '';
-      return `<path d="${d}" fill="${ROOF}" stroke="${INK}" stroke-width="${sw}" stroke-linejoin="miter"/>${ridge ? `<path d="${ridge}" stroke="${RIDGE}" stroke-width="${n1(Math.max(1, t * 0.5))}" stroke-linecap="round"/>` : ''}`;
+      return `<path d="${d}" fill="${ROOF}" stroke="${WALL}" stroke-width="${sw}" stroke-linejoin="miter"/>${ridge ? `<path d="${ridge}" stroke="${RIDGE}" stroke-width="${n1(Math.max(1, t * 0.5))}" stroke-linecap="round"/>` : ''}`;
     }).join('')}</g>`);
   }
 
@@ -288,19 +324,28 @@ export function renderDungeonSvg(file: DungeonSpec, o: RenderDungeonOptions = {}
       const ring = pathData([{ pts: w.ring, closed: true }], k), th = w.thickness * k, cut = w.gates.map(gt => `<rect x="${n1(-gt.width * k / 2)}" y="${n1(-th)}" width="${n1(gt.width * k)}" height="${n1(2 * th)}" transform="translate(${n1(gt.x * k)} ${n1(gt.y * k)}) rotate(${n1(gt.angle)})" fill="#000"/>`).join('');
       const mid = `gates-${w.index}`;
       if (cut) defs2.push(`<mask id="${mid}" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}"><rect width="${W}" height="${H}" fill="#fff"/>${cut}</mask>`);
-      g += `<g id="wall-${w.index}"><g${cut ? ` mask="url(#${mid})"` : ''}><path d="${ring}" fill="none" stroke="${INK}" stroke-width="${n1(th)}" stroke-linejoin="miter"/></g>`;
+      g += `<g id="wall-${w.index}"><g${cut ? ` mask="url(#${mid})"` : ''}><path d="${ring}" fill="none" stroke="${WALL}" stroke-width="${n1(th)}" stroke-linejoin="miter"/></g>`;
       const tower = (tw: { x: number; y: number; shape: string; size: number }) => {
         const r = (tw.size * k) / 2, ring2 = Math.max(1, th * 0.4);
         return tw.shape === 'square'
-          ? `<rect x="${n1(tw.x * k - r)}" y="${n1(tw.y * k - r)}" width="${n1(2 * r)}" height="${n1(2 * r)}" fill="${PAPER}" stroke="${INK}" stroke-width="${n1(ring2)}"/>`
-          : `<circle cx="${n1(tw.x * k)}" cy="${n1(tw.y * k)}" r="${n1(r)}" fill="${PAPER}" stroke="${INK}" stroke-width="${n1(ring2)}"/>`;
+          ? `<rect x="${n1(tw.x * k - r)}" y="${n1(tw.y * k - r)}" width="${n1(2 * r)}" height="${n1(2 * r)}" fill="${FLOOR}" stroke="${INK}" stroke-width="${n1(ring2)}"/>`
+          : `<circle cx="${n1(tw.x * k)}" cy="${n1(tw.y * k)}" r="${n1(r)}" fill="${FLOOR}" stroke="${INK}" stroke-width="${n1(ring2)}"/>`;
       };
       g += w.towers.map(tower).join('');
-      g += w.gates.map(gt => `<g transform="translate(${n1(gt.x * k)} ${n1(gt.y * k)}) rotate(${n1(gt.angle)}) scale(${((gt.width * k) / 10).toFixed(3)})">${SYMBOLS.gate.svg.replaceAll('{ink}', INK).replaceAll('{fill}', PAPER)}</g>`).join('');
+      g += w.gates.map(gt => `<g transform="translate(${n1(gt.x * k)} ${n1(gt.y * k)}) rotate(${n1(gt.angle)}) scale(${((gt.width * k) / 10).toFixed(3)})">${SYMBOLS.gate.svg.replaceAll('{ink}', INK).replaceAll('{fill}', FLOOR)}</g>`).join('');
       g += '</g>';
     }
     defs.push(...defs2);
     parts.push(`<g id="enclosure">${g}</g>`);
+  }
+
+  // rings: lines over the rock with no floor (a ring of dashes, an illusory wall)
+  if (on.rings && spec.rings?.length) {
+    const g = spec.rings.map(r => {
+      const pts = r.shape === 'circle' ? ringPoints(r.at!, r.r!) : r.points!, w = (r.width ?? 0.12) * k, dash = r.dash ?? [0.5, 0.3];
+      return `<path d="${pathData([{ pts, closed: true }], k)}" fill="none" stroke="${INK}" stroke-width="${n1(w)}"${(r.line ?? 'dashed') === 'dashed' ? ` stroke-dasharray="${n1(dash[0] * k)} ${n1(dash[1] * k)}"` : ''} stroke-linejoin="round"/>`;
+    }).join('');
+    parts.push(`<g id="rings">${g}</g>`);
   }
 
   if (on.grid && spec.grid.show) {
@@ -311,11 +356,19 @@ export function renderDungeonSvg(file: DungeonSpec, o: RenderDungeonOptions = {}
       return d;
     };
     let g = '';
-    if (spec.grid.sub && s > 1) g += `<path d="${line(1)}" stroke="${INK}" stroke-opacity="0.16" stroke-width="${n1(0.8 * u)}"/>`;
-    g += `<path d="${line(s)}" stroke="${INK}" stroke-opacity="0.38" stroke-width="${n1(1.1 * u)}"/>`;
+    // a grid colour the file sets is drawn as given (the sub-grid a little fainter); the default is the ink at a low opacity
+    const [subOp, mainOp] = pal.gridSet ? [0.5, 1] : [0.16, 0.38];
+    if (spec.grid.sub && s > 1) g += `<path d="${line(1)}" stroke="${pal.grid}" stroke-opacity="${subOp}" stroke-width="${n1(0.8 * u)}"/>`;
+    g += `<path d="${line(s)}" stroke="${pal.grid}" stroke-opacity="${mainOp}" stroke-width="${n1(1.1 * u)}"/>`;
     const clip = spec.grid.clip === 'floor';
     if (clip) defs.push(`<mask id="floor-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}">${floor('#ffffff', 0)}</mask>`);
     parts.push(inBounds(`<g id="grid" fill="none"${clip ? ' mask="url(#floor-mask)"' : ''}>${g}</g>`));
+  }
+
+  // wavy edging along rooms' walls (a curtain, drapery, a rubble margin)
+  if (on.edging) {
+    const d = l.rooms.flatMap(g => wavyEdges(g.room, g.outline)).map(line => pathData([{ pts: line, closed: false }], k)).join('');
+    if (d) parts.push(`<g id="edging" fill="none" stroke="${INK}" stroke-width="${n1(Math.max(1.2 * u, 0.04 * k))}" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></g>`);
   }
 
   // exits off the map: the corridor fades to white toward the edge, and a boxed note says where it leads
@@ -342,12 +395,12 @@ export function renderDungeonSvg(file: DungeonSpec, o: RenderDungeonOptions = {}
     parts.push(`<g id="exits">${g}</g>`);
   }
 
-  if (on.doors && l.doors.length) parts.push(`<g id="doors">${l.doors.map(d => doorSvg(d, k, t, u)).join('')}</g>`);
+  if (on.doors && l.doors.length) parts.push(`<g id="doors">${l.doors.map(d => doorSvg(d, k, t, u, pal, spec.style.doors)).join('')}</g>`);
 
   if (on.symbols && spec.overlay.symbols.length)
     parts.push(`<g id="symbols">${spec.overlay.symbols.map(s => {
-      const sym = SYMBOLS[s.kind] ?? SYMBOLS.trap;
-      return `<g transform="translate(${n1(s.x * k)} ${n1(s.y * k)})${s.angle ? ` rotate(${n1(s.angle)})` : ''} scale(${(((o.pageScale ? PAGE_SYMBOL_MM * o.pageScale : k) / 20) * (s.scale ?? 1)).toFixed(3)})">${sym.svg.replaceAll('{ink}', INK).replaceAll('{fill}', PAPER)}</g>`;
+      const f = (o.pageScale ? PAGE_SYMBOL_MM * o.pageScale : k) / 20, [sx, sy] = symbolScale(s);
+      return `<g transform="translate(${n1(s.x * k)} ${n1(s.y * k)})${s.angle ? ` rotate(${n1(s.angle)})` : ''} scale(${(f * sx).toFixed(3)}${sy !== sx ? ` ${(f * sy).toFixed(3)}` : ''})">${symbolSvg(s, INK, FLOOR)}</g>`;
     }).join('')}</g>`);
 
   if (on.cellars && ofFill('cellar').length)
@@ -362,7 +415,9 @@ export function renderDungeonSvg(file: DungeonSpec, o: RenderDungeonOptions = {}
       const x = at.x * k, y = at.y * k, badge = on.numbers && g.number !== undefined;
       if (badge) {
         const txt = String(g.number), fs = numberSize(u, o.pageScale), bh = fs * 1.45, bw = Math.max(bh, txt.length * fs * 0.62 + fs * 0.7);
-        nums += linked(g.room.href, `<rect x="${n1(x - bw / 2)}" y="${n1(y - bh / 2)}" width="${n1(bw)}" height="${n1(bh)}" rx="${n1(bh * 0.32)}" fill="${INK}"/><text x="${n1(x)}" y="${n1(y + fs * 0.36)}" font-size="${n1(fs)}" font-weight="700" text-anchor="middle" fill="${PAPER}">${esc(txt)}</text>`);
+        // `plain`: bold numerals on the floor; the default: white on a badge of ink
+        nums += linked(g.room.href, spec.style.numbers === 'plain' ? haloText(txt, x, y + fs * 0.36, fs, INK, TH, 'font-weight="700"')
+          : `<rect x="${n1(x - bw / 2)}" y="${n1(y - bh / 2)}" width="${n1(bw)}" height="${n1(bh)}" rx="${n1(bh * 0.32)}" fill="${INK}"/><text x="${n1(x)}" y="${n1(y + fs * 0.36)}" font-size="${n1(fs)}" font-weight="700" text-anchor="middle" fill="${PAPER}">${esc(txt)}</text>`);
       }
       if (on.labels && g.room.label) names += linked(g.room.href, haloText(g.room.label, x, y + (badge ? numberSize(u, o.pageScale) * (31 / 19) : 5 * u), nameSize(u, o.pageScale), INK, TH, 'font-weight="700"'));
     }

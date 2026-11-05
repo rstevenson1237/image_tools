@@ -8,13 +8,13 @@ import { applyBlock, blockRoomNear, hexPoints, removeBlock } from './blocks.ts';
 import { fitDungeon } from './layout.ts';
 import {
   DOOR_KINDS, SIDES, nextRoomId, parseDungeon, parsePoint, polyBox, removeCorridor, removeRoom,
-  type Block, type Corridor, type CorridorEnd, type DoorKind, type DungeonSpec, type Exit, type Room, type RoomFill, type RoomShape, type Route, type Side, type SplitMode,
+  type Block, type Corridor, type CorridorEnd, type DoorKind, type DungeonSpec, type Exit, type MidDoor, type Ring, type Room, type RoomFill, type RoomShape, type Route, type Side, type SplitMode, type WallLine,
 } from './spec.ts';
 
 /** One edit (see the module comment); `op` names it, the rest are its fields. */
 export type DungeonOp = { op: string } & Record<string, unknown>;
 
-export const DUNGEON_OPS = ['add_room', 'move_room', 'set_room', 'remove_room', 'add_block', 'split_block', 'remove_block', 'link', 'unlink', 'connect', 'disconnect', 'door', 'fit'] as const;
+export const DUNGEON_OPS = ['add_room', 'move_room', 'set_room', 'remove_room', 'add_block', 'split_block', 'remove_block', 'link', 'unlink', 'connect', 'disconnect', 'door', 'add_ring', 'remove_ring', 'fit'] as const;
 
 /** A room's top-left corner: `x,y` as given, or a cell name (`C4`) meaning that cell's corner. */
 export function cornerPoint(at: string): [number, number] {
@@ -26,17 +26,30 @@ export function cornerPoint(at: string): [number, number] {
  * A corridor end: a room id in the dungeon (leaving by its `side` wall, `offset` cells along, when given), a corridor
  * (`corridor:<id>`, or an id no room has) for a junction, else a point.
  */
-export function corridorEnd(m: DungeonSpec, ref: string, side?: string, offset?: number, port?: [number, number]): CorridorEnd {
+export function corridorEnd(m: DungeonSpec, ref: string, side?: string, offset?: number, port?: [number, number], near?: [number, number]): CorridorEnd {
   if (side !== undefined && !SIDES.includes(side as Side)) throw new Error(`--from-side / --to-side: ${SIDES.join(', ')}`);
   if (side !== undefined && port) throw new Error('a port or a side, not both');
+  if (near && m.rooms.some(r => r.id === ref)) throw new Error(`a near point goes with a corridor end, and ${ref} is a room`);
   if (m.rooms.some(r => r.id === ref)) return { room: ref, ...(side && { side: side as Side }), ...(side && offset !== undefined && { offset }), ...(port && { port }) };
   if (side || port) throw new Error(`a side or a port goes with a room end, and ${ref} is not a room`);
+  if (near && !(ref.startsWith('corridor:') || m.corridors.some(x => x.id === ref))) throw new Error('--from-near / --to-near: a point on a corridor end (corridor:<id>) to meet nearest');
   const c = ref.replace(/^corridor:/, '');
   if (ref.startsWith('corridor:') || m.corridors.some(x => x.id === c)) {
     if (!m.corridors.some(x => x.id === c)) throw new Error(`no corridor with id ${c} (give one an id: link … --id ${c})`);
-    return { corridor: c };
+    return { corridor: c, ...(near && { near }) };
   }
   return { at: parsePoint(ref) };
+}
+
+/** A door in a run: `{at, kind}`, or `9:double` (a distance along the corridor, then the kind) or `13,4:door` (the point nearest, then the kind). */
+export function midDoor(v: unknown): MidDoor {
+  if (v && typeof v === 'object' && !Array.isArray(v)) {
+    const d = v as { at?: unknown; kind?: unknown };
+    return { at: typeof d.at === 'number' ? d.at : pt(d.at), kind: String(d.kind ?? 'door') as DoorKind };
+  }
+  const [place, kind = 'door'] = String(v).split(':').length > 1 ? [String(v).slice(0, String(v).lastIndexOf(':')), String(v).slice(String(v).lastIndexOf(':') + 1)] : [String(v)];
+  if (!DOOR_KINDS.includes(kind as DoorKind)) throw new Error(`--mid-doors: <distance|x,y>:<kind>, the kind one of ${DOOR_KINDS.join(', ')}`);
+  return { at: /^\s*-?[\d.]+\s*$/.test(place) ? +place : pt(place), kind: kind as DoorKind };
 }
 
 /** `door,none` / `secret` → the door pair (a single kind is used at both ends). */
@@ -110,6 +123,21 @@ function roomExtras(r: Room, o: DungeonOp): void {
 /** A room's `labelAt` from an edit: a side (n, s, w, e, c) or an offset (dx,dy cells). */
 const labelAt = (v: unknown): NonNullable<Room['labelAt']> => (typeof v === 'string' && ['c', 'n', 's', 'w', 'e'].includes(v) ? v as 'c' : pt(v));
 
+/** A room's `number` from an edit: a number, a key such as `15a`, or false (null clears it). */
+const roomNumber = (v: unknown): number | string | false | null | undefined => (v === null ? null : v === false ? false : typeof v === 'number' ? v : typeof v === 'string' && v ? (Number.isFinite(+v) ? +v : v) : undefined);
+/** `edge`, `edge_sides` and `partition` of a room from an edit (null removes one). */
+function roomEdging(r: Room, o: DungeonOp): void {
+  if (o.edge === null || o.edge === 'none' || o.edge === '') { delete r.edge; delete r.edgeSides; } else if (o.edge === 'wavy') r.edge = 'wavy';
+  else if (o.edge !== undefined) throw new Error('edge: wavy (or none)');
+  if (o.edge_sides === null) delete r.edgeSides;
+  else if (o.edge_sides !== undefined) {
+    const sides = (Array.isArray(o.edge_sides) ? o.edge_sides : String(o.edge_sides).split(',')).map(x => String(x).trim()).filter(Boolean);
+    if (!sides.length || !sides.every(x => SIDES.includes(x as Side))) throw new Error(`edge_sides: a list of ${SIDES.join(', ')}`);
+    r.edgeSides = sides as Side[];
+  }
+  if (o.partition === null) delete r.partition; else if (typeof o.partition === 'number') r.partition = o.partition;
+}
+
 const show = (v: unknown): string => (typeof v === 'string' ? v : JSON.stringify(v));
 
 /** Apply one edit; returns what it did. */
@@ -121,11 +149,12 @@ export function editDungeon(m: DungeonSpec, o: DungeonOp): string {
         ? { id, shape, points: numbers(o.points), ...polyBox(numbers(o.points)) }
         : { id, shape, ...(([x, y]) => ({ x, y }))(corner(o.at ?? [o.x, o.y])), w: Number(o.w), h: Number(o.h) };
       if (typeof o.label === 'string') r.label = o.label;
-      if (typeof o.number === 'number' || o.number === false) r.number = o.number;
+      { const n = roomNumber(o.number); if (n !== undefined && n !== null) r.number = n; }
       if (typeof o.fill === 'string' && o.fill) r.fill = o.fill as RoomFill;
       if (o.anchor !== undefined && o.anchor !== null) r.anchor = pt(o.anchor);
       if (o.label_at !== undefined && o.label_at !== null && o.label_at !== '') r.labelAt = labelAt(o.label_at);
       roomExtras(r, o);
+      roomEdging(r, o);
       if (typeof o.href === 'string' && o.href) r.href = o.href;
       if (typeof o.origin === 'string' && o.origin) r.origin = o.origin;
       m.rooms.push(r);
@@ -147,12 +176,13 @@ export function editDungeon(m: DungeonSpec, o: DungeonOp): string {
       if (size.length) handEdit(r, size);
       if (typeof o.shape === 'string') handEdit(r, ['shape']);
       if (typeof o.label === 'string') { if (o.label) r.label = o.label; else delete r.label; handEdit(r, ['label']); }
-      if (typeof o.number === 'number' || o.number === false) r.number = o.number;
+      { const n = roomNumber(o.number); if (n === null) delete r.number; else if (n !== undefined) r.number = n; }
       if (typeof o.fill === 'string' && o.fill) { if (o.fill === 'floor') delete r.fill; else r.fill = o.fill as RoomFill; handEdit(r, ['fill']); }
       if (typeof o.href === 'string') { if (o.href) r.href = o.href; else delete r.href; }
       if (o.anchor === null || o.anchor === '') delete r.anchor; else if (o.anchor !== undefined) r.anchor = pt(o.anchor);
       if (o.label_at === null || o.label_at === '') delete r.labelAt; else if (o.label_at !== undefined) r.labelAt = labelAt(o.label_at);
       roomExtras(r, o);
+      roomEdging(r, o);
       return `changed ${r.id}`;
     }
     case 'remove_room': {
@@ -161,17 +191,18 @@ export function editDungeon(m: DungeonSpec, o: DungeonOp): string {
     }
     case 'link': {
       const [from, to] = linkEnds(m, o.from, o.to);
-      const end = (v: unknown, side?: unknown, offset?: unknown, port?: unknown): CorridorEnd => {
+      const end = (v: unknown, side?: unknown, offset?: unknown, port?: unknown, near?: unknown): CorridorEnd => {
         if (v && typeof v === 'object' && !Array.isArray(v)) return v as CorridorEnd;
-        if (typeof v === 'string') return corridorEnd(m, v, typeof side === 'string' ? side : undefined, typeof offset === 'number' ? offset : undefined, port === undefined || port === null ? undefined : pt(port));
+        if (typeof v === 'string') return corridorEnd(m, v, typeof side === 'string' ? side : undefined, typeof offset === 'number' ? offset : undefined, port === undefined || port === null ? undefined : pt(port), near === undefined || near === null ? undefined : pt(near));
         return { at: pt(v) };
       };
-      const exit = o.exit && typeof o.exit === 'object' ? o.exit as Exit : undefined, a = end(from, o.from_side, o.from_offset, o.from_port), b = end(to, o.to_side, o.to_offset, o.to_port);
+      const exit = o.exit && typeof o.exit === 'object' ? o.exit as Exit : undefined, a = end(from, o.from_side, o.from_offset, o.from_port, o.from_near), b = end(to, o.to_side, o.to_offset, o.to_port, o.to_near);
       m.corridors.push({
         ...(typeof o.id === 'string' && { id: o.id }),
         from: a, to: exit && 'at' in b ? { ...b, exit } : b,
         ...(typeof o.width === 'number' && { width: o.width }), ...(typeof o.span === 'number' && { span: o.span }), ...(typeof o.route === 'string' && { route: o.route as Route }),
         ...(Array.isArray(o.via) && { via: numbers(o.via) }), ...(Array.isArray(o.doors) && { doors: o.doors as [DoorKind | null, DoorKind | null] }),
+        ...(Array.isArray(o.mid_doors) && o.mid_doors.length && { midDoors: o.mid_doors.map(midDoor) }),
         ...(o.curve === 'smooth' && { curve: 'smooth' as const }), ...(o.style === 'natural' && { style: 'natural' as const }), ...(typeof o.seed === 'number' && { seed: o.seed }),
         ...(typeof o.origin === 'string' && o.origin && { origin: o.origin }),
       });
@@ -215,7 +246,9 @@ export function editDungeon(m: DungeonSpec, o: DungeonOp): string {
     case 'connect': {
       (m.connections ??= []).push({
         a: String(o.a), b: String(o.b), ...(o.at !== undefined && { at: pt(o.at) }), ...(typeof o.kind === 'string' && o.kind !== 'door' && { kind: o.kind as DoorKind | 'open' }),
-        ...(typeof o.width === 'number' && { width: o.width }), ...(typeof o.span === 'number' && { span: o.span }), ...(typeof o.origin === 'string' && o.origin && { origin: o.origin }),
+        ...(typeof o.width === 'number' && { width: o.width }), ...(typeof o.span === 'number' && { span: o.span }),
+        ...(typeof o.weight === 'number' && { weight: o.weight }), ...(typeof o.line === 'string' && o.line !== 'solid' && { line: o.line as WallLine }),
+        ...(typeof o.origin === 'string' && o.origin && { origin: o.origin }),
       });
       return `connection ${m.connections.length - 1}: ${String(o.a)} ↔ ${String(o.b)}`;
     }
@@ -226,9 +259,38 @@ export function editDungeon(m: DungeonSpec, o: DungeonOp): string {
       return `${m.connections?.length ?? 0} connections`;
     }
     case 'door': {
+      // `at`: a door in the run (a distance along the corridor, or a point); with no kind, the doors in the run at that place are removed
+      if (o.at !== undefined) {
+        const c = corridor(m, o.index), place = typeof o.at === 'number' ? o.at : pt(o.at), kind = (o.kind ?? null) as DoorKind | null;
+        if (kind !== null && !DOOR_KINDS.includes(kind)) throw new Error(`door kind: one of ${DOOR_KINDS.join(', ')}`);
+        const same = (a: MidDoor['at']) => typeof a === 'number' && typeof place === 'number' ? Math.abs(a - place) < 1e-9 : Array.isArray(a) && Array.isArray(place) && a[0] === place[0] && a[1] === place[1];
+        c.midDoors = (c.midDoors ?? []).filter(d => !same(d.at));
+        if (kind) c.midDoors.push({ at: place, kind });
+        if (!c.midDoors.length) delete c.midDoors;
+        return `door in the run of corridor ${String(o.index)} at ${show(o.at)}: ${kind ?? 'none'}`;
+      }
       const c = corridor(m, o.index), d = c.doors ?? [null, null], kind = (o.kind ?? null) as DoorKind | null;
       c.doors = o.end === 'to' ? [d[0], kind] : [kind, d[1]];
       return `door at the ${o.end === 'to' ? 'end' : 'start'} of corridor ${String(o.index)}: ${kind ?? 'none'}`;
+    }
+    case 'add_ring': {
+      // a line over the rock with no floor: a circle (at, r) or a poly (points)
+      const shape = String(o.shape ?? (o.points ? 'poly' : 'circle'));
+      if (shape !== 'circle' && shape !== 'poly') throw new Error('ring: circle or poly');
+      const ring: Ring = shape === 'circle' ? { shape, at: pt(o.at), r: Number(o.r) } : { shape, points: numbers(o.points) };
+      if (o.line === 'solid' || o.line === 'dashed') ring.line = o.line;
+      if (typeof o.width === 'number') ring.width = o.width;
+      if (Array.isArray(o.dash)) ring.dash = numbers(o.dash) as [number, number];
+      if (typeof o.id === 'string' && o.id) ring.id = o.id;
+      if (typeof o.origin === 'string' && o.origin) ring.origin = o.origin;
+      (m.rings ??= []).push(ring);
+      return `ring ${m.rings.length - 1}: ${shape}`;
+    }
+    case 'remove_ring': {
+      if (!m.rings?.[Number(o.index)]) throw new Error(`no ring ${String(o.index)} (0..${(m.rings?.length ?? 0) - 1})`);
+      m.rings.splice(Number(o.index), 1);
+      if (!m.rings.length) delete m.rings;
+      return `${m.rings?.length ?? 0} rings`;
     }
     case 'fit': { replace(m, fitDungeon(parseDungeon(m), typeof o.margin === 'number' ? o.margin : 2)); return `fitted to ${m.cols}×${m.rows} cells`; }
   }

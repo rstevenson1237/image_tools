@@ -35,4 +35,50 @@ export const SYMBOLS: Record<string, { name: string; svg: string }> = {
   arrow: { name: 'Arrow (way on)', svg: '<path d="M-8 0H5M1 -5L7 0L1 5" fill="none" stroke="{ink}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' },
 };
 
+/** A stair that curves round a central post: a half ring of steps, in the 20 × 20 box. */
+function archStair(): string {
+  const R = 9, r = 3, steps = 8;
+  let g = `<path d="M${-R} 0A${R} ${R} 0 0 1 ${R} 0L${r} 0A${r} ${r} 0 0 0 ${-r} 0Z" fill="{fill}" stroke="{ink}" stroke-width="1.4" stroke-linejoin="round"/>`;
+  let d = '';
+  for (let k = 1; k < steps; k++) { const a = Math.PI + (k / steps) * Math.PI, c = Math.cos(a), s = Math.sin(a); d += `M${(r * c).toFixed(2)} ${(r * s).toFixed(2)}L${(R * c).toFixed(2)} ${(R * s).toFixed(2)}`; }
+  g += `<path d="${d}" stroke="{ink}" stroke-width="1.1"/><circle r="1.8" fill="{ink}"/>`;
+  return `<g transform="translate(0 4.5)">${g}</g>`;
+}
+
+/** The default turn of a `curved-arrow`, in degrees. */
+export const CURVED_ARROW_SWEEP = 120;
+
+/**
+ * An arrow that turns: an arc round a centre `R` below its apex, `sweep` degrees of it (clockwise on the page when positive), with
+ * the head at the end. At angle 0 it runs east at the apex; the box is centred on the arc.
+ */
+function curvedArrow(sweep: number): string {
+  const R = 7, half = (sweep / 2) * (Math.PI / 180), sign = sweep < 0 ? -1 : 1, th0 = -half, th1 = half;
+  const at = (th: number): [number, number] => [R * Math.sin(th), R - R * Math.cos(th)];
+  const [x0, y0] = at(th0), [x1, y1] = at(th1);
+  // the heading at the end: the derivative along the arc, turned by the sign of the sweep
+  const dx = sign * Math.cos(th1), dy = sign * Math.sin(th1), nx = -dy, ny = dx, back = 4.2, wing = 3.4;
+  const f = (v: number) => v.toFixed(2);
+  const head = `M${f(x1 - dx * back + nx * wing)} ${f(y1 - dy * back + ny * wing)}L${f(x1)} ${f(y1)}L${f(x1 - dx * back - nx * wing)} ${f(y1 - dy * back - ny * wing)}`;
+  const arc = `M${f(x0)} ${f(y0)}A${R} ${R} 0 ${Math.abs(sweep) > 180 ? 1 : 0} ${sign > 0 ? 1 : 0} ${f(x1)} ${f(y1)}`;
+  return `<g transform="translate(0 ${f(-(R - R * Math.cos(half)) / 2)})"><path d="${arc}${head}" fill="none" stroke="{ink}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>`;
+}
+
+Object.assign(SYMBOLS, {
+  'spiral-stair': { name: 'Spiral stair (a circle with spokes)', svg: '<circle r="8.5" fill="{fill}" stroke="{ink}" stroke-width="1.4"/><path d="M0 -8.5V8.5M-8.5 0H8.5M-6 -6L6 6M6 -6L-6 6" stroke="{ink}" stroke-width="1"/><circle r="2" fill="{ink}"/>' },
+  'pit-filled': { name: 'Pit, filled (a dark disc in a ring)', svg: '<circle r="8.5" fill="{fill}" stroke="{ink}" stroke-width="1.5"/><circle r="5.6" fill="{ink}"/>' },
+  'pool-filled': { name: 'Pool, filled (a grey disc in a double ring)', svg: '<circle r="8.8" fill="{fill}" stroke="{ink}" stroke-width="1.5"/><circle r="6.9" fill="{ink}" fill-opacity="0.28" stroke="{ink}" stroke-width="0.9"/>' },
+  'arch-stair': { name: 'Arched stair (steps curving round a post)', svg: archStair() },
+  'curved-arrow': { name: 'Curved arrow (a turn; sweep sets how far)', svg: curvedArrow(CURVED_ARROW_SWEEP) },
+} satisfies Record<string, { name: string; svg: string }>);
+
 export const SYMBOL_KINDS = Object.keys(SYMBOLS);
+
+/** A symbol as drawn, in the 20 × 20 box: its svg with the ink and the fill put in (a `curved-arrow` turns by its `sweep`). */
+export function symbolSvg(s: { kind: string; sweep?: number }, ink: string, fill: string): string {
+  const svg = s.kind === 'curved-arrow' && s.sweep !== undefined ? curvedArrow(s.sweep) : (SYMBOLS[s.kind] ?? SYMBOLS.trap).svg;
+  return svg.replaceAll('{ink}', ink).replaceAll('{fill}', fill);
+}
+
+/** A symbol's width and length factors: `scale` times `scaleX` and `scaleY`. */
+export const symbolScale = (s: { scale?: number; scaleX?: number; scaleY?: number }): [number, number] => [(s.scale ?? 1) * (s.scaleX ?? 1), (s.scale ?? 1) * (s.scaleY ?? 1)];

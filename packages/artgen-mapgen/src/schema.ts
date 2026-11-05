@@ -6,7 +6,7 @@
  * Positions and sizes are in cells (a map's are map units) unless a key says otherwise. Every entry of a list may carry
  * `origin` (who wrote it; none is a hand entry, see `sync`).
  */
-import { DOOR_KINDS, HATCH_STYLES, LABEL_KINDS, ROOM_FILLS, ROOM_SHAPES, ROUTES, SIDES, CORRIDOR_STYLES, CURVES, GEN_LAYOUTS, BLOCK_SHAPES, SPLIT_MODES, ROCK_STYLES, AREA_KINDS, ROOM_EXIT_KINDS, DUNGEON_FORMAT, MAX_SIDE as DUNGEON_MAX } from './dungeon/spec.ts';
+import { DOOR_KINDS, HATCH_STYLES, LABEL_KINDS, ROOM_FILLS, ROOM_SHAPES, ROUTES, SIDES, CORRIDOR_STYLES, CURVES, GEN_LAYOUTS, BLOCK_SHAPES, SPLIT_MODES, ROCK_STYLES, AREA_KINDS, ROOM_EXIT_KINDS, DUNGEON_FORMAT, MAX_SIDE as DUNGEON_MAX, NUMBER_STYLES, DOOR_GLYPHS, PRESET_NAMES, PALETTE_KEYS, WALL_LINES, MIN_WIDTH } from './dungeon/spec.ts';
 import { GRAPH_SHAPES } from './dungeon/graph.ts';
 import { CHECK_IDS } from './dungeon/lint.ts';
 import * as M from './map/spec.ts';
@@ -62,30 +62,47 @@ export const DUNGEON_SCHEMA: Schema = {
       sharedWalls: anyOf('walls where two floors meet: true (default) between any two units, "rooms" between rooms only (format 1\'s true), false none', { type: 'boolean' }, { const: 'rooms' }),
       rock: oneOf('the rock: hatch (as hatch says; default), solid (rockColor) or none', ROCK_STYLES), rockColor: str('solid rock\'s colour, #rrggbb (default #bdbdbd)'),
       partition: num('the weight of the walls between floors, like wall (default: wall), 0.2..4'),
+      palette: obj(`colours, each #rrggbb: ${PALETTE_KEYS.join(', ')}`, {
+        rock: str('the solid rock (in place of rockColor)'), floor: str('the floor, and what fills doors and symbols (default #ffffff)'), ink: str('the ink: doors, symbols, labels, and the walls unless wall is set (default #000000)'),
+        grid: str('the grid lines (default: the ink, faint)'), wall: str('the walls and partitions (default: the ink)'),
+      }),
+      numbers: oneOf('room numbers: a black badge (default) or plain bold numerals on the floor', NUMBER_STYLES),
+      doors: oneOf('the door mark: a thin bar across the opening (default) or a square with a jamb each side', DOOR_GLYPHS),
+      preset: oneOf('a named look that fills the style and grid settings the file leaves unset (`dungeon style --preset` writes its values)', PRESET_NAMES),
     }),
     scale: obj('the scale', { perCell: num('map units in one cell (5)'), unit: str('the unit (ft)') }),
     numbers: bool('room number badges'), scaleBar: bool('the scale bar'), compass: bool('the compass'), legend: bool('a key of the symbols used'), furniture,
     rooms: arr('the rooms', obj('a room', {
-      id: str('letters, digits, - and _'), shape: oneOf('the shape', ROOM_SHAPES), x: num('the box\'s left (cells)'), y: num('the box\'s top'), w: num('the box\'s width, at least 1'), h: num('the box\'s height, at least 1'),
+      id: str('letters, digits, - and _'), shape: oneOf('the shape', ROOM_SHAPES), x: num('the box\'s left (cells)'), y: num('the box\'s top'), w: num('the box\'s width, at least 1 (a poly\'s is its points\' own, any size above 0)'), h: num('the box\'s height, at least 1 (a poly\'s: as for width)'),
       points: points('a poly\'s outline, cells; x, y, w, h are then its box'), seed: num('a cave\'s outline seed (default: from its id)'), label: str('its name'),
-      number: anyOf('its badge\'s number, or false to hide it (default: file order)', { type: 'number' }, { const: false }), fill: oneOf('what it is: floor (default), building, yard or cellar', ROOM_FILLS),
+      number: anyOf('its number: a number, a key such as 15a (shown as written, not counted in the numbering), or false to hide it (default: file order)', { type: 'number' }, { type: 'string' }, { const: false }), fill: oneOf('what it is: floor (default), building, yard or cellar', ROOM_FILLS),
       href, origin, hand: arr('fields a hand edit changed on an entry of some origin; a sync reports them', { type: 'string' }),
       anchor: point('where its {room} corridors start and its badge sits (default: the centre, or a poly\'s deepest point)'),
       labelAt: anyOf('where its number and name stand: by a wall, at the anchor (c), or [dx, dy] from it; unset, they move off what they would lie on', oneOf('', ['c', 'n', 's', 'w', 'e']), point('')),
       cut: num('an octagon\'s corner cut, a share of its shorter side, exactly (default: 0.3 of it to the half cell)', { exclusiveMinimum: 0, exclusiveMaximum: 0.5 }),
       orient: oneOf('a hexagon: flat (points east and west; default) or pointy', ['flat', 'pointy']),
+      edge: oneOf('wavy: a wavy line along its walls (a curtain, drapery, a rubble margin)', ['wavy']),
+      edgeSides: arr('the walls edge runs along, by the side each faces (default: all)', side),
+      partition: num('the weight of the walls it shares with other rooms, like style.partition (a connection\'s weight wins; the thinner of two rooms), 0.2..4'),
       exits: arr('ways out of the map inside the room', obj('a stair or an arrow by a wall or at a point, and its note', { kind: oneOf('the mark', ROOM_EXIT_KINDS), side, at: point('the mark\'s point'), angle: num('degrees, 0 east, clockwise (default: toward its wall)'), text: str('the note under it') }, ['kind'])),
     }, ['id', 'shape', 'x', 'y', 'w', 'h'])),
     corridors: arr('the corridors', obj('a corridor', {
-      id: str('a name other corridors can join'), from: corridorEnd, to: corridorEnd, width: num('width in cells, 0.5..6 (default 1)'), span: num('width in the scale unit, in place of width (10 for a 10 ft passage)'),
+      id: str('a name other corridors can join'), from: corridorEnd, to: corridorEnd, width: num(`width in cells, ${MIN_WIDTH}..6 (default 1; a maze corridor needs 0.5)`), span: num('width in the scale unit, in place of width (10 for a 10 ft passage)'),
       route: oneOf('auto (straight when the rooms line up, else an elbow), hv, vh, straight, around (round the rooms on the grid) or maze (on the lattice of its width, off other corridors)', ROUTES),
       maze: obj('route maze: cells kept off rooms\' walls (0 or 1; default 0 where walls are drawn along corridors), a bend\'s cost, the noise\'s seed', { clearance: oneOf('', [0, 1]), bend: num('', { minimum: 0 }), seed: num('') }),
       via: line('its bends, in order'), curve: oneOf('a smooth curve through the bends', CURVES), style: oneOf('built (default) or natural (rough walls)', CORRIDOR_STYLES), seed: num('a natural passage\'s seed'),
-      doors: doorPair, origin,
+      doors: doorPair,
+      midDoors: arr('doors standing in the run itself', obj('a door in the run', { at: anyOf('the distance from the corridor\'s start along its centre line (cells), or a point (the nearest point on the line)', { type: 'number' }, point('')), kind: oneOf('the door kind', DOOR_KINDS) }, ['at', 'kind'])),
+      origin,
     }, ['from', 'to'])),
     connections: arr('doors and openings in the walls rooms share', obj('a connection', {
-      a: str('a room'), b: str('the room it touches'), at: point('a point on their shared wall (default: the middle of its longest stretch)'), kind: oneOf('a door kind or open', [...DOOR_KINDS, 'open']), width: num('the opening, cells (default 1)'), origin,
+      a: str('a room'), b: str('the room it touches'), at: point('a point on their shared wall (default: the middle of its longest stretch)'), kind: oneOf('a door kind or open', [...DOOR_KINDS, 'open']), width: num('the opening, cells (default 1)'),
+      weight: num('the stroke of the wall these rooms share, like style.partition, 0.2..4 (a thin gap or a heavy wall)'), line: oneOf('how that wall is drawn: solid (default), dashed (an illusory wall) or none (the floors run together)', WALL_LINES), origin,
     }, ['a', 'b'])),
+    rings: arr('lines over the rock with no floor: a ring of dashes, an illusory wall', obj('a ring', {
+      id: str('its id'), shape: oneOf('a circle (at, r) or a poly (points, closed)', ['circle', 'poly']), at: point('a circle\'s centre'), r: num('a circle\'s radius, cells'), points: points('a poly\'s outline'),
+      line: oneOf('dashed (default) or solid', ['dashed', 'solid']), width: num('the line\'s width, cells, 0.02..2 (default 0.12)'), dash: arr('[dash, gap] in cells (default [0.5, 0.3])', { type: 'number' }, { minItems: 2, maxItems: 2 }), origin,
+    }, ['shape'])),
     blocks: arr('shapes split into rooms that share walls', obj('a block', {
       id: str('its id'), shape: oneOf('the shape', BLOCK_SHAPES), x: num('left'), y: num('top'), w: num('width'), h: num('height'), points: points('a poly\'s outline'),
       split: obj('how it splits', { mode: oneOf('bsp, rows, cols, grid or cuts', SPLIT_MODES), min: num('about the size of each room, cells'), cuts: obj('where to cut', { x: arr('x lines', { type: 'number' }), y: arr('y lines', { type: 'number' }) }), seed: num('the seed') }, ['mode']),
@@ -93,7 +110,7 @@ export const DUNGEON_SCHEMA: Schema = {
     }, ['id', 'shape', 'x', 'y', 'w', 'h', 'split'])),
     overlay: obj('labels and symbols', {
       labels: arr('labels', obj('a label', { text: str('the text'), x: num('x'), y: num('y'), kind: oneOf('name (bold), note (italic) or area (spaced capitals)', LABEL_KINDS), size: num('a factor on its size'), angle: num('degrees'), href, origin }, ['text', 'x', 'y', 'kind'])),
-      symbols: arr('symbols', obj('a symbol', { kind: str('a symbol kind (`artgen dungeon symbols`)'), x: num('x'), y: num('y'), scale: num('a factor on its size'), angle: num('degrees, 0 east, clockwise on the page'), origin }, ['kind', 'x', 'y'])),
+      symbols: arr('symbols', obj('a symbol', { kind: str('a symbol kind (`artgen dungeon symbols`)'), x: num('x'), y: num('y'), scale: num('a factor on its size'), scaleX: num('a factor on its width, on top of scale (a stair run 0.8 wide: scaleX 0.8, scaleY 4)'), scaleY: num('a factor on its length, on top of scale'), sweep: num('curved-arrow: how far it turns, degrees (default 120; negative: anticlockwise)'), angle: num('degrees, 0 east, clockwise on the page'), origin }, ['kind', 'x', 'y'])),
     }, ['labels', 'symbols']),
     underlay: obj('a terrain map under the rooms', { map: str('the map file\'s path, from this file\'s folder'), origin: point('the map unit at the dungeon\'s top-left'), scale: num('map units in one cell'), theme: oneOf('color or bw', ['color', 'bw']) }, ['map', 'origin', 'scale']),
     walls: arr('enclosing walls with towers and gates', obj('a wall', {

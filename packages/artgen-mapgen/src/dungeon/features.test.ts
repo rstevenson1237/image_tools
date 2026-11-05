@@ -186,7 +186,7 @@ describe('rooms joined directly', () => {
     expect(f.unreached).toEqual(['b', 'c']);
     expect(D.lintDungeon(s).map(x => `${x.path} ${x.message}`)).toEqual([expect.stringMatching(/^connections\[1\] a and far share no wall/)]);
     expect(D.validateDungeon({ ...s, connections: [{ a: 'hall', b: 'hall' }, { a: 'x', b: 'a', kind: 'gate' as D.DoorKind }] })).toEqual([
-      'connections[0]: a room cannot connect to itself', 'connections[1].a: no room "x"', 'connections[1].kind: open or one of door, secret, locked, portcullis, arch',
+      'connections[0]: a room cannot connect to itself', 'connections[1].a: no room "x"', 'connections[1].kind: open or one of door, secret, locked, portcullis, arch, double',
     ]);
   });
 

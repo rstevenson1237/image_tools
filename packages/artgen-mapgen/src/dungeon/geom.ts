@@ -94,3 +94,17 @@ export function sharedEdges(a: number[], b: number[], eps = 1e-6): [P, P][] {
   }
   return out;
 }
+
+/** The point `d` cells along a polyline (clamped to its ends) and the way the line runs there, in degrees (0 east, clockwise on the page). */
+export function pointAlong(pts: number[], d: number): { x: number; y: number; angle: number } {
+  let at = 0, last = { x: pts[0], y: pts[1], angle: 0 };
+  for (let i = 0; i + 3 < pts.length; i += 2) {
+    const dx = pts[i + 2] - pts[i], dy = pts[i + 3] - pts[i + 1], len = Math.hypot(dx, dy);
+    if (len < 1e-9) continue;
+    const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+    if (at + len >= d) { const t = Math.max(0, d - at) / len; return { x: pts[i] + dx * t, y: pts[i + 1] + dy * t, angle }; }
+    at += len;
+    last = { x: pts[i + 2], y: pts[i + 3], angle };
+  }
+  return last;
+}

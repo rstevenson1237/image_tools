@@ -5,19 +5,19 @@
 import { rng } from 'artgen-primitives/lib/rng.ts';
 import { chaikin } from 'artgen-primitives/lib/trace.ts';
 import { junctionPort, naturalOutline, portRoute, routeAround, sidePort, smoothLine, snap, tidy, type Port } from './corridors.ts';
-import { segmentDistance, sharedEdges, type P } from './geom.ts';
+import { nearestOnLine, pointAlong, segmentDistance, sharedEdges, type P } from './geom.ts';
 import { corridorBoundaries } from './floor.ts';
 import { corridorOrder, corridorWallsOn, corridorWidth, sharedWallsOn, type Corridor, type DoorKind, type DungeonSpec, type Room } from './spec.ts';
 import { layoutWalls } from './walls.ts';
 import { routeMazes } from './maze.ts';
 
-export interface RoomGeom { room: Room; index: number; outline: number[]; cx: number; cy: number; number?: number }
+export interface RoomGeom { room: Room; index: number; outline: number[]; cx: number; cy: number; number?: number | string }
 /** Where a corridor leaves a room (on its outline), or its point end; the angle is the direction away from the room. `along` is how far the corridor runs inside the room to get there (cells; 0 at a point end). */
 export interface EndGeom { x: number; y: number; angle: number; along: number }
 /** A corridor's centre line and width, where it leaves each end, and for a natural passage the outline of its floor. `unrouted`: a maze corridor no passage fitted, drawn as an elbow. */
 export interface CorridorGeom { index: number; pts: number[]; width: number; ends: [EndGeom | null, EndGeom | null]; outline?: number[]; unrouted?: boolean }
 /** A door: where it stands, the way through it (degrees) and its width. A corridor's door stands on the room's outer wall; a connection's (`inner`) in the wall two rooms share, with `corridor` -1. */
-export interface DoorGeom { kind: DoorKind; x: number; y: number; angle: number; width: number; corridor: number; connection?: number; inner?: boolean }
+export interface DoorGeom { kind: DoorKind; x: number; y: number; angle: number; width: number; corridor: number; connection?: number; inner?: boolean; /** Stands in the middle of a corridor's run (`midDoors`), not at a wall. */ mid?: boolean }
 /** A connection between two rooms: where its door or opening is, the way through from `a` to `b`, and the shared wall it is in (null when the rooms share none). */
 export interface ConnectionGeom { index: number; a: string; b: string; kind: DoorKind | 'open'; x: number; y: number; angle: number; width: number; wall: [P, P] | null }
 export interface DungeonLayout {
@@ -28,7 +28,11 @@ export interface DungeonLayout {
    * and (with `style.sharedWalls: true`) where a corridor's floor touches a room's or another corridor's, less where it runs into one.
    */
   partitions: number[][];
+  /** For each partition, in step with `partitions`: its own stroke weight (a factor like `style.partition`) and whether it is dashed; null for the plain wall. */
+  partitionStyle: (PartitionStyle | null)[];
 }
+/** How one wall between floors differs from the plain one (see `connections[].weight` and `line`, `rooms[].partition`). */
+export interface PartitionStyle { weight?: number; dashed?: boolean }
 
 /** Stable seed from a room id, so a cave keeps its outline when other rooms change. */
 export const idSeed = (id: string) => [...id].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 0x01000193) >>> 0, 0x811c9dc5);
@@ -245,6 +249,7 @@ export function layoutDungeon(spec: DungeonSpec): DungeonLayout {
   let auto = 0;
   const rooms: RoomGeom[] = spec.rooms.map((room, index) => {
     const outline = roomOutline(room), [cx, cy] = roomAnchor(room, outline);
+    // a key such as `15a` is shown as written and takes no place in the numbering of the rooms after it
     const number = room.number === false ? undefined : room.number ?? ++auto;
     if (typeof room.number === 'number') auto = Math.max(auto, room.number);
     return { room, index, outline, cx, cy, number };
@@ -270,10 +275,15 @@ export function layoutDungeon(spec: DungeonSpec): DungeonLayout {
   }
   const corridors = geoms, doors: DoorGeom[] = [];
   corridors.forEach((g, index) => g.ends.forEach((p, i) => { const kind = spec.corridors[index].doors?.[i]; if (p && kind) doors.push({ kind, x: p.x, y: p.y, angle: p.angle, width: g.width, corridor: index }); }));
-  const { connections, partitions } = layoutConnections(spec, rooms, byId);
+  // doors that stand in a run: a distance along the centre line, or the point on it nearest a given one
+  corridors.forEach((g, index) => (spec.corridors[index].midDoors ?? []).forEach(d => {
+    const along = typeof d.at === 'number' ? d.at : nearestOnLine(g.pts, d.at[0], d.at[1]).along, p = pointAlong(g.pts, along);
+    doors.push({ kind: d.kind, x: p.x, y: p.y, angle: p.angle, width: g.width, corridor: index, inner: true, mid: true });
+  }));
+  const { connections, partitions, partitionStyle } = layoutConnections(spec, rooms, byId);
   for (const c of connections) if (c.kind !== 'open' && c.wall) doors.push({ kind: c.kind, x: c.x, y: c.y, angle: c.angle, width: c.width, corridor: -1, connection: c.index, inner: true });
-  const l = { rooms, corridors, doors, connections, partitions };
-  if (corridorWallsOn(spec)) for (const b of corridorBoundaries(l)) partitions.push([b.seg[0][0], b.seg[0][1], b.seg[1][0], b.seg[1][1]]);
+  const l = { rooms, corridors, doors, connections, partitions, partitionStyle };
+  if (corridorWallsOn(spec)) for (const b of corridorBoundaries(l)) { partitions.push([b.seg[0][0], b.seg[0][1], b.seg[1][0], b.seg[1][1]]); partitionStyle.push(null); }
   return l;
 }
 
@@ -281,7 +291,7 @@ export function layoutDungeon(spec: DungeonSpec): DungeonLayout {
 const near = (a: Room, b: Room, e = 1e-6) => a.x <= b.x + b.w + e && b.x <= a.x + a.w + e && a.y <= b.y + b.h + e && b.y <= a.y + a.h + e;
 
 /** The connections' doors and openings, and the shared walls between touching floor rooms with those openings cut out. */
-function layoutConnections(spec: DungeonSpec, rooms: RoomGeom[], byId: Map<string, RoomGeom>): { connections: ConnectionGeom[]; partitions: number[][] } {
+function layoutConnections(spec: DungeonSpec, rooms: RoomGeom[], byId: Map<string, RoomGeom>): { connections: ConnectionGeom[]; partitions: number[][]; partitionStyle: (PartitionStyle | null)[] } {
   const connections: ConnectionGeom[] = (spec.connections ?? []).map((c, index) => {
     const A = byId.get(c.a)!, B = byId.get(c.b)!, width = c.width ?? 1, kind = c.kind ?? 'door';
     const segs = sharedEdges(A.outline, B.outline);
@@ -308,11 +318,18 @@ function layoutConnections(spec: DungeonSpec, rooms: RoomGeom[], byId: Map<strin
     return { index, a: c.a, b: c.b, kind, x, y, angle: (Math.atan2(ny, nx) * 180) / Math.PI, width, wall: seg };
   });
   // shared walls between floor rooms, less the openings in them
-  const partitions: number[][] = [], floors = sharedWallsOn(spec) ? rooms.filter(g => (g.room.fill ?? 'floor') === 'floor') : [];
+  const partitions: number[][] = [], partitionStyle: (PartitionStyle | null)[] = [], floors = sharedWallsOn(spec) ? rooms.filter(g => (g.room.fill ?? 'floor') === 'floor') : [];
   for (let i = 0; i < floors.length; i++) for (let j = i + 1; j < floors.length; j++) {
     const A = floors[i], B = floors[j];
     if (!near(A.room, B.room)) continue;
-    const gaps = connections.filter(c => c.wall && ((c.a === A.room.id && c.b === B.room.id) || (c.a === B.room.id && c.b === A.room.id)));
+    const pair = (c: { a: string; b: string }) => (c.a === A.room.id && c.b === B.room.id) || (c.a === B.room.id && c.b === A.room.id);
+    const gaps = connections.filter(c => c.wall && pair(c));
+    // how this pair's wall is drawn: a connection's own say, else the thinner of the two rooms' `partition`; `none` draws no wall
+    const own = (spec.connections ?? []).find(c => pair(c) && (c.weight !== undefined || c.line !== undefined));
+    const kept = [A.room.partition, B.room.partition].filter((v): v is number => v !== undefined);
+    const weight = own?.weight ?? (kept.length ? Math.min(...kept) : undefined), line = own?.line ?? 'solid';
+    if (line === 'none') continue;
+    const style: PartitionStyle | null = weight !== undefined || line === 'dashed' ? { ...(weight !== undefined && { weight }), ...(line === 'dashed' && { dashed: true }) } : null;
     for (const seg of sharedEdges(A.outline, B.outline)) {
       const L = Math.hypot(seg[1][0] - seg[0][0], seg[1][1] - seg[0][1]), ux = (seg[1][0] - seg[0][0]) / L, uy = (seg[1][1] - seg[0][1]) / L;
       // the openings on this stretch, as [from, to] along it
@@ -320,12 +337,12 @@ function layoutConnections(spec: DungeonSpec, rooms: RoomGeom[], byId: Map<strin
         .filter((v): v is number[] => !!v).sort((p, q) => p[0] - q[0]);
       let from = 0;
       for (const [c0, c1] of [...cuts, [L, L]]) {
-        if (c0 > from + 1e-6) partitions.push([seg[0][0] + ux * from, seg[0][1] + uy * from, seg[0][0] + ux * Math.min(c0, L), seg[0][1] + uy * Math.min(c0, L)]);
+        if (c0 > from + 1e-6) { partitions.push([seg[0][0] + ux * from, seg[0][1] + uy * from, seg[0][0] + ux * Math.min(c0, L), seg[0][1] + uy * Math.min(c0, L)]); partitionStyle.push(style); }
         from = Math.max(from, c1);
       }
     }
   }
-  return { connections, partitions };
+  return { connections, partitions, partitionStyle };
 }
 
 /** The bounding box of everything drawn (rooms, corridor points, overlay), in cells. */
@@ -336,6 +353,7 @@ export function contentBox(spec: DungeonSpec, l = layoutDungeon(spec)): [number,
   for (const c of l.corridors) add(c.outline ?? c.pts, c.outline ? 0 : c.width / 2);
   for (const o of [...spec.overlay.labels, ...spec.overlay.symbols]) add([o.x, o.y], 0.5);
   for (const w of layoutWalls(spec, l)) { add(w.ring, w.thickness / 2); for (const t of w.towers) add([t.x, t.y], t.size / 2); }
+  for (const g of spec.rings ?? []) { if (g.shape === 'circle') add([g.at![0] - g.r!, g.at![1] - g.r!, g.at![0] + g.r!, g.at![1] + g.r!], 0); else add(g.points!, 0); }
   if (!xs.length) return null;
   return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
 }
@@ -360,6 +378,7 @@ export function fitDungeon(spec: DungeonSpec, margin = 2): DungeonSpec {
     if (b.split.cuts) b.split.cuts = { ...(b.split.cuts.x && { x: b.split.cuts.x.map(v => v + dx) }), ...(b.split.cuts.y && { y: b.split.cuts.y.map(v => v + dy) }) };
   }
   // the walls and the underlay move with the rooms: a wall's own line and its gates, and the map unit at the corner
+  for (const g of out.rings ?? []) { if (g.at) g.at = [g.at[0] + dx, g.at[1] + dy]; if (g.points) g.points = mv(g.points); }
   for (const w of out.walls ?? []) { if (w.poly) w.poly = mv(w.poly); for (const g of w.gates ?? []) g.at = [g.at[0] + dx, g.at[1] + dy]; }
   if (out.underlay) out.underlay.origin = [out.underlay.origin[0] - dx * out.underlay.scale, out.underlay.origin[1] - dy * out.underlay.scale];
   out.cols = Math.max(4, Math.ceil(box[2] + dx + margin));

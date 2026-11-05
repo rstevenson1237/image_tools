@@ -6,7 +6,7 @@
  */
 import { overlaps, textBox, type Box } from 'artgen-primitives/lib/page.ts';
 import { corridorBoundaries, doorStand, floorGrid } from './floor.ts';
-import { withMarks } from './marks.ts';
+import { fileMarks, withMarks } from './marks.ts';
 import { roomLabelLayout } from './roomlabels.ts';
 import { area2, lineLength, samples, segmentCross, selfCrossing, sharedEdges, type P } from './geom.ts';
 import { inPolygon, layoutDungeon, type DungeonLayout, type RoomGeom } from './layout.ts';
@@ -29,7 +29,9 @@ export const CHECK_IDS = {
   'never-leaves': 'a corridor never leaves a room it starts or ends at',
   'port-outside-room': 'a corridor end at a room starts outside that room, so it has no door and does not reach it',
   'reenters-room': 'a corridor leaves a room and runs back into it, drawing a passage over the rock between',
-  'end-in-room': 'a corridor ends at a point inside a room',
+  'end-in-room': 'a corridor ends at a point inside a room (or on its wall)',
+  'offset-moved': 'a corridor that leaves a room by a side starts more than half a cell from the offset given',
+  'junction-at-bend': 'a corridor joins another corridor at one of its corners or ends, the point nearest the other end, not along a run',
   'no-length': 'a corridor has no length',
   'through-room': 'a corridor runs through a room it does not join',
   'corridors-cross': 'two corridors that share no room cross with no junction (corridors that leave one room may join and part)',
@@ -41,6 +43,8 @@ export const CHECK_IDS = {
   'door-off-wall': 'a door stands in open floor or on rock, not on a wall between two floors',
   'doors-stacked': 'two doors stand on each other',
   'mark-on-badge': 'a symbol lies under a room\'s number',
+  'note-off-floor': 'a room exit\'s note runs over the room\'s wall or off its floor',
+  'marks-overlap': 'two of a room\'s exit marks are drawn on each other',
   'label-overlap': 'a label lies over another label',
   'outside-bounds': 'a room or corridor has floor outside the level\'s bounds',
   'in-keep-out': 'a room or corridor has floor on an area of rock or a void',
@@ -49,6 +53,8 @@ export type CheckId = keyof typeof CHECK_IDS;
 
 /** A corridor, a symbol or a room smaller than this many square cells reads as nothing. */
 const MIN_AREA = 0.5;
+/** An outline with less area than this is flat: it draws nothing. */
+const FLAT_AREA = 0.01;
 /** Label sizes in cells at the default 40 px a cell (the renderer's sizes without a page scale). */
 const LABEL_CELLS = { area: 24 / 40, name: 15 / 40, note: 12 / 40 } as const;
 const NUMBER_CELLS = 19 / 40;
@@ -77,6 +83,17 @@ function openingsMeet(a: { x: number; y: number; angle: number; width: number },
     return off < 0.3 && Math.min(a.width, Math.max(t0, t1)) - Math.max(0, Math.min(t0, t1)) > 0.1;
   }
   return !!segmentCross(p0, p1, q0, q1);
+}
+
+/** Distance from a point to a polygon's nearest wall. */
+function edgeDistance(p: number[], x: number, y: number): number {
+  let d = Infinity;
+  for (let i = 0, j = p.length - 2; i < p.length; j = i, i += 2) {
+    const ax = p[j], ay = p[j + 1], bx = p[i], by = p[i + 1], L = (bx - ax) ** 2 + (by - ay) ** 2;
+    const t = L ? Math.max(0, Math.min(1, ((x - ax) * (bx - ax) + (y - ay) * (by - ay)) / L)) : 0;
+    d = Math.min(d, Math.hypot(x - ax - t * (bx - ax), y - ay - t * (by - ay)));
+  }
+  return d;
 }
 
 const reversedPts = (p: number[]) => { const out: number[] = []; for (let i = p.length - 2; i >= 0; i -= 2) out.push(p[i], p[i + 1]); return out; };
@@ -110,7 +127,12 @@ export function lintDungeon(spec: DungeonSpec, l: DungeonLayout = layoutDungeon(
       const x = selfCrossing(p);
       if (x) { add('outline-crosses', 'error', `${at}.points`, `the outline crosses itself (walls ${x[0]} and ${x[1]}); list the corners in order round the room`); crossed = true; }
     }
-    if (!crossed && Math.abs(area2(p)) / 2 < MIN_AREA) add('no-floor', 'error', at, `${g.room.id} has almost no floor (${(Math.abs(area2(p)) / 2).toFixed(2)} square cells)`);
+    if (!crossed) {
+      const floor = Math.abs(area2(p)) / 2;
+      // a flat outline is wrong; a thin one (a ring, an arc) draws, but is most likely meant as a line: `rings` draws one with no floor
+      if (floor < FLAT_AREA) add('no-floor', 'error', at, `${g.room.id} has no floor (${floor.toFixed(3)} square cells)`);
+      else if (floor < MIN_AREA) add('no-floor', 'warning', at, `${g.room.id} has almost no floor (${floor.toFixed(2)} square cells); for a ring, a dashed line or any stroke with no floor, use rings[]`);
+    }
     const r = g.room;
     if (r.x + r.w <= 0 || r.y + r.h <= 0 || r.x >= spec.cols || r.y >= spec.rows) add('off-sheet', 'warning', at, `${r.id} is off the sheet (0,0 to ${spec.cols},${spec.rows})`);
     else if (r.x < 0 || r.y < 0 || r.x + r.w > spec.cols || r.y + r.h > spec.rows) add('runs-off-sheet', 'warning', at, `${r.id} runs off the sheet (0,0 to ${spec.cols},${spec.rows}); \`dungeon fit\` makes room`);
@@ -148,9 +170,30 @@ export function lintDungeon(spec: DungeonSpec, l: DungeonLayout = layoutDungeon(
         if (g && !inPolygon(g.outline, x, y)) add('port-outside-room', 'warning', `${at}.${side}`, `starts at ${x.toFixed(1)},${y.toFixed(1)}, outside ${e.room}, so it never reaches ${e.room}${sc.doors?.[k] ? ` and its ${sc.doors[k]} is not drawn` : ''}; start it from a point inside the room (via) or on its wall`);
         else add('never-leaves', 'warning', `${at}.${side}`, `the corridor never leaves ${e.room} (it ends inside it)${sc.doors?.[k] ? `, so its ${sc.doors[k]} is not drawn` : ''}`);
       }
+      if ('room' in e && e.side !== undefined && e.offset !== undefined) {
+        // `offset` is where the corridor's centre line crosses the wall; a path that starts elsewhere has been moved (a maze lattice, a clash)
+        const g = l.rooms.find(r => r.room.id === e.room), n = c.pts.length, [x, y] = k === 0 ? [c.pts[0], c.pts[1]] : [c.pts[n - 2], c.pts[n - 1]];
+        if (g) {
+          const across = e.side === 'n' || e.side === 's', want = (across ? g.room.x : g.room.y) + e.offset, got = across ? x : y;
+          if (Math.abs(got - want) > 0.5) add('offset-moved', 'warning', `${at}.${side}.offset`, `offset ${e.offset} on ${e.room}'s ${{ n: 'north', e: 'east', s: 'south', w: 'west' }[e.side]} wall is ${across ? 'x' : 'y'}=${want}, but the corridor's centre line starts at ${across ? 'x' : 'y'}=${+got.toFixed(2)}; the offset is the centre line, and its floor reaches ${c.width / 2} cell${c.width === 2 ? '' : 's'} each side`);
+        }
+      }
+      if ('corridor' in e && e.near === undefined) {
+        // a junction with no `near` is the point of the other corridor nearest this one's far end: at a corner or an end of it, that is rarely the middle
+        const target = spec.corridors.findIndex(t => t.id === e.corridor), n = c.pts.length, [x, y] = k === 0 ? [c.pts[0], c.pts[1]] : [c.pts[n - 2], c.pts[n - 1]];
+        const line = l.corridors[target]?.pts;
+        if (line && line.length >= 6) for (let v = 0; v < line.length; v += 2) if (Math.hypot(line[v] - x, line[v + 1] - y) < 0.01) {
+          add('junction-at-bend', 'warning', `${at}.${side}`, `joins ${e.corridor} at ${x.toFixed(1)},${y.toFixed(1)}, ${v === 0 || v === line.length - 2 ? 'an end' : 'a corner'} of it: with no \`near\` the junction is the point of ${e.corridor} nearest the other end; set \`near\` ([x, y]) to meet it along a run`);
+          break;
+        }
+      }
       if ('at' in e) {
-        const inside = l.rooms.find(g => inPolygon(g.outline, e.at[0], e.at[1]));
-        if (inside) add('end-in-room', 'warning', `${at}.${side}`, `ends at ${e.at.join(',')}, inside ${inside.room.id}; link to the room instead`);
+        const inside = l.rooms.find(g => inPolygon(g.outline, e.at[0], e.at[1])), half = c.width / 2;
+        if (inside) {
+          // a point on a room's wall counts as inside it (the outline's own edge): say how to end it just outside
+          const onWall = edgeDistance(inside.outline, e.at[0], e.at[1]) < 0.05;
+          add('end-in-room', 'warning', `${at}.${side}`, `ends at ${e.at.join(',')}, ${onWall ? `on ${inside.room.id}'s wall, which counts as inside it` : `inside ${inside.room.id}`}; link to the room instead${onWall ? ', or end it 0.1 cell outside the wall' : ''} (a corridor's end is square and reaches half its width, ${half} cell${half === 1 ? '' : 's'}, past the point)`);
+        }
       }
     });
     if (c.unrouted) add('maze-no-route', 'warning', at, `no passage fits between its rooms on the lattice${'room' in sc.from && 'room' in sc.to ? ` (if ${sc.from.room} and ${sc.to.room} touch, join them with a connection)` : ''}; it is drawn as an elbow`);
@@ -163,7 +206,8 @@ export function lintDungeon(spec: DungeonSpec, l: DungeonLayout = layoutDungeon(
       if (joins.has(g.room.id) || passable(g) || hit.has(g.room.id)) continue;
       if (inPolygon(g.outline, x, y)) hit.add(g.room.id);
     }
-    for (const id of hit) add('through-room', 'warning', at, `runs through ${id}, which it does not join (set via or route, or link through ${id})`);
+    const junction = [sc.from, sc.to].find((e): e is { corridor: string; near?: [number, number] } => 'corridor' in e);
+    for (const id of hit) add('through-room', 'warning', at, `runs through ${id}, which it does not join (set via or route, or link through ${id})${junction ? `; it starts at a junction on ${junction.corridor}${junction.near ? ' (near ' + junction.near.join(',') + ')' : ', chosen as the point of it nearest the other end'}, so \`near\` ([x, y]) moves where it meets ${junction.corridor}` : ''}`);
     // out of a room it joins and back in (a port in one arm of an L run to the other): its run between the two exits is over rock
     ([sc.from, sc.to] as const).forEach((e, k) => {
       const ex = c.ends[k], g = 'room' in e ? l.rooms.find(r => r.room.id === e.room) : undefined;
@@ -206,7 +250,7 @@ export function lintDungeon(spec: DungeonSpec, l: DungeonLayout = layoutDungeon(
   const doorPath = (d: (typeof l.doors)[number]) => (d.connection !== undefined ? `connections[${d.connection}]` : `corridors[${d.corridor}].doors`);
   l.doors.forEach((d, i) => {
     const s = doorStand(spec, l, d);
-    if (s.on === 'open' || s.on === 'rock') add('door-off-wall', 'warning', doorPath(d), `the ${d.kind} at ${d.x.toFixed(1)},${d.y.toFixed(1)} stands ${s.on === 'open' ? 'in open floor' : 'on rock'}, not on a wall between two floors`);
+    if (!d.mid && (s.on === 'open' || s.on === 'rock')) add('door-off-wall', 'warning', doorPath(d), `the ${d.kind} at ${d.x.toFixed(1)},${d.y.toFixed(1)} stands ${s.on === 'open' ? 'in open floor' : 'on rock'}, not on a wall between two floors`);
     const on = l.doors.findIndex((e, j) => j < i && openingsMeet(e, d));
     if (on >= 0) add('doors-stacked', 'warning', doorPath(d), `the ${d.kind} at ${d.x.toFixed(1)},${d.y.toFixed(1)} stands on the ${l.doors[on].kind} of ${doorPath(l.doors[on])}`);
   });
@@ -248,6 +292,21 @@ export function lintDungeon(spec: DungeonSpec, l: DungeonLayout = layoutDungeon(
     if (r.placed) return;
     const other = placed.find((q, j) => j < i && block(q).some(b => block(r).some(c => overlaps(b, c))));
     if (other) add('label-overlap', 'warning', `rooms[${r.room}]`, `${l.rooms[r.room].room.id}'s label lies over ${l.rooms[other.room].room.id}'s and has no clear spot by its walls; set rooms[${r.room}].labelAt or move a room`);
+  });
+  // a room exit's note is kept on the room's floor; one that cannot be (a room narrower than a word) is reported
+  const exitOf = (source: string) => source.match(/^rooms\[(\d+)\]\.exits\[\d+\]$/)?.[1];
+  const own = fileMarks(spec, l);
+  const noted = new Set<string>();
+  own.labels.forEach(({ mark: lb, source }) => {
+    const ri = exitOf(source);
+    if (ri === undefined || noted.has(source)) return;
+    const size = LABEL_CELLS.note, b = textBox(lb.text, lb.x, lb.y + size * 0.35, size, { bold: false }), g = l.rooms[+ri];
+    const out = [[b.x, b.y], [b.x + b.w, b.y], [b.x, b.y + b.h], [b.x + b.w, b.y + b.h]].some(([x, y]) => !inPolygon(g.outline, x, y));
+    if (out) { noted.add(source); add('note-off-floor', 'warning', source, `the note "${lb.text}" runs over ${g.room.id}'s wall; shorten it, or make the room wider`); }
+  });
+  own.symbols.forEach(({ mark: a, source }, i) => {
+    const hit = own.symbols.findIndex(({ mark: b }, j) => j < i && Math.hypot(a.x - b.x, a.y - b.y) < 0.6);
+    if (hit >= 0) add('marks-overlap', 'warning', source, `${a.kind} at ${a.x.toFixed(1)},${a.y.toFixed(1)} is drawn on ${own.symbols[hit].source}'s mark; give the exits different sides, or set \`at\``);
   });
   marks.symbols.forEach((s, i) => {
     const at = marked.symbolPath[i], z = (s.scale ?? 1) * 0.9, box: Box = { x: s.x - z / 2, y: s.y - z / 2, w: z, h: z };

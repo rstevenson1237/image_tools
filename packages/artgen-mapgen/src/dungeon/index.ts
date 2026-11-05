@@ -1,9 +1,10 @@
 /** Dungeon maps for tabletop games: rooms, corridors and doors, hatched rock, grid and the B/W renderer (`artgen dungeon`). */
 export * from './spec.ts';
-export { layoutDungeon, roomOutline, inPolygon, contentBox, fitDungeon, roomCrop, type DungeonLayout, type RoomGeom, type CorridorGeom, type DoorGeom, type EndGeom, type ConnectionGeom } from './layout.ts';
+export { layoutDungeon, roomOutline, inPolygon, contentBox, fitDungeon, roomCrop, type PartitionStyle, type DungeonLayout, type RoomGeom, type CorridorGeom, type DoorGeom, type EndGeom, type ConnectionGeom } from './layout.ts';
 export { generateDungeon, singleRoom } from './generate.ts';
-export { SYMBOLS, SYMBOL_KINDS } from './symbols.ts';
-export { renderDungeonSvg, dungeonFurniture, dungeonRenderSize, linked, wrapText, dungeonLayersFor, dungeonLabelLayout, LEGEND_NAMES, DUNGEON_LAYERS, type DungeonLayer, type RenderDungeonOptions, type UnplacedLabel } from './render.ts';
+export { SYMBOLS, SYMBOL_KINDS, symbolSvg, symbolScale, CURVED_ARROW_SWEEP } from './symbols.ts';
+export { wavyEdges, wallSide, EDGING } from './edging.ts';
+export { renderDungeonSvg, paletteOf, type DungeonPalette, dungeonFurniture, dungeonRenderSize, linked, wrapText, dungeonLayersFor, dungeonLabelLayout, LEGEND_NAMES, DUNGEON_LAYERS, type DungeonLayer, type RenderDungeonOptions, type UnplacedLabel } from './render.ts';
 export { dungeonFacts, RULES as FACTS_RULES, type DungeonFacts, type Boxed, type RoomFacts, type CorridorFacts, type ExitFacts, type OverlapFacts, type DoorFacts, type AdjacentFacts, type FloorFacts } from './facts.ts';
 export { layoutWalls, wallFacts, convexHull, offsetRing, WALL_DEFAULTS, type WallGeom, type WallFacts, type TowerGeom, type GateGeom } from './walls.ts';
 export { underlaySvg, underlayWindow } from './underlay.ts';
