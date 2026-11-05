@@ -284,7 +284,7 @@ export function lintDungeon(spec: DungeonSpec, l: DungeonLayout = layoutDungeon(
   }
 
   // marks (the overlay, and the marks rooms' exits and areas' labels add): off the sheet, symbols on a badge, labels on labels
-  const marked = withMarks(spec, l), marks = marked.spec.overlay;
+  const marked = withMarks(spec, l), marks = marked.spec.overlay, own = fileMarks(spec, l);
   // the rooms' labels where they are drawn: one that found no clear spot lies on a symbol (reported with the symbol) or on another room's label
   const placed = roomLabelLayout(marked.spec, l), badges = placed.flatMap(r => (r.badge ? [{ g: l.rooms[r.room], b: r.badge }] : []));
   const block = (r: (typeof placed)[number]): Box[] => [r.badge, r.name].filter((b): b is Box => !!b);
@@ -292,10 +292,14 @@ export function lintDungeon(spec: DungeonSpec, l: DungeonLayout = layoutDungeon(
     if (r.placed) return;
     const other = placed.find((q, j) => j < i && block(q).some(b => block(r).some(c => overlaps(b, c))));
     if (other) add('label-overlap', 'warning', `rooms[${r.room}]`, `${l.rooms[r.room].room.id}'s label lies over ${l.rooms[other.room].room.id}'s and has no clear spot by its walls; set rooms[${r.room}].labelAt or move a room`);
+    else {
+      // or over the note of one of its own exits
+      const note = own.labels.find(({ mark: lb, source }) => source.startsWith('rooms[') && block(r).some(b => overlaps(b, textBox(lb.text, lb.x, lb.y + LABEL_CELLS.note * 0.35, LABEL_CELLS.note, { bold: false }))));
+      if (note) add('label-overlap', 'warning', `rooms[${r.room}]`, `${l.rooms[r.room].room.id}'s label lies over the note "${note.mark.text}" of ${note.source} and has no clear spot by its walls; set rooms[${r.room}].labelAt, or move the exit`);
+    }
   });
   // a room exit's note is kept on the room's floor; one that cannot be (a room narrower than a word) is reported
   const exitOf = (source: string) => source.match(/^rooms\[(\d+)\]\.exits\[\d+\]$/)?.[1];
-  const own = fileMarks(spec, l);
   const noted = new Set<string>();
   own.labels.forEach(({ mark: lb, source }) => {
     const ri = exitOf(source);

@@ -126,6 +126,17 @@ describe('settlement render', () => {
     expect(inside.length).toBeGreaterThan(outline.length);
   });
 
+  it('draws a double door as two leaves, where a plain door is one', () => {
+    // the rects in the doors layer of the inn's ground floor: a gap and a leaf for a door, a gap and two leaves for a double one
+    const rects = (kind: 'door' | 'double') => {
+      const s = sample();
+      s.buildings.find(x => x.id === 'inn')!.floors![0].doors = [{ at: [2.5, 6], kind }];
+      const svg = S.renderSettlementSvg(s, { view: 'plan', building: 'inn', layers: { windows: false, fixtures: false, numbers: false, labels: false } }), at = svg.indexOf('id="doors"');
+      return (svg.slice(at, svg.indexOf('</g>', svg.indexOf('</g>', at) + 1)).match(/<rect/g) ?? []).length;
+    };
+    expect(rects('double')).toBe(rects('door') + 1);
+  });
+
   it('draws a building\'s floor plan with its title, legend and furniture', () => {
     const s = { ...sample(), legend: true }, svg = S.renderSettlementSvg(s, { view: 'plan', building: 'inn' });
     for (const id of ['floor', 'grid', 'fixtures', 'walls', 'doors', 'windows', 'numbers', 'labels', 'legend', 'title']) expect(svg, id).toContain(`id="${id}"`);

@@ -26,6 +26,19 @@ describe('#44 a room exit\'s note stays on the room\'s floor', () => {
     expect(noteBox(mark).x + noteBox(mark).w).toBeLessThan(10);
   });
 
+  test('a room\'s label moves off the note of its own exit', () => {
+    // the label is at the anchor, and the note by a south wall lies on it: it moves to a clear spot by a wall
+    const s = base({ rooms: [room({ id: 'c', label: 'C.1', exits: [{ kind: 'stairs-up', side: 's', text: 'Up to A.1' }] })] });
+    const l = D.layoutDungeon(s), at = D.roomLabelLayout(s, l)[0];
+    expect(at.moved).toBe(true);
+    expect(at.placed).toBe(true);
+    const note = D.fileMarks(s, l).labels[0].mark, nb = noteBox(note);
+    expect(at.name!.y + at.name!.h <= nb.y || at.name!.y >= nb.y + nb.h).toBe(true);
+    // with no exit in the way it stays at the anchor
+    const bare = base({ rooms: [room({ id: 'c', label: 'C.1' })] });
+    expect(D.roomLabelLayout(bare, D.layoutDungeon(bare))[0].moved).toBe(false);
+  });
+
   test('a note a room is too narrow for is reported', () => {
     const s = base({ rooms: [room({ id: 'a', w: 1, h: 4, exits: [{ kind: 'arrow', side: 'e', text: 'Extraordinarily' }] })] });
     expect(D.lintDungeon(s).find(f => f.id === 'note-off-floor')).toMatchObject({ severity: 'warning', path: 'rooms[0].exits[0]' });

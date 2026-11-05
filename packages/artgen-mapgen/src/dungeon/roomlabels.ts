@@ -9,6 +9,7 @@
  */
 import { overlaps, PAGE_PT, PAGE_SYMBOL_MM, pageUnit, pointsToPx, textBox, type Box } from 'artgen-primitives/lib/page.ts';
 import { inPolygon, type DungeonLayout } from './layout.ts';
+import { fileMarks } from './marks.ts';
 import type { DungeonSpec } from './spec.ts';
 
 /** The room number and name sizes in pixels. */
@@ -42,6 +43,9 @@ export function roomLabelLayout(spec: DungeonSpec, l: DungeonLayout, o: { ppu?: 
     const z = (o.pageScale ? PAGE_SYMBOL_MM * o.pageScale : k * 0.9) * (s.scale ?? 1) / k;
     return { x: s.x - z / 2, y: s.y - z / 2, w: z, h: z };
   });
+  // the notes of rooms' exits are in the way too: a label that would lie on one moves to a clear spot
+  const noteSize = (o.pageScale ? pointsToPx(PAGE_PT.dungeon.note, o.pageScale) : 12 * u) / k;
+  for (const { mark: n, source } of fileMarks(spec, l).labels) if (source.startsWith('rooms[')) taken.push(textBox(n.text, n.x, n.y + noteSize * 0.35, noteSize, { bold: false }));
   const out: RoomLabel[] = [];
   for (const g of l.rooms) {
     const hasBadge = numbers && g.number !== undefined, text = labels ? g.room.label : undefined;
