@@ -2255,7 +2255,8 @@ text: {
     "secret",
     "locked",
     "portcullis",
-    "arch"
+    "arch",
+    "double"
   ],
   "symbols": [
     "stairs",
@@ -2285,7 +2286,12 @@ text: {
     "bones",
     "skull",
     "door",
-    "arrow"
+    "arrow",
+    "spiral-stair",
+    "pit-filled",
+    "pool-filled",
+    "arch-stair",
+    "curved-arrow"
   ],
   "labelKinds": [
     "name",
@@ -2420,7 +2426,7 @@ text: crypt "Crypt": 32×17 cells of 5 ft, seed 7
 text: no room nope (have: r1, r2)
 
 ### dungeon_edit {"id":"crypt","ops":[{"op":"sing"}]} (isError)
-text: unknown op sing (add_room, move_room, set_room, remove_room, add_block, split_block, remove_block, link, unlink, connect, disconnect, door, fit)
+text: unknown op sing (add_room, move_room, set_room, remove_room, add_block, split_block, remove_block, link, unlink, connect, disconnect, door, add_ring, remove_ring, fit)
 
 ### dungeon_update {"id":"crypt","grid_mode":"10+5","style":{"hatch":"full"},"title":"The Crypt","numbers":true,"scale_bar":true,"compass":false,"furniture":{"place":"outside","side":"right"}}
 text: crypt "The Crypt": 32×17 cells of 5 ft, seed 7
@@ -2475,7 +2481,7 @@ text: {
 }
 
 ### dungeon_overlay {"id":"crypt","add_symbols":[{"kind":"dragon","x":1,"y":1}]} (isError)
-text: unknown symbol dragon (have: stairs, stairs-up, stairs-down, curtain, dais, gate, ladder, pillar, statue, altar, chest, trap, pit, pool, fountain, rubble, throne, bed, table, coffin, barrel, crate, fire, web, bones, skull, door, arrow)
+text: unknown symbol dragon (have: stairs, stairs-up, stairs-down, curtain, dais, gate, ladder, pillar, statue, altar, chest, trap, pit, pool, fountain, rubble, throne, bed, table, coffin, barrel, crate, fire, web, bones, skull, door, arrow, spiral-stair, pit-filled, pool-filled, arch-stair, curved-arrow)
 
 ### dungeon_overlay {"id":"crypt","clear":"labels"}
 text: {
@@ -2754,7 +2760,8 @@ text: {
     "secret",
     "locked",
     "portcullis",
-    "arch"
+    "arch",
+    "double"
   ],
   "symbols": [
     "stairs",
@@ -2784,7 +2791,12 @@ text: {
     "bones",
     "skull",
     "door",
-    "arrow"
+    "arrow",
+    "spiral-stair",
+    "pit-filled",
+    "pool-filled",
+    "arch-stair",
+    "curved-arrow"
   ],
   "labelKinds": [
     "name",
@@ -3009,7 +3021,12 @@ text: {
     "fire",
     "web",
     "bones",
-    "arrow"
+    "arrow",
+    "spiral-stair",
+    "pit-filled",
+    "pool-filled",
+    "arch-stair",
+    "curved-arrow"
   ],
   "labelKinds": [
     "name",
@@ -4019,7 +4036,12 @@ text: {
     "fire",
     "web",
     "bones",
-    "arrow"
+    "arrow",
+    "spiral-stair",
+    "pit-filled",
+    "pool-filled",
+    "arch-stair",
+    "curved-arrow"
   ],
   "labelKinds": [
     "name",

@@ -39,7 +39,24 @@ first clear spot inside the room by its north, south, west or east wall. `labelA
 ```
 
 `exits` are ways out of the map inside a room: the mark a cell in from the wall (at most a third of the room's depth),
-turned toward it, and its note on the room's side of it; or at `at`.
+turned toward it, and its note on the room's side of it; or at `at`. The note is kept on the room's floor: centred on its mark,
+moved off the walls, and broken into lines where the room is narrower than it, and the mark and its note move together to stay
+inside the room's height. Exits on one wall share it: each gets its own stretch (a north or south wall's width divided between
+them; on an east or west wall each mark and note sit together in a stretch of the height), so two exits never fall on one point.
+An exit placed with `at` stays where it is; `check` reports a note that still runs over a wall (`note-off-floor`) and marks drawn
+on each other (`marks-overlap`).
+
+**Numbers.** `rooms[].number` is a number, a **key** such as `15a` or `G.3` (shown as written, without a space; it takes no
+place in the numbering of the rooms after it), or `false`. `style.numbers: "plain"` draws them as bold numerals on the floor,
+with no badge.
+
+**Thin shapes.** A `poly` room takes its box from its points, however thin (a ring or an arc is not stretched to a cell); `rect`,
+`circle` and the other shapes still need a cell. `check` reports `no-floor` as an error only for an outline with no area at all,
+and as a warning for one under half a square cell: a stroke with no floor is what `rings` (below) are for. A corridor may be 0.2
+wide (a `maze` corridor needs 0.5).
+
+**Edging.** `edge: "wavy"` draws a wavy line just inside the room's walls (a curtain, drapery, a rubble margin), on all of them
+or on the sides in `edgeSides` (`["n", "w"]`: the walls that face north and west; a round room's quarters count the same way).
 
 ## Corridors
 
@@ -52,14 +69,32 @@ and mitred at the bends.
 | `{ "room": "a", "side": "e", "offset": 3 }` | inside the room, on the anchor's row (for `e`/`w`) or column (`n`/`s`), `offset` cells from the room's top (for `e`/`w`) or left edge, then straight out through that wall. With no `offset`, the anchor's row or column snapped to the corridor: the middle of a cell for an odd width (`floor(v) + 0.5`), a grid line for an even one (`round(v)`) |
 | `{ "room": "a", "port": [4, 9.5] }` | that point on the room's wall (moved onto the outline when it is off it); the room stays the corridor's end |
 | `{ "at": [30, 5] }` | a point: a dead end, or past the sheet's edge, the way off the map (`exit` fades it out under a note) |
-| `{ "corridor": "main" }` | the point of that corridor's centre line nearest the other end: a junction |
+| `{ "corridor": "main" }` | the point of that corridor's centre line nearest the other end: a junction. With `"near": [x, y]` the point nearest that instead |
+
+Three things about ends that are easy to miss:
+
+- A **point end is square**: the floor reaches half the corridor's width past the point (a width-2 corridor ending at `[14, 12]`
+  has floor out to x=15), so ending two stretches one cell apart closes the gap between them. A point exactly on a room's
+  wall counts as inside it (`end-in-room`): end it 0.1 cell outside.
+- `offset` is where the **centre line** crosses the wall. A width-2 corridor with `offset: 5` on a room at x=28 is centred on
+  x=33 and its floor runs from 32 to 34. `check` reports a corridor whose centre line starts more than half a cell from the
+  offset given (`offset-moved`).
+- A **junction** is chosen by distance, so on a corridor that bends (a U) it can be a corner or an end, not the middle of a
+  run. `check` says so (`junction-at-bend`) and `through-room` names the junction when the corridor that runs through a
+  room starts at one: give `near`, the point on that corridor to meet nearest (`dungeon link … --from-near x,y`).
 
 Between the ends: `via` (bends, exact), else `route`: `auto` (straight where the rooms line up and the run starts inside both,
 else an elbow whose bend is clear of other rooms), `hv`, `vh`, `straight`, `around` (on the grid, round the rooms in the way),
 or `maze` (below).
 
 A **door** stands where the line leaves its room, set along the wall there: square to the wall (a circle's own curve, else
-the outline's edge), whatever angle the line arrives at. Its width is the corridor's.
+the outline's edge), whatever angle the line arrives at. Its width is the corridor's. `double` is two leaves across the
+width (a 2-wide passage gets two squares side by side).
+
+`midDoors` puts doors in the run itself, not at a room's wall: `{ "at": 9, "kind": "double" }` is 9 cells along the centre line
+from the corridor's start, `{ "at": [13.1, 9], "kind": "door" }` the nearest point on it to that point. The door is set square
+to the run. A door in the run is not reported by `door-off-wall`; `facts` lists it with `on: "open"`. `style.doors: "square"`
+draws every door as a square with a jamb each side, in place of the thin bar.
 
 ## Walls between floors
 
@@ -67,6 +102,11 @@ the outline's edge), whatever angle the line arrives at. Its width is the corrid
 room, room and corridor, corridor and corridor), with no wall where one floor runs into another (a corridor into its room,
 two corridors sharing cells) or at a connection's opening. `"rooms"` draws them between rooms only (what format 1's `true`
 was); `false` draws none, so floors that touch run together. `style.partition` sets their weight apart from the outer walls.
+
+One wall can differ from the rest: a connection's `weight` (0.2..4, a factor like `style.partition`) draws the whole wall its two
+rooms share thinner or heavier, and its `line` is `solid` (default), `dashed` (an illusory or invisible wall; the opening stays
+cut out) or `none` (no wall: the floors run together). A room's `partition` does the same for every wall it shares with another
+room (the thinner where two rooms set one; a connection's weight wins over both).
 
 A **connection** is a door or an opening in the wall two touching rooms share: `at` a point on it (default: the middle of its
 longest stretch, on the grid for the opening's width), `width` cells, `kind` a door or `open`.
@@ -99,9 +139,29 @@ below; an example:
 rock) and voids (open paper, a dashed edge) within it; a floor on either, or outside the bounds, is a `check` warning.
 `style.rock` draws the rock as hatching (`hatch`, the default, as `style.hatch` says), a solid `rockColor`, or not at all.
 
+`rings` are lines drawn over the rock with no floor: `{ "shape": "circle", "at": [11.5, 11.5], "r": 4.4 }` or a `poly` through
+`points`, dashed by default (`dash: [dash, gap]` cells), `width` 0.12 cells. They are not rooms, so they have no walls, no floor and
+no `check` findings; `fit` moves them with the rooms.
+
+## Look: colours, presets, symbols
+
+The output is black on white unless the file says otherwise. `style.palette` sets `rock` (solid rock; in place of `rockColor`),
+`floor`, `ink` (doors, symbols, labels; the walls too unless `wall` is set), `grid` and `wall`, each `#rrggbb`. A grid colour is
+drawn as given; the default grid is the ink at a low opacity. The sheet's paper and the furniture boxes stay white.
+
+`style.preset` is a named look that fills the style and grid settings the file leaves unset (the file's own always win):
+`dark` (solid dark rock, one-cell grid with no sub-grid, plain numerals, a 0.3 wall that vanishes into the rock) and `blueprint`
+(blue rock, white floors, light-blue grid, walls matching the rock). `artgen dungeon style <id> --preset dark` writes its values
+into the file, so the look can then be changed one key at a time.
+
+Symbols (`artgen dungeon symbols`) take `scale` and, on top of it, `scaleX` (width) and `scaleY` (length) before the `angle` turns
+them: a stair run 0.8 wide and 4 long is `stairs` with `scaleX: 0.8, scaleY: 4`. New kinds: `spiral-stair`, `pit-filled`,
+`pool-filled`, `arch-stair` (steps curving round a post) and `curved-arrow` (`sweep` degrees, 120 by default, negative to turn
+anticlockwise).
+
 ## What facts and check read
 
-`dungeon facts` reads everything from the layout the renderer draws: each corridor's `path`, every door with the units behind
+`dungeon facts` reads everything from the layout the renderer draws (a door in a run, `midDoors`, with `on: "open"`): each corridor's `path`, every door with the units behind
 and ahead of it (`room:<id>`, `corridor:<index>`) and what it stands on (`wall`, `open`, `rock`, `end`), the owner of every cell
 (`floor`, runs per row), the units whose cells meet (`adjacent`). Positions are rounded to 0.1 cell. `dungeon check` lists
 errors (exit 1) and warnings, each with a stable `id`; `--errors id,id|all` reports chosen warnings as errors.
@@ -167,6 +227,15 @@ npm run compare:dungeon -- --source ref.png --mine art/dungeons/d/out/d.png --or
 | `style.rock` | the rock: hatch (as hatch says; default), solid (rockColor) or none |
 | `style.rockColor` | solid rock's colour, #rrggbb (default #bdbdbd) |
 | `style.partition` | the weight of the walls between floors, like wall (default: wall), 0.2..4 |
+| `style.palette` | colours, each #rrggbb: rock, floor, ink, grid, wall |
+| `style.palette.rock` | the solid rock (in place of rockColor) |
+| `style.palette.floor` | the floor, and what fills doors and symbols (default #ffffff) |
+| `style.palette.ink` | the ink: doors, symbols, labels, and the walls unless wall is set (default #000000) |
+| `style.palette.grid` | the grid lines (default: the ink, faint) |
+| `style.palette.wall` | the walls and partitions (default: the ink) |
+| `style.numbers` | room numbers: a black badge (default) or plain bold numerals on the floor |
+| `style.doors` | the door mark: a thin bar across the opening (default) or a square with a jamb each side |
+| `style.preset` | a named look that fills the style and grid settings the file leaves unset (`dungeon style --preset` writes its values) |
 | `scale` | the scale |
 | `scale.perCell` | map units in one cell (5) |
 | `scale.unit` | the unit (ft) |
@@ -182,12 +251,12 @@ npm run compare:dungeon -- --source ref.png --mine art/dungeons/d/out/d.png --or
 | `rooms[].shape` | the shape |
 | `rooms[].x` | the box's left (cells) |
 | `rooms[].y` | the box's top |
-| `rooms[].w` | the box's width, at least 1 |
-| `rooms[].h` | the box's height, at least 1 |
+| `rooms[].w` | the box's width, at least 1 (a poly's is its points' own, any size above 0) |
+| `rooms[].h` | the box's height, at least 1 (a poly's: as for width) |
 | `rooms[].points` | a poly's outline, cells; x, y, w, h are then its box (x,y pairs) |
 | `rooms[].seed` | a cave's outline seed (default: from its id) |
 | `rooms[].label` | its name |
-| `rooms[].number` | its badge's number, or false to hide it (default: file order) |
+| `rooms[].number` | its number: a number, a key such as 15a (shown as written, not counted in the numbering), or false to hide it (default: file order) |
 | `rooms[].fill` | what it is: floor (default), building, yard or cellar |
 | `rooms[].href` | a link from it in the SVG: http(s)://…, a relative path or #anchor |
 | `rooms[].origin` | who wrote the entry; a sync replaces its own origin's entries and keeps the rest (none: a hand entry) |
@@ -196,6 +265,9 @@ npm run compare:dungeon -- --source ref.png --mine art/dungeons/d/out/d.png --or
 | `rooms[].labelAt` | where its number and name stand: by a wall, at the anchor (c), or [dx, dy] from it; unset, they move off what they would lie on |
 | `rooms[].cut` | an octagon's corner cut, a share of its shorter side, exactly (default: 0.3 of it to the half cell) |
 | `rooms[].orient` | a hexagon: flat (points east and west; default) or pointy |
+| `rooms[].edge` | wavy: a wavy line along its walls (a curtain, drapery, a rubble margin) |
+| `rooms[].edgeSides` | the walls edge runs along, by the side each faces (default: all) |
+| `rooms[].partition` | the weight of the walls it shares with other rooms, like style.partition (a connection's weight wins; the thinner of two rooms), 0.2..4 |
 | `rooms[].exits` | ways out of the map inside the room |
 | `rooms[].exits[].kind` | the mark |
 | `rooms[].exits[].side` | a wall: n (top), e, s or w |
@@ -228,7 +300,7 @@ npm run compare:dungeon -- --source ref.png --mine art/dungeons/d/out/d.png --or
 | `corridors[].to.exit.fade` | cells it fades over (default 3) |
 | `corridors[].to.corridor` | the joined corridor's id |
 | `corridors[].to.near` | the point on it to meet nearest |
-| `corridors[].width` | width in cells, 0.5..6 (default 1) |
+| `corridors[].width` | width in cells, 0.2..6 (default 1; a maze corridor needs 0.5) |
 | `corridors[].span` | width in the scale unit, in place of width (10 for a 10 ft passage) |
 | `corridors[].route` | auto (straight when the rooms line up, else an elbow), hv, vh, straight, around (round the rooms on the grid) or maze (on the lattice of its width, off other corridors) |
 | `corridors[].maze` | route maze: cells kept off rooms' walls (0 or 1; default 0 where walls are drawn along corridors), a bend's cost, the noise's seed |
@@ -237,6 +309,9 @@ npm run compare:dungeon -- --source ref.png --mine art/dungeons/d/out/d.png --or
 | `corridors[].style` | built (default) or natural (rough walls) |
 | `corridors[].seed` | a natural passage's seed |
 | `corridors[].doors` | the door at each end, from then to: a kind, or null for an open passage |
+| `corridors[].midDoors` | doors standing in the run itself |
+| `corridors[].midDoors[].at` | the distance from the corridor's start along its centre line (cells), or a point (the nearest point on the line) |
+| `corridors[].midDoors[].kind` | the door kind |
 | `corridors[].origin` | who wrote the entry; a sync replaces its own origin's entries and keeps the rest (none: a hand entry) |
 | `connections` | doors and openings in the walls rooms share |
 | `connections[].a` | a room |
@@ -244,7 +319,19 @@ npm run compare:dungeon -- --source ref.png --mine art/dungeons/d/out/d.png --or
 | `connections[].at` | a point on their shared wall (default: the middle of its longest stretch) |
 | `connections[].kind` | a door kind or open |
 | `connections[].width` | the opening, cells (default 1) |
+| `connections[].weight` | the stroke of the wall these rooms share, like style.partition, 0.2..4 (a thin gap or a heavy wall) |
+| `connections[].line` | how that wall is drawn: solid (default), dashed (an illusory wall) or none (the floors run together) |
 | `connections[].origin` | who wrote the entry; a sync replaces its own origin's entries and keeps the rest (none: a hand entry) |
+| `rings` | lines over the rock with no floor: a ring of dashes, an illusory wall |
+| `rings[].id` | its id |
+| `rings[].shape` | a circle (at, r) or a poly (points, closed) |
+| `rings[].at` | a circle's centre |
+| `rings[].r` | a circle's radius, cells |
+| `rings[].points` | a poly's outline (x,y pairs) |
+| `rings[].line` | dashed (default) or solid |
+| `rings[].width` | the line's width, cells, 0.02..2 (default 0.12) |
+| `rings[].dash` | [dash, gap] in cells (default [0.5, 0.3]) |
+| `rings[].origin` | who wrote the entry; a sync replaces its own origin's entries and keeps the rest (none: a hand entry) |
 | `blocks` | shapes split into rooms that share walls |
 | `blocks[].id` | its id |
 | `blocks[].shape` | the shape |
@@ -277,6 +364,9 @@ npm run compare:dungeon -- --source ref.png --mine art/dungeons/d/out/d.png --or
 | `overlay.symbols[].x` | x |
 | `overlay.symbols[].y` | y |
 | `overlay.symbols[].scale` | a factor on its size |
+| `overlay.symbols[].scaleX` | a factor on its width, on top of scale (a stair run 0.8 wide: scaleX 0.8, scaleY 4) |
+| `overlay.symbols[].scaleY` | a factor on its length, on top of scale |
+| `overlay.symbols[].sweep` | curved-arrow: how far it turns, degrees (default 120; negative: anticlockwise) |
 | `overlay.symbols[].angle` | degrees, 0 east, clockwise on the page |
 | `overlay.symbols[].origin` | who wrote the entry; a sync replaces its own origin's entries and keeps the rest (none: a hand entry) |
 | `underlay` | a terrain map under the rooms |
@@ -359,7 +449,9 @@ npm run compare:dungeon -- --source ref.png --mine art/dungeons/d/out/d.png --or
 | `never-leaves` | a corridor never leaves a room it starts or ends at |
 | `port-outside-room` | a corridor end at a room starts outside that room, so it has no door and does not reach it |
 | `reenters-room` | a corridor leaves a room and runs back into it, drawing a passage over the rock between |
-| `end-in-room` | a corridor ends at a point inside a room |
+| `end-in-room` | a corridor ends at a point inside a room (or on its wall) |
+| `offset-moved` | a corridor that leaves a room by a side starts more than half a cell from the offset given |
+| `junction-at-bend` | a corridor joins another corridor at one of its corners or ends, the point nearest the other end, not along a run |
 | `no-length` | a corridor has no length |
 | `through-room` | a corridor runs through a room it does not join |
 | `corridors-cross` | two corridors that share no room cross with no junction (corridors that leave one room may join and part) |
@@ -371,6 +463,8 @@ npm run compare:dungeon -- --source ref.png --mine art/dungeons/d/out/d.png --or
 | `door-off-wall` | a door stands in open floor or on rock, not on a wall between two floors |
 | `doors-stacked` | two doors stand on each other |
 | `mark-on-badge` | a symbol lies under a room's number |
+| `note-off-floor` | a room exit's note runs over the room's wall or off its floor |
+| `marks-overlap` | two of a room's exit marks are drawn on each other |
 | `label-overlap` | a label lies over another label |
 | `outside-bounds` | a room or corridor has floor outside the level's bounds |
 | `in-keep-out` | a room or corridor has floor on an area of rock or a void |
