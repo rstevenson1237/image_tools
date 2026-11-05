@@ -2,6 +2,57 @@
 
 Releases of the committed install (`artgen-dist`) and its modules, the MCP server, the runtime it vendors, the library package files and the Python client. The map engines (`mapgen`, the `maps` module) have a version line of their own, named in each section.
 
+## 0.13.0 — 2026-11-05
+
+mapgen 0.12.0 → 0.13.0
+
+Dungeon format stays at 2: every new key is optional, so a file written for 0.12.0 draws as it did.
+
+**Fixes (issues #44, #45, #49, #52, #56)**
+- Room exit notes stay on the room's floor (#44). A note was centred on its mark, so in a room 2 or 4 cells wide it ran across the
+  wall onto the rock. It is now moved off the walls and broken into lines when the room is narrower than it, and the mark and its
+  note move together to stay inside the room's height, and the room's own label moves off the note (it sat under it, with no
+  finding). `check` reports a note that still cannot fit (`note-off-floor`) and a label with no clear spot (`label-overlap`).
+- Exits on one wall are spread along it (#45): each gets its own stretch, where two exits on a wall had the same point and drew on
+  each other. `check` reports marks drawn on each other (`marks-overlap`).
+- Hints where a render-and-diff pass used to be needed (#49, #56). `end-in-room` says a point end is square and reaches half the
+  corridor's width past the point, and gives the 0.1 cell hint when the point is on a wall. `offset-moved` reports a corridor whose
+  centre line starts more than half a cell from the `offset` given (the offset is the centre line: a width-2 corridor's floor
+  reaches a cell each side of it). `junction-at-bend` reports a `{corridor}` end with no `near` that landed on a corner or an end of
+  the other corridor, and `through-room` names the junction when the corridor that runs through a room starts at one. `dungeon
+  link --from-near x,y` / `--to-near x,y` (the edit op's `from_near` / `to_near`) set `near`, which had no flag.
+- Thin shapes (#52): a `poly` room takes its box from its points, however thin; `no-floor` is an error only for an outline with no
+  area and a warning below half a square cell; a corridor may be 0.2 wide (a `maze` corridor still needs 0.5).
+
+**Drawing what published maps have (issues #46, #47, #48, #50, #51, #53, #54, #55)**
+- Colours (#54): `style.palette` {`rock`, `floor`, `ink`, `grid`, `wall`}. `rockColor` still works. The default is black on white.
+- Presets (#50): `style.preset` `dark` or `blueprint` fills the style and grid the file leaves unset; `dungeon style --preset` writes
+  its values into the file.
+- Numbers (#48): `rooms[].number` can be a key (`15a`, `G.3`), shown as written and outside the numbering of the other rooms;
+  `style.numbers: "plain"` draws bold numerals with no badge. One change in behaviour: `--number` given text other than `off`,
+  `false`, `no` or `none` is now a key (`--number x` used to hide the number, as any text that was not a number did).
+- Walls (#51, #53): `connections[].weight` and `rooms[].partition` set the stroke of the walls between rooms; `connections[].line`
+  is `solid`, `dashed` (an illusory wall; the opening stays cut out) or `none`. New `rings`: a dashed or solid circle or polygon
+  line over the rock with no floor (`dungeon ring`, the `add_ring` / `remove_ring` edit ops).
+- Doors (#46): door kind `double`; `corridors[].midDoors` puts doors in the run itself (`link --mid-doors`, `door --at`), not
+  reported by `door-off-wall`; `style.doors: "square"` draws a square with a jamb each side.
+- Symbols (#47, #55): `spiral-stair`, `pit-filled`, `pool-filled`, `arch-stair` and `curved-arrow` (`sweep`); `scaleX` and
+  `scaleY` for a stair run drawn as one piece; `rooms[].edge: "wavy"` (with `edgeSides`) draws a wavy line along a room's walls.
+- `artgen schema dungeon`, `docs/DUNGEON.md` and the dungeon-map skill list the new keys and checks; `dungeon show` lists them.
+- Settlement plans draw the `double` door kind as two leaves.
+
+### Commits
+
+- dungeon: a room's label moves off the note of its own exit; settlement plans draw double doors
+- artgen dungeon: flags, edit ops, docs and skill for the new dungeon keys
+- dungeon: fixes and features for the open issues (#44, #45, #46, #47, #48, #49, #50, #51, #52, #53, #54, #55, #56)
+
+### mapgen 0.13.0
+
+- dungeon: a room's label moves off the note of its own exit; settlement plans draw double doors
+- artgen dungeon: flags, edit ops, docs and skill for the new dungeon keys
+- dungeon: fixes and features for the open issues (#44, #45, #46, #47, #48, #49, #50, #51, #52, #53, #54, #55, #56)
+
 ## 0.12.0 — 2026-11-02
 
 mapgen 0.11.0 → 0.12.0

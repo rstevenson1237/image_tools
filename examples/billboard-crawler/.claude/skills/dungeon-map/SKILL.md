@@ -12,8 +12,9 @@ the dungeon (`node tools/artgen/artgen-maps.js dungeon show <id>`) before changi
 the same operations as `dungeon_*` tools (images come back inline).
 
 Coordinates are **grid cells**, x to the right and y down; one cell is 5 ft. A room's `--at` is its **top-left
-corner**. Anywhere a point is asked for you can also give a cell name (`C4` = column C, row 4). Output is always black
-and white: white floors with a grid, thick black walls, hatched rock around them.
+corner**. Anywhere a point is asked for you can also give a cell name (`C4` = column C, row 4). Output is black
+and white by default: white floors with a grid, thick black walls, hatched rock around them. Matching an existing map's look
+(dark rock, a blue sheet) is §3's `style --preset` and the colours.
 
 ## 1. Ask, then create
 Ask only what changes the map: one room or a complex; roughly how many rooms and how big; built (square rooms,
@@ -49,8 +50,12 @@ node tools/artgen/artgen-maps.js dungeon link <id> r1 r2 --route around         
 node tools/artgen/artgen-maps.js dungeon link <id> r1 r2 --route maze --span 10                     # a 10 ft passage on its own lattice, round the rooms and off the other corridors
 node tools/artgen/artgen-maps.js dungeon link <id> r1 r4 --from-port 4,9.5                          # leave r1 from that point on its wall (an L's far arm, a round room), the door set along the wall
 node tools/artgen/artgen-maps.js dungeon link <id> r4 r7 --style natural --curve smooth --width 2  # a winding cave passage with rough walls
+node tools/artgen/artgen-maps.js dungeon link <id> corridor:top rb --from-near 11.5,2.5             # a T onto the MIDDLE of a bent corridor (without --from-near the junction is the point of it nearest the other end: a corner or an end of a U)
+node tools/artgen/artgen-maps.js dungeon link <id> r1 r2 --width 2 --mid-doors "6:double"           # a double door in the run itself, 6 cells from the start
 node tools/artgen/artgen-maps.js dungeon door <id> 3 to portcullis | unlink <id> 3
+node tools/artgen/artgen-maps.js dungeon door <id> 3 double --at 8                                  # a door in the run (a distance along it, or x,y); kinds: door secret locked portcullis arch double
 node tools/artgen/artgen-maps.js dungeon connect <id> r3 r4 [--kind secret|open] [--at x,y]          # rooms that touch: a door (or an opening) in their shared wall
+node tools/artgen/artgen-maps.js dungeon connect <id> r3 r4 --kind open --line dashed --weight 0.5   # …and that wall dashed (an illusory wall: solid|dashed|none) or thinner or heavier (0.2..4)
 node tools/artgen/artgen-maps.js dungeon block <id> add hex --at 2,2 --size 18x16 --split grid --min 4   # one shape split into rooms with doors between (rect|octagon|circle|hex|poly; bsp|rows|cols|grid)
 node tools/artgen/artgen-maps.js dungeon block <id> split b1 --seed 9 | block <id> rm b1               # another layout of the same block (other rooms keep their numbers) | remove it
 node tools/artgen/artgen-maps.js dungeon link <id> b1 r7 --route around                              # a block id: its room nearest the other end
@@ -59,11 +64,14 @@ node tools/artgen/artgen-maps.js dungeon layout <id> --graph g.json [--footprint
 ```
 Rooms and their ways known up front (a brief, a table, a graph)? Lay the level out with `dungeon layout` and edit from there:
 it packs the rooms in the footprint, touching where a door through the shared wall will do, and routes every other way.
+Two things about corridor ends that cost a render-and-diff pass to find: a **point end is square**, so the floor reaches half the
+width past the point (end two stretches one cell apart and a width-2 corridor closes the gap); and `--from-offset` is where the
+**centre line** crosses the wall (a width-2 corridor at offset 5 on a room at x=28 is centred on 33 and its floor runs 32 to 34).
 Corridors start at room anchors (centres, or a poly's deepest point; `room set --anchor x,y` moves it): rooms that line up get one straight corridor, others an L-shaped elbow (`--route
 hv|vh`, or `--via x,y,…` for your own bends). `--from-side`/`--to-side` (and `--from-offset`, cells along the wall) make a
 corridor leave by a given wall; `dungeon check` warns when a corridor runs through a room it does not join: reroute it
 with `--route around`. A corridor opens into a room wherever it meets it. Walls are drawn wherever two floors touch
-(room and room, room and corridor), except where one runs into the other; `connect` puts a door or an opening in it (dense layouts: rooms side by side, no corridors). Door kinds: `door secret locked portcullis arch` (or `none`). Gen keeps labels and symbols but
+(room and room, room and corridor), except where one runs into the other; `connect` puts a door or an opening in it (dense layouts: rooms side by side, no corridors). Door kinds: `door secret locked portcullis arch double` (or `none`). Gen keeps labels and symbols but
 replaces every room and corridor: if the user wants "the same dungeon but …", edit — don't regenerate.
 
 ## 3. Grid, numbers, labels and symbols (the follow-up layers)
@@ -78,10 +86,13 @@ node tools/artgen/artgen-maps.js dungeon label <id> "To the river caves" --at 30
 node tools/artgen/artgen-maps.js dungeon room <id> set r3 --href "https://wiki.example/keep#A3"                    # the room's number and name link there
 node tools/artgen/artgen-maps.js dungeon overlay <id> rm label 2 | clear symbols
 ```
-Rooms are numbered in file order on a black badge; set a room's own number or name with `room set`. A room's number and name move
+Rooms are numbered in file order on a black badge (`style --number-style plain`: bold numerals on the floor); set a room's own number or name with `room set`; a number can be a key: `room set r9 --number 15a` (shown as written, no place in the numbering). Doors can be squares with a jamb each side: `style --door-glyph square`. A room's number and name move
 off a symbol or another room's label to a clear spot by its walls; `room set <rid> --label-at n|s|w|e|c` holds them.
 A stair or a way out inside a room: `room set <rid> --exits '[{"kind":"stairs-down","side":"n","text":"Down to the crypt"}]'`.
-Solid ground instead of hatching: `style --rock solid --rock-color #bdbdbd`; heavier walls between rooms: `style --partition 2`.
+Solid ground instead of hatching: `style --rock solid --rock-color #bdbdbd`; heavier walls between rooms: `style --partition 2` (one wall: `connect … --weight`; every wall of one room: `room set <rid> --partition 0.4`).
+A look to start from: `style --preset dark` (solid dark rock, a one-cell grid, plain numerals, vanishing outer walls) or `--preset blueprint`; colours with `--ink-color --wall-color --floor-color --grid-color --rock-color` (#rrggbb).
+Edging along a room's walls: `room set <rid> --edge wavy [--edge-sides n,w]`. A line with no floor (a ring of dashes, an illusory wall): `ring <id> add circle --at 11.5,11.5 --r 4.4 [--line solid] [--dash 0.5,0.3]` (or `add poly --points …`; `rm <i>`).
+New symbols: `spiral-stair pit-filled pool-filled arch-stair curved-arrow`; `symbol <id> stairs --at 20,10 --scale-x 0.8 --scale-y 4` draws one stair run, `symbol <id> curved-arrow --at 5,5 --sweep -90` turns the other way.
 The level's own outline and rock or shafts inside it: `update --bounds x,y,… --areas '[{"points":[…],"kind":"void","label":"Shaft"}]'`.
 
 ## 4. Render and hand over
