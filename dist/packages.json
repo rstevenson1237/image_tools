@@ -1,5 +1,5 @@
 {
-  "release": "0.12.0",
+  "release": "0.13.0",
   "repo": "rstevenson1237/image_tools",
   "packages": {
     "artgen-runtime": {
@@ -7,24 +7,24 @@
       "file": "artgen-runtime-1.5.0.tgz"
     },
     "artgen-primitives": {
-      "version": "0.12.0",
-      "file": "artgen-primitives-0.12.0.tgz"
+      "version": "0.13.0",
+      "file": "artgen-primitives-0.13.0.tgz"
     },
     "artgen-scene": {
-      "version": "0.12.0",
-      "file": "artgen-scene-0.12.0.tgz"
+      "version": "0.13.0",
+      "file": "artgen-scene-0.13.0.tgz"
     },
     "artgen-workflow": {
-      "version": "0.12.0",
-      "file": "artgen-workflow-0.12.0.tgz"
+      "version": "0.13.0",
+      "file": "artgen-workflow-0.13.0.tgz"
     },
     "artgen-imagekit": {
-      "version": "0.12.0",
-      "file": "artgen-imagekit-0.12.0.tgz"
+      "version": "0.13.0",
+      "file": "artgen-imagekit-0.13.0.tgz"
     },
     "artgen-mapgen": {
-      "version": "0.12.0",
-      "file": "artgen-mapgen-0.12.0.tgz"
+      "version": "0.13.0",
+      "file": "artgen-mapgen-0.13.0.tgz"
     }
   }
 }
