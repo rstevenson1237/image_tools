@@ -10,11 +10,11 @@ import { readFormat, type Migration } from 'artgen-primitives/format.ts';
 export const ROOM_SHAPES = ['rect', 'circle', 'octagon', 'hexagon', 'cave', 'poly'] as const;
 export type RoomShape = (typeof ROOM_SHAPES)[number];
 
-export const DOOR_KINDS = ['door', 'secret', 'locked', 'portcullis', 'arch'] as const;
+export const DOOR_KINDS = ['door', 'secret', 'locked', 'portcullis', 'arch', 'double'] as const;
 export type DoorKind = (typeof DOOR_KINDS)[number];
 
 export const DOOR_NAMES: Record<DoorKind, string> = {
-  door: 'Door', secret: 'Secret door', locked: 'Locked door', portcullis: 'Portcullis / bars', arch: 'Archway',
+  door: 'Door', secret: 'Secret door', locked: 'Locked door', portcullis: 'Portcullis / bars', arch: 'Archway', double: 'Double door',
 };
 
 /** auto: straight when the rooms line up, else an elbow; hv / vh: across then down / down then across; straight: one line; around: along the grid, round the rooms in the way; maze: on the lattice of its width, round the rooms and off the other corridors (`maze.ts`). */
@@ -44,6 +44,28 @@ export interface Area { points: number[]; kind: (typeof AREA_KINDS)[number]; lab
 export type SharedWalls = boolean | 'rooms';
 export type HatchStyle = (typeof HATCH_STYLES)[number];
 
+export const NUMBER_STYLES = ['badge', 'plain'] as const;
+export type NumberStyle = (typeof NUMBER_STYLES)[number];
+export const DOOR_GLYPHS = ['bar', 'square'] as const;
+export type DoorGlyph = (typeof DOOR_GLYPHS)[number];
+
+/** The colours of a map (all `#rrggbb`, each optional). `wall` is the ink unless set. */
+export interface Palette { rock?: string; floor?: string; ink?: string; grid?: string; wall?: string }
+export const PALETTE_KEYS = ['rock', 'floor', 'ink', 'grid', 'wall'] as const;
+
+/**
+ * Named looks for matching an existing map. A preset fills the style and grid settings a file leaves out; what the file sets wins.
+ * `artgen dungeon style --preset <name>` writes its values into the file.
+ */
+export const STYLE_PRESETS = {
+  /** Solid dark rock with a one-cell grid, plain numerals, and outer walls that vanish into the rock. */
+  dark: { style: { hatch: 'none', rock: 'solid', wall: 0.3, numbers: 'plain', palette: { rock: '#3a3a40' } }, grid: { size: 1, sub: false } },
+  /** Blue rock, white floors, thin light-blue grid and walls that match the rock. */
+  blueprint: { style: { hatch: 'none', rock: 'solid', wall: 0.4, numbers: 'plain', palette: { rock: '#3d6bb3', wall: '#3d6bb3', ink: '#17366b', grid: '#8fb2e6' } }, grid: { size: 1, sub: false } },
+} as const satisfies Record<string, { style: Record<string, unknown>; grid: Partial<DungeonSpec['grid']> }>;
+export type StylePreset = keyof typeof STYLE_PRESETS;
+export const PRESET_NAMES = Object.keys(STYLE_PRESETS) as StylePreset[];
+
 export const LABEL_KINDS = ['name', 'note', 'area'] as const;
 export type LabelKind = (typeof LABEL_KINDS)[number];
 
@@ -68,8 +90,11 @@ export interface Room {
   seed?: number;
   /** A name written in the room. */
   label?: string;
-  /** The number on the room's badge; `false` hides it. Unset rooms are numbered in file order. */
-  number?: number | false;
+  /**
+   * The room's number: a number, a key such as `15a` or `G.3` (shown as written, and not counted in the numbering of the rooms
+   * after it), or `false` to hide it. Unset rooms are numbered in file order.
+   */
+  number?: number | string | false;
   /** What the room is (default `floor`). */
   fill?: RoomFill;
   /** A link from the room's number and name (see {@link hrefError} for what is allowed). */
@@ -86,6 +111,12 @@ export interface Room {
   orient?: 'flat' | 'pointy';
   /** Ways out of the map inside the room: a stair or an arrow by a wall (`side`) or at a point (`at`), with a note saying where it leads. */
   exits?: RoomExit[];
+  /** `wavy`: a wavy line along the room's walls (a curtain, drapery, a rubble margin), on the sides `edgeSides` names (default all). */
+  edge?: 'wavy';
+  /** The walls `edge` runs along: by the side each wall faces (`n e s w`). Unset: all of them. */
+  edgeSides?: Side[];
+  /** The stroke of the walls this room shares with other rooms, as a factor like `style.partition` (a connection's `weight` wins). Where two rooms set one, the thinner. */
+  partition?: number;
   /** Where the room's number and name stand: by a wall (`n e s w`), at the anchor (`c`), or at [dx, dy] cells from the anchor. Unset: the anchor, moved by a wall when it would lie on a symbol or another room's label. */
   labelAt?: 'c' | 'n' | 's' | 'w' | 'e' | [number, number];
 }
@@ -138,8 +169,16 @@ export interface Corridor {
   seed?: number;
   /** A door where the corridor leaves each end (null or unset: an open passage). */
   doors?: [DoorKind | null, DoorKind | null];
+  /**
+   * Doors that stand in the run itself, not at a room's wall: `at` is the distance from the corridor's start along its centre line
+   * (cells), or a point (the nearest point on the line). A door that stands inside a run is not reported by `door-off-wall`.
+   */
+  midDoors?: MidDoor[];
   origin?: string;
 }
+
+/** A door in the middle of a corridor's run (see `Corridor.midDoors`). */
+export interface MidDoor { at: number | [number, number]; kind: DoorKind }
 
 /** A label; `href` makes it a link (see {@link hrefError}). */
 /**
@@ -147,7 +186,16 @@ export interface Corridor {
  * point on the shared wall (default: the middle of its longest stretch), `width` the opening in cells (default 1) and
  * `kind` a door kind or `open` (a gap in the wall). Rooms that touch and have no connection keep the wall between them.
  */
-export interface Connection { a: string; b: string; at?: [number, number]; kind?: DoorKind | 'open'; width?: number; origin?: string }
+export interface Connection {
+  a: string; b: string; at?: [number, number]; kind?: DoorKind | 'open'; width?: number;
+  /** The stroke of the wall these two rooms share, as a factor like `style.partition` (0.2..4); a thin gap or a heavy wall without changing the others. */
+  weight?: number;
+  /** How that wall is drawn: `solid` (default), `dashed` (an illusory or invisible wall) or `none` (no wall: the floors run together). */
+  line?: WallLine;
+  origin?: string;
+}
+export const WALL_LINES = ['solid', 'dashed', 'none'] as const;
+export type WallLine = (typeof WALL_LINES)[number];
 
 export const BLOCK_SHAPES = ['rect', 'octagon', 'circle', 'poly'] as const;
 export const SPLIT_MODES = ['bsp', 'rows', 'cols', 'grid', 'cuts'] as const;
@@ -167,7 +215,29 @@ export interface Block {
 }
 
 export interface DungeonLabel { text: string; x: number; y: number; kind: LabelKind; size?: number; angle?: number; href?: string; origin?: string }
-export interface DungeonSymbol { kind: string; x: number; y: number; scale?: number; angle?: number; origin?: string }
+export interface DungeonSymbol {
+  kind: string; x: number; y: number; scale?: number; angle?: number;
+  /** Width and length factors on top of `scale` (a stair run 0.8 cells wide and 4 long: `scaleX` 0.8, `scaleY` 4, turned by `angle`). */
+  scaleX?: number; scaleY?: number;
+  /** For `curved-arrow`: how far round it turns, in degrees (default 120; positive clockwise, negative anticlockwise). */
+  sweep?: number;
+  origin?: string;
+}
+
+/** A line drawn over the rock with no floor: a ring or a polygon outline (an illusory wall, a circle of dashes). */
+export interface Ring {
+  id?: string;
+  /** `circle`: round `at` with radius `r`; `poly`: through `points` (closed). */
+  shape: 'circle' | 'poly';
+  at?: [number, number]; r?: number; points?: number[];
+  /** `dashed` (default) or `solid`. */
+  line?: 'solid' | 'dashed';
+  /** The line's width in cells (default 0.12). */
+  width?: number;
+  /** Dash and gap length in cells (default 0.5 and 0.3). */
+  dash?: [number, number];
+  origin?: string;
+}
 
 /**
  * The ground under the rooms: a map file's terrain, contours and roads, cropped to the dungeon's extent. `map` is the
@@ -230,6 +300,14 @@ export interface DungeonSpec {
     rockColor?: string;
     /** The stroke of the walls between floors, as a factor like `wall` (default: `wall`). */
     partition?: number;
+    /** Colours: the solid rock, the floor, the ink (walls, doors, symbols, labels), the grid and the walls where they differ from the ink. `rockColor` is the rock's colour when this sets none. */
+    palette?: Palette;
+    /** Room numbers: on a black `badge` (default) or `plain` bold numerals on the floor. */
+    numbers?: NumberStyle;
+    /** The door mark: a thin `bar` across the opening (default) or a `square` with a jamb each side. */
+    doors?: DoorGlyph;
+    /** A named set of the style settings above (and the grid) the file leaves unset: see {@link STYLE_PRESETS}. */
+    preset?: StylePreset;
   };
   scale: { perCell: number; unit: string };
   numbers: boolean;
@@ -250,6 +328,8 @@ export interface DungeonSpec {
   bounds?: number[];
   /** Optional: rock and voids within the level (see {@link Area}). */
   areas?: Area[];
+  /** Optional: lines over the rock with no floor, such as a ring of dashes (see {@link Ring}). */
+  rings?: Ring[];
   /** A key of the symbols used, in the corner (default off). */
   legend?: boolean;
   /**
@@ -287,13 +367,16 @@ const MIGRATIONS: Record<number, Migration> = {
 };
 
 export const MAX_SIDE = 160;
+/** The narrowest corridor, in cells (a stroke as much as a passage). */
+export const MIN_WIDTH = 0.2;
 
 /** A new dungeon with the defaults; `over` replaces any top-level field or merges into gen/grid/style/scale. */
 export function newDungeon(id: string, over: Partial<DungeonSpec> = {}): DungeonSpec {
   const d = structuredClone(DEFAULTS);
+  // style and grid are filled by `withDefaults`, which lets a preset supply what `over` leaves out
   return parseDungeon({
-    ...d, ...over, id, version: DUNGEON_FORMAT, seed: over.seed ?? 1,
-    gen: { ...d.gen, ...over.gen }, grid: { ...d.grid, ...over.grid }, style: { ...d.style, ...over.style }, scale: { ...d.scale, ...over.scale },
+    ...d, ...over, grid: over.grid, style: over.style, id, version: DUNGEON_FORMAT, seed: over.seed ?? 1,
+    gen: { ...d.gen, ...over.gen }, scale: { ...d.scale, ...over.scale },
     rooms: over.rooms ?? [], corridors: over.corridors ?? [], overlay: over.overlay ?? { labels: [], symbols: [] },
   });
 }
@@ -446,6 +529,17 @@ export function validateDungeon(raw: unknown): string[] {
   if (!m.style || !HATCH_STYLES.includes(m.style.hatch) || !isNum(m.style.band) || m.style.band < 0 || m.style.band > 6 || !isNum(m.style.wall) || m.style.wall < 0.2 || m.style.wall > 4)
     e.push(`style: hatch ${HATCH_STYLES.join('|')}, band 0..6, wall 0.2..4`);
   if (m.style?.rock !== undefined && !ROCK_STYLES.includes(m.style.rock)) e.push(`style.rock: ${ROCK_STYLES.join(', ')}`);
+  if (m.style?.numbers !== undefined && !NUMBER_STYLES.includes(m.style.numbers)) e.push(`style.numbers: ${NUMBER_STYLES.join(' or ')}`);
+  if (m.style?.doors !== undefined && !DOOR_GLYPHS.includes(m.style.doors)) e.push(`style.doors: ${DOOR_GLYPHS.join(' or ')}`);
+  if (m.style?.preset !== undefined && !PRESET_NAMES.includes(m.style.preset)) e.push(`style.preset: ${PRESET_NAMES.join(', ')}`);
+  const pal = m.style?.palette;
+  if (pal !== undefined) {
+    if (!pal || typeof pal !== 'object' || Array.isArray(pal)) e.push(`style.palette: {${PALETTE_KEYS.join(', ')}}, each a colour #rrggbb`);
+    else for (const [k, v] of Object.entries(pal)) {
+      if (!(PALETTE_KEYS as readonly string[]).includes(k)) e.push(`style.palette.${k}: one of ${PALETTE_KEYS.join(', ')}`);
+      else if (!(typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v))) e.push(`style.palette.${k}: a colour #rrggbb`);
+    }
+  }
   if (m.style?.rockColor !== undefined && !(typeof m.style.rockColor === 'string' && /^#[0-9a-f]{6}$/i.test(m.style.rockColor))) e.push('style.rockColor: a colour #rrggbb');
   if (m.style?.partition !== undefined && !(isNum(m.style.partition) && m.style.partition >= 0.2 && m.style.partition <= 4)) e.push('style.partition: 0.2..4');
   if (m.style?.sharedWalls !== undefined && typeof m.style.sharedWalls !== 'boolean' && m.style.sharedWalls !== 'rooms') e.push('style.sharedWalls: true (between any two units), "rooms" (between rooms only) or false');
@@ -458,10 +552,15 @@ export function validateDungeon(raw: unknown): string[] {
     else ids.add(r.id);
     if (!ROOM_SHAPES.includes(r?.shape)) e.push(`${at}.shape: one of ${ROOM_SHAPES.join(', ')}`);
     for (const k of ['x', 'y'] as const) if (!isNum(r?.[k])) e.push(`${at}.${k}: a number (cells)`);
-    for (const k of ['w', 'h'] as const) if (!isNum(r?.[k]) || r[k] < 1) e.push(`${at}.${k}: at least 1 cell`);
+    // a poly's box is its points' own, so a thin outline (a ring, an arc) may be narrower than a cell
+    for (const k of ['w', 'h'] as const) if (!isNum(r?.[k]) || (r?.shape === 'poly' ? r[k] <= 0 : r[k] < 1)) e.push(`${at}.${k}: ${r?.shape === 'poly' ? 'above 0' : 'at least 1 cell'}`);
     if (r?.shape === 'poly' && !(nums(r.points) && r.points.length >= 6 && r.points.length % 2 === 0)) e.push(`${at}.points: at least 3 x,y pairs`);
     if (r?.label !== undefined && typeof r.label !== 'string') e.push(`${at}.label: text`);
-    if (r?.number !== undefined && r.number !== false && !isNum(r.number)) e.push(`${at}.number: a number or false`);
+    if (r?.number !== undefined && r.number !== false && !isNum(r.number) && !(typeof r.number === 'string' && /^[^\s]{1,12}$/.test(r.number))) e.push(`${at}.number: a number, a key such as 15a (no spaces, 12 characters at most) or false`);
+    if (r?.edge !== undefined && r.edge !== 'wavy') e.push(`${at}.edge: wavy`);
+    if (r?.edgeSides !== undefined && !(Array.isArray(r.edgeSides) && r.edgeSides.length > 0 && r.edgeSides.every(x => SIDES.includes(x)))) e.push(`${at}.edgeSides: a list of ${SIDES.join(', ')}`);
+    if (r?.edgeSides !== undefined && r.edge === undefined) e.push(`${at}.edgeSides: goes with edge`);
+    if (r?.partition !== undefined && !(isNum(r.partition) && r.partition >= 0.2 && r.partition <= 4)) e.push(`${at}.partition: 0.2..4`);
     if (r?.fill !== undefined && !ROOM_FILLS.includes(r.fill)) e.push(`${at}.fill: one of ${ROOM_FILLS.join(', ')}`);
     if (r?.href !== undefined && hrefError(r.href)) e.push(`${at}.href: ${hrefError(r.href)}`);
     if (r?.hand !== undefined && !(Array.isArray(r.hand) && r.hand.every(f => typeof f === 'string'))) e.push(`${at}.hand: field names`);
@@ -494,17 +593,27 @@ export function validateDungeon(raw: unknown): string[] {
     if (c?.curve !== undefined && !CURVES.includes(c.curve)) e.push(`${at}.curve: ${CURVES.join(' or ')}`);
     if (c?.style !== undefined && !CORRIDOR_STYLES.includes(c.style)) e.push(`${at}.style: ${CORRIDOR_STYLES.join(' or ')}`);
     if (c?.seed !== undefined && !isNum(c.seed)) e.push(`${at}.seed: a number`);
-    if (c?.width !== undefined && !(isNum(c.width) && c.width >= 0.5 && c.width <= 6)) e.push(`${at}.width: 0.5..6`);
+    if (c?.width !== undefined && !(isNum(c.width) && c.width >= MIN_WIDTH && c.width <= 6)) e.push(`${at}.width: ${MIN_WIDTH}..6`);
     if (c?.span !== undefined) {
       const per = isNum(m.scale?.perCell) ? m.scale!.perCell : 5;
       if (c.width !== undefined) e.push(`${at}.span: a span or a width, not both`);
-      else if (!(isNum(c.span) && c.span / per >= 0.5 && c.span / per <= 6)) e.push(`${at}.span: the width in ${m.scale?.unit ?? 'ft'}, 0.5..6 cells (${0.5 * per}..${6 * per})`);
+      else if (!(isNum(c.span) && c.span / per >= MIN_WIDTH && c.span / per <= 6)) e.push(`${at}.span: the width in ${m.scale?.unit ?? 'ft'}, ${MIN_WIDTH}..6 cells (${MIN_WIDTH * per}..${6 * per})`);
     }
     if (c?.route !== undefined && !ROUTES.includes(c.route)) e.push(`${at}.route: one of ${ROUTES.join(', ')}`);
+    if (c?.route === 'maze' && corridorWidth(c, m as Pick<DungeonSpec, 'scale'>) < 0.5) e.push(`${at}.route: maze needs a width of 0.5 or more (a thinner passage is a stroke: use another route)`);
     if (c?.maze !== undefined && !(c.maze && typeof c.maze === 'object' && (c.maze.clearance === undefined || c.maze.clearance === 0 || c.maze.clearance === 1) && (c.maze.bend === undefined || (isNum(c.maze.bend) && c.maze.bend >= 0)) && (c.maze.seed === undefined || isNum(c.maze.seed)))) e.push(`${at}.maze: {clearance?: 0 or 1, bend?: 0 or more, seed?}`);
     if (c?.via !== undefined && !(nums(c.via) && c.via.length % 2 === 0)) e.push(`${at}.via: x,y pairs`);
     if (c?.doors !== undefined && !(Array.isArray(c.doors) && c.doors.length === 2 && c.doors.every(d => d === null || DOOR_KINDS.includes(d))))
       e.push(`${at}.doors: [from, to], each null or one of ${DOOR_KINDS.join(', ')}`);
+    if (c?.midDoors !== undefined) {
+      if (!Array.isArray(c.midDoors)) e.push(`${at}.midDoors: an array of {at, kind}`);
+      else c.midDoors.forEach((d, j) => {
+        const da = `${at}.midDoors[${j}]`;
+        if (!d || typeof d !== 'object') { e.push(`${da}: {at, kind}`); return; }
+        if (!(isNum(d.at) ? d.at >= 0 : isPoint(d.at))) e.push(`${da}.at: a distance along the corridor (cells, 0 or more) or a point [x, y]`);
+        if (!DOOR_KINDS.includes(d.kind)) e.push(`${da}.kind: one of ${DOOR_KINDS.join(', ')}`);
+      });
+    }
     originError(c, at, e);
   });
   if (m.connections !== undefined) {
@@ -517,6 +626,8 @@ export function validateDungeon(raw: unknown): string[] {
       if (c.at !== undefined && !isPoint(c.at)) e.push(`${at}.at: [x, y]`);
       if (c.kind !== undefined && c.kind !== 'open' && !DOOR_KINDS.includes(c.kind)) e.push(`${at}.kind: open or one of ${DOOR_KINDS.join(', ')}`);
       if (c.width !== undefined && !(isNum(c.width) && c.width >= 0.5 && c.width <= 20)) e.push(`${at}.width: 0.5..20`);
+      if (c.weight !== undefined && !(isNum(c.weight) && c.weight >= 0.2 && c.weight <= 4)) e.push(`${at}.weight: 0.2..4`);
+      if (c.line !== undefined && !WALL_LINES.includes(c.line)) e.push(`${at}.line: ${WALL_LINES.join(', ')}`);
       originError(c, at, e);
     });
   }
@@ -560,6 +671,23 @@ export function validateDungeon(raw: unknown): string[] {
       originError(a, at, e);
     });
   }
+  if (m.rings !== undefined) {
+    if (!Array.isArray(m.rings)) e.push('rings: an array');
+    else m.rings.forEach((g, i) => {
+      const at = `rings[${i}]`;
+      if (!g || typeof g !== 'object') { e.push(`${at}: {shape, at + r | points}`); return; }
+      if (g.shape !== 'circle' && g.shape !== 'poly') e.push(`${at}.shape: circle or poly`);
+      if (g.shape === 'circle') {
+        if (!isPoint(g.at)) e.push(`${at}.at: [x, y], the centre`);
+        if (!(isNum(g.r) && g.r > 0)) e.push(`${at}.r: the radius in cells, above 0`);
+      }
+      if (g.shape === 'poly' && !(nums(g.points) && g.points.length >= 6 && g.points.length % 2 === 0)) e.push(`${at}.points: at least 3 x,y pairs`);
+      if (g.line !== undefined && g.line !== 'solid' && g.line !== 'dashed') e.push(`${at}.line: solid or dashed`);
+      if (g.width !== undefined && !(isNum(g.width) && g.width >= 0.02 && g.width <= 2)) e.push(`${at}.width: cells, 0.02..2`);
+      if (g.dash !== undefined && !(nums(g.dash) && g.dash.length === 2 && g.dash.every(v => v > 0))) e.push(`${at}.dash: [dash, gap] in cells, both above 0`);
+      originError(g, at, e);
+    });
+  }
   const o = m.overlay;
   if (!o || !Array.isArray(o.labels) || !Array.isArray(o.symbols)) e.push('overlay: { labels: [], symbols: [] }');
   else {
@@ -568,7 +696,12 @@ export function validateDungeon(raw: unknown): string[] {
       if (l.href !== undefined && hrefError(l.href)) e.push(`overlay.labels[${i}].href: ${hrefError(l.href)}`);
       originError(l, `overlay.labels[${i}]`, e);
     });
-    o.symbols.forEach((s, i) => { if (typeof s?.kind !== 'string' || !isNum(s.x) || !isNum(s.y)) e.push(`overlay.symbols[${i}]: kind, x, y`); else originError(s, `overlay.symbols[${i}]`, e); });
+    o.symbols.forEach((s, i) => {
+      if (typeof s?.kind !== 'string' || !isNum(s.x) || !isNum(s.y)) { e.push(`overlay.symbols[${i}]: kind, x, y`); return; }
+      for (const k of ['scale', 'scaleX', 'scaleY'] as const) if (s[k] !== undefined && !(isNum(s[k]) && s[k]! > 0)) e.push(`overlay.symbols[${i}].${k}: above 0`);
+      if (s.sweep !== undefined && !(isNum(s.sweep) && s.sweep !== 0 && Math.abs(s.sweep) <= 360)) e.push(`overlay.symbols[${i}].sweep: degrees, -360..360 and not 0`);
+      originError(s, `overlay.symbols[${i}]`, e);
+    });
   }
   return e;
 }
@@ -577,16 +710,21 @@ export function validateDungeon(raw: unknown): string[] {
 export function polyBox(points: number[]): { x: number; y: number; w: number; h: number } {
   const xs = points.filter((_, i) => i % 2 === 0), ys = points.filter((_, i) => i % 2 === 1);
   const x = Math.min(...xs), y = Math.min(...ys);
-  return { x, y, w: Math.max(1, Math.max(...xs) - x), h: Math.max(1, Math.max(...ys) - y) };
+  // the points' own box: a thin outline (a ring, an arc) is not stretched to a cell, but is never quite flat
+  return { x, y, w: Math.max(0.01, Math.max(...xs) - x), h: Math.max(0.01, Math.max(...ys) - y) };
 }
 
 /** Fill the defaults into a file already read at the current format. */
 function withDefaults(r: Partial<DungeonSpec>): DungeonSpec {
   const d = DEFAULTS;
   const rooms = (Array.isArray(r.rooms) ? r.rooms : []).map(room => (room?.shape === 'poly' && Array.isArray(room.points) && room.points.length >= 6 && room.x === undefined ? { ...room, ...polyBox(room.points) } : room));
+  // a preset fills the style and grid the file leaves unset: defaults, then the preset, then the file's own
+  const preset = r.style?.preset !== undefined && Object.hasOwn(STYLE_PRESETS, r.style.preset) ? STYLE_PRESETS[r.style.preset] : undefined;
   const m = {
     ...structuredClone(d), ...r, version: DUNGEON_FORMAT,
-    gen: { ...d.gen, ...r.gen }, grid: { ...d.grid, ...r.grid }, style: { ...d.style, ...r.style }, scale: { ...d.scale, ...r.scale },
+    gen: { ...d.gen, ...r.gen }, grid: { ...d.grid, ...preset?.grid, ...r.grid },
+    style: { ...d.style, ...structuredClone(preset?.style), ...r.style, ...(preset?.style.palette || r.style?.palette ? { palette: { ...preset?.style.palette, ...r.style?.palette } } : {}) },
+    scale: { ...d.scale, ...r.scale },
     rooms, corridors: r.corridors ?? [], overlay: { labels: r.overlay?.labels ?? [], symbols: r.overlay?.symbols ?? [] },
   } as DungeonSpec;
   return m;

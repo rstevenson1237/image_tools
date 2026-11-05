@@ -9,10 +9,10 @@ import { sharedEdges } from './geom.ts';
 import { roomOutline } from './layout.ts';
 import { DOOR_KINDS, type Block, type Connection, type Corridor, type CorridorEnd, type DoorKind, type DungeonSpec, type Room, type RoomShape, type Side } from './spec.ts';
 
-const DOOR_WEIGHTS: Record<DoorKind, number> = { door: 70, secret: 8, locked: 10, portcullis: 6, arch: 6 };
+const DOOR_WEIGHTS: Record<DoorKind, number> = { door: 70, secret: 8, locked: 10, portcullis: 6, arch: 6, double: 0 };
 
 /** A single room centred on a map just big enough for it and its exits, which run off the map's edges. */
-export function singleRoom(spec: DungeonSpec, o: { shape: RoomShape; w: number; h: number; exits?: { side: 'n' | 'e' | 's' | 'w'; door?: DoorKind | null; at?: number; text?: string }[]; label?: string; number?: number | false; margin?: number }): DungeonSpec {
+export function singleRoom(spec: DungeonSpec, o: { shape: RoomShape; w: number; h: number; exits?: { side: 'n' | 'e' | 's' | 'w'; door?: DoorKind | null; at?: number; text?: string }[]; label?: string; number?: number | string | false; margin?: number }): DungeonSpec {
   const m = o.margin ?? 3, out = structuredClone(spec);
   const room: Room = { id: 'r1', shape: o.shape, x: m, y: m, w: o.w, h: o.h, ...(o.label && { label: o.label }), ...(o.number !== undefined && { number: o.number }) };
   out.cols = o.w + 2 * m; out.rows = o.h + 2 * m;

@@ -2965,6 +2965,11 @@ bones      Bones
 skull      Danger
 door       Door (free-standing)
 arrow      Arrow (way on)
+spiral-stair Spiral stair (a circle with spokes)
+pit-filled Pit, filled (a dark disc in a ring)
+pool-filled Pool, filled (a grey disc in a double ring)
+arch-stair Arched stair (steps curving round a post)
+curved-arrow Curved arrow (a turn; sweep sets how far)
 
 $ artgen dungeon symbols --json
 exit 0
@@ -2998,7 +3003,12 @@ exit 0
     "bones",
     "skull",
     "door",
-    "arrow"
+    "arrow",
+    "spiral-stair",
+    "pit-filled",
+    "pool-filled",
+    "arch-stair",
+    "curved-arrow"
   ]
 }
 
@@ -4462,7 +4472,7 @@ exit 0
       "y": 3,
       "w": 7,
       "h": 5,
-      "number": false
+      "number": "x"
     },
     {
       "id": "r9",
@@ -4571,6 +4581,7 @@ exit 0
 $ artgen dungeon link crypt r1 corridor:out1 --from-side e --from-offset 1 --route around --via 10,8,12,8 --root <root>
 exit 0
 crypt: corridor 2: r1 → corridor:out1
+  warning: corridors[2].to: joins out1 at 21.5,8.5, an end of it: with no `near` the junction is the point of out1 nearest the other end; set `near` ([x, y]) to meet it along a run [junction-at-bend]
 next: artgen dungeon render crypt
 
 $ artgen dungeon link crypt r1 corridor:out1 --from-side e --from-offset 1 --route around --via 10,8,12,8 --root <root> --json
@@ -4646,7 +4657,7 @@ $ artgen dungeon link crypt r1 r9 --style rough --root <root>
 threw: --style: built, natural
 
 $ artgen dungeon link crypt r1 r9 --doors gate --root <root>
-threw: --doors: none or one of door, secret, locked, portcullis, arch
+threw: --doors: none or one of door, secret, locked, portcullis, arch, double
 
 $ artgen dungeon link crypt r1 r9 --exit x --root <root>
 threw: --exit: the second end must be a point (x,y or a cell name), where the corridor leaves the map
@@ -4660,6 +4671,7 @@ threw: --via: comma-separated numbers in x,y pairs
 $ artgen dungeon door crypt 1 from portcullis --root <root>
 exit 0
 crypt: 3 corridors
+  warning: corridors[2].to: joins out1 at 21.5,8.5, an end of it: with no `near` the junction is the point of out1 nearest the other end; set `near` ([x, y]) to meet it along a run [junction-at-bend]
 next: artgen dungeon render crypt
 
 $ artgen dungeon door crypt 1 from portcullis --root <root> --json
@@ -5147,7 +5159,7 @@ $ artgen dungeon connect crypt hx-1 --root <root>
 threw: dungeon connect <id> <room> <room> [--kind door|secret|locked|portcullis|arch|open] [--at x,y] [--width 1]
 
 $ artgen dungeon connect crypt hx-1 hx-2 --kind trapdoor --root <root>
-threw: --kind: open or one of door, secret, locked, portcullis, arch
+threw: --kind: open or one of door, secret, locked, portcullis, arch, double
 
 $ artgen dungeon disconnect crypt 0 --root <root>
 exit 0
@@ -5250,7 +5262,7 @@ crypt "The Crypt": 30×20 cells of 5 ft, seed 7
   grid: off; hatch full; shared walls off; numbers on, scale bar on, compass off
   furniture: outside, band right
   rooms (3):
-    r1: octagon 7×5 at 3,3, no number
+    r1: octagon 7×5 at 3,3, #x
     r9: cave 8×6 at 17,5, cellar, no number → http://example.com/cave
     r3: rect 5×5 at 2,8 "Chapel"
   corridors (2):
@@ -5308,7 +5320,7 @@ exit 0
       "y": 3,
       "w": 7,
       "h": 5,
-      "number": false
+      "number": "x"
     },
     {
       "id": "r9",
@@ -5394,7 +5406,7 @@ crypt: 30×20 cells of 5 ft, seed 7
   gen: rooms 8, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on
   grid: off; hatch full; shared walls on (default); numbers on, scale bar on, compass off
   rooms (3):
-    r1: octagon 7×5 at 3,3, no number
+    r1: octagon 7×5 at 3,3, #x
     r9: cave 8×6 at 17,5, cellar, no number → http://example.com/cave
     r3: rect 5×5 at 2,8 "Chapel"
   corridors (2):
@@ -5450,7 +5462,7 @@ exit 0
       "y": 3,
       "w": 7,
       "h": 5,
-      "number": false
+      "number": "x"
     },
     {
       "id": "r9",
@@ -5644,7 +5656,7 @@ exit 0
 }
 
 $ artgen dungeon symbol crypt dragon --at 1,1 --root <root>
-threw: unknown symbol dragon (have: stairs, stairs-up, stairs-down, curtain, dais, gate, ladder, pillar, statue, altar, chest, trap, pit, pool, fountain, rubble, throne, bed, table, coffin, barrel, crate, fire, web, bones, skull, door, arrow)
+threw: unknown symbol dragon (have: stairs, stairs-up, stairs-down, curtain, dais, gate, ladder, pillar, statue, altar, chest, trap, pit, pool, fountain, rubble, throne, bed, table, coffin, barrel, crate, fire, web, bones, skull, door, arrow, spiral-stair, pit-filled, pool-filled, arch-stair, curved-arrow)
 
 $ artgen dungeon overlay crypt rm symbol 1 --root <root>
 exit 0
@@ -5759,7 +5771,7 @@ $ artgen dungeon facts crypt --root <root>
 exit 0
 crypt: 35×19 cells; positions in cells, lengths also in ft
 rooms (3):
-  r1: octagon 7×5 cells (35×25 ft) at 4,3; doors door at 11,6
+  r1 #x: octagon 7×5 cells (35×25 ft) at 4,3; doors door at 11,6
   r9: cave 8×6 cells (40×30 ft) at 18,5; doors portcullis at 25.9,8.1
   r3 #1: rect 5×5 cells (25×25 ft) at 3,8 "Chapel"
 corridors (2):
@@ -5789,7 +5801,7 @@ exit 0
   "rooms": [
     {
       "id": "r1",
-      "number": null,
+      "number": "x",
       "label": null,
       "shape": "octagon",
       "box": {
@@ -6285,7 +6297,7 @@ crypt: 35×19 cells of 5 ft, seed 7
   gen: rooms 8, size 3..8, caves 0.15, round 0.1, loops 0.25, doors 0.6, corridor width 1, spacing 2, entrance on
   grid: off; hatch full; shared walls on (default); numbers on, scale bar on, compass off
   rooms (3):
-    r1: octagon 7×5 at 4,3, no number
+    r1: octagon 7×5 at 4,3, #x
     r9: cave 8×6 at 18,5, cellar, no number → http://example.com/cave
     r3: rect 5×5 at 3,8 "Chapel"
   corridors (2):
@@ -6341,7 +6353,7 @@ exit 0
       "y": 3,
       "w": 7,
       "h": 5,
-      "number": false
+      "number": "x"
     },
     {
       "id": "r9",
@@ -6623,7 +6635,7 @@ $ artgen dungeon render crypt --margin 2 --root <root>
 threw: --margin goes with --room
 
 $ artgen dungeon render crypt --layers sky=off --root <root>
-threw: --layers: unknown layer sky (underlay, rock, floors, buildings, enclosure, grid, exits, doors, symbols, cellars, numbers, labels, legend, title, scale, compass)
+threw: --layers: unknown layer sky (underlay, rock, floors, buildings, enclosure, rings, grid, edging, exits, doors, symbols, cellars, numbers, labels, legend, title, scale, compass)
 
 $ artgen dungeon sync crypt --from <root>/dsync-from.json --origin tables --root <root>
 exit 0
@@ -8876,6 +8888,11 @@ fire         Brazier / fire
 web          Web
 bones        Bones
 arrow        Arrow (way on)
+spiral-stair Spiral stair (a circle with spokes)
+pit-filled   Pit, filled (a dark disc in a ring)
+pool-filled  Pool, filled (a grey disc in a double ring)
+arch-stair   Arched stair (steps curving round a post)
+curved-arrow Curved arrow (a turn; sweep sets how far)
 
 $ artgen settlement symbols --json
 exit 0
@@ -8928,7 +8945,12 @@ exit 0
     "fire",
     "web",
     "bones",
-    "arrow"
+    "arrow",
+    "spiral-stair",
+    "pit-filled",
+    "pool-filled",
+    "arch-stair",
+    "curved-arrow"
   ]
 }
 

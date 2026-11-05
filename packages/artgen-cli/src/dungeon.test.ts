@@ -217,3 +217,102 @@ describe('artgen dungeon', () => {
     await expect(run('dungeon', 'new', '../escape', ...R)).rejects.toThrow(/letters, digits/);
   });
 });
+
+// flags and edits added for the issues filed after R9 (#46, #47, #48, #50, #51, #53, #54, #55, #56)
+describe('artgen dungeon: styles, keys, walls and doors', () => {
+  const root = mkdtempSync(join(tmpdir(), 'artgen-dungeon-styles-')), R = ['--root', root];
+  const spec = (id: string) => JSON.parse(readFileSync(join(root, 'art', 'dungeons', id, 'dungeon.json'), 'utf8'));
+  beforeAll(async () => {
+    await run('init', ...R);
+    await run('dungeon', 'new', 'k', '--empty', '--size', '40x30', ...R);
+    await run('dungeon', 'room', 'k', 'add', 'rect', '--at', '2,2', '--size', '8x6', '--room-id', 'a', ...R);
+    await run('dungeon', 'room', 'k', 'add', 'rect', '--at', '10,2', '--size', '6x6', '--room-id', 'b', ...R);
+    await run('dungeon', 'room', 'k', 'add', 'rect', '--at', '2,20', '--size', '6x6', '--room-id', 'c', ...R);
+  });
+
+  test('a room takes a key as its number, a wavy edge and a partition', async () => {
+    await run('dungeon', 'room', 'k', 'set', 'b', '--number', '15a', '--edge', 'wavy', '--edge-sides', 'n,s', '--partition', '0.5', ...R);
+    expect(spec('k').rooms[1]).toMatchObject({ number: '15a', edge: 'wavy', edgeSides: ['n', 's'], partition: 0.5 });
+    await run('dungeon', 'room', 'k', 'set', 'b', '--number', 'off', '--edge', 'none', '--partition', '0', ...R);
+    expect(spec('k').rooms[1].number).toBe(false);
+    expect(spec('k').rooms[1].edge).toBeUndefined();
+    expect(spec('k').rooms[1].partition).toBeUndefined();
+    await run('dungeon', 'room', 'k', 'set', 'b', '--number', '7', ...R);
+    expect(spec('k').rooms[1].number).toBe(7);
+    await run('dungeon', 'room', 'k', 'set', 'b', '--number', 'G.3', ...R);
+    expect(spec('k').rooms[1].number).toBe('G.3');
+    await expect(run('dungeon', 'room', 'k', 'set', 'b', '--number', 'two words', ...R)).rejects.toThrow(/--number/);
+  });
+
+  test('connect takes a weight and a line; show lists them', async () => {
+    await run('dungeon', 'connect', 'k', 'a', 'b', '--kind', 'double', '--width', '2', '--line', 'dashed', '--weight', '0.5', ...R);
+    expect(spec('k').connections[0]).toMatchObject({ a: 'a', b: 'b', kind: 'double', width: 2, line: 'dashed', weight: 0.5 });
+    const shown = await run('dungeon', 'show', 'k', ...R);
+    expect(shown.out).toMatch(/a ↔ b: double, width 2.*wall weight 0.5, wall dashed/);
+  });
+
+  test('style: a preset writes its values, the look flags set the palette', async () => {
+    await run('dungeon', 'style', 'k', '--preset', 'blueprint', '--door-glyph', 'square', ...R);
+    expect(spec('k').style).toMatchObject({ preset: 'blueprint', rock: 'solid', hatch: 'none', numbers: 'plain', doors: 'square', palette: { rock: '#3d6bb3', wall: '#3d6bb3', ink: '#17366b', grid: '#8fb2e6' } });
+    expect(spec('k').grid).toMatchObject({ size: 1, sub: false });
+    await run('dungeon', 'style', 'k', '--ink-color', '#112233', '--floor-color', '#fefefe', '--grid-color', 'none', ...R);
+    expect(spec('k').style.palette).toMatchObject({ ink: '#112233', floor: '#fefefe', rock: '#3d6bb3' });
+    // 'none' takes the key out of the file; the preset, still named, fills it again with its own
+    expect(spec('k').style.palette.grid).toBe('#8fb2e6');
+    await expect(run('dungeon', 'style', 'k', '--ink-color', 'navy', ...R)).rejects.toThrow(/style.palette.ink/);
+    await expect(run('dungeon', 'style', 'k', '--preset', 'neon', ...R)).rejects.toThrow(/--preset/);
+    await run('dungeon', 'style', 'k', '--rock-color', '#223344', ...R);
+    expect(spec('k').style.palette.rock).toBe('#223344');
+    await run('dungeon', 'style', 'k', '--preset', 'none', '--number-style', 'badge', ...R);
+    expect(spec('k').style.preset).toBeUndefined();
+    expect(spec('k').style.numbers).toBe('badge');
+  });
+
+  test('link: a junction with near, doors in the run; door --at adds and removes one', async () => {
+    await run('dungeon', 'link', 'k', 'a', 'c', '--id', 'main', '--width', '2', '--mid-doors', '5:double;12,6:door', ...R);
+    expect(spec('k').corridors[0]).toMatchObject({ id: 'main', midDoors: [{ at: 5, kind: 'double' }, { at: [12, 6], kind: 'door' }] });
+    await run('dungeon', 'link', 'k', 'corridor:main', 'b', '--from-near', '4,10', ...R);
+    expect(spec('k').corridors[1].from).toEqual({ corridor: 'main', near: [4, 10] });
+    await expect(run('dungeon', 'link', 'k', 'a', 'b', '--to-near', '1,1', ...R)).rejects.toThrow(/near/);
+    await run('dungeon', 'door', 'k', '0', 'secret', '--at', '8', ...R);
+    expect(spec('k').corridors[0].midDoors).toEqual(expect.arrayContaining([{ at: 8, kind: 'secret' }]));
+    await run('dungeon', 'door', 'k', '0', 'none', '--at', '8', ...R);
+    expect(spec('k').corridors[0].midDoors).toHaveLength(2);
+    await run('dungeon', 'door', 'k', '0', 'from', 'double', ...R);
+    expect(spec('k').corridors[0].doors[0]).toBe('double');
+    expect((await run('dungeon', 'show', 'k', ...R)).out).toMatch(/doors in the run double at 5; door at 12,6/);
+  });
+
+  test('symbol: width, length and sweep; the new kinds are listed', async () => {
+    await run('dungeon', 'symbol', 'k', 'stairs', '--at', '20,10', '--scale-x', '0.8', '--scale-y', '4', ...R);
+    await run('dungeon', 'symbol', 'k', 'curved-arrow', '--at', '24,10', '--sweep', '-90', ...R);
+    expect(spec('k').overlay.symbols).toEqual([{ kind: 'stairs', x: 20, y: 10, scaleX: 0.8, scaleY: 4 }, { kind: 'curved-arrow', x: 24, y: 10, sweep: -90 }]);
+    const kinds = (await run('dungeon', 'symbols', ...R)).out;
+    for (const k of ['spiral-stair', 'pit-filled', 'pool-filled', 'arch-stair', 'curved-arrow']) expect(kinds).toContain(k);
+    await expect(run('dungeon', 'symbol', 'k', 'stairs', '--at', '1,1', '--scale-x', '0', ...R)).rejects.toThrow(/scaleX/);
+  });
+
+  test('ring: a circle and a poly, dashed or solid; rm removes one', async () => {
+    await run('dungeon', 'ring', 'k', 'add', 'circle', '--at', '30,20', '--r', '4', '--dash', '0.4,0.2', ...R);
+    await run('dungeon', 'ring', 'k', 'add', 'poly', '--points', '30,5,36,5,36,9', '--line', 'solid', '--width', '0.2', ...R);
+    expect(spec('k').rings).toEqual([{ shape: 'circle', at: [30, 20], r: 4, dash: [0.4, 0.2] }, { shape: 'poly', points: [30, 5, 36, 5, 36, 9], line: 'solid', width: 0.2 }]);
+    expect((await run('dungeon', 'show', 'k', ...R)).out).toMatch(/rings \(2\):\n    0\. circle at 30,20 r 4, dashed/);
+    await expect(run('dungeon', 'ring', 'k', 'add', 'circle', '--at', '1,1', ...R)).rejects.toThrow(/--r/);
+    await run('dungeon', 'ring', 'k', 'rm', '1', ...R);
+    expect(spec('k').rings).toHaveLength(1);
+    await expect(run('dungeon', 'ring', 'k', 'rm', '5', ...R)).rejects.toThrow(/no ring 5/);
+  });
+
+  test('the file checks and renders with all of it', async () => {
+    const r = await run('dungeon', 'check', 'k', ...R);
+    expect(r.code).toBe(0);
+    await run('dungeon', 'render', 'k', '--format', 'svg', ...R);
+    const svg = readFileSync(join(root, 'art', 'dungeons', 'k', 'out', 'k.svg'), 'utf8');
+    // the dashed wall, the double door's leaves, the ink colour and the preset's rock all reach the picture
+    expect(svg).toMatch(/<path id="partitions[^"]*"[^>]*stroke-dasharray/);
+    expect(svg).toContain('#112233');
+    expect(svg).toContain('#223344');
+    expect(svg).toContain('id="symbols"');
+  });
+});
+

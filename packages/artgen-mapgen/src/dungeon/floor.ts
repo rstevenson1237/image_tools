@@ -99,6 +99,8 @@ export function doorStand(spec: DungeonSpec, l: DungeonLayout, d: DoorGeom): Doo
   // every room counts here: a door may lead out of a cellar or a yard
   const behind = ownersAt(l, d.x - ux * DOOR_PROBE, d.y - uy * DOOR_PROBE, true), ahead = ownersAt(l, d.x + ux * DOOR_PROBE, d.y + uy * DOOR_PROBE, true);
   let from: Owner = { room: -1 }, to: Owner = { room: -1 };
+  // a door in the run (`midDoors`) stands in the corridor's own floor: that is where it was put
+  if (d.mid) return { on: 'open', behind, ahead };
   if (d.connection !== undefined) {
     const c = l.connections[d.connection], ia = l.rooms.findIndex(g => g.room.id === c.a), ib = l.rooms.findIndex(g => g.room.id === c.b);
     from = { room: ia }; to = { room: ib };

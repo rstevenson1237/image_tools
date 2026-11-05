@@ -136,7 +136,8 @@ function openingSvg(o: OpeningGeom, k: number, t: number, p: Palette, sw: number
   else if (o.kind === 'portcullis') { g = gap; const n = Math.max(3, Math.round(o.width * 4)); for (let i = 0; i < n; i++) g += `<circle cx="${n1(-W / 2 + (W * (i + 0.5)) / n)}" r="${n1(Math.max(0.8, t * 0.2))}" fill="${p.ink}"/>`; }
   else if (o.kind === 'arch') g = gap + `<rect x="${n1(-W / 2 - t * 0.3)}" y="${n1(-t * 0.62)}" width="${n1(t * 0.6)}" height="${n1(t * 1.24)}" fill="${p.ink}"/><rect x="${n1(W / 2 - t * 0.3)}" y="${n1(-t * 0.62)}" width="${n1(t * 0.6)}" height="${n1(t * 1.24)}" fill="${p.ink}"/>`;
   else {
-    g = gap + leaf(-W / 2, W);
+    // a double door is two leaves across the opening
+    g = gap + (o.kind === 'double' ? leaf(-W / 2, W / 2) + leaf(0, W / 2) : leaf(-W / 2, W));
     if (o.kind === 'locked') g += `<path d="M0 ${n1(-t * 0.5)}V${n1(t * 0.5)}" stroke="${p.ink}" stroke-width="${n1(Math.max(sw * 1.5, t * 0.3))}"/>`;
   }
   return `<g transform="translate(${n1(o.x * k)} ${n1(o.y * k)}) rotate(${n1(o.angle)})">${g}</g>`;

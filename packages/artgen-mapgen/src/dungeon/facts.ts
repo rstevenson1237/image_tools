@@ -40,7 +40,7 @@ export interface RoomDoor {
 export interface RoomFacts {
   id: string;
   /** The number on the badge; null when it is hidden. */
-  number: number | null;
+  number: number | string | null;
   label: string | null;
   shape: string;
   box: Boxed;
