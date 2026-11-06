@@ -71,7 +71,8 @@ function want(e: CorridorEnd, fp: Footprint | undefined, f: number): number | nu
 function toCells(r: Route, prints: Map<string, Footprint>, f: number): number[] {
   const inner = (room: string, slot: Route['slotA']): Pt => {
     const fp = prints.get(room)!;
-    return slot && slot.side ? [(slot.inner[0] + 0.5) * LATTICE, (slot.inner[1] + 0.5) * LATTICE] : fp.hub ?? fp.centre;
+    // from the room's cell behind the door, so the passage runs in square to the wall (on the lattice or off it)
+    return slot ? [(slot.inner[0] + 0.5) * LATTICE, (slot.inner[1] + 0.5) * LATTICE] : fp.hub ?? fp.centre;
   };
   const pts: Pt[] = [inner(r.a, r.slotA), ...r.cells.map(([i, j]) => [(i + 0.5) * LATTICE, (j + 0.5) * LATTICE] as Pt), inner(r.b, r.slotB)];
   return pts.flatMap(([x, y]) => [Math.round((x / f) * 1e6) / 1e6, Math.round((y / f) * 1e6) / 1e6]);

@@ -437,7 +437,8 @@ describe('the maze router and the layout from a graph (R9 D6)', () => {
       corridors: [{ from: { room: 'a' }, to: { room: 'b' }, route: 'maze', width: 2 }, { from: { room: 'a' }, to: { room: 'c' }, route: 'maze', width: 2 }, { from: { room: 'd' }, to: { room: 'c' }, width: 2 }],
     });
     expect(D.layoutDungeon(s).corridors.map(c => c.unrouted ?? false)).toEqual([false, false, false]);
-    expect(D.lintDungeon(s).map(f => f.id)).toEqual([]);
+    // the two from a share their first run: allowed, and reported as passages that read as one
+    expect(D.lintDungeon(s).map(f => f.id)).toEqual(['passages-tangle']);
     // rooms that touch get no maze corridor: a connection joins them
     const touching = D.newDungeon('t', { cols: 20, rows: 12, rooms: [rect('a', 2, 2, 6, 6), rect('b', 8, 2, 6, 6)], corridors: [{ from: { room: 'a' }, to: { room: 'b' }, route: 'maze', width: 2 }] });
     expect(D.lintDungeon(touching).map(f => f.id)).toContain('maze-no-route');

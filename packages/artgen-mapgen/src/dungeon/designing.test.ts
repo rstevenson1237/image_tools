@@ -84,3 +84,129 @@ describe('R17 passages meet rooms square on, and ends on one wall are spread', (
     expect(D.layoutDungeon(fixed).corridors[2].ends[0]!.y).toBe(21);
   });
 });
+
+describe('the layout from a graph, as setting_builder asked (R2, R3, R5, R11, R12, R13, R14, R16)', () => {
+  const ids = (s: D.DungeonSpec) => D.lintDungeon(s).map(f => f.id);
+  const five = (over: Partial<D.Graph> = {}): D.Graph => ({
+    id: 'g', width: 2, seed: 2, tries: 3,
+    rooms: [{ id: 'A', w: 6, h: 4 }, { id: 'B', w: 4, h: 4 }, { id: 'C', w: 6, h: 6 }, { id: 'D', w: 4, h: 6 }, { id: 'E', w: 4, h: 4 }],
+    ways: [{ a: 'A', b: 'B' }, { a: 'B', b: 'C' }, { a: 'C', b: 'D' }, { a: 'D', b: 'E' }, { a: 'E', b: 'A' }],
+    ...over,
+  });
+
+  test('R5 pad: rooms keep apart, so every way is a passage long enough for its doors', () => {
+    const { spec, report } = D.layoutGraph(five({ pad: 2 }));
+    expect(report.left).toEqual([]);
+    expect(report.walls).toBe(0);
+    expect(report.passages).toBe(5);
+    expect(report.gaps.least).toBeGreaterThanOrEqual(4);
+    expect(ids(spec).filter(i => ['doors-stacked', 'door-off-wall', 'way-no-passage'].includes(i))).toEqual([]);
+    // the rooms are drawn at their own size, not grown by the pad
+    expect(spec.rooms.map(r => [r.w, r.h])).toEqual([[6, 4], [4, 4], [6, 6], [4, 6], [4, 4]]);
+    // a room's own pad of 0 lets it touch
+    const touch = D.layoutGraph(five({ pad: 2, rooms: five().rooms.map(r => (r.id === 'A' || r.id === 'B' ? { ...r, pad: 0 } : r)), passages: 0 })).report;
+    expect(touch.left).toEqual([]);
+  }, 60_000);
+
+  test('R14 caves: doors stand on the drawn outline, so check finds every way drawn', () => {
+    const g = five({ rooms: five().rooms.map(r => ({ ...r, shape: 'cave' as const, w: r.w + 2, h: r.h + 2 })), passages: 0 });
+    const { spec, report } = D.layoutGraph(g);
+    expect(report.left).toEqual([]);
+    expect(spec.connections).toEqual([]);
+    expect(ids(spec)).not.toContain('way-no-passage');
+    expect(ids(spec)).not.toContain('port-outside-room');
+    const l = D.layoutDungeon(spec);
+    for (const c of l.corridors) for (const e of c.ends) {
+      const room = l.rooms.find(r => D.inPolygon(r.outline, e!.x + Math.cos((e!.angle * Math.PI) / 180) * -0.2, e!.y + Math.sin((e!.angle * Math.PI) / 180) * -0.2));
+      expect(room).toBeDefined();
+    }
+  }, 60_000);
+
+  test('R11 rooms that stand at a place stay there, and a way with bends is drawn as given', () => {
+    const g: D.Graph = {
+      id: 'fixed', width: 2, footprint: 40, tries: 2,
+      rooms: [{ id: 'A', w: 6, h: 6, at: { x: 2, y: 2 } }, { id: 'B', w: 6, h: 6, at: { x: 30, y: 2 } }, { id: 'C', w: 6, h: 6, at: { x: 30, y: 30 } }, { id: 'F', w: 4, h: 4 }],
+      ways: [{ a: 'A', b: 'B', via: [19, 5, 19, 5] }, { a: 'B', b: 'C' }, { a: 'C', b: 'F' }],
+    };
+    const { spec, report } = D.layoutGraph(g);
+    expect(report.left).toEqual([]);
+    const at = (id: string) => spec.rooms.find(r => r.id === id)!;
+    expect([at('A').x, at('A').y, at('B').x, at('C').y]).toEqual([4, 4, 32, 32]);
+    const given = spec.corridors.find(c => 'room' in c.from && c.from.room === 'A')!;
+    expect(given.via).toEqual([21, 7, 21, 7]);
+    expect(report.places.find(p => p.id === 'A')).toEqual({ id: 'A', x: 2, y: 2, w: 6, h: 6, cx: 5, cy: 5 });
+    expect(D.validateGraph({ ...g, ways: [{ a: 'A', b: 'F', via: [1, 1] }] })).toEqual(['ways[0].via: a way drawn as given joins two rooms that stand at a place (at)']);
+    expect(D.validateGraph({ ...g, rooms: [{ id: 'A', w: 6, h: 6, at: { x: 3, y: 2 } }], ways: [] })).toEqual(['rooms[0].at: on the lattice (x and y multiples of the width, 2)']);
+  }, 60_000);
+
+  test('R3 with no footprint, a pinned room is solved in the frame it was given in, and the report says where the square fell', () => {
+    const g = five({ rooms: five().rooms.map(r => (r.id === 'C' ? { ...r, over: { x: 102, y: 202, w: 2, h: 2 } } : r)) });
+    const { report } = D.layoutGraph(g);
+    expect(report.left).toEqual([]);
+    const c = report.places.find(p => p.id === 'C')!;
+    expect(Math.abs(c.cx - 103)).toBeLessThan(4);
+    expect(Math.abs(c.cy - 203)).toBeLessThan(4);
+    expect(report.origin[0]).toBeGreaterThan(60);
+    // a given origin moves the frame the same way, for a sized footprint
+    const fixed = D.layoutGraph({ ...g, footprint: 30, origin: [90, 190] }).report;
+    expect(fixed.origin).toEqual([90, 190]);
+    expect(Math.abs(fixed.places.find(p => p.id === 'C')!.cx - 103)).toBeLessThan(4);
+  }, 60_000);
+
+  test('R12 places: a room an odd number of cells wide has a whole-cell corner to hold', () => {
+    const { report } = D.layoutGraph(five({ rooms: five().rooms.map(r => (r.id === 'A' ? { ...r, w: 5 } : r)), width: 1 }));
+    const a = report.places.find(p => p.id === 'A')!;
+    expect(Number.isInteger(a.x)).toBe(true);
+    expect(a.cx - a.x).toBe(2.5);
+  }, 60_000);
+
+  test('R2 a held bearing and a line of rooms', () => {
+    const held = five({ ways: five().ways.map(w => (w.a === 'A' ? { ...w, bearing: 0, hold: true } : w)) });
+    const r = D.layoutGraph(held).report, a = r.places.find(p => p.id === 'A')!, b = r.places.find(p => p.id === 'B')!;
+    expect(r.held).toEqual([]);
+    expect(b.cy).toBeLessThan(a.cy);
+    const lined = D.layoutGraph(five({ lines: [{ rooms: ['A', 'C', 'E'], along: 'ew' }], tries: 4 })).report;
+    const ys = ['A', 'C', 'E'].map(id => lined.places.find(p => p.id === id)!.cy);
+    expect(Math.max(...ys) - Math.min(...ys)).toBeLessThanOrEqual(2);
+    expect(D.validateGraph(five({ ways: [{ a: 'A', b: 'B', hold: true }], lines: [{ rooms: ['A'], along: 'up' as 'ew' }] }))).toEqual(['ways[0].hold: holds a bearing; give one', 'lines[0].rooms: two rooms or more', 'lines[0].along: ew or ns']);
+  }, 60_000);
+
+  test('R13 partial: with no packing that routes every way, the one that routes most is written and the rest listed', () => {
+    // six ways out of one small room cannot all leave it
+    const g: D.Graph = { id: 'p', width: 2, footprint: 24, tries: 2, passages: 1, partial: true, rooms: [{ id: 'H', w: 2, h: 2 }, ...['a', 'b', 'c', 'd', 'e', 'f'].map(id => ({ id, w: 4, h: 4 }))], ways: ['a', 'b', 'c', 'd', 'e', 'f'].map(b => ({ a: 'H', b })) };
+    expect(() => D.layoutGraph({ ...g, partial: false })).toThrow(/partial/);
+    const { spec, report } = D.layoutGraph(g);
+    expect(report.partial).toBe(true);
+    expect(report.left.length).toBeGreaterThan(0);
+    expect(spec.corridors.length + spec.connections!.length + report.left.length).toBe(6);
+  }, 60_000);
+
+  test('R16 what a table cannot say is carried into the map: room fields, symbols, a ring, a passage\'s curve, a wall\'s line', () => {
+    const g = five({
+      pad: 2, legend: true, style: { numbers: 'plain' },
+      rooms: five().rooms.map(r => (r.id === 'C' ? { ...r, draw: { edge: 'wavy' as const, number: 'C1' }, symbols: [{ kind: 'altar', dy: -1 }, { kind: 'pillar', dx: 2, dy: 2 }], ring: { pad: 2, line: 'solid' as const } } : r)),
+      ways: five().ways.map(w => (w.a === 'B' ? { ...w, draw: { curve: 'smooth' as const, id: 'bc' } } : w)),
+    });
+    const { spec } = D.layoutGraph(g), c = spec.rooms.find(r => r.id === 'C')!;
+    expect(c).toMatchObject({ edge: 'wavy', number: 'C1' });
+    expect(spec.overlay.symbols.map(s => [s.kind, s.x - (c.x + c.w / 2), s.y - (c.y + c.h / 2)])).toEqual([['altar', 0, -1], ['pillar', 2, 2]]);
+    expect(spec.rings).toEqual([{ shape: 'circle', at: [c.x + 3, c.y + 3], r: 5, line: 'solid' }]);
+    expect(spec.corridors.find(k => k.id === 'bc')).toMatchObject({ curve: 'smooth' });
+    expect(spec.legend).toBe(true);
+    expect(spec.style.numbers).toBe('plain');
+    expect(D.validateGraph(five({ rooms: [{ id: 'A', w: 2, h: 2, draw: { x: 3 } as D.RoomDraw }], ways: [] }))[0]).toMatch(/rooms\[0\]\.draw\.x: one of number, fill/);
+  }, 60_000);
+});
+
+describe('R5 check: passages from one room that cross or run together', () => {
+  const rooms = [room({ id: 'A', x: 2, y: 8, w: 4, h: 4 }), room({ id: 'B', x: 24, y: 2, w: 4, h: 4 }), room({ id: 'C', x: 24, y: 16, w: 4, h: 4 })];
+  const base = (corridors: D.Corridor[]) => D.newDungeon('t', { cols: 32, rows: 24, rooms, corridors });
+  test('a crossing and a shared run are found; spokes apart are not', () => {
+    const crossing = base([{ from: { room: 'A', side: 'e', offset: 1 }, to: { room: 'C' }, via: [14, 9, 14, 18] }, { from: { room: 'A', side: 'e', offset: 3 }, to: { room: 'B' }, via: [10, 11, 10, 4] }]);
+    expect(D.lintDungeon(crossing).filter(f => f.id === 'passages-tangle').map(f => f.message)).toEqual([expect.stringMatching(/^crosses corridor 0/)]);
+    const trunk = base([{ from: { room: 'A', side: 'e' }, to: { room: 'B' }, via: [16, 10, 16, 4] }, { from: { room: 'A', side: 'e' }, to: { room: 'C' }, via: [16, 10, 16, 18] }]);
+    expect(D.lintDungeon({ ...trunk, corridors: trunk.corridors.map(c => ({ ...c, from: { room: 'A', side: 'e' as const, offset: 2 } })) }).filter(f => f.id === 'passages-tangle').map(f => f.message)).toEqual([expect.stringMatching(/^runs together with corridor 0, .* for \d+\.\d cells/)]);
+    const spokes = base([{ from: { room: 'A', side: 'n' }, to: { room: 'B' } }, { from: { room: 'A', side: 's' }, to: { room: 'C' } }]);
+    expect(D.lintDungeon(spokes).map(f => f.id)).not.toContain('passages-tangle');
+  });
+});

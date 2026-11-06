@@ -3,8 +3,8 @@
  * of free lattice cells from a cell against one room's wall to a cell against the other's, bending where it likes.
  * A passage never runs through a room, never touches an unrelated way's passage, and may join and part from a passage
  * that leaves the same room, but never runs beside it. Its door stands on the wall between the room and the passage's
- * first cell: square across it where that wall runs along the lattice, else where the line from the room's hub to that
- * cell crosses the wall. A way that names its wall (a bearing from the room's centre) leaves within half a compass point
+ * first cell: square across it where that wall runs along the lattice, else where the lattice line from that cell into
+ * the room crosses the wall (so a passage meets a round or slanted wall square on). A way that names its wall (a bearing from the room's centre) leaves within half a compass point
  * of it, or where the room has no door there, by the nearest it has.
  *
  * Units: one lattice cell is `LATTICE` units, the passage's width (a 10 ft passage on a 5 ft grid: 2 dungeon cells).
@@ -163,9 +163,11 @@ export class Footprint {
           const p: Pt = this.square ? (s === 'n' ? [mid[0], this.y] : s === 's' ? [mid[0], this.y + this.h] : s === 'w' ? [this.x, mid[1]] : [this.x + this.w, mid[1]])
             : this.cross([(i + 0.5) * LATTICE, (j + 0.5) * LATTICE], [(f[0] + 0.5) * LATTICE, (f[1] + 0.5) * LATTICE]);
           out.push({ cell: f, inner: [i, j], side: s, point: p, bearing: bearing(p[0] - cx, p[1] - cy) });
-        } else if (!seen.has(key(f)) && this.hub) {
+        } else if (!seen.has(key(f))) {
           seen.add(key(f));
-          const p = this.cross(this.hub, [(f[0] + 0.5) * LATTICE, (f[1] + 0.5) * LATTICE]);
+          // off the lattice the door stands where the passage's own line (the free cell's centre, square into the room) meets the wall,
+          // so the passage arrives square on rather than slanting to the room's hub, and passages to cells side by side do not meet
+          const p = this.cross([(i + 0.5) * LATTICE, (j + 0.5) * LATTICE], [(f[0] + 0.5) * LATTICE, (f[1] + 0.5) * LATTICE]);
           out.push({ cell: f, inner: [i, j], side: '', point: p, bearing: bearing(p[0] - cx, p[1] - cy) });
         }
       }

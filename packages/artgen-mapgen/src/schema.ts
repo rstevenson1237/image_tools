@@ -7,7 +7,7 @@
  * `origin` (who wrote it; none is a hand entry, see `sync`).
  */
 import { DOOR_KINDS, HATCH_STYLES, LABEL_KINDS, ROOM_FILLS, ROOM_SHAPES, ROUTES, SIDES, CORRIDOR_STYLES, CURVES, GEN_LAYOUTS, BLOCK_SHAPES, SPLIT_MODES, ROCK_STYLES, AREA_KINDS, ROOM_EXIT_KINDS, DUNGEON_FORMAT, MAX_SIDE as DUNGEON_MAX, NUMBER_STYLES, DOOR_GLYPHS, PRESET_NAMES, PALETTE_KEYS, WALL_LINES, MIN_WIDTH } from './dungeon/spec.ts';
-import { GRAPH_SHAPES } from './dungeon/graph.ts';
+import { GRAPH_SHAPES, ROOM_DRAW_KEYS, WAY_DRAW_KEYS } from './dungeon/graph.ts';
 import { CHECK_IDS } from './dungeon/lint.ts';
 import * as M from './map/spec.ts';
 import * as St from './settlement/spec.ts';
@@ -135,17 +135,31 @@ export const GRAPH_SCHEMA: Schema = {
       id: str('its id (letters, digits, ., - and _)'), w: num('width, cells'), h: num('height, cells'), shape: oneOf('the shape (round is drawn as a circle)', GRAPH_SHAPES),
       points: arr('a poly\'s outline, cells from its box\'s centre (x,y pairs)', { type: 'number' }), label: str('its name (default: its id)'), turns: bool('may lie in any quarter turn or mirror of itself'),
       hall: bool('shows its name alone: its label is shorter'), against: obj('set against another room: its centre dx, dy cells from that room\'s', { room: str(''), dx: num(''), dy: num('') }, ['room', 'dx', 'dy']),
-      over: obj('must stand over this box (cells, the footprint\'s frame)', { x: num(''), y: num(''), w: num(''), h: num('') }, ['x', 'y', 'w', 'h']),
+      over: obj('must stand over this box (cells, the graph\'s frame: see origin)', { x: num(''), y: num(''), w: num(''), h: num('') }, ['x', 'y', 'w', 'h']),
+      at: obj('stands exactly here: its box\'s top-left (cells, the graph\'s frame, on the lattice); not moved by the packing', { x: num(''), y: num('') }, ['x', 'y']),
+      pad: num('cells kept clear round it in the packing, in place of the graph\'s pad'),
+      draw: obj('room fields written into the file as given (see the dungeon file\'s rooms)', Object.fromEntries(ROOM_DRAW_KEYS.map(k => [k, { description: `the room's ${k}` }]))),
+      symbols: arr('symbols in the room', obj('a symbol, from the room\'s centre', { kind: str('a symbol kind'), dx: num('cells east of the centre'), dy: num('cells south of the centre'), scale: num(''), scaleX: num(''), scaleY: num(''), angle: num('degrees'), sweep: num('curved-arrow: degrees') }, ['kind'])),
+      ring: obj('a ring round the room, centred on it', { pad: num('cells out from its box\'s longer half-side (default 1)'), line: oneOf('dashed (default) or solid', ['solid', 'dashed']), width: num('cells'), dash: arr('[on, off] cells', { type: 'number' }, { minItems: 2, maxItems: 2 }) }),
     }, ['id', 'w', 'h'])),
     ways: arr('the ways', obj('a way', {
       a: str('a room'), b: str('another room'), bearing: num('degrees clockwise from north: b lies this way from a'), wall: num('degrees clockwise from north: the wall a\'s door stands on'),
       doors: doorPair, style: oneOf('built (default) or natural', CORRIDOR_STYLES), label: str('a note'),
+      hold: bool('keep the bearing as a rule: weighed ten times as hard, and a packing that strays past 45° ranks below one that keeps it'),
+      via: arr('the passage\'s bends (x,y cells, the graph\'s frame), drawn as given: both rooms stand at a place', { type: 'number' }),
+      draw: obj('corridor or connection fields written into the file as given', Object.fromEntries(WAY_DRAW_KEYS.map(k => [k, { description: `the passage's or the opening's ${k}` }]))),
     }, ['a', 'b'])),
     width: num('the passage width in cells, the lattice (default 2)'), scale: obj('the scale', { perCell: num(''), unit: str('') }),
     footprint: anyOf('a square\'s side in cells, or a polygon (x,y cells); unset, the least square `fill` allows', { type: 'number' }, arr('', { type: 'number' })),
     keepOut: arr('polygons no room or passage may take', arr('', { type: 'number' })), fill: arr('[least, most] share of the ground the rooms cover (default [0.35, 0.55])', { type: 'number' }, { minItems: 2, maxItems: 2 }),
     passages: num('the share of ways run as passages (default 0.35)'), detour: num('cells a way may walk past the straight line between its rooms'),
     seed: num('the seed (default 1)'), tries: int('packings tried at each side (default 12)'), margin: num('cells round the footprint in the file (default 2)'), clearance: oneOf('0 (default) or 1: cells a passage keeps off walls', [0, 1]),
+    pad: num('cells kept clear round every room in the packing, to the lattice: joined rooms stand twice that apart'),
+    origin: arr('[x, y]: where the footprint\'s top-left lies in the frame over, at, via and keepOut are given in (default [0, 0]; with no footprint, round the pinned rooms)', { type: 'number' }, { minItems: 2, maxItems: 2 }),
+    lines: arr('rooms whose centres stand on one line', obj('a line', { rooms: arr('the rooms', { type: 'string' }), along: oneOf('ew: one y; ns: one x', ['ew', 'ns']) }, ['rooms', 'along'])),
+    partial: bool('with no packing that routes every way, write the one that routes most and list the rest in the report'),
+    style: { type: 'object', description: 'style settings for the file, over the layout\'s own (see the dungeon file\'s style)' },
+    legend: bool('draw a legend of the symbols'),
   }, ['rooms', 'ways']),
 };
 
