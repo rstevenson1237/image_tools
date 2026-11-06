@@ -79,6 +79,11 @@ Three things about ends that are easy to miss:
 - `offset` is where the **centre line** crosses the wall. A width-2 corridor with `offset: 5` on a room at x=28 is centred on
   x=33 and its floor runs from 32 to 34. `check` reports a corridor whose centre line starts more than half a cell from the
   offset given (`offset-moved`).
+- Several ends that leave **one wall with no `offset`** are spread along it, in the order of where each goes, rather than all
+  set at its middle (where their floors and doors would meet). An end with an `offset` keeps it.
+- A `{room}` end with `via` leaves the room **square on**: from the room's centre line level with the first bend (across, or
+  down, whichever the bend lies further along), where the corridor's width fits on the floor there; not on a slant from the
+  anchor. A room's own `anchor`, or a bend already square to it, keeps the anchor.
 - A **junction** is chosen by distance, so on a corridor that bends (a U) it can be a corner or an end, not the middle of a
   run. `check` says so (`junction-at-bend`) and `through-room` names the junction when the corridor that runs through a
   room starts at one: give `near`, the point on that corridor to meet nearest (`dungeon link … --from-near x,y`).
@@ -133,6 +138,39 @@ below; an example:
   "ways": [{ "a": "G.1", "b": "G.2", "doors": ["door", null] }, { "a": "G.2", "b": "G.3", "bearing": 90 }] }
 ```
 
+What a level designed elsewhere (setting_builder's `design.py`) can hand the layout:
+
+- **Spacing.** `pad` (the graph's, or a room's own) keeps that many cells clear round each room in the packing, rounded up to
+  the lattice: joined rooms stand at least twice that apart, so every way is a passage long enough for a door at each end. A
+  room with `pad: 0` may still touch its neighbours (a dense core). `passages` and `fill` alone do not spread the rooms.
+- **Frames.** `over`, `at`, `via` and `keepOut` are given in the graph's frame. `origin` says where the footprint's top-left
+  lies in that frame, so places read off another level or a table go in as they are. With no footprint and a room pinned
+  (`over`) or placed (`at`), the square is centred on those rooms; the report's `origin` says where it fell. A polygon
+  footprint's frame is its own points.
+- **Places and routes as given.** A room with `at` (its box's top-left, on the lattice) is not moved; a way between two such
+  rooms with `via` (its bends) is drawn as given, not routed, and other passages keep off it. A file whose rooms all stand `at`
+  a place and whose ways all have `via` is written as it is.
+- **Rules, not hints.** `hold: true` keeps a way's `bearing` ten times as hard, and a packing where it strays past 45° ranks
+  below one that keeps it (the report's `held` lists strays). `lines` keep rooms' centres on one row (`ew`) or column (`ns`).
+- **Caves** are routed to their drawn outline, so their doors stand on the wall the map shows, and their ways are passages.
+- **Spokes.** Passages from one room join and run together by default; `spokes: true` keeps them apart where it can, so a hub
+  reads as spokes. `check` reports passages from one room that cross or share a run (`passages-tangle`).
+- **What a table cannot say.** A room's `draw` is written into its entry as given (`number`, `fill`, `edge`, `edgeSides`,
+  `partition`, `labelAt`, `exits`, `orient`, `cut`, `seed`, `href`); its `symbols` stand at `dx, dy` cells from its centre; a
+  `ring` circles it. A way's `draw` carries a passage's `curve`, `seed`, `midDoors` and `id`, or a shared wall's `weight`, `line`
+  and opening `width`. The graph's `style` and `legend` go to the file.
+- **When nothing routes.** `partial: true` writes the packing that routes the most ways and lists the rest in the report's
+  `left`, instead of failing.
+- **The report** gives the side, the fill, the tries that routed every way (`routed`), each room's place in the graph's frame
+  (`places`: the corner, which is whole on the lattice, and the centre, which is a half cell for an odd size), the median and
+  least gap between joined rooms (`gaps`), and the strays, detours and ways left.
+
+`--seeds n` lays the graph out from n seeds (the seed and those after it), scores each and writes the best (`--keep k` writes
+the next best too, as `<id>-2`, …; `--sheet s.png` draws a contact sheet of them). A score starts at 100 and loses points for
+what `check` finds (a stacked door or one off its wall 8, floor outside the bounds 12, passages that cross or run together 6,
+any other warning 2, an error 15) and for each way left (15), held bearing strayed (8) and detour past its limit (4).
+`dungeon.layoutCandidates`, `scoreLayout` and `contactSheetSvg` are the same in code.
+
 ## Ground
 
 `bounds` is the level's outline: the rock and the grid are drawn inside it and its edge is drawn. `areas` are rock (drawn as
@@ -145,13 +183,18 @@ no `check` findings; `fit` moves them with the rooms.
 
 ## Look: colours, presets, symbols
 
-The output is black on white unless the file says otherwise. `style.palette` sets `rock` (solid rock; in place of `rockColor`),
-`floor`, `ink` (doors, symbols, labels; the walls too unless `wall` is set), `grid` and `wall`, each `#rrggbb`. A grid colour is
-drawn as given; the default grid is the ink at a low opacity. The sheet's paper and the furniture boxes stay white.
+The output is black on white unless the file says otherwise. `style.palette` sets `rock` (solid rock, and the hatching's
+strokes; in place of `rockColor`), `floor`, `ink` (doors, symbols, labels; the walls too unless `wall` is set), `grid`, `wall`,
+`partition` (the walls between touching floors: by default the wall colour, or the ink where the walls take the rock's colour,
+so they stay visible) and `paper` (what the title, scale bar and legend stand on), each `#rrggbb`. A grid colour is drawn as
+given; the default grid is the ink at a low opacity. The paper is white, unless the ink is light: then it is the rock's colour
+(or black), so the band beside the map can be read. A legend of many symbols runs in columns, no taller than about a third of
+the map.
 
 `style.preset` is a named look that fills the style and grid settings the file leaves unset (the file's own always win):
 `dark` (solid dark rock, one-cell grid with no sub-grid, plain numerals, a 0.3 wall that vanishes into the rock) and `blueprint`
-(blue rock, white floors, light-blue grid, walls matching the rock). `artgen dungeon style <id> --preset dark` writes its values
+(blue rock, white floors, light-blue grid, walls matching the rock). Both keep the walls between touching rooms at a full
+weight (`partition: 1`), in the ink where the walls match the rock. `artgen dungeon style <id> --preset dark` writes its values
 into the file, so the look can then be changed one key at a time.
 
 Symbols (`artgen dungeon symbols`) take `scale` and, on top of it, `scaleX` (width) and `scaleY` (length) before the `angle` turns
@@ -227,7 +270,7 @@ npm run compare:dungeon -- --source ref.png --mine art/dungeons/d/out/d.png --or
 | `style.rock` | the rock: hatch (as hatch says; default), solid (rockColor) or none |
 | `style.rockColor` | solid rock's colour, #rrggbb (default #bdbdbd) |
 | `style.partition` | the weight of the walls between floors, like wall (default: wall), 0.2..4 |
-| `style.palette` | colours, each #rrggbb: rock, floor, ink, grid, wall |
+| `style.palette` | colours, each #rrggbb: rock, floor, ink, grid, wall, paper, partition |
 | `style.palette.rock` | the solid rock (in place of rockColor) |
 | `style.palette.floor` | the floor, and what fills doors and symbols (default #ffffff) |
 | `style.palette.ink` | the ink: doors, symbols, labels, and the walls unless wall is set (default #000000) |
@@ -413,7 +456,32 @@ npm run compare:dungeon -- --source ref.png --mine art/dungeons/d/out/d.png --or
 | `rooms[].turns` | may lie in any quarter turn or mirror of itself |
 | `rooms[].hall` | shows its name alone: its label is shorter |
 | `rooms[].against` | set against another room: its centre dx, dy cells from that room's |
-| `rooms[].over` | must stand over this box (cells, the footprint's frame) |
+| `rooms[].over` | must stand over this box (cells, the graph's frame: see origin) |
+| `rooms[].at` | stands exactly here: its box's top-left (cells, the graph's frame, on the lattice); not moved by the packing |
+| `rooms[].pad` | cells kept clear round it in the packing, in place of the graph's pad |
+| `rooms[].draw` | room fields written into the file as given (see the dungeon file's rooms) |
+| `rooms[].draw.number` | the room's number |
+| `rooms[].draw.fill` | the room's fill |
+| `rooms[].draw.href` | the room's href |
+| `rooms[].draw.seed` | the room's seed |
+| `rooms[].draw.cut` | the room's cut |
+| `rooms[].draw.orient` | the room's orient |
+| `rooms[].draw.exits` | the room's exits |
+| `rooms[].draw.edge` | the room's edge |
+| `rooms[].draw.edgeSides` | the room's edgeSides |
+| `rooms[].draw.partition` | the room's partition |
+| `rooms[].draw.labelAt` | the room's labelAt |
+| `rooms[].symbols` | symbols in the room |
+| `rooms[].symbols[].kind` | a symbol kind |
+| `rooms[].symbols[].dx` | cells east of the centre |
+| `rooms[].symbols[].dy` | cells south of the centre |
+| `rooms[].symbols[].angle` | degrees |
+| `rooms[].symbols[].sweep` | curved-arrow: degrees |
+| `rooms[].ring` | a ring round the room, centred on it |
+| `rooms[].ring.pad` | cells out from its box's longer half-side (default 1) |
+| `rooms[].ring.line` | dashed (default) or solid |
+| `rooms[].ring.width` | cells |
+| `rooms[].ring.dash` | [on, off] cells |
 | `ways` | the ways |
 | `ways[].a` | a room |
 | `ways[].b` | another room |
@@ -422,6 +490,16 @@ npm run compare:dungeon -- --source ref.png --mine art/dungeons/d/out/d.png --or
 | `ways[].doors` | the door at each end, from then to: a kind, or null for an open passage |
 | `ways[].style` | built (default) or natural |
 | `ways[].label` | a note |
+| `ways[].hold` | keep the bearing as a rule: weighed ten times as hard, and a packing that strays past 45° ranks below one that keeps it |
+| `ways[].via` | the passage's bends (x,y cells, the graph's frame), drawn as given: both rooms stand at a place |
+| `ways[].draw` | corridor or connection fields written into the file as given |
+| `ways[].draw.id` | the passage's or the opening's id |
+| `ways[].draw.curve` | the passage's or the opening's curve |
+| `ways[].draw.seed` | the passage's or the opening's seed |
+| `ways[].draw.midDoors` | the passage's or the opening's midDoors |
+| `ways[].draw.weight` | the passage's or the opening's weight |
+| `ways[].draw.line` | the passage's or the opening's line |
+| `ways[].draw.width` | the passage's or the opening's width |
 | `width` | the passage width in cells, the lattice (default 2) |
 | `scale` | the scale |
 | `footprint` | a square's side in cells, or a polygon (x,y cells); unset, the least square `fill` allows |
@@ -433,6 +511,15 @@ npm run compare:dungeon -- --source ref.png --mine art/dungeons/d/out/d.png --or
 | `tries` | packings tried at each side (default 12) |
 | `margin` | cells round the footprint in the file (default 2) |
 | `clearance` | 0 (default) or 1: cells a passage keeps off walls |
+| `pad` | cells kept clear round every room in the packing, to the lattice: joined rooms stand twice that apart |
+| `origin` | [x, y]: where the footprint's top-left lies in the frame over, at, via and keepOut are given in (default [0, 0]; with no footprint, round the pinned rooms) |
+| `lines` | rooms whose centres stand on one line |
+| `lines[].rooms` | the rooms |
+| `lines[].along` | ew: one y; ns: one x |
+| `partial` | with no packing that routes every way, write the one that routes most and list the rest in the report |
+| `spokes` | passages from one room keep apart where they can, each its own spoke, rather than joining into one run |
+| `style` | style settings for the file, over the layout's own (see the dungeon file's style) |
+| `legend` | draw a legend of the symbols |
 
 ### What `dungeon check` reports, by id
 
@@ -455,6 +542,7 @@ npm run compare:dungeon -- --source ref.png --mine art/dungeons/d/out/d.png --or
 | `no-length` | a corridor has no length |
 | `through-room` | a corridor runs through a room it does not join |
 | `corridors-cross` | two corridors that share no room cross with no junction (corridors that leave one room may join and part) |
+| `passages-tangle` | two corridors that leave one room cross each other, or run together for more than two cells, outside every room (they read as one passage, not as two spokes) |
 | `maze-no-route` | a maze corridor found no passage (or its rooms touch, which a connection joins), so it is drawn as an elbow |
 | `corridor-along-wall` | a corridor runs along a room's wall with no wall drawn between them, so the floors run together |
 | `way-no-passage` | a way the file states draws no passage: a connection between rooms that share no wall, or a corridor between rooms laid over each other |

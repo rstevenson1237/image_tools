@@ -158,6 +158,7 @@ export const GRAPH_SCHEMA: Schema = {
     origin: arr('[x, y]: where the footprint\'s top-left lies in the frame over, at, via and keepOut are given in (default [0, 0]; with no footprint, round the pinned rooms)', { type: 'number' }, { minItems: 2, maxItems: 2 }),
     lines: arr('rooms whose centres stand on one line', obj('a line', { rooms: arr('the rooms', { type: 'string' }), along: oneOf('ew: one y; ns: one x', ['ew', 'ns']) }, ['rooms', 'along'])),
     partial: bool('with no packing that routes every way, write the one that routes most and list the rest in the report'),
+    spokes: bool('passages from one room keep apart where they can, each its own spoke, rather than joining into one run'),
     style: { type: 'object', description: 'style settings for the file, over the layout\'s own (see the dungeon file\'s style)' },
     legend: bool('draw a legend of the symbols'),
   }, ['rooms', 'ways']),

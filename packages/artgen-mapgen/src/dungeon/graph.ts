@@ -26,6 +26,7 @@ const TURN_SHARE = 0.06, NEST = 0.06;
 const LABEL_H = 15, NAME_H = 7;
 const REPAIRS = 8, REPAIR_STEPS = 20000;
 const HOLD = 12, LINE = 1;     // a held bearing's weight (a plain one's is 1.2); a line's pull for each lattice cell off it
+const SPOKES = 3;              // what a cell another passage from the same room uses costs with `spokes` (cells of path)
 const HELD_OFF = 45;           // degrees a held way may stray before the packing ranks below one that keeps it
 
 /** Room shapes the layout knows: drawn as the dungeon's `rect cave circle octagon hexagon poly`. */
@@ -118,6 +119,8 @@ export interface Graph {
   lines?: { rooms: string[]; along: 'ew' | 'ns' }[];
   /** With no packing that routes every way: write the one that routes most, and list the rest in the report's `left`, instead of failing. */
   partial?: boolean;
+  /** Passages from one room keep apart where they can (each reads as its own spoke), rather than joining into one run and parting. */
+  spokes?: boolean;
   /** Style settings for the file (see `DungeonSpec.style`), over the layout's own. */
   style?: Partial<DungeonSpec['style']>;
   /** Draw a legend of the symbols. */
@@ -471,16 +474,18 @@ interface Ctx {
   glue: Map<string, [string, number, number]>; walls: Map<string, number>; detour: number | null; clearance: number; more: PackMore;
   /** Lattice cells passages given as they are (`via`) take, with the rooms they join. */
   taken: Map<string, string[]>;
+  /** What sharing a cell with another passage from the same room costs the router (undefined: its own bonus). */
+  share?: number;
 }
 
 /** One packing from one seed, re-annealed round the ways that found no passage or walk more than `detour` out of their way. */
-function attempt(x: Ctx, side: number, seed: number, ground: Set<string> | null): Attempt {
+function attempt(x: Ctx, side: number, seed: number, ground: Set<string> | null, paths: Set<string> | null = ground): Attempt {
   const p = new Packer(x.rooms, x.ways, side, seed, x.passages, x.pins, x.glue, ground, x.more);
   p.anneal();
   const pairs = x.ways.map(([a, b]) => [a, b] as [string, string]);
   let best: Attempt | null = null, partial: Attempt | null = null;
   for (let n = 0; n < REPAIRS; n++) {
-    const rects = p.rects(), { routes, left } = plan(rects, pairs, { walls: x.walls, ground, seed: 1, clearance: x.clearance, taken: x.taken });
+    const rects = p.rects(), { routes, left } = plan(rects, pairs, { walls: x.walls, ground: paths, seed: 1, clearance: x.clearance, taken: x.taken, share: x.share });
     const far = left.length ? [] : detours(routes, rects, x.detour), clear = p.clear() && p.over();
     if (!left.length && clear) {
       const score: [number, number] = [far.length + p.strays().length, routes.reduce((s, r) => s + r.length, 0)];
@@ -615,20 +620,22 @@ export function layoutGraph(g: Graph): { spec: DungeonSpec; report: GraphReport 
     const vias = new Map(given.map(w => [w, poly2(w.via!).map(([x, y]) => to([u(x), u(y)]))]));
     let ground: Set<string> | null = null;
     if (shape || keep.length) { ground = raster(shape ?? [[0, 0], [side, 0], [side, side], [0, side]], true); for (const k of keep) for (const x of raster(k)) ground.delete(x); }
-    return { shift: [sx, sy] as Pt, keep, pins, fixed, vias, ground };
+    // passages stay on the square too (the packing keeps the rooms in it by their boxes, so needs no cells for that)
+    const paths = ground ?? raster([[0, 0], [side, 0], [side, side], [0, side]], true);
+    return { shift: [sx, sy] as Pt, keep, pins, fixed, vias, ground, paths };
   };
   const ctxAt = (fr: ReturnType<typeof frameAt>): Ctx => {
     // a passage given as it is takes its cells (from the rooms' centres through its bends): routed passages keep off them
     const taken = new Map<string, string[]>(), centre = (id: string): Pt => fr.fixed.get(id)!;
     for (const w of given) for (const k of lineCells([centre(w.a), ...fr.vias.get(w)!, centre(w.b)])) taken.set(k, [...(taken.get(k) ?? []), w.a, w.b]);
-    return { rooms, ways, passages, pins: fr.pins, glue, walls, detour, clearance, taken, more: { fixed: fr.fixed, hold, lines: g.lines, f } };
+    return { rooms, ways, passages, pins: fr.pins, glue, walls, detour, clearance, taken, share: g.spokes ? SPOKES : undefined, more: { fixed: fr.fixed, hold, lines: g.lines, f } };
   };
   type Chosen = { side: number; run: Attempt; fr: ReturnType<typeof frameAt>; routed: number };
   let chosen: Chosen | null = null, fallback: Chosen | null = null;
   for (const side of sides) {
     const fr = frameAt(side), ctx = ctxAt(fr), runs: Attempt[] = [];
     for (let k = 0; k < tries; k++) {
-      const r = attempt(ctx, side, seed * 1000 + k, fr.ground);
+      const r = attempt(ctx, side, seed * 1000 + k, fr.ground, fr.paths);
       if (r.ok) runs.push(r);
       else if (g.partial && r.left < Infinity && (fallback === null || r.left < (fallback as Chosen).run.left)) fallback = { side, run: r, fr, routed: 0 };
     }
@@ -643,7 +650,7 @@ export function layoutGraph(g: Graph): { spec: DungeonSpec; report: GraphReport 
   const { side, run, fr, routed } = chosen, ground = fr.ground, ctx = ctxAt(fr);
   const p = new Packer(rooms, ways, side, seed, passages, fr.pins, glue, ground, ctx.more);
   p.x = run.x; p.y = run.y; run.o.forEach((k, i) => p.lie(i, k));
-  const rects = p.rects(), { routes, left } = plan(rects, ways.map(([a, b]) => [a, b]), { walls, ground, seed: 1, clearance, taken: ctx.taken });
+  const rects = p.rects(), { routes, left } = plan(rects, ways.map(([a, b]) => [a, b]), { walls, ground: fr.paths, seed: 1, clearance, taken: ctx.taken, share: ctx.share });
 
   // the file, in cells, with the footprint `margin` cells in from the sheet's edge
   const margin = g.margin ?? 2, X = (v: number) => c(v) + margin, ix = new Map(g.rooms.map((r, i) => [r.id, i]));

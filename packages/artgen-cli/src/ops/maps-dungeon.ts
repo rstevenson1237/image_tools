@@ -1,11 +1,13 @@
 /** The dungeon operations (`artgen dungeon …`, the MCP `dungeon_*` tools). Implementations moved here from `maps-cli.ts` and the MCP server; the edits themselves are `editDungeon` in `artgen-mapgen`. */
+import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { dungeon, type SyncReport } from 'artgen-core/maps';
+import { dungeon, encodePNG, rasterizeSvg, type SyncReport } from 'artgen-core/maps';
 import { checkDungeonFile, createDungeon, describeDungeon, describeDungeonFacts, dungeonSummary, listDungeons, readDungeon, renderDungeonFiles, updateDungeon, warningLines } from '../dungeon.ts';
 import { onOff, parseLayers } from '../map.ts';
 import { fileId, readJson } from '../projectfs.ts';
 import { idParam, layersOf, needPoints, originOf, overlayEdit, overlayLines, overlayParams, pageScaleOf, pathParam, pngFile, projectOf, refOf, roomNumber, syncText, text, viewOf, withVersion, type Inp } from './maps-shared.ts';
 import { defineOp, p, type Content, type Ctx, type OpDef, type Param } from './registry.ts';
+import { initNodeMapSvg } from '../node-svg.ts';
 
 const V = (data: unknown) => withVersion(data, dungeon.DUNGEON_FORMAT);
 const next = (i: Inp, id?: string) => (i.path ? `next: artgen dungeon render --file ${i.path}` : `next: artgen dungeon render ${id ?? i.id}`);
@@ -695,34 +697,71 @@ const sync = defineOp({
 });
 
 
+/** One seed of `dungeon layout --seeds`: its score and findings, or why it laid nothing out. */
+interface LayoutCandidate { seed: number; score: number | null; findings?: Record<string, number>; left?: number; side?: number; fill?: number; passages?: number; walls?: number; error?: string }
+
 const layout = defineOp({
   name: 'dungeon.layout', module: 'maps', effect: 'write', summary: 'Lay rooms out to a graph inside a footprint and route a passage or a door for every way.',
-  description: 'Lay a dungeon out from a graph: its rooms (id, w and h in cells, shape rect|cave|round|octagon|hexagon|poly, turns?, against?, over?), its ways (a, b, bearing? to keep, wall? the bearing of the wall it leaves a by, doors?: [kind|null, kind|null], style?), the passage width in cells (the lattice), a footprint (a square\'s side in cells or a polygon), keep-out polygons, fill [least, most], passages (the share of ways run as passages), detour (cells a way may walk past the straight line), seed and tries. The rooms are packed close, touching where a door through the shared wall will do; every way is a connection or a corridor routed on the lattice, round the rooms. Writes a new dungeon file (format 2); the report says the side, the fill and any way no passage fitted.',
+  description: 'Lay a dungeon out from a graph: its rooms (id, w and h in cells, shape rect|cave|round|octagon|hexagon|poly, turns?, against?, over?, at? a fixed top-left, pad?, draw? room fields for the file, symbols? from its centre, ring?), its ways (a, b, bearing? to keep, hold? to keep it as a rule, wall? the bearing of the wall it leaves a by, doors?: [kind|null, kind|null], style?, via? bends drawn as given between two placed rooms, draw?), the passage width in cells (the lattice), a footprint (a square\'s side in cells or a polygon), origin (where its corner lies in the frame over/at/via/keepOut are given in), keep-out polygons, fill [least, most], passages (the share of ways run as passages), pad (cells kept clear round every room), detour (cells a way may walk past the straight line), lines (rooms on one row or column), partial, seed and tries. The rooms are packed close, touching where a door through the shared wall will do; every way is a connection or a corridor routed on the lattice, round the rooms. Writes a new dungeon file (format 2); the report says the side, the fill, each room\'s place and any way no passage fitted. seeds: lay it out from that many seeds, score each on what check finds (and ways left, held bearings strayed, detours), and write the best (keep: the next best too, as <id>-2, …); sheet: a contact sheet of them.',
   params: {
     id: idParam('the new dungeon\'s id', 'dungeon layout: <id> (or --file)'), path: pathParam('dungeon'),
     graph_file: p.str('the graph, a JSON file', { flag: '--graph', mcp: false }), graph: p.json({ type: 'object' }, 'the graph: {rooms, ways, width?, footprint?, keepOut?, fill?, passages?, detour?, seed?, tries?}', { cli: false }),
     footprint: p.str('a square\'s side in cells, or a polygon x,y,x,y,… (cells)'), keep_out: p.str('a polygon x,y,… no room or passage may take'),
     fill: p.str('least,most share of the ground the rooms cover (one number: least and most alike)'), passages: p.num('the share of ways run as passages, 0..1'), detour: p.num('cells a way may walk past the straight line between its rooms'),
     seed: p.num('the seed'), tries: p.num('packings tried at each side (default 12)'), width: p.num('the passage width in cells, the lattice (default 2)'), clearance: p.num('0 (default) lets a passage run along a wall, 1 keeps it a lattice cell off'),
+    pad: p.num('cells kept clear round every room in the packing (to the lattice): joined rooms stand twice that apart, every way a passage'),
+    origin: p.str('x,y: where the footprint\'s top-left lies in the frame over, at, via and keepOut are given in'), partial: p.bool('with no packing that routes every way, write the one that routes most and list the rest'),
+    spokes: p.bool('passages from one room keep apart where they can, each its own spoke, rather than joining into one run'),
+    seeds: p.num('lay it out from this many seeds (the seed and those after it), score each and write the best'), keep: p.num('with seeds: write this many of the best (the rest as <id>-2, -3, …; default 1)'),
+    sheet: p.str('with seeds: a contact sheet of the kept ones (.svg or .png)', { mcp: false }),
     force: p.bool('overwrite an existing file (with --file)', { mcp: false }),
   },
-  run(i: Inp, ctx) {
+  async run(i: Inp, ctx) {
     const P = projectOf(i, ctx), g = { ...((i.graph_file ? readJson(i.graph_file) : i.graph) as dungeon.Graph) };
     if (!g.rooms) throw new Error('dungeon layout: a graph is required (--graph file.json)');
     const nums = (s: string) => s.split(',').map(Number);
     if (typeof i.footprint === 'string') { const v = nums(i.footprint); g.footprint = v.length === 1 ? v[0] : v; }
     if (typeof i.keep_out === 'string') g.keepOut = [...(g.keepOut ?? []), nums(i.keep_out)];
     if (typeof i.fill === 'string') { const v = nums(i.fill); g.fill = [v[0], v[1] ?? v[0]]; }
-    for (const k of ['passages', 'detour', 'seed', 'tries', 'width', 'clearance'] as const) if (typeof i[k] === 'number') (g as Record<string, unknown>)[k] = i[k];
+    for (const k of ['passages', 'detour', 'seed', 'tries', 'width', 'clearance', 'pad'] as const) if (typeof i[k] === 'number') (g as Record<string, unknown>)[k] = i[k];
+    if (typeof i.origin === 'string') { const v = nums(i.origin); g.origin = [v[0], v[1]]; }
+    if (i.partial === true) g.partial = true;
+    if (i.spokes === true) g.spokes = true;
     g.id = i.path ? i.id ?? fileId(i.path) : i.id;
-    const started = Date.now(), { spec, report } = dungeon.layoutGraph(g);
-    return { ...createDungeon(P, spec, i.force === true, i.path ? { file: i.path } : undefined), report: { ...report, seconds: Math.round((Date.now() - started) / 100) / 10 } };
+    const started = Date.now(), seconds = () => Math.round((Date.now() - started) / 100) / 10;
+    if (typeof i.seeds !== 'number' || i.seeds <= 1) {
+      if (i.sheet !== undefined) throw new Error('dungeon layout: --sheet goes with --seeds');
+      const { spec, report } = dungeon.layoutGraph(g);
+      return { ...createDungeon(P, spec, i.force === true, i.path ? { file: i.path } : undefined), report: { ...report, seconds: seconds() }, sheet: undefined as string | undefined, others: undefined as string[] | undefined, candidates: undefined as LayoutCandidate[] | undefined };
+    }
+    const { ranked, failed } = dungeon.layoutCandidates(g, i.seeds), keep = ranked.slice(0, Math.max(1, Math.floor(typeof i.keep === 'number' ? i.keep : 1)));
+    if (!keep.length) throw new Error(`dungeon layout: no seed of ${i.seeds} laid the graph out (${failed[0]?.error ?? 'no packing'})`);
+    // the best under the id or file asked for, the next best beside it as <id>-2, -3, …
+    const written = keep.map((c, n) => {
+      const id = n ? `${g.id ?? 'layout'}-${n + 1}` : g.id ?? 'layout', file = i.path && n ? String(i.path).replace(/(\.json)?$/, `-${n + 1}.json`) : i.path;
+      return createDungeon(P, { ...c.spec, id }, i.force === true, file ? { file } : undefined);
+    });
+    let sheet: string | undefined;
+    if (typeof i.sheet === 'string') {
+      const svg = dungeon.contactSheetSvg(keep);
+      if (i.sheet.endsWith('.png')) { await initNodeMapSvg(); const m = svg.match(/width="(\d+)" height="(\d+)"/)!; writeFileSync(i.sheet, encodePNG(rasterizeSvg(svg, +m[1], +m[2]))); } else writeFileSync(i.sheet, svg);
+      sheet = ctx.rel(i.sheet);
+    }
+    const best = keep[0];
+    return {
+      ...written[0], report: { ...best.report, seconds: seconds() }, sheet, others: written.slice(1).map(w => w.file),
+      candidates: [...ranked.map((c): LayoutCandidate => ({ seed: c.seed, score: c.score, findings: c.findings, left: c.report.left.length, side: c.report.side, fill: c.report.fill, passages: c.report.passages, walls: c.report.walls })), ...failed.map((f): LayoutCandidate => ({ seed: f.seed, score: null, error: f.error }))],
+    };
   },
   cli: {
-    usage: '       artgen dungeon layout <id>|--file out.json --graph g.json [--footprint 40|x,y,…] [--keep-out x,y,…] [--fill 0.35,0.55] [--passages 0.35] [--detour n] [--seed n] [--tries 12] [--width 2] [--clearance 0|1] [--force]   rooms packed to a graph in a footprint, every way a door or a routed passage',
+    usage: '       artgen dungeon layout <id>|--file out.json --graph g.json [--footprint 40|x,y,…] [--origin x,y] [--keep-out x,y,…] [--fill 0.35,0.55] [--passages 0.35] [--pad n] [--detour n] [--seed n] [--tries 12] [--width 2] [--clearance 0|1] [--partial] [--spokes] [--seeds n [--keep k] [--sheet s.png]] [--force]   rooms packed to a graph in a footprint, every way a door or a routed passage; --seeds scores that many seeds and keeps the best',
     text: (r, i) => [`${r.file}: ${r.dungeon.rooms.length} rooms in a square ${r.report.side} cells across, rooms ${Math.round(r.report.fill * 100)}% of the ground; ${r.report.passages} passages, ${r.report.walls} doors through shared walls (${r.report.seconds} s)`,
-      ...r.report.left.map((w: string) => `  no passage fits the way from ${w}`), ...r.report.detours.map((d: { a: string; b: string; extra: number }) => `  ${d.a} to ${d.b} walks ${d.extra} cells past its detour`), next(i, r.dungeon.id)].join('\n'),
-    json: r => V({ file: r.file, report: r.report, dungeon: r.dungeon }),
+      ...(r.report.partial ? ['  partial: the packing that routes most, not every way'] : []),
+      ...r.report.left.map((w: string) => `  no passage fits the way from ${w}`), ...r.report.detours.map((d: { a: string; b: string; extra: number }) => `  ${d.a} to ${d.b} walks ${d.extra} cells past its detour`),
+      ...r.report.held.map((h: { a: string; b: string; off: number }) => `  ${h.a} to ${h.b} strays ${h.off}° from its held bearing`),
+      ...(r.candidates ? [`  ${r.candidates.filter((c: { score: number | null }) => c.score !== null).length} of ${r.candidates.length} seeds laid out; by score:`, ...r.candidates.map((c: { seed: number; score: number | null; findings?: Record<string, number>; error?: string }) => `    seed ${c.seed}: ${c.score === null ? `failed (${c.error})` : `${c.score}${Object.keys(c.findings ?? {}).length ? ` (${Object.entries(c.findings!).map(([k, n]) => `${k} ${n}`).join(', ')})` : ''}`}`)] : []),
+      ...(r.others?.length ? [`  also written: ${r.others.join(', ')}`] : []), ...(r.sheet ? [`  contact sheet: ${r.sheet}`] : []), next(i, r.dungeon.id)].join('\n'),
+    json: r => V({ file: r.file, report: r.report, dungeon: r.dungeon, ...(r.candidates && { candidates: r.candidates, others: r.others, sheet: r.sheet }) }),
   },
   mcp: { content: r => [text({ file: r.file, report: r.report, summary: describeDungeon(r.dungeon) })] }, python: {},
 });

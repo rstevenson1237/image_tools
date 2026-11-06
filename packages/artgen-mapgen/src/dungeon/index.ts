@@ -21,3 +21,4 @@ export { withMarks, fileMarks, EXIT_INSET, type Marks } from './marks.ts';
 export { rockOf } from './render.ts';
 export { layoutGraph, validateGraph, GRAPH_SHAPES, ROOM_DRAW_KEYS, WAY_DRAW_KEYS, type Graph, type GraphRoom, type GraphWay, type GraphReport, type GraphSymbol, type RoomDraw, type WayDraw } from './graph.ts';
 export { Router, Footprint, plan as planRoutes, detours as routeDetours, LATTICE, type Route as RoutedWay } from './router.ts';
+export { layoutCandidates, scoreLayout, contactSheetSvg, SCORE_WEIGHTS, SCORE_COSTS, type Candidate, type Candidates } from './candidates.ts';

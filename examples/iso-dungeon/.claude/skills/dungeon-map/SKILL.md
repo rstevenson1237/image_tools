@@ -61,9 +61,14 @@ node tools/artgen/artgen-maps.js dungeon block <id> split b1 --seed 9 | block <i
 node tools/artgen/artgen-maps.js dungeon link <id> b1 r7 --route around                              # a block id: its room nearest the other end
 node tools/artgen/artgen-maps.js dungeon fit <id> --margin 2                                        # crop the map to the rooms
 node tools/artgen/artgen-maps.js dungeon layout <id> --graph g.json [--footprint 40] [--seed 3]     # a whole level from a graph: rooms packed close, every way a door or a routed passage (artgen schema graph)
+node tools/artgen/artgen-maps.js dungeon layout <id> --graph g.json --pad 2 --seeds 12 --keep 3 --sheet sheet.png   # rooms kept apart, 12 seeds scored on what check finds, the best 3 written and shown
 ```
 Rooms and their ways known up front (a brief, a table, a graph)? Lay the level out with `dungeon layout` and edit from there:
 it packs the rooms in the footprint, touching where a door through the shared wall will do, and routes every other way.
+For a level that should read as rooms and corridors, give a `pad` (every way becomes a passage); run `--seeds` and keep the best
+score rather than taking the first seed. Rooms placed from another level or a table go in as they are: `at` (and `via` for a
+passage's bends) with `origin` for the frame. What the graph cannot place, a room's or a passage's `draw`, `symbols` and `ring`
+carry into the file; `partial` keeps the packing that routes most when none routes every way.
 Two things about corridor ends that cost a render-and-diff pass to find: a **point end is square**, so the floor reaches half the
 width past the point (end two stretches one cell apart and a width-2 corridor closes the gap); and `--from-offset` is where the
 **centre line** crosses the wall (a width-2 corridor at offset 5 on a room at x=28 is centred on 33 and its floor runs 32 to 34).

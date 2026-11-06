@@ -210,3 +210,33 @@ describe('R5 check: passages from one room that cross or run together', () => {
     expect(D.lintDungeon(spokes).map(f => f.id)).not.toContain('passages-tangle');
   });
 });
+
+describe('R5 candidates: seeds laid out, scored and shown side by side', () => {
+  test('the best score first, each with its findings, and a contact sheet of them', () => {
+    const g: D.Graph = { id: 'c', width: 2, tries: 2, pad: 2, rooms: [{ id: 'A', w: 6, h: 4 }, { id: 'B', w: 4, h: 4 }, { id: 'C', w: 6, h: 6 }, { id: 'D', w: 4, h: 6 }], ways: [{ a: 'A', b: 'B' }, { a: 'B', b: 'C' }, { a: 'C', b: 'D' }, { a: 'D', b: 'A' }] };
+    const { ranked, failed } = D.layoutCandidates(g, 3);
+    expect(ranked.length + failed.length).toBe(3);
+    for (let i = 1; i < ranked.length; i++) expect(ranked[i - 1].score).toBeGreaterThanOrEqual(ranked[i].score);
+    expect(ranked[0].score).toBe(D.scoreLayout(ranked[0].spec, ranked[0].report).score);
+    const sheet = D.contactSheetSvg(ranked);
+    expect(sheet).toContain(`seed ${ranked[0].seed} · ${ranked[0].score}`);
+    expect(sheet).toContain('id="c0-map-clip"');
+    expect(sheet).not.toMatch(/url\(#map-clip\)/);
+  }, 60_000);
+});
+
+describe('spokes: passages from one room keep apart where they can', () => {
+  test('two passages from A to rooms on the far side share a run by default, and keep apart with a cost on sharing', async () => {
+    const R = await import('./router.ts');
+    const box = (x: number, y: number, w: number, h: number) => new R.Footprint(x, y, w, h, [[x, y], [x + w, y], [x + w, y + h], [x, y + h]], true);
+    const rooms = new Map([['A', box(0, 30, 20, 40)], ['B', box(400, 0, 20, 20)], ['C', box(400, 60, 20, 20)]]);
+    const shared = (share?: number) => {
+      const { routes, left } = R.plan(rooms, [['A', 'B'], ['A', 'C']], { seed: 1, clearance: 0, share });
+      expect(left).toEqual([]);
+      const cells = routes.map(r => new Set(r.cells.map(c => c.join(','))));
+      return [...cells[0]].filter(c => cells[1].has(c)).length;
+    };
+    expect(shared()).toBeGreaterThan(2);
+    expect(shared(3)).toBe(0);
+  });
+});

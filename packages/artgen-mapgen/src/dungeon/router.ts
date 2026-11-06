@@ -261,6 +261,8 @@ export interface RouterOptions {
   bend?: number;
   /** Cells taken already (by corridors laid out another way), each with the rooms its corridor joins. */
   taken?: Map<string, string[]>;
+  /** What a cell another way from the same room already uses costs (default -SHARE: they join and run together). A cost keeps them apart, as spokes. */
+  share?: number;
 }
 
 /** Routes ways between the rooms one at a time, each seeing the passages before it. */
@@ -270,15 +272,17 @@ export class Router {
   readonly against = new Map<string, Set<string>>();
   readonly used = new Map<string, Set<number>>();
   readonly doors = new Set<string>();
+  /** The door points of each room's passages so far: another door of that room keeps a passage's width off them. */
+  private readonly doorPts = new Map<string, Pt[]>();
   readonly routes: Route[] = [];
   readonly ends: [string, string][] = [];
   private readonly seed: number; private readonly ground: Set<string> | null; private readonly clearance: number; private readonly bend: number;
-  private readonly taken: Map<string, string[]>;
+  private readonly taken: Map<string, string[]>; private readonly share: number;
 
   readonly rooms: Map<string, Footprint>;
   constructor(rooms: Map<string, Footprint>, o: RouterOptions = {}) {
     this.rooms = rooms;
-    this.seed = o.seed ?? 1; this.ground = o.ground ?? null; this.clearance = o.clearance ?? 1; this.bend = o.bend ?? TURN; this.taken = o.taken ?? new Map();
+    this.seed = o.seed ?? 1; this.ground = o.ground ?? null; this.clearance = o.clearance ?? 1; this.bend = o.bend ?? TURN; this.taken = o.taken ?? new Map(); this.share = o.share ?? -SHARE;
     const margin = o.margin ?? 2, spans = [...rooms.values()].map(r => r.span);
     this.lo = [Math.min(...spans.map(s => s[0])) - margin, Math.min(...spans.map(s => s[1])) - margin];
     this.hi = [Math.max(...spans.map(s => s[2])) + margin, Math.max(...spans.map(s => s[3])) + margin];
@@ -300,7 +304,11 @@ export class Router {
   /** Whether routes i and j leave a room in common, so may run together. */
   related(i: number, j: number): boolean { return this.ends[i].some(x => this.ends[j].includes(x)); }
   doorway(room: string, want?: number | null): Slot[] {
-    return this.rooms.get(room)!.allowed(want).filter(s => this.inside(s.cell) && !this.solid.has(key(s.cell)) && !this.doors.has(`${room}|${key(s.cell)}`));
+    const open = this.rooms.get(room)!.allowed(want).filter(s => this.inside(s.cell) && !this.solid.has(key(s.cell)) && !this.doors.has(`${room}|${key(s.cell)}`));
+    // a door closer to another of the room's doors than a passage's width stands on it (on a curved wall, cells that only
+    // touch at a corner open onto the wall a little apart): those are taken only when the room has no other
+    const taken = this.doorPts.get(room) ?? [], spaced = open.filter(s => taken.every(p => Math.hypot(p[0] - s.point[0], p[1] - s.point[1]) >= LATTICE - 1e-6));
+    return spaced.length ? spaced : open;
   }
   free(c: Cell, me: number): boolean {
     const k = key(c);
@@ -348,6 +356,7 @@ export class Router {
     r.length = this.measure(r);
     for (const c of cells) { const k = key(c); if (!this.used.has(k)) this.used.set(k, new Set()); this.used.get(k)!.add(me); }
     this.doors.add(`${a}|${key(cells[0])}`); this.doors.add(`${b}|${key(cells[cells.length - 1])}`);
+    for (const [room, slot] of [[a, sa], [b, sb]] as const) this.doorPts.set(room, [...(this.doorPts.get(room) ?? []), slot.point]);
     this.routes.push(r);
     return r;
   }
@@ -421,7 +430,7 @@ export class Router {
         if (!this.clearOf(n, atGoal ? ownAtGoal : new Set<string>())) continue;
         if (this.clearance <= 0 && intrudes(n, atGoal ? ownAtGoal : new Set<string>())) continue;
         let step = 1 + this.noise(n);
-        if (this.used.get(key(n))?.size) step -= SHARE;
+        if (this.used.get(key(n))?.size) step += this.share;
         if (d && nd !== d) step += this.bend;
         const r = nd === d ? run + 1 : 1;
         if (r > RUN) step += RUN_COST;
