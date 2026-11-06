@@ -487,9 +487,11 @@ npm run compare:dungeon -- --source ref.png --mine art/dungeons/d/out/d.png --or
 | `ways[].b` | another room |
 | `ways[].bearing` | degrees clockwise from north: b lies this way from a |
 | `ways[].wall` | degrees clockwise from north: the wall a's door stands on |
+| `ways[].wallB` | degrees clockwise from north: the wall b's door stands on |
 | `ways[].doors` | the door at each end, from then to: a kind, or null for an open passage |
 | `ways[].style` | built (default) or natural |
 | `ways[].label` | a note |
+| `ways[].run` | passage: always a corridor; wall: a door through a shared wall where the packing can (unset: as passages says) |
 | `ways[].hold` | keep the bearing as a rule: weighed ten times as hard, and a packing that strays past 45° ranks below one that keeps it |
 | `ways[].via` | the passage's bends (x,y cells, the graph's frame), drawn as given: both rooms stand at a place |
 | `ways[].draw` | corridor or connection fields written into the file as given |
@@ -513,6 +515,11 @@ npm run compare:dungeon -- --source ref.png --mine art/dungeons/d/out/d.png --or
 | `clearance` | 0 (default) or 1: cells a passage keeps off walls |
 | `pad` | cells kept clear round every room in the packing, to the lattice: joined rooms stand twice that apart |
 | `origin` | [x, y]: where the footprint's top-left lies in the frame over, at, via and keepOut are given in (default [0, 0]; with no footprint, round the pinned rooms) |
+| `mirrors` | rooms that mirror each other about a third |
+| `mirrors[].a` | a room |
+| `mirrors[].b` | its mirror |
+| `mirrors[].about` | the room they mirror about |
+| `mirrors[].along` | ew: across the east-west line through its centre (one x); ns: across the north-south line (one y) |
 | `lines` | rooms whose centres stand on one line |
 | `lines[].rooms` | the rooms |
 | `lines[].along` | ew: one y; ns: one x |

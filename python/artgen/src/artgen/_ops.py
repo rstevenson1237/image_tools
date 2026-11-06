@@ -111,7 +111,9 @@ _OPS: dict[str, tuple[tuple[str, ...], tuple[str, ...], dict[str, tuple[str, str
     "dungeon.render": (("dungeon", "render"), ("id",), {"file": ("--file", "value"), "ppu": ("--ppu", "value"), "layers": ("--layers", "value"), "format": ("--format", "value"), "fit": ("--fit", "value"), "page_scale": ("--page-scale", "value"), "crop": ("--crop", "value"), "room": ("--room", "repeat"), "margin": ("--margin", "value"), "out": ("--out", "value")}),
     "dungeon.facts": (("dungeon", "facts"), ("id",), {"file": ("--file", "value")}),
     "dungeon.sync": (("dungeon", "sync"), ("id",), {"origin": ("--origin", "value"), "from_": ("--from", "value"), "file": ("--file", "value")}),
-    "dungeon.layout": (("dungeon", "layout"), ("id",), {"file": ("--file", "value"), "graph": ("--graph", "value"), "footprint": ("--footprint", "value"), "keep_out": ("--keep-out", "value"), "fill": ("--fill", "value"), "passages": ("--passages", "value"), "detour": ("--detour", "value"), "seed": ("--seed", "value"), "tries": ("--tries", "value"), "width": ("--width", "value"), "clearance": ("--clearance", "value"), "pad": ("--pad", "value"), "origin": ("--origin", "value"), "partial": ("--partial", "switch"), "spokes": ("--spokes", "switch"), "seeds": ("--seeds", "value"), "keep": ("--keep", "value"), "sheet": ("--sheet", "value"), "force": ("--force", "switch")}),
+    "dungeon.layout": (("dungeon", "layout"), ("id",), {"file": ("--file", "value"), "graph": ("--graph", "value"), "design": ("--design", "value"), "layouts": ("--layouts", "value"), "footprint": ("--footprint", "value"), "keep_out": ("--keep-out", "value"), "fill": ("--fill", "value"), "passages": ("--passages", "value"), "detour": ("--detour", "value"), "seed": ("--seed", "value"), "tries": ("--tries", "value"), "width": ("--width", "value"), "clearance": ("--clearance", "value"), "pad": ("--pad", "value"), "origin": ("--origin", "value"), "partial": ("--partial", "switch"), "spokes": ("--spokes", "switch"), "seeds": ("--seeds", "value"), "keep": ("--keep", "value"), "sheet": ("--sheet", "value"), "force": ("--force", "switch")}),
+    "dungeon.layouts": (("dungeon", "layouts"), (), {"layouts": ("--layouts", "value"), "tag": ("--tag", "value")}),
+    "dungeon.design": (("dungeon", "design"), (), {"design": ("--design", "value"), "out": ("--out", "value"), "layouts": ("--layouts", "value")}),
     "settlement.list": (("settlement", "list"), (), {"file": ("--file", "value")}),
     "settlement.symbols": (("settlement", "symbols"), (), {}),
     "settlement.fixtures": (("settlement", "fixtures"), (), {}),
@@ -579,9 +581,17 @@ class Ops:
         """Replace the entries of one origin from a regenerated file, keeping every other. (artgen dungeon sync)"""
         return self._op("dungeon.sync", [id], {"origin": origin, "from_": from_, "file": file})
 
-    def dungeon_layout(self, id: Optional[str] = None, *, file: Optional[str] = None, graph: Optional[str] = None, footprint: Optional[str] = None, keep_out: Optional[str] = None, fill: Optional[str] = None, passages: Optional[float] = None, detour: Optional[float] = None, seed: Optional[float] = None, tries: Optional[float] = None, width: Optional[float] = None, clearance: Optional[float] = None, pad: Optional[float] = None, origin: Optional[str] = None, partial: Optional[bool] = None, spokes: Optional[bool] = None, seeds: Optional[float] = None, keep: Optional[float] = None, sheet: Optional[str] = None, force: Optional[bool] = None) -> "Result":
+    def dungeon_layout(self, id: Optional[str] = None, *, file: Optional[str] = None, graph: Optional[str] = None, design: Optional[str] = None, layouts: Optional[str] = None, footprint: Optional[str] = None, keep_out: Optional[str] = None, fill: Optional[str] = None, passages: Optional[float] = None, detour: Optional[float] = None, seed: Optional[float] = None, tries: Optional[float] = None, width: Optional[float] = None, clearance: Optional[float] = None, pad: Optional[float] = None, origin: Optional[str] = None, partial: Optional[bool] = None, spokes: Optional[bool] = None, seeds: Optional[float] = None, keep: Optional[float] = None, sheet: Optional[str] = None, force: Optional[bool] = None) -> "Result":
         """Lay rooms out to a graph inside a footprint and route a passage or a door for every way. (artgen dungeon layout)"""
-        return self._op("dungeon.layout", [id], {"file": file, "graph": graph, "footprint": footprint, "keep_out": keep_out, "fill": fill, "passages": passages, "detour": detour, "seed": seed, "tries": tries, "width": width, "clearance": clearance, "pad": pad, "origin": origin, "partial": partial, "spokes": spokes, "seeds": seeds, "keep": keep, "sheet": sheet, "force": force})
+        return self._op("dungeon.layout", [id], {"file": file, "graph": graph, "design": design, "layouts": layouts, "footprint": footprint, "keep_out": keep_out, "fill": fill, "passages": passages, "detour": detour, "seed": seed, "tries": tries, "width": width, "clearance": clearance, "pad": pad, "origin": origin, "partial": partial, "spokes": spokes, "seeds": seeds, "keep": keep, "sheet": sheet, "force": force})
+
+    def dungeon_layouts(self, *, layouts: Optional[str] = None, tag: Optional[str] = None) -> "Result":
+        """List the layouts (design patterns) a dungeon design can use: the bundled ones and the project's. (artgen dungeon layouts)"""
+        return self._op("dungeon.layouts", [], {"layouts": layouts, "tag": tag})
+
+    def dungeon_design(self, *, design: Optional[str] = None, out: Optional[str] = None, layouts: Optional[str] = None) -> "Result":
+        """Expand a dungeon design (layouts, bindings, joins) to a layout graph, and say what it made. (artgen dungeon design)"""
+        return self._op("dungeon.design", [], {"design": design, "out": out, "layouts": layouts})
 
     def settlement_list(self, *, file: Optional[str] = None) -> "Result":
         """List the settlements in the project (or the one named by --file). (artgen settlement list)"""
@@ -727,7 +737,7 @@ class Ops:
         """The map, dungeon and settlement file format versions this artgen reads and writes. (artgen formats)"""
         return self._op("formats", [], {})
 
-    def schema(self, kind: Literal["dungeon", "map", "settlement", "graph"], *, keys: Optional[bool] = None, checks: Optional[bool] = None) -> "Result":
+    def schema(self, kind: Literal["dungeon", "map", "settlement", "graph", "layout", "design"], *, keys: Optional[bool] = None, checks: Optional[bool] = None) -> "Result":
         """The JSON Schema of a dungeon, map or settlement file, or of a layout graph; --keys lists every key with its line, --checks the dungeon check ids. (artgen schema)"""
         return self._op("schema", [kind], {"keys": keys, "checks": checks})
 

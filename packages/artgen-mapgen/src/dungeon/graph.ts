@@ -25,7 +25,7 @@ const CONTACT = 0.25;           // taken off for each cell edge two floors share
 const TURN_SHARE = 0.06, NEST = 0.06;
 const LABEL_H = 15, NAME_H = 7;
 const REPAIRS = 8, REPAIR_STEPS = 20000;
-const HOLD = 12, LINE = 1;     // a held bearing's weight (a plain one's is 1.2); a line's pull for each lattice cell off it
+const HOLD = 12, LINE = 1, MIRROR = 1;     // a held bearing's weight (a plain one's is 1.2); a line's pull for each lattice cell off it
 const SPOKES = 3;              // what a cell another passage from the same room uses costs with `spokes` (cells of path)
 const HELD_OFF = 45;           // degrees a held way may stray before the packing ranks below one that keeps it
 
@@ -46,7 +46,7 @@ export interface GraphRoom {
   over?: { x: number; y: number; w: number; h: number };
   /** Stands exactly here: its box's top-left corner (cells, in the graph's frame), on the lattice. The packing does not move it. */
   at?: { x: number; y: number };
-  /** Cells kept clear round this room in the packing, in place of the graph's `pad` (0 lets it touch its neighbours). */
+  /** Cells kept clear round this room in the packing, in place of the graph's `pad` (0 lets it touch its neighbours). A room set against another, or one another is set against, or joined by a way with `run: wall`, keeps none. */
   pad?: number;
   /** What the room is drawn with, which the graph does not place: written into its entry of the file as given. */
   draw?: RoomDraw;
@@ -70,11 +70,15 @@ export interface GraphWay {
   bearing?: number;
   /** Degrees clockwise from north: the wall of a the way leaves by (its door within half a compass point of it). */
   wall?: number;
+  /** Degrees clockwise from north: the wall of b the way enters by. */
+  wallB?: number;
   /** The door at a's end and b's (a kind or null, an open way); a way through a shared wall takes the first that is set. */
   doors?: [DoorKind | null, DoorKind | null];
   /** `natural`: a rough-cut passage. */
   style?: 'built' | 'natural';
   label?: string;
+  /** `passage`: always a corridor; `wall`: a door through a wall the two rooms share where the packing can. Unset: as the graph's `passages` share. */
+  run?: 'passage' | 'wall';
   /** Keep `bearing` as a rule, not a hint: weighed ten times as hard, and a packing that strays more than 45° from it ranks below one that does not. */
   hold?: boolean;
   /** The passage's bends (x,y cells, in the graph's frame), drawn as given and not routed: both rooms must stand `at` a place. */
@@ -117,6 +121,11 @@ export interface Graph {
   origin?: [number, number];
   /** Rooms whose centres stand on one line: `ew` (an east-west row, one y) or `ns` (a north-south column, one x). Held as a strong pull. */
   lines?: { rooms: string[]; along: 'ew' | 'ns' }[];
+  /**
+   * Rooms that mirror each other about a third: `along: 'ew'` mirrors across the east-west line through `about`'s centre (a
+   * north of it, b south, one x), `ns` across the north-south line (one y). Held as a strong pull.
+   */
+  mirrors?: { a: string; b: string; about: string; along: 'ew' | 'ns' }[];
   /** With no packing that routes every way: write the one that routes most, and list the rest in the report's `left`, instead of failing. */
   partial?: boolean;
   /** Passages from one room keep apart where they can (each reads as its own spoke), rather than joining into one run and parting. */
@@ -166,7 +175,7 @@ const footprintAt = (shape: GraphShape, x: number, y: number, w: number, h: numb
 interface Form { w: number; h: number; pts?: Pt[]; floor: Set<number>; cells: [number, number][]; holes: [number, number][]; real: { w: number; h: number; pts?: Pt[] } }
 /** A lattice cell near a form's own corner as one number (forms are well under 512 cells a side). */
 const cellKey = (u: number, v: number) => (u + 512) * 2048 + (v + 512);
-interface PRoom { code: string; w: number; h: number; shape: GraphShape; points?: Pt[]; hall: boolean; turns: boolean; /** Units kept clear round it (a whole number of lattice cells). */ pad: number }
+interface PRoom { code: string; /** The name drawn in it (its code unless the graph names it): what the packing keeps clear of the next room's. */ label?: string; w: number; h: number; shape: GraphShape; points?: Pt[]; hall: boolean; turns: boolean; /** Units kept clear round it (a whole number of lattice cells). */ pad: number }
 
 /** A room's id in the file: its code with anything but letters, digits, `_` and `-` as `-`. */
 const idOf = (code: string) => code.replace(/[^\w-]+/g, '-');
@@ -205,7 +214,7 @@ const share = (s: string) => { let h = 0x811c9dc5; for (let i = 0; i < s.length;
 // ---- the packer ------------------------------------------------------------------------------------------------------
 
 /** What else a packing keeps to: rooms placed exactly (centres, units), held bearings, lines, and units per file cell. */
-interface PackMore { fixed?: Map<string, [number, number]>; hold?: [string, string][]; lines?: { rooms: string[]; along: 'ew' | 'ns' }[]; f?: number }
+interface PackMore { runs?: Map<string, 'passage' | 'wall'>; fixed?: Map<string, [number, number]>; hold?: [string, string][]; lines?: { rooms: string[]; along: 'ew' | 'ns' }[]; mirrors?: Graph['mirrors']; f?: number }
 
 class Packer {
   rooms: PRoom[]; side: number; ground: Set<string> | null; ix: Map<string, number>; round: boolean[]; lies: Form[][]; boxed: boolean[];
@@ -220,9 +229,11 @@ class Packer {
   /** Rooms placed exactly (`at`), by index: their centres. */
   fixed = new Map<number, [number, number]>();
   /** Per pair i * n + j (i < j): a held bearing (1), and the line the two share (1: one y, 2: one x, 3: both). */
-  held: Uint8Array; line: Uint8Array;
+  held: Uint8Array; line: Uint8Array; lw: Float64Array; lh: Float64Array;
   /** Units per cell of the file, for a cave's drawn outline. */
   f: number;
+  /** Mirror pairs: a, b, the room they mirror about, and 1 (across an east-west line) or 2 (north-south); and each room's terms. */
+  tri: [number, number, number, 1 | 2][] = []; triOf: number[][];
 
   constructor(rooms: PRoom[], ways: [string, string, number | null][], side: number, seed: number, passages: number, pins: Map<string, [number, number, number, number]>, glue: Map<string, [string, number, number]>, ground: Set<string> | null, more: PackMore = {}) {
     this.rooms = rooms; this.side = side; this.ground = ground;
@@ -241,12 +252,33 @@ class Packer {
     }
     // a cave is drawn wobbly inside its box, so it shares no straight wall: its ways are passages
     for (const k of this.edges.keys()) { const [i, j] = k.split(',').map(Number); if (share(`${rooms[i].code}-${rooms[j].code}`) < passages * 100 || rooms[i].shape === 'cave' || rooms[j].shape === 'cave') this.passage.add(k); }
-    this.link = new Uint8Array(n * n); this.keepDir = new Array(n * n).fill(null); this.fix = new Uint8Array(n * n); this.codeLen = rooms.map(r => r.code.length);
+    // a way that says how it runs: a passage, or a door through a shared wall
+    for (const [pair, run] of more.runs ?? []) {
+      const [a, b] = pair.split('|');
+      if (!this.ix.has(a) || !this.ix.has(b)) continue;
+      const i = this.ix.get(a)!, j = this.ix.get(b)!, k = `${Math.min(i, j)},${Math.max(i, j)}`;
+      if (!this.edges.has(k)) continue;
+      if (run === 'passage') this.passage.add(k); else if (rooms[i].shape !== 'cave' && rooms[j].shape !== 'cave') this.passage.delete(k);
+    }
+    this.link = new Uint8Array(n * n); this.keepDir = new Array(n * n).fill(null); this.fix = new Uint8Array(n * n); this.codeLen = rooms.map(r => (r.label ?? r.code).length);
     this.held = new Uint8Array(n * n); this.line = new Uint8Array(n * n);
+    // how far apart two rooms' labels must stand (units), by pair
+    this.lw = new Float64Array(n * n); this.lh = new Float64Array(n * n);
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+      this.lw[i * n + j] = 5 * ((0.8 * (this.codeLen[i] + this.codeLen[j])) / 2 + 1);
+      this.lh[i * n + j] = ((rooms[i].hall ? NAME_H : LABEL_H) + (rooms[j].hall ? NAME_H : LABEL_H)) / 2;
+    }
     const pairIx = (a: string, b: string) => { const i = this.ix.get(a)!, j = this.ix.get(b)!; return Math.min(i, j) * n + Math.max(i, j); };
     for (const [a, b] of more.hold ?? []) if (this.ix.has(a) && this.ix.has(b)) this.held[pairIx(a, b)] = 1;
     for (const { rooms: rs, along } of more.lines ?? []) for (let x = 0; x < rs.length; x++) for (let y = x + 1; y < rs.length; y++) if (this.ix.has(rs[x]) && this.ix.has(rs[y])) this.line[pairIx(rs[x], rs[y])] |= along === 'ew' ? 1 : 2;
     for (const [c, at] of more.fixed ?? []) if (this.ix.has(c)) this.fixed.set(this.ix.get(c)!, at);
+    this.triOf = rooms.map(() => []);
+    for (const m of more.mirrors ?? []) {
+      if (![m.a, m.b, m.about].every(c => this.ix.has(c))) continue;
+      const t: [number, number, number, 1 | 2] = [this.ix.get(m.a)!, this.ix.get(m.b)!, this.ix.get(m.about)!, m.along === 'ew' ? 1 : 2];
+      for (const i of new Set(t.slice(0, 3))) this.triOf[i].push(this.tri.length);
+      this.tri.push(t);
+    }
     for (const [k, v] of this.edges) { const [i, j] = k.split(',').map(Number); this.link[i * n + j] = this.passage.has(k) ? 2 : 1; this.keepDir[i * n + j] = v; }
     for (const [c, p] of pins) if (this.ix.has(c)) this.pins.set(this.ix.get(c)!, p);
     this.near = rooms.map((_, i) => rooms.map((__, j) => j).filter(j => this.edges.has(`${Math.min(i, j)},${Math.max(i, j)}`)));
@@ -298,11 +330,11 @@ class Packer {
       const n = this.shared(i, j, xi, yi);
       if (n) return OVER * (1 + Math.sqrt(n));
     }
+    const k = Math.min(i, j) * this.w.length + Math.max(i, j), lw = this.lw[k], lh = this.lh[k], ln = this.line[k];
+    // most pairs are neither joined nor on a line and do not touch: only their labels can cost (the same sum, sooner)
+    if (!this.link[k] && !ln && (sx > 0 || sy > 0)) return Math.abs(this.x[j] - X) < lw && Math.abs(this.y[j] - Y) < lh ? LABELS : 0;
     const touching = sx <= 0 && sy <= 0 && !(this.boxed[i] && this.boxed[j]) ? this.contact(i, j, xi, yi) : 0;
-    const lw = 5 * ((0.8 * (this.codeLen[i] + this.codeLen[j])) / 2 + 1);
-    const lh = ((this.rooms[i].hall ? NAME_H : LABEL_H) + (this.rooms[j].hall ? NAME_H : LABEL_H)) / 2;
     let e = -CONTACT * touching + this.pairCost(i, j, sx, sy, xi, yi, touching);
-    const ln = this.line[Math.min(i, j) * this.w.length + Math.max(i, j)];
     if (ln) e += (LINE * ((ln & 1 ? Math.abs(this.y[j] - Y) : 0) + (ln & 2 ? Math.abs(this.x[j] - X) : 0))) / GRID;
     if (Math.abs(this.x[j] - X) < lw && Math.abs(this.y[j] - Y) < lh) return LABELS + e;
     return e;
@@ -340,17 +372,27 @@ class Packer {
     return p ? (PIN * Math.hypot((x ?? this.x[i]) - p[0], (y ?? this.y[i]) - p[1])) / GRID : 0;
   }
   over(): boolean { for (const [i, [tx, ty, w, h]] of this.pins) if (!(Math.abs(this.x[i] - tx) < (this.w[i] + w) / 2 && Math.abs(this.y[i] - ty) < (this.h[i] + h) / 2)) return false; return true; }
+  /** A mirror term's cost, with room i (if given) at x, y. */
+  mirror(t: number, i = -1, x?: number, y?: number): number {
+    const [a, b, m, along] = this.tri[t], X = (k: number) => (k === i ? x ?? this.x[k] : this.x[k]), Y = (k: number) => (k === i ? y ?? this.y[k] : this.y[k]);
+    const off = along === 1 ? Math.abs(X(a) - X(b)) + Math.abs(Y(a) + Y(b) - 2 * Y(m)) : Math.abs(Y(a) - Y(b)) + Math.abs(X(a) + X(b) - 2 * X(m));
+    return (MIRROR * off) / GRID;
+  }
   local(i: number, x?: number, y?: number): number {
     const cx = (x ?? this.x[i]) - this.side / 2, cy = (y ?? this.y[i]) - this.side / 2;
     let e = this.inside(i, x, y) + this.pin(i, x, y) + (PULL * (cx * cx + cy * cy)) / GRID ** 2 * 100;
     for (let j = 0; j < this.w.length; j++) if (j !== i) e += this.pair(i, j, x, y);
+    for (const t of this.triOf[i]) e += this.mirror(t, i, x, y);
     return e;
   }
+  /** Mirror terms that hold both i and j (counted in each one's local energy). */
+  both(i: number, j: number): number { let e = 0; for (const t of this.triOf[i]) if (this.triOf[j].includes(t)) e += this.mirror(t); return e; }
   total(): number {
     const n = this.w.length;
     let e = 0;
     for (let i = 0; i < n; i++) e += this.inside(i) + this.pin(i) + (PULL * 100 * ((this.x[i] - this.side / 2) ** 2 + (this.y[i] - this.side / 2) ** 2)) / GRID ** 2;
     for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) e += this.pair(i, j);
+    for (let t = 0; t < this.tri.length; t++) e += this.mirror(t);
     return e;
   }
   /** Rooms in order of the ways, each against the one before it. */
@@ -408,9 +450,9 @@ class Packer {
       else if (r < 1) {
         const j = Math.floor(this.rand() * n);
         if (j === i || this.fixed.has(j) || (this.glue.size && (this.glue.has(i) || this.glue.has(j) || this.carrying.has(i) || this.carrying.has(j)))) continue;
-        const before = this.local(i) + this.local(j) - this.pair(i, j), old = [this.x[i], this.y[i], this.x[j], this.y[j]];
+        const before = this.local(i) + this.local(j) - this.pair(i, j) - this.both(i, j), old = [this.x[i], this.y[i], this.x[j], this.y[j]];
         [this.x[i], this.y[i]] = this.snap(i, old[2], old[3]); [this.x[j], this.y[j]] = this.snap(j, old[0], old[1]);
-        const after = this.local(i) + this.local(j) - this.pair(i, j);
+        const after = this.local(i) + this.local(j) - this.pair(i, j) - this.both(i, j);
         if (accept(after - before, t)) cur += after - before; else { this.x[i] = old[0]; this.y[i] = old[1]; this.x[j] = old[2]; this.y[j] = old[3]; }
         continue;
       }
@@ -540,6 +582,7 @@ export function validateGraph(g: Graph): string[] {
       if (!placed.has(w.a) || !placed.has(w.b)) e.push(`ways[${i}].via: a way drawn as given joins two rooms that stand at a place (at)`);
     }
     if (w?.hold && w.bearing === undefined) e.push(`ways[${i}].hold: holds a bearing; give one`);
+    if (w?.run !== undefined && w.run !== 'passage' && w.run !== 'wall') e.push(`ways[${i}].run: passage or wall`);
     if (w?.draw !== undefined) {
       if (typeof w.draw !== 'object' || w.draw === null || Array.isArray(w.draw)) e.push(`ways[${i}].draw: an object of ${WAY_DRAW_KEYS.join(', ')}`);
       else for (const k of Object.keys(w.draw)) if (!(WAY_DRAW_KEYS as readonly string[]).includes(k)) e.push(`ways[${i}].draw.${k}: one of ${WAY_DRAW_KEYS.join(', ')}`);
@@ -556,6 +599,10 @@ export function validateGraph(g: Graph): string[] {
     else if (!g.origin.every(onLattice)) e.push(`origin: on the lattice (multiples of the width, ${cell})`);
     if (Array.isArray(g.footprint)) e.push('origin: not with a polygon footprint (its points are the frame)');
   }
+  (Array.isArray(g.mirrors) ? g.mirrors : g.mirrors === undefined ? [] : (e.push('mirrors: an array'), [])).forEach((m, i) => {
+    for (const k of ['a', 'b', 'about'] as const) if (!ids.has(m?.[k])) e.push(`mirrors[${i}].${k}: no room ${JSON.stringify(m?.[k])}`);
+    if (m?.along !== 'ew' && m?.along !== 'ns') e.push(`mirrors[${i}].along: ew or ns`);
+  });
   (Array.isArray(g.lines) ? g.lines : g.lines === undefined ? [] : (e.push('lines: an array'), [])).forEach((l, i) => {
     if (!(Array.isArray(l?.rooms) && l.rooms.length >= 2)) e.push(`lines[${i}].rooms: two rooms or more`);
     else for (const r of l.rooms) if (!ids.has(r)) e.push(`lines[${i}].rooms: no room ${JSON.stringify(r)}`);
@@ -587,15 +634,18 @@ export function layoutGraph(g: Graph): { spec: DungeonSpec; report: GraphReport 
   if (errors.length) throw new Error(`invalid graph:\n  ${errors.join('\n  ')}`);
   const cell = g.width ?? 2, f = LATTICE / cell, u = (v: number) => v * f, c = (v: number) => Math.round((v / f) * 1e6) / 1e6;
   const lattice = (v: number) => Math.ceil(v / GRID - 1e-9) * GRID;
-  const rooms: PRoom[] = g.rooms.map(r => ({ code: r.id, w: u(r.w), h: u(r.h), shape: r.shape ?? 'rect', points: r.points ? poly2(r.points).map(([x, y]) => [u(x), u(y)] as Pt) : undefined, hall: !!r.hall, turns: !!r.turns && !r.at, pad: lattice(u(r.pad ?? g.pad ?? 0)) }));
+  // rooms set against one another, or joined by a door through a shared wall (`run: wall`), keep no pad (it would hold them apart)
+  const glued = new Set([...g.rooms.flatMap(r => (r.against ? [r.id, r.against.room] : [])), ...g.ways.flatMap(w => (w.run === 'wall' ? [w.a, w.b] : []))]);
+  const rooms: PRoom[] = g.rooms.map(r => ({ code: r.id, w: u(r.w), h: u(r.h), shape: r.shape ?? 'rect', points: r.points ? poly2(r.points).map(([x, y]) => [u(x), u(y)] as Pt) : undefined, label: r.label, hall: !!r.hall, turns: !!r.turns && !r.at, pad: glued.has(r.id) ? 0 : lattice(u(r.pad ?? g.pad ?? 0)) }));
   const ways: [string, string, number | null][] = [], seen = new Set<string>();
   for (const w of g.ways) { const k = [w.a, w.b].sort().join('|'); if (seen.has(k) || w.via) continue; seen.add(k); ways.push([w.a, w.b, w.bearing ?? null]); }
   const given = g.ways.filter(w => w.via);
   const walls = new Map<string, number>();
-  for (const w of g.ways) if (w.wall !== undefined) walls.set(`${w.a}|${w.b}`, w.wall);
+  for (const w of g.ways) { if (w.wall !== undefined) walls.set(`${w.a}|${w.b}`, w.wall); if (w.wallB !== undefined) walls.set(`${w.b}|${w.a}`, w.wallB); }
   const glue = new Map<string, [string, number, number]>(g.rooms.filter(r => r.against).map(r => [r.id, [r.against!.room, u(r.against!.dx), u(r.against!.dy)]]));
   const clearance = g.clearance ?? 0, fill = g.fill ?? [0.35, 0.55], passages = g.passages ?? 0.35, detour = g.detour === undefined ? null : u(g.detour), tries = g.tries ?? 12, seed = g.seed ?? 1;
   const hold = g.ways.filter(w => w.hold && !w.via).map(w => [w.a, w.b] as [string, string]);
+  const runs = new Map(g.ways.filter(w => w.run && !w.via).map(w => [`${w.a}|${w.b}`, w.run!] as const));
   // the ground: a polygon footprint's cells (its frame from its box's corner), less the keep-out polygons
   const poly = Array.isArray(g.footprint) ? poly2(g.footprint).map(([x, y]) => [u(x), u(y)] as Pt) : null;
   const ox = poly ? Math.min(...poly.map(p => p[0])) : 0, oy = poly ? Math.min(...poly.map(p => p[1])) : 0;
@@ -628,7 +678,7 @@ export function layoutGraph(g: Graph): { spec: DungeonSpec; report: GraphReport 
     // a passage given as it is takes its cells (from the rooms' centres through its bends): routed passages keep off them
     const taken = new Map<string, string[]>(), centre = (id: string): Pt => fr.fixed.get(id)!;
     for (const w of given) for (const k of lineCells([centre(w.a), ...fr.vias.get(w)!, centre(w.b)])) taken.set(k, [...(taken.get(k) ?? []), w.a, w.b]);
-    return { rooms, ways, passages, pins: fr.pins, glue, walls, detour, clearance, taken, share: g.spokes ? SPOKES : undefined, more: { fixed: fr.fixed, hold, lines: g.lines, f } };
+    return { rooms, ways, passages, pins: fr.pins, glue, walls, detour, clearance, taken, share: g.spokes ? SPOKES : undefined, more: { runs, fixed: fr.fixed, hold, lines: g.lines, mirrors: g.mirrors, f } };
   };
   type Chosen = { side: number; run: Attempt; fr: ReturnType<typeof frameAt>; routed: number };
   let chosen: Chosen | null = null, fallback: Chosen | null = null;
