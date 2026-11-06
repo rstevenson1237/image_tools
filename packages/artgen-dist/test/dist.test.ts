@@ -44,7 +44,7 @@ describe('artgen-dist', () => {
       'dist/claude/commands/artgen-init.md', 'dist/claude/commands/artgen-direction.md', 'dist/claude/skills/asset-production/SKILL.md',
       ...['brief', 'make', 'review', 'feedback', 'approve', 'export', 'restyle', 'map', 'dungeon', 'settlement'].map(c => `dist/claude/commands/artgen-${c}.md`),
       'dist/claude/skills/terrain-map/SKILL.md', 'plugin/skills/terrain-map/SKILL.md', 'plugin/commands/map.md',
-      'dist/claude/skills/dungeon-map/SKILL.md', 'plugin/skills/dungeon-map/SKILL.md', 'plugin/commands/dungeon.md',
+      'dist/claude/skills/dungeon-map/SKILL.md', 'plugin/skills/dungeon-map/SKILL.md', 'plugin/commands/dungeon.md', 'dist/claude/skills/dungeon-design/SKILL.md',
       'dist/claude/skills/settlement-map/SKILL.md', 'plugin/skills/settlement-map/SKILL.md', 'plugin/commands/settlement.md',
       'dist/tools/artgen/fonts/AlegreyaSans-Regular.ttf', 'dist/tools/artgen/fonts/OFL.txt', 'plugin/tools/artgen/fonts/AlegreyaSans-Bold.ttf',
       'dist/tools/artgen/templates/topdown/character-walk/base.js', 'plugin/commands/make.md',

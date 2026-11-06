@@ -42,6 +42,7 @@
   (`/artgen-map`). The web app's **Terrain Map** tool edits the same file; re-read it before changing a map.
 - Tabletop dungeon maps live in `art/dungeons/<id>/dungeon.json` (renders in `out/`): use the **dungeon-map** skill
   (`/artgen-dungeon`). The web app's **Dungeon Map** tool edits the same file; re-read it before changing a dungeon.
+  A level described by what it is for, not by its rooms: the **dungeon-design** skill (layouts, a design, seeds scored) first.
 - Tabletop settlement maps (villages, towns, castles and their buildings' floor plans) live in
   `art/settlements/<id>/settlement.json` (renders in `out/`): use the **settlement-map** skill (`/artgen-settlement`).
   The web app's **Settlement Map** tool edits the same file; re-read it before changing a settlement.

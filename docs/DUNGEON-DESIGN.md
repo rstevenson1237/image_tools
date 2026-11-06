@@ -254,29 +254,36 @@ passages outside the 28-cell square (`outside-bounds`), and every one stacked tw
 and the scores say why (doors stacked on an eight-door hub of 40 ft, passages that share a run behind other rooms). That hub is
 what R4 is for.
 
-### 10.3 Next, in order
+### 10.3 Done since (the second round)
 
-1. **R1, the layout format and composition** (M). A layout file (`art/dungeons/layouts/<id>.json`, and a bundled set) with
-   `params` (ranges, and a minimum that may depend on the sockets joined: a ring hub's size grows with its passages, which is
-   why setting_builder's 20 ft hub failed every seed), `parts` with roles and a count from a parameter, `ways`, and `sockets`
-   (a part, a bearing, a width). `dungeon design expand <design.json>` chains layouts socket to socket, checks that joined
-   sockets face one another and match in width, binds a role's rooms (a type for each room, as setting_builder found), and
-   writes a graph, which `layout --seeds` solves. setting_builder's `layouts/*.md` and `Expand` are the reference; its six
-   layouts become the first bundled ones (with their `source`). A design brief schema (`artgen schema brief`) lands with it.
-2. **R2, the rest of the constraints** (M), on R1's parts: mirror pairs about a part's axis, opposite sockets held opposite,
-   halls on a line (from `lines`), a sub-room against one wall of its main room, a path-shaped layout (a spiral) held as a
-   sequence of bearings. Each is a packing energy term, as `hold` and `lines` are, plus a pass/fail in the score.
-3. **R4, rigid layouts** (M): a part stamped as exact geometry (rooms `at` their offsets from the part's anchor, its rings, its
-   door kinds and its internal passages as `via`), placed as one glued block. A ring hub with its eight doors at the compass
-   points is the first. With R11's `at` and `via` and the glue the packer has, this is mostly the format.
-4. **R13, routing at 25 rooms and more** (M). Measure first: G at 29 rooms took 72 s for one routed seed of twelve. Candidates:
-   route only the ways a move touched (the router re-plans everything each repair), seed the repair from the ways left rather
-   than re-annealing the whole level, and run seeds in worker threads. The gate is G's real graph routing most seeds.
-5. **R5, the rest**: a gap range (`pad` gives the least; a most needs an energy term) and the hull of an unbounded level's
-   packing as its outline.
-6. **R8, a settlement from a graph** (L): streets that run past several buildings, a gate, a wall, spacing as a target. Its own
+| # | Request | What was done |
+|---|---|---|
+| R1 | layouts and composition | the layout format (`artgen schema layout`), designs (`artgen schema design`), `dungeon layouts`, `dungeon design`, `dungeon layout --design`; joined sockets checked for facing and width; a room grows when its walls are short for its ways (the ring hub's size follows its passages); a bundled library of seven, and the project's `art/dungeons/layouts/`. setting_builder's six layouts are test fixtures (`src/dungeon/__fixtures__/`), not bundled |
+| R2 | the rest of the constraints | `mirrors` (a cell row's rows mirrored about its hall), a row of rooms on one side held by its line, a chain's bearing step by step (a spiral holds, `held` empty), ways that say how they run (`run: passage` or `wall`), a wall for each end (`wallB`) |
+| R4 | rigid layouts | `rigid: true` with `place`: every part set against the first at its exact offset (the `gatehouse`) |
+| R5 | the rest | `reach` (the most a joined gap should be) and `bounds: hull` (the outline round what the packing holds); the report's `hull` |
+| R6 | `dungeon extract` | rooms of a dungeon as a layout: ranged sizes, ties, sides, sockets for the ways out, `source`; `--rigid` |
+| R7 | the measuring half of trace | `dungeon trace`: grid pitch and phase from gridlines on open floor (square cells fitted on both axes), floor cells, walls between them, rooms as rectangles of whole cells, a draft and its coverage |
+| R13 | speed | the packer skips pairs that cannot cost (the same packings): G's graph from 20.4 s to 13.5 s for twelve tries |
+
+Measured on setting_builder's own material:
+- **Trace.** On artgen renders of X and G, the floor cells match the source's to a cell IoU of 0.92 and 0.98. On setting_builder's
+  `level1.png` and `level2.png` the grid reads at 22.4 and 12.0 px a cell (level 1's 10 ft lines, level 2's 5 ft sub-grid);
+  `level3.png` (light lines on a dark floor) is not read, and needs `--pitch`.
+- **R13, routing at 29 rooms.** G as a design of the bundled layouts (29 rooms, 33 ways) routes no seed of 36 at 48 cells;
+  with `pad: 1` at 60 cells, 2 or 3 seeds of 12, and nearly every other seed leaves one way. Three cheap repairs were tried and
+  measured over 12 seeds, and none kept: a pull on a stuck way's rooms (no change), routing the stuck ways first (3 of 12
+  against 2, at 50% more time), twice the repair rounds (2 of 12, 70% more time). The level packs into a clump that walls a
+  room in; what it needs is a packing that leaves room for passages it has not routed yet.
+
+### 10.4 Next, in order
+
+1. **R13, routing** (M to L): space for passages in the packing (a free lane round rooms with many ways, scored before
+   routing), or a repair that moves the rooms blocking a stuck way rather than its own two; then seeds in worker threads. The gate
+   is G routing most seeds at 60 cells.
+2. **R8, a settlement from a graph** (L): streets that run past several buildings, a gate, a wall, spacing as a target. Its own
    proposal first, against setting_builder's settlement spikes.
-7. **R6, `dungeon pattern extract`** (M) and **R7, the measuring half of trace** (L), as §4.3 and §8 say.
+3. **Trace, the next half**: doors (gaps in the walls it finds), round rooms, light lines on a dark floor.
 
 setting_builder's fixtures (`layouts/`, `E/Design.md`, the evidence) come in through `artgen report`, and become the golden
 cases for R1 and R4 as the recreated maps are for §7's acceptance.

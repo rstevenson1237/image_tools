@@ -171,6 +171,47 @@ what `check` finds (a stacked door or one off its wall 8, floor outside the boun
 any other warning 2, an error 15) and for each way left (15), held bearing strayed (8) and detour past its limit (4).
 `dungeon.layoutCandidates`, `scoreLayout` and `contactSheetSvg` are the same in code.
 
+## Layouts and designs
+
+A **layout** is a design pattern (`artgen schema layout`): parts with roles, each one room or a count of them (a number or a
+parameter), sizes in cells (a number, a `[least, most]` range, or `$param`, `$param*k`, `$param*k+c`), where a part stands
+(`at` a side of another part; `touch` sets it against it; `hold` keeps the bearing as a rule), ties between parts (`passage`,
+or `door` through a shared wall; a tie of a part to itself chains its rooms, `side` or `sides` giving each step's bearing),
+**sockets** where it joins something else (a part, a bearing, a width), and constraints (`line`, `mirror`). A `rigid` layout
+places every part exactly (`place`) and moves as one block. `artgen dungeon layouts` lists the bundled ones (`cell-row`,
+`spine-ring-hub`, `axis-of-halls`, `suite`, `secret-bypass`, `stair-vestibule`, `gatehouse`) and the project's
+(`art/dungeons/layouts/<id>.json`; `--layouts dir` for a repo with no `art/`).
+
+A **design** (`artgen schema design`) uses layouts, names the rooms each role holds (`bind`: ids, or rooms with what they set),
+adds rooms and ways of its own, and **joins** sockets (`use.socket`) to sockets or rooms; any graph setting goes in it too.
+`artgen dungeon design --design d.json [--out graph.json]` expands it to a graph and reports the rooms each use made, the
+sockets left open and the rooms grown; `artgen dungeon layout --design d.json` lays it out directly (with `--seeds`). What the
+expansion does:
+
+- Joined sockets must face one another (within 45°) and match in width; a join leaves each socket's room by its wall
+  (`wall`, `wallB`) and keeps its bearing as a rule.
+- A room whose walls are short for the ways that leave it grows a passage's width at a time (a ring hub with eight passages),
+  unless its part says `grow: false`; the report names it.
+- A part of several rooms on one side of another stands in a row along it (a line); its ties carry no bearing from the other's
+  centre, which would pull the row's ends off the wall they share. A `mirror` pairs its rooms with another part's.
+- Rooms no binding names are placeholders, drawn unlabelled (`<use>.<role>` or `<use>.<role>.<n>`): bind them to name them.
+- Rooms joined by a door through a shared wall (`run: wall`) or set against each other keep no `pad`.
+
+`artgen dungeon extract <id> --rooms a,b,c --name x` makes a layout from rooms of a drawn dungeon: one part per room, its size
+a range round the drawn one (`--spread`, default 0.25; `--rigid` keeps sizes and places exactly), ties from its connections
+and corridors, each room's side of the one before it, and a socket for every way out. Only topology and proportions are
+kept, with `source`; add patterns only from maps the user owns or may study.
+
+## Tracing a drawn map
+
+`artgen dungeon trace --file draft.json --image map.png` is the measuring half of tracing: it reads the grid's pitch and phase
+from the gridlines (thin dark lines across open floor; square cells, fitted on both axes, unless `--pitch px[,py]` and
+`--origin x,y` give them), the floor cells (light, nearly unmarked; light cells joined to the image's edge are blank paper),
+the walls between floor cells, and the rooms as rectangles of whole cells that cross no wall (`--min-room 3` leaves 10 ft
+passages on a 5 ft grid out of them). It writes a draft and reports the grid, its clarity, the floor and the share of it the
+rooms cover. Doors, symbols, labels and other shapes are left to finish; the pitch is the finest gridline it can see (a faint
+sub-grid at a small scale may read as every second cell: give `--pitch`), and light lines on a dark floor are not read.
+
 ## Ground
 
 `bounds` is the level's outline: the rock and the grid are drawn inside it and its edge is drawn. `areas` are rock (drawn as
@@ -529,6 +570,115 @@ npm run compare:dungeon -- --source ref.png --mine art/dungeons/d/out/d.png --or
 | `spokes` | passages from one room keep apart where they can, each its own spoke, rather than joining into one run |
 | `style` | style settings for the file, over the layout's own (see the dungeon file's style) |
 | `legend` | draw a legend of the symbols |
+
+### Every key of a layout (a design pattern)
+
+| Key | What it is |
+|---|---|
+| `id` | its id (letters, digits, - and _) |
+| `name` | what it is |
+| `tags` | words to find it by |
+| `source` | where it came from: topology and proportions, not the drawing |
+| `source.kind` | written by hand or abstracted from a drawn map |
+| `source.origin` | the map or file |
+| `params` | parameters by name: {default, min?, max?, note?} |
+| `parts` | the parts |
+| `parts[].role` | its role (letters, digits, - and _) |
+| `parts[].shape` | a graph shape, or hall (a rect that shows its name alone) |
+| `parts[].w` | cells, [least, most] (its middle is taken), or a parameter: $name, $name*k, $name*k+c |
+| `parts[].h` | cells, [least, most] (its middle is taken), or a parameter: $name, $name*k, $name*k+c |
+| `parts[].points` | a poly's outline, cells from its box's centre |
+| `parts[].count` | rooms in it (default 1, or as many as a design binds) |
+| `parts[].at` | where its rooms stand against another part |
+| `parts[].at.part` | the part |
+| `parts[].at.side` | a compass point (n ne e se s sw w nw) or degrees clockwise from north |
+| `parts[].at.touch` | set against it exactly (one room each) |
+| `parts[].at.hold` | keep the bearing as a rule |
+| `parts[].place` | rigid layouts: its box's top-left in the layout's frame |
+| `parts[].turns` | may turn |
+| `parts[].grow` | false: not grown when its walls are short for its ways |
+| `parts[].focal` | the room the level is about |
+| `parts[].draw` | room fields for the file (see the graph's rooms[].draw) |
+| `parts[].symbols` | symbols from the room's centre (see the graph's rooms[].symbols) |
+| `parts[].ring` | a ring round the room (see the graph's rooms[].ring) |
+| `ties` | how the parts are joined |
+| `ties[].a` | a part |
+| `ties[].b` | a part (the same: a chain of its rooms) |
+| `ties[].kind` | passage, or door (through a shared wall); unset: as the graph's passages share |
+| `ties[].ofA` | first, last, each (default) or the n-th (1-based) |
+| `ties[].ofB` | first, last, each (default) or the n-th (1-based) |
+| `ties[].side` | a compass point (n ne e se s sw w nw) or degrees clockwise from north |
+| `ties[].sides` | a chain's bearing step by step |
+| `ties[].loop` | close the chain |
+| `ties[].doors` | the door at each end, from then to: a kind, or null for an open passage |
+| `ties[].style` | built (default) or natural |
+| `ties[].hold` | keep its bearing as a rule |
+| `sockets` | where it joins something else |
+| `sockets[].name` | its name |
+| `sockets[].part` | the part |
+| `sockets[].of` | first, last, each (default) or the n-th (1-based) |
+| `sockets[].bearing` | a compass point (n ne e se s sw w nw) or degrees clockwise from north |
+| `sockets[].width` | cells (default the graph's width) |
+| `sockets[].hold` | keep the join's bearing as a rule (default true) |
+| `constraints` | what keeps its shape |
+| `constraints[].line` | parts |
+| `constraints[].along` | ew: one y; ns: one x |
+| `constraints[].mirror` | two parts of one size |
+| `constraints[].about` | a part of one room |
+| `rigid` | its parts are placed exactly and move as one block |
+| `hold` | keep every at bearing as a rule |
+
+### Every key of a design
+
+| Key | What it is |
+|---|---|
+| `id` | the dungeon's id |
+| `title` | its title |
+| `width` | the passage width in cells, the lattice (default 2) |
+| `scale` | the scale |
+| `footprint` | a square's side in cells, or a polygon (x,y cells); unset, the least square `fill` allows |
+| `keepOut` | polygons no room or passage may take |
+| `fill` | [least, most] share of the ground the rooms cover (default [0.35, 0.55]) |
+| `passages` | the share of ways run as passages (default 0.35) |
+| `detour` | cells a way may walk past the straight line between its rooms |
+| `seed` | the seed (default 1) |
+| `tries` | packings tried at each side (default 12) |
+| `margin` | cells round the footprint in the file (default 2) |
+| `clearance` | 0 (default) or 1: cells a passage keeps off walls |
+| `pad` | cells kept clear round every room in the packing, to the lattice: joined rooms stand twice that apart |
+| `origin` | [x, y]: where the footprint's top-left lies in the frame over, at, via and keepOut are given in (default [0, 0]; with no footprint, round the pinned rooms) |
+| `mirrors` | rooms that mirror each other about a third |
+| `mirrors[].a` | a room |
+| `mirrors[].b` | its mirror |
+| `mirrors[].about` | the room they mirror about |
+| `mirrors[].along` | ew: across the east-west line through its centre (one x); ns: across the north-south line (one y) |
+| `lines` | rooms whose centres stand on one line |
+| `lines[].rooms` | the rooms |
+| `lines[].along` | ew: one y; ns: one x |
+| `partial` | with no packing that routes every way, write the one that routes most and list the rest in the report |
+| `reach` | cells between joined rooms past which the packing pulls them together hard (default 24); the most a gap should be |
+| `bounds` | the outline in the file: square (the footprint, default) or hull (round what the packing holds, a cell out) |
+| `spokes` | passages from one room keep apart where they can, each its own spoke, rather than joining into one run |
+| `style` | style settings for the file, over the layout's own (see the dungeon file's style) |
+| `legend` | draw a legend of the symbols |
+| `rooms` | rooms of its own (a graph's rooms) |
+| `ways` | ways of its own (a graph's ways) |
+| `uses` | the layouts it uses |
+| `uses[].id` | its id (letters, digits, - and _) |
+| `uses[].layout` | a layout id |
+| `uses[].params` | parameter values |
+| `bind` | the rooms a use's role holds |
+| `bind[].use` | a use |
+| `bind[].role` | a role of its layout |
+| `bind[].rooms` | room ids, or rooms with what they set (a graph room's keys) |
+| `joins` | ways between sockets (use.socket) and rooms |
+| `joins[].from` | use.socket or a room |
+| `joins[].to` | use.socket or a room |
+| `joins[].kind` | passage or door |
+| `joins[].doors` | the door at each end, from then to: a kind, or null for an open passage |
+| `joins[].style` | built (default) or natural |
+| `joins[].hold` | keep its bearing as a rule (default: as the sockets say) |
+| `layouts` | layouts of its own, over the library's |
 
 ### What `dungeon check` reports, by id
 

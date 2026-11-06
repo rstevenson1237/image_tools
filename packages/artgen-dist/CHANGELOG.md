@@ -23,6 +23,19 @@ mapgen 0.13.0 → next. Dungeon format stays at 2: every new key is optional, an
   polygon room square on; a maze corridor runs in from the room's cell behind its door.
 - `check`: `passages-tangle`, two corridors from one room that cross or run together for more than two cells.
 
+**Layouts and designs (R1, R2, R4, R6, R7)**
+- Layouts, design patterns that chain together (`artgen schema layout`): parameters, parts with roles and counts, where each
+  stands against another, ties, sockets with a bearing and a width, lines and mirrors; `rigid` layouts placed exactly. Bundled:
+  `cell-row`, `spine-ring-hub`, `axis-of-halls`, `suite`, `secret-bypass`, `stair-vestibule`, `gatehouse`; a project adds its own in
+  `art/dungeons/layouts/`. `dungeon layouts` lists them.
+- Designs (`artgen schema design`): the layouts used, the rooms each role holds, rooms and ways of its own, joins between sockets
+  and rooms. `dungeon design` expands one to a graph (joined sockets must face one another and match in width; a room whose
+  walls are short for its ways grows); `dungeon layout --design` lays it out. New skill: `dungeon-design`.
+- Graphs gain `mirrors`, a way's `run` (`passage` or `wall`) and `wallB`, `reach` and `bounds: hull`; the report adds `hull`.
+- `dungeon extract`: rooms of a drawn dungeon as a layout. `dungeon trace`: a drawn map's grid, floor cells, walls and rooms as a
+  draft dungeon (the measuring half of tracing).
+- The packer is faster (the same packings) and keeps labels apart by the label drawn, not the room's id.
+
 **Drawing**
 - A `{room}` end with `via` leaves the room level with its first bend, square to the wall, not on a slant from the anchor; several
   ends that leave one wall with no `offset` are spread along it. Files that relied on either drawing may draw a little differently.

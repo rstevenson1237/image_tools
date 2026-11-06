@@ -18,7 +18,7 @@ by the build; the build fails if one belongs to none or two):
 |---|---|---|
 | `core` | `tools/artgen/` basics: `VERSION`, the PNG rasteriser `resvg.wasm`, the map label `fonts/`; `/artgen-report` and `/artgen-upstream` (the feedback loop: `artgen report`, `artgen upstream`, in both CLI bundles) and its `CLAUDE.md` section | always |
 | `art` | the `artgen` and `artgen-mcp` bundles, asset templates, the runtime sources, the `artgen`, `art-direction` and `asset-production` skills, the `art-reviewer` and `art-maker` agents, `/artgen-direction`, `-brief`, `-make`, `-review`, `-feedback`, `-approve`, `-export`, `-restyle`, `-init`, the `.mcp.json` entry | yes |
-| `maps` | `artgen-maps.js` (the maps-only bundle, which the map skills call), the `terrain-map`, `dungeon-map` and `settlement-map` skills, `/artgen-map`, `-dungeon`, `-settlement`. Its version is the map engines' own line (`packages/artgen-mapgen/package.json`) | yes |
+| `maps` | `artgen-maps.js` (the maps-only bundle, which the map skills call), the `terrain-map`, `dungeon-map`, `dungeon-design` and `settlement-map` skills, `/artgen-map`, `-dungeon`, `-settlement`. Its version is the map engines' own line (`packages/artgen-mapgen/package.json`) | yes |
 | `ui` | `tools/artgen/ui/` (the web app in bundle mode: `vite.ui.config.ts`, built by `ui-build.mjs`), `/artgen-ui`; needs `art` or `maps` | no |
 | `update-pr` | `.github/workflows/artgen-update.yml` | no |
 
