@@ -23,13 +23,16 @@ export function underlayWindow(spec: UnderlaySheet, map: Pick<MapSpec, 'cols' | 
   return x1 > x0 && y1 > y0 ? [x0, y0, x1 - x0, y1 - y0] : null;
 }
 
-/** The underlay as SVG at `k` pixels per dungeon cell (empty when there is none, or it lies off the map). */
-export function underlaySvg(spec: UnderlaySheet, map: MapSpec, k: number, field?: MapField): string {
+/**
+ * The underlay as SVG at `k` pixels per dungeon cell (empty when there is none, or it lies off the map). `theme` overrides
+ * the underlay's own: a sheet drawn in black and white draws its ground in black and white too.
+ */
+export function underlaySvg(spec: UnderlaySheet, map: MapSpec, k: number, field?: MapField, theme?: 'color' | 'bw'): string {
   const u = spec.underlay, win = underlayWindow(spec, map);
   if (!u || !win) return '';
   const ppu = k / u.scale;
   const svg = renderMapSvg(map, {
-    theme: u.theme ?? 'color', ppu, crop: win, field: field ?? generateMap(map),
+    theme: theme ?? u.theme ?? 'color', ppu, crop: win, field: field ?? generateMap(map),
     layers: { legend: false, scale: false, compass: false, title: false, grid: false, labels: false, symbols: false },
   });
   const x = ((win[0] - u.origin[0]) / u.scale) * k, y = ((win[1] - u.origin[1]) / u.scale) * k;

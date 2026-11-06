@@ -30,12 +30,28 @@ export type DungeonLayer = (typeof DUNGEON_LAYERS)[number];
 
 const INK = '#000000', PAPER = '#ffffff';
 
-/** The colours a map is drawn in (`style.palette`; black on white by default). `rock` falls back to `style.rockColor`. */
-export interface DungeonPalette { paper: string; rock: string; floor: string; ink: string; wall: string; grid: string; /** The grid colour was set, so it is drawn as given, not faint. */ gridSet: boolean }
+/**
+ * The colours a map is drawn in (`style.palette`; black on white by default). `rock` falls back to `style.rockColor`.
+ * `hatch` is the colour of the rock's hatching: the rock's colour where the file sets one, else the ink.
+ */
+export interface DungeonPalette {
+  paper: string; rock: string; floor: string; ink: string; wall: string; grid: string; partition: string; hatch: string;
+  /** The grid colour was set, so it is drawn as given, not faint. */ gridSet: boolean;
+}
 const ROCK_COLOR = '#bdbdbd';
+/** A colour's lightness, 0 (black) to 1 (white). */
+export function lightness(hex: string): number {
+  const v = parseInt(hex.slice(1), 16), r = (v >> 16) & 255, g = (v >> 8) & 255, b = v & 255;
+  return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+}
 export function paletteOf(spec: Pick<DungeonSpec, 'style'>): DungeonPalette {
-  const p = spec.style.palette ?? {}, ink = p.ink ?? INK;
-  return { paper: PAPER, rock: p.rock ?? spec.style.rockColor ?? ROCK_COLOR, floor: p.floor ?? PAPER, ink, wall: p.wall ?? ink, grid: p.grid ?? ink, gridSet: p.grid !== undefined };
+  const p = spec.style.palette ?? {}, ink = p.ink ?? INK, rockSet = p.rock ?? spec.style.rockColor, rock = rockSet ?? ROCK_COLOR, wall = p.wall ?? ink;
+  // light ink on white paper cannot be read: the title, scale bar and legend then stand on the rock's colour (or black)
+  const paper = p.paper ?? (lightness(ink) > 0.6 ? (rockSet && lightness(rockSet) < 0.4 ? rockSet : '#000000') : PAPER);
+  return {
+    paper, rock, floor: p.floor ?? PAPER, ink, wall, grid: p.grid ?? ink, gridSet: p.grid !== undefined,
+    partition: p.partition ?? (wall.toLowerCase() === rock.toLowerCase() ? ink : wall), hatch: rockSet ?? ink,
+  };
 }
 
 export interface RenderDungeonOptions {
@@ -204,15 +220,17 @@ export function dungeonFurniture(spec: DungeonSpec, o: RenderDungeonOptions = {}
   if (on.legend) {
     const kinds = [...new Set(spec.overlay.symbols.map(s => s.kind))];
     if (kinds.length) {
-      const rh = 22 * u, fs = 12 * u, w = 190 * u, h = kinds.length * rh + 12 * u;
+      // a long legend runs in columns, so it stands no taller than about a third of the map (a map is not shrunk to fit it)
+      const rh = 22 * u, fs = 12 * u, cw = 190 * u, rows = Math.max(6, Math.floor((fr.h * 0.34) / rh)), cols = Math.ceil(kinds.length / rows), per = Math.ceil(kinds.length / cols);
+      const w = cols * cw, h = per * rh + 12 * u;
       items.push({
         id: 'legend', rank: 2, w, h, over: { x: fr.r - w - pad, y: fr.b - h - pad },
         draw: (x, y) => {
           let g = box(x, y, w, h);
           kinds.forEach((kind, i) => {
-            const sy = y + 6 * u + i * rh + rh / 2, sym = SYMBOLS[kind] ?? SYMBOLS.trap;
-            g += `<g transform="translate(${n1(x + 18 * u)} ${n1(sy)}) scale(${((18 * u) / 20).toFixed(3)})">${sym.svg.replaceAll('{ink}', INK).replaceAll('{fill}', pal.floor)}</g>`;
-            g += `<text x="${n1(x + 36 * u)}" y="${n1(sy + fs * 0.35)}" font-size="${n1(fs)}" fill="${INK}">${esc(LEGEND_NAMES(kind))}</text>`;
+            const cx = x + Math.floor(i / per) * cw, sy = y + 6 * u + (i % per) * rh + rh / 2, sym = SYMBOLS[kind] ?? SYMBOLS.trap;
+            g += `<g transform="translate(${n1(cx + 18 * u)} ${n1(sy)}) scale(${((18 * u) / 20).toFixed(3)})">${sym.svg.replaceAll('{ink}', INK).replaceAll('{fill}', pal.floor)}</g>`;
+            g += `<text x="${n1(cx + 36 * u)}" y="${n1(sy + fs * 0.35)}" font-size="${n1(fs)}" fill="${INK}">${esc(LEGEND_NAMES(kind))}</text>`;
           });
           return `<g id="legend">${g}</g>`;
         },
@@ -273,7 +291,7 @@ export function renderDungeonSvg(file: DungeonSpec, o: RenderDungeonOptions = {}
   const inBounds = (g: string) => (spec.bounds ? `<g clip-path="url(#bounds-clip)">${g}</g>` : g);
   if (on.rock) {
     const hatched = rock === 'hatch' || spec.areas?.some(a => a.kind === 'rock');
-    if (hatched) defs.push(hatchPattern(k, INK));
+    if (hatched) defs.push(hatchPattern(k, pal.hatch));
     const band = spec.style.band * k;
     let g = rock === 'solid' ? `<rect width="${W}" height="${H}" fill="${rockFill}"/>`
       : rock === 'none' ? ''
@@ -302,7 +320,7 @@ export function renderDungeonSvg(file: DungeonSpec, o: RenderDungeonOptions = {}
     g.d += `M${n1(p[0] * k)} ${n1(p[1] * k)}L${n1(p[2] * k)} ${n1(p[3] * k)}`;
     groups.set(key, g);
   });
-  const inner = [...groups.values()].map((g, i) => `<path id="partitions${i ? `-${i}` : ''}" d="${g.d}" stroke="${WALL}" stroke-width="${n1(g.weight * 1.1)}" stroke-linecap="${g.dashed ? 'butt' : 'square'}"${g.dashed ? ` stroke-dasharray="${n1(0.34 * k)} ${n1(0.22 * k)}"` : ''} fill="none"/>`).join('');
+  const inner = [...groups.values()].map((g, i) => `<path id="partitions${i ? `-${i}` : ''}" d="${g.d}" stroke="${pal.partition}" stroke-width="${n1(g.weight * 1.1)}" stroke-linecap="${g.dashed ? 'butt' : 'square'}"${g.dashed ? ` stroke-dasharray="${n1(0.34 * k)} ${n1(0.22 * k)}"` : ''} fill="none"/>`).join('');
   if (on.floors) parts.push(`<g id="floors"><g id="walls">${floor(WALL, t)}</g><g id="floor">${floor(FLOOR, 0)}</g>${inner}</g>`);
 
   const ofFill = (f: string) => l.rooms.filter(g => fillOf(g.room) === f);

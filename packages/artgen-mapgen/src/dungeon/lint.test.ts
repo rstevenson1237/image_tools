@@ -83,7 +83,7 @@ describe('drawing defects a consumer used to find by rebuilding the floor (R9 D1
 
   test('door-off-wall and doors-stacked: a door in open floor, on rock, or on another door', () => {
     const rooms: D.Room[] = [{ id: 'a', shape: 'rect', x: 2, y: 2, w: 4, h: 4 }, { id: 'big', shape: 'rect', x: 5, y: 1, w: 8, h: 8 }, { id: 'c', shape: 'rect', x: 20, y: 2, w: 4, h: 4 }];
-    const s = base({ rooms, corridors: [{ from: { room: 'a' }, to: { at: [29, 4] }, doors: ['door', null] }, { from: { room: 'c', side: 'w' }, to: { room: 'big', side: 'e' }, doors: ['door', 'door'] }, { from: { room: 'c', side: 'w' }, to: { at: [16, 4.5] }, doors: ['locked', null] }] });
+    const s = base({ rooms, corridors: [{ from: { room: 'a' }, to: { at: [29, 4] }, doors: ['door', null] }, { from: { room: 'c', side: 'w', offset: 2 }, to: { room: 'big', side: 'e' }, doors: ['door', 'door'] }, { from: { room: 'c', side: 'w', offset: 2 }, to: { at: [16, 4.5] }, doors: ['locked', null] }] });
     expect(ids(s)).toEqual(expect.arrayContaining(['door-off-wall corridors[0].doors', 'doors-stacked corridors[2].doors']));
   });
 
