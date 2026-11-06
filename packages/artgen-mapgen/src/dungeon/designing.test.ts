@@ -240,3 +240,25 @@ describe('spokes: passages from one room keep apart where they can', () => {
     expect(shared(3)).toBe(0);
   });
 });
+
+describe('R5 the rest: the most a gap should be, and the hull as an unbounded level\'s outline', () => {
+  const g = (over: Partial<D.Graph> = {}): D.Graph => ({
+    id: 'h', width: 2, seed: 4, tries: 2, pad: 2,
+    rooms: [{ id: 'A', w: 6, h: 4 }, { id: 'B', w: 4, h: 4 }, { id: 'C', w: 6, h: 6 }, { id: 'D', w: 4, h: 6 }, { id: 'E', w: 4, h: 4 }],
+    ways: [{ a: 'A', b: 'B' }, { a: 'B', b: 'C' }, { a: 'C', b: 'D' }, { a: 'D', b: 'E' }, { a: 'E', b: 'A' }], ...over,
+  });
+  test('bounds: hull draws the level\'s outline round what it holds, and check finds nothing outside it', () => {
+    const { spec, report } = D.layoutGraph(g({ bounds: 'hull' }));
+    expect(report.hull.length).toBeGreaterThanOrEqual(8);
+    expect(spec.bounds!.length).toBe(report.hull.length);
+    expect(D.lintDungeon(spec).map(f => f.id)).not.toContain('outside-bounds');
+    const square = D.layoutGraph(g()).spec.bounds!;
+    expect(square.length).toBe(8);
+  }, 60_000);
+  test('reach: joined rooms kept within it where they can be', () => {
+    const near = D.layoutGraph(g({ reach: 6, footprint: 60 })).report.gaps, far = D.layoutGraph(g({ reach: 60, footprint: 60 })).report.gaps;
+    expect(near.median).toBeLessThanOrEqual(8);
+    expect(near.median).toBeLessThanOrEqual(far.median);
+    expect(D.validateGraph(g({ reach: 0, bounds: 'round' as 'hull' }))).toEqual(['reach: cells, above 0', 'bounds: square or hull']);
+  }, 60_000);
+});

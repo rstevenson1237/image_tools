@@ -121,3 +121,30 @@ describe('the shape a layout keeps once laid out (R2, R4)', () => {
     expect(D.lintDungeon(spec).filter(f => f.severity === 'error')).toEqual([]);
   }, 120_000);
 });
+
+describe('R6 a layout extracted from a drawn dungeon', () => {
+  const drawn = () => {
+    const { graph } = D.expandDesign({ id: 'src', width: 2, seed: 1, tries: 3, uses: [{ id: 'row', layout: 'cell-row', params: { 'per-row': 2 } }], rooms: [{ id: 'gate', w: 4, h: 4 }], joins: [{ from: 'row.e', to: 'gate' }] }, D.LAYOUTS);
+    return D.layoutGraph(graph).spec;
+  };
+  test('parts with ranged sizes, the ties between them, sides, and a socket for the way out; it expands and lays out again', () => {
+    const spec = drawn(), ids = ['row-hall', 'row-north-cell-1', 'row-north-cell-2', 'row-south-cell-1', 'row-south-cell-2'];
+    const l = D.extractLayout(spec, { id: 'my-row', rooms: ids, roles: { 'row-hall': 'hall' }, origin: 'test', tags: ['cells'] });
+    expect(D.validateLayout(l)).toEqual([]);
+    expect(l.source).toEqual({ kind: 'drawn', origin: 'test', note: `rooms ${ids.join(', ')}` });
+    expect(l.parts.map(p => p.role)).toEqual(['hall', 'row-north-cell-1', 'row-north-cell-2', 'row-south-cell-1', 'row-south-cell-2']);
+    expect(l.parts[0]).toMatchObject({ w: [6, 10], h: [2, 3] });
+    expect(l.ties!.filter(t => t.kind === 'door').length).toBe(4);
+    // each cell stands on the hall's north side or its south one
+    for (const p of l.parts.slice(1)) expect(p.at!.part === 'hall' && ['n', 'ne', 'nw', 's', 'se', 'sw'].includes(p.at!.side as string), `${p.role} ${JSON.stringify(p.at)}`).toBe(true);
+    expect(l.sockets).toEqual([expect.objectContaining({ part: 'hall', bearing: 'e' })]);
+    const again = D.expandDesign({ id: 'again', width: 2, tries: 2, uses: [{ id: 'u', layout: 'my-row' }] }, [l]);
+    expect(again.graph.rooms.length).toBe(5);
+    expect(D.layoutGraph(again.graph).report.left).toEqual([]);
+    // rigid: exact sizes and places, one block
+    const rigid = D.extractLayout(spec, { id: 'my-row-rigid', rooms: ids, rigid: true });
+    expect(rigid.rigid).toBe(true);
+    expect(rigid.parts.every(p => typeof p.w === 'number' && p.place)).toBe(true);
+    expect(() => D.extractLayout(spec, { id: 'x', rooms: ['nope'] })).toThrow(/no room nope/);
+  }, 120_000);
+});

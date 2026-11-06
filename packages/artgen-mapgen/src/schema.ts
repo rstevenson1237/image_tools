@@ -160,6 +160,8 @@ export const GRAPH_SCHEMA: Schema = {
     mirrors: arr('rooms that mirror each other about a third', obj('a mirror pair', { a: str('a room'), b: str('its mirror'), about: str('the room they mirror about'), along: oneOf('ew: across the east-west line through its centre (one x); ns: across the north-south line (one y)', ['ew', 'ns']) }, ['a', 'b', 'about', 'along'])),
     lines: arr('rooms whose centres stand on one line', obj('a line', { rooms: arr('the rooms', { type: 'string' }), along: oneOf('ew: one y; ns: one x', ['ew', 'ns']) }, ['rooms', 'along'])),
     partial: bool('with no packing that routes every way, write the one that routes most and list the rest in the report'),
+    reach: num('cells between joined rooms past which the packing pulls them together hard (default 24); the most a gap should be'),
+    bounds: oneOf('the outline in the file: square (the footprint, default) or hull (round what the packing holds, a cell out)', ['square', 'hull']),
     spokes: bool('passages from one room keep apart where they can, each its own spoke, rather than joining into one run'),
     style: { type: 'object', description: 'style settings for the file, over the layout\'s own (see the dungeon file\'s style)' },
     legend: bool('draw a legend of the symbols'),

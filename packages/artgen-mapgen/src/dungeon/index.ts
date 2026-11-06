@@ -22,5 +22,6 @@ export { rockOf } from './render.ts';
 export { layoutGraph, validateGraph, GRAPH_SHAPES, ROOM_DRAW_KEYS, WAY_DRAW_KEYS, type Graph, type GraphRoom, type GraphWay, type GraphReport, type GraphSymbol, type RoomDraw, type WayDraw } from './graph.ts';
 export { Router, Footprint, plan as planRoutes, detours as routeDetours, LATTICE, type Route as RoutedWay } from './router.ts';
 export { layoutCandidates, scoreLayout, contactSheetSvg, SCORE_WEIGHTS, SCORE_COSTS, type Candidate, type Candidates } from './candidates.ts';
-export { expandDesign, validateLayout, bearingOf, type Design, type DesignUse, type DesignBind, type DesignJoin, type ExpandReport, type Layout, type LayoutPart, type LayoutTie, type LayoutSocket, type LayoutConstraint, type LayoutParam, type LayoutSize, type LayoutPick, type Bearing } from './design.ts';
+export { expandDesign, validateLayout, bearingOf, extractLayout, type ExtractOptions, type Design, type DesignUse, type DesignBind, type DesignJoin, type ExpandReport, type Layout, type LayoutPart, type LayoutTie, type LayoutSocket, type LayoutConstraint, type LayoutParam, type LayoutSize, type LayoutPick, type Bearing } from './design.ts';
 export { LAYOUTS } from './layouts.ts';
+export { measureGrid, floorCells, cellRects, traceImage, type RGBAImage, type GridFit, type TraceOptions, type TraceReport, type Walls } from './trace.ts';

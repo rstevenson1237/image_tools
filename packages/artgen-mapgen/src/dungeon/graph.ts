@@ -128,6 +128,10 @@ export interface Graph {
   mirrors?: { a: string; b: string; about: string; along: 'ew' | 'ns' }[];
   /** With no packing that routes every way: write the one that routes most, and list the rest in the report's `left`, instead of failing. */
   partial?: boolean;
+  /** Cells between two joined rooms' boxes past which the packing pulls them together hard (default 24: 120 ft on a 5 ft grid). The most a gap should be; `pad` gives the least. */
+  reach?: number;
+  /** The level's outline in the file: the footprint's square (the default) or the convex hull round what the packing holds, a cell out (an unbounded level's own shape). */
+  bounds?: 'square' | 'hull';
   /** Passages from one room keep apart where they can (each reads as its own spoke), rather than joining into one run and parting. */
   spokes?: boolean;
   /** Style settings for the file (see `DungeonSpec.style`), over the layout's own. */
@@ -150,6 +154,8 @@ export interface GraphReport {
   held: { a: string; b: string; off: number }[];
   /** The median gap between joined rooms' boxes (cells), and the least. */
   gaps: { median: number; least: number };
+  /** The convex hull round the rooms and passages, a cell out, in the graph's frame (x,y cells). */
+  hull: number[];
 }
 
 // ---- rooms -----------------------------------------------------------------------------------------------------------
@@ -214,7 +220,7 @@ const share = (s: string) => { let h = 0x811c9dc5; for (let i = 0; i < s.length;
 // ---- the packer ------------------------------------------------------------------------------------------------------
 
 /** What else a packing keeps to: rooms placed exactly (centres, units), held bearings, lines, and units per file cell. */
-interface PackMore { runs?: Map<string, 'passage' | 'wall'>; fixed?: Map<string, [number, number]>; hold?: [string, string][]; lines?: { rooms: string[]; along: 'ew' | 'ns' }[]; mirrors?: Graph['mirrors']; f?: number }
+interface PackMore { far?: number; runs?: Map<string, 'passage' | 'wall'>; fixed?: Map<string, [number, number]>; hold?: [string, string][]; lines?: { rooms: string[]; along: 'ew' | 'ns' }[]; mirrors?: Graph['mirrors']; f?: number }
 
 class Packer {
   rooms: PRoom[]; side: number; ground: Set<string> | null; ix: Map<string, number>; round: boolean[]; lies: Form[][]; boxed: boolean[];
@@ -232,6 +238,8 @@ class Packer {
   held: Uint8Array; line: Uint8Array; lw: Float64Array; lh: Float64Array;
   /** Units per cell of the file, for a cave's drawn outline. */
   f: number;
+  /** Units between joined rooms past which the packing costs more for each lattice cell (`reach`). */
+  far: number;
   /** Mirror pairs: a, b, the room they mirror about, and 1 (across an east-west line) or 2 (north-south); and each room's terms. */
   tri: [number, number, number, 1 | 2][] = []; triOf: number[][];
 
@@ -243,7 +251,7 @@ class Packer {
     this.boxed = rooms.map(r => isSquare(r.shape));
     const n = rooms.length;
     this.o = new Array(n).fill(0); this.w = new Array(n).fill(0); this.h = new Array(n).fill(0); this.pts = new Array(n).fill(undefined); this.floor = new Array(n).fill(new Set()); this.fcells = new Array(n).fill([]);
-    this.rw = new Array(n).fill(0); this.rh = new Array(n).fill(0); this.rpts = new Array(n).fill(undefined); this.f = more.f ?? 1;
+    this.rw = new Array(n).fill(0); this.rh = new Array(n).fill(0); this.rpts = new Array(n).fill(undefined); this.f = more.f ?? 1; this.far = more.far ?? FAR;
     for (let i = 0; i < n; i++) this.lie(i, 0);
     for (const [a, b, br] of ways) {
       let i = this.ix.get(a)!, j = this.ix.get(b)!, v = br === null ? null : compass(br);
@@ -347,7 +355,7 @@ class Packer {
     if (link === 2) { e = gap < 2 * GRID ? CLOSE : 0; e += f && gap > 0 ? STRAIGHT : 0; e += Math.hypot(Math.max(sx, 0), Math.max(sy, 0)) / 60; }
     else e = f ? gap / 80 : CORNER + gap / 80 + Math.hypot(Math.max(sx, 0), Math.max(sy, 0)) / 60;
     if ((this.round[i] || this.round[j]) && gap < GRID) e += ROUND;
-    if (gap > FAR) e += (3 * (gap - FAR)) / GRID;
+    if (gap > this.far) e += (3 * (gap - this.far)) / GRID;
     const want = this.keepDir[k];
     if (want) {
       const s = i < j ? 1 : -1, dx = (this.x[j] - (xi ?? this.x[i])) * s, dy = (this.y[j] - (yi ?? this.y[i])) * s;
@@ -381,7 +389,17 @@ class Packer {
   local(i: number, x?: number, y?: number): number {
     const cx = (x ?? this.x[i]) - this.side / 2, cy = (y ?? this.y[i]) - this.side / 2;
     let e = this.inside(i, x, y) + this.pin(i, x, y) + (PULL * (cx * cx + cy * cy)) / GRID ** 2 * 100;
-    for (let j = 0; j < this.w.length; j++) if (j !== i) e += this.pair(i, j, x, y);
+    const n = this.w.length, X = x ?? this.x[i], Y = y ?? this.y[i], hw = this.w[i] / 2, hh = this.h[i] / 2;
+    for (let j = 0; j < n; j++) {
+      if (j === i) continue;
+      // a pair neither joined nor on a line costs nothing unless the boxes meet or the labels stand too close (pair's fast path)
+      const k = i < j ? i * n + j : j * n + i;
+      if (!this.link[k] && !this.line[k]) {
+        const dx = Math.abs(this.x[j] - X), dy = Math.abs(this.y[j] - Y);
+        if (!(dx <= hw + this.w[j] / 2 && dy <= hh + this.h[j] / 2) && !(dx < this.lw[k] && dy < this.lh[k])) continue;
+      }
+      e += this.pair(i, j, x, y);
+    }
     for (const t of this.triOf[i]) e += this.mirror(t, i, x, y);
     return e;
   }
@@ -543,6 +561,16 @@ function attempt(x: Ctx, side: number, seed: number, ground: Set<string> | null,
   return best ?? partial ?? { ok: false, score: null, energy: p.total(), x: p.x, y: p.y, o: p.o, left: Infinity };
 }
 
+/** The convex hull of points, clockwise on screen (y down), from the left-most. */
+function convexHull(pts: Pt[]): Pt[] {
+  const ps = [...new Map(pts.map(p => [`${p[0]},${p[1]}`, p])).values()].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  if (ps.length < 3) return ps;
+  const turn = (o: Pt, a: Pt, b: Pt) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]), lower: Pt[] = [], upper: Pt[] = [];
+  for (const p of ps) { while (lower.length >= 2 && turn(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop(); lower.push(p); }
+  for (const p of [...ps].reverse()) { while (upper.length >= 2 && turn(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop(); upper.push(p); }
+  return [...lower.slice(0, -1), ...upper.slice(0, -1)].reverse();
+}
+
 const poly2 = (v: number[]): Pt[] => { const out: Pt[] = []; for (let i = 0; i + 1 < v.length; i += 2) out.push([v[i], v[i + 1]]); return out; };
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 
@@ -594,6 +622,8 @@ export function validateGraph(g: Graph): string[] {
   if (g.width !== undefined && !(g.width >= 1 && g.width <= 6)) e.push('width: cells, 1..6');
   if (g.clearance !== undefined && g.clearance !== 0 && g.clearance !== 1) e.push('clearance: 0 or 1');
   if (g.pad !== undefined && !(isNum(g.pad) && g.pad >= 0)) e.push('pad: cells, 0 or more');
+  if (g.reach !== undefined && !(isNum(g.reach) && g.reach > 0)) e.push('reach: cells, above 0');
+  if (g.bounds !== undefined && g.bounds !== 'square' && g.bounds !== 'hull') e.push('bounds: square or hull');
   if (g.origin !== undefined) {
     if (!(Array.isArray(g.origin) && g.origin.length === 2 && g.origin.every(isNum))) e.push('origin: [x, y], cells');
     else if (!g.origin.every(onLattice)) e.push(`origin: on the lattice (multiples of the width, ${cell})`);
@@ -678,7 +708,7 @@ export function layoutGraph(g: Graph): { spec: DungeonSpec; report: GraphReport 
     // a passage given as it is takes its cells (from the rooms' centres through its bends): routed passages keep off them
     const taken = new Map<string, string[]>(), centre = (id: string): Pt => fr.fixed.get(id)!;
     for (const w of given) for (const k of lineCells([centre(w.a), ...fr.vias.get(w)!, centre(w.b)])) taken.set(k, [...(taken.get(k) ?? []), w.a, w.b]);
-    return { rooms, ways, passages, pins: fr.pins, glue, walls, detour, clearance, taken, share: g.spokes ? SPOKES : undefined, more: { runs, fixed: fr.fixed, hold, lines: g.lines, mirrors: g.mirrors, f } };
+    return { rooms, ways, passages, pins: fr.pins, glue, walls, detour, clearance, taken, share: g.spokes ? SPOKES : undefined, more: { far: g.reach === undefined ? undefined : u(g.reach), runs, fixed: fr.fixed, hold, lines: g.lines, mirrors: g.mirrors, f } };
   };
   type Chosen = { side: number; run: Attempt; fr: ReturnType<typeof frameAt>; routed: number };
   let chosen: Chosen | null = null, fallback: Chosen | null = null;
@@ -733,7 +763,13 @@ export function layoutGraph(g: Graph): { spec: DungeonSpec; report: GraphReport 
     from: { room: idOf(w.a) }, to: { room: idOf(w.b) }, via: fr.vias.get(w)!.flatMap(([x, y]) => [X(x), X(y)]), width: cell, doors: w.doors ?? ['door', null],
     ...(w.style === 'natural' && { style: 'natural' as const }), origin: 'layout',
   });
-  const frame = (shape ?? [[0, 0], [side, 0], [side, side], [0, side]]).flatMap(([x, y]) => [X(x), X(y)]);
+  // the hull round what the packing holds: every room's box and every passage cell, a cell out
+  const held: Pt[] = [];
+  for (let i = 0; i < rooms.length; i++) { const x0 = p.x[i] - p.rw[i] / 2 - f, y0 = p.y[i] - p.rh[i] / 2 - f, x1 = p.x[i] + p.rw[i] / 2 + f, y1 = p.y[i] + p.rh[i] / 2 + f; held.push([x0, y0], [x1, y0], [x1, y1], [x0, y1]); }
+  for (const r of routes) for (const [ci, cj] of r.cells) held.push([ci * LATTICE - f, cj * LATTICE - f], [(ci + 1) * LATTICE + f, cj * LATTICE - f], [(ci + 1) * LATTICE + f, (cj + 1) * LATTICE + f], [ci * LATTICE - f, (cj + 1) * LATTICE + f]);
+  for (const v of fr.vias.values()) for (const [x, y] of v) held.push([x - f, y - f], [x + f, y - f], [x + f, y + f], [x - f, y + f]);
+  const hull = convexHull(held.map(([x, y]) => [Math.max(0, Math.min(side, x)), Math.max(0, Math.min(side, y))] as Pt));
+  const frame = (g.bounds === 'hull' ? hull : shape ?? [[0, 0], [side, 0], [side, side], [0, side]]).flatMap(([x, y]) => [X(x), X(y)]);
   const spec = parseDungeon({
     ...newDungeon(g.id ?? 'layout', { seed, cols: Math.ceil(c(side)) + 2 * margin, rows: Math.ceil(c(side)) + 2 * margin, ...(g.title && { title: g.title }), ...(g.scale && { scale: g.scale }) }),
     numbers: false, rooms: out, corridors, connections,
@@ -754,6 +790,7 @@ export function layoutGraph(g: Graph): { spec: DungeonSpec; report: GraphReport 
       places: g.rooms.map((r, i) => ({ id: r.id, x: c(p.x[i] - p.rw[i] / 2 + sx), y: c(p.y[i] - p.rh[i] / 2 + sy), w: c(p.rw[i]), h: c(p.rh[i]), cx: c(p.x[i] + sx), cy: c(p.y[i] + sy) })),
       held: p.strays().map(([i, j, off]) => ({ a: rooms[i].code, b: rooms[j].code, off })),
       gaps: { median: gaps.length ? gaps[Math.floor(gaps.length / 2)] : 0, least: gaps.length ? gaps[0] : 0 },
+      hull: hull.flatMap(([x, y]) => [c(x + sx), c(y + sy)]),
     },
   };
 }

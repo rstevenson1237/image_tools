@@ -1,7 +1,7 @@
 /** The dungeon operations (`artgen dungeon …`, the MCP `dungeon_*` tools). Implementations moved here from `maps-cli.ts` and the MCP server; the edits themselves are `editDungeon` in `artgen-mapgen`. */
-import { existsSync, readdirSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { dungeon, encodePNG, rasterizeSvg, type SyncReport } from 'artgen-core/maps';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { decodePNG, dungeon, encodePNG, rasterizeSvg, type SyncReport } from 'artgen-core/maps';
 import { checkDungeonFile, createDungeon, describeDungeon, describeDungeonFacts, dungeonSummary, listDungeons, readDungeon, renderDungeonFiles, updateDungeon, warningLines } from '../dungeon.ts';
 import { onOff, parseLayers } from '../map.ts';
 import { fileId, readJson } from '../projectfs.ts';
@@ -767,6 +767,66 @@ const design = defineOp({
   mcp: {}, python: {},
 });
 
+const extract = defineOp({
+  name: 'dungeon.extract', module: 'maps', effect: 'write', summary: 'Abstract rooms of a dungeon into a layout (a design pattern) that designs can use.',
+  description: 'Make a layout from rooms of a drawn dungeon: one part per room, its size a range round the drawn one (rigid: exact, with its place), ties from the connections and corridors between them, each room\'s side of the one before it, and a socket for every corridor or connection that leaves the set. Only topology and proportions are kept, with where they came from; add patterns only from maps you own or may study. Writes art/dungeons/layouts/<name>.json (or out).',
+  params: {
+    id: idParam('the dungeon', 'dungeon extract: <id> (or --file)'), path: pathParam('dungeon'),
+    rooms: p.str('the rooms that make up the structure: ids, comma-separated', { required: 'dungeon extract: --rooms a,b,c' }), name: p.str('the layout\'s id', { required: 'dungeon extract: --name cell-row' }),
+    roles: p.str('roles by room: room=role,…'), rigid: p.bool('keep each room\'s place exactly (a rigid layout)'), spread: p.num('how far sizes range either side of the drawn ones (default 0.25)'),
+    title: p.str('what the layout is'), tags: p.str('tags, comma-separated'), out: p.str('write the layout here instead of art/dungeons/layouts', { mcp: false }), force: p.bool('overwrite a layout of that name'),
+  },
+  run(i: Inp, ctx) {
+    const m = readDungeon(projectOf(i, ctx), refOf(i)), list = (v: unknown) => (typeof v === 'string' ? v.split(',').map(x => x.trim()).filter(Boolean) : []);
+    const roles = Object.fromEntries(list(i.roles).map(kv => kv.split('=').map(x => x.trim()) as [string, string]));
+    const l = dungeon.extractLayout(m, { id: String(i.name), rooms: list(i.rooms), roles, rigid: i.rigid === true, ...(typeof i.spread === 'number' && { spread: i.spread }), ...(typeof i.title === 'string' && { name: i.title }), tags: list(i.tags), origin: i.path ? ctx.rel(i.path) : String(i.id) });
+    let file = typeof i.out === 'string' ? i.out : null;
+    if (!file) { const P = ctx.project(); file = join(P.art, 'dungeons', 'layouts', `${l.id}.json`); }
+    if (existsSync(file) && i.force !== true) throw new Error(`${ctx.rel(file)} exists: --force replaces it`);
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, JSON.stringify(l, null, 2) + '\n');
+    return { file: ctx.rel(file), layout: l };
+  },
+  cli: {
+    usage: '       artgen dungeon extract <id>|--file d.json --rooms a,b,c --name cell-row [--roles a=hall,…] [--rigid] [--spread 0.25] [--title …] [--tags …] [--out l.json] [--force]   rooms of a dungeon as a layout',
+    text: (r: { file: string; layout: dungeon.Layout }) => [`${r.file}: layout ${r.layout.id}, ${r.layout.parts.length} parts, ${r.layout.ties?.length ?? 0} ties, sockets ${(r.layout.sockets ?? []).map(k => `${k.name}`).join(', ') || 'none'}${r.layout.rigid ? ' (rigid)' : ''}`, `next: artgen dungeon layouts   (use it in a design: {"uses": [{"id": "x", "layout": "${r.layout.id}"}]})`].join('\n'),
+    json: r => V(r),
+  },
+  mcp: {}, python: {},
+});
+
+const trace = defineOp({
+  name: 'dungeon.trace', module: 'maps', effect: 'write', summary: 'Measure a drawn map (PNG): its grid, its floor cells and its rooms as rectangles, as a draft dungeon.',
+  description: 'The measuring half of tracing a drawn map: the grid\'s pitch and phase from its gridlines (or as given), the floor cells (a light pixel is floor: choose the channel the rock is low in), and the rooms as rectangles of whole cells, at least 2 cells across; thinner floor is left as passage. Writes a draft dungeon file to finish by hand (doors, symbols, labels, other shapes), and reports the grid and the share of floor the rooms cover. Score a finished draft against the source with npm run compare:dungeon.',
+  params: {
+    id: idParam('the new dungeon\'s id', 'dungeon trace: <id> (or --file)'), path: pathParam('dungeon'),
+    image: p.str('the drawn map, a PNG', { required: 'dungeon trace: --image map.png', mcp: false }),
+    channel: p.oneOf(['r', 'g', 'b', 'lum'], 'the channel tested for floor (default lum)', { error: 'r, g, b or lum' }), floor: p.num('floor when the channel is above this, 0..255 (default 170)'),
+    share: p.num('a cell is floor when this share of its pixels is (default 0.5)'), pitch: p.str('the grid\'s pixels a cell, x[,y], when known'), grid_origin: p.str('where cell 0,0\'s corner lies in pixels, x,y (with pitch)', { flag: '--origin' }),
+    min_pitch: p.num('the least pitch to look for, in pixels (default 6)'), min_room: p.num('the fewest cells across a room (default 2; 3 leaves 10 ft passages on a 5 ft grid out)'), force: p.bool('overwrite an existing file (with --file)', { mcp: false }),
+  },
+  run(i: Inp, ctx) {
+    const img = decodePNG(new Uint8Array(readFileSync(String(i.image)))), nums = (v: unknown) => String(v).split(',').map(Number);
+    let grid: dungeon.GridFit | undefined;
+    if (typeof i.pitch === 'string') {
+      const [px, py = px] = nums(i.pitch), [ox, oy] = typeof i.grid_origin === 'string' ? nums(i.grid_origin) : [0, 0];
+      grid = { pitch: [px, py], origin: [ox, oy], clarity: [1, 1] };
+    }
+    const id = i.path ? i.id ?? fileId(i.path) : i.id;
+    const { spec, report } = dungeon.traceImage({ w: img.w, h: img.h, d: img.d }, {
+      id, ...(grid && { grid }), ...(i.channel && { channel: i.channel as 'lum' }), ...(typeof i.floor === 'number' && { floor: i.floor }), ...(typeof i.share === 'number' && { share: i.share }), ...(typeof i.min_pitch === 'number' && { minPitch: i.min_pitch }), ...(typeof i.min_room === 'number' && { minRoom: i.min_room }),
+    });
+    return { ...createDungeon(projectOf(i, ctx), spec, i.force === true, i.path ? { file: i.path } : undefined), report };
+  },
+  cli: {
+    usage: '       artgen dungeon trace <id>|--file draft.json --image map.png [--channel r|g|b|lum] [--floor 170] [--share 0.5] [--pitch px[,py] [--origin x,y]] [--min-pitch 6] [--min-room 2] [--force]   a drawn map measured: grid, floor cells, rooms',
+    text: (r, i) => [`${r.file}: grid ${r.report.grid.pitch.map((v: number) => v.toFixed(2)).join('×')} px a cell from ${r.report.grid.origin.map((v: number) => v.toFixed(1)).join(',')} (clarity ${r.report.grid.clarity.join(', ')}); ${r.report.cols}×${r.report.rows} cells, ${r.report.floorCells} floor; ${r.report.rooms} rooms cover ${Math.round(r.report.covered * 100)}% of it, the rest is passage or missed`,
+      `  doors, symbols, labels and shapes other than rectangles are left to finish; score it with npm run compare:dungeon -- --source ${i.image} --mine <render>`, next(i, r.dungeon.id)].join('\n'),
+    json: r => V({ file: r.file, report: r.report, dungeon: r.dungeon }),
+  },
+  mcp: { exclude: 'reads an image by path (consumer tooling)' }, python: {},
+});
+
 /** One seed of `dungeon layout --seeds`: its score and findings, or why it laid nothing out. */
 interface LayoutCandidate { seed: number; score: number | null; findings?: Record<string, number>; left?: number; side?: number; fill?: number; passages?: number; walls?: number; error?: string }
 
@@ -784,6 +844,7 @@ const layout = defineOp({
     pad: p.num('cells kept clear round every room in the packing (to the lattice): joined rooms stand twice that apart, every way a passage'),
     origin: p.str('x,y: where the footprint\'s top-left lies in the frame over, at, via and keepOut are given in'), partial: p.bool('with no packing that routes every way, write the one that routes most and list the rest'),
     spokes: p.bool('passages from one room keep apart where they can, each its own spoke, rather than joining into one run'),
+    reach: p.num('cells between joined rooms past which the packing pulls them together hard (default 24)'), bounds: p.oneOf(['square', 'hull'], 'the outline in the file: square (default) or hull (round what the packing holds)', { error: 'square or hull' }),
     seeds: p.num('lay it out from this many seeds (the seed and those after it), score each and write the best'), keep: p.num('with seeds: write this many of the best (the rest as <id>-2, -3, …; default 1)'),
     sheet: p.str('with seeds: a contact sheet of the kept ones (.svg or .png)', { mcp: false }),
     force: p.bool('overwrite an existing file (with --file)', { mcp: false }),
@@ -798,7 +859,8 @@ const layout = defineOp({
     if (typeof i.footprint === 'string') { const v = nums(i.footprint); g.footprint = v.length === 1 ? v[0] : v; }
     if (typeof i.keep_out === 'string') g.keepOut = [...(g.keepOut ?? []), nums(i.keep_out)];
     if (typeof i.fill === 'string') { const v = nums(i.fill); g.fill = [v[0], v[1] ?? v[0]]; }
-    for (const k of ['passages', 'detour', 'seed', 'tries', 'width', 'clearance', 'pad'] as const) if (typeof i[k] === 'number') (g as Record<string, unknown>)[k] = i[k];
+    if (i.bounds === 'square' || i.bounds === 'hull') g.bounds = i.bounds;
+    for (const k of ['passages', 'detour', 'seed', 'tries', 'width', 'clearance', 'pad', 'reach'] as const) if (typeof i[k] === 'number') (g as Record<string, unknown>)[k] = i[k];
     if (typeof i.origin === 'string') { const v = nums(i.origin); g.origin = [v[0], v[1]]; }
     if (i.partial === true) g.partial = true;
     if (i.spokes === true) g.spokes = true;
@@ -829,7 +891,7 @@ const layout = defineOp({
     };
   },
   cli: {
-    usage: '       artgen dungeon layout <id>|--file out.json --graph g.json [--footprint 40|x,y,…] [--origin x,y] [--keep-out x,y,…] [--fill 0.35,0.55] [--passages 0.35] [--pad n] [--detour n] [--seed n] [--tries 12] [--width 2] [--clearance 0|1] [--design d.json [--layouts dir]] [--partial] [--spokes] [--seeds n [--keep k] [--sheet s.png]] [--force]   rooms packed to a graph in a footprint, every way a door or a routed passage; --seeds scores that many seeds and keeps the best',
+    usage: '       artgen dungeon layout <id>|--file out.json --graph g.json [--footprint 40|x,y,…] [--origin x,y] [--keep-out x,y,…] [--fill 0.35,0.55] [--passages 0.35] [--pad n] [--reach n] [--bounds square|hull] [--detour n] [--seed n] [--tries 12] [--width 2] [--clearance 0|1] [--design d.json [--layouts dir]] [--partial] [--spokes] [--seeds n [--keep k] [--sheet s.png]] [--force]   rooms packed to a graph in a footprint, every way a door or a routed passage; --seeds scores that many seeds and keeps the best',
     text: (r, i) => [`${r.file}: ${r.dungeon.rooms.length} rooms in a square ${r.report.side} cells across, rooms ${Math.round(r.report.fill * 100)}% of the ground; ${r.report.passages} passages, ${r.report.walls} doors through shared walls (${r.report.seconds} s)`,
       ...(r.design ? [...r.design.grown.map((g: { room: string; from: number[]; to: number[]; ways: number }) => `  ${g.room} grown from ${g.from.join('×')} to ${g.to.join('×')} for its ${g.ways} ways`), ...r.design.warnings.map((w: string) => `  design: ${w}`)] : []),
       ...(r.report.partial ? ['  partial: the packing that routes most, not every way'] : []),
@@ -842,4 +904,4 @@ const layout = defineOp({
   mcp: { content: r => [text({ file: r.file, report: r.report, summary: describeDungeon(r.dungeon) })] }, python: {},
 });
 
-export const DUNGEON_OPS_LIST: OpDef[] = [list, symbols, show, create, update, grid, style, gen, edit, roomCmd, block, link, unlink, door, connect, disconnect, ring, fit, label, symbol, check, overlay, render, facts, sync, layout, layoutsList, design];
+export const DUNGEON_OPS_LIST: OpDef[] = [list, symbols, show, create, update, grid, style, gen, edit, roomCmd, block, link, unlink, door, connect, disconnect, ring, fit, label, symbol, check, overlay, render, facts, sync, layout, layoutsList, design, extract, trace];

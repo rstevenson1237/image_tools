@@ -524,6 +524,8 @@ npm run compare:dungeon -- --source ref.png --mine art/dungeons/d/out/d.png --or
 | `lines[].rooms` | the rooms |
 | `lines[].along` | ew: one y; ns: one x |
 | `partial` | with no packing that routes every way, write the one that routes most and list the rest in the report |
+| `reach` | cells between joined rooms past which the packing pulls them together hard (default 24); the most a gap should be |
+| `bounds` | the outline in the file: square (the footprint, default) or hull (round what the packing holds, a cell out) |
 | `spokes` | passages from one room keep apart where they can, each its own spoke, rather than joining into one run |
 | `style` | style settings for the file, over the layout's own (see the dungeon file's style) |
 | `legend` | draw a legend of the symbols |

@@ -13,7 +13,8 @@
  */
 import { off } from './router.ts';
 import { GRAPH_SHAPES, type Graph, type GraphRoom, type GraphShape, type GraphWay } from './graph.ts';
-import { DOOR_KINDS, type DoorKind } from './spec.ts';
+import { layoutDungeon } from './layout.ts';
+import { DOOR_KINDS, type DoorKind, type DungeonSpec } from './spec.ts';
 
 /** A size: cells, a range (its middle is taken), or a parameter (`$name`, `$name*k`, `$name*k+c`). */
 export type LayoutSize = number | [number, number] | string;
@@ -327,4 +328,102 @@ export function expandDesign(d: Design, library: Layout[] = []): { graph: Graph;
   const graph: Graph = { ...d, rooms, ways, ...(lines.length && { lines }), ...(mirrors.length && { mirrors }) };
   for (const k of ['uses', 'bind', 'joins', 'layouts'] as const) delete (graph as unknown as Record<string, unknown>)[k];
   return { graph, report };
+}
+
+// ---- extracting a layout from a drawn dungeon (R6) -------------------------------------------------------------------
+
+export interface ExtractOptions {
+  /** The rooms that make up the structure, by id. */
+  rooms: string[];
+  /** The layout's id. */
+  id: string;
+  /** Roles by room id (default: the room's id, lower-cased). */
+  roles?: Record<string, string>;
+  /** Keep each room's place exactly (a rigid layout) rather than its side of the one before it. */
+  rigid?: boolean;
+  /** How far a flexible layout's sizes range either side of the drawn ones (default 0.25). */
+  spread?: number;
+  name?: string; tags?: string[];
+  /** Where the dungeon came from (a file, a map), for `source.origin`. */
+  origin?: string;
+}
+
+const COMPASS_POINTS = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'] as const;
+const compassOf = (deg: number) => COMPASS_POINTS[Math.round((((deg % 360) + 360) % 360) / 45) % 8];
+const degFrom = (dx: number, dy: number) => ((Math.atan2(dx, -dy) * 180) / Math.PI + 360) % 360;
+
+/**
+ * A layout abstracted from rooms of a dungeon (`dungeon extract`): one part per room, its size a range round the drawn one (or
+ * exact, rigid), ties from the connections and corridors between the rooms, each room's side of the one it was reached from,
+ * and a socket for every corridor or connection that leaves the set. The drawing itself is not kept: only topology and
+ * proportions, and where it came from.
+ */
+export function extractLayout(spec: DungeonSpec, o: ExtractOptions): Layout {
+  const l = layoutDungeon(spec), chosen = new Set(o.rooms), geo = new Map(l.rooms.map(g => [g.room.id, g]));
+  for (const id of o.rooms) if (!geo.has(id)) throw new Error(`extract: no room ${id}`);
+  if (!o.rooms.length) throw new Error('extract: name the rooms (--rooms a,b,c)');
+  const roleOf = (id: string) => o.roles?.[id] ?? id.toLowerCase().replace(/[^\w-]+/g, '-');
+  const roles = o.rooms.map(roleOf);
+  if (new Set(roles).size !== roles.length) throw new Error(`extract: two rooms share a role (${roles.join(', ')}); give roles`);
+  const spread = o.spread ?? 0.25, range = (v: number): LayoutSize => {
+    if (o.rigid) return v;
+    const lo = Math.max(1, Math.round(v * (1 - spread))), hi = Math.max(lo, Math.round(v * (1 + spread)));
+    return lo === hi ? lo : [lo, hi];
+  };
+  const shapeOf: Record<string, LayoutPart['shape']> = { rect: 'rect', circle: 'round', octagon: 'octagon', hexagon: 'hexagon', cave: 'cave', poly: 'poly' };
+  const x0 = Math.min(...o.rooms.map(id => geo.get(id)!.room.x)), y0 = Math.min(...o.rooms.map(id => geo.get(id)!.room.y));
+  const parts: LayoutPart[] = o.rooms.map(id => {
+    const r = geo.get(id)!.room, shape = shapeOf[r.shape] ?? 'rect', cx = r.x + r.w / 2, cy = r.y + r.h / 2;
+    return {
+      role: roleOf(id), ...(shape !== 'rect' && { shape }), w: range(r.w), h: range(r.h),
+      ...(shape === 'poly' && r.points && { points: r.points.map((v, k) => Math.round((v - (k % 2 ? cy : cx)) * 1e3) / 1e3), w: r.w, h: r.h }),
+      ...(o.rigid && { place: { x: r.x - x0, y: r.y - y0 } }),
+    };
+  });
+  // ties: connections (doors through a shared wall) and corridors between two of the rooms
+  const ties: LayoutTie[] = [], sockets: LayoutSocket[] = [], names = new Set<string>();
+  const socket = (room: string, deg: number, width: number) => {
+    const base = `${roleOf(room)}-${compassOf(deg)}`;
+    let name = base;
+    for (let k = 2; names.has(name); k++) name = `${base}-${k}`;
+    names.add(name);
+    sockets.push({ name, part: roleOf(room), bearing: compassOf(deg), ...(width !== 2 && { width }) });
+  };
+  (spec.connections ?? []).forEach((c, k) => {
+    const inA = chosen.has(c.a), inB = chosen.has(c.b), cg = l.connections[k];
+    if (inA && inB) ties.push({ a: roleOf(c.a), b: roleOf(c.b), kind: 'door', ...(c.kind && c.kind !== 'door' && c.kind !== 'open' && { doors: [c.kind, null] as [DoorKind, null] }) });
+    else if (inA !== inB) { const me = geo.get(inA ? c.a : c.b)!; socket(me.room.id, degFrom(cg.x - me.cx, cg.y - me.cy), 2); }
+  });
+  spec.corridors.forEach((c, k) => {
+    const a = 'room' in c.from ? c.from.room : null, b = 'room' in c.to ? c.to.room : null, inA = !!a && chosen.has(a), inB = !!b && chosen.has(b), g = l.corridors[k];
+    if (inA && inB) ties.push({ a: roleOf(a!), b: roleOf(b!), kind: 'passage', ...(c.doors && (c.doors[0] || c.doors[1]) && { doors: c.doors }), ...(c.style === 'natural' && { style: 'natural' as const }) });
+    else if (inA || inB) {
+      // the way the corridor leaves its room: its end's heading (0 east, clockwise) as a bearing
+      const end = g.ends[inA ? 0 : 1], me = geo.get(inA ? a! : b!)!;
+      const deg = end ? (end.angle + 90 + 360) % 360 : degFrom((g.pts[inA ? 2 : g.pts.length - 4] ?? me.cx) - me.cx, (g.pts[inA ? 3 : g.pts.length - 3] ?? me.cy) - me.cy);
+      socket(me.room.id, deg, g.width);
+    }
+  });
+  // each room's side of the room it is first reached from (flexible layouts)
+  if (!o.rigid) {
+    const seen = new Set([roles[0]]), queue = [roles[0]], byRole = new Map(o.rooms.map(id => [roleOf(id), geo.get(id)!]));
+    while (queue.length) {
+      const r = queue.shift()!;
+      for (const t of ties) {
+        const other = t.a === r ? t.b : t.b === r ? t.a : null;
+        if (!other || seen.has(other)) continue;
+        seen.add(other); queue.push(other);
+        const from = byRole.get(r)!, to = byRole.get(other)!;
+        parts.find(p => p.role === other)!.at = { part: r, side: compassOf(degFrom(to.cx - from.cx, to.cy - from.cy)) };
+      }
+    }
+  }
+  const out: Layout = {
+    id: o.id, ...(o.name && { name: o.name }), ...(o.tags?.length && { tags: o.tags }),
+    source: { kind: 'drawn', ...(o.origin && { origin: o.origin }), note: `rooms ${o.rooms.join(', ')}` },
+    parts, ...(ties.length && { ties }), ...(sockets.length && { sockets }), ...(o.rigid && { rigid: true }),
+  };
+  const errs = validateLayout(out);
+  if (errs.length) throw new Error(`extract made a layout that does not validate:\n  ${errs.join('\n  ')}`);
+  return out;
 }
