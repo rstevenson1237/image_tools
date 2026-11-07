@@ -2,6 +2,56 @@
 
 Releases of the committed install (`artgen-dist`) and its modules, the MCP server, the runtime it vendors, the library package files and the Python client. The map engines (`mapgen`, the `maps` module) have a version line of their own, named in each section.
 
+## Unreleased
+
+mapgen 0.13.0 → next. Dungeon format stays at 2: every new key is optional, and a file written for 0.13.0 keeps its meaning.
+
+**Designing levels (from setting_builder's report on `docs/DUNGEON-DESIGN.md`; plan in `docs/DUNGEON-DESIGN.md` §10)**
+- `dungeon layout` graphs gain: `pad` (graph and room: rooms pack apart, so every way is a passage long enough for its doors); `at`
+  (a room placed exactly) and `via` (a passage drawn as given between placed rooms); `origin` (the frame `over`, `at`, `via` and
+  `keepOut` are given in; with no footprint the square centres on the pinned rooms); `hold` (a bearing kept as a rule) and `lines`
+  (rooms on one row or column); `spokes` (passages from one room keep apart); `partial` (write the packing that routes most);
+  `draw`, `symbols` and `ring` on rooms and `draw` on ways, and the graph's `style` and `legend`, carried into the file.
+- The report adds `routed`, `origin`, `places` (each room's corner and centre in the graph's frame), `held`, `gaps` and `partial`.
+- `dungeon layout --seeds n [--keep k] [--sheet s.png]`: n seeds laid out, each scored on what `check` finds and on ways left,
+  held bearings strayed and detours; the best written, a contact sheet drawn. `dungeon.layoutCandidates`, `scoreLayout`,
+  `contactSheetSvg` in code.
+- Caves in a layout are routed to their drawn outline (a door used to stand on the box, which `check` found as `way-no-passage`).
+- Passages of a layout stay inside a square footprint (they could run round its edge, which `check` found as `outside-bounds`), and
+  a room's doors keep a passage's width apart where the wall allows (on a round room's slant they stacked).
+- A door off the lattice stands where the passage's own lattice line meets the wall, so a passage meets a round, octagonal or
+  polygon room square on; a maze corridor runs in from the room's cell behind its door.
+- `check`: `passages-tangle`, two corridors from one room that cross or run together for more than two cells.
+
+**Layouts and designs (R1, R2, R4, R6, R7)**
+- Layouts, design patterns that chain together (`artgen schema layout`): parameters, parts with roles and counts, where each
+  stands against another, ties, sockets with a bearing and a width, lines and mirrors; `rigid` layouts placed exactly. Bundled:
+  `cell-row`, `spine-ring-hub`, `axis-of-halls`, `suite`, `secret-bypass`, `stair-vestibule`, `gatehouse`; a project adds its own in
+  `art/dungeons/layouts/`. `dungeon layouts` lists them.
+- Designs (`artgen schema design`): the layouts used, the rooms each role holds, rooms and ways of its own, joins between sockets
+  and rooms. `dungeon design` expands one to a graph (joined sockets must face one another and match in width; a room whose
+  walls are short for its ways grows); `dungeon layout --design` lays it out. New skill: `dungeon-design`.
+- Graphs gain `mirrors`, a way's `run` (`passage` or `wall`) and `wallB`, `reach` and `bounds: hull`; the report adds `hull`.
+- `dungeon extract`: rooms of a drawn dungeon as a layout. `dungeon trace`: a drawn map's grid, floor cells, walls and rooms as a
+  draft dungeon (the measuring half of tracing).
+- The packer is faster (the same packings) and keeps labels apart by the label drawn, not the room's id.
+
+**A level laid out from the bottom up (R13)**
+- `dungeon layout --design d.json --nested`: each layout laid out alone, then each block (`blocks` in the design) of its pieces,
+  then the level of its blocks; pieces turn to face their ways out; the gaps grow, and stuck layouts are laid out again, until
+  every way routes. `--seeds` runs the whole tree. `dungeon.layoutNested`, `nestedCandidates` in code.
+- The router can cross a passage as a crossroads (`crossings`), take named ways first (`routeFirst`), and keep its doors off
+  passages given as they are; a way with `via` may give its `ports`.
+- A room grows along its length when its walls are short for its ways (a hall stays a hall).
+
+**Drawing**
+- A `{room}` end with `via` leaves the room level with its first bend, square to the wall, not on a slant from the anchor; several
+  ends that leave one wall with no `offset` are spread along it. Files that relied on either drawing may draw a little differently.
+- `style.palette.rock` colours the hatching too; `palette.paper` and `palette.partition` are new. Light ink puts the title, scale bar
+  and legend on the rock's colour. `dark` and `blueprint` keep walls between touching rooms at full weight, in the ink where the
+  walls take the rock's colour. A long legend runs in columns instead of shrinking the map.
+- A settlement drawn `--theme bw` draws its terrain underlay in black and white too.
+
 ## 0.13.0 — 2026-11-05
 
 mapgen 0.12.0 → 0.13.0

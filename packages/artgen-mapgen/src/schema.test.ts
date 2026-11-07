@@ -58,6 +58,16 @@ describe('schemas', () => {
     expect(undeclared('graph', readPaths(g, v => validateGraph(v as never)))).toEqual([]);
   });
 
+  test('layout and design: every key the validator and the expansion read is declared', () => {
+    const paths = new Set<string>();
+    for (const l of D.LAYOUTS) for (const p of readPaths(l, v => D.validateLayout(v as never))) paths.add(p);
+    expect(undeclared('layout', paths)).toEqual([]);
+    const d = { id: 'd', width: 2, seed: 1, rooms: [{ id: 'X', w: 4, h: 4 }], ways: [], uses: [{ id: 'row', layout: 'cell-row', params: { 'per-row': 2 } }, { id: 'v', layout: 'stair-vestibule' }],
+      bind: [{ use: 'row', role: 'hall', rooms: ['H'] }], joins: [{ from: 'row.e', to: 'v.in', kind: 'passage', doors: ['door', null], style: 'built', hold: true }, { from: 'row.w', to: 'X' }], layouts: [] };
+    const read = readPaths(d, v => D.expandDesign(v as never, D.LAYOUTS));
+    expect(undeclared('design', new Set([...read].filter(p => !p.startsWith('layouts'))))).toEqual([]);
+  });
+
   test('map: every key the validator reads is declared', () => {
     const area = { circle: [3, 3, 2] }, full = {
       ...M.newMap('m', 'local'), title: 't',

@@ -403,7 +403,7 @@ function siteSvg(spec: SettlementSpec, o: RenderSettlementOptions): string {
   const pat = new Set<string>(), usePat = (name: string, cells = 1) => { const id = `p-${name}`; if (!pat.has(id)) { pat.add(id); defs.push(patternDef(id, name, k, ink, cells)); } return `url(#${id})`; };
 
   if (on.ground) parts.push(`<rect id="ground" width="${n1(W)}" height="${n1(H)}" fill="${p.ground[spec.ground]}"/>`);
-  if (on.underlay && spec.underlay && o.underlay) parts.push(underlaySvg(spec, o.underlay.map, k, o.underlay.field));
+  if (on.underlay && spec.underlay && o.underlay) parts.push(underlaySvg(spec, o.underlay.map, k, o.underlay.field, o.theme === 'bw' ? 'bw' : undefined));
 
   if (on.areas && spec.areas.length) {
     let g = '';

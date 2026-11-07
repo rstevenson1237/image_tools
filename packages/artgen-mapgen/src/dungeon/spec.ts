@@ -50,18 +50,23 @@ export const DOOR_GLYPHS = ['bar', 'square'] as const;
 export type DoorGlyph = (typeof DOOR_GLYPHS)[number];
 
 /** The colours of a map (all `#rrggbb`, each optional). `wall` is the ink unless set. */
-export interface Palette { rock?: string; floor?: string; ink?: string; grid?: string; wall?: string }
-export const PALETTE_KEYS = ['rock', 'floor', 'ink', 'grid', 'wall'] as const;
+/**
+ * A map's colours. `paper` is what the title, scale bar and legend are drawn on (default white, or the rock's colour when the
+ * ink is light, so light ink stays readable); `partition` the walls between touching floors (default the wall colour, or the
+ * ink where the walls take the rock's colour, so those walls stay visible).
+ */
+export interface Palette { rock?: string; floor?: string; ink?: string; grid?: string; wall?: string; paper?: string; partition?: string }
+export const PALETTE_KEYS = ['rock', 'floor', 'ink', 'grid', 'wall', 'paper', 'partition'] as const;
 
 /**
  * Named looks for matching an existing map. A preset fills the style and grid settings a file leaves out; what the file sets wins.
  * `artgen dungeon style --preset <name>` writes its values into the file.
  */
 export const STYLE_PRESETS = {
-  /** Solid dark rock with a one-cell grid, plain numerals, and outer walls that vanish into the rock. */
-  dark: { style: { hatch: 'none', rock: 'solid', wall: 0.3, numbers: 'plain', palette: { rock: '#3a3a40' } }, grid: { size: 1, sub: false } },
-  /** Blue rock, white floors, thin light-blue grid and walls that match the rock. */
-  blueprint: { style: { hatch: 'none', rock: 'solid', wall: 0.4, numbers: 'plain', palette: { rock: '#3d6bb3', wall: '#3d6bb3', ink: '#17366b', grid: '#8fb2e6' } }, grid: { size: 1, sub: false } },
+  /** Solid dark rock with a one-cell grid, plain numerals, and outer walls that vanish into the rock; walls between touching rooms keep a full weight. */
+  dark: { style: { hatch: 'none', rock: 'solid', wall: 0.3, partition: 1, numbers: 'plain', palette: { rock: '#3a3a40' } }, grid: { size: 1, sub: false } },
+  /** Blue rock, white floors, thin light-blue grid and walls that match the rock; walls between touching rooms in the ink, at a full weight. */
+  blueprint: { style: { hatch: 'none', rock: 'solid', wall: 0.4, partition: 1, numbers: 'plain', palette: { rock: '#3d6bb3', wall: '#3d6bb3', ink: '#17366b', grid: '#8fb2e6' } }, grid: { size: 1, sub: false } },
 } as const satisfies Record<string, { style: Record<string, unknown>; grid: Partial<DungeonSpec['grid']> }>;
 export type StylePreset = keyof typeof STYLE_PRESETS;
 export const PRESET_NAMES = Object.keys(STYLE_PRESETS) as StylePreset[];

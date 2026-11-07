@@ -3,8 +3,8 @@
  * of free lattice cells from a cell against one room's wall to a cell against the other's, bending where it likes.
  * A passage never runs through a room, never touches an unrelated way's passage, and may join and part from a passage
  * that leaves the same room, but never runs beside it. Its door stands on the wall between the room and the passage's
- * first cell: square across it where that wall runs along the lattice, else where the line from the room's hub to that
- * cell crosses the wall. A way that names its wall (a bearing from the room's centre) leaves within half a compass point
+ * first cell: square across it where that wall runs along the lattice, else where the lattice line from that cell into
+ * the room crosses the wall (so a passage meets a round or slanted wall square on). A way that names its wall (a bearing from the room's centre) leaves within half a compass point
  * of it, or where the room has no door there, by the nearest it has.
  *
  * Units: one lattice cell is `LATTICE` units, the passage's width (a 10 ft passage on a 5 ft grid: 2 dungeon cells).
@@ -22,6 +22,8 @@ const RUN = 4, RUN_COST = 0.2;
 const SHARE = 0.4;
 /** The most a cell's noise adds, so equal routes differ. */
 const WANDER = 0.45;
+/** What crossing another passage costs, in cells of path. */
+const CROSS = 6;
 /** Degrees: half a compass point, how far a door may stand from its stated wall. */
 const HALF = 11.25;
 /** Sides of the polygon a round room is drawn as. */
@@ -163,9 +165,11 @@ export class Footprint {
           const p: Pt = this.square ? (s === 'n' ? [mid[0], this.y] : s === 's' ? [mid[0], this.y + this.h] : s === 'w' ? [this.x, mid[1]] : [this.x + this.w, mid[1]])
             : this.cross([(i + 0.5) * LATTICE, (j + 0.5) * LATTICE], [(f[0] + 0.5) * LATTICE, (f[1] + 0.5) * LATTICE]);
           out.push({ cell: f, inner: [i, j], side: s, point: p, bearing: bearing(p[0] - cx, p[1] - cy) });
-        } else if (!seen.has(key(f)) && this.hub) {
+        } else if (!seen.has(key(f))) {
           seen.add(key(f));
-          const p = this.cross(this.hub, [(f[0] + 0.5) * LATTICE, (f[1] + 0.5) * LATTICE]);
+          // off the lattice the door stands where the passage's own line (the free cell's centre, square into the room) meets the wall,
+          // so the passage arrives square on rather than slanting to the room's hub, and passages to cells side by side do not meet
+          const p = this.cross([(i + 0.5) * LATTICE, (j + 0.5) * LATTICE], [(f[0] + 0.5) * LATTICE, (f[1] + 0.5) * LATTICE]);
           out.push({ cell: f, inner: [i, j], side: '', point: p, bearing: bearing(p[0] - cx, p[1] - cy) });
         }
       }
@@ -259,6 +263,17 @@ export interface RouterOptions {
   bend?: number;
   /** Cells taken already (by corridors laid out another way), each with the rooms its corridor joins. */
   taken?: Map<string, string[]>;
+  /** Ways to route before the rest, in this order (the others keep theirs: shortest first). */
+  first?: [string, string][];
+  /**
+   * Let a passage cross another (a crossroads) where it finds no other way: straight over it at right angles, where the other
+   * runs straight, at a cost of CROSS cells of path. Off by default: passages that share no room never meet.
+   */
+  cross?: boolean;
+  /** Doors that stand already (passages laid out another way), by room: a new door of that room keeps a passage's width off them. */
+  heldDoors?: [string, Pt][];
+  /** What a cell another way from the same room already uses costs (default -SHARE: they join and run together). A cost keeps them apart, as spokes. */
+  share?: number;
 }
 
 /** Routes ways between the rooms one at a time, each seeing the passages before it. */
@@ -268,15 +283,18 @@ export class Router {
   readonly against = new Map<string, Set<string>>();
   readonly used = new Map<string, Set<number>>();
   readonly doors = new Set<string>();
+  /** The door points of each room's passages so far: another door of that room keeps a passage's width off them. */
+  private readonly doorPts = new Map<string, Pt[]>();
   readonly routes: Route[] = [];
   readonly ends: [string, string][] = [];
   private readonly seed: number; private readonly ground: Set<string> | null; private readonly clearance: number; private readonly bend: number;
-  private readonly taken: Map<string, string[]>;
+  private readonly taken: Map<string, string[]>; private readonly share: number; private readonly cross: boolean;
 
   readonly rooms: Map<string, Footprint>;
   constructor(rooms: Map<string, Footprint>, o: RouterOptions = {}) {
     this.rooms = rooms;
-    this.seed = o.seed ?? 1; this.ground = o.ground ?? null; this.clearance = o.clearance ?? 1; this.bend = o.bend ?? TURN; this.taken = o.taken ?? new Map();
+    this.seed = o.seed ?? 1; this.ground = o.ground ?? null; this.clearance = o.clearance ?? 1; this.bend = o.bend ?? TURN; this.taken = o.taken ?? new Map(); this.share = o.share ?? -SHARE; this.cross = !!o.cross;
+    for (const [room, pt] of o.heldDoors ?? []) this.doorPts.set(room, [...(this.doorPts.get(room) ?? []), pt]);
     const margin = o.margin ?? 2, spans = [...rooms.values()].map(r => r.span);
     this.lo = [Math.min(...spans.map(s => s[0])) - margin, Math.min(...spans.map(s => s[1])) - margin];
     this.hi = [Math.max(...spans.map(s => s[2])) + margin, Math.max(...spans.map(s => s[3])) + margin];
@@ -298,7 +316,11 @@ export class Router {
   /** Whether routes i and j leave a room in common, so may run together. */
   related(i: number, j: number): boolean { return this.ends[i].some(x => this.ends[j].includes(x)); }
   doorway(room: string, want?: number | null): Slot[] {
-    return this.rooms.get(room)!.allowed(want).filter(s => this.inside(s.cell) && !this.solid.has(key(s.cell)) && !this.doors.has(`${room}|${key(s.cell)}`));
+    const open = this.rooms.get(room)!.allowed(want).filter(s => this.inside(s.cell) && !this.solid.has(key(s.cell)) && !this.doors.has(`${room}|${key(s.cell)}`));
+    // a door closer to another of the room's doors than a passage's width stands on it (on a curved wall, cells that only
+    // touch at a corner open onto the wall a little apart): those are taken only when the room has no other
+    const taken = this.doorPts.get(room) ?? [], spaced = open.filter(s => taken.every(p => Math.hypot(p[0] - s.point[0], p[1] - s.point[1]) >= LATTICE - 1e-6));
+    return spaced.length ? spaced : open;
   }
   free(c: Cell, me: number): boolean {
     const k = key(c);
@@ -310,6 +332,25 @@ export class Router {
       if (t && !t.some(x => this.ends[me].includes(x))) return false;
     }
     return true;
+  }
+  /** Whether a cell holds a passage that shares no room with route `me` (one routed here, or one laid out another way). */
+  blockedBy(c: Cell, me: number): boolean {
+    const k = key(c);
+    for (const u of this.used.get(k) ?? []) if (!this.related(u, me)) return true;
+    const t = this.taken.get(k);
+    return !!t && !t.some(x => this.ends[me].includes(x));
+  }
+  /** Whether route `me` may cross a passage from c going `d`: c+d and c+3d clear of it, c+2d on it where it runs straight across. */
+  crossing(c: Cell, [dx, dy]: Cell, me: number): [Cell, Cell, Cell] | null {
+    const at = (k: number): Cell => [c[0] + dx * k, c[1] + dy * k], [c1, c2, c3] = [at(1), at(2), at(3)], p: Cell = [dy, dx];
+    const plain = (x: Cell) => this.inside(x) && !this.solid.has(key(x)) && (!this.ground || this.ground.has(key(x)));
+    if (![c1, c2, c3].every(plain) || this.blockedBy(c1, me) || this.blockedBy(c3, me) || !this.blockedBy(c2, me)) return null;
+    // the other passage runs straight across: on both sides of c2, and not along our line
+    if (!this.blockedBy([c2[0] + p[0], c2[1] + p[1]], me) || !this.blockedBy([c2[0] - p[0], c2[1] - p[1]], me)) return null;
+    // c1 and c3 touch nothing but the crossing (no running beside it); beyond c3 is open
+    for (const x of [c1, c3]) for (const q of [p, [-p[0], -p[1]] as Cell]) if (this.blockedBy([x[0] + q[0], x[1] + q[1]], me)) return null;
+    if (this.blockedBy(at(4), me) || this.blockedBy(at(0), me)) return null;
+    return [c1, c2, c3];
   }
   /** Whether a step from cell c (null at a door) to n runs beside another way's passage from the same room, rather than joining or leaving it. */
   beside(c: Cell | null, n: Cell, me: number): boolean {
@@ -346,6 +387,7 @@ export class Router {
     r.length = this.measure(r);
     for (const c of cells) { const k = key(c); if (!this.used.has(k)) this.used.set(k, new Set()); this.used.get(k)!.add(me); }
     this.doors.add(`${a}|${key(cells[0])}`); this.doors.add(`${b}|${key(cells[cells.length - 1])}`);
+    for (const [room, slot] of [[a, sa], [b, sb]] as const) this.doorPts.set(room, [...(this.doorPts.get(room) ?? []), slot.point]);
     this.routes.push(r);
     return r;
   }
@@ -364,7 +406,7 @@ export class Router {
     if (!goals.size || !starts.length) return null;
     const rb = this.rooms.get(b)!, tx = rb.x / LATTICE + rb.w / LATTICE / 2, ty = rb.y / LATTICE + rb.h / LATTICE / 2;
     const h = (c: Cell) => Math.max(0, Math.abs(c[0] + 0.5 - tx) + Math.abs(c[1] + 0.5 - ty) - (rb.w + rb.h) / LATTICE / 2);
-    const heap: [number, number, number, string][] = [], best = new Map<string, number>(), back = new Map<string, [string | null, Slot | null]>();
+    const heap: [number, number, number, string][] = [], best = new Map<string, number>(), back = new Map<string, [string | null, Slot | null]>(), jumps = new Map<string, [Cell, Cell]>();
     let tie = 0;
     const push = (item: [number, number, number, string]) => {
       heap.push(item);
@@ -409,7 +451,7 @@ export class Router {
       if (goals.has(key(c))) {
         const cells: Cell[] = [];
         let entry: Slot | null = null;
-        for (let x: string | null = s; x;) { const q = x.split(','); cells.push([+q[0], +q[1]]); const link: [string | null, Slot | null] = back.get(x)!; if (link[0] === null) entry = link[1]; x = link[0]; }
+        for (let x: string | null = s; x;) { const q = x.split(','); cells.push([+q[0], +q[1]]); const j = jumps.get(x); if (j) cells.push(j[1], j[0]); const link: [string | null, Slot | null] = back.get(x)!; if (link[0] === null) entry = link[1]; x = link[0]; }
         return [cells.reverse(), entry!, goals.get(key(c))!];
       }
       for (const [nd, [dx, dy]] of Object.entries(STEPS) as [SideName, Cell][]) {
@@ -419,12 +461,22 @@ export class Router {
         if (!this.clearOf(n, atGoal ? ownAtGoal : new Set<string>())) continue;
         if (this.clearance <= 0 && intrudes(n, atGoal ? ownAtGoal : new Set<string>())) continue;
         let step = 1 + this.noise(n);
-        if (this.used.get(key(n))?.size) step -= SHARE;
+        if (this.used.get(key(n))?.size) step += this.share;
         if (d && nd !== d) step += this.bend;
         const r = nd === d ? run + 1 : 1;
         if (r > RUN) step += RUN_COST;
         const ns = st(n, nd, Math.min(r, RUN + 1)), nc = cost + step;
         if (nc < (best.get(ns) ?? 1e9) - 1e-9) { best.set(ns, nc); back.set(ns, [s, null]); push([nc + h(n), tie++, nc, ns]); }
+      }
+      // a crossroads: straight over an unrelated passage, landing three cells on
+      if (this.cross) for (const [nd, step] of Object.entries(STEPS) as [SideName, Cell][]) {
+        if (d && nd === TURNED[d as SideName]) continue;
+        const j = this.crossing(c, step, me);
+        if (!j || goals.has(key(j[0])) || goals.has(key(j[1]))) continue;
+        const n = j[2];
+        if (this.beside(c, j[0], me) || !this.clearOf(n, goals.has(key(n)) ? ownAtGoal : new Set<string>()) || (this.clearance <= 0 && intrudes(n, goals.has(key(n)) ? ownAtGoal : new Set<string>()))) continue;
+        const ns = st(n, nd, 1), nc = cost + 3 + CROSS + this.noise(n) + (d && nd !== d ? this.bend : 0);
+        if (nc < (best.get(ns) ?? 1e9) - 1e-9) { best.set(ns, nc); back.set(ns, [s, null]); jumps.set(ns, [j[0], j[1]]); push([nc + h(n), tie++, nc, ns]); }
       }
     }
     return null;
@@ -443,6 +495,11 @@ export function plan(rooms: Map<string, Footprint>, ways: [string, string][], o:
   const pairs = [...new Map(ways.map(w => { const p = [...w].sort((x, y) => num(x) - num(y) || (x < y ? -1 : 1)) as [string, string]; return [p.join('|'), p]; })).values()];
   const dist = (p: [string, string]) => Math.round(Math.hypot(rooms.get(p[0])!.x - rooms.get(p[1])!.x, rooms.get(p[0])!.y - rooms.get(p[1])!.y));
   pairs.sort((p, q) => dist(p) - dist(q) || (p.join('|') < q.join('|') ? -1 : 1));
+  // ways named to go first (re-routing round the ones that found no passage), in the order given
+  if (o.first?.length) {
+    const rank = new Map(o.first.map((w, i) => [[...w].sort().join('|'), i]));
+    pairs.sort((p, q) => (rank.get([...p].sort().join('|')) ?? Infinity) - (rank.get([...q].sort().join('|')) ?? Infinity));
+  }
   const router = new Router(rooms, o), left: string[] = [];
   for (const [a, b] of pairs) if (!router.add(a, b, walls.get(`${a}|${b}`), walls.get(`${b}|${a}`))) left.push(`${a} to ${b}`);
   return { routes: router.routes, left };

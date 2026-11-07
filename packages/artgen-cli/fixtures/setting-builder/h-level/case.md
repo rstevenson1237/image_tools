@@ -33,3 +33,4 @@ render: not made (--no-render)
 
 - The consumer's router keeps every passage a cell off every wall but its door's, because no wall is drawn between a corridor and a room (A1, R9 D2).
 - corridors[1] runs along H-3's south wall for 0.6 cells beside its door (`corridor-along-wall`): the 10 ft passage arrives sideways and its floor touches the wall before it turns in.
+- corridors[4] and corridors[5] leave one room and share their first 7.8 cells (`passages-tangle`): allowed, but they read as one passage that parts, not as two.

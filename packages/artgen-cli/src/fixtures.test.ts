@@ -185,7 +185,7 @@ describe('setting-builder/shrine-crypts', () => {
 
 describe.each([
   { name: 'g-level', code: 'G', rooms: 19, corridors: 5, connections: 16, doors: 13, warnings: [] as string[] },
-  { name: 'h-level', code: 'H', rooms: 13, corridors: 6, connections: 10, doors: 7, warnings: ['corridor-along-wall corridors[1]'] },
+  { name: 'h-level', code: 'H', rooms: 13, corridors: 6, connections: 10, doors: 7, warnings: ['passages-tangle corridors[5]', 'corridor-along-wall corridors[1]'] },
 ])('setting-builder/$name (a packed level, R9 D1)', ({ name, code, rooms, corridors, connections, doors, warnings }) => {
   const { file } = bareCopy('setting-builder', name);
   test('is at the format version case.md states; check gives no errors and the warnings case.md names', async () => {
