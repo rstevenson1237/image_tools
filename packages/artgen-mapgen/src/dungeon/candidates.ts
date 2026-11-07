@@ -7,6 +7,8 @@
  */
 import { esc, FONT, n1 } from 'artgen-primitives/lib/svgdraw.ts';
 import { layoutGraph, type Graph, type GraphReport } from './graph.ts';
+import { layoutNested, type NestedReport } from './nested.ts';
+import type { Design, Layout } from './design.ts';
 import { lintDungeon, type CheckId } from './lint.ts';
 import { dungeonRenderSize, renderDungeonSvg } from './render.ts';
 import type { DungeonSpec } from './spec.ts';
@@ -42,6 +44,20 @@ export function layoutCandidates(g: Graph, seeds: number): Candidates {
     try {
       const { spec, report } = layoutGraph({ ...g, seed });
       ranked.push({ seed, ...scoreLayout(spec, report), report, spec });
+    } catch (e) { failed.push({ seed, error: (e as Error).message.split('\n')[0] }); }
+  }
+  ranked.sort((a, b) => b.score - a.score || a.seed - b.seed);
+  return { ranked, failed };
+}
+
+/** A design laid out from the bottom up (`layoutNested`) from `seeds` seeds, best score first; each keeps its nested report. */
+export function nestedCandidates(d: Design, library: Layout[], seeds: number): { ranked: (Candidate & { nested: NestedReport })[]; failed: { seed: number; error: string }[] } {
+  const from = d.seed ?? 1, ranked: (Candidate & { nested: NestedReport })[] = [], failed: { seed: number; error: string }[] = [];
+  for (let k = 0; k < Math.max(1, seeds); k++) {
+    const seed = from + k;
+    try {
+      const { spec, report } = layoutNested({ ...d, seed }, library);
+      ranked.push({ seed, ...scoreLayout(spec, report.final), report: report.final, spec, nested: report });
     } catch (e) { failed.push({ seed, error: (e as Error).message.split('\n')[0] }); }
   }
   ranked.sort((a, b) => b.score - a.score || a.seed - b.seed);

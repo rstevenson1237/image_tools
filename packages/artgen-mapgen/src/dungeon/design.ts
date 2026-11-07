@@ -79,7 +79,15 @@ export interface Design extends Omit<Graph, 'rooms' | 'ways'> {
   rooms?: GraphRoom[]; ways?: GraphWay[];
   /** Layouts of its own, over the library's of the same id. */
   layouts?: Layout[];
+  /**
+   * Thematic blocks: groups of uses and rooms (and blocks within them) laid out together, each as one piece of the level
+   * (`layoutNested`: each layout alone, then each block of its layouts, then the level of its blocks). Uses and rooms in no
+   * block belong to the level itself.
+   */
+  blocks?: DesignBlock[];
 }
+/** A block of a design: its uses, its own rooms, and blocks within it. */
+export interface DesignBlock { id: string; uses?: string[]; rooms?: string[]; blocks?: DesignBlock[] }
 
 /** What the expansion did: the rooms each use made, the sockets and whether each is joined, the rooms grown, and warnings. */
 export interface ExpandReport {
@@ -321,12 +329,13 @@ export function expandDesign(d: Design, library: Layout[] = []): { graph: Graph;
     if (capacity(r, width) >= n || r.shape === 'poly') continue;
     if (fixedSize.has(r.id) || r.at || r.against) { warnings.push(`${r.id}: ${n} ways leave a ${r.w}×${r.h} room, more than its walls hold well`); continue; }
     const from: [number, number] = [r.w, r.h];
-    while (capacity(r, width) < n) { r.w += width; r.h += width; }
+    // a long room grows along its length (a hall stays a hall); a square one both ways
+    while (capacity(r, width) < n) { if (r.w > r.h) r.w += width; else if (r.h > r.w) r.h += width; else { r.w += width; r.h += width; } }
     report.grown.push({ room: r.id, from, to: [r.w, r.h], ways: n });
   }
 
   const graph: Graph = { ...d, rooms, ways, ...(lines.length && { lines }), ...(mirrors.length && { mirrors }) };
-  for (const k of ['uses', 'bind', 'joins', 'layouts'] as const) delete (graph as unknown as Record<string, unknown>)[k];
+  for (const k of ['uses', 'bind', 'joins', 'layouts', 'blocks'] as const) delete (graph as unknown as Record<string, unknown>)[k];
   return { graph, report };
 }
 

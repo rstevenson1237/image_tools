@@ -83,6 +83,8 @@ export interface GraphWay {
   hold?: boolean;
   /** The passage's bends (x,y cells, in the graph's frame), drawn as given and not routed: both rooms must stand `at` a place. */
   via?: number[];
+  /** With `via`: where it leaves a and enters b, on their walls (x,y cells, the graph's frame); unset, it leaves each room square on from its centre line. */
+  ports?: [number, number, number, number];
   /** What the passage or the door through the shared wall is drawn with: written into its entry of the file as given. */
   draw?: WayDraw;
 }
@@ -132,6 +134,10 @@ export interface Graph {
   reach?: number;
   /** The level's outline in the file: the footprint's square (the default) or the convex hull round what the packing holds, a cell out (an unbounded level's own shape). */
   bounds?: 'square' | 'hull';
+  /** Ways the router takes before the rest, in this order (a re-route round ways that found no passage). */
+  routeFirst?: [string, string][];
+  /** Let a passage cross another as a crossroads where it finds no other way (default false). */
+  crossings?: boolean;
   /** Passages from one room keep apart where they can (each reads as its own spoke), rather than joining into one run and parting. */
   spokes?: boolean;
   /** Style settings for the file (see `DungeonSpec.style`), over the layout's own. */
@@ -536,6 +542,10 @@ interface Ctx {
   taken: Map<string, string[]>;
   /** What sharing a cell with another passage from the same room costs the router (undefined: its own bonus). */
   share?: number;
+  first?: [string, string][];
+  cross?: boolean;
+  /** The doors of the passages given as they are, by room (units). */
+  held: [string, Pt][];
 }
 
 /** One packing from one seed, re-annealed round the ways that found no passage or walk more than `detour` out of their way. */
@@ -545,7 +555,7 @@ function attempt(x: Ctx, side: number, seed: number, ground: Set<string> | null,
   const pairs = x.ways.map(([a, b]) => [a, b] as [string, string]);
   let best: Attempt | null = null, partial: Attempt | null = null;
   for (let n = 0; n < REPAIRS; n++) {
-    const rects = p.rects(), { routes, left } = plan(rects, pairs, { walls: x.walls, ground: paths, seed: 1, clearance: x.clearance, taken: x.taken, share: x.share });
+    const rects = p.rects(), { routes, left } = plan(rects, pairs, { walls: x.walls, ground: paths, seed: 1, clearance: x.clearance, taken: x.taken, share: x.share, first: x.first, cross: x.cross, heldDoors: x.held });
     const far = left.length ? [] : detours(routes, rects, x.detour), clear = p.clear() && p.over();
     if (!left.length && clear) {
       const score: [number, number] = [far.length + p.strays().length, routes.reduce((s, r) => s + r.length, 0)];
@@ -556,6 +566,8 @@ function attempt(x: Ctx, side: number, seed: number, ground: Set<string> | null,
       const [a, b] = name.split(' to ').map(c => p.ix.get(c)!), k = `${Math.min(a, b)},${Math.max(a, b)}`;
       p.setFix(a, b, p.round[a] || p.round[b] || p.trouble.get(k) === 'door' ? 'lane' : 'door');
     }
+    // with every room placed there is nothing to repair: the next plan would be the same
+    if (!p.free.length) break;
     p.anneal(REPAIR_STEPS, 1, true);
   }
   return best ?? partial ?? { ok: false, score: null, energy: p.total(), x: p.x, y: p.y, o: p.o, left: Infinity };
@@ -608,6 +620,7 @@ export function validateGraph(g: Graph): string[] {
     if (w?.via !== undefined) {
       if (!(Array.isArray(w.via) && w.via.length % 2 === 0 && w.via.every(isNum))) e.push(`ways[${i}].via: x,y pairs, cells`);
       if (!placed.has(w.a) || !placed.has(w.b)) e.push(`ways[${i}].via: a way drawn as given joins two rooms that stand at a place (at)`);
+      if (w.ports !== undefined && !(Array.isArray(w.ports) && w.ports.length === 4 && w.ports.every(isNum))) e.push(`ways[${i}].ports: [ax, ay, bx, by], cells`);
     }
     if (w?.hold && w.bearing === undefined) e.push(`ways[${i}].hold: holds a bearing; give one`);
     if (w?.run !== undefined && w.run !== 'passage' && w.run !== 'wall') e.push(`ways[${i}].run: passage or wall`);
@@ -708,7 +721,8 @@ export function layoutGraph(g: Graph): { spec: DungeonSpec; report: GraphReport 
     // a passage given as it is takes its cells (from the rooms' centres through its bends): routed passages keep off them
     const taken = new Map<string, string[]>(), centre = (id: string): Pt => fr.fixed.get(id)!;
     for (const w of given) for (const k of lineCells([centre(w.a), ...fr.vias.get(w)!, centre(w.b)])) taken.set(k, [...(taken.get(k) ?? []), w.a, w.b]);
-    return { rooms, ways, passages, pins: fr.pins, glue, walls, detour, clearance, taken, share: g.spokes ? SPOKES : undefined, more: { far: g.reach === undefined ? undefined : u(g.reach), runs, fixed: fr.fixed, hold, lines: g.lines, mirrors: g.mirrors, f } };
+    const held: [string, Pt][] = given.flatMap(w => (w.ports ? [[w.a, [u(w.ports[0]) - fr.shift[0], u(w.ports[1]) - fr.shift[1]]], [w.b, [u(w.ports[2]) - fr.shift[0], u(w.ports[3]) - fr.shift[1]]]] as [string, Pt][] : []));
+    return { rooms, ways, passages, pins: fr.pins, glue, walls, detour, clearance, taken, share: g.spokes ? SPOKES : undefined, first: g.routeFirst, cross: g.crossings, held, more: { far: g.reach === undefined ? undefined : u(g.reach), runs, fixed: fr.fixed, hold, lines: g.lines, mirrors: g.mirrors, f } };
   };
   type Chosen = { side: number; run: Attempt; fr: ReturnType<typeof frameAt>; routed: number };
   let chosen: Chosen | null = null, fallback: Chosen | null = null;
@@ -730,7 +744,7 @@ export function layoutGraph(g: Graph): { spec: DungeonSpec; report: GraphReport 
   const { side, run, fr, routed } = chosen, ground = fr.ground, ctx = ctxAt(fr);
   const p = new Packer(rooms, ways, side, seed, passages, fr.pins, glue, ground, ctx.more);
   p.x = run.x; p.y = run.y; run.o.forEach((k, i) => p.lie(i, k));
-  const rects = p.rects(), { routes, left } = plan(rects, ways.map(([a, b]) => [a, b]), { walls, ground: fr.paths, seed: 1, clearance, taken: ctx.taken, share: ctx.share });
+  const rects = p.rects(), { routes, left } = plan(rects, ways.map(([a, b]) => [a, b]), { walls, ground: fr.paths, seed: 1, clearance, taken: ctx.taken, share: ctx.share, first: ctx.first, cross: ctx.cross, heldDoors: ctx.held });
 
   // the file, in cells, with the footprint `margin` cells in from the sheet's edge
   const margin = g.margin ?? 2, X = (v: number) => c(v) + margin, ix = new Map(g.rooms.map((r, i) => [r.id, i]));
@@ -760,7 +774,12 @@ export function layoutGraph(g: Graph): { spec: DungeonSpec; report: GraphReport 
   // passages given as they are: from each room's anchor through the bends, meeting each room square on
   for (const w of given) corridors.push({
     ...pick(w.draw, ['id', 'curve', 'seed', 'midDoors']),
-    from: { room: idOf(w.a) }, to: { room: idOf(w.b) }, via: fr.vias.get(w)!.flatMap(([x, y]) => [X(x), X(y)]), width: cell, doors: w.doors ?? ['door', null],
+    ...(() => {
+      if (!w.ports) return { from: { room: idOf(w.a) }, to: { room: idOf(w.b) } };
+      const [ax, ay] = [u(w.ports[0]) - fr.shift[0], u(w.ports[1]) - fr.shift[1]], [bx, by] = [u(w.ports[2]) - fr.shift[0], u(w.ports[3]) - fr.shift[1]];
+      return { from: { room: idOf(w.a), port: [X(ax), X(ay)] as [number, number] }, to: { room: idOf(w.b), port: [X(bx), X(by)] as [number, number] } };
+    })(),
+    via: fr.vias.get(w)!.flatMap(([x, y]) => [X(x), X(y)]), width: cell, doors: w.doors ?? ['door', null],
     ...(w.style === 'natural' && { style: 'natural' as const }), origin: 'layout',
   });
   // the hull round what the packing holds: every room's box and every passage cell, a cell out

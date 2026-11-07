@@ -844,6 +844,7 @@ const layout = defineOp({
     pad: p.num('cells kept clear round every room in the packing (to the lattice): joined rooms stand twice that apart, every way a passage'),
     origin: p.str('x,y: where the footprint\'s top-left lies in the frame over, at, via and keepOut are given in'), partial: p.bool('with no packing that routes every way, write the one that routes most and list the rest'),
     spokes: p.bool('passages from one room keep apart where they can, each its own spoke, rather than joining into one run'),
+    nested: p.bool('with --design: lay it out from the bottom up (each layout alone, then each block of its pieces, then the level), growing the gaps where a way between pieces finds no passage'),
     reach: p.num('cells between joined rooms past which the packing pulls them together hard (default 24)'), bounds: p.oneOf(['square', 'hull'], 'the outline in the file: square (default) or hull (round what the packing holds)', { error: 'square or hull' }),
     seeds: p.num('lay it out from this many seeds (the seed and those after it), score each and write the best'), keep: p.num('with seeds: write this many of the best (the rest as <id>-2, -3, …; default 1)'),
     sheet: p.str('with seeds: a contact sheet of the kept ones (.svg or .png)', { mcp: false }),
@@ -866,12 +867,17 @@ const layout = defineOp({
     if (i.spokes === true) g.spokes = true;
     g.id = i.path ? i.id ?? fileId(i.path) : i.id;
     const started = Date.now(), seconds = () => Math.round((Date.now() - started) / 100) / 10;
+    // nested: the design laid out from the bottom up, with the same settings the flags set on the graph
+    if (i.nested === true && !d) throw new Error('dungeon layout: --nested lays out a design (--design d.json)');
+    const library = d ? layoutLibrary(i, ctx).layouts : [];
+    const dn: dungeon.Design | null = i.nested === true && d ? { ...d, ...Object.fromEntries(Object.entries(g).filter(([k]) => k !== 'rooms' && k !== 'ways' && k !== 'lines' && k !== 'mirrors')) } : null;
     if (typeof i.seeds !== 'number' || i.seeds <= 1) {
       if (i.sheet !== undefined) throw new Error('dungeon layout: --sheet goes with --seeds');
-      const { spec, report } = dungeon.layoutGraph(g);
-      return { ...createDungeon(P, spec, i.force === true, i.path ? { file: i.path } : undefined), report: { ...report, seconds: seconds() }, design: expanded?.report, sheet: undefined as string | undefined, others: undefined as string[] | undefined, candidates: undefined as LayoutCandidate[] | undefined };
+      const run = dn ? (r => ({ spec: r.spec, report: r.report.final, nested: r.report.steps }))(dungeon.layoutNested(dn, library)) : { ...dungeon.layoutGraph(g), nested: undefined };
+      const { spec, report } = run;
+      return { ...createDungeon(P, spec, i.force === true, i.path ? { file: i.path } : undefined), report: { ...report, seconds: seconds() }, design: expanded?.report, nested: run.nested, sheet: undefined as string | undefined, others: undefined as string[] | undefined, candidates: undefined as LayoutCandidate[] | undefined };
     }
-    const { ranked, failed } = dungeon.layoutCandidates(g, i.seeds), keep = ranked.slice(0, Math.max(1, Math.floor(typeof i.keep === 'number' ? i.keep : 1)));
+    const { ranked, failed } = dn ? dungeon.nestedCandidates(dn, library, i.seeds) : dungeon.layoutCandidates(g, i.seeds), keep = ranked.slice(0, Math.max(1, Math.floor(typeof i.keep === 'number' ? i.keep : 1)));
     if (!keep.length) throw new Error(`dungeon layout: no seed of ${i.seeds} laid the graph out (${failed[0]?.error ?? 'no packing'})`);
     // the best under the id or file asked for, the next best beside it as <id>-2, -3, …
     const written = keep.map((c, n) => {
@@ -886,14 +892,15 @@ const layout = defineOp({
     }
     const best = keep[0];
     return {
-      ...written[0], report: { ...best.report, seconds: seconds() }, design: expanded?.report, sheet, others: written.slice(1).map(w => w.file),
+      ...written[0], report: { ...best.report, seconds: seconds() }, design: expanded?.report, nested: 'nested' in best ? (best as { nested: dungeon.NestedReport }).nested.steps : undefined, sheet, others: written.slice(1).map(w => w.file),
       candidates: [...ranked.map((c): LayoutCandidate => ({ seed: c.seed, score: c.score, findings: c.findings, left: c.report.left.length, side: c.report.side, fill: c.report.fill, passages: c.report.passages, walls: c.report.walls })), ...failed.map((f): LayoutCandidate => ({ seed: f.seed, score: null, error: f.error }))],
     };
   },
   cli: {
-    usage: '       artgen dungeon layout <id>|--file out.json --graph g.json [--footprint 40|x,y,…] [--origin x,y] [--keep-out x,y,…] [--fill 0.35,0.55] [--passages 0.35] [--pad n] [--reach n] [--bounds square|hull] [--detour n] [--seed n] [--tries 12] [--width 2] [--clearance 0|1] [--design d.json [--layouts dir]] [--partial] [--spokes] [--seeds n [--keep k] [--sheet s.png]] [--force]   rooms packed to a graph in a footprint, every way a door or a routed passage; --seeds scores that many seeds and keeps the best',
+    usage: '       artgen dungeon layout <id>|--file out.json --graph g.json [--footprint 40|x,y,…] [--origin x,y] [--keep-out x,y,…] [--fill 0.35,0.55] [--passages 0.35] [--pad n] [--reach n] [--bounds square|hull] [--detour n] [--seed n] [--tries 12] [--width 2] [--clearance 0|1] [--design d.json [--layouts dir] [--nested]] [--partial] [--spokes] [--seeds n [--keep k] [--sheet s.png]] [--force]   rooms packed to a graph in a footprint, every way a door or a routed passage; --seeds scores that many seeds and keeps the best',
     text: (r, i) => [`${r.file}: ${r.dungeon.rooms.length} rooms in a square ${r.report.side} cells across, rooms ${Math.round(r.report.fill * 100)}% of the ground; ${r.report.passages} passages, ${r.report.walls} doors through shared walls (${r.report.seconds} s)`,
       ...(r.design ? [...r.design.grown.map((g: { room: string; from: number[]; to: number[]; ways: number }) => `  ${g.room} grown from ${g.from.join('×')} to ${g.to.join('×')} for its ${g.ways} ways`), ...r.design.warnings.map((w: string) => `  design: ${w}`)] : []),
+      ...(r.nested ? r.nested.map((s: dungeon.NestedStep) => `  ${s.kind} ${s.id}: ${s.rooms} rooms in ${s.size.join('×')} cells${s.gap !== undefined ? `, pieces ${s.gap} apart` : ''} (${s.seconds.toFixed(1)} s)${s.left.length ? `; left: ${s.left.join('; ')}` : ''}`) : []),
       ...(r.report.partial ? ['  partial: the packing that routes most, not every way'] : []),
       ...r.report.left.map((w: string) => `  no passage fits the way from ${w}`), ...r.report.detours.map((d: { a: string; b: string; extra: number }) => `  ${d.a} to ${d.b} walks ${d.extra} cells past its detour`),
       ...r.report.held.map((h: { a: string; b: string; off: number }) => `  ${h.a} to ${h.b} strays ${h.off}° from its held bearing`),

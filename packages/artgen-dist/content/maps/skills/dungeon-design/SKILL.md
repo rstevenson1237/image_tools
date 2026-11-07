@@ -59,6 +59,9 @@ design when it says they do not.
 {{ARTGEN}} dungeon layout <id> --design d.json --seeds 12 --keep 3 --sheet art/dungeons/<id>/candidates.png
 ```
 
+For a level of more than about 20 rooms, add `--nested` (and group the layouts into thematic `blocks` in the design): each
+layout is laid out alone, then each block, then the level, the gaps growing until every way routes.
+
 Each seed is scored out of 100 on what `dungeon check` finds (stacked doors, a door off its wall, floor outside the bounds,
 passages from one room that cross or run together), ways left unrouted, held bearings strayed and detours. Show the user the
 contact sheet with each candidate's score and what it trades off (a tighter level, a cleaner hub, one passage that runs long).

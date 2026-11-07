@@ -276,11 +276,30 @@ Measured on setting_builder's own material:
   against 2, at 50% more time), twice the repair rounds (2 of 12, 70% more time). The level packs into a clump that walls a
   room in; what it needs is a packing that leaves room for passages it has not routed yet.
 
-### 10.4 Next, in order
+### 10.4 R13: a level laid out from the bottom up
 
-1. **R13, routing** (M to L): space for passages in the packing (a free lane round rooms with many ways, scored before
-   routing), or a repair that moves the rooms blocking a stuck way rather than its own two; then seeds in worker threads. The gate
-   is G routing most seeds at 60 cells.
+Packed at once, a level of 29 rooms clumps and walls rooms in. `dungeon layout --design --nested` works top down to a tree
+(the level, its blocks, their layouts, their rooms) and lays it out bottom up: each layout alone, each a piece of the size it
+took; each block packs its pieces, places every room, keeps the pieces' passages and routes only the ways between them; the
+level does the same with its blocks. What made it hold, each measured on G over 12 seeds:
+
+| Step | Seeds where every way routed |
+|---|---|
+| layouts as pieces, fill rooms as pieces of one room | 0 of 12 (17 pieces at the level: the old problem one level up) |
+| a fill room joins the layout it shares most ways with | 0 (one or two ways left a seed) |
+| ways may cross as crossroads, where nothing else routes | 4 |
+| a layout whose room is walled in inside its piece is laid out again | 7 |
+| pieces turn and mirror to face their ways out at their neighbours | 7 (better scores, the same failures) |
+| the layouts holding a stuck way's rooms are laid out again, and the level packed again | **12 of 12**, with blocks or without, about 17 s a seed |
+
+Tried and dropped: keeping each way-out lane for its room at the level (4 of 12: one room's lane blocked another's), and
+crossroads only in the last round (better scores, but 8 to 11 of 12 and three times the time). The flat solver gives 2 or 3 of 12
+on a larger square.
+
+### 10.5 Next, in order
+
+1. **Quality of a nested level**: scores run 20 to 100 (crossroads, passages from one room that run together, long passages to
+   one-room pieces such as stair vestibules packed at the edge); a level's pieces could be packed tighter once routed.
 2. **R8, a settlement from a graph** (L): streets that run past several buildings, a gate, a wall, spacing as a target. Its own
    proposal first, against setting_builder's settlement spikes.
 3. **Trace, the next half**: doors (gaps in the walls it finds), round rooms, light lines on a dark floor.

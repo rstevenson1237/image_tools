@@ -147,6 +147,7 @@ export const GRAPH_SCHEMA: Schema = {
       doors: doorPair, style: oneOf('built (default) or natural', CORRIDOR_STYLES), label: str('a note'),
       run: oneOf('passage: always a corridor; wall: a door through a shared wall where the packing can (unset: as passages says)', ['passage', 'wall']),
       hold: bool('keep the bearing as a rule: weighed ten times as hard, and a packing that strays past 45° ranks below one that keeps it'),
+      ports: arr('with via: where it leaves a and enters b, on their walls ([ax, ay, bx, by] cells)', { type: 'number' }, { minItems: 4, maxItems: 4 }),
       via: arr('the passage\'s bends (x,y cells, the graph\'s frame), drawn as given: both rooms stand at a place', { type: 'number' }),
       draw: obj('corridor or connection fields written into the file as given', Object.fromEntries(WAY_DRAW_KEYS.map(k => [k, { description: `the passage's or the opening's ${k}` }]))),
     }, ['a', 'b'])),
@@ -162,6 +163,8 @@ export const GRAPH_SCHEMA: Schema = {
     partial: bool('with no packing that routes every way, write the one that routes most and list the rest in the report'),
     reach: num('cells between joined rooms past which the packing pulls them together hard (default 24); the most a gap should be'),
     bounds: oneOf('the outline in the file: square (the footprint, default) or hull (round what the packing holds, a cell out)', ['square', 'hull']),
+    crossings: bool('let a passage cross another as a crossroads where it finds no other way'),
+    routeFirst: arr('ways the router takes before the rest, in this order: [a, b] pairs', arr('', { type: 'string' }, { minItems: 2, maxItems: 2 })),
     spokes: bool('passages from one room keep apart where they can, each its own spoke, rather than joining into one run'),
     style: { type: 'object', description: 'style settings for the file, over the layout\'s own (see the dungeon file\'s style)' },
     legend: bool('draw a legend of the symbols'),
@@ -205,6 +208,7 @@ export const DESIGN_SCHEMA: Schema = {
     bind: arr('the rooms a use\'s role holds', obj('a binding', { use: str('a use'), role: str('a role of its layout'), rooms: arr('room ids, or rooms with what they set (a graph room\'s keys)', anyOf('', { type: 'string' }, { type: 'object' })) }, ['use', 'role', 'rooms'])),
     joins: arr('ways between sockets (use.socket) and rooms', obj('a join', { from: str('use.socket or a room'), to: str('use.socket or a room'), kind: oneOf('passage or door', ['passage', 'door']), doors: doorPair, style: oneOf('built (default) or natural', CORRIDOR_STYLES), hold: bool('keep its bearing as a rule (default: as the sockets say)') }, ['from', 'to'])),
     layouts: arr('layouts of its own, over the library\'s', { type: 'object', description: 'a layout (artgen schema layout)' }),
+    blocks: arr('thematic blocks, for dungeon layout --nested: each laid out from its uses and rooms (and blocks within it), then the level from its blocks', obj('a block', { id: str('its id'), uses: arr('the uses in it', { type: 'string' }), rooms: arr('rooms of its own in it', { type: 'string' }), blocks: { type: 'array', description: 'blocks within it (the same keys)' } }, ['id'])),
   }, ['uses']),
 };
 

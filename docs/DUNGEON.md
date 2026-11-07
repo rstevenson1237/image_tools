@@ -202,6 +202,28 @@ a range round the drawn one (`--spread`, default 0.25; `--rigid` keeps sizes and
 and corridors, each room's side of the one before it, and a socket for every way out. Only topology and proportions are
 kept, with `source`; add patterns only from maps the user owns or may study.
 
+## Laying a level out from the bottom up
+
+`artgen dungeon layout --design d.json --nested` lays a design out from the bottom up, which holds where a level of 25 rooms
+or more packed at once does not route. Top down, the design is a tree: the level, its thematic **blocks** (`blocks: [{id,
+uses, rooms, blocks}]`), each block's layouts, each layout's rooms. A room in no layout joins the layout beside it that it
+shares most ways with, in the level and in each block. Bottom up:
+
+1. **Each layout alone**, small and fast. A way that leaves it gets a stand-in room beyond it, so the room it leaves from is
+   kept at the edge; a layout whose room is walled in (no way out of the piece) is laid out again from other seeds. The layout
+   becomes a **piece**: the box round its rooms, its passages and its ways out.
+2. **Each block, then the level**, packs its pieces as boxes with a gap between them, each piece turned or mirrored to face its
+   ways out at the pieces they join. Every room is then placed exactly where its piece put it, each piece's passages are kept
+   as drawn, and only the ways between pieces are routed: again with the stuck ways first, and then letting a way cross
+   another as a crossroads (`crossings`) where it finds no other.
+3. **Growing.** Where a way between pieces finds no passage, the gap grows a lattice cell (three packings at each gap); where it
+   still does not, the layouts that hold its rooms are laid out again and the level is packed again (twice at most). The size
+   of everything comes out of the rooms; `footprint` only bounds the first packing of the level.
+
+The report names every step (`layout`, `block`, `level`) with its rooms, its size, the gap its pieces stand apart and the ways it
+left; `--seeds n` runs the whole tree from n seeds and keeps the best score. On setting_builder's 29-room level G (33 ways), every
+way routed on 12 seeds of 12, about 17 s a seed, against 2 or 3 of 12 packed at once.
+
 ## Tracing a drawn map
 
 `artgen dungeon trace --file draft.json --image map.png` is the measuring half of tracing: it reads the grid's pitch and phase
@@ -534,6 +556,7 @@ npm run compare:dungeon -- --source ref.png --mine art/dungeons/d/out/d.png --or
 | `ways[].label` | a note |
 | `ways[].run` | passage: always a corridor; wall: a door through a shared wall where the packing can (unset: as passages says) |
 | `ways[].hold` | keep the bearing as a rule: weighed ten times as hard, and a packing that strays past 45° ranks below one that keeps it |
+| `ways[].ports` | with via: where it leaves a and enters b, on their walls ([ax, ay, bx, by] cells) |
 | `ways[].via` | the passage's bends (x,y cells, the graph's frame), drawn as given: both rooms stand at a place |
 | `ways[].draw` | corridor or connection fields written into the file as given |
 | `ways[].draw.id` | the passage's or the opening's id |
@@ -567,6 +590,8 @@ npm run compare:dungeon -- --source ref.png --mine art/dungeons/d/out/d.png --or
 | `partial` | with no packing that routes every way, write the one that routes most and list the rest in the report |
 | `reach` | cells between joined rooms past which the packing pulls them together hard (default 24); the most a gap should be |
 | `bounds` | the outline in the file: square (the footprint, default) or hull (round what the packing holds, a cell out) |
+| `crossings` | let a passage cross another as a crossroads where it finds no other way |
+| `routeFirst` | ways the router takes before the rest, in this order: [a, b] pairs |
 | `spokes` | passages from one room keep apart where they can, each its own spoke, rather than joining into one run |
 | `style` | style settings for the file, over the layout's own (see the dungeon file's style) |
 | `legend` | draw a legend of the symbols |
@@ -658,6 +683,8 @@ npm run compare:dungeon -- --source ref.png --mine art/dungeons/d/out/d.png --or
 | `partial` | with no packing that routes every way, write the one that routes most and list the rest in the report |
 | `reach` | cells between joined rooms past which the packing pulls them together hard (default 24); the most a gap should be |
 | `bounds` | the outline in the file: square (the footprint, default) or hull (round what the packing holds, a cell out) |
+| `crossings` | let a passage cross another as a crossroads where it finds no other way |
+| `routeFirst` | ways the router takes before the rest, in this order: [a, b] pairs |
 | `spokes` | passages from one room keep apart where they can, each its own spoke, rather than joining into one run |
 | `style` | style settings for the file, over the layout's own (see the dungeon file's style) |
 | `legend` | draw a legend of the symbols |
@@ -679,6 +706,11 @@ npm run compare:dungeon -- --source ref.png --mine art/dungeons/d/out/d.png --or
 | `joins[].style` | built (default) or natural |
 | `joins[].hold` | keep its bearing as a rule (default: as the sockets say) |
 | `layouts` | layouts of its own, over the library's |
+| `blocks` | thematic blocks, for dungeon layout --nested: each laid out from its uses and rooms (and blocks within it), then the level from its blocks |
+| `blocks[].id` | its id |
+| `blocks[].uses` | the uses in it |
+| `blocks[].rooms` | rooms of its own in it |
+| `blocks[].blocks` | blocks within it (the same keys) |
 
 ### What `dungeon check` reports, by id
 

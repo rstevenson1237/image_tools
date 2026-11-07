@@ -36,6 +36,14 @@ mapgen 0.13.0 → next. Dungeon format stays at 2: every new key is optional, an
   draft dungeon (the measuring half of tracing).
 - The packer is faster (the same packings) and keeps labels apart by the label drawn, not the room's id.
 
+**A level laid out from the bottom up (R13)**
+- `dungeon layout --design d.json --nested`: each layout laid out alone, then each block (`blocks` in the design) of its pieces,
+  then the level of its blocks; pieces turn to face their ways out; the gaps grow, and stuck layouts are laid out again, until
+  every way routes. `--seeds` runs the whole tree. `dungeon.layoutNested`, `nestedCandidates` in code.
+- The router can cross a passage as a crossroads (`crossings`), take named ways first (`routeFirst`), and keep its doors off
+  passages given as they are; a way with `via` may give its `ports`.
+- A room grows along its length when its walls are short for its ways (a hall stays a hall).
+
 **Drawing**
 - A `{room}` end with `via` leaves the room level with its first bend, square to the wall, not on a slant from the anchor; several
   ends that leave one wall with no `offset` are spread along it. Files that relied on either drawing may draw a little differently.
