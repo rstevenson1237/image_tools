@@ -54,8 +54,23 @@ Dungeon format stays at 2: every new key is optional, and a file written for 0.1
   walls take the rock's colour. A long legend runs in columns instead of shrinking the map.
 - A settlement drawn `--theme bw` draws its terrain underlay in black and white too.
 
+**A settlement laid out to a graph (R8)**
+- `artgen settlement layout <id> --graph g.json` (MCP `settlement_layout`; `artgen schema settlement-graph`): buildings with their
+  sizes (or open areas: a market, square, yard), the streets they line, in order and on a side, each street's ends (a gate, a
+  junction with another street, a building's front), gates at a bearing, ties (two buildings' centres a distance apart, one on a
+  bearing from the other), a wall round what stands inside (`outside` keeps a building out of it), and spacing as a target:
+  `gap` to each building's nearest neighbour, `least`, `setback` from a street. A building that lines a street faces it and
+  turns with it; the wall is drawn round the result, each gate where its street meets it, and a road out of each gate.
+- The report gives each building's place in the graph's frame, the gaps against the target, each tie against its own, each
+  street's length and sharpest turn, the energy by term, and faults (ties a quarter or 45° off, buildings too close or across a
+  street, streets that cross or turn past `bend`). Everything it writes has origin `graph`.
+- On setting_builder's spike block A.a (nine places 360 to 990 ft from the statues, which `dungeon layout` packed inside 300 ft)
+  every place holds its table's bearing and distance; a walled village of fourteen buildings on three streets lays out in about
+  2 s, with no faults on five seeds of six.
+
 ### Commits
 
+- settlement layout: a settlement laid out to a graph (R8)
 - dungeon layout --nested: a level laid out from the bottom up (R13)
 - dungeon-design skill; docs for layouts, designs, extract and trace; MCP tool list
 - dungeon extract and dungeon trace; layout reach and hull bounds; the packer skips far pairs
@@ -66,6 +81,7 @@ Dungeon format stays at 2: every new key is optional, and a file written for 0.1
 
 ### mapgen 0.14.0
 
+- settlement layout: a settlement laid out to a graph (R8)
 - dungeon layout --nested: a level laid out from the bottom up (R13)
 - dungeon extract and dungeon trace; layout reach and hull bounds; the packer skips far pairs
 - dungeon design: layouts (design patterns) and designs expanded to a layout graph; mirrors, per-way runs, both walls; a faster packer

@@ -296,12 +296,40 @@ Tried and dropped: keeping each way-out lane for its room at the level (4 of 12:
 crossroads only in the last round (better scores, but 8 to 11 of 12 and three times the time). The flat solver gives 2 or 3 of 12
 on a larger square.
 
-### 10.5 Next, in order
+### 10.5 R8: a settlement laid out to a graph
+
+setting_builder's spike (`plans/visual-design/spike-settlement.md`) laid its block A.a out with `dungeon layout` and found three
+things wrong: the packer squeezed nine places its tables put 360 to 1000 ft apart into 300 ft; a street is not a way (it runs
+past many buildings and ends at a gate, where a passage joins two rooms); and the wall, gates and market the tables imply were
+not in the graph. So R8 is a solver of its own (`settlement/graph.ts`, `artgen settlement layout`, `artgen schema
+settlement-graph`), not the dungeon packer with settlement words:
+
+- **Streets are what it moves.** A street is a chain of points, one for each building it runs past and one at each end; a
+  building on a street stands beside its point, on its side, a setback from the street's edge, turned to face it. So a
+  street runs past its buildings by construction, and the annealer moves street points, whole streets (shifts and turns
+  about the end that is held), free buildings and gates.
+- **Spacing is a target.** Energy pulls each building's gap to its nearest neighbour toward `spacing.gap` (from both sides,
+  for buildings no distance holds), and charges anything under `least` hard; **ties** give two buildings a distance and a
+  bearing, which is how a table's "120 yards south-west" comes in.
+- **Gates and the wall come last.** A gate stands out past what stands inside at its bearing; the wall is the hull round the
+  inside buildings grown by its gap, each gate set where its street meets it, a road out of each to the sheet's edge, and a
+  street's free end cut short of the wall.
+- **The report says what did not hold**: ties a quarter off or 45° off, buildings too close or across a street, streets that
+  cross or turn past `bend`, with the energy by term.
+
+Measured: A.a (the spike's block, `src/settlement/__fixtures__/graphs.ts`) holds every place within a few percent and degrees
+of its table, the canal A.8 running from A.3 to the statues, in under a second. A walled village of fourteen buildings on three
+streets, three gates and a tie: no faults on five seeds of six, about 2 s each (four tries); the sixth holds the tie a third
+long (24 cells against 18). Forty-one buildings on four streets:
+about 15 s, and one seed of three with no faults; the others report a street that kinks or two that cross, so a large town
+wants more `--tries` or seeds, as a large dungeon level does.
+
+### 10.6 Next, in order
 
 1. **Quality of a nested level**: scores run 20 to 100 (crossroads, passages from one room that run together, long passages to
    one-room pieces such as stair vestibules packed at the edge); a level's pieces could be packed tighter once routed.
-2. **R8, a settlement from a graph** (L): streets that run past several buildings, a gate, a wall, spacing as a target. Its own
-   proposal first, against setting_builder's settlement spikes.
+2. **Settlements, the next step**: `--seeds` and a contact sheet as `dungeon layout` has; water (a river the streets bridge);
+   blocks of buildings behind the street fronts; a market square that streets end on. setting_builder's SAFE blocks are the test.
 3. **Trace, the next half**: doors (gaps in the walls it finds), round rooms, light lines on a dark floor.
 
 setting_builder's fixtures (`layouts/`, `E/Design.md`, the evidence) come in through `artgen report`, and become the golden

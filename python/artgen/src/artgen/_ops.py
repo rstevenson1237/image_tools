@@ -125,6 +125,7 @@ _OPS: dict[str, tuple[tuple[str, ...], tuple[str, ...], dict[str, tuple[str, str
     "settlement.style": (("settlement", "style"), ("id",), {"file": ("--file", "value"), "title": ("--title", "value"), "ground": ("--ground", "value"), "numbers": ("--numbers", "onoff"), "scale_bar": ("--scale-bar", "onoff"), "compass": ("--compass", "onoff"), "legend": ("--legend", "onoff"), "per_cell": ("--per-cell", "value"), "unit": ("--unit", "value"), "plan_cell": ("--plan-cell", "value"), "furniture": ("--furniture", "value"), "furniture_side": ("--furniture-side", "value")}),
     "settlement.grid": (("settlement", "grid"), ("id", "mode"), {"file": ("--file", "value"), "sub": ("--sub", "onoff")}),
     "settlement.gen": (("settlement", "gen"), ("id",), {"file": ("--file", "value"), "seed": ("--seed", "value"), "kind": ("--kind", "value"), "size": ("--size", "size"), "buildings": ("--buildings", "value"), "density": ("--density", "value"), "trees": ("--trees", "value"), "fields": ("--fields", "value"), "streets": ("--streets", "value"), "wall": ("--wall", "value"), "water": ("--water", "value"), "market": ("--market", "onoff"), "castle": ("--castle", "onoff"), "interiors": ("--interiors", "onoff")}),
+    "settlement.layout": (("settlement", "layout"), ("id",), {"file": ("--file", "value"), "graph": ("--graph", "value"), "seed": ("--seed", "value"), "tries": ("--tries", "value"), "gap": ("--gap", "value"), "least": ("--least", "value"), "setback": ("--setback", "value"), "bend": ("--bend", "value"), "kind": ("--kind", "value"), "force": ("--force", "switch")}),
     "settlement.edit": (("settlement", "edit"), ("id",), {"file": ("--file", "value"), "ops": ("--ops", "json")}),
     "settlement.building": (("settlement", "building"), ("id", "action", "target"), {"file": ("--file", "value"), "shape": ("--shape", "value"), "roof": ("--roof", "value"), "label": ("--label", "value"), "href": ("--href", "value"), "kind": ("--kind", "value"), "angle": ("--angle", "value"), "stories": ("--stories", "value"), "number": ("--number", "value"), "points": ("--points", "points"), "wing": ("--wing", "points"), "at": ("--at", "value"), "size": ("--size", "size"), "building_id": ("--building-id", "value")}),
     "settlement.interior": (("settlement", "interior"), ("id", "building", "action"), {"file": ("--file", "value"), "seed": ("--seed", "value"), "stories": ("--stories", "value")}),
@@ -639,6 +640,10 @@ class Ops:
         """Lay a settlement out again from its seed, kind and generator settings; entries drawn by hand are kept. (artgen settlement gen)"""
         return self._op("settlement.gen", [id], {"file": file, "seed": seed, "kind": kind, "size": size, "buildings": buildings, "density": density, "trees": trees, "fields": fields, "streets": streets, "wall": wall, "water": water, "market": market, "castle": castle, "interiors": interiors})
 
+    def settlement_layout(self, id: Optional[str] = None, *, file: Optional[str] = None, graph: Optional[str] = None, seed: Optional[float] = None, tries: Optional[float] = None, gap: Optional[float] = None, least: Optional[float] = None, setback: Optional[float] = None, bend: Optional[float] = None, kind: Optional[Literal["hamlet", "village", "town", "city", "castle"]] = None, force: Optional[bool] = None) -> "Result":
+        """Lay a settlement out to a graph: buildings lining streets, at the spacing, distances and bearings asked, in a wall with gates. (artgen settlement layout)"""
+        return self._op("settlement.layout", [id], {"file": file, "graph": graph, "seed": seed, "tries": tries, "gap": gap, "least": least, "setback": setback, "bend": bend, "kind": kind, "force": force})
+
     def settlement_edit(self, id: Optional[str] = None, *, file: Optional[str] = None, ops: Optional[Any] = None) -> "Result":
         """Change a settlement's contents with a list of edits, in order. (artgen settlement edit)"""
         return self._op("settlement.edit", [id], {"file": file, "ops": ops})
@@ -747,8 +752,8 @@ class Ops:
         """The map, dungeon and settlement file format versions this artgen reads and writes. (artgen formats)"""
         return self._op("formats", [], {})
 
-    def schema(self, kind: Literal["dungeon", "map", "settlement", "graph", "layout", "design"], *, keys: Optional[bool] = None, checks: Optional[bool] = None) -> "Result":
-        """The JSON Schema of a dungeon, map or settlement file, or of a layout graph; --keys lists every key with its line, --checks the dungeon check ids. (artgen schema)"""
+    def schema(self, kind: Literal["dungeon", "map", "settlement", "graph", "layout", "design", "settlement-graph"], *, keys: Optional[bool] = None, checks: Optional[bool] = None) -> "Result":
+        """The JSON Schema of a dungeon, map or settlement file, or of a layout or settlement graph; --keys lists every key with its line, --checks the dungeon check ids. (artgen schema)"""
         return self._op("schema", [kind], {"keys": keys, "checks": checks})
 
     def map_brief(self, id: str, *, text: Optional[str] = None, refs: Optional[Sequence[str]] = None) -> "Result":

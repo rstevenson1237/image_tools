@@ -24,15 +24,15 @@ const formats = defineOp({
 });
 
 const schema = defineOp({
-  name: 'schema', module: 'maps', effect: 'read', summary: 'The JSON Schema of a dungeon, map or settlement file, or of a layout graph; --keys lists every key with its line, --checks the dungeon check ids.',
-  description: 'The JSON Schema (draft 2020-12) of a file the map engines read: dungeon, map, settlement, or graph (the input of dungeon layout). keys: every key path with what it means instead; checks: the ids of dungeon check\'s findings with what each means.',
+  name: 'schema', module: 'maps', effect: 'read', summary: 'The JSON Schema of a dungeon, map or settlement file, or of a layout or settlement graph; --keys lists every key with its line, --checks the dungeon check ids.',
+  description: 'The JSON Schema (draft 2020-12) of a file the map engines read: dungeon, map, settlement, graph (the input of dungeon layout), layout, design, or settlement-graph (the input of settlement layout). keys: every key path with what it means instead; checks: the ids of dungeon check\'s findings with what each means.',
   params: {
-    kind: p.oneOf(['dungeon', 'map', 'settlement', 'graph', 'layout', 'design'], 'dungeon | map | settlement | graph | layout | design', { positional: true, required: 'schema <dungeon|map|settlement|graph|layout|design>' }),
+    kind: p.oneOf(['dungeon', 'map', 'settlement', 'graph', 'layout', 'design', 'settlement-graph'], 'dungeon | map | settlement | graph | layout | design | settlement-graph', { positional: true, required: 'schema <dungeon|map|settlement|graph|layout|design|settlement-graph>' }),
     keys: p.bool('list every key path with its line instead of the schema'), checks: p.bool('list the dungeon check ids instead'),
   },
-  run: (i: { kind: 'dungeon' | 'map' | 'settlement' | 'graph' | 'layout' | 'design'; keys?: boolean; checks?: boolean }) => (i.checks ? { checks: DUNGEON_CHECKS } : i.keys ? { keys: schemaKeys(SCHEMAS[i.kind]).map(([key, line]) => ({ key, line })) } : SCHEMAS[i.kind]),
+  run: (i: { kind: 'dungeon' | 'map' | 'settlement' | 'graph' | 'layout' | 'design' | 'settlement-graph'; keys?: boolean; checks?: boolean }) => (i.checks ? { checks: DUNGEON_CHECKS } : i.keys ? { keys: schemaKeys(SCHEMAS[i.kind]).map(([key, line]) => ({ key, line })) } : SCHEMAS[i.kind]),
   cli: {
-    usage: '       artgen schema dungeon|map|settlement|graph|layout|design [--keys] [--checks]   the file\'s JSON Schema; --keys every key with its line; --checks the ids dungeon check gives',
+    usage: '       artgen schema dungeon|map|settlement|graph|layout|design|settlement-graph [--keys] [--checks]   the file\'s JSON Schema; --keys every key with its line; --checks the ids dungeon check gives',
     text: (r: { keys?: { key: string; line: string }[]; checks?: Record<string, string> }) => (r.checks ? Object.entries(r.checks).map(([k, v]) => `${k.padEnd(22)} ${v}`).join('\n') : r.keys ? r.keys.map(k => `${k.key.padEnd(34)} ${k.line}`).join('\n') : JSON.stringify(r, null, 2)),
   },
   mcp: {}, python: {},

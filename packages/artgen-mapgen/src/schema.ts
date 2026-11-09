@@ -9,6 +9,7 @@
 import { DOOR_KINDS, HATCH_STYLES, LABEL_KINDS, ROOM_FILLS, ROOM_SHAPES, ROUTES, SIDES, CORRIDOR_STYLES, CURVES, GEN_LAYOUTS, BLOCK_SHAPES, SPLIT_MODES, ROCK_STYLES, AREA_KINDS, ROOM_EXIT_KINDS, DUNGEON_FORMAT, MAX_SIDE as DUNGEON_MAX, NUMBER_STYLES, DOOR_GLYPHS, PRESET_NAMES, PALETTE_KEYS, WALL_LINES, MIN_WIDTH } from './dungeon/spec.ts';
 import { GRAPH_SHAPES, ROOM_DRAW_KEYS, WAY_DRAW_KEYS } from './dungeon/graph.ts';
 import { CHECK_IDS } from './dungeon/lint.ts';
+import { BUILDING_DRAW_KEYS } from './settlement/graph.ts';
 import * as M from './map/spec.ts';
 import * as St from './settlement/spec.ts';
 
@@ -278,7 +279,46 @@ export const SETTLEMENT_SCHEMA: Schema = {
   }, ['id', 'cols', 'rows', 'seed']),
 };
 
-export const SCHEMAS = { dungeon: DUNGEON_SCHEMA, map: MAP_SCHEMA, settlement: SETTLEMENT_SCHEMA, graph: GRAPH_SCHEMA, layout: LAYOUT_SCHEMA, design: DESIGN_SCHEMA } as const;
+// ---- settlement graph (settlement layout) ----------------------------------------------------------------------------
+
+const streetEnd = (what: string) => anyOf(`where it ${what}: a gate, on another street (a junction), or at a building's front`,
+  obj('a gate', { gate: str('the gate\'s id') }, ['gate']), obj('a junction', { street: str('the street\'s id') }, ['street']), obj('a building', { building: str('the building\'s id') }, ['building']));
+
+export const SETTLEMENT_GRAPH_SCHEMA: Schema = {
+  $schema: 'https://json-schema.org/draft/2020-12/schema', title: 'artgen settlement graph', ...obj('buildings, the streets they line, the distances and bearings between them, gates and a wall, laid out by `artgen settlement layout` (cells)', {
+    id: str('the settlement\'s id'), title: str('its title'), kind: oneOf('the settlement kind (default village)', St.SETTLEMENT_KINDS), ground: oneOf('the ground (default grass)', St.GROUNDS),
+    scale: obj('the scale (default 5 ft a cell)', { perCell: num(''), unit: str('') }),
+    buildings: arr('the buildings, and open areas', obj('a building', {
+      id: str('its id (letters, digits, ., - and _)'), w: num('cells along its front (the side that faces a street)'), h: num('cells back from its front'),
+      kind: oneOf('a building kind, or an area kind drawn as open ground (default house)', [...St.BUILDING_KINDS, ...St.AREA_KINDS]), shape: oneOf('the footprint (default rect)', St.BUILDING_SHAPES),
+      label: str('its label (default its id)'), turns: bool('may stand with its long side to the street (free: a quarter turn); the solver picks'),
+      at: obj('stands exactly here: its box\'s top-left (cells, the graph\'s frame); not moved', { x: num(''), y: num('') }, ['x', 'y']), angle: num('with at: degrees clockwise'),
+      outside: bool('stands outside the wall'), gap: num('its own target gap to its nearest neighbour (cells), in place of spacing.gap'),
+      draw: obj('building fields written into the file as given', Object.fromEntries(BUILDING_DRAW_KEYS.map(k => [k, { description: `the building's ${k}` }]))),
+    }, ['id', 'w', 'h'])),
+    streets: arr('the streets', obj('a street', {
+      id: str('its id (default s1, s2, …)'), kind: oneOf('the road kind (default street)', St.ROAD_KINDS), width: num('cells (default: the kind\'s width)'),
+      past: arr('the buildings it runs past, in order from its start: an id, or {id, side}; a building lines the first street that names it, and a later one runs past its front', anyOf('', { type: 'string' }, obj('a building and its side', { id: str('the building'), side: oneOf('left or right, walking from its start (default: alternating)', ['left', 'right']) }, ['id']))),
+      from: streetEnd('starts'), to: streetEnd('ends'), label: str('its name, drawn along it'),
+    }, ['past'])),
+    gates: arr('gates in the wall', obj('a gate', {
+      id: str('its id'), kind: oneOf('the gate kind (default gate)', St.GATE_KINDS), bearing: num('degrees clockwise from north: the side of the settlement it stands on'), label: str('a note by it'),
+      road: anyOf('the road out of it to the sheet\'s edge (default a highway); false for none', obj('a road', { kind: oneOf('', St.ROAD_KINDS), label: str('') }), { type: 'boolean' }),
+    }, ['id', 'bearing'])),
+    ties: arr('targets between two buildings', obj('a tie', { a: str('a building'), b: str('another'), distance: num('cells between their centres'), bearing: num('degrees clockwise from north: b lies this way from a'), hold: bool('weigh it ten times as hard') }, ['a', 'b'])),
+    wall: anyOf('the wall round the buildings (not those outside); default a stone wall when there are gates; false for none', obj('a wall', {
+      kind: oneOf('the wall kind (default stone)', St.WALL_KINDS), gap: num('cells between it and the nearest building (default 3)'),
+      towers: obj('towers', { shape: oneOf('', St.TOWER_SHAPES), size: num(''), at: anyOf('', { const: 'corners' }, arr('', { type: 'number' })), every: num('') }, ['shape']),
+      shape: oneOf('hull (default: round the buildings) or box', ['hull', 'box']),
+    }), { type: 'boolean' }),
+    spacing: obj('the space between buildings (cells)', { gap: num('the target between a building and its nearest neighbour (default 2)'), least: num('closer is a fault (default 1)'), setback: num('from a street\'s edge to the buildings that line it (default 1)') }),
+    bend: num('the most degrees a street turns at one building (default 25)'),
+    footprint: anyOf('a square\'s side in cells, or a polygon (x,y cells, the graph\'s frame) everything stays on', { type: 'number' }, arr('', { type: 'number' })),
+    margin: num('cells of sheet round what is drawn (default 6)'), seed: num('the seed (default 1)'), tries: int('layouts tried from the seed on (default 4); the lowest energy is kept'), steps: int('annealing steps a try (default: by size)'),
+  }, ['buildings']),
+};
+
+export const SCHEMAS = { dungeon: DUNGEON_SCHEMA, map: MAP_SCHEMA, settlement: SETTLEMENT_SCHEMA, graph: GRAPH_SCHEMA, layout: LAYOUT_SCHEMA, design: DESIGN_SCHEMA, 'settlement-graph': SETTLEMENT_GRAPH_SCHEMA } as const;
 export type SchemaKind = keyof typeof SCHEMAS;
 
 /** Every key path a schema declares (`rooms[].exits[].kind`), with its line, in the order declared. */
