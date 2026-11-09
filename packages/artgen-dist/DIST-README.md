@@ -50,7 +50,7 @@ that. Start with `/artgen-direction` (or ask Claude to set the art direction).
   from your browser: review on the pull request there.
 - **Library packages** (code that imports the engine): the release attaches `artgen-runtime`, `artgen-primitives`,
   `artgen-scene`, `artgen-workflow` and `artgen-mapgen` as `.tgz` files, installed by URL
-  (`npm install https://github.com/rstevenson1237/image_tools/releases/download/artgen-v0.13.0/artgen-mapgen-0.13.0.tgz`).
+  (`npm install https://github.com/rstevenson1237/image_tools/releases/download/artgen-v0.14.0/artgen-mapgen-0.14.0.tgz`).
   `update` moves such URLs in the repo's `package.json` to the new release.
 
 ## Maps only (`maps/`)

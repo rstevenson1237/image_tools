@@ -1,21 +1,21 @@
 {
-  "version": "0.13.0",
-  "build": "ba887bc",
+  "version": "0.14.0",
+  "build": "66d779e",
   "modules": {
-    "core": "0.13.0",
-    "art": "0.13.0",
-    "maps": "0.13.0"
+    "core": "0.14.0",
+    "art": "0.14.0",
+    "maps": "0.14.0"
   },
   "files": {
     ".claude/commands/artgen-image.md": "50d9f138134b67be",
     ".claude/commands/artgen-report.md": "923687b2d99c849b",
     ".claude/commands/artgen-upstream.md": "7e568ccf2f798957",
-    "tools/artgen/VERSION": "d84c9e596c7d6a94",
+    "tools/artgen/VERSION": "065582655aacd6fc",
     "tools/artgen/fonts/AlegreyaSans-Bold.ttf": "13883398da53d847",
     "tools/artgen/fonts/AlegreyaSans-Italic.ttf": "1b14be0cfa4e195e",
     "tools/artgen/fonts/AlegreyaSans-Regular.ttf": "9baa653a3d8a210a",
     "tools/artgen/fonts/OFL.txt": "0677891e6a143f29",
-    "tools/artgen/package.json": "fc6dacab6477802f",
+    "tools/artgen/package.json": "e8950ffa1dc35735",
     "tools/artgen/resvg.wasm": "22bf6e9f9a100d97",
     ".claude/agents/art-maker.md": "45384b3f2e3b9a59",
     ".claude/agents/art-reviewer.md": "a547b4c6913c9094",
@@ -37,8 +37,8 @@
     ".claude/skills/artgen/references/review.md": "a4bd63443013275b",
     ".claude/skills/artgen/references/t2.md": "8c0e8e95a7ab295d",
     ".claude/skills/asset-production/SKILL.md": "1386a6a939cdffaa",
-    "tools/artgen/artgen-mcp.js": "1c47bab6bad0296f",
-    "tools/artgen/artgen.js": "44027f71486cf1e4",
+    "tools/artgen/artgen-mcp.js": "05e552cfe30bf120",
+    "tools/artgen/artgen.js": "63832ebdeeee4c04",
     "tools/artgen/runtime/adapters/canvas2d.ts": "e3983c0406cc9757",
     "tools/artgen/runtime/adapters/pixi.ts": "93c562c2f0badb5a",
     "tools/artgen/runtime/adapters/three.ts": "022809eb419acbf8",
@@ -114,7 +114,7 @@
     ".claude/skills/dungeon-map/SKILL.md": "7ed5be250c4d564b",
     ".claude/skills/settlement-map/SKILL.md": "58953e8304434b03",
     ".claude/skills/terrain-map/SKILL.md": "c5510ec0d25d8206",
-    "tools/artgen/artgen-maps.js": "ac731a7fb69b803d"
+    "tools/artgen/artgen-maps.js": "be95e92816e44a9b"
   },
   "sources": {
     ".claude/commands/artgen-image.md": "packages/artgen-dist/content/core/commands/image.md",

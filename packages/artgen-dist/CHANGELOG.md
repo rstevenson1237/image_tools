@@ -2,9 +2,11 @@
 
 Releases of the committed install (`artgen-dist`) and its modules, the MCP server, the runtime it vendors, the library package files and the Python client. The map engines (`mapgen`, the `maps` module) have a version line of their own, named in each section.
 
-## Unreleased
+## 0.14.0 — 2026-11-09
 
-mapgen 0.13.0 → next. Dungeon format stays at 2: every new key is optional, and a file written for 0.13.0 keeps its meaning.
+mapgen 0.13.0 → 0.14.0
+
+Dungeon format stays at 2: every new key is optional, and a file written for 0.13.0 keeps its meaning.
 
 **Designing levels (from setting_builder's report on `docs/DUNGEON-DESIGN.md`; plan in `docs/DUNGEON-DESIGN.md` §10)**
 - `dungeon layout` graphs gain: `pad` (graph and room: rooms pack apart, so every way is a passage long enough for its doors); `at`
@@ -51,6 +53,25 @@ mapgen 0.13.0 → next. Dungeon format stays at 2: every new key is optional, an
   and legend on the rock's colour. `dark` and `blueprint` keep walls between touching rooms at full weight, in the ink where the
   walls take the rock's colour. A long legend runs in columns instead of shrinking the map.
 - A settlement drawn `--theme bw` draws its terrain underlay in black and white too.
+
+### Commits
+
+- dungeon layout --nested: a level laid out from the bottom up (R13)
+- dungeon-design skill; docs for layouts, designs, extract and trace; MCP tool list
+- dungeon extract and dungeon trace; layout reach and hull bounds; the packer skips far pairs
+- dungeon design: layouts (design patterns) and designs expanded to a layout graph; mirrors, per-way runs, both walls; a faster packer
+- dungeon layout --seeds: score candidates, keep the best, contact sheet; spokes; passages stay in the square; doors kept apart; plan for the rest
+- dungeon layout: pad, caves by their outline, fixed rooms and given routes, frames with an origin, held bearings and lines, partial packings, draw passthrough; check finds tangled passages
+- dungeon: hatch in the rock's colour, readable band in light ink, legend in columns, square passage ends, spread side ends; bw settlement ground
+
+### mapgen 0.14.0
+
+- dungeon layout --nested: a level laid out from the bottom up (R13)
+- dungeon extract and dungeon trace; layout reach and hull bounds; the packer skips far pairs
+- dungeon design: layouts (design patterns) and designs expanded to a layout graph; mirrors, per-way runs, both walls; a faster packer
+- dungeon layout --seeds: score candidates, keep the best, contact sheet; spokes; passages stay in the square; doors kept apart; plan for the rest
+- dungeon layout: pad, caves by their outline, fixed rooms and given routes, frames with an origin, held bearings and lines, partial packings, draw passthrough; check finds tangled passages
+- dungeon: hatch in the rock's colour, readable band in light ink, legend in columns, square passage ends, spread side ends; bw settlement ground
 
 ## 0.13.0 — 2026-11-05
 
