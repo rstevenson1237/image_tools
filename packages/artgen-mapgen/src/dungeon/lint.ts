@@ -8,7 +8,7 @@ import { overlaps, textBox, type Box } from 'artgen-primitives/lib/page.ts';
 import { corridorBoundaries, doorStand, floorGrid } from './floor.ts';
 import { fileMarks, withMarks } from './marks.ts';
 import { roomLabelLayout } from './roomlabels.ts';
-import { area2, lineLength, samples, segmentCross, selfCrossing, sharedEdges, type P } from './geom.ts';
+import { area2, lineLength, samples, segmentCross, segmentDistance, selfCrossing, sharedEdges, type P } from './geom.ts';
 import { inPolygon, layoutDungeon, type DungeonLayout, type RoomGeom } from './layout.ts';
 import { corridorWallsOn, sharedWallsOn, type DungeonSpec, type Issue } from './spec.ts';
 
@@ -35,6 +35,7 @@ export const CHECK_IDS = {
   'no-length': 'a corridor has no length',
   'through-room': 'a corridor runs through a room it does not join',
   'corridors-cross': 'two corridors that share no room cross with no junction (corridors that leave one room may join and part)',
+  'passages-tangle': 'two corridors that leave one room cross each other, or run together for more than two cells, outside every room (they read as one passage, not as two spokes)',
   'maze-no-route': 'a maze corridor found no passage (or its rooms touch, which a connection joins), so it is drawn as an elbow',
   'corridor-along-wall': 'a corridor runs along a room\'s wall with no wall drawn between them, so the floors run together',
   'way-no-passage': 'a way the file states draws no passage: a connection between rooms that share no wall, or a corridor between rooms laid over each other',
@@ -232,6 +233,21 @@ export function lintDungeon(spec: DungeonSpec, l: DungeonLayout = layoutDungeon(
       if (x && !l.rooms.some(g => inPolygon(g.outline, x[0], x[1]))) found = x;
     }
     if (found) add('corridors-cross', 'warning', `corridors[${b}]`, `crosses corridor ${a} at ${found.map(v => v.toFixed(1)).join(',')} with no junction (the floors join there)`);
+  }
+  // corridors from one room that cross, or share a run: allowed (they join and part), but they read as one passage
+  const outside = (x: number, y: number) => !l.rooms.some(g => inPolygon(g.outline, x, y));
+  const near = (pts: number[], x: number, y: number) => { let d = Infinity; for (let i = 0; i + 3 < pts.length; i += 2) d = Math.min(d, segmentDistance(x, y, [pts[i], pts[i + 1]], [pts[i + 2], pts[i + 3]])); return d; };
+  for (let a = 0; a < l.corridors.length; a++) for (let b = a + 1; b < l.corridors.length; b++) {
+    if (joined(a, b) || !related(a, b)) continue;
+    const A = l.corridors[a].pts, B = l.corridors[b].pts, close = Math.min(l.corridors[a].width, l.corridors[b].width) / 2;
+    let found: P | null = null;
+    for (let i = 0; i + 3 < A.length && !found; i += 2) for (let j = 0; j + 3 < B.length && !found; j += 2) {
+      const x = segmentCross([A[i], A[i + 1]], [A[i + 2], A[i + 3]], [B[j], B[j + 1]], [B[j + 2], B[j + 3]]);
+      if (x && outside(x[0], x[1])) found = x;
+    }
+    const step = 0.25, together = samples(A, step).filter(([x, y]) => outside(x, y) && near(B, x, y) < close).length * step;
+    if (found) add('passages-tangle', 'warning', `corridors[${b}]`, `crosses corridor ${a}, which leaves a room it leaves too, at ${found.map(v => v.toFixed(1)).join(',')}`);
+    else if (together > 2) add('passages-tangle', 'warning', `corridors[${b}]`, `runs together with corridor ${a}, which leaves a room it leaves too, for ${together.toFixed(1)} cells`);
   }
 
   // a corridor's floor against a room's wall: with no wall drawn between them, the two floors run together

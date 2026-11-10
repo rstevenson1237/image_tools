@@ -203,7 +203,10 @@ function corridorGeom(c: Corridor, index: number, rooms: RoomGeom[], byId: Map<s
     const end = (e: Corridor['from']): RoomGeom | [number, number] => ('room' in e ? byId.get(e.room)! : (e as { at: [number, number] }).at);
     // a maze corridor starts where the router put it inside each room (behind its door), not at the anchor
     const a = end(c.from), b = end(c.to), pa: P = startA ?? (Array.isArray(a) ? a : [a.cx, a.cy]), pb: P = startB ?? (Array.isArray(b) ? b : [b.cx, b.cy]);
-    pts = c.via?.length ? [...pa, ...c.via, ...pb]
+    // a run with bends meets a room square on: from the room's centre line level with its first bend, not on a slant from the anchor
+    const A = !startA && !Array.isArray(a) && c.via?.length ? squareStart(a, [c.via[0], c.via[1]], width) : pa;
+    const B = !startB && !Array.isArray(b) && c.via?.length ? squareStart(b, [c.via[c.via.length - 2], c.via[c.via.length - 1]], width) : pb;
+    pts = c.via?.length ? [...A, ...c.via, ...B]
       : how === 'around' ? around(pa, pb, a, b, width, rooms, spec) ?? route(a, b, width, 'auto', rooms)
       : route(a, b, width, how, rooms);
   } else {
@@ -239,6 +242,48 @@ function corridorGeom(c: Corridor, index: number, rooms: RoomGeom[], byId: Map<s
   return { index, pts, width, ends, ...(outline?.length && { outline }) };
 }
 
+/**
+ * Where a corridor whose first bend is `next` starts inside room `g`, so it leaves the room square to an axis: level with the
+ * bend on the room's centre line (across, or down, whichever the bend lies further along), where the corridor's whole width
+ * still lies on the floor there. The anchor where the room sets one, where the bend is already square to it, or where neither
+ * line fits.
+ */
+function squareStart(g: RoomGeom, next: P, width: number): P {
+  const dx = next[0] - g.cx, dy = next[1] - g.cy, at: P = [g.cx, g.cy];
+  if (g.room.anchor || Math.abs(dx) < 1e-9 || Math.abs(dy) < 1e-9 || inPolygon(g.outline, next[0], next[1])) return at;
+  const h = (width / 2) * 0.98, inside = (x: number, y: number) => inPolygon(g.outline, x, y);
+  const across: P | null = inside(g.cx, next[1] - h) && inside(g.cx, next[1] + h) && inside(g.cx, next[1]) ? [g.cx, next[1]] : null;
+  const down: P | null = inside(next[0] - h, g.cy) && inside(next[0] + h, g.cy) && inside(next[0], g.cy) ? [next[0], g.cy] : null;
+  return (Math.abs(dx) >= Math.abs(dy) ? across ?? down : down ?? across) ?? at;
+}
+
+/**
+ * Offsets for corridor ends that leave a room by a named side and give none: where several leave one wall, they are spread
+ * along it in the order of where each one goes, rather than all at its middle, where their floors and doors would meet.
+ * Keyed `index:0` (from) and `index:1` (to).
+ */
+function spreadEnds(spec: DungeonSpec, byId: Map<string, RoomGeom>): Map<string, number> {
+  const groups = new Map<string, { key: string; toward: number; width: number }[]>();
+  spec.corridors.forEach((c, index) => ([c.from, c.to] as const).forEach((e, end) => {
+    if (!('room' in e) || !e.side || e.offset !== undefined || e.port || !byId.has(e.room)) return;
+    const o = end ? c.from : c.to, across = e.side === 'n' || e.side === 's';
+    const there: P = c.via?.length ? (end ? [c.via[c.via.length - 2], c.via[c.via.length - 1]] : [c.via[0], c.via[1]])
+      : 'room' in o && byId.has(o.room) ? [byId.get(o.room)!.cx, byId.get(o.room)!.cy] : 'at' in o ? o.at : [byId.get(e.room)!.cx, byId.get(e.room)!.cy];
+    const k = `${e.room}|${e.side}`, list = groups.get(k) ?? [];
+    list.push({ key: `${index}:${end}`, toward: across ? there[0] : there[1], width: corridorWidth(c, spec) });
+    groups.set(k, list);
+  }));
+  const out = new Map<string, number>();
+  for (const [k, list] of groups) {
+    if (list.length < 2) continue;
+    const [id, side] = k.split('|'), r = byId.get(id)!.room, L = side === 'n' || side === 's' ? r.w : r.h, w = Math.max(...list.map(e => e.width));
+    if (list.length * w + (list.length - 1) > L) continue;
+    list.sort((a, b) => a.toward - b.toward);
+    list.forEach((e, i) => out.set(e.key, Math.min(L - w / 2, Math.max(w / 2, Math.round(((L * (i + 1)) / (list.length + 1)) * 2) / 2))));
+  }
+  return out;
+}
+
 /** An `around` route between two ends (rooms or points), clear of every other room; null when there is none. */
 function around(A: P, B: P, a: RoomGeom | P, b: RoomGeom | P, width: number, rooms: RoomGeom[], spec: DungeonSpec): number[] | null {
   const avoid = rooms.filter(g => g !== a && g !== b && g.room.fill !== 'cellar' && g.room.fill !== 'yard' && !inPolygon(g.outline, A[0], A[1]) && !inPolygon(g.outline, B[0], B[1]));
@@ -258,8 +303,13 @@ export function layoutDungeon(spec: DungeonSpec): DungeonLayout {
   const geoms: CorridorGeom[] = new Array(spec.corridors.length), lineOf = new Map<string, number[]>();
   const maze = (c: Corridor) => c.route === 'maze' && 'room' in c.from && 'room' in c.to;
   // corridors that join others are laid out after them (a file with a ring of joins does not validate); maze corridors last, round the rest
+  const spread = spreadEnds(spec, byId);
+  const spreadOf = (c: Corridor, index: number): Corridor => {
+    const at = (e: Corridor['from'], end: number) => (spread.has(`${index}:${end}`) && 'room' in e ? { ...e, offset: spread.get(`${index}:${end}`)! } : e);
+    return spread.has(`${index}:0`) || spread.has(`${index}:1`) ? { ...c, from: at(c.from, 0), to: at(c.to, 1) } : c;
+  };
   for (const index of corridorOrder(spec.corridors) ?? spec.corridors.map((_, i) => i)) {
-    const c = spec.corridors[index];
+    const c = spreadOf(spec.corridors[index], index);
     if (maze(c)) continue;
     geoms[index] = corridorGeom(c, index, rooms, byId, lineOf, spec);
     if (c.id) lineOf.set(c.id, geoms[index].pts);

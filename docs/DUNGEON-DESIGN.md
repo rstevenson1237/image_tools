@@ -1,6 +1,6 @@
 # Designing dungeons, not only drawing them: findings and a proposal
 
-Status: proposal. Nothing here is built except the compare script (`scripts/dungeon-compare.mjs`). The findings come from
+Status: proposal, answered by setting_builder (§10). §10 records what is built so far and the plan for the rest. The findings come from
 recreating two published maps with the dungeon tool; the proposal is my reading of `generate.ts`, `graph.ts`, `blocks.ts`
 and the `setting-builder` fixtures. I have not read the `setting_builder` repo itself, so the split in §5 is an assumption
 to check with its owner.
@@ -213,3 +213,124 @@ reproduce the drawing, so the brief check is the real gate.
   thickness, #52 thin shapes, #53 dashed walls, #54 colours, #55 wavy edging and curved arrows, #56 corridor junctions.
 - `scripts/dungeon-compare.mjs` and the section in `docs/DUNGEON.md`.
 - `docs/DUNGEON-PLAN.md` (R9), where `layout` was specified, and `docs/TOOLING-PLAN.md` for the consumer-driven contract tests.
+
+## 10. setting_builder's reply, and the plan from here
+
+setting_builder built §4 to §7 on its side first (a layout library, a design file per level, `tools/design.py` to expand a
+design to a graph, solve it over seeds, score the packings and hold its tables to the result), designed one level end to end
+with it, and a three-level test dungeon, and sent seventeen requests (R1 to R17) with evidence. This section answers it.
+
+### 10.1 Its answers to §8, and corrections
+
+- **Brief or graph?** It keeps calling `layout` with its own graph for now, and will emit a brief once this repo has one and
+  layouts of its own (`design.py` then shrinks, as `pack.py` did).
+- **Who owns the library?** A bundled set here plus a project folder; setting_builder keeps its `layouts/` and offers the
+  ones that prove out.
+- **Rigid or flexible?** Flexible first; R2 and R4 are its limits.
+- **Words.** setting_builder's `BRIEF.md` is a whole build's brief and its *block* is one level. Here, the per-dungeon input is
+  called a **design brief**, and this repo's block (§3) is a *split* to it. These docs say "design brief" from now on.
+- §7 step 8 and §9: #46 to #56 are fixed in 0.13.0, so dressing and rigid features no longer wait on drawing gaps.
+- setting_builder already has pinned rooms (`over`), voids (`keepOut`) and a 3D place for every room (`tools/space.py`).
+
+### 10.2 Done on this branch
+
+| # | Request | What was done |
+|---|---|---|
+| R3 | growth from a point; `over` without a frame | `origin` gives the frame `over`, `at`, `via` and `keepOut` are in; with no footprint the square centres on the pinned rooms, and the report gives the `origin` it chose |
+| R5 (part) | N seeds, scoring, a contact sheet; a minimum gap | `dungeon layout --seeds n --keep k --sheet`; `scoreLayout` (check findings, ways left, strays, detours); `pad`; the report's `gaps`; `check` finds `passages-tangle` (two passages from one room that cross or run together), and `spokes` keeps them apart |
+| R2 (part) | constraints | `hold` (a bearing as a rule, strays ranked down and reported) and `lines` (one row or column). Mirror pairs, opposite sockets and a straight spine wait for R1's parts |
+| R9 | rock colour on the hatch; preset walls | `palette.rock` colours the hatch; `palette.partition`; `dark` and `blueprint` keep partitions at full weight, in the ink where walls match the rock |
+| R10 | settlement `--theme bw` ground | the terrain underlay follows the theme |
+| R11 | routes as an input | `at` (a room placed exactly) and `via` (a passage drawn as given; routed passages keep off it) |
+| R12 | room places in whole feet | the report's `places` give each room's corner, whole on the lattice, as well as its centre; a table can hold the corner. A centre on a half cell is what an odd size is, so it is not moved |
+| R13 (part) | a repair when no seed routes | `partial` writes the packing that routes most and lists the rest; `routed` says how many tries routed. Speed at 25+ rooms is open (10.3) |
+| R14 | caves joined as boxes | a cave is routed to its drawn outline, and its ways are passages |
+| R15 | `dark` band unreadable; a legend that shrinks the map | light ink gets the rock's colour (or `palette.paper`) as paper; the legend runs in columns |
+| R16 | what a table cannot say | a room's `draw` (number, fill, edge, partition, labelAt, exits, …), `symbols` from its centre and a `ring`; a way's `draw` (curve, midDoors, id, weight, line, width); the graph's `style` and `legend` |
+| R17 | diagonal final legs; stacked doors | a door off the lattice stands on the passage's own lattice line, and a `{room}` end with `via` leaves square on; side ends with no offset are spread; a room's doors keep a passage's width apart where they can; passages stay inside a square footprint |
+
+Tried on setting_builder's own `E-graph.json` (four seeds, four tries each): before, all four routed, three of them by running
+passages outside the 28-cell square (`outside-bounds`), and every one stacked two doors on the ring hub. Now passages stay inside, so fewer seeds route at 28 cells
+and the scores say why (doors stacked on an eight-door hub of 40 ft, passages that share a run behind other rooms). That hub is
+what R4 is for.
+
+### 10.3 Done since (the second round)
+
+| # | Request | What was done |
+|---|---|---|
+| R1 | layouts and composition | the layout format (`artgen schema layout`), designs (`artgen schema design`), `dungeon layouts`, `dungeon design`, `dungeon layout --design`; joined sockets checked for facing and width; a room grows when its walls are short for its ways (the ring hub's size follows its passages); a bundled library of seven, and the project's `art/dungeons/layouts/`. setting_builder's six layouts are test fixtures (`src/dungeon/__fixtures__/`), not bundled |
+| R2 | the rest of the constraints | `mirrors` (a cell row's rows mirrored about its hall), a row of rooms on one side held by its line, a chain's bearing step by step (a spiral holds, `held` empty), ways that say how they run (`run: passage` or `wall`), a wall for each end (`wallB`) |
+| R4 | rigid layouts | `rigid: true` with `place`: every part set against the first at its exact offset (the `gatehouse`) |
+| R5 | the rest | `reach` (the most a joined gap should be) and `bounds: hull` (the outline round what the packing holds); the report's `hull` |
+| R6 | `dungeon extract` | rooms of a dungeon as a layout: ranged sizes, ties, sides, sockets for the ways out, `source`; `--rigid` |
+| R7 | the measuring half of trace | `dungeon trace`: grid pitch and phase from gridlines on open floor (square cells fitted on both axes), floor cells, walls between them, rooms as rectangles of whole cells, a draft and its coverage |
+| R13 | speed | the packer skips pairs that cannot cost (the same packings): G's graph from 20.4 s to 13.5 s for twelve tries |
+
+Measured on setting_builder's own material:
+- **Trace.** On artgen renders of X and G, the floor cells match the source's to a cell IoU of 0.92 and 0.98. On setting_builder's
+  `level1.png` and `level2.png` the grid reads at 22.4 and 12.0 px a cell (level 1's 10 ft lines, level 2's 5 ft sub-grid);
+  `level3.png` (light lines on a dark floor) is not read, and needs `--pitch`.
+- **R13, routing at 29 rooms.** G as a design of the bundled layouts (29 rooms, 33 ways) routes no seed of 36 at 48 cells;
+  with `pad: 1` at 60 cells, 2 or 3 seeds of 12, and nearly every other seed leaves one way. Three cheap repairs were tried and
+  measured over 12 seeds, and none kept: a pull on a stuck way's rooms (no change), routing the stuck ways first (3 of 12
+  against 2, at 50% more time), twice the repair rounds (2 of 12, 70% more time). The level packs into a clump that walls a
+  room in; what it needs is a packing that leaves room for passages it has not routed yet.
+
+### 10.4 R13: a level laid out from the bottom up
+
+Packed at once, a level of 29 rooms clumps and walls rooms in. `dungeon layout --design --nested` works top down to a tree
+(the level, its blocks, their layouts, their rooms) and lays it out bottom up: each layout alone, each a piece of the size it
+took; each block packs its pieces, places every room, keeps the pieces' passages and routes only the ways between them; the
+level does the same with its blocks. What made it hold, each measured on G over 12 seeds:
+
+| Step | Seeds where every way routed |
+|---|---|
+| layouts as pieces, fill rooms as pieces of one room | 0 of 12 (17 pieces at the level: the old problem one level up) |
+| a fill room joins the layout it shares most ways with | 0 (one or two ways left a seed) |
+| ways may cross as crossroads, where nothing else routes | 4 |
+| a layout whose room is walled in inside its piece is laid out again | 7 |
+| pieces turn and mirror to face their ways out at their neighbours | 7 (better scores, the same failures) |
+| the layouts holding a stuck way's rooms are laid out again, and the level packed again | **12 of 12**, with blocks or without, about 17 s a seed |
+
+Tried and dropped: keeping each way-out lane for its room at the level (4 of 12: one room's lane blocked another's), and
+crossroads only in the last round (better scores, but 8 to 11 of 12 and three times the time). The flat solver gives 2 or 3 of 12
+on a larger square.
+
+### 10.5 R8: a settlement laid out to a graph
+
+setting_builder's spike (`plans/visual-design/spike-settlement.md`) laid its block A.a out with `dungeon layout` and found three
+things wrong: the packer squeezed nine places its tables put 360 to 1000 ft apart into 300 ft; a street is not a way (it runs
+past many buildings and ends at a gate, where a passage joins two rooms); and the wall, gates and market the tables imply were
+not in the graph. So R8 is a solver of its own (`settlement/graph.ts`, `artgen settlement layout`, `artgen schema
+settlement-graph`), not the dungeon packer with settlement words:
+
+- **Streets are what it moves.** A street is a chain of points, one for each building it runs past and one at each end; a
+  building on a street stands beside its point, on its side, a setback from the street's edge, turned to face it. So a
+  street runs past its buildings by construction, and the annealer moves street points, whole streets (shifts and turns
+  about the end that is held), free buildings and gates.
+- **Spacing is a target.** Energy pulls each building's gap to its nearest neighbour toward `spacing.gap` (from both sides,
+  for buildings no distance holds), and charges anything under `least` hard; **ties** give two buildings a distance and a
+  bearing, which is how a table's "120 yards south-west" comes in.
+- **Gates and the wall come last.** A gate stands out past what stands inside at its bearing; the wall is the hull round the
+  inside buildings grown by its gap, each gate set where its street meets it, a road out of each to the sheet's edge, and a
+  street's free end cut short of the wall.
+- **The report says what did not hold**: ties a quarter off or 45° off, buildings too close or across a street, streets that
+  cross or turn past `bend`, with the energy by term.
+
+Measured: A.a (the spike's block, `src/settlement/__fixtures__/graphs.ts`) holds every place within a few percent and degrees
+of its table, the canal A.8 running from A.3 to the statues, in under a second. A walled village of fourteen buildings on three
+streets, three gates and a tie: no faults on five seeds of six, about 2 s each (four tries); the sixth holds the tie a third
+long (24 cells against 18). Forty-one buildings on four streets:
+about 15 s, and one seed of three with no faults; the others report a street that kinks or two that cross, so a large town
+wants more `--tries` or seeds, as a large dungeon level does.
+
+### 10.6 Next, in order
+
+1. **Quality of a nested level**: scores run 20 to 100 (crossroads, passages from one room that run together, long passages to
+   one-room pieces such as stair vestibules packed at the edge); a level's pieces could be packed tighter once routed.
+2. **Settlements, the next step**: `--seeds` and a contact sheet as `dungeon layout` has; water (a river the streets bridge);
+   blocks of buildings behind the street fronts; a market square that streets end on. setting_builder's SAFE blocks are the test.
+3. **Trace, the next half**: doors (gaps in the walls it finds), round rooms, light lines on a dark floor.
+
+setting_builder's fixtures (`layouts/`, `E/Design.md`, the evidence) come in through `artgen report`, and become the golden
+cases for R1 and R4 as the recreated maps are for §7's acceptance.

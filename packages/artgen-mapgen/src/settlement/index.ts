@@ -16,3 +16,7 @@ export { generateInterior, withInterior, frontSide, storiesOf } from './interior
 export { lintSettlement, type Finding, type Severity } from './lint.ts';
 export { settlementFacts, type SettlementFacts } from './facts.ts';
 export { editSettlement, SETTLEMENT_OPS, type SettlementOp } from './edit.ts';
+export {
+  layoutSettlementGraph, validateSettlementGraph, BUILDING_DRAW_KEYS,
+  type SettlementGraph, type SettlementGraphReport, type GraphBuilding, type GraphStreet, type GraphGate, type GraphTie, type StreetEnd, type StreetStop, type BuildingDraw,
+} from './graph.ts';

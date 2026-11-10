@@ -492,6 +492,42 @@ const render = defineOp({
   mcp: { content: renderPreview }, python: {},
 });
 
+const layout = defineOp({
+  name: 'settlement.layout', module: 'maps', effect: 'write', summary: 'Lay a settlement out to a graph: buildings lining streets, at the spacing, distances and bearings asked, in a wall with gates.',
+  description: 'Lay a settlement out from a graph (artgen schema settlement-graph): its buildings (id, w along the front and h back from it in cells, kind (a building kind, or an area kind such as market drawn as open ground), shape, turns?, at? a fixed top-left, angle?, outside? the wall, gap?, draw?), its streets (kind, width?, past: the buildings it runs past in order, each an id or {id, side: left|right}, from?/to?: {gate}, {street} (a junction) or {building}), its gates (id, bearing: the side it stands on, kind, road?: the road out to the edge), ties between buildings (a, b, distance? between centres, bearing?, hold?), the wall (kind, gap, towers, shape hull|box, or false), spacing {gap: the target to a building\'s nearest neighbour, least, setback from a street}, bend (the most a street turns at one building), footprint, scale, seed and tries. A building that lines a street faces it, turned with it; the wall is drawn round what stands inside, each gate where its street meets it, a road out of each. Writes a new settlement file (everything origin "graph"); the report gives each building\'s place, the gaps against the target, each tie against its own, each street, the energy by term, and faults (ties a quarter off or 45° off, buildings closer than least or across a street, streets that cross or turn past their bend).',
+  params: {
+    id: idParam('the new settlement\'s id', 'settlement layout: <id> (or --file)'), path: pathParam('settlement'),
+    graph_file: p.str('the graph, a JSON file', { flag: '--graph', mcp: false }), graph: p.json(OBJ, 'the graph: {buildings, streets?, gates?, ties?, wall?, spacing?, bend?, footprint?, kind?, scale?, seed?, tries?}', { cli: false }),
+    seed: p.num('the seed'), tries: p.num('layouts tried from the seed on (default 4); the lowest energy is kept'),
+    gap: p.num('the target gap between a building and its nearest neighbour, cells (spacing.gap)'), least: p.num('closer than this is a fault, cells (spacing.least)'), setback: p.num('cells from a street\'s edge to the buildings that line it (spacing.setback)'),
+    bend: p.num('the most degrees a street turns at one building (default 25)'), kind: p.oneOf(settlement.SETTLEMENT_KINDS, 'hamlet | village | town | city | castle', { schema: { type: 'string' } }),
+    force: p.bool('overwrite an existing file (with --file)', { mcp: false }),
+  },
+  run(i: Inp, ctx) {
+    const P = projectOf(i, ctx), g = { ...((i.graph_file ? readJson(i.graph_file) : i.graph) as settlement.SettlementGraph) };
+    if (!g || !Array.isArray(g.buildings)) throw new Error('settlement layout: a graph is required (--graph file.json)');
+    for (const k of ['seed', 'tries', 'bend'] as const) if (typeof i[k] === 'number') g[k] = i[k];
+    if (typeof i.kind === 'string') g.kind = i.kind as settlement.SettlementKind;
+    for (const k of ['gap', 'least', 'setback'] as const) if (typeof i[k] === 'number') g.spacing = { ...g.spacing, [k]: i[k] };
+    g.id = i.path ? i.id ?? fileId(i.path) : i.id;
+    const started = Date.now(), { spec, report } = settlement.layoutSettlementGraph(g);
+    return { ...createSettlement(P, spec, i.force === true, i.path ? { file: i.path } : undefined), report: { ...report, seconds: Math.round((Date.now() - started) / 100) / 10 } };
+  },
+  cli: {
+    usage: '       artgen settlement layout <id>|--file out.json --graph g.json [--seed n] [--tries 4] [--gap 2] [--least 1] [--setback 1] [--bend 25] [--kind k] [--force]   buildings laid out along streets to a graph (artgen schema settlement-graph), in a wall with its gates',
+    text: (r, i) => {
+      const rp = r.report as settlement.SettlementGraphReport & { seconds: number }, s = r.settlement as settlement.SettlementSpec;
+      return [`${r.file}: ${s.buildings.length} buildings${s.areas.length ? `, ${s.areas.length} open area${s.areas.length > 1 ? 's' : ''}` : ''} on ${rp.streets.length} streets, ${s.cols}×${s.rows} cells${s.walls.length ? `, a ${s.walls[0].kind} wall with ${s.walls[0].gates?.length ?? 0} gates` : ''} (${rp.seconds} s)`,
+        `  gaps: median ${rp.spacing.median}, least ${rp.spacing.least}, target ${rp.spacing.target} cells`,
+        ...rp.streets.map(st => `  street ${st.id}: ${st.length} cells past ${st.buildings} building${st.buildings === 1 ? '' : 's'}, turns at most ${st.turn}°`),
+        ...rp.ties.map(t => `  ${t.a} to ${t.b}:${t.want !== undefined ? ` ${t.distance} cells (want ${t.want})` : ''}${t.wantBearing !== undefined ? ` at ${t.bearing}° (want ${t.wantBearing}°)` : ''}`),
+        ...rp.faults.map(f => `  fault: ${f}`), next(i, s.id)].join('\n');
+    },
+    json: r => V({ file: r.file, report: r.report, settlement: r.settlement }),
+  },
+  mcp: { content: r => [text({ file: r.file, report: r.report, summary: describeSettlement(r.settlement) })] }, python: {},
+});
+
 export const SETTLEMENT_OPS_LIST: OpDef[] = [
-  list, symbols, fixtures, show, create, update, style, grid, gen, edit, building, interior, floor, room, connect, disconnect, door, windowOp, fixture, prop, road, water, wall, area, tree, label, symbol, overlay, check, facts, render,
+  list, symbols, fixtures, show, create, update, style, grid, gen, layout, edit, building, interior, floor, room, connect, disconnect, door, windowOp, fixture, prop, road, water, wall, area, tree, label, symbol, overlay, check, facts, render,
 ];

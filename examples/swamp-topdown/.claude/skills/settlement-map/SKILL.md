@@ -37,6 +37,36 @@ node tools/artgen/artgen-maps.js settlement render <id>                         
 Over a terrain map the map's rivers, lakes and sea become the settlement's water, its forest becomes woods, and roads
 keep to gentle slopes; the map is drawn under the sheet.
 
+### From a list of places: `settlement layout`
+When the places are already decided (a table of buildings with sizes, which street each stands on, how far and which
+way they lie from one another, the gates), write them as a graph and lay it out, in place of `settlement new`:
+```
+node tools/artgen/artgen-maps.js schema settlement-graph --keys                                   # every key of the graph, with its line
+node tools/artgen/artgen-maps.js settlement layout <id> --graph town.json [--seed n] [--tries 8]  # writes the settlement; the report says what it held
+```
+```json
+{ "kind": "village", "buildings": [{"id": "inn", "kind": "inn", "w": 8, "h": 6}, {"id": "h1", "w": 4, "h": 4}, {"id": "temple", "kind": "temple", "w": 8, "h": 12, "turns": true}, {"id": "market", "kind": "market", "w": 12, "h": 10}],
+  "streets": [{"id": "high", "from": {"gate": "north"}, "to": {"gate": "south"}, "past": ["inn", "h1", "market"], "label": "High Street"},
+              {"id": "lane", "kind": "lane", "from": {"street": "high"}, "past": [{"id": "temple", "side": "left"}]}],
+  "gates": [{"id": "north", "bearing": 0, "kind": "gatehouse"}, {"id": "south", "bearing": 180}],
+  "ties": [{"a": "market", "b": "temple", "distance": 18}], "wall": {"kind": "palisade", "gap": 3}, "spacing": {"gap": 2, "setback": 1} }
+```
+- A **building** is `w` cells along its front and `h` back from it; an area kind (`market`, `square`, `yard`, `garden`…)
+  is drawn as open ground. `at` fixes one in place (its top-left, in the graph's frame); `outside` leaves it out of the wall.
+- A **street** runs past its buildings in order (`past`), each on a side (alternating, or `{id, side: left|right}`),
+  facing it and turned with it; it starts and ends at a gate, on another street, or at a building. A building lines
+  the first street that names it.
+- **Ties** hold two buildings' centres `distance` cells apart, b on `bearing` (degrees from north) from a: places a
+  table gives by bearing and distance. **Spacing** is a target: `gap` to each building's nearest neighbour, `least`
+  closer than which is a fault, `setback` from a street's edge.
+- The **wall** is drawn round what stands inside it, each **gate** at its bearing where its street meets the wall, and
+  a road out of each gate to the sheet's edge.
+
+The report lists each building's place in the graph's frame (`places`, with `origin` on the sheet), the gaps, each tie
+against its target, each street, the energy by term and the **faults**: ties a quarter off or 45° off, buildings
+too close or across a street, streets that cross or turn past `bend`. With faults, try other seeds or more `--tries`,
+loosen what cannot all hold, or fix the rest by hand (everything it writes has origin `graph`).
+
 ## 2. Shape the layout
 Big changes with the generator, then fix things one by one. Render and look after each round.
 ```

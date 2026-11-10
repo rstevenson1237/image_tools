@@ -7,8 +7,9 @@
  * `origin` (who wrote it; none is a hand entry, see `sync`).
  */
 import { DOOR_KINDS, HATCH_STYLES, LABEL_KINDS, ROOM_FILLS, ROOM_SHAPES, ROUTES, SIDES, CORRIDOR_STYLES, CURVES, GEN_LAYOUTS, BLOCK_SHAPES, SPLIT_MODES, ROCK_STYLES, AREA_KINDS, ROOM_EXIT_KINDS, DUNGEON_FORMAT, MAX_SIDE as DUNGEON_MAX, NUMBER_STYLES, DOOR_GLYPHS, PRESET_NAMES, PALETTE_KEYS, WALL_LINES, MIN_WIDTH } from './dungeon/spec.ts';
-import { GRAPH_SHAPES } from './dungeon/graph.ts';
+import { GRAPH_SHAPES, ROOM_DRAW_KEYS, WAY_DRAW_KEYS } from './dungeon/graph.ts';
 import { CHECK_IDS } from './dungeon/lint.ts';
+import { BUILDING_DRAW_KEYS } from './settlement/graph.ts';
 import * as M from './map/spec.ts';
 import * as St from './settlement/spec.ts';
 
@@ -135,18 +136,81 @@ export const GRAPH_SCHEMA: Schema = {
       id: str('its id (letters, digits, ., - and _)'), w: num('width, cells'), h: num('height, cells'), shape: oneOf('the shape (round is drawn as a circle)', GRAPH_SHAPES),
       points: arr('a poly\'s outline, cells from its box\'s centre (x,y pairs)', { type: 'number' }), label: str('its name (default: its id)'), turns: bool('may lie in any quarter turn or mirror of itself'),
       hall: bool('shows its name alone: its label is shorter'), against: obj('set against another room: its centre dx, dy cells from that room\'s', { room: str(''), dx: num(''), dy: num('') }, ['room', 'dx', 'dy']),
-      over: obj('must stand over this box (cells, the footprint\'s frame)', { x: num(''), y: num(''), w: num(''), h: num('') }, ['x', 'y', 'w', 'h']),
+      over: obj('must stand over this box (cells, the graph\'s frame: see origin)', { x: num(''), y: num(''), w: num(''), h: num('') }, ['x', 'y', 'w', 'h']),
+      at: obj('stands exactly here: its box\'s top-left (cells, the graph\'s frame, on the lattice); not moved by the packing', { x: num(''), y: num('') }, ['x', 'y']),
+      pad: num('cells kept clear round it in the packing, in place of the graph\'s pad'),
+      draw: obj('room fields written into the file as given (see the dungeon file\'s rooms)', Object.fromEntries(ROOM_DRAW_KEYS.map(k => [k, { description: `the room's ${k}` }]))),
+      symbols: arr('symbols in the room', obj('a symbol, from the room\'s centre', { kind: str('a symbol kind'), dx: num('cells east of the centre'), dy: num('cells south of the centre'), scale: num(''), scaleX: num(''), scaleY: num(''), angle: num('degrees'), sweep: num('curved-arrow: degrees') }, ['kind'])),
+      ring: obj('a ring round the room, centred on it', { pad: num('cells out from its box\'s longer half-side (default 1)'), line: oneOf('dashed (default) or solid', ['solid', 'dashed']), width: num('cells'), dash: arr('[on, off] cells', { type: 'number' }, { minItems: 2, maxItems: 2 }) }),
     }, ['id', 'w', 'h'])),
     ways: arr('the ways', obj('a way', {
-      a: str('a room'), b: str('another room'), bearing: num('degrees clockwise from north: b lies this way from a'), wall: num('degrees clockwise from north: the wall a\'s door stands on'),
+      a: str('a room'), b: str('another room'), bearing: num('degrees clockwise from north: b lies this way from a'), wall: num('degrees clockwise from north: the wall a\'s door stands on'), wallB: num('degrees clockwise from north: the wall b\'s door stands on'),
       doors: doorPair, style: oneOf('built (default) or natural', CORRIDOR_STYLES), label: str('a note'),
+      run: oneOf('passage: always a corridor; wall: a door through a shared wall where the packing can (unset: as passages says)', ['passage', 'wall']),
+      hold: bool('keep the bearing as a rule: weighed ten times as hard, and a packing that strays past 45° ranks below one that keeps it'),
+      ports: arr('with via: where it leaves a and enters b, on their walls ([ax, ay, bx, by] cells)', { type: 'number' }, { minItems: 4, maxItems: 4 }),
+      via: arr('the passage\'s bends (x,y cells, the graph\'s frame), drawn as given: both rooms stand at a place', { type: 'number' }),
+      draw: obj('corridor or connection fields written into the file as given', Object.fromEntries(WAY_DRAW_KEYS.map(k => [k, { description: `the passage's or the opening's ${k}` }]))),
     }, ['a', 'b'])),
     width: num('the passage width in cells, the lattice (default 2)'), scale: obj('the scale', { perCell: num(''), unit: str('') }),
     footprint: anyOf('a square\'s side in cells, or a polygon (x,y cells); unset, the least square `fill` allows', { type: 'number' }, arr('', { type: 'number' })),
     keepOut: arr('polygons no room or passage may take', arr('', { type: 'number' })), fill: arr('[least, most] share of the ground the rooms cover (default [0.35, 0.55])', { type: 'number' }, { minItems: 2, maxItems: 2 }),
     passages: num('the share of ways run as passages (default 0.35)'), detour: num('cells a way may walk past the straight line between its rooms'),
     seed: num('the seed (default 1)'), tries: int('packings tried at each side (default 12)'), margin: num('cells round the footprint in the file (default 2)'), clearance: oneOf('0 (default) or 1: cells a passage keeps off walls', [0, 1]),
+    pad: num('cells kept clear round every room in the packing, to the lattice: joined rooms stand twice that apart'),
+    origin: arr('[x, y]: where the footprint\'s top-left lies in the frame over, at, via and keepOut are given in (default [0, 0]; with no footprint, round the pinned rooms)', { type: 'number' }, { minItems: 2, maxItems: 2 }),
+    mirrors: arr('rooms that mirror each other about a third', obj('a mirror pair', { a: str('a room'), b: str('its mirror'), about: str('the room they mirror about'), along: oneOf('ew: across the east-west line through its centre (one x); ns: across the north-south line (one y)', ['ew', 'ns']) }, ['a', 'b', 'about', 'along'])),
+    lines: arr('rooms whose centres stand on one line', obj('a line', { rooms: arr('the rooms', { type: 'string' }), along: oneOf('ew: one y; ns: one x', ['ew', 'ns']) }, ['rooms', 'along'])),
+    partial: bool('with no packing that routes every way, write the one that routes most and list the rest in the report'),
+    reach: num('cells between joined rooms past which the packing pulls them together hard (default 24); the most a gap should be'),
+    bounds: oneOf('the outline in the file: square (the footprint, default) or hull (round what the packing holds, a cell out)', ['square', 'hull']),
+    crossings: bool('let a passage cross another as a crossroads where it finds no other way'),
+    routeFirst: arr('ways the router takes before the rest, in this order: [a, b] pairs', arr('', { type: 'string' }, { minItems: 2, maxItems: 2 })),
+    spokes: bool('passages from one room keep apart where they can, each its own spoke, rather than joining into one run'),
+    style: { type: 'object', description: 'style settings for the file, over the layout\'s own (see the dungeon file\'s style)' },
+    legend: bool('draw a legend of the symbols'),
   }, ['rooms', 'ways']),
+};
+
+// ---- layouts and designs (dungeon design) ---------------------------------------------------------------------------
+
+const bearing = anyOf('a compass point (n ne e se s sw w nw) or degrees clockwise from north', oneOf('', ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw']), { type: 'number' });
+const layoutSize = anyOf('cells, [least, most] (its middle is taken), or a parameter: $name, $name*k, $name*k+c', { type: 'number' }, arr('', { type: 'number' }, { minItems: 2, maxItems: 2 }), { type: 'string' });
+const pick = anyOf('first, last, each (default) or the n-th (1-based)', oneOf('', ['first', 'last', 'each']), { type: 'integer' });
+export const LAYOUT_SCHEMA: Schema = {
+  $schema: 'https://json-schema.org/draft/2020-12/schema', title: 'artgen dungeon layout (a design pattern)', ...obj('a design pattern: parts with roles, ties, sockets and constraints (cells)', {
+    id: str('its id (letters, digits, - and _)'), name: str('what it is'), tags: arr('words to find it by', { type: 'string' }),
+    source: obj('where it came from: topology and proportions, not the drawing', { kind: oneOf('written by hand or abstracted from a drawn map', ['written', 'drawn']), origin: str('the map or file'), note: str('') }, ['kind']),
+    params: { type: 'object', description: 'parameters by name: {default, min?, max?, note?}', additionalProperties: obj('a parameter', { default: num('its value unless a use sets one'), min: num(''), max: num(''), note: str('') }, ['default']) },
+    parts: arr('the parts', obj('a part: a role and its rooms', {
+      role: str('its role (letters, digits, - and _)'), shape: oneOf('a graph shape, or hall (a rect that shows its name alone)', ['hall', ...GRAPH_SHAPES]), w: layoutSize, h: layoutSize,
+      points: arr('a poly\'s outline, cells from its box\'s centre', { type: 'number' }), count: anyOf('rooms in it (default 1, or as many as a design binds)', { type: 'integer' }, { type: 'string' }),
+      at: obj('where its rooms stand against another part', { part: str('the part'), side: bearing, touch: bool('set against it exactly (one room each)'), hold: bool('keep the bearing as a rule') }, ['part', 'side']),
+      place: obj('rigid layouts: its box\'s top-left in the layout\'s frame', { x: num(''), y: num('') }, ['x', 'y']), turns: bool('may turn'), grow: bool('false: not grown when its walls are short for its ways'), focal: bool('the room the level is about'),
+      draw: { type: 'object', description: 'room fields for the file (see the graph\'s rooms[].draw)' }, symbols: { type: 'array', description: 'symbols from the room\'s centre (see the graph\'s rooms[].symbols)' }, ring: { type: 'object', description: 'a ring round the room (see the graph\'s rooms[].ring)' },
+    }, ['role', 'w', 'h'])),
+    ties: arr('how the parts are joined', obj('a tie', {
+      a: str('a part'), b: str('a part (the same: a chain of its rooms)'), kind: oneOf('passage, or door (through a shared wall); unset: as the graph\'s passages share', ['passage', 'door']), ofA: pick, ofB: pick,
+      side: bearing, sides: arr('a chain\'s bearing step by step', bearing), loop: bool('close the chain'), doors: doorPair, style: oneOf('built (default) or natural', CORRIDOR_STYLES), hold: bool('keep its bearing as a rule'),
+    }, ['a', 'b'])),
+    sockets: arr('where it joins something else', obj('a socket', { name: str('its name'), part: str('the part'), of: pick, bearing: bearing, width: num('cells (default the graph\'s width)'), hold: bool('keep the join\'s bearing as a rule (default true)') }, ['name', 'part', 'bearing'])),
+    constraints: arr('what keeps its shape', anyOf('a line or a mirror', obj('rooms on one line', { line: arr('parts', { type: 'string' }), along: oneOf('ew: one y; ns: one x', ['ew', 'ns']) }, ['line', 'along']), obj('a mirror', { mirror: arr('two parts of one size', { type: 'string' }, { minItems: 2, maxItems: 2 }), about: str('a part of one room'), along: oneOf('ew or ns', ['ew', 'ns']) }, ['mirror', 'about', 'along']))),
+    rigid: bool('its parts are placed exactly and move as one block'), hold: bool('keep every at bearing as a rule'),
+  }, ['id', 'parts']),
+};
+const { $schema: _g, title: _t, ...graphBody } = GRAPH_SCHEMA as Schema & { properties: Record<string, Schema> };
+void _g; void _t;
+export const DESIGN_SCHEMA: Schema = {
+  $schema: 'https://json-schema.org/draft/2020-12/schema', title: 'artgen dungeon design', ...obj('a design: graph settings, the layouts it uses, its own rooms and ways, and joins between sockets and rooms', {
+    ...Object.fromEntries(Object.entries((graphBody as { properties: Record<string, Schema> }).properties).filter(([k]) => k !== 'rooms' && k !== 'ways')),
+    rooms: { ...(graphBody as { properties: Record<string, Schema> }).properties.rooms, description: 'rooms of its own (a graph\'s rooms)' },
+    ways: { ...(graphBody as { properties: Record<string, Schema> }).properties.ways, description: 'ways of its own (a graph\'s ways)' },
+    uses: arr('the layouts it uses', obj('a use', { id: str('its id (letters, digits, - and _)'), layout: str('a layout id'), params: { type: 'object', description: 'parameter values', additionalProperties: { type: 'number' } } }, ['id', 'layout'])),
+    bind: arr('the rooms a use\'s role holds', obj('a binding', { use: str('a use'), role: str('a role of its layout'), rooms: arr('room ids, or rooms with what they set (a graph room\'s keys)', anyOf('', { type: 'string' }, { type: 'object' })) }, ['use', 'role', 'rooms'])),
+    joins: arr('ways between sockets (use.socket) and rooms', obj('a join', { from: str('use.socket or a room'), to: str('use.socket or a room'), kind: oneOf('passage or door', ['passage', 'door']), doors: doorPair, style: oneOf('built (default) or natural', CORRIDOR_STYLES), hold: bool('keep its bearing as a rule (default: as the sockets say)') }, ['from', 'to'])),
+    layouts: arr('layouts of its own, over the library\'s', { type: 'object', description: 'a layout (artgen schema layout)' }),
+    blocks: arr('thematic blocks, for dungeon layout --nested: each laid out from its uses and rooms (and blocks within it), then the level from its blocks', obj('a block', { id: str('its id'), uses: arr('the uses in it', { type: 'string' }), rooms: arr('rooms of its own in it', { type: 'string' }), blocks: { type: 'array', description: 'blocks within it (the same keys)' } }, ['id'])),
+  }, ['uses']),
 };
 
 // ---- terrain map -----------------------------------------------------------------------------------------------------
@@ -215,7 +279,46 @@ export const SETTLEMENT_SCHEMA: Schema = {
   }, ['id', 'cols', 'rows', 'seed']),
 };
 
-export const SCHEMAS = { dungeon: DUNGEON_SCHEMA, map: MAP_SCHEMA, settlement: SETTLEMENT_SCHEMA, graph: GRAPH_SCHEMA } as const;
+// ---- settlement graph (settlement layout) ----------------------------------------------------------------------------
+
+const streetEnd = (what: string) => anyOf(`where it ${what}: a gate, on another street (a junction), or at a building's front`,
+  obj('a gate', { gate: str('the gate\'s id') }, ['gate']), obj('a junction', { street: str('the street\'s id') }, ['street']), obj('a building', { building: str('the building\'s id') }, ['building']));
+
+export const SETTLEMENT_GRAPH_SCHEMA: Schema = {
+  $schema: 'https://json-schema.org/draft/2020-12/schema', title: 'artgen settlement graph', ...obj('buildings, the streets they line, the distances and bearings between them, gates and a wall, laid out by `artgen settlement layout` (cells)', {
+    id: str('the settlement\'s id'), title: str('its title'), kind: oneOf('the settlement kind (default village)', St.SETTLEMENT_KINDS), ground: oneOf('the ground (default grass)', St.GROUNDS),
+    scale: obj('the scale (default 5 ft a cell)', { perCell: num(''), unit: str('') }),
+    buildings: arr('the buildings, and open areas', obj('a building', {
+      id: str('its id (letters, digits, ., - and _)'), w: num('cells along its front (the side that faces a street)'), h: num('cells back from its front'),
+      kind: oneOf('a building kind, or an area kind drawn as open ground (default house)', [...St.BUILDING_KINDS, ...St.AREA_KINDS]), shape: oneOf('the footprint (default rect)', St.BUILDING_SHAPES),
+      label: str('its label (default its id)'), turns: bool('may stand with its long side to the street (free: a quarter turn); the solver picks'),
+      at: obj('stands exactly here: its box\'s top-left (cells, the graph\'s frame); not moved', { x: num(''), y: num('') }, ['x', 'y']), angle: num('with at: degrees clockwise'),
+      outside: bool('stands outside the wall'), gap: num('its own target gap to its nearest neighbour (cells), in place of spacing.gap'),
+      draw: obj('building fields written into the file as given', Object.fromEntries(BUILDING_DRAW_KEYS.map(k => [k, { description: `the building's ${k}` }]))),
+    }, ['id', 'w', 'h'])),
+    streets: arr('the streets', obj('a street', {
+      id: str('its id (default s1, s2, …)'), kind: oneOf('the road kind (default street)', St.ROAD_KINDS), width: num('cells (default: the kind\'s width)'),
+      past: arr('the buildings it runs past, in order from its start: an id, or {id, side}; a building lines the first street that names it, and a later one runs past its front', anyOf('', { type: 'string' }, obj('a building and its side', { id: str('the building'), side: oneOf('left or right, walking from its start (default: alternating)', ['left', 'right']) }, ['id']))),
+      from: streetEnd('starts'), to: streetEnd('ends'), label: str('its name, drawn along it'),
+    }, ['past'])),
+    gates: arr('gates in the wall', obj('a gate', {
+      id: str('its id'), kind: oneOf('the gate kind (default gate)', St.GATE_KINDS), bearing: num('degrees clockwise from north: the side of the settlement it stands on'), label: str('a note by it'),
+      road: anyOf('the road out of it to the sheet\'s edge (default a highway); false for none', obj('a road', { kind: oneOf('', St.ROAD_KINDS), label: str('') }), { type: 'boolean' }),
+    }, ['id', 'bearing'])),
+    ties: arr('targets between two buildings', obj('a tie', { a: str('a building'), b: str('another'), distance: num('cells between their centres'), bearing: num('degrees clockwise from north: b lies this way from a'), hold: bool('weigh it ten times as hard') }, ['a', 'b'])),
+    wall: anyOf('the wall round the buildings (not those outside); default a stone wall when there are gates; false for none', obj('a wall', {
+      kind: oneOf('the wall kind (default stone)', St.WALL_KINDS), gap: num('cells between it and the nearest building (default 3)'),
+      towers: obj('towers', { shape: oneOf('', St.TOWER_SHAPES), size: num(''), at: anyOf('', { const: 'corners' }, arr('', { type: 'number' })), every: num('') }, ['shape']),
+      shape: oneOf('hull (default: round the buildings) or box', ['hull', 'box']),
+    }), { type: 'boolean' }),
+    spacing: obj('the space between buildings (cells)', { gap: num('the target between a building and its nearest neighbour (default 2)'), least: num('closer is a fault (default 1)'), setback: num('from a street\'s edge to the buildings that line it (default 1)') }),
+    bend: num('the most degrees a street turns at one building (default 25)'),
+    footprint: anyOf('a square\'s side in cells, or a polygon (x,y cells, the graph\'s frame) everything stays on', { type: 'number' }, arr('', { type: 'number' })),
+    margin: num('cells of sheet round what is drawn (default 6)'), seed: num('the seed (default 1)'), tries: int('layouts tried from the seed on (default 4); the lowest energy is kept'), steps: int('annealing steps a try (default: by size)'),
+  }, ['buildings']),
+};
+
+export const SCHEMAS = { dungeon: DUNGEON_SCHEMA, map: MAP_SCHEMA, settlement: SETTLEMENT_SCHEMA, graph: GRAPH_SCHEMA, layout: LAYOUT_SCHEMA, design: DESIGN_SCHEMA, 'settlement-graph': SETTLEMENT_GRAPH_SCHEMA } as const;
 export type SchemaKind = keyof typeof SCHEMAS;
 
 /** Every key path a schema declares (`rooms[].exits[].kind`), with its line, in the order declared. */
@@ -238,7 +341,9 @@ export function declares(s: Schema, path: string): boolean {
   const parts = path.split('.').flatMap(p => p.split(/(?=\[\])/));
   const step = (nodes: Schema[], part: string): Schema[] => nodes.flatMap(n => {
     const alts = [n, ...((n.anyOf as Schema[]) ?? []), ...((n.oneOf as Schema[]) ?? [])];
-    return alts.flatMap(a => (part === '[]' ? (a.items ? [a.items as Schema] : []) : a.properties && (a.properties as Record<string, Schema>)[part] ? [(a.properties as Record<string, Schema>)[part]] : []));
+    // a map (`additionalProperties` a schema) declares any key, each as that schema
+    return alts.flatMap(a => (part === '[]' ? (a.items ? [a.items as Schema] : []) : a.properties && (a.properties as Record<string, Schema>)[part] ? [(a.properties as Record<string, Schema>)[part]]
+      : a.additionalProperties && typeof a.additionalProperties === 'object' ? [a.additionalProperties as Schema] : []));
   });
   let nodes = [s];
   for (const p of parts) { nodes = step(nodes, p); if (!nodes.length) return false; }

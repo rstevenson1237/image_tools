@@ -4582,6 +4582,7 @@ $ artgen dungeon link crypt r1 corridor:out1 --from-side e --from-offset 1 --rou
 exit 0
 crypt: corridor 2: r1 → corridor:out1
   warning: corridors[2].to: joins out1 at 21.5,8.5, an end of it: with no `near` the junction is the point of out1 nearest the other end; set `near` ([x, y]) to meet it along a run [junction-at-bend]
+  warning: corridors[2]: crosses corridor 0, which leaves a room it leaves too, at 10.5,6.0 [passages-tangle]
 next: artgen dungeon render crypt
 
 $ artgen dungeon link crypt r1 corridor:out1 --from-side e --from-offset 1 --route around --via 10,8,12,8 --root <root> --json
@@ -4672,6 +4673,7 @@ $ artgen dungeon door crypt 1 from portcullis --root <root>
 exit 0
 crypt: 3 corridors
   warning: corridors[2].to: joins out1 at 21.5,8.5, an end of it: with no `near` the junction is the point of out1 nearest the other end; set `near` ([x, y]) to meet it along a run [junction-at-bend]
+  warning: corridors[2]: crosses corridor 0, which leaves a room it leaves too, at 10.5,6.0 [passages-tangle]
 next: artgen dungeon render crypt
 
 $ artgen dungeon door crypt 1 from portcullis --root <root> --json
@@ -7170,7 +7172,7 @@ D-a: corridor 5: r1 → 23,10
   warning: corridors[1]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
   warning: corridors[4]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
   warning: corridors[5]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
-  … 2 more (artgen dungeon check D-a)
+  … 3 more (artgen dungeon check D-a)
 next: artgen dungeon render --file <root>/pm/D.a.json
 
 $ artgen dungeon link r1 23,10 --file <root>/pm/D.a.json --json
@@ -7481,7 +7483,7 @@ D-a: label 0 "Hole"
   warning: corridors[1]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
   warning: corridors[4]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
   warning: corridors[5]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
-  … 2 more (artgen dungeon check D-a)
+  … 3 more (artgen dungeon check D-a)
 next: artgen dungeon render --file <root>/pm/D.a.json
 
 $ artgen dungeon label Hole --at 3,3 --file <root>/pm/D.a.json --json
@@ -7525,12 +7527,13 @@ exit 0
 
 $ artgen dungeon check --file <root>/pm/D.a.json
 exit 0
-pm/D.a.json: ok, 7 warnings
+pm/D.a.json: ok, 8 warnings
   warning: rooms[4]: r5 lies over r1 (6 cells); the wall between them is not drawn [rooms-overlap]
   warning: corridors[0]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
   warning: corridors[1]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
   warning: corridors[4]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
   warning: corridors[5]: runs through r5, which it does not join (set via or route, or link through r5) [through-room]
+  warning: corridors[5]: runs together with corridor 4, which leaves a room it leaves too, for 16.0 cells [passages-tangle]
   warning: corridors[1].doors: the door at 5.5,8.0 stands in open floor, not on a wall between two floors [door-off-wall]
   warning: corridors[4].doors: the secret at 6.0,6.5 stands in open floor, not on a wall between two floors [door-off-wall]
 
@@ -7566,6 +7569,11 @@ exit 0
       "path": "corridors[5]",
       "message": "runs through r5, which it does not join (set via or route, or link through r5)",
       "id": "through-room"
+    },
+    {
+      "path": "corridors[5]",
+      "message": "runs together with corridor 4, which leaves a room it leaves too, for 16.0 cells",
+      "id": "passages-tangle"
     },
     {
       "path": "corridors[1].doors",

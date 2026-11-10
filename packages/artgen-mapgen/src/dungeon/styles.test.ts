@@ -49,9 +49,9 @@ describe('#54 palette', () => {
     expect(plain).not.toContain('#17366b');
     expect(D.paletteOf(make())).toMatchObject({ ink: '#000000', wall: '#000000', floor: '#ffffff', paper: '#ffffff', rock: '#bdbdbd' });
   });
-  test('a colour is #rrggbb, and a key is one of the five', () => {
+  test('a colour is #rrggbb, and a key is one of the seven', () => {
     expect(() => make({ style: { hatch: 'none', band: 1, wall: 1, palette: { ink: 'blue' } } })).toThrow(/style.palette.ink: a colour #rrggbb/);
-    expect(() => make({ style: { hatch: 'none', band: 1, wall: 1, palette: { paper: '#ffffff' } as D.Palette } })).toThrow(/style.palette.paper: one of rock, floor, ink, grid, wall/);
+    expect(() => make({ style: { hatch: 'none', band: 1, wall: 1, palette: { roof: '#ffffff' } as D.Palette } })).toThrow(/style.palette.roof: one of rock, floor, ink, grid, wall, paper, partition/);
   });
 });
 

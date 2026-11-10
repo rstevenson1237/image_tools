@@ -111,7 +111,11 @@ _OPS: dict[str, tuple[tuple[str, ...], tuple[str, ...], dict[str, tuple[str, str
     "dungeon.render": (("dungeon", "render"), ("id",), {"file": ("--file", "value"), "ppu": ("--ppu", "value"), "layers": ("--layers", "value"), "format": ("--format", "value"), "fit": ("--fit", "value"), "page_scale": ("--page-scale", "value"), "crop": ("--crop", "value"), "room": ("--room", "repeat"), "margin": ("--margin", "value"), "out": ("--out", "value")}),
     "dungeon.facts": (("dungeon", "facts"), ("id",), {"file": ("--file", "value")}),
     "dungeon.sync": (("dungeon", "sync"), ("id",), {"origin": ("--origin", "value"), "from_": ("--from", "value"), "file": ("--file", "value")}),
-    "dungeon.layout": (("dungeon", "layout"), ("id",), {"file": ("--file", "value"), "graph": ("--graph", "value"), "footprint": ("--footprint", "value"), "keep_out": ("--keep-out", "value"), "fill": ("--fill", "value"), "passages": ("--passages", "value"), "detour": ("--detour", "value"), "seed": ("--seed", "value"), "tries": ("--tries", "value"), "width": ("--width", "value"), "clearance": ("--clearance", "value"), "force": ("--force", "switch")}),
+    "dungeon.layout": (("dungeon", "layout"), ("id",), {"file": ("--file", "value"), "graph": ("--graph", "value"), "design": ("--design", "value"), "layouts": ("--layouts", "value"), "footprint": ("--footprint", "value"), "keep_out": ("--keep-out", "value"), "fill": ("--fill", "value"), "passages": ("--passages", "value"), "detour": ("--detour", "value"), "seed": ("--seed", "value"), "tries": ("--tries", "value"), "width": ("--width", "value"), "clearance": ("--clearance", "value"), "pad": ("--pad", "value"), "origin": ("--origin", "value"), "partial": ("--partial", "switch"), "spokes": ("--spokes", "switch"), "nested": ("--nested", "switch"), "reach": ("--reach", "value"), "bounds": ("--bounds", "value"), "seeds": ("--seeds", "value"), "keep": ("--keep", "value"), "sheet": ("--sheet", "value"), "force": ("--force", "switch")}),
+    "dungeon.layouts": (("dungeon", "layouts"), (), {"layouts": ("--layouts", "value"), "tag": ("--tag", "value")}),
+    "dungeon.design": (("dungeon", "design"), (), {"design": ("--design", "value"), "out": ("--out", "value"), "layouts": ("--layouts", "value")}),
+    "dungeon.extract": (("dungeon", "extract"), ("id",), {"file": ("--file", "value"), "rooms": ("--rooms", "value"), "name": ("--name", "value"), "roles": ("--roles", "value"), "rigid": ("--rigid", "switch"), "spread": ("--spread", "value"), "title": ("--title", "value"), "tags": ("--tags", "value"), "out": ("--out", "value"), "force": ("--force", "switch")}),
+    "dungeon.trace": (("dungeon", "trace"), ("id",), {"file": ("--file", "value"), "image": ("--image", "value"), "channel": ("--channel", "value"), "floor": ("--floor", "value"), "share": ("--share", "value"), "pitch": ("--pitch", "value"), "origin": ("--origin", "value"), "min_pitch": ("--min-pitch", "value"), "min_room": ("--min-room", "value"), "force": ("--force", "switch")}),
     "settlement.list": (("settlement", "list"), (), {"file": ("--file", "value")}),
     "settlement.symbols": (("settlement", "symbols"), (), {}),
     "settlement.fixtures": (("settlement", "fixtures"), (), {}),
@@ -121,6 +125,7 @@ _OPS: dict[str, tuple[tuple[str, ...], tuple[str, ...], dict[str, tuple[str, str
     "settlement.style": (("settlement", "style"), ("id",), {"file": ("--file", "value"), "title": ("--title", "value"), "ground": ("--ground", "value"), "numbers": ("--numbers", "onoff"), "scale_bar": ("--scale-bar", "onoff"), "compass": ("--compass", "onoff"), "legend": ("--legend", "onoff"), "per_cell": ("--per-cell", "value"), "unit": ("--unit", "value"), "plan_cell": ("--plan-cell", "value"), "furniture": ("--furniture", "value"), "furniture_side": ("--furniture-side", "value")}),
     "settlement.grid": (("settlement", "grid"), ("id", "mode"), {"file": ("--file", "value"), "sub": ("--sub", "onoff")}),
     "settlement.gen": (("settlement", "gen"), ("id",), {"file": ("--file", "value"), "seed": ("--seed", "value"), "kind": ("--kind", "value"), "size": ("--size", "size"), "buildings": ("--buildings", "value"), "density": ("--density", "value"), "trees": ("--trees", "value"), "fields": ("--fields", "value"), "streets": ("--streets", "value"), "wall": ("--wall", "value"), "water": ("--water", "value"), "market": ("--market", "onoff"), "castle": ("--castle", "onoff"), "interiors": ("--interiors", "onoff")}),
+    "settlement.layout": (("settlement", "layout"), ("id",), {"file": ("--file", "value"), "graph": ("--graph", "value"), "seed": ("--seed", "value"), "tries": ("--tries", "value"), "gap": ("--gap", "value"), "least": ("--least", "value"), "setback": ("--setback", "value"), "bend": ("--bend", "value"), "kind": ("--kind", "value"), "force": ("--force", "switch")}),
     "settlement.edit": (("settlement", "edit"), ("id",), {"file": ("--file", "value"), "ops": ("--ops", "json")}),
     "settlement.building": (("settlement", "building"), ("id", "action", "target"), {"file": ("--file", "value"), "shape": ("--shape", "value"), "roof": ("--roof", "value"), "label": ("--label", "value"), "href": ("--href", "value"), "kind": ("--kind", "value"), "angle": ("--angle", "value"), "stories": ("--stories", "value"), "number": ("--number", "value"), "points": ("--points", "points"), "wing": ("--wing", "points"), "at": ("--at", "value"), "size": ("--size", "size"), "building_id": ("--building-id", "value")}),
     "settlement.interior": (("settlement", "interior"), ("id", "building", "action"), {"file": ("--file", "value"), "seed": ("--seed", "value"), "stories": ("--stories", "value")}),
@@ -579,9 +584,25 @@ class Ops:
         """Replace the entries of one origin from a regenerated file, keeping every other. (artgen dungeon sync)"""
         return self._op("dungeon.sync", [id], {"origin": origin, "from_": from_, "file": file})
 
-    def dungeon_layout(self, id: Optional[str] = None, *, file: Optional[str] = None, graph: Optional[str] = None, footprint: Optional[str] = None, keep_out: Optional[str] = None, fill: Optional[str] = None, passages: Optional[float] = None, detour: Optional[float] = None, seed: Optional[float] = None, tries: Optional[float] = None, width: Optional[float] = None, clearance: Optional[float] = None, force: Optional[bool] = None) -> "Result":
+    def dungeon_layout(self, id: Optional[str] = None, *, file: Optional[str] = None, graph: Optional[str] = None, design: Optional[str] = None, layouts: Optional[str] = None, footprint: Optional[str] = None, keep_out: Optional[str] = None, fill: Optional[str] = None, passages: Optional[float] = None, detour: Optional[float] = None, seed: Optional[float] = None, tries: Optional[float] = None, width: Optional[float] = None, clearance: Optional[float] = None, pad: Optional[float] = None, origin: Optional[str] = None, partial: Optional[bool] = None, spokes: Optional[bool] = None, nested: Optional[bool] = None, reach: Optional[float] = None, bounds: Optional[Literal["square", "hull"]] = None, seeds: Optional[float] = None, keep: Optional[float] = None, sheet: Optional[str] = None, force: Optional[bool] = None) -> "Result":
         """Lay rooms out to a graph inside a footprint and route a passage or a door for every way. (artgen dungeon layout)"""
-        return self._op("dungeon.layout", [id], {"file": file, "graph": graph, "footprint": footprint, "keep_out": keep_out, "fill": fill, "passages": passages, "detour": detour, "seed": seed, "tries": tries, "width": width, "clearance": clearance, "force": force})
+        return self._op("dungeon.layout", [id], {"file": file, "graph": graph, "design": design, "layouts": layouts, "footprint": footprint, "keep_out": keep_out, "fill": fill, "passages": passages, "detour": detour, "seed": seed, "tries": tries, "width": width, "clearance": clearance, "pad": pad, "origin": origin, "partial": partial, "spokes": spokes, "nested": nested, "reach": reach, "bounds": bounds, "seeds": seeds, "keep": keep, "sheet": sheet, "force": force})
+
+    def dungeon_layouts(self, *, layouts: Optional[str] = None, tag: Optional[str] = None) -> "Result":
+        """List the layouts (design patterns) a dungeon design can use: the bundled ones and the project's. (artgen dungeon layouts)"""
+        return self._op("dungeon.layouts", [], {"layouts": layouts, "tag": tag})
+
+    def dungeon_design(self, *, design: Optional[str] = None, out: Optional[str] = None, layouts: Optional[str] = None) -> "Result":
+        """Expand a dungeon design (layouts, bindings, joins) to a layout graph, and say what it made. (artgen dungeon design)"""
+        return self._op("dungeon.design", [], {"design": design, "out": out, "layouts": layouts})
+
+    def dungeon_extract(self, id: Optional[str] = None, *, file: Optional[str] = None, rooms: Optional[str] = None, name: Optional[str] = None, roles: Optional[str] = None, rigid: Optional[bool] = None, spread: Optional[float] = None, title: Optional[str] = None, tags: Optional[str] = None, out: Optional[str] = None, force: Optional[bool] = None) -> "Result":
+        """Abstract rooms of a dungeon into a layout (a design pattern) that designs can use. (artgen dungeon extract)"""
+        return self._op("dungeon.extract", [id], {"file": file, "rooms": rooms, "name": name, "roles": roles, "rigid": rigid, "spread": spread, "title": title, "tags": tags, "out": out, "force": force})
+
+    def dungeon_trace(self, id: Optional[str] = None, *, file: Optional[str] = None, image: Optional[str] = None, channel: Optional[Literal["r", "g", "b", "lum"]] = None, floor: Optional[float] = None, share: Optional[float] = None, pitch: Optional[str] = None, origin: Optional[str] = None, min_pitch: Optional[float] = None, min_room: Optional[float] = None, force: Optional[bool] = None) -> "Result":
+        """Measure a drawn map (PNG): its grid, its floor cells and its rooms as rectangles, as a draft dungeon. (artgen dungeon trace)"""
+        return self._op("dungeon.trace", [id], {"file": file, "image": image, "channel": channel, "floor": floor, "share": share, "pitch": pitch, "origin": origin, "min_pitch": min_pitch, "min_room": min_room, "force": force})
 
     def settlement_list(self, *, file: Optional[str] = None) -> "Result":
         """List the settlements in the project (or the one named by --file). (artgen settlement list)"""
@@ -618,6 +639,10 @@ class Ops:
     def settlement_gen(self, id: Optional[str] = None, *, file: Optional[str] = None, seed: Optional[float] = None, kind: Optional[Literal["hamlet", "village", "town", "city", "castle"]] = None, size: Optional[Union[str, Sequence[float]]] = None, buildings: Optional[float] = None, density: Optional[float] = None, trees: Optional[float] = None, fields: Optional[float] = None, streets: Optional[str] = None, wall: Optional[str] = None, water: Optional[str] = None, market: Optional[bool] = None, castle: Optional[bool] = None, interiors: Optional[bool] = None) -> "Result":
         """Lay a settlement out again from its seed, kind and generator settings; entries drawn by hand are kept. (artgen settlement gen)"""
         return self._op("settlement.gen", [id], {"file": file, "seed": seed, "kind": kind, "size": size, "buildings": buildings, "density": density, "trees": trees, "fields": fields, "streets": streets, "wall": wall, "water": water, "market": market, "castle": castle, "interiors": interiors})
+
+    def settlement_layout(self, id: Optional[str] = None, *, file: Optional[str] = None, graph: Optional[str] = None, seed: Optional[float] = None, tries: Optional[float] = None, gap: Optional[float] = None, least: Optional[float] = None, setback: Optional[float] = None, bend: Optional[float] = None, kind: Optional[Literal["hamlet", "village", "town", "city", "castle"]] = None, force: Optional[bool] = None) -> "Result":
+        """Lay a settlement out to a graph: buildings lining streets, at the spacing, distances and bearings asked, in a wall with gates. (artgen settlement layout)"""
+        return self._op("settlement.layout", [id], {"file": file, "graph": graph, "seed": seed, "tries": tries, "gap": gap, "least": least, "setback": setback, "bend": bend, "kind": kind, "force": force})
 
     def settlement_edit(self, id: Optional[str] = None, *, file: Optional[str] = None, ops: Optional[Any] = None) -> "Result":
         """Change a settlement's contents with a list of edits, in order. (artgen settlement edit)"""
@@ -727,8 +752,8 @@ class Ops:
         """The map, dungeon and settlement file format versions this artgen reads and writes. (artgen formats)"""
         return self._op("formats", [], {})
 
-    def schema(self, kind: Literal["dungeon", "map", "settlement", "graph"], *, keys: Optional[bool] = None, checks: Optional[bool] = None) -> "Result":
-        """The JSON Schema of a dungeon, map or settlement file, or of a layout graph; --keys lists every key with its line, --checks the dungeon check ids. (artgen schema)"""
+    def schema(self, kind: Literal["dungeon", "map", "settlement", "graph", "layout", "design", "settlement-graph"], *, keys: Optional[bool] = None, checks: Optional[bool] = None) -> "Result":
+        """The JSON Schema of a dungeon, map or settlement file, or of a layout or settlement graph; --keys lists every key with its line, --checks the dungeon check ids. (artgen schema)"""
         return self._op("schema", [kind], {"keys": keys, "checks": checks})
 
     def map_brief(self, id: str, *, text: Optional[str] = None, refs: Optional[Sequence[str]] = None) -> "Result":

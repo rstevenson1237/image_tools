@@ -69,7 +69,7 @@ your browser, so review there on the pull request instead. `update-pr` adds `.gi
 week it runs `update` and opens a pull request with the changelog and the files it kept because you edited them.
 
 Code that imports the engine (a game's runtime, a tool that builds maps in code) installs the library packages attached
-to each release: `npm install https://github.com/rstevenson1237/image_tools/releases/download/artgen-v0.13.0/artgen-mapgen-0.13.0.tgz`
+to each release: `npm install https://github.com/rstevenson1237/image_tools/releases/download/artgen-v0.14.0/artgen-mapgen-0.14.0.tgz`
 (`artgen-runtime`, `artgen-primitives`, `artgen-scene`, `artgen-workflow` and `artgen-mapgen`; no registry). `update` moves those URLs in
 your `package.json` to the new release.
 
