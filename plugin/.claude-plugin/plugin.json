@@ -1,5 +1,5 @@
 {
   "name": "artgen",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "description": "Pixel and voxel game art pipeline: art direction, autonomous asset production, review, approval and atlas export, plus tabletop terrain, dungeon and settlement maps (artgen)."
 }

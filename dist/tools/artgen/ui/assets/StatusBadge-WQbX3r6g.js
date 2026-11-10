@@ -1,1 +1,0 @@
-import{t as r,j as l,v as f,k as i,m,r as n,q as o}from"./index--s3rnnpA.js";var d=o("<span> </span>");function v(s,a){var t=d(),e=n(t);r(()=>{l(t,1,`badge ${a.status??""}`,"svelte-1o4fd4h"),f(t,"title",a.title),i(e,a.status)}),m(s,t)}export{v as S};

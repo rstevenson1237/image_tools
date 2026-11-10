@@ -1,9 +1,9 @@
 {
-  "release": "0.13.0",
-  "build": "0056fe4",
+  "release": "0.14.0",
+  "build": "c659e8f",
   "modules": {
     "core": {
-      "version": "0.13.0",
+      "version": "0.14.0",
       "summary": "tools/artgen basics: VERSION, the PNG rasteriser and the map label fonts",
       "default": true,
       "files": [
@@ -20,7 +20,7 @@
       ]
     },
     "art": {
-      "version": "0.13.0",
+      "version": "0.14.0",
       "summary": "the pixel-art pipeline: skills, agents and commands, the artgen CLI and MCP server, templates, the runtime",
       "default": true,
       "files": [
@@ -117,13 +117,14 @@
       ]
     },
     "maps": {
-      "version": "0.13.0",
+      "version": "0.14.0",
       "summary": "terrain, dungeon and settlement maps: skills, commands and the maps-only CLI (artgen-maps.js)",
       "default": true,
       "files": [
         "claude/commands/artgen-dungeon.md",
         "claude/commands/artgen-map.md",
         "claude/commands/artgen-settlement.md",
+        "claude/skills/dungeon-design/SKILL.md",
         "claude/skills/dungeon-map/SKILL.md",
         "claude/skills/settlement-map/SKILL.md",
         "claude/skills/terrain-map/SKILL.md",
@@ -131,7 +132,7 @@
       ]
     },
     "ui": {
-      "version": "0.13.0",
+      "version": "0.14.0",
       "summary": "the review UI (artgen ui): Asset Review, Art Direction, Asset Lab and the map editors in the browser",
       "requiresAny": [
         "art",
@@ -139,47 +140,47 @@
       ],
       "files": [
         "claude/commands/artgen-ui.md",
-        "tools/artgen/ui/assets/OperationForm-qVwjweoe.js",
+        "tools/artgen/ui/assets/OperationForm-KNMZO9RF.js",
         "tools/artgen/ui/assets/OperationForm-urIAO5WM.css",
         "tools/artgen/ui/assets/PixelPreview-CUmAocBd.css",
-        "tools/artgen/ui/assets/PixelPreview-DYC77-vH.js",
+        "tools/artgen/ui/assets/PixelPreview-CoIci3VV.js",
+        "tools/artgen/ui/assets/ProjectBar-Dmu70n6r.js",
         "tools/artgen/ui/assets/ProjectBar-Ds9oOC9e.css",
-        "tools/artgen/ui/assets/ProjectBar-hOBap4aQ.js",
         "tools/artgen/ui/assets/StatusBadge-COEhjoKq.css",
-        "tools/artgen/ui/assets/StatusBadge-WQbX3r6g.js",
-        "tools/artgen/ui/assets/artgen.worker-CrdLKGZv.js",
-        "tools/artgen/ui/assets/blocks-BeQCsnLQ.js",
-        "tools/artgen/ui/assets/clone-BqAYJ2xG.js",
+        "tools/artgen/ui/assets/StatusBadge-SNiqk3Yw.js",
+        "tools/artgen/ui/assets/artgen.worker-P1mykP3e.js",
+        "tools/artgen/ui/assets/blocks-hYoSFaGy.js",
+        "tools/artgen/ui/assets/clone-Cs8jLI8k.js",
         "tools/artgen/ui/assets/color-PiBLfBD_.js",
-        "tools/artgen/ui/assets/config-BlVLgJBD.js",
-        "tools/artgen/ui/assets/forms-gec7_DD_.js",
+        "tools/artgen/ui/assets/config-CpiD3QQq.js",
+        "tools/artgen/ui/assets/forms-ozqXkhoj.js",
         "tools/artgen/ui/assets/history-Y49eZWVC.css",
-        "tools/artgen/ui/assets/history.svelte-kyU2kwAc.js",
-        "tools/artgen/ui/assets/index--s3rnnpA.js",
-        "tools/artgen/ui/assets/index-BBiCF4U8.js",
-        "tools/artgen/ui/assets/index-BP-zYFWX.js",
+        "tools/artgen/ui/assets/history.svelte-D0gwJw99.js",
+        "tools/artgen/ui/assets/index-B-_nMjrf.js",
+        "tools/artgen/ui/assets/index-BB-LVMLU.js",
         "tools/artgen/ui/assets/index-BjB3UfnD.css",
         "tools/artgen/ui/assets/index-BxgjnQtz.css",
-        "tools/artgen/ui/assets/index-CQfkB_9h.js",
+        "tools/artgen/ui/assets/index-CG_tyupq.js",
         "tools/artgen/ui/assets/index-CWT5SPzJ.css",
-        "tools/artgen/ui/assets/index-CaEDtRo3.js",
         "tools/artgen/ui/assets/index-Cby0hyCs.css",
         "tools/artgen/ui/assets/index-Cpq7qhz_.css",
-        "tools/artgen/ui/assets/index-DBU8SzBa.js",
-        "tools/artgen/ui/assets/index-DHlCR8n0.js",
+        "tools/artgen/ui/assets/index-CvSTho3t.js",
+        "tools/artgen/ui/assets/index-DBzvFgjK.js",
         "tools/artgen/ui/assets/index-DTuB6X3f.css",
+        "tools/artgen/ui/assets/index-DXt6thh6.js",
+        "tools/artgen/ui/assets/index-DeKXFUKg.js",
         "tools/artgen/ui/assets/index-DungkdpS.css",
-        "tools/artgen/ui/assets/index-DzE03RRm.js",
+        "tools/artgen/ui/assets/index-H02D0l1G.js",
         "tools/artgen/ui/assets/index-_SYpa8T6.css",
         "tools/artgen/ui/assets/index-cG-YuqoA.css",
-        "tools/artgen/ui/assets/index-tzXbVC80.js",
+        "tools/artgen/ui/assets/index-tqKkjFjx.js",
         "tools/artgen/ui/assets/pixels-DMQxDjVP.js",
-        "tools/artgen/ui/assets/props-Bgo4ojqa.js",
+        "tools/artgen/ui/assets/props-Ck4TKDUS.js",
         "tools/artgen/ui/index.html"
       ]
     },
     "update-pr": {
-      "version": "0.13.0",
+      "version": "0.14.0",
       "summary": "a weekly workflow that opens a pull request when a new artgen release is out",
       "files": [
         "github/workflows/artgen-update.yml"
@@ -281,6 +282,7 @@
     "claude/commands/artgen-dungeon.md": "packages/artgen-dist/content/maps/commands/dungeon.md",
     "claude/commands/artgen-map.md": "packages/artgen-dist/content/maps/commands/map.md",
     "claude/commands/artgen-settlement.md": "packages/artgen-dist/content/maps/commands/settlement.md",
+    "claude/skills/dungeon-design/SKILL.md": "packages/artgen-dist/content/maps/skills/dungeon-design/SKILL.md",
     "claude/skills/dungeon-map/SKILL.md": "packages/artgen-dist/content/maps/skills/dungeon-map/SKILL.md",
     "claude/skills/settlement-map/SKILL.md": "packages/artgen-dist/content/maps/skills/settlement-map/SKILL.md",
     "claude/skills/terrain-map/SKILL.md": "packages/artgen-dist/content/maps/skills/terrain-map/SKILL.md",
